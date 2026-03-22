@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle } from "lucide-react";
+import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2 } from "lucide-react";
 
 export default function CalculatorsPage() {
   const [activeTab, setActiveTab] = useState("speedups");
