@@ -45,7 +45,7 @@ export default function MyStats() {
       {/* Discord Identity Header */}
       {session?.user && (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[50px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
           
           <img 
             src={`https://cdn.discordapp.com/avatars/${session.user.id}/${session.user.avatar}.png`} 
@@ -53,7 +53,7 @@ export default function MyStats() {
             className="w-24 h-24 rounded-full border-4 border-[#1e222b] shadow-lg object-cover"
           />
           <div className="text-center sm:text-left flex-1">
-            <div className="text-emerald-500 text-[10px] font-black tracking-[0.2em] uppercase mb-1">
+            <div className="text-cyan-500 text-[10px] font-black tracking-[0.2em] uppercase mb-1">
               Connected Unity Identity
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">{session.user.username}</h1>
@@ -71,7 +71,7 @@ export default function MyStats() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Governor Profiles</h2>
-          <button className="hidden sm:flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-lg font-bold transition-all text-sm">
+          <button className="hidden sm:flex items-center gap-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-4 py-2 rounded-lg font-bold transition-all text-sm">
             <Plus size={16} /> Link Governor
           </button>
         </div>
@@ -82,8 +82,8 @@ export default function MyStats() {
           ))}
 
           {/* Add New Profile Stub */}
-          <button className="bg-[#0f1115] border-2 border-dashed border-[#1e222b] hover:border-emerald-500/50 hover:bg-emerald-500/5 rounded-2xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-emerald-400 transition-all group min-h-[340px]">
-            <div className="w-16 h-16 rounded-full bg-[#1e222b] group-hover:bg-emerald-500/20 flex flex-col items-center justify-center mb-4 transition-colors">
+          <button className="bg-[#0f1115] border-2 border-dashed border-[#1e222b] hover:border-cyan-500/50 hover:bg-cyan-500/5 rounded-2xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-cyan-400 transition-all group min-h-[340px]">
+            <div className="w-16 h-16 rounded-full bg-[#1e222b] group-hover:bg-cyan-500/20 flex flex-col items-center justify-center mb-4 transition-colors">
               <Plus size={32} />
             </div>
             <span className="font-bold tracking-widest uppercase mb-2">Link Scanner Output</span>
@@ -120,12 +120,12 @@ function GovernorCard({ gov }) {
         {/* FRONT OF CARD (Main Metrics)                             */}
         {/* ======================================================== */}
         <div 
-          className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-[#13161c] to-[#0a0c0f] border border-[#1e222b] rounded-2xl flex flex-col hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all"
+          className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-[#13161c] to-[#0a0c0f] border border-[#1e222b] rounded-2xl flex flex-col hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] transition-all"
           style={{ backfaceVisibility: "hidden" }}
         >
           {/* Header */}
           <div className="bg-[#1e222b]/40 px-6 py-4 flex justify-between items-center border-b border-[#1e222b]">
-            <div className="font-mono text-emerald-400 font-bold">#{gov.id}</div>
+            <div className="font-mono text-cyan-400 font-bold">#{gov.id}</div>
             <div className="flex items-center gap-2">
               <span className="bg-[#0f1115] text-gray-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-[#1e222b]">KD {gov.kingdom}</span>
             </div>
@@ -141,7 +141,7 @@ function GovernorCard({ gov }) {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1e222b]">
               <div>
                 <div className="text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">Kill Points</div>
-                <div className="text-lg font-bold text-emerald-400">{gov.kp}</div>
+                <div className="text-lg font-bold text-cyan-400">{gov.kp}</div>
               </div>
               <div>
                 <div className="text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">Dead Troops</div>
@@ -151,7 +151,7 @@ function GovernorCard({ gov }) {
           </div>
 
           {/* Flip Indicator */}
-          <div className="text-center pb-4 text-gray-600 text-[10px] uppercase tracking-[0.2em] font-bold group-hover:text-emerald-500 transition-colors flex items-center justify-center gap-1">
+          <div className="text-center pb-4 text-gray-600 text-[10px] uppercase tracking-[0.2em] font-bold group-hover:text-cyan-500 transition-colors flex items-center justify-center gap-1">
             <RotateCcw size={10} /> Click to Flip
           </div>
         </div>
@@ -160,16 +160,16 @@ function GovernorCard({ gov }) {
         {/* BACK OF CARD (Deep Analytics)                            */}
         {/* ======================================================== */}
         <div 
-          className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#13161c] to-[#0f1115] border border-emerald-500/30 rounded-2xl flex flex-col shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]"
+          className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#13161c] to-[#0f1115] border border-cyan-500/30 rounded-2xl flex flex-col shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]"
           style={{ 
             backfaceVisibility: "hidden", 
             transform: "rotateY(180deg)" 
           }}
         >
           {/* Header (Back) */}
-          <div className="bg-emerald-500/10 px-6 py-4 flex justify-between items-center border-b border-emerald-500/20">
+          <div className="bg-cyan-500/10 px-6 py-4 flex justify-between items-center border-b border-cyan-500/20">
             <div className="font-bold text-white text-sm">Target Analytics</div>
-            <div className="bg-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-emerald-500/30">
+            <div className="bg-cyan-500/20 text-cyan-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-cyan-500/30">
               {gov.tier} Architecture
             </div>
           </div>
@@ -182,7 +182,7 @@ function GovernorCard({ gov }) {
             </div>
             <div className="flex justify-between items-end border-b border-[#1e222b] pb-2">
               <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Troop Power</span>
-              <span className="text-emerald-400 font-mono font-bold">{gov.troopPower}</span>
+              <span className="text-cyan-400 font-mono font-bold">{gov.troopPower}</span>
             </div>
             <div className="flex justify-between items-end border-b border-[#1e222b] pb-2">
               <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Tech Power</span>

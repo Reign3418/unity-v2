@@ -24,12 +24,12 @@ export default function UploadHub() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button 
             onClick={() => setActiveTab("spreadsheet")}
-            className="group relative bg-[#0f1115] border border-[#1e222b] hover:border-emerald-500/50 rounded-2xl p-8 text-left transition-all hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] overflow-hidden"
+            className="group relative bg-[#0f1115] border border-[#1e222b] hover:border-cyan-500/50 rounded-2xl p-8 text-left transition-all hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <FileSpreadsheet size={100} />
             </div>
-            <div className="w-14 h-14 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-6 text-emerald-400 group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-6 text-cyan-400 group-hover:scale-110 transition-transform">
               <FileSpreadsheet size={28} />
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Raw Spreadsheets</h3>
@@ -98,7 +98,7 @@ export default function UploadHub() {
            <select 
              value={targetKd}
              onChange={(e) => setTargetKd(e.target.value)}
-             className="bg-[#0a0c0f] border border-[#1e222b] text-emerald-400 focus:border-emerald-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer flex-1 transition-colors"
+             className="bg-[#0a0c0f] border border-[#1e222b] text-cyan-400 focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer flex-1 transition-colors"
            >
              <option value="3155">Kingdom 3155</option>
              <option value="3156">Kingdom 3156</option>
@@ -110,8 +110,8 @@ export default function UploadHub() {
         <DropZone 
           title="Baseline Snapshot" 
           description="Pre-KvK metrics"
-          icon={<Upload className="text-emerald-400" />}
-          theme="emerald"
+          icon={<Upload className="text-cyan-400" />}
+          theme="cyan"
           targetKd={targetKd}
         />
 
@@ -120,8 +120,8 @@ export default function UploadHub() {
         <DropZone 
           title="Current Trajectory" 
           description="Latest extraction log"
-          icon={<Sparkles className="text-emerald-400" />}
-          theme="emerald"
+          icon={<Sparkles className="text-cyan-400" />}
+          theme="cyan"
           targetKd={targetKd}
         />
       </div>
@@ -139,10 +139,10 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
   const fileInputRef = useRef(null);
   
   const themeColors = {
-    emerald: 'border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5',
+    cyan: 'border-cyan-500/30 hover:border-cyan-500 bg-cyan-500/5',
   };
   const textColors = {
-    emerald: 'text-emerald-400',
+    cyan: 'text-cyan-400',
   };
 
   const handleFileChange = (e) => {
@@ -190,7 +190,7 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
   };
 
   return (
-    <div className={`w-full flex-1 bg-[#0f1115] rounded-xl border transition-all duration-500 overflow-hidden flex flex-col h-[320px] shadow-lg ${uploadStatus === 'success' ? 'border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'border-[#1e222b]'}`}>
+    <div className={`w-full flex-1 bg-[#0f1115] rounded-xl border transition-all duration-500 overflow-hidden flex flex-col h-[320px] shadow-lg ${uploadStatus === 'success' ? 'border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]' : 'border-[#1e222b]'}`}>
       
       <div className="p-4 border-b border-[#1e222b] bg-[#0a0c0f] flex justify-between items-center">
         <div>
@@ -219,10 +219,10 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
             <span className="text-xs text-gray-500 mt-2 font-mono">Transmitting JSON Blocks</span>
           </div>
         ) : uploadStatus === "success" ? (
-          <div className="w-full h-full rounded-xl border border-emerald-500 bg-emerald-500/10 flex flex-col items-center justify-center text-emerald-400">
+          <div className="w-full h-full rounded-xl border border-cyan-500 bg-cyan-500/10 flex flex-col items-center justify-center text-cyan-400">
              <CheckCircle2 size={48} className="mb-3" />
              <div className="font-black text-xl">SUCCESS</div>
-             <div className="text-xs font-bold uppercase mt-1 tracking-wider text-emerald-600 bg-emerald-950 px-3 py-1 rounded">AWS Pipeline Sealed</div>
+             <div className="text-xs font-bold uppercase mt-1 tracking-wider text-cyan-600 bg-cyan-950 px-3 py-1 rounded">AWS Pipeline Sealed</div>
              <div className="text-[10px] text-gray-400 mt-4 font-mono">[{rowCount} Data Nodes Synchronized]</div>
           </div>
         ) : uploadStatus === "error" ? (
@@ -242,7 +242,7 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
 
       <div className="p-4 border-t border-[#1e222b] bg-gradient-to-t from-[#0a0c0f] to-transparent">
         <button className={`w-full py-2.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-          uploadStatus === 'success' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-[#1e222b]/50 text-gray-500 cursor-not-allowed'
+          uploadStatus === 'success' ? 'bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-[#1e222b]/50 text-gray-500 cursor-not-allowed'
         }`}>
            {uploadStatus === 'success' ? 'Ignition Sequence Complete' : 'Awaiting Encryption Key'}
         </button>

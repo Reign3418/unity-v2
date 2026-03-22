@@ -117,7 +117,7 @@ export default function CalculatorsPage() {
       <div className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-xl overflow-hidden px-2">
         <TabButton id="speedups" icon={Timer} label="Speedups" color="indigo" />
         <TabButton id="resources" icon={Wheat} label="Resources" color="amber" />
-        <TabButton id="ap" icon={Zap} label="Action Points" color="emerald" />
+        <TabButton id="ap" icon={Zap} label="Action Points" color="cyan" />
       </div>
 
       {/* Content Area */}
@@ -188,13 +188,13 @@ export default function CalculatorsPage() {
               {['food', 'wood', 'stone', 'gold'].map(type => (
                 <div key={type} className="border border-[#1e222b] bg-[#0a0c0f] rounded-xl p-5 relative overflow-hidden">
                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                    type === 'food' ? 'bg-amber-500' : type === 'wood' ? 'bg-emerald-600' : type === 'stone' ? 'bg-gray-400' : 'bg-yellow-400'
+                    type === 'food' ? 'bg-amber-500' : type === 'wood' ? 'bg-cyan-600' : type === 'stone' ? 'bg-gray-400' : 'bg-yellow-400'
                   }`}></div>
                   
                   <div className="flex justify-between items-center mb-4 pl-4 border-b border-[#1e222b] pb-3">
                     <h3 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
                        <Wheat size={16} className={
-                         type === 'food' ? 'text-amber-500' : type === 'wood' ? 'text-emerald-600' : type === 'stone' ? 'text-gray-400' : 'text-yellow-400'
+                         type === 'food' ? 'text-amber-500' : type === 'wood' ? 'text-cyan-600' : type === 'stone' ? 'text-gray-400' : 'text-yellow-400'
                        } /> 
                        {type}
                     </h3>
@@ -230,11 +230,11 @@ export default function CalculatorsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
           <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden">
             <h2 className="text-white font-bold mb-6 flex items-center gap-2 border-b border-[#1e222b] pb-4">
-              <Zap className="text-emerald-500" size={20} /> Action Point Reserve Math
+              <Zap className="text-cyan-500" size={20} /> Action Point Reserve Math
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {['50', '100', '500', '1000'].map(tier => (
-                <div key={tier} className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg flex flex-col items-center gap-2 group hover:border-emerald-500/40 transition-colors">
+                <div key={tier} className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg flex flex-col items-center gap-2 group hover:border-cyan-500/40 transition-colors">
                   <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{tier} AP Vials</div>
                   <input
                     type="number"
@@ -242,27 +242,27 @@ export default function CalculatorsPage() {
                     placeholder="0"
                     value={ap[tier] || ""}
                     onChange={(e) => handleApChange(tier, e.target.value)}
-                    className="w-full text-center bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-2 text-xl focus:border-emerald-500 outline-none"
+                    className="w-full text-center bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-2 text-xl focus:border-cyan-500 outline-none"
                   />
                 </div>
               ))}
             </div>
             
-            <div className="mt-8 bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg flex items-start gap-4">
-               <AlertCircle size={20} className="text-emerald-500 shrink-0 mt-0.5" />
-               <p className="text-xs text-emerald-400 font-bold leading-relaxed">
+            <div className="mt-8 bg-cyan-500/5 border border-cyan-500/20 p-4 rounded-lg flex items-start gap-4">
+               <AlertCircle size={20} className="text-cyan-500 shrink-0 mt-0.5" />
+               <p className="text-xs text-cyan-400 font-bold leading-relaxed">
                  During KvK and major hunting events, you should aim to maintain at least 150,000 Action Points in reserves to secure honor targets.
                </p>
             </div>
           </div>
 
-          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-emerald-500 rounded-xl p-6 shadow-xl sticky top-6">
-            <h2 className="text-emerald-400 font-black text-xl mb-6 uppercase tracking-widest text-center">Total Reserves</h2>
+          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-cyan-500 rounded-xl p-6 shadow-xl sticky top-6">
+            <h2 className="text-cyan-400 font-black text-xl mb-6 uppercase tracking-widest text-center">Total Reserves</h2>
             
-            <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-6 text-center shadow-[inset_0_0_30px_rgba(16,185,129,0.05)] border-l-4 border-l-emerald-500 mb-6">
+            <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-6 text-center shadow-[inset_0_0_30px_rgba(6,182,212,0.05)] border-l-4 border-l-cyan-500 mb-6">
               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Total Action Points</div>
               <div className="text-4xl font-black text-white font-mono break-all line-clamp-1">
-                {((ap['50']||0)*50 + (ap['100']||0)*100 + (ap['500']||0)*500 + (ap['1000']||0)*1000).toLocaleString()} <span className="text-emerald-500">AP</span>
+                {((ap['50']||0)*50 + (ap['100']||0)*100 + (ap['500']||0)*500 + (ap['1000']||0)*1000).toLocaleString()} <span className="text-cyan-500">AP</span>
               </div>
             </div>
 

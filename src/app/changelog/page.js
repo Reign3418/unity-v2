@@ -62,7 +62,7 @@ const CHANGELOG = [
 
 const TypeIcon = ({ type }) => {
   const map = {
-    new: <Zap size={12} className="text-emerald-400" />,
+    new: <Zap size={12} className="text-cyan-400" />,
     fix: <Wrench size={12} className="text-blue-400" />,
     security: <Shield size={12} className="text-amber-400" />,
   };
@@ -71,7 +71,7 @@ const TypeIcon = ({ type }) => {
 
 const TypeLabel = ({ type }) => {
   const colors = {
-    new: "text-emerald-400",
+    new: "text-cyan-400",
     fix: "text-blue-400",
     security: "text-amber-400",
   };

@@ -140,7 +140,7 @@ export default function NewPhoneWhoDis() {
                       <div className="font-bold text-white text-sm">{res.queriedName}</div>
                     </td>
                     <td className="py-4 px-6">
-                      {res.matchType === "Exact" && <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-2 py-1 rounded uppercase tracking-wider font-bold">Exact Match</span>}
+                      {res.matchType === "Exact" && <span className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] px-2 py-1 rounded uppercase tracking-wider font-bold">Exact Match</span>}
                       {res.matchType === "Historical" && <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] px-2 py-1 rounded uppercase tracking-wider font-bold">Historical Alias</span>}
                       {res.matchType === "Not Found" && <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] px-2 py-1 rounded uppercase tracking-wider font-bold">Not Found</span>}
                     </td>

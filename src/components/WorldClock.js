@@ -46,9 +46,9 @@ export default function WorldClock() {
       }).format(currentTime);
 
       return (
-        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-2xl p-8 flex-1 text-center shadow-[0_0_30px_rgba(16,185,129,0.05)] border-t-2 border-t-emerald-500 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors"></div>
-          <div className="text-emerald-500 font-bold uppercase tracking-widest text-xs mb-4">Universal Coordinated Time (UTC)</div>
+        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-2xl p-8 flex-1 text-center shadow-[0_0_30px_rgba(6,182,212,0.05)] border-t-2 border-t-cyan-500 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-[50px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors"></div>
+          <div className="text-cyan-500 font-bold uppercase tracking-widest text-xs mb-4">Universal Coordinated Time (UTC)</div>
           <div className="text-5xl font-mono text-white tracking-tight mb-2 drop-shadow-md">{utcTime}</div>
           <div className="text-gray-500 font-medium">{formatClock(currentTime, "UTC").date}</div>
         </div>
@@ -69,7 +69,7 @@ export default function WorldClock() {
       
       {/* Header */}
       <div className="flex items-center justify-center gap-3 mb-8 relative z-10">
-        <Globe className="text-emerald-500" size={28} />
+        <Globe className="text-cyan-500" size={28} />
         <h2 className="text-2xl font-bold text-white tracking-wide">Global Master Clock</h2>
       </div>
 

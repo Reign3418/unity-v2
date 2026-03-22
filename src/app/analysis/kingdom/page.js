@@ -83,7 +83,7 @@ export default function KingdomAnalysis() {
       return (
         <div className="bg-[#0f1115] border border-[#1e222b] p-4 rounded-lg shadow-xl outline-none">
           <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">{label}</p>
-          <p className="text-emerald-400 font-mono font-bold text-lg">{(payload[0].value / 1000000000).toFixed(3)}B Power</p>
+          <p className="text-cyan-400 font-mono font-bold text-lg">{(payload[0].value / 1000000000).toFixed(3)}B Power</p>
           <p className="text-gray-500 text-[10px] mt-1">Based on AWS Data Ingestion Matrix</p>
         </div>
       );
@@ -96,15 +96,15 @@ export default function KingdomAnalysis() {
       
       {/* Header Panel */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
             <div className="flex items-center gap-4">
                <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
-                 <BarChart2 className="text-emerald-500" size={32} />
+                 <BarChart2 className="text-cyan-500" size={32} />
                </div>
                <div>
                  <h1 className="text-3xl font-black text-white tracking-widest uppercase">Kingdom Analysis</h1>
-                 <p className="text-emerald-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Macro Data & Telemetry</p>
+                 <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Macro Data & Telemetry</p>
                </div>
             </div>
             
@@ -112,7 +112,7 @@ export default function KingdomAnalysis() {
                <select 
                  value={targetKd}
                  onChange={(e) => setTargetKd(e.target.value)}
-                 className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-emerald-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
+                 className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
                >
                  <option value="3155">Kingdom 3155</option>
                  <option value="3156">Kingdom 3156</option>
@@ -123,7 +123,7 @@ export default function KingdomAnalysis() {
                  disabled={isLoading}
                  className="p-2.5 bg-[#0a0c0f] hover:bg-[#1e222b] text-gray-400 hover:text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg"
                >
-                  <RefreshCw size={20} className={isLoading ? "animate-spin text-emerald-500" : ""} />
+                  <RefreshCw size={20} className={isLoading ? "animate-spin text-cyan-500" : ""} />
                </button>
             </div>
          </div>
@@ -131,7 +131,7 @@ export default function KingdomAnalysis() {
 
       {isLoading ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center">
-            <RefreshCw className="animate-spin text-emerald-500 w-8 h-8" />
+            <RefreshCw className="animate-spin text-cyan-500 w-8 h-8" />
         </div>
       ) : trends.length === 0 ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
@@ -146,7 +146,7 @@ export default function KingdomAnalysis() {
             <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-2">
-                        <TrendingUp size={18} className="text-emerald-500" />
+                        <TrendingUp size={18} className="text-cyan-500" />
                         <h2 className="text-white font-bold uppercase tracking-widest text-sm">Chronological Power Trajectory</h2>
                     </div>
                     <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold bg-[#13161c] px-3 py-1 rounded border border-[#1e222b]">
@@ -216,8 +216,8 @@ export default function KingdomAnalysis() {
             {/* Micro Stats Grid */}
             <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-5 shadow-lg flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                        <TrendingUp className="text-emerald-500" size={20} />
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                        <TrendingUp className="text-cyan-500" size={20} />
                     </div>
                     <div>
                         <div className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Total Server Power</div>

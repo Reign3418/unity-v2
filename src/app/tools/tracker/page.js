@@ -78,7 +78,7 @@ export default function ActivityTracker() {
       case "Missing":
         return <span className="flex items-center gap-1 text-rose-500 bg-rose-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserMinus size={12}/> Missing (Migrated)</span>;
       case "New":
-        return <span className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserPlus size={12}/> New Arrival</span>;
+        return <span className="flex items-center gap-1 text-cyan-500 bg-cyan-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserPlus size={12}/> New Arrival</span>;
       default:
         return null;
     }
@@ -164,7 +164,7 @@ export default function ActivityTracker() {
                         <div className="text-gray-600">-</div>
                       ) : (
                         <div>
-                          <div className={`font-mono text-sm font-bold ${gov.troopDelta === '0' ? 'text-gray-500' : 'text-emerald-400'}`}>
+                          <div className={`font-mono text-sm font-bold ${gov.troopDelta === '0' ? 'text-gray-500' : 'text-cyan-400'}`}>
                             {gov.troopDelta}
                           </div>
                           <div className="text-[10px] text-gray-600 mt-1 flex flex-col gap-0.5">

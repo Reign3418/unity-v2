@@ -41,7 +41,7 @@ export default function DkpResults() {
           case 'S': return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
           case 'A': return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
           case 'B': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-          case 'C': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          case 'C': return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
           default: return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
       }
   };
@@ -183,7 +183,7 @@ export default function DkpResults() {
                                </td>
                                <td className="px-4 py-3 text-right">
                                   {gov.kDelta > 0 ? (
-                                      <div className="font-bold text-emerald-500 font-mono">+{formatNum(gov.kDelta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.kDelta * 0.05))} DKP)</span></div>
+                                      <div className="font-bold text-cyan-500 font-mono">+{formatNum(gov.kDelta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.kDelta * 0.05))} DKP)</span></div>
                                   ) : (
                                       <div className="font-bold text-gray-600 font-mono">0</div>
                                   )}

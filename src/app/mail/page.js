@@ -111,14 +111,14 @@ export default function MailGenerator() {
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl flex flex-col h-full">
             <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
               <div className="flex flex-row items-center gap-2">
-                <Send className="text-emerald-500" size={18} />
+                <Send className="text-cyan-500" size={18} />
                 <span className="text-white font-bold text-sm tracking-widest uppercase">Draft Preview</span>
               </div>
               <button 
                 onClick={handleCopy}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
                   copied 
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' 
                   : 'bg-[#1e222b] text-gray-400 hover:text-white border border-transparent hover:border-gray-600'
                 }`}
               >

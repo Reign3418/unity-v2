@@ -12,7 +12,7 @@ const POST_TYPES = [
 ];
 
 const TYPE_COLORS = {
-  Recruitment: { border: "border-emerald-500/30", text: "text-emerald-400", bg: "bg-emerald-500/10" },
+  Recruitment: { border: "border-cyan-500/30", text: "text-cyan-400", bg: "bg-cyan-500/10" },
   Alliance: { border: "border-blue-500/30", text: "text-blue-400", bg: "bg-blue-500/10" },
   KvK: { border: "border-red-500/30", text: "text-red-400", bg: "bg-red-500/10" },
   Message: { border: "border-gray-500/30", text: "text-gray-400", bg: "bg-gray-500/10" },

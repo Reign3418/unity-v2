@@ -168,7 +168,7 @@ export default function KingdomVault() {
                 <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl flex flex-col">
                     <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
                         <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
-                        <ArrowUpRight size={18} className="text-emerald-500" />
+                        <ArrowUpRight size={18} className="text-cyan-500" />
                         Top Logistics Governors (Aggregated Assets)
                         </h2>
                     </div>
@@ -198,7 +198,7 @@ export default function KingdomVault() {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <div className="font-bold text-emerald-400 font-mono">{formatBillion(log.totalRSS)}</div>
+                                        <div className="font-bold text-cyan-400 font-mono">{formatBillion(log.totalRSS)}</div>
                                     </td>
                                     <td className="px-4 py-3 text-right text-gray-400 font-mono text-xs">{formatMillion(log.rawParsed?.Food)}</td>
                                     <td className="px-4 py-3 text-right text-gray-400 font-mono text-xs">{formatMillion(log.rawParsed?.Wood)}</td>

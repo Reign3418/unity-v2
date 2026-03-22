@@ -156,11 +156,11 @@ export default function GlobalAnalysis() {
                            <div className="col-span-2 bg-[#13161c] p-3 rounded-lg border border-[#1e222b] mt-2">
                                <div className="text-gray-500 text-[9px] uppercase font-bold tracking-wider mb-1">Global KP / Power Efficiency Ratio</div>
                                <div className="flex items-center justify-between">
-                                  <div className="text-emerald-400 font-mono font-bold capitalize">
+                                  <div className="text-cyan-400 font-mono font-bold capitalize">
                                       {((kd.totalKP / kd.totalPower) * 100).toFixed(2)}% Lethality
                                   </div>
                                   <div className="w-2/3 bg-[#0a0c0f] rounded-full h-1.5 overflow-hidden">
-                                     <div className="bg-emerald-500 h-full" style={{ width: `${Math.min(((kd.totalKP / kd.totalPower) * 100), 100)}%` }}></div>
+                                     <div className="bg-cyan-500 h-full" style={{ width: `${Math.min(((kd.totalKP / kd.totalPower) * 100), 100)}%` }}></div>
                                   </div>
                                </div>
                            </div>

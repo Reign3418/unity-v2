@@ -762,7 +762,7 @@ export async function deleteTenantConfig(guildId) {
 }
 
 // =========================================================================
-// COMMUNITY HUB & RECRUITING 
+// COMMUN.TY HUB & RECRUITING 
 // =========================================================================
 
 /**

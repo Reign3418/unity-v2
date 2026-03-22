@@ -207,7 +207,7 @@ export default function PreKvkRankings() {
                                </td>
                                <td className="px-4 py-3 text-right">
                                   {gov.pDelta > 0 ? (
-                                      <div className="font-bold text-emerald-500 font-mono">+{formatNum(gov.pDelta)}</div>
+                                      <div className="font-bold text-cyan-500 font-mono">+{formatNum(gov.pDelta)}</div>
                                   ) : gov.pDelta < 0 ? (
                                       <div className="font-bold text-rose-500 font-mono">{formatNum(gov.pDelta)}</div>
                                   ) : (

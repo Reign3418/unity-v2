@@ -135,7 +135,7 @@ export default function AdminConsole() {
             className="p-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-colors border border-[#1e222b]"
             title="Force Matrix Sync"
           >
-            <RefreshCw size={20} className={isLoading ? "animate-spin text-emerald-500" : ""} />
+            <RefreshCw size={20} className={isLoading ? "animate-spin text-cyan-500" : ""} />
           </button>
         </div>
       </div>
@@ -204,10 +204,10 @@ export default function AdminConsole() {
         {/* Right Column: User Clearance Logs */}
         <div className="lg:col-span-2 space-y-8">
           
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden shadow-xl border-t-2 border-t-emerald-500 relative">
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden shadow-xl border-t-2 border-t-cyan-500 relative">
             <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
               <div className="flex items-center gap-3">
-                <Users className="text-emerald-500" size={20} />
+                <Users className="text-cyan-500" size={20} />
                 <h2 className="text-white font-bold">Identity & Authorization Matrix</h2>
               </div>
               <span className="text-xs bg-[#1e222b] text-gray-400 px-3 py-1 rounded-full">{users.length} Active Identity Links</span>
@@ -256,24 +256,24 @@ export default function AdminConsole() {
 
               {/* Authorized Users */}
               <div>
-                <h3 className="text-emerald-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex items-center justify-between">
+                <h3 className="text-cyan-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex items-center justify-between">
                   <span>Verified Architecture Commanders</span>
                   <span className="text-gray-500">{users.filter(u => u.role !== "User").length} Commanders</span>
                 </h3>
                 <div className="space-y-3">
                   {users.filter(u => u.role !== "User" || u.isManualGuest).map(user => (
-                    <div key={user.discordId} className="bg-[#0a0c0f] border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors relative overflow-hidden">
-                      <div className="absolute right-0 top-0 h-full w-1 focus:outline-none bg-gradient-to-b from-emerald-500/50 to-transparent"></div>
+                    <div key={user.discordId} className="bg-[#0a0c0f] border border-cyan-500/20 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors relative overflow-hidden">
+                      <div className="absolute right-0 top-0 h-full w-1 focus:outline-none bg-gradient-to-b from-cyan-500/50 to-transparent"></div>
                       <div className="flex items-center gap-4 w-full sm:w-auto">
                         <img 
                           src={`https://cdn.discordapp.com/avatars/${user.discordId}/${session?.user?.avatar || ""}.png`} 
                           alt="Avatar" 
-                          className="w-10 h-10 rounded-full border border-emerald-500/30"
+                          className="w-10 h-10 rounded-full border border-cyan-500/30"
                           onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn.discordapp.com/embed/avatars/0.png" }}
                         />
                         <div>
                           <div className="text-white font-bold font-mono">{user.discordId}</div>
-                          <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")} | {user.governorIds?.length || 0} Linked Govs</div>
+                          <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")} | {user.governorIds?.length || 0} Linked Govs</div>
                         </div>
                       </div>
                       <button className="w-full sm:w-auto px-4 py-2 bg-[#1e222b] hover:bg-rose-500/20 text-gray-400 hover:text-rose-500 rounded-lg font-bold text-sm transition-all border border-transparent hover:border-rose-500/30">

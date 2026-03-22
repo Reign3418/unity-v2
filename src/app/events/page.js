@@ -19,7 +19,7 @@ export default function EventsSchedule() {
       type: "Competitive", 
       time: "Active (Stage 5)", 
       icon: Star, 
-      color: "emerald",
+      color: "cyan",
       desc: "Kill Event active. Do not hit farms. Honor the Kingdom Title rotation."
     },
     { 
@@ -51,12 +51,12 @@ export default function EventsSchedule() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
          {/* Left Side: Server Time / Warnings */}
          <div className="space-y-6">
-            <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg border-t-2 border-t-emerald-500">
+            <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg border-t-2 border-t-cyan-500">
                <div className="p-6 text-center">
-                  <Clock className="text-emerald-500 mx-auto mb-2" size={32} />
+                  <Clock className="text-cyan-500 mx-auto mb-2" size={32} />
                   <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Current UTC Time</div>
                   <div className="text-3xl font-black text-white font-mono tracking-widest">
-                     {new Date().toISOString().substring(11, 16)} <span className="text-emerald-500 text-lg">UTC</span>
+                     {new Date().toISOString().substring(11, 16)} <span className="text-cyan-500 text-lg">UTC</span>
                   </div>
                </div>
             </div>

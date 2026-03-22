@@ -32,7 +32,7 @@ export default function SettingsPage() {
       </div>
       <button
         onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? "bg-emerald-500" : "bg-[#1e222b]"}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? "bg-cyan-500" : "bg-[#1e222b]"}`}
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
       </button>
@@ -120,7 +120,7 @@ export default function SettingsPage() {
         onClick={handleSave}
         className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all shadow-lg ${
           saved
-            ? "bg-emerald-500 text-white border border-emerald-400"
+            ? "bg-cyan-500 text-white border border-cyan-400"
             : "bg-indigo-500 hover:bg-indigo-600 text-white border border-indigo-400/30"
         }`}
       >

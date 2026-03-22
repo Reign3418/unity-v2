@@ -25,11 +25,11 @@ export default function Sidebar() {
         href={href} 
         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative
           ${isActive 
-            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[inset_4px_0_0_0_rgba(16,185,129,1)]' 
+            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)]' 
             : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}
         `}
       >
-        <Icon size={18} className={isActive ? 'text-emerald-400' : 'text-gray-500 group-hover:text-emerald-400 transition-colors'} />
+        <Icon size={18} className={isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400 transition-colors'} />
         <span className="text-sm font-medium">{label}</span>
       </Link>
     );
@@ -46,8 +46,8 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-[#1e222b] bg-[#0a0c0f]">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Alliance Logo" className="w-9 h-9 object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
-          <span className="text-xl font-bold tracking-widest text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">UNITY</span>
+          <img src="/logo.png" alt="Alliance Logo" className="w-9 h-9 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]" />
+          <span className="text-xl font-bold tracking-widest text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]">UN.TY</span>
         </div>
       </div>
 

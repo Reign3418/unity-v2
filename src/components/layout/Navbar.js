@@ -34,7 +34,7 @@ export default function Navbar() {
       <div className="flex items-center gap-6">
         {/* Global Connection Status */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1e222b]/50 border border-[#2d323e]">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+          <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Secure Uplink</span>
           <Globe size={14} className="text-gray-500 ml-1" />
         </div>
@@ -63,7 +63,7 @@ export default function Navbar() {
               <img 
                 src={`https://cdn.discordapp.com/avatars/${session.user.id}/${session.user.avatar}.png`} 
                 alt="Profile" 
-                className="w-9 h-9 rounded-full border-2 border-[#1e222b] hover:border-emerald-500 transition-colors cursor-pointer object-cover"
+                className="w-9 h-9 rounded-full border-2 border-[#1e222b] hover:border-cyan-500 transition-colors cursor-pointer object-cover"
               />
             ) : (
               <div className="w-9 h-9 rounded-full bg-[#1e222b] text-gray-400 flex items-center justify-center font-bold border-2 border-[#2d323e]">

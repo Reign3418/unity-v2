@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }) {
   if (status === "loading") {
     return (
       <div className="flex bg-[#0f1115] min-h-screen items-center justify-center">
-        <div className="text-emerald-500 text-xl animate-pulse font-mono tracking-widest">
+        <div className="text-cyan-500 text-xl animate-pulse font-mono tracking-widest">
           ESTABLISHING SECURE UPLINK...
         </div>
       </div>
@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }) {
         
         {/* Dynamic Page Router injected here */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 bg-[#0a0c0f] relative scrollbar-thin scrollbar-thumb-[#1e222b]">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
           <div className="max-w-7xl mx-auto relative z-10 animate-fade-in">
             {children}
           </div>

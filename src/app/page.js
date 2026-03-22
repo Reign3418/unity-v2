@@ -13,18 +13,18 @@ export default function Home() {
     return (
       <div className="flex flex-col bg-[#0f1115] min-h-screen items-center justify-center relative overflow-hidden">
         {/* Background Effects */}
-        <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-emerald-500/10 to-transparent pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-cyan-500/10 to-transparent pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col items-center">
           <img 
             src="/logo.png" 
             alt="Alliance Logo" 
-            className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(16,185,129,0.5)] mb-8 animate-pulse-slow" 
+            className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] mb-8 animate-pulse-slow" 
           />
           
           <h1 className="text-5xl font-black text-white tracking-widest mb-4 drop-shadow-md">
-            UNITY <span className="text-emerald-500">2.0</span>
+            UN.TY <span className="text-cyan-500">2.0</span>
           </h1>
           <p className="text-gray-400 mb-12 font-medium tracking-wide">
             The Ghost Ship is online. Awaiting Commander authorization.
@@ -50,15 +50,15 @@ export default function Home() {
       
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-[#0f1115] border border-[#1e222b] p-10 text-center shadow-xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
         
-        <h2 className="text-3xl font-bold text-white mb-4">Welcome to Unity</h2>
+        <h2 className="text-3xl font-bold text-white mb-4">Welcome to Un.ty</h2>
         <p className="text-gray-400 max-w-2xl mx-auto mb-8 text-lg">
           We analyze scans, generate reports, track DKP, evaluate recruits, parse MGE layouts, and handle your mail generation entirely from the cloud.
         </p>
         <Link 
           href="/upload" 
-          className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)]"
+          className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
         >
           <UploadCloud size={20} />
           Start by Uploading a Scan
@@ -66,12 +66,12 @@ export default function Home() {
       </div>
 
       {/* SaaS Philosophy Cards */}
-      <div className="rounded-2xl border-t-2 border-emerald-500 bg-gradient-to-b from-[#13161c] to-[#0a0c0f] p-10 border border-[#1e222b] shadow-2xl relative overflow-hidden">
+      <div className="rounded-2xl border-t-2 border-cyan-500 bg-gradient-to-b from-[#13161c] to-[#0a0c0f] p-10 border border-[#1e222b] shadow-2xl relative overflow-hidden">
         
         <div className="text-center mb-12 relative z-10">
-          <h2 className="text-2xl font-bold text-emerald-400 mb-3">Intelligent Analytics, Zero Liability.</h2>
+          <h2 className="text-2xl font-bold text-cyan-400 mb-3">Intelligent Analytics, Zero Liability.</h2>
           <p className="text-gray-400 max-w-3xl mx-auto text-sm leading-relaxed">
-            Unity is a premium Data Visualization and Calculation Engine (SaaS) built exclusively for elite Kingdom Leadership, operating on a strict <span className="text-white font-bold">Bring Your Own Data (BYOD)</span> architecture.
+            Un.ty is a premium Data Visualization and Calculation Engine (SaaS) built exclusively for elite Kingdom Leadership, operating on a strict <span className="text-white font-bold">Bring Your Own Data (BYOD)</span> architecture.
           </p>
         </div>
 
@@ -89,12 +89,12 @@ export default function Home() {
           </div>
 
           {/* Card 2 (Highlight) */}
-          <div className="bg-[#0f1115] p-8 rounded-xl border border-emerald-500/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center relative transform -translate-y-2">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,1)]"></div>
-            <div className="w-14 h-14 mx-auto bg-[#0a0c0f] rounded-full border border-emerald-500/50 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-              <Zap className="text-emerald-400" size={24} fill="currentColor" fillOpacity={0.2} />
+          <div className="bg-[#0f1115] p-8 rounded-xl border border-cyan-500/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)] text-center relative transform -translate-y-2">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,1)]"></div>
+            <div className="w-14 h-14 mx-auto bg-[#0a0c0f] rounded-full border border-cyan-500/50 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+              <Zap className="text-cyan-400" size={24} fill="currentColor" fillOpacity={0.2} />
             </div>
-            <h3 className="text-emerald-400 font-bold mb-3">Secure SaaS Engine</h3>
+            <h3 className="text-cyan-400 font-bold mb-3">Secure SaaS Engine</h3>
             <p className="text-gray-400 text-xs leading-relaxed">
               Upload your raw exported game spreadsheets directly into the dashboard. Unity processes millions of rows in milliseconds securely in your browser.
             </p>

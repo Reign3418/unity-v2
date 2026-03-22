@@ -64,13 +64,13 @@ export default function PlayerHunter() {
       
       {/* Header Search Console */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
         
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
           
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
-              <Crosshair className="text-emerald-500" size={28} />
+              <Crosshair className="text-cyan-500" size={28} />
               Cross-Kingdom Hunter
             </h1>
             <p className="text-gray-400 text-sm max-w-xl">
@@ -85,7 +85,7 @@ export default function PlayerHunter() {
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
                 placeholder="Enter Governor ID (e.g. 135042283)"
-                className="w-full bg-[#0a0c0f] border-2 border-[#1e222b] focus:border-emerald-500 text-white pl-12 pr-4 py-4 rounded-xl font-mono text-lg transition-all outline-none placeholder:text-gray-600 shadow-inner"
+                className="w-full bg-[#0a0c0f] border-2 border-[#1e222b] focus:border-cyan-500 text-white pl-12 pr-4 py-4 rounded-xl font-mono text-lg transition-all outline-none placeholder:text-gray-600 shadow-inner"
               />
               <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
             </div>
@@ -95,8 +95,8 @@ export default function PlayerHunter() {
               disabled={isSearching || !searchId}
               className={`w-full mt-4 py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2 ${
                 isSearching 
-                  ? 'bg-emerald-500/20 text-emerald-500/50 cursor-not-allowed'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)]'
+                  ? 'bg-cyan-500/20 text-cyan-500/50 cursor-not-allowed'
+                  : 'bg-cyan-500 hover:bg-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]'
               }`}
             >
               {isSearching ? <Activity className="animate-spin" size={18} /> : <Search size={18} />}
@@ -112,10 +112,10 @@ export default function PlayerHunter() {
         <div className="space-y-6 animate-fade-in">
           
           {/* Identity Header */}
-          <div className="bg-[#13161c] border border-[#1e222b] border-l-4 border-l-emerald-500 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-lg">
+          <div className="bg-[#13161c] border border-[#1e222b] border-l-4 border-l-cyan-500 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-lg">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-[#0a0c0f] border-2 border-emerald-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                <ShieldAlert className="text-emerald-500" size={28} />
+              <div className="w-16 h-16 rounded-full bg-[#0a0c0f] border-2 border-cyan-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                <ShieldAlert className="text-cyan-500" size={28} />
               </div>
               <div>
                 <h2 className="text-2xl font-black text-white">{hunterResults.currentStatus.name}</h2>
@@ -132,7 +132,7 @@ export default function PlayerHunter() {
               </div>
               <div>
                  <div className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Latest Power</div>
-                 <div className="text-lg font-mono font-bold text-emerald-400 bg-[#0f1115] px-3 py-1 rounded border border-[#1e222b]">{hunterResults.currentStatus.power}</div>
+                 <div className="text-lg font-mono font-bold text-cyan-400 bg-[#0f1115] px-3 py-1 rounded border border-[#1e222b]">{hunterResults.currentStatus.power}</div>
               </div>
             </div>
           </div>
@@ -145,23 +145,23 @@ export default function PlayerHunter() {
              </div>
              
              <div className="p-8">
-                <div className="relative border-l border-emerald-500/30 ml-3 space-y-8">
+                <div className="relative border-l border-cyan-500/30 ml-3 space-y-8">
                   
                   {hunterResults.timeline.map((event, index) => (
                     <div key={index} className="relative pl-8 group">
                       {/* Timeline Node */}
                       <div className={`absolute -left-2 top-1 w-4 h-4 rounded-full border-2 transition-colors ${
                         index === 0 
-                          ? 'bg-emerald-500 border-white shadow-[0_0_10px_rgba(16,185,129,0.8)]' 
-                          : 'bg-[#0f1115] border-emerald-500/50 group-hover:bg-emerald-500/20 group-hover:border-emerald-500'
+                          ? 'bg-cyan-500 border-white shadow-[0_0_10px_rgba(6,182,212,0.8)]' 
+                          : 'bg-[#0f1115] border-cyan-500/50 group-hover:bg-cyan-500/20 group-hover:border-cyan-500'
                       }`}></div>
                       
                       {/* Event Content */}
                       <div className={`bg-[#13161c] border rounded-xl p-5 shadow-sm transition-all ${
-                        index === 0 ? 'border-emerald-500/30 shadow-[0_5px_20px_rgba(16,185,129,0.05)]' : 'border-[#1e222b] group-hover:border-gray-600'
+                        index === 0 ? 'border-cyan-500/30 shadow-[0_5px_20px_rgba(6,182,212,0.05)]' : 'border-[#1e222b] group-hover:border-gray-600'
                       }`}>
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                            <div className="flex items-center gap-2 text-emerald-500 text-sm font-bold uppercase tracking-wider">
+                            <div className="flex items-center gap-2 text-cyan-500 text-sm font-bold uppercase tracking-wider">
                               <CalendarDays size={16} /> {event.date}
                             </div>
                             {event.kingdom !== hunterResults.currentStatus.kingdom && (
@@ -185,7 +185,7 @@ export default function PlayerHunter() {
                             </div>
                             <div>
                                <div className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Extracted Power</div>
-                               <div className="text-emerald-400 font-mono font-bold">{event.power}</div>
+                               <div className="text-cyan-400 font-mono font-bold">{event.power}</div>
                             </div>
                             <div>
                                <div className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Engine Note</div>
