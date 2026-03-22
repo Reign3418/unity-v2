@@ -92,39 +92,145 @@ export default function UploadHub() {
         </div>
       </div>
 
-      {activeTab === 'spreadsheet' && (
-        <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 mb-8 flex items-center gap-6 shadow-xl max-w-4xl mx-auto">
-           <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest pl-2">Target Routing</label>
-           <select 
-             value={targetKd}
-             onChange={(e) => setTargetKd(e.target.value)}
-             className="bg-[#0a0c0f] border border-[#1e222b] text-cyan-400 focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer flex-1 transition-colors"
-           >
-             <option value="3155">Kingdom 3155</option>
-             <option value="3156">Kingdom 3156</option>
-           </select>
-        </div>
+      {activeTab === 'spreadsheet' ? (
+        <>
+          <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 mb-8 flex items-center gap-6 shadow-xl max-w-4xl mx-auto">
+             <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest pl-2">Target Routing</label>
+             <select 
+               value={targetKd}
+               onChange={(e) => setTargetKd(e.target.value)}
+               className="bg-[#0a0c0f] border border-[#1e222b] text-cyan-400 focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer flex-1 transition-colors"
+             >
+               <option value="3155">Kingdom 3155</option>
+               <option value="3156">Kingdom 3156</option>
+             </select>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 max-w-4xl mx-auto">
+            <DropZone 
+              title="Baseline Snapshot" 
+              description="Pre-KvK metrics"
+              icon={<Upload className="text-cyan-400" />}
+              theme="cyan"
+              targetKd={targetKd}
+            />
+
+            <div className="text-[#1e222b] hidden md:block"><ArrowRight size={32} /></div>
+
+            <DropZone 
+              title="Current Trajectory" 
+              description="Latest extraction log"
+              icon={<Sparkles className="text-cyan-400" />}
+              theme="cyan"
+              targetKd={targetKd}
+            />
+          </div>
+        </>
+      ) : (
+        <CloudExtractor />
       )}
+    </div>
+  );
+}
 
-      <div className="flex flex-col md:flex-row items-center justify-between gap-8 max-w-4xl mx-auto">
-        <DropZone 
-          title="Baseline Snapshot" 
-          description="Pre-KvK metrics"
-          icon={<Upload className="text-cyan-400" />}
-          theme="cyan"
-          targetKd={targetKd}
-        />
+// ---------------------------------------------------------------------------------
+// Sub-Component: Cloud Database Extractor
+// ---------------------------------------------------------------------------------
+function CloudExtractor() {
+  const [targetKd, setTargetKd] = useState("3155");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle");
+  const [downloadedRows, setDownloadedRows] = useState(0);
 
-        <div className="text-[#1e222b] hidden md:block"><ArrowRight size={32} /></div>
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncStatus("idle");
+    try {
+      const res = await fetch(`/api/aws/download?kd=${targetKd}`);
+      if (!res.ok) throw new Error("Failed to pull from AWS");
+      
+      const data = await res.json();
+      if (!data.roster) throw new Error("Empty Payload");
 
-        <DropZone 
-          title="Current Trajectory" 
-          description="Latest extraction log"
-          icon={<Sparkles className="text-cyan-400" />}
-          theme="cyan"
-          targetKd={targetKd}
-        />
-      </div>
+      // Generate CSV from JSON Array
+      const worksheet = XLSX.utils.json_to_sheet(data.roster);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `KD_${targetKd}_Live`);
+      
+      // Trigger browser download
+      XLSX.writeFile(workbook, `Unity_Live_Sync_KD${targetKd}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      setDownloadedRows(data.roster.length);
+      setSyncStatus("success");
+    } catch (e) {
+      console.error(e);
+      setSyncStatus("error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-8 shadow-xl max-w-3xl mx-auto relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+        
+        <div className="flex flex-col md:flex-row items-center gap-6 relative z-10 mb-8">
+            <div className="bg-[#1e222b] p-4 rounded-xl border border-[#2d323e]">
+                <Database className="text-indigo-400" size={36} />
+            </div>
+            <div className="flex-1">
+                <h3 className="text-white font-bold text-xl uppercase tracking-widest">DynamoDB Extraction</h3>
+                <p className="text-gray-400 text-sm mt-1">
+                    Retrieve the live state of the Unity server directly to your local machine as a structured `.xlsx` payload.
+                </p>
+            </div>
+        </div>
+
+        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-5 mb-8 flex items-center justify-between">
+           <div className="flex flex-col gap-1">
+               <label className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Target Node</label>
+               <select 
+                 value={targetKd}
+                 onChange={(e) => {
+                     setTargetKd(e.target.value);
+                     setSyncStatus("idle");
+                 }}
+                 className="bg-transparent text-indigo-400 font-mono font-bold outline-none cursor-pointer"
+               >
+                 <option value="3155" className="bg-[#0f1115]">Kingdom 3155</option>
+                 <option value="3156" className="bg-[#0f1115]">Kingdom 3156</option>
+               </select>
+           </div>
+           
+           <div className="text-right">
+               <div className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Status</div>
+               {isSyncing ? (
+                   <div className="text-yellow-500 font-mono font-bold text-sm flex items-center gap-2">
+                       <Loader2 size={14} className="animate-spin" /> DOWNLOADING
+                   </div>
+               ) : syncStatus === 'success' ? (
+                   <div className="text-green-500 font-mono font-bold text-sm">SEALED</div>
+               ) : syncStatus === 'error' ? (
+                   <div className="text-rose-500 font-mono font-bold text-sm">FAILED</div>
+               ) : (
+                   <div className="text-gray-400 font-mono font-bold text-sm">IDLE / SECURE</div>
+               )}
+           </div>
+        </div>
+
+        <button 
+           onClick={handleSync}
+           disabled={isSyncing}
+           className="w-full py-4 rounded-lg font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+           {isSyncing ? (
+               <><Loader2 className="animate-spin" size={20} /> Retrieving Payload...</>
+           ) : syncStatus === 'success' ? (
+               <><CheckCircle2 size={20} /> Sync Complete ({downloadedRows} Rows)</>
+           ) : (
+               <><Cloud size={20} /> Initialize Local Download</>
+           )}
+        </button>
     </div>
   );
 }
@@ -244,7 +350,7 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
         <button className={`w-full py-2.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 transition-all ${
           uploadStatus === 'success' ? 'bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-[#1e222b]/50 text-gray-500 cursor-not-allowed'
         }`}>
-           {uploadStatus === 'success' ? 'Ignition Sequence Complete' : 'Awaiting Encryption Key'}
+           {uploadStatus === 'success' ? 'Ignition Sequence Complete' : 'Awaiting Data Payload'}
         </button>
       </div>
 

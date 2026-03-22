@@ -24,8 +24,8 @@ export default function AdminConsole() {
   const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
-    // Only fetch if session is valid and verified as Leader
-    if (session?.user?.isLeader || session?.user?.role === "Admin") {
+    // Only fetch if session is valid and verified as Super Admin
+    if (session?.user?.isSuperAdmin) {
       // If we have data from the last 60 seconds, don't brutally hammer AWS
       if (globalMatrixCache && Date.now() - globalMatrixTimestamp < 60000) {
         setIsLoading(false);
@@ -89,14 +89,14 @@ export default function AdminConsole() {
     }
   };
 
-  // If somehow a non-leader routes here, block the UI entirely
-  if (session && !session.user?.isLeader && session.user?.role !== "Admin") {
+  // If somehow a non-master admin routes here, block the UI entirely
+  if (session && !session.user?.isSuperAdmin) {
     return (
       <div className="flex bg-[#0f1115] min-h-[80vh] items-center justify-center">
         <div className="text-center">
           <ShieldAlert size={64} className="text-rose-500 mx-auto mb-4" />
           <h1 className="text-4xl font-black text-rose-500 tracking-widest mb-2">ACCESS DENIED</h1>
-          <p className="text-gray-400">R4/R5 Clearance Required.</p>
+          <p className="text-gray-400">Master Creator Clearance Required.</p>
         </div>
       </div>
     );

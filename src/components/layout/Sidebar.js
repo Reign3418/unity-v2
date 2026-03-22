@@ -81,7 +81,7 @@ export default function Sidebar() {
 
           <SectionTitle>System</SectionTitle>
           <NavItem href="/settings" icon={Settings} label="Settings" />
-          <NavItem href="/admin" icon={Lock} label="Admin Controls" hidden={!isLeader} />
+          <NavItem href="/admin" icon={Lock} label="Admin Controls" hidden={!session?.user?.isSuperAdmin} />
         </div>
       </div>
 

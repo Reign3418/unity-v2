@@ -292,8 +292,24 @@ export async function getKingdomDeltas(kingdomId) {
         }
         
         const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S).sort((a, b) => new Date(b) - new Date(a));
+        
+        // Target a 24-hour baseline for accurate growth tracking, ignoring micro-scans
+        const latestParsed = new Date(dates[0]);
+        const targetTime = latestParsed.getTime() - (24 * 60 * 60 * 1000);
+        
+        let bestMatchIndex = 1;
+        let smallestDiff = Infinity;
+
+        for (let i = 1; i < dates.length; i++) {
+            const timeDiff = Math.abs(new Date(dates[i]).getTime() - targetTime);
+            if (timeDiff < smallestDiff) {
+                smallestDiff = timeDiff;
+                bestMatchIndex = i;
+            }
+        }
+
         const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s]/g, "_");
-        const previousDate = String(dates[1]).replace(/[.#$\/\[\]\s]/g, "_");
+        const previousDate = String(dates[bestMatchIndex]).replace(/[.#$\/\[\]\s]/g, "_");
         
         const getSnapshot = async (dateStr) => {
             const params = {

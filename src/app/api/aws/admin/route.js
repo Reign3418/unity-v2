@@ -5,8 +5,8 @@ import { getAllUsers, getAllTenants, purgeKingdomDatabase } from "@/lib/awsDynam
 export async function GET(req) {
   try {
     const session = await auth();
-    if (!session || (!session.user.isLeader && session.user.role !== "Admin")) {
-      return NextResponse.json({ error: "Unauthorized. Level 5 Clearance Required." }, { status: 403 });
+    if (!session || !session.user.isSuperAdmin) {
+      return NextResponse.json({ error: "Unauthorized. Master Creator Clearance Required." }, { status: 403 });
     }
 
     // Run both DynamoDB scans continuously over parallel threads
@@ -35,8 +35,8 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const session = await auth();
-    if (!session || (!session.user.isLeader && session.user.role !== "Admin")) {
-      return NextResponse.json({ error: "Unauthorized. Level 5 Clearance Required." }, { status: 403 });
+    if (!session || !session.user.isSuperAdmin) {
+      return NextResponse.json({ error: "Unauthorized. Master Creator Clearance Required." }, { status: 403 });
     }
 
     const body = await req.json();

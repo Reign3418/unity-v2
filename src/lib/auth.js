@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
-import { getTenantConfig, getUserConfig, getGlobalConfig } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -36,11 +36,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           let activeTenant = null;
           let ownedGuilds = [];
 
+          let computedSuperAdmin = false;
           // Master Override from Database (GLOBAL_CONFIG -> SUPER_ADMINS)
           const masterConfigStr = await getGlobalConfig('SUPER_ADMINS');
-          const isSuperAdmin = masterConfigStr && masterConfigStr.includes(profile.id);
+          const isDbSuperAdmin = masterConfigStr && masterConfigStr.includes(profile.id);
 
-          if (isSuperAdmin || profile.username === 'reign3418' || profile.username === 'reign') {
+          if (isDbSuperAdmin || profile.username === 'reign3418' || profile.username === 'reign') {
+              computedSuperAdmin = true;
               isLeader = true;
               isMember = true;
               activeTenant = {
@@ -102,8 +104,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const userConfig = await getUserConfig(profile.id);
 
+          // Card-Based Key Initialization
+          let cardKingdoms = [];
+          if (userConfig && userConfig.governorIds) {
+              for (const grid of userConfig.governorIds) {
+                  const stats = await getGovernorStats(grid);
+                  if (stats && stats.lastSeenKingdom && stats.lastSeenKingdom !== 'Unknown') {
+                      cardKingdoms.push(String(stats.lastSeenKingdom));
+                  }
+              }
+          }
+
+          if (!activeTenant) {
+              // If they have no discord tenant, but THEY DO HAVE linked cards, create a virtual tenant for them!
+              if (cardKingdoms.length > 0) {
+                  isMember = true;
+                  activeTenant = {
+                      guildId: "virtual_card",
+                      kingdomId: cardKingdoms[0], // Default to their first linked card's KD
+                      leadershipRoleId: "none",
+                      allowedKingdoms: Array.from(new Set(cardKingdoms))
+                  };
+              }
+          } else {
+              // If they DO have a discord tenant, merge their card kingdoms into their allowed list natively
+              const merged = new Set([...(activeTenant.allowedKingdoms || []), ...cardKingdoms]);
+              activeTenant.allowedKingdoms = Array.from(merged);
+              
+              // If the explicit tenant has no native kingdom mapped, set it to the card's native kingdom
+              if (!activeTenant.kingdomId && cardKingdoms.length > 0) {
+                  activeTenant.kingdomId = cardKingdoms[0];
+              }
+          }
+
           token.isMember = isMember;
           token.isLeader = isLeader;
+          token.isSuperAdmin = computedSuperAdmin;
           token.tenant = activeTenant;
           token.governorConfig = userConfig;
           token.ownedGuilds = ownedGuilds;
@@ -120,6 +156,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.avatar = token.avatar;
         session.user.isMember = token.isMember;
         session.user.isLeader = token.isLeader;
+        session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.tenant = token.tenant;
         session.user.governorConfig = token.governorConfig;
         session.user.ownedGuilds = token.ownedGuilds;
