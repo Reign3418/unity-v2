@@ -196,6 +196,47 @@ export async function getKingdomRoster(kingdomId) {
 }
 
 /**
+ * O(1) Fetch Engine: Retrieves the chronological Macro-Analytics stringified metadata for all Scans in a Kingdom.
+ * Extremely high-performance querying for Recharts processing.
+ */
+export async function getKingdomTrends(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    try {
+        const dateParams = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: { ':pk': { S: `DATES#${kingdomId}` } }
+        };
+
+        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+        
+        if (!dateResult.Items || dateResult.Items.length === 0) {
+            return [];
+        }
+        
+        const trends = dateResult.Items.map(i => {
+            const attrs = i.attributes?.M || {};
+            let summary = null;
+            if (attrs.summary?.S) {
+               try { summary = JSON.parse(attrs.summary.S); } catch (e) {}
+            }
+            return {
+                scanDate: attrs.scanDate?.S,
+                rowCount: parseInt(attrs.rowCount?.N || 0),
+                summary: summary
+            };
+        }).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate)); // Chronological ascending for Recharts plotting
+        
+        return trends;
+    } catch (e) {
+        console.error("AWS Kingdom Trends Error", e);
+        return [];
+    }
+}
+
+/**
  * Advanced AI Engine: Fetches the last TWO AWS Scans for a Kingdom and performs a chronological mapping
  * differential to return a Roster payload with native `powerDelta` and missing attributes.
  */
@@ -1059,7 +1100,28 @@ export async function uploadKingdomRoster(kingdomId, rosterArray) {
     const scanDate = new Date().toISOString();
     const dateKey = scanDate.replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
     
-    // 1. Write the Master DATES pointer so queries know the 'Latest' scan date
+    // Generate macro-analytics summary to embed into the Date Pointer for O(1) Chart loading
+    const summaryData = {
+        totalPower: 0,
+        totalKP: 0,
+        activeGovernors: 0,
+        alliances: {}
+    };
+
+    rosterArray.forEach(p => {
+        const power = parseInt(p.power || p.Power || 0);
+        const kp = parseInt(p.killPoints || p.KillPoints || 0);
+        const tag = p.alliance || p.Alliance || 'None';
+        
+        summaryData.totalPower += power;
+        summaryData.totalKP += kp;
+        if (power > 0) summaryData.activeGovernors++;
+        
+        if (!summaryData.alliances[tag]) summaryData.alliances[tag] = 0;
+        summaryData.alliances[tag] += power;
+    });
+
+    // 1. Write the Master DATES pointer so queries know the 'Latest' scan date and hold trend metadata
     const dateParams = {
         TableName: tableName,
         Item: {
@@ -1068,7 +1130,8 @@ export async function uploadKingdomRoster(kingdomId, rosterArray) {
             'attributes': {
                 M: {
                     'scanDate': { S: scanDate },
-                    'rowCount': { N: String(rosterArray.length) }
+                    'rowCount': { N: String(rosterArray.length) },
+                    'summary': { S: JSON.stringify(summaryData) }
                 }
             }
         }
