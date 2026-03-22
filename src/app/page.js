@@ -65,6 +65,9 @@ export default function Home() {
         </Link>
       </div>
 
+      {/* Global Master Clock */}
+      <WorldClock />
+
       {/* SaaS Philosophy Cards */}
       <div className="rounded-2xl border-t-2 border-cyan-500 bg-gradient-to-b from-[#13161c] to-[#0a0c0f] p-10 border border-[#1e222b] shadow-2xl relative overflow-hidden">
         
@@ -96,7 +99,7 @@ export default function Home() {
             </div>
             <h3 className="text-cyan-400 font-bold mb-3">Secure SaaS Engine</h3>
             <p className="text-gray-400 text-xs leading-relaxed">
-              Upload your raw exported game spreadsheets directly into the dashboard. Unity processes millions of rows in milliseconds securely in your browser.
+              Upload your raw exported game spreadsheets directly into the dashboard. Un.ty processes millions of rows in milliseconds securely in your browser.
             </p>
           </div>
 
@@ -113,9 +116,6 @@ export default function Home() {
 
         </div>
       </div>
-
-      {/* Global Master Clock */}
-      <WorldClock />
 
     </div>
   );
