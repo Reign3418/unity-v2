@@ -82,14 +82,18 @@ export default function WorldClock() {
       return (
         <div className={`bg-[#0a0c0f] border border-[#1e222b] rounded-2xl p-8 flex-1 text-center shadow-[0_0_30px_rgba(6,182,212,0.05)] border-t-2 ${frozenTime ? 'border-t-rose-500' : 'border-t-cyan-500'} relative overflow-hidden group transition-all`}>
           <div className={`absolute top-0 right-0 w-32 h-32 blur-[50px] pointer-events-none transition-colors ${frozenTime ? 'bg-rose-500/20 group-hover:bg-rose-500/30' : 'bg-cyan-500/10 group-hover:bg-cyan-500/20'}`}></div>
-          <div className={`${frozenTime ? 'text-rose-500' : 'text-cyan-500'} font-bold uppercase tracking-widest text-xs mb-4 transition-colors`}>Universal Coordinated Time (UTC)</div>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4">
+            <div className={`${frozenTime ? 'text-rose-500' : 'text-cyan-500'} font-bold uppercase tracking-widest text-xs transition-colors`}>Universal Coordinated Time (UTC)</div>
+            {frozenTime && (
+               <div className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-rose-500/30 shadow-sm">
+                 Time Frozen
+               </div>
+            )}
+          </div>
+
           <div className={`text-5xl font-mono text-white tracking-tight mb-2 drop-shadow-md ${frozenTime ? 'opacity-80' : ''}`}>{utcTime}{frozenTime ? ':00' : ''}</div>
           <div className="text-gray-500 font-medium">{formatClock(displayTime, "UTC").date}</div>
-          {frozenTime && (
-             <div className="absolute top-4 right-4 text-[10px] bg-rose-500/20 text-rose-400 px-2 py-1 rounded font-bold uppercase tracking-widest border border-rose-500/30">
-               Time Frozen
-             </div>
-          )}
         </div>
       );
     }

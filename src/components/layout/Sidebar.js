@@ -89,7 +89,7 @@ export default function Sidebar() {
       <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-[#0a0c0f] via-[#0f1115] border-t border-[#1e222b]">
         {session ? (
           <button 
-            onClick={() => signOut()}
+            onClick={() => signOut({ callbackUrl: '/' })}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all font-semibold"
           >
             <LogOut size={16} />
