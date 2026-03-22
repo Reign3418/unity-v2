@@ -51,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   guildId: "master",
                   kingdomId: "3155",
                   leadershipRoleId: "master",
-                  allowedKingdoms: ["3155", "3156"]
+                  allowedKingdoms: ["3155"]
               };
           }
 

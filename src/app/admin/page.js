@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw 
+  UserMinus, Activity, RefreshCw, Bot, BotOff 
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
@@ -56,6 +56,52 @@ export default function AdminConsole() {
       console.error(e);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const toggleTenantAi = async (guildId, currentStatus) => {
+    try {
+      const newStatus = !currentStatus;
+      // Optimistic update
+      setTenants(prev => prev.map(t => t.guildId === guildId ? { ...t, globalAiAccess: newStatus } : t));
+      
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "TOGGLE_TENANT_AI", payload: { guildId, newStatus } })
+      });
+      if (!res.ok) throw new Error("Failed to update tenant AI access");
+      
+      // Update cache
+      if (globalMatrixCache) {
+        globalMatrixCache.tenants = globalMatrixCache.tenants.map(t => t.guildId === guildId ? { ...t, globalAiAccess: newStatus } : t);
+      }
+    } catch (e) {
+      alert(e.message);
+      fetchAdminMatrix(); // Revert on failure
+    }
+  };
+
+  const toggleUserAi = async (discordId, currentStatus) => {
+    try {
+      const newStatus = !currentStatus;
+      // Optimistic update
+      setUsers(prev => prev.map(u => u.discordId === discordId ? { ...u, globalAiAccess: newStatus } : u));
+      
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "TOGGLE_USER_AI", payload: { discordId, newStatus } })
+      });
+      if (!res.ok) throw new Error("Failed to update user AI access");
+      
+      // Update cache
+      if (globalMatrixCache) {
+        globalMatrixCache.users = globalMatrixCache.users.map(u => u.discordId === discordId ? { ...u, globalAiAccess: newStatus } : u);
+      }
+    } catch (e) {
+      alert(e.message);
+      fetchAdminMatrix(); // Revert on failure
     }
   };
 
@@ -225,19 +271,28 @@ export default function AdminConsole() {
                   {tenants.map(tenant => (
                     <div key={tenant.guildId} className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between gap-3 group relative overflow-hidden">
                       <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-500/5 to-transparent pointer-events-none"></div>
-                      <div className="flex items-center gap-4 w-full">
-                         <Database className="text-indigo-500 opacity-50 block" size={24} />
-                         <div>
-                            <div className="text-white font-bold text-sm tracking-widest font-mono">GUILD: {tenant.guildId}</div>
-                            <div className="flex items-center gap-4 mt-1">
-                               <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
-                                  Default KD: {tenant.kingdomId}
-                               </span>
-                               <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
-                                  Commander Role ID: {tenant.leadershipRoleId}
-                               </span>
-                            </div>
+                      <div className="flex items-center justify-between gap-4 w-full z-10">
+                         <div className="flex items-center gap-4">
+                           <Database className="text-indigo-500 opacity-50 block" size={24} />
+                           <div>
+                              <div className="text-white font-bold text-sm tracking-widest font-mono">GUILD: {tenant.guildId}</div>
+                              <div className="flex items-center gap-4 mt-1">
+                                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
+                                    Default KD: {tenant.kingdomId}
+                                 </span>
+                                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
+                                    Commander Role ID: {tenant.leadershipRoleId}
+                                 </span>
+                              </div>
+                           </div>
                          </div>
+                         <button 
+                            onClick={() => toggleTenantAi(tenant.guildId, tenant.globalAiAccess)}
+                            className={`p-2 rounded-lg border transition-all ${tenant.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}
+                            title={tenant.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
+                         >
+                            {tenant.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
+                         </button>
                       </div>
                       <div className="w-full h-[1px] bg-[#1e222b] my-1"></div>
                       <div className="text-xs text-indigo-400 font-bold flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -276,9 +331,18 @@ export default function AdminConsole() {
                           <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")} | {user.governorIds?.length || 0} Linked Govs</div>
                         </div>
                       </div>
-                      <button className="w-full sm:w-auto px-4 py-2 bg-[#1e222b] hover:bg-rose-500/20 text-gray-400 hover:text-rose-500 rounded-lg font-bold text-sm transition-all border border-transparent hover:border-rose-500/30">
-                        Revoke Clearance
-                      </button>
+                      <div className="flex items-center gap-2 w-full sm:w-auto z-10 mt-3 sm:mt-0">
+                        <button 
+                          onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)}
+                          className={`p-2 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}
+                          title={user.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
+                        >
+                          {user.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
+                        </button>
+                        <button className="flex-1 sm:flex-none px-4 py-2 bg-[#1e222b] hover:bg-rose-500/20 text-gray-400 hover:text-rose-500 rounded-lg font-bold text-sm transition-all border border-transparent hover:border-rose-500/30">
+                          Revoke Clearance
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -300,9 +364,18 @@ export default function AdminConsole() {
                           <div className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{user.governorIds?.length || 0} Game Profiles</div>
                         </div>
                       </div>
-                      <button className="w-8 h-8 rounded shrink-0 bg-[#1e222b] flex items-center justify-center text-gray-500 hover:text-rose-500 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0 z-10">
+                        <button 
+                          onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)}
+                          className={`w-8 h-8 rounded flex items-center justify-center transition-all border ${user.globalAiAccess ? 'bg-[#1e222b] border-[#1e222b] text-cyan-500 hover:bg-cyan-500/10 hover:border-cyan-500/30' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.2)]'}`}
+                          title={user.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
+                        >
+                          {user.globalAiAccess ? <Bot size={14} /> : <BotOff size={14} />}
+                        </button>
+                        <button className="w-8 h-8 rounded bg-[#1e222b] border border-[#1e222b] flex items-center justify-center text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {users.filter(u => u.role === "User").length === 0 && (

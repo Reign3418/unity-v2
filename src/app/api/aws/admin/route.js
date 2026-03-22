@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getAllUsers, getAllTenants, purgeKingdomDatabase } from "@/lib/awsDynamo";
+import { getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess } from "@/lib/awsDynamo";
 
 export async function GET(req) {
   try {
@@ -44,6 +44,30 @@ export async function POST(req) {
 
     if (!action) {
       return NextResponse.json({ error: "Missing action directive." }, { status: 400 });
+    }
+
+    if (action === "TOGGLE_USER_AI") {
+      const { discordId, newStatus } = payload;
+      if (!discordId) return NextResponse.json({ error: "Missing Discord ID." }, { status: 400 });
+      
+      const success = await toggleUserAIAccess(discordId, newStatus);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Access ${newStatus ? 'Restored' : 'Revoked'} for User ${discordId}` }, { status: 200 });
+      } else {
+        return NextResponse.json({ error: "Failed to Update AI Access for User." }, { status: 500 });
+      }
+    }
+
+    if (action === "TOGGLE_TENANT_AI") {
+      const { guildId, newStatus } = payload;
+      if (!guildId) return NextResponse.json({ error: "Missing Guild ID." }, { status: 400 });
+      
+      const success = await toggleTenantAIAccess(guildId, newStatus);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Access ${newStatus ? 'Restored' : 'Revoked'} for Tenant ${guildId}` }, { status: 200 });
+      } else {
+        return NextResponse.json({ error: "Failed to Update AI Access for Tenant." }, { status: 500 });
+      }
     }
 
     // Danger Zone: Mass Purge

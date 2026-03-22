@@ -128,7 +128,27 @@ export async function GET(req) {
         });
 
         const response = await stsClient.send(command);
-        const globalGeminiKey = await getGlobalConfig('GEMINI_API_KEY');
+
+        // Security Check: AI Kill Switch Logic
+        // By default, everyone has access unless explicitly revoked at the User OR Guild level.
+        let hasGlobalAiAccess = true;
+        
+        // 1. Check Personal Override
+        if (user.governorConfig && user.governorConfig.globalAiAccess === false) {
+            hasGlobalAiAccess = false;
+        }
+        
+        // 2. Check Guild-Wide Override
+        if (user.tenant && user.tenant.globalAiAccess === false) {
+            hasGlobalAiAccess = false;
+        }
+
+        // 3. Super Admins bypass all kill switches
+        if (user.isSuperAdmin) {
+            hasGlobalAiAccess = true;
+        }
+
+        const globalGeminiKey = hasGlobalAiAccess ? await getGlobalConfig('GEMINI_API_KEY') : null;
 
         return NextResponse.json({
             credentials: {

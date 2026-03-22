@@ -544,7 +544,8 @@ export async function getUserConfig(discordId) {
                 kingdomId: attrs.kingdomId?.S,
                 isManualGuest: attrs.isManualGuest?.BOOL || false,
                 role: attrs.role?.S,
-                allowedKingdoms: allowedKingdoms
+                allowedKingdoms: allowedKingdoms,
+                globalAiAccess: attrs.globalAiAccess?.BOOL ?? true
             };
         }
         return null; // Not registered
@@ -732,6 +733,7 @@ export async function getAllTenants() {
                     kingdomId: attrs.kingdomId?.S || 'Unknown',
                     leadershipRoleId: attrs.leadershipRoleId?.S || 'None',
                     allowedKingdoms: allowedKingdoms,
+                    globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
                     createdDate: attrs.createdDate?.S
                 });
             }
@@ -805,6 +807,68 @@ export async function deleteTenantConfig(guildId) {
         return true;
     } catch (e) {
         console.error("AWS Delete Tenant Error", e);
+        return false;
+    }
+}
+
+/**
+ * ADMIN: Toggles the hybrid AI master key override lock for a Specific User
+ */
+export async function toggleUserAIAccess(discordId, newStatus) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: 'SET attributes.#ai = :val',
+        ExpressionAttributeNames: {
+            '#ai': 'globalAiAccess'
+        },
+        ExpressionAttributeValues: {
+            ':val': { BOOL: newStatus }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Toggle User AI Error", e);
+        return false;
+    }
+}
+
+/**
+ * ADMIN: Toggles the hybrid AI master key override lock for a Specific Tenant
+ */
+export async function toggleTenantAIAccess(guildId, newStatus) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_TENANTS' },
+            'SK': { S: `TENANT#${guildId}` }
+        },
+        UpdateExpression: 'SET attributes.#ai = :val',
+        ExpressionAttributeNames: {
+            '#ai': 'globalAiAccess'
+        },
+        ExpressionAttributeValues: {
+            ':val': { BOOL: newStatus }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Toggle Tenant AI Error", e);
         return false;
     }
 }
@@ -1052,7 +1116,8 @@ export async function getAllUsers() {
                                 kingdomId: attrs.kingdomId?.S || 'None',
                                 isManualGuest: attrs.isManualGuest?.BOOL || false,
                                 role: attrs.role?.S || 'User',
-                                linkedDate: attrs.linkedDate?.S || 'Unknown'
+                                linkedDate: attrs.linkedDate?.S || 'Unknown',
+                                globalAiAccess: attrs.globalAiAccess?.BOOL ?? true
                             });
                         }
                     }

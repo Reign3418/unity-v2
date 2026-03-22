@@ -1,8 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState } from "react";
-import { Settings, User, Bell, Shield, Palette, Save, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings, User, Bell, Shield, Palette, Save, Check, Cpu } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -13,7 +13,21 @@ export default function SettingsPage() {
     showAllianceTag: true,
     defaultKingdom: "3155",
     theme: "dark",
+    geminiKey: "",
+    geminiModel: "gemini-2.5-flash",
   });
+
+  // Hydrate preferences from local storage
+  useEffect(() => {
+    const savedPrefs = localStorage.getItem("unity_prefs");
+    if (savedPrefs) {
+      try {
+        setPrefs(p => ({ ...p, ...JSON.parse(savedPrefs) }));
+      } catch (e) {
+        console.error("Failed to parse local preferences", e);
+      }
+    }
+  }, []);
 
   const handleSave = () => {
     // Preferences stored locally for now (no backend needed for client prefs)
@@ -118,6 +132,49 @@ export default function SettingsPage() {
               <div className="text-gray-500 text-xs italic">No Architecture Keys found</div>
             )}
             
+          </div>
+        </div>
+      </div>
+
+      {/* API Configuration */}
+      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden">
+        <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Cpu size={16} className="text-indigo-400" />
+            <h2 className="text-white font-bold uppercase tracking-widest text-sm">Global Architecture Override</h2>
+          </div>
+          <span className="text-[10px] text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 rounded uppercase font-bold tracking-widest">Hybrid LLM Mode</span>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+            Unity runs OCR Screenshot reading through a central Master Database key. 
+            If you wish to use your own secure Google Cloud Project API key to prevent hitting the Alliance global quota, you may link your personal key here. Your key is stored locally in your browser and never leaves your machine.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">Gemini API Key</label>
+              <input 
+                type="password"
+                placeholder="AIzaSy..."
+                value={prefs.geminiKey}
+                onChange={e => setPrefs(p => ({ ...p, geminiKey: e.target.value }))}
+                className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">Gemini LLM Model</label>
+              <select 
+                value={prefs.geminiModel}
+                onChange={e => setPrefs(p => ({ ...p, geminiModel: e.target.value }))}
+                className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
+              >
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro (Slower, High Precision)</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Legacy)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
