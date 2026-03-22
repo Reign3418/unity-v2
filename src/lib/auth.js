@@ -34,6 +34,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           let activeTenant = null;
           let ownedGuilds = [];
 
+          // Master Override for Commander
+          if (profile.username === 'reign3418' || profile.username === 'reign') {
+              isLeader = true;
+              isMember = true;
+              activeTenant = {
+                  guildId: "master",
+                  kingdomId: "3155",
+                  leadershipRoleId: "master",
+                  allowedKingdoms: ["3155", "3156"]
+              };
+          }
+
           for (const guild of userGuilds) {
             const hasAdmin = guild.permissions ? (BigInt(guild.permissions) & BigInt(0x8)) === BigInt(0x8) : false;
             
