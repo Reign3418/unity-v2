@@ -8,35 +8,55 @@ export default function PlayerHunter() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasResults, setHasResults] = useState(false);
 
-  // Simulated global timeline output from DynamoDB
-  const hunterResults = {
-    currentStatus: {
-      name: "Reign",
-      kingdom: "3155",
-      power: "42,150,000",
-      kp: "185M"
-    },
-    timeline: [
-      { date: "March 20, 2026", kingdom: "3155", power: "42.1M", name: "Reign", note: "Present" },
-      { date: "March 18, 2026", kingdom: "3155", power: "41.8M", name: "Reign", note: "Growth Mode" },
-      { date: "March 10, 2026", kingdom: "3155", power: "38.2M", name: "Reign_Farm", note: "Name Change" },
-      { date: "February 28, 2026", kingdom: "3156", power: "36.1M", name: "Reign_Farm", note: "Previous Kingdom" },
-      { date: "February 15, 2026", kingdom: "3156", power: "32.4M", name: "UnknownTarget", note: "Earliest Record" }
-    ]
-  };
+  const [hunterResults, setHunterResults] = useState(null);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchId) return;
 
     setIsSearching(true);
     setHasResults(false);
 
-    // Simulate cross-kingdom AWS crunch
-    setTimeout(() => {
-      setIsSearching(false);
+    try {
+      // 1. Locate Governor Globally
+      const huntRes = await fetch(`/api/aws/hunter?q=${searchId}`);
+      const huntData = await huntRes.json();
+      
+      if (!huntData.result) {
+        setIsSearching(false);
+        alert("Target completely unverified. Not found in Global AWS Registry.");
+        return;
+      }
+      
+      const { id, name, lastSeenKingdom } = huntData.result;
+
+      // 2. Extract chronological trajectory from their last known server
+      const histRes = await fetch(`/api/aws/history?kd=${lastSeenKingdom}&id=${id}&days=10`);
+      const histData = await histRes.json();
+      
+      const timelineData = (histData.timeline || []).map((scan, i) => ({
+        date: scan.scanDate.replace(/_/g, " "),
+        kingdom: lastSeenKingdom,
+        power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
+        name: name,
+        note: i === (histData.timeline.length - 1) ? "Latest Snapshot" : "Historical Record"
+      })).reverse(); // Reverse so newest is at the top of the node tree
+
+      setHunterResults({
+        currentStatus: {
+          name: name,
+          kingdom: lastSeenKingdom,
+          power: timelineData.length > 0 ? timelineData[0].power : "Unverified"
+        },
+        timeline: timelineData
+      });
+      
       setHasResults(true);
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (

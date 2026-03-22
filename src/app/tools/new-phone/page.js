@@ -8,23 +8,54 @@ export default function NewPhoneWhoDis() {
   const [isScanning, setIsScanning] = useState(false);
   const [hasResults, setHasResults] = useState(false);
 
-  // Simulated mapping results 
-  const dummyResults = [
-    { queriedName: "Reign", matchType: "Exact", matchedId: "135042283", currentAlias: "Reign", kingdom: "3155", power: "42.1M" },
-    { queriedName: "DarkRiderX", matchType: "Historical", matchedId: "193857211", currentAlias: "GhostRider", kingdom: "3156", power: "85.4M" },
-    { queriedName: "UnknownGamer", matchType: "Not Found", matchedId: "---", currentAlias: "---", kingdom: "---", power: "---" },
-  ];
+  const [results, setResults] = useState([]);
 
-  const handleScan = () => {
+  const handleScan = async () => {
     if (!inputText.trim()) return;
     setIsScanning(true);
     setHasResults(false);
 
-    // Simulate AWS lookup sequence
-    setTimeout(() => {
-      setIsScanning(false);
+    try {
+      const names = inputText.split("\n").map(n => n.trim()).filter(n => n !== "");
+      
+      const promises = names.map(async (name) => {
+        try {
+          const res = await fetch(`/api/aws/hunter?q=${encodeURIComponent(name)}`);
+          if (!res.ok) throw new Error("API Error");
+          const data = await res.json();
+          
+          if (data.result) {
+            return {
+              queriedName: name,
+              matchType: name.toLowerCase() === data.result.name.toLowerCase() ? "Exact" : "Historical",
+              matchedId: data.result.id,
+              currentAlias: data.result.name,
+              kingdom: data.result.lastSeenKingdom,
+              power: "Extracted" 
+            };
+          }
+          throw new Error("Not Found");
+        } catch (e) {
+          return {
+            queriedName: name,
+            matchType: "Not Found",
+            matchedId: "---",
+            currentAlias: "---",
+            kingdom: "---",
+            power: "---"
+          };
+        }
+      });
+
+      const finalResults = await Promise.all(promises);
+      setResults(finalResults);
       setHasResults(true);
-    }, 1500);
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -103,7 +134,7 @@ export default function NewPhoneWhoDis() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1e222b]">
-                {dummyResults.map((res, i) => (
+                {results.map((res, i) => (
                   <tr key={i} className="hover:bg-[#13161c]/50 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="font-bold text-white text-sm">{res.queriedName}</div>
@@ -148,7 +179,7 @@ export default function NewPhoneWhoDis() {
             </table>
           </div>
           <div className="p-3 bg-[#0a0c0f] border-t border-[#1e222b] text-center text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-            2 Matches Found • 1 Unknown Identity
+            {results.filter(r => r.matchType !== "Not Found").length} Matches Found • {results.filter(r => r.matchType === "Not Found").length} Unknown Identities
           </div>
         </div>
       )}

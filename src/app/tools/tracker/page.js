@@ -7,66 +7,63 @@ export default function ActivityTracker() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasResults, setHasResults] = useState(false);
 
-  // Stub data mimicking the exact output of the legacy UIActivityTracker.js algorithm
-  const dummyResults = [
-    {
-      id: "135042283",
-      name: "Reign",
-      reason: "Low Activity",
-      note: "Minimal gains since Mar 12",
-      latestPower: "42,150,000",
-      troopDelta: "+12,000",
-      troopBase: "15.8M",
-      troopLatest: "15.8M",
-      cmdBase: "C: 4.6M | G: 1.2B",
-      cmdLatest: "C: 4.6M | G: 1.25B"
-    },
-    {
-      id: "193857211",
-      name: "GhostRider",
-      reason: "Zero Growth",
-      note: "Asleep since Feb 28",
-      latestPower: "85,400,000",
-      troopDelta: "0",
-      troopBase: "45.1M",
-      troopLatest: "45.1M",
-      cmdBase: "C: 12.1M | G: 3.4B",
-      cmdLatest: "C: 12.1M | G: 3.4B"
-    },
-    {
-      id: "205993881",
-      name: "UnknownLeader",
-      reason: "Missing",
-      note: "Migrated to KD 3156",
-      latestPower: "102,500,000",
-      troopDelta: "-",
-      troopBase: "-",
-      troopLatest: "-",
-      cmdBase: "",
-      cmdLatest: ""
-    },
-    {
-      id: "219485773",
-      name: "NewBlood",
-      reason: "New",
-      note: "Migrated from KD 2999",
-      latestPower: "65,200,000",
-      troopDelta: "-",
-      troopBase: "-",
-      troopLatest: "-",
-      cmdBase: "",
-      cmdLatest: ""
-    }
-  ];
+  const [targetKd, setTargetKd] = useState("3155");
+  const [results, setResults] = useState([]);
 
-  const handleRunAnalysis = () => {
+  const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
     setHasResults(false);
-    // Simulate AWS DynamoDB crunching 50,000 rows
-    setTimeout(() => {
+    
+    try {
+      const res = await fetch(`/api/aws/roster?kd=${targetKd}`);
+      const data = await res.json();
+      
+      if (data.roster) {
+        const mapped = data.roster.map(gov => {
+          let reason = "Active";
+          let note = "Normal Growth";
+          
+          if (gov.powerDelta === 0 && gov.power > 0) {
+            reason = "Zero Growth";
+            note = "No gains since baseline";
+          } else if (gov.powerDelta > 0 && gov.powerDelta < 500000) {
+            reason = "Low Activity";
+            note = "Minimal gains detected";
+          } else if (gov.power === 0 || gov.powerDelta === -1) {
+            reason = "Missing";
+            note = "Not found in Latest Scan";
+          } else if (gov.power > 0 && (!gov.powerDelta || gov.powerDelta === 0)) {
+            // Further checking for completely new arrivals
+            reason = "New";
+            note = "Newly detected arrival";
+          }
+
+          const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
+          const formatShort = (num) => num ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
+
+          return {
+            id: gov.id,
+            name: gov.name || "Unknown",
+            reason,
+            note,
+            latestPower: formatNum(gov.power),
+            troopDelta: gov.powerDelta > 0 ? `+${formatNum(gov.powerDelta)}` : formatNum(gov.powerDelta),
+            troopBase: formatShort(gov.power - (gov.powerDelta || 0)),
+            troopLatest: formatShort(gov.power),
+            cmdBase: `C: ${formatShort(gov.commanderPower)}`,
+            cmdLatest: `C: ${formatShort(gov.commanderPower)}`
+          };
+        }).filter(gov => gov.reason !== "Active" && gov.reason !== "New").slice(0, 100); 
+        // Filter anomalies and cap at 100 for UI performance
+        
+        setResults(mapped);
+        setHasResults(true);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setIsAnalyzing(false);
-      setHasResults(true);
-    }, 1500);
+    }
   };
 
   const StatusBadge = ({ reason }) => {
@@ -146,7 +143,7 @@ export default function ActivityTracker() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1e222b]">
-                {dummyResults.map((gov) => (
+                {results.map((gov) => (
                   <tr key={gov.id} className="hover:bg-[#13161c]/50 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="font-bold text-white text-sm">{gov.name}</div>
@@ -193,7 +190,7 @@ export default function ActivityTracker() {
           </div>
           
           <div className="p-4 bg-[#0a0c0f] border-t border-[#1e222b] text-center text-xs text-gray-500 flex items-center justify-between px-6">
-            <span>Showing {dummyResults.length} anomalies detected across 4 historical snapshots.</span>
+            <span>Showing {results.length} anomalies detected from the live AWS data stream.</span>
             <span className="text-indigo-500 font-bold">AWS Synchronization Active</span>
           </div>
         </div>
