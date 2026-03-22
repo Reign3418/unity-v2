@@ -103,14 +103,21 @@ export default function SettingsPage() {
               <p className="text-white font-semibold text-sm">Default Kingdom</p>
               <p className="text-gray-500 text-xs mt-0.5">Kingdom pre-selected in analysis dropdowns</p>
             </div>
-            <select
-              value={prefs.defaultKingdom}
-              onChange={e => setPrefs(p => ({ ...p, defaultKingdom: e.target.value }))}
-              className="bg-[#13161c] border border-[#1e222b] text-white px-3 py-1.5 rounded-lg font-mono font-bold outline-none cursor-pointer text-sm"
-            >
-              <option value="3155">KD 3155</option>
-              <option value="3156">KD 3156</option>
-            </select>
+            
+            {session?.user?.tenant?.allowedKingdoms?.length > 0 ? (
+              <select
+                value={prefs.defaultKingdom}
+                onChange={e => setPrefs(p => ({ ...p, defaultKingdom: e.target.value }))}
+                className="bg-[#13161c] border border-[#1e222b] text-white px-3 py-1.5 rounded-lg font-mono font-bold outline-none cursor-pointer text-sm"
+              >
+                {session.user.tenant.allowedKingdoms.map(kd => (
+                  <option key={kd} value={kd}>KD {kd}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="text-gray-500 text-xs italic">No Architecture Keys found</div>
+            )}
+            
           </div>
         </div>
       </div>

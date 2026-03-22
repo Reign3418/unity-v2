@@ -41,7 +41,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const masterConfigStr = await getGlobalConfig('SUPER_ADMINS');
           const isDbSuperAdmin = masterConfigStr && masterConfigStr.includes(profile.id);
 
-          if (isDbSuperAdmin || profile.username === 'reign3418' || profile.username === 'reign') {
+          const safeUsername = (profile.username || '').toLowerCase();
+
+          if (isDbSuperAdmin || safeUsername === 'reign3418' || safeUsername === 'reign') {
               computedSuperAdmin = true;
               isLeader = true;
               isMember = true;
@@ -59,6 +61,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (guild.owner || hasAdmin) {
               ownedGuilds.push({ id: guild.id, name: guild.name, icon: guild.icon });
             }
+
+            // If already a Super Admin, we don't want standard Discord Tenant logic replacing our master tenant array
+            if (computedSuperAdmin) continue;
 
             const tenantConfig = await getTenantConfig(guild.id);
             if (tenantConfig) {
