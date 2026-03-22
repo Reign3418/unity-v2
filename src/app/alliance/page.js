@@ -10,7 +10,7 @@ import {
 export default function AllianceDashboard() {
   const { data: session } = useSession();
   
-  const [kd, setKd] = useState("3155");
+  const [kd, setKd] = useState("3155"); // Will be overridden in useEffect to prevent SSR hydration mismatch
   const [tagInput, setTagInput] = useState("V-T");
   const [activeTag, setActiveTag] = useState("V-T");
   
@@ -39,8 +39,42 @@ export default function AllianceDashboard() {
   };
 
   useEffect(() => {
-    fetchAlliance(activeTag);
-  }, []);
+    let activeKd = "3155";
+    if (typeof window !== 'undefined') {
+        const storedKd = localStorage.getItem('unty_active_kd');
+        if (storedKd) {
+            activeKd = storedKd;
+            setKd(storedKd);
+        } else if (session?.user?.tenant?.kingdomId) {
+            activeKd = session.user.tenant.kingdomId;
+            setKd(activeKd);
+        }
+    }
+    
+    // We cannot use activeTag because useState hasn't updated here for fetchAlliance if we modify activeTag.
+    // fetchAlliance implicitly uses the state `kd`, but state updates are asynchronous.
+    // Let's rewrite fetchAlliance locally on load to use activeKd.
+    
+    const initialFetch = async () => {
+        if (!activeTag) return;
+        setIsLoading(true);
+        try {
+          const res = await fetch(`/api/aws/alliance?kd=${activeKd}&tag=${encodeURIComponent(activeTag)}`);
+          const data = await res.json();
+          if (res.ok) {
+              setRoster(data.roster || []);
+              setStats(data.stats);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsLoading(false);
+        }
+    };
+    
+    initialFetch();
+
+  }, [session]);
 
   const handleSearch = (e) => {
       e.preventDefault();
@@ -98,7 +132,11 @@ export default function AllianceDashboard() {
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <select 
                value={kd}
-               onChange={(e) => setKd(e.target.value)}
+               onChange={(e) => {
+                   const newKd = e.target.value;
+                   setKd(newKd);
+                   if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
+               }}
                className="bg-[#13161c] border border-[#1e222b] text-white focus:border-cyan-500 px-4 py-2.5 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
              >
                <option value="3155">KD 3155</option>

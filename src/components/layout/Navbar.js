@@ -69,6 +69,34 @@ export default function Navbar() {
             </div>
           </div>
 
+          {/* Global Kingdom Autoloader */}
+          {session?.user?.tenant?.allowedKingdoms?.length > 0 && (
+             <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-r border-[#1e222b]">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Target KD:</span>
+                <select 
+                  className="bg-transparent text-cyan-400 font-mono font-bold text-sm outline-none cursor-pointer hover:text-cyan-300 transition-colors"
+                  defaultValue={
+                      typeof window !== 'undefined' && localStorage.getItem('unty_active_kd') 
+                          ? localStorage.getItem('unty_active_kd') 
+                          : (session.user.tenant.kingdomId || "3155")
+                  }
+                  onChange={(e) => {
+                      localStorage.setItem('unty_active_kd', e.target.value);
+                      // Force a soft refresh so the current page mounts with the new globally active kingdom
+                      window.location.reload();
+                  }}
+                >
+                  {session.user.tenant.allowedKingdoms.map(kd => (
+                    <option key={kd} value={kd} className="bg-[#0f1115] text-white">[{kd}]</option>
+                  ))}
+                  {/* Fallback if their allowed kingdoms array doesn't explicitly contain their default */}
+                  {!session.user.tenant.allowedKingdoms.includes(session.user.tenant.kingdomId) && (
+                     <option value={session.user.tenant.kingdomId} className="bg-[#0f1115] text-white">[{session.user.tenant.kingdomId}]</option>
+                  )}
+                </select>
+             </div>
+          )}
+
           {/* Action Icons */}
           <div className="flex items-center gap-3 text-gray-400">
             <button 
@@ -89,7 +117,7 @@ export default function Navbar() {
               <div className="flex flex-col items-end hidden sm:flex">
                 <span className="text-sm font-bold text-white leading-tight">{session.user.username}</span>
                 <span className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">
-                  Kingdom {session.user.tenant?.kingdomId || 'N/A'}
+                  Architecture Node
                 </span>
               </div>
               {session.user.avatar ? (

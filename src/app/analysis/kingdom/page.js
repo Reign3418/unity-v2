@@ -15,14 +15,15 @@ export default function KingdomAnalysis() {
   
   const [trends, setTrends] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [targetKd, setTargetKd] = useState("3155");
+  const [targetKd, setTargetKd] = useState("3155"); // Overridden in useEffect
 
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#ef4444', '#84cc16'];
 
-  const fetchTrends = async () => {
+  const fetchTrends = async (overrideKd = null) => {
     setIsLoading(true);
+    const kdToFetch = overrideKd || targetKd;
     try {
-      const res = await fetch(`/api/aws/trends?kd=${targetKd}`);
+      const res = await fetch(`/api/aws/trends?kd=${kdToFetch}`);
       const data = await res.json();
       
       if (res.ok && data.trends) {
@@ -52,8 +53,19 @@ export default function KingdomAnalysis() {
   };
 
   useEffect(() => {
-    fetchTrends();
-  }, [targetKd]);
+    let activeKd = targetKd;
+    if (typeof window !== 'undefined') {
+        const storedKd = localStorage.getItem('unty_active_kd');
+        if (storedKd) {
+            activeKd = storedKd;
+            setTargetKd(storedKd);
+        } else if (session?.user?.tenant?.kingdomId) {
+            activeKd = session.user.tenant.kingdomId;
+            setTargetKd(activeKd);
+        }
+    }
+    fetchTrends(activeKd);
+  }, [session]);
 
   // Derived Data for Alliance Pie Chart (Latest Data Point)
   let alliancePieData = [];
@@ -111,7 +123,12 @@ export default function KingdomAnalysis() {
             <div className="flex items-center gap-4">
                <select 
                  value={targetKd}
-                 onChange={(e) => setTargetKd(e.target.value)}
+                 onChange={(e) => {
+                     const newKd = e.target.value;
+                     setTargetKd(newKd);
+                     if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
+                     fetchTrends(newKd);
+                 }}
                  className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
                >
                  <option value="3155">Kingdom 3155</option>
