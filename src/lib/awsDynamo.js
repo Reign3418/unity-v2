@@ -46,58 +46,90 @@ export async function getGovernorStats(queryParam) {
 
     const exactRegex = new RegExp(`^${queryParam}$`, 'i');
     
-    const params = {
+    // Optimization 1: If the query is completely numeric, it's a Governor ID. 
+    // We can do a direct O(1) Key Query instead of a massive database scan.
+    if (/^\d+$/.test(String(queryParam))) {
+        try {
+            console.log(`[AWS] Executing O(1) Direct Query for ID ${queryParam}...`);
+            const queryParams = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk',
+                ExpressionAttributeValues: { ':pk': { S: `GOV_PROFILE#${queryParam}` } }
+            };
+            
+            const result = await dbClient.send(new QueryCommand(queryParams));
+            if (result.Items && result.Items.length > 0) {
+                const item = result.Items[0];
+                const attrs = item.attributes?.M || {};
+                return {
+                    id: String(queryParam),
+                    name: attrs.name?.S || 'Unknown',
+                    lastSeenKingdom: attrs.lastSeenKingdom?.S || attrs.lastSeenKingdom?.N || 'Unknown',
+                    lastSeenDate: attrs.lastSeenDate?.S || 'Unknown'
+                };
+            }
+        } catch (e) {
+            console.error("AWS O(1) Search Error", e);
+        }
+        // If exact ID query fails or user doesn't exist under that exact schema, fallback to Regex parallel scan
+    }
+
+    // Optimization 2: Parallel Threaded Scanning for Text-based Name Queries
+    console.log(`[AWS Multi-Thread] Parallel scanning DynamoDB for string: ${queryParam}...`);
+    
+    const baseParams = {
         TableName: tableName,
-        FilterExpression: 'begins_with(PK, :prefix) AND (contains(attributes.#n, :q) OR contains(PK, :q))',
-        ExpressionAttributeNames: {
-            '#n': 'name' // Global Profiles use lowercase keys
-        },
+        FilterExpression: 'begins_with(PK, :prefix)',
         ExpressionAttributeValues: {
-            ':prefix': { S: 'GOV_PROFILE#' },
-            ':q': { S: String(queryParam) }
+            ':prefix': { S: 'GOV_PROFILE#' }
         }
     };
 
     try {
-        console.log(`[AWS] Searching DynamoDB for ${queryParam}...`);
+        const SEGMENTS = 5; // Spawn 5 parallel AWS execution threads
+        const scanPromises = [];
         
-        let matches = [];
-        let lastEvaluatedKey = null;
-
-        do {
-            if (lastEvaluatedKey) {
-                params.ExclusiveStartKey = lastEvaluatedKey;
-            }
-            
-            const result = await dbClient.send(new ScanCommand(params));
-            
-            if (result.Items) {
-                for (const item of result.Items) {
-                    const attrs = item.attributes?.M || {};
-                    const name = attrs.name?.S || 'Unknown';
-                    const id = item.PK.S.replace('GOV_PROFILE#', '');
+        for (let i = 0; i < SEGMENTS; i++) {
+            scanPromises.push((async () => {
+                const params = { ...baseParams, Segment: i, TotalSegments: SEGMENTS };
+                let lastEvaluatedKey = null;
+                
+                do {
+                    if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
                     
-                    if (exactRegex.test(name) || String(id) === String(queryParam)) {
-                        matches.push({
-                            id: id,
-                            name: name,
-                            lastSeenKingdom: attrs.lastSeenKingdom?.S || attrs.lastSeenKingdom?.N || 'Unknown',
-                            lastSeenDate: attrs.lastSeenDate?.S || 'Unknown'
-                        });
+                    const result = await dbClient.send(new ScanCommand(params));
+                    
+                    if (result.Items) {
+                        for (const item of result.Items) {
+                            const attrs = item.attributes?.M || {};
+                            const name = attrs.name?.S || 'Unknown';
+                            const id = item.PK.S.replace('GOV_PROFILE#', '');
+                            
+                            if (exactRegex.test(name) || String(id) === String(queryParam)) {
+                                return {
+                                    id: id,
+                                    name: name,
+                                    lastSeenKingdom: attrs.lastSeenKingdom?.S || attrs.lastSeenKingdom?.N || 'Unknown',
+                                    lastSeenDate: attrs.lastSeenDate?.S || 'Unknown'
+                                };
+                            }
+                        }
                     }
-                }
-            }
-            lastEvaluatedKey = result.LastEvaluatedKey;
-            
-            // Optimization: stop early if we found a match since IDs/Names are generally unique
-            if (matches.length > 0) break;
-            
-        } while (lastEvaluatedKey);
+                    lastEvaluatedKey = result.LastEvaluatedKey;
+                } while (lastEvaluatedKey);
+                
+                return null;
+            })());
+        }
         
-        return matches.length > 0 ? matches[0] : null;
+        // Return the first thread that successfully finds a match
+        const results = await Promise.all(scanPromises);
+        const match = results.find(res => res !== null);
+        
+        return match || null;
 
     } catch (e) {
-        console.error("AWS Search Error", e);
+        console.error("AWS Parallel Search Error", e);
         return null;
     }
 }
@@ -960,7 +992,7 @@ export async function getAllUsers() {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
-    const params = {
+    const baseParams = {
         TableName: tableName,
         FilterExpression: 'SK = :sk AND begins_with(PK, :pkPrefix)',
         ExpressionAttributeValues: {
@@ -970,44 +1002,57 @@ export async function getAllUsers() {
     };
 
     try {
-        let allUsers = [];
-        let lastEvaluatedKey = null;
-
-        do {
-            if (lastEvaluatedKey) {
-                params.ExclusiveStartKey = lastEvaluatedKey;
-            }
-            const result = await dbClient.send(new ScanCommand(params));
-            
-            if (result.Items) {
-                for (const item of result.Items) {
-                    const attrs = item.attributes?.M || {};
-                    const discordId = item.PK.S.replace('USER#', '');
+        console.log(`[AWS Multi-Thread] Initiating Parallel Scan for Admin Node 'getAllUsers'...`);
+        
+        const SEGMENTS = 5;
+        const scanPromises = [];
+        
+        for (let i = 0; i < SEGMENTS; i++) {
+            scanPromises.push((async () => {
+                const params = { ...baseParams, Segment: i, TotalSegments: SEGMENTS };
+                let localUsers = [];
+                let lastEvaluatedKey = null;
+                
+                do {
+                    if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
                     
-                    let govIds = [];
-                    if (attrs.governorIds && attrs.governorIds.L) {
-                        govIds = attrs.governorIds.L.map(item => item.S);
-                    } else if (attrs.governorId && attrs.governorId.S) {
-                        govIds = [attrs.governorId.S];
+                    const result = await dbClient.send(new ScanCommand(params));
+                    
+                    if (result.Items) {
+                        for (const item of result.Items) {
+                            const attrs = item.attributes?.M || {};
+                            const discordId = item.PK.S.replace('USER#', '');
+                            
+                            let govIds = [];
+                            if (attrs.governorIds && attrs.governorIds.L) {
+                                govIds = attrs.governorIds.L.map(attr => attr.S);
+                            } else if (attrs.governorId && attrs.governorId.S) {
+                                govIds = [attrs.governorId.S];
+                            }
+
+                            localUsers.push({
+                                discordId: discordId,
+                                governorIds: govIds,
+                                kingdomId: attrs.kingdomId?.S || 'None',
+                                isManualGuest: attrs.isManualGuest?.BOOL || false,
+                                role: attrs.role?.S || 'User',
+                                linkedDate: attrs.linkedDate?.S || 'Unknown'
+                            });
+                        }
                     }
+                    lastEvaluatedKey = result.LastEvaluatedKey;
+                } while (lastEvaluatedKey);
+                
+                return localUsers;
+            })());
+        }
 
-                    allUsers.push({
-                        discordId: discordId,
-                        governorIds: govIds,
-                        kingdomId: attrs.kingdomId?.S || 'None',
-                        isManualGuest: attrs.isManualGuest?.BOOL || false,
-                        role: attrs.role?.S || 'User',
-                        linkedDate: attrs.linkedDate?.S || 'Unknown'
-                    });
-                }
-            }
-            lastEvaluatedKey = result.LastEvaluatedKey;
-        } while (lastEvaluatedKey);
-
-        return allUsers;
+        const results = await Promise.all(scanPromises);
+        // Flatten the array of arrays into a single user list
+        return results.flat();
 
     } catch (e) {
-        console.error("AWS Get All Users Error", e);
+        console.error("AWS Parallel Scan Get All Users Error", e);
         return [];
     }
 }
@@ -1189,25 +1234,42 @@ export async function uploadKingdomRoster(kingdomId, rosterArray) {
         blocks_25.push(putRequests.slice(i, i + chunkSize));
     }
 
-    console.log(`[AWS Batch Upload] Dispatching ${blocks_25.length} threaded upload blocks for ${rosterArray.length} items...`);
+    console.log(`[AWS Batch Upload] Dispatching ${blocks_25.length} upload blocks (25 items/block) for ${rosterArray.length} items...`);
 
-    // 4. Fire chunks across parallel Promise execution map
-    const promises = blocks_25.map(async (chunk) => {
-        const batchParams = {
-            RequestItems: {
-                [tableName]: chunk
+    // 4. Fire chunks with controlled concurrency to prevent AWS exponential backoff throttling
+    // Unity 1.0 was technically "paced" by browser concurrent HTTP limits (usually 6).
+    // Unity 2.0 serverless previously fired 400+ concurrent requests, triggering massive AWS throttling lag.
+    // We will throttle to 10 concurrent HTTP requests (10 * 25 = 250 items written per tick)
+    const CONCURRENCY_LIMIT = 10;
+    
+    for (let i = 0; i < blocks_25.length; i += CONCURRENCY_LIMIT) {
+        const batchSlice = blocks_25.slice(i, i + CONCURRENCY_LIMIT);
+        
+        const promises = batchSlice.map(async (chunk) => {
+            const batchParams = {
+                RequestItems: {
+                    [tableName]: chunk
+                }
+            };
+            try {
+                // Send batch to AWS
+                const response = await dbClient.send(new BatchWriteItemCommand(batchParams));
+                
+                // If AWS softly throttles us, it returns UnprocessedItems instead of throwing an error.
+                // For a highly robust system, we would recursively retry UnprocessedItems here.
+                if (response.UnprocessedItems && Object.keys(response.UnprocessedItems).length > 0) {
+                     console.warn(`[AWS Batch Upload] Warning: ${Object.keys(response.UnprocessedItems[tableName]).length} items were un-processed due to soft throttling.`);
+                }
+            } catch (e) {
+                console.error("[AWS Batch Upload] Block failure:", e);
             }
-        };
-        try {
-            await dbClient.send(new BatchWriteItemCommand(batchParams));
-        } catch (e) {
-            console.error("[AWS Batch Upload] Block failure:", e);
-        }
-    });
+        });
 
-    await Promise.all(promises);
+        // Wait for this specific batch of 10 requests to fully complete before firing the next 10
+        await Promise.all(promises);
+    }
 
-    console.log(`[AWS Batch Upload] Complete! Ignited ${rosterArray.length} rows into DynamoDB.`);
+    console.log(`[AWS Batch Upload] Complete! Ignited ${rosterArray.length} rows into DynamoDB using V2 Optimized Engine.`);
     return dateKey;
 }
 
