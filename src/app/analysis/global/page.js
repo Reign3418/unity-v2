@@ -35,10 +35,8 @@ export default function GlobalAnalysis() {
   };
 
   useEffect(() => {
-    if (session) {
-      fetchGlobalStats();
-    }
-  }, [session]);
+    fetchGlobalStats();
+  }, []);
 
   const formatYAxis = (tickItem) => {
       return (tickItem / 1000000000).toFixed(1) + 'B';

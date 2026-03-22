@@ -39,10 +39,8 @@ export default function AllianceDashboard() {
   };
 
   useEffect(() => {
-    if (session) {
-      fetchAlliance(activeTag);
-    }
-  }, [session]);
+    fetchAlliance(activeTag);
+  }, []);
 
   const handleSearch = (e) => {
       e.preventDefault();

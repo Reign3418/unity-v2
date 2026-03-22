@@ -52,10 +52,8 @@ export default function KingdomAnalysis() {
   };
 
   useEffect(() => {
-    if (session) {
-      fetchTrends();
-    }
-  }, [session, targetKd]);
+    fetchTrends();
+  }, [targetKd]);
 
   // Derived Data for Alliance Pie Chart (Latest Data Point)
   let alliancePieData = [];
