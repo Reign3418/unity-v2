@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import AuthProvider from "@/components/providers/AuthProvider";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
             {children}
           </DashboardLayout>
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
