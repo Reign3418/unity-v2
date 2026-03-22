@@ -1,242 +1,211 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Link2, Plus, Settings, RotateCcw } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Trophy, ChevronDown, ChevronUp, Search, Database, RefreshCw, AlertTriangle } from "lucide-react";
 
-export default function DKPLeaderboards() {
+export default function MyStats() {
   const { data: session } = useSession();
-  
-  const [roster, setRoster] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [targetKd, setTargetKd] = useState("3155");
-  
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState("power");
-  const [sortDirection, setSortDirection] = useState("desc");
 
-  const fetchRoster = async () => {
-    setIsLoading(true);
-    setErrorMsg("");
-    try {
-      const res = await fetch(`/api/aws/roster?kd=${targetKd}`);
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error || "Failed to fetch AWS Leaderboard.");
-      setRoster(data.roster || []);
-    } catch (e) {
-      console.error(e);
-      setErrorMsg(e.message);
-    } finally {
-      setIsLoading(false);
+  // Placeholder Governor Stats Data (This will eventually load from DynamoDB)
+  const governorCards = [
+    {
+      id: "218768480",
+      power: "115.2M",
+      kp: "2.4B",
+      dead: "15.2M",
+      kingdom: "3155",
+      faction: "Springs",
+      tier: "T5",
+      // Back of card stats
+      troopPower: "58.1M",
+      commanderPower: "11.2M",
+      techPower: "35.4M",
+      highestPower: "116.5M"
+    },
+    {
+      id: "135042283",
+      power: "42.1M",
+      kp: "185M",
+      dead: "2.1M",
+      kingdom: "3155",
+      faction: "Springs",
+      tier: "T4",
+      // Back of card stats
+      troopPower: "15.8M",
+      commanderPower: "4.6M",
+      techPower: "18.2M",
+      highestPower: "42.8M"
     }
-  };
-
-  useEffect(() => {
-    if (session) {
-      fetchRoster();
-    }
-  }, [session, targetKd]);
-
-  const handleSort = (field) => {
-    if (sortField === field) {
-        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-        setSortField(field);
-        setSortDirection('desc');
-    }
-  };
-
-  const getSortedRoster = () => {
-    let filtered = [...roster];
-    
-    // 1. Search filter
-    if (searchQuery) {
-       const q = searchQuery.toLowerCase();
-       filtered = filtered.filter(gov => 
-         (gov.name?.toLowerCase().includes(q)) || 
-         (gov.id?.toString().includes(q)) ||
-         (gov.alliance?.toLowerCase().includes(q))
-       );
-    }
-    
-    // 2. Sort
-    filtered.sort((a, b) => {
-       const aVal = a[sortField];
-       const bVal = b[sortField];
-       
-       if (typeof aVal === 'number' && typeof bVal === 'number') {
-           return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-       }
-       
-       const aStr = String(aVal).toLowerCase();
-       const bStr = String(bVal).toLowerCase();
-       if (aStr < bStr) return sortDirection === 'asc' ? -1 : 1;
-       if (aStr > bStr) return sortDirection === 'asc' ? 1 : -1;
-       return 0;
-    });
-    
-    return filtered;
-  };
-
-  const SortIcon = ({ field }) => {
-    if (sortField !== field) return <ChevronDown size={14} className="text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />;
-    return sortDirection === 'asc' ? <ChevronUp size={14} className="text-emerald-500" /> : <ChevronDown size={14} className="text-emerald-500" />;
-  };
-
-  const TheadTh = ({ label, field, right = false }) => (
-    <th 
-      onClick={() => handleSort(field)}
-      className={`px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer group hover:bg-white/5 transition-colors select-none ${right ? 'text-right' : 'text-left'}`}
-    >
-      <div className={`flex items-center gap-1 ${right ? 'justify-end' : 'justify-start'}`}>
-        {label} <SortIcon field={field} />
-      </div>
-    </th>
-  );
-
-  const formatNumber = (num) => {
-    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + "B";
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-    return num?.toLocaleString() || "0";
-  };
-
-  const displayedRoster = getSortedRoster();
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12 mt-4">
+    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-12">
       
-      {/* Header Panel */}
-      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
-            <div className="flex items-center gap-4">
-               <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
-                 <Trophy className="text-emerald-500" size={32} />
-               </div>
-               <div>
-                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">Global Leaderboards</h1>
-                 <p className="text-emerald-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Live DynamoDB Trajectory Mapping</p>
-               </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-               <select 
-                 value={targetKd}
-                 onChange={(e) => setTargetKd(e.target.value)}
-                 className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-emerald-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
-               >
-                 <option value="3155">Kingdom 3155</option>
-                 <option value="3156">Kingdom 3156</option>
-               </select>
-
-               <button 
-                 onClick={fetchRoster}
-                 disabled={isLoading}
-                 className="p-2.5 bg-[#0a0c0f] hover:bg-[#1e222b] text-gray-400 hover:text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg"
-                 title="Force Sync"
-               >
-                  <RefreshCw size={20} className={isLoading ? "animate-spin text-emerald-500" : ""} />
-               </button>
-            </div>
-         </div>
-      </div>
-
-      {errorMsg ? (
-        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-6 flex flex-col items-center justify-center text-rose-500 shadow-xl gap-2">
-           <AlertTriangle size={32} />
-           <p className="font-bold">{errorMsg}</p>
-        </div>
-      ) : (
-        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden flex flex-col">
+      {/* Discord Identity Header */}
+      {session?.user && (
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
           
-          {/* Table Toolbar */}
-          <div className="p-4 border-b border-[#1e222b] bg-[#0a0c0f] flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="relative w-full sm:w-96">
-               <input 
-                 type="text" 
-                 placeholder="Search Name or ID..."
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full bg-[#13161c] border border-[#1e222b] text-white pl-10 pr-4 py-2 rounded-lg text-sm outline-none focus:border-emerald-500 transition-colors"
-               />
-               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <img 
+            src={`https://cdn.discordapp.com/avatars/${session.user.id}/${session.user.avatar}.png`} 
+            alt="Discord Avatar" 
+            className="w-24 h-24 rounded-full border-4 border-[#1e222b] shadow-lg object-cover"
+          />
+          <div className="text-center sm:text-left flex-1">
+            <div className="text-emerald-500 text-[10px] font-black tracking-[0.2em] uppercase mb-1">
+              Connected Unity Identity
             </div>
-            <div className="text-xs font-bold text-gray-500 tracking-widest uppercase flex items-center gap-2">
-              <Database size={14} className="text-emerald-500" />
-              {isLoading ? 'Scanning Cluster...' : `${displayedRoster.length} Nodes Rendered`}
+            <h1 className="text-3xl font-bold text-white mb-2">{session.user.username}</h1>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+              <span className="bg-[#1e222b] text-gray-400 text-xs px-3 py-1 rounded-full border border-[#2d323e]">ID: {session.user.id}</span>
+              {session.user.isLeader && (
+                <span className="bg-amber-500/10 text-amber-500 text-xs px-3 py-1 rounded-full border border-amber-500/20 font-bold">R4/R5 Architecture</span>
+              )}
             </div>
-          </div>
-
-          {/* Data Table */}
-          <div className="overflow-x-auto">
-             <table className="w-full whitespace-nowrap min-w-[1024px]">
-                <thead className="bg-[#0a0c0f] sticky top-0 z-10 shadow-sm">
-                   <tr>
-                      <th className="px-4 py-3 w-16 text-center text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">#</th>
-                      <TheadTh label="Governor" field="name" />
-                      <TheadTh label="Alliance" field="alliance" />
-                      <TheadTh label="Total Power" field="power" right />
-                      <TheadTh label="Kill Points" field="killPoints" right />
-                      <TheadTh label="Dead Troops" field="dead" right />
-                      <TheadTh label="T4 Kills" field="t4Kills" right />
-                      <TheadTh label="T5 Kills" field="t5Kills" right />
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1e222b] bg-[#13161c]">
-                   {isLoading ? (
-                      <tr>
-                        <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                          <RefreshCw size={32} className="animate-spin text-emerald-500 mx-auto mb-4" />
-                          <div className="font-bold uppercase tracking-widest text-sm text-emerald-400">Decrypting AWS Architecture</div>
-                          <div className="text-xs mt-1">Downloading 10,000+ Table Nodes</div>
-                        </td>
-                      </tr>
-                   ) : displayedRoster.length === 0 ? (
-                      <tr>
-                         <td colSpan="8" className="px-6 py-8 text-center text-gray-500 font-bold uppercase tracking-widest text-sm">
-                            No Records Found
-                         </td>
-                      </tr>
-                   ) : (
-                      displayedRoster.map((gov, index) => (
-                         <tr key={gov.id} className="hover:bg-white/5 transition-colors group">
-                            <td className="px-4 py-3 text-center text-xs text-gray-600 font-bold">{index + 1}</td>
-                            <td className="px-4 py-3">
-                               <div className="font-bold text-white group-hover:text-emerald-400 transition-colors">{gov.name}</div>
-                               <div className="text-[10px] text-gray-500 font-mono">ID: {gov.id}</div>
-                            </td>
-                            <td className="px-4 py-3">
-                               <span className={`px-2 py-0.5 rounded text-xs font-bold border ${!gov.alliance || gov.alliance === 'None' ? 'bg-gray-800/50 text-gray-500 border-gray-700/50' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 uppercase tracking-widest'}`}>
-                                  {gov.alliance || 'NONE'}
-                               </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                               <div className="font-bold text-white font-mono">{formatNumber(gov.power)}</div>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                               <div className="font-bold text-amber-500 font-mono bg-amber-500/5 px-2 py-0.5 rounded inline-block">{formatNumber(gov.killPoints)}</div>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                               <div className="font-bold text-rose-500 font-mono">{formatNumber(gov.dead)}</div>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                               <div className="text-gray-400 font-mono">{formatNumber(gov.t4Kills)}</div>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                               <div className="text-gray-300 font-mono font-bold">{formatNumber(gov.t5Kills)}</div>
-                            </td>
-                         </tr>
-                      ))
-                   )}
-                </tbody>
-             </table>
           </div>
         </div>
       )}
 
+      {/* Governor Profiles Grid */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">Governor Profiles</h2>
+          <button className="hidden sm:flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-lg font-bold transition-all text-sm">
+            <Plus size={16} /> Link Governor
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {governorCards.map((gov) => (
+            <GovernorCard key={gov.id} gov={gov} />
+          ))}
+
+          {/* Add New Profile Stub */}
+          <button className="bg-[#0f1115] border-2 border-dashed border-[#1e222b] hover:border-emerald-500/50 hover:bg-emerald-500/5 rounded-2xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-emerald-400 transition-all group min-h-[340px]">
+            <div className="w-16 h-16 rounded-full bg-[#1e222b] group-hover:bg-emerald-500/20 flex flex-col items-center justify-center mb-4 transition-colors">
+              <Plus size={32} />
+            </div>
+            <span className="font-bold tracking-widest uppercase mb-2">Link Scanner Output</span>
+            <span className="text-[10px] text-gray-600">Sync with AWS DynamoDB</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------
+// Sub-Component: 3D Flippable Governor Baseball Card
+// ---------------------------------------------------------------------------------
+function GovernorCard({ gov }) {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  return (
+    <div 
+      className="relative group cursor-pointer w-full"
+      style={{ perspective: "1000px", minHeight: "340px" }}
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
+      <div 
+        className="w-full h-full absolute top-0 left-0 transition-all duration-700 shadow-xl"
+        style={{ 
+          transformStyle: "preserve-3d", 
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" 
+        }}
+      >
+        
+        {/* ======================================================== */}
+        {/* FRONT OF CARD (Main Metrics)                             */}
+        {/* ======================================================== */}
+        <div 
+          className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-[#13161c] to-[#0a0c0f] border border-[#1e222b] rounded-2xl flex flex-col hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          {/* Header */}
+          <div className="bg-[#1e222b]/40 px-6 py-4 flex justify-between items-center border-b border-[#1e222b]">
+            <div className="font-mono text-emerald-400 font-bold">#{gov.id}</div>
+            <div className="flex items-center gap-2">
+              <span className="bg-[#0f1115] text-gray-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-[#1e222b]">KD {gov.kingdom}</span>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="p-6 flex-1 flex flex-col justify-center space-y-4">
+            <div>
+              <div className="text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">Total Power</div>
+              <div className="text-4xl font-black text-white tracking-tight">{gov.power}</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1e222b]">
+              <div>
+                <div className="text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">Kill Points</div>
+                <div className="text-lg font-bold text-emerald-400">{gov.kp}</div>
+              </div>
+              <div>
+                <div className="text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">Dead Troops</div>
+                <div className="text-lg font-bold text-rose-400">{gov.dead}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Flip Indicator */}
+          <div className="text-center pb-4 text-gray-600 text-[10px] uppercase tracking-[0.2em] font-bold group-hover:text-emerald-500 transition-colors flex items-center justify-center gap-1">
+            <RotateCcw size={10} /> Click to Flip
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* BACK OF CARD (Deep Analytics)                            */}
+        {/* ======================================================== */}
+        <div 
+          className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#13161c] to-[#0f1115] border border-emerald-500/30 rounded-2xl flex flex-col shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]"
+          style={{ 
+            backfaceVisibility: "hidden", 
+            transform: "rotateY(180deg)" 
+          }}
+        >
+          {/* Header (Back) */}
+          <div className="bg-emerald-500/10 px-6 py-4 flex justify-between items-center border-b border-emerald-500/20">
+            <div className="font-bold text-white text-sm">Target Analytics</div>
+            <div className="bg-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-emerald-500/30">
+              {gov.tier} Architecture
+            </div>
+          </div>
+
+          {/* Deep Stats Grid */}
+          <div className="p-6 flex-1 space-y-4">
+            <div className="flex justify-between items-end border-b border-[#1e222b] pb-2">
+              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Highest Power</span>
+              <span className="text-white font-mono font-bold">{gov.highestPower}</span>
+            </div>
+            <div className="flex justify-between items-end border-b border-[#1e222b] pb-2">
+              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Troop Power</span>
+              <span className="text-emerald-400 font-mono font-bold">{gov.troopPower}</span>
+            </div>
+            <div className="flex justify-between items-end border-b border-[#1e222b] pb-2">
+              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Tech Power</span>
+              <span className="text-indigo-400 font-mono font-bold">{gov.techPower}</span>
+            </div>
+            <div className="flex justify-between items-end border-b border-[#1e222b] pb-2">
+              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Commander Power</span>
+              <span className="text-amber-400 font-mono font-bold">{gov.commanderPower}</span>
+            </div>
+          </div>
+
+          {/* Action Footer */}
+          <div className="px-6 py-3 bg-[#0a0c0f]/50 border-t border-[#1e222b] flex justify-between z-10" onClick={(e) => e.stopPropagation()}>
+            <button className="text-gray-500 hover:text-white transition-colors" title="Settings">
+              <Settings size={18} />
+            </button>
+            <button className="text-rose-500/70 hover:text-rose-500 transition-colors text-xs font-bold uppercase tracking-widest flex items-center gap-1">
+              <Link2 size={14} className="rotate-45" /> Unlink Profile
+            </button>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
