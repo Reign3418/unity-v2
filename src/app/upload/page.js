@@ -1,21 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
-  FileSpreadsheet, 
-  Cloud, 
-  Camera, 
-  Upload, 
-  ArrowRight,
-  Database,
-  Github,
-  CheckCircle2
+  FileSpreadsheet, Cloud, Camera, Upload, ArrowRight,
+  Database, Github, CheckCircle2, AlertTriangle, Loader2, Sparkles 
 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 export default function UploadHub() {
   const [activeTab, setActiveTab] = useState(null);
+  const [targetKd, setTargetKd] = useState("3155");
 
-  // Tab Selection Cards
   if (!activeTab) {
     return (
       <div className="animate-fade-in max-w-5xl mx-auto mt-8">
@@ -27,7 +22,6 @@ export default function UploadHub() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Spreadsheet Option */}
           <button 
             onClick={() => setActiveTab("spreadsheet")}
             className="group relative bg-[#0f1115] border border-[#1e222b] hover:border-emerald-500/50 rounded-2xl p-8 text-left transition-all hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] overflow-hidden"
@@ -44,7 +38,6 @@ export default function UploadHub() {
             </p>
           </button>
 
-          {/* Cloud Sync Option */}
           <button 
             onClick={() => setActiveTab("cloud")}
             className="group relative bg-[#0f1115] border border-[#1e222b] hover:border-indigo-500/50 rounded-2xl p-8 text-left transition-all hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] overflow-hidden"
@@ -61,15 +54,14 @@ export default function UploadHub() {
             </p>
           </button>
 
-          {/* AI Screenshot Option */}
           <button 
-            onClick={() => setActiveTab("scanner")}
-            className="group relative bg-[#0f1115] border border-[#1e222b] hover:border-amber-500/50 rounded-2xl p-8 text-left transition-all hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] overflow-hidden opacity-50 cursor-not-allowed"
+            disabled
+            className="group relative bg-[#0f1115] border border-[#1e222b] rounded-2xl p-8 text-left transition-all opacity-50 cursor-not-allowed"
           >
             <div className="absolute top-4 right-4 bg-amber-500/10 text-amber-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
               IN DEVELOPMENT
             </div>
-            <div className="w-14 h-14 bg-gray-800 rounded-xl flex items-center justify-center mb-6 text-gray-500 group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 bg-gray-800 rounded-xl flex items-center justify-center mb-6 text-gray-500">
               <Camera size={28} />
             </div>
             <h3 className="text-xl font-bold text-gray-400 mb-2">AI Vision Scanner</h3>
@@ -82,11 +74,8 @@ export default function UploadHub() {
     );
   }
 
-  // Common Pipeline Layout wrapping the specific UI
   return (
-    <div className="max-w-6xl mx-auto mt-4 animate-fade-in relative z-10">
-      
-      {/* Top action bar */}
+    <div className="max-w-6xl mx-auto mt-4 animate-fade-in relative z-10 pb-12">
       <div className="flex items-center gap-4 mb-8 pb-4 border-b border-[#1e222b]">
         <button 
           onClick={() => setActiveTab(null)}
@@ -103,31 +92,39 @@ export default function UploadHub() {
         </div>
       </div>
 
-      {/* Dual-stage Pipeline Render */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-8 max-w-4xl mx-auto mt-8">
-        
-        {/* Stage 1: Pre-KvK Start */}
+      {activeTab === 'spreadsheet' && (
+        <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 mb-8 flex items-center gap-6 shadow-xl max-w-4xl mx-auto">
+           <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest pl-2">Target Routing</label>
+           <select 
+             value={targetKd}
+             onChange={(e) => setTargetKd(e.target.value)}
+             className="bg-[#0a0c0f] border border-[#1e222b] text-emerald-400 focus:border-emerald-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer flex-1 transition-colors"
+           >
+             <option value="3155">Kingdom 3155</option>
+             <option value="3156">Kingdom 3156</option>
+           </select>
+        </div>
+      )}
+
+      <div className="flex flex-col md:flex-row items-center justify-between gap-8 max-w-4xl mx-auto">
         <DropZone 
-          title="Start Scan" 
-          description="Pre-KvK baseline metrics"
-          icon={activeTab === 'cloud' ? <Database className="text-indigo-400" /> : <Upload className="text-emerald-400" />}
-          theme={activeTab === 'cloud' ? 'indigo' : 'emerald'}
-          isCloud={activeTab === 'cloud'}
+          title="Baseline Snapshot" 
+          description="Pre-KvK metrics"
+          icon={<Upload className="text-emerald-400" />}
+          theme="emerald"
+          targetKd={targetKd}
         />
 
         <div className="text-[#1e222b] hidden md:block"><ArrowRight size={32} /></div>
 
-        {/* Stage 2: Post-KvK End */}
         <DropZone 
-          title="End Scan" 
-          description="Final DKP measurement"
-          icon={activeTab === 'cloud' ? <Database className="text-indigo-400" /> : <Upload className="text-emerald-400" />}
-          theme={activeTab === 'cloud' ? 'indigo' : 'emerald'}
-          isCloud={activeTab === 'cloud'}
+          title="Current Trajectory" 
+          description="Latest extraction log"
+          icon={<Sparkles className="text-emerald-400" />}
+          theme="emerald"
+          targetKd={targetKd}
         />
-
       </div>
-
     </div>
   );
 }
@@ -135,68 +132,119 @@ export default function UploadHub() {
 // ---------------------------------------------------------------------------------
 // Sub-Component: DropZone Configurator
 // ---------------------------------------------------------------------------------
-function DropZone({ title, description, icon, theme, optional = false, isCloud = false }) {
+function DropZone({ title, description, icon, theme, optional = false, targetKd }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("idle"); // idle, success, error
+  const [rowCount, setRowCount] = useState(0);
+  const fileInputRef = useRef(null);
   
   const themeColors = {
     emerald: 'border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5',
-    amber: 'border-amber-500/30 hover:border-amber-500 bg-amber-500/5',
-    indigo: 'border-indigo-500/30 hover:border-indigo-500 bg-indigo-500/5',
   };
-
   const textColors = {
     emerald: 'text-emerald-400',
-    amber: 'text-amber-400',
-    indigo: 'text-indigo-400',
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadStatus("idle");
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); // Fallback to 0 if empty
+        setRowCount(jsonPayload.length);
+
+        // Transmit via Next.js Server APi
+        const res = await fetch('/api/aws/upload', {
+          method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             kingdomId: targetKd,
+             rosterArray: jsonPayload
+           })
+        });
+
+        const resData = await res.json();
+        
+        if (!res.ok) throw new Error(resData.error || "Upload Failed");
+        
+        setUploadStatus("success");
+      } catch (err) {
+        console.error("Pipeline Drop Error:", err);
+        setUploadStatus("error");
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
-    <div className="w-full flex-1 bg-[#0f1115] rounded-xl border border-[#1e222b] overflow-hidden flex flex-col h-[320px] shadow-lg">
+    <div className={`w-full flex-1 bg-[#0f1115] rounded-xl border transition-all duration-500 overflow-hidden flex flex-col h-[320px] shadow-lg ${uploadStatus === 'success' ? 'border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]' : 'border-[#1e222b]'}`}>
       
-      {/* Header */}
       <div className="p-4 border-b border-[#1e222b] bg-[#0a0c0f] flex justify-between items-center">
         <div>
           <h3 className="text-white font-bold">{title}</h3>
           <p className="text-gray-500 text-[10px] uppercase tracking-wider">{description}</p>
         </div>
-        {optional && (
-          <span className="text-[10px] font-black text-gray-500 border border-gray-700 px-2 py-0.5 rounded-full uppercase">Optional</span>
-        )}
+        {optional && <span className="text-[10px] font-black text-gray-500 border border-gray-700 px-2 py-0.5 rounded-full uppercase">Optional</span>}
       </div>
 
-      {/* Main Action Area */}
-      <div className="flex-1 p-6 flex flex-col items-center justify-center relative">
-        {isCloud ? (
-          <div className="w-full space-y-4">
-            <button className={`w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-dashed transition-all group ${themeColors[theme]}`}>
-              <Database className={`${textColors[theme]} group-hover:scale-110 transition-transform`} size={24} />
-              <div className="text-left">
-                <div className={`font-bold ${textColors[theme]}`}>Sync from AWS</div>
-                <div className="text-gray-500 text-xs">Pull direct from CloudDB</div>
-              </div>
-            </button>
-            <div className="flex items-center gap-4 w-full px-4 pt-1">
-               <div className="h-[1px] bg-[#1e222b] flex-1"></div>
-               <span className="text-gray-600 text-[10px] font-bold">OR</span>
-               <div className="h-[1px] bg-[#1e222b] flex-1"></div>
-            </div>
-            <button className="w-full flex items-center justify-center gap-3 p-3 rounded-lg border border-[#1e222b] hover:border-gray-500 hover:bg-white/5 transition-all text-gray-400 group">
-              <Github size={20} className="group-hover:text-white transition-colors" />
-              <span className="font-semibold text-sm">Load from Github</span>
-            </button>
+      <div 
+        onClick={() => !isUploading && uploadStatus !== 'success' && fileInputRef.current?.click()}
+        className="flex-1 p-6 flex flex-col items-center justify-center relative"
+      >
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+          onChange={handleFileChange}
+        />
+
+        {isUploading ? (
+          <div className="flex flex-col items-center justify-center text-indigo-400 p-8">
+            <Loader2 className="animate-spin mb-4" size={40} />
+            <span className="font-bold text-sm tracking-wider uppercase animate-pulse">Igniting DynamoDB Pipeline...</span>
+            <span className="text-xs text-gray-500 mt-2 font-mono">Transmitting JSON Blocks</span>
+          </div>
+        ) : uploadStatus === "success" ? (
+          <div className="w-full h-full rounded-xl border border-emerald-500 bg-emerald-500/10 flex flex-col items-center justify-center text-emerald-400">
+             <CheckCircle2 size={48} className="mb-3" />
+             <div className="font-black text-xl">SUCCESS</div>
+             <div className="text-xs font-bold uppercase mt-1 tracking-wider text-emerald-600 bg-emerald-950 px-3 py-1 rounded">AWS Pipeline Sealed</div>
+             <div className="text-[10px] text-gray-400 mt-4 font-mono">[{rowCount} Data Nodes Synchronized]</div>
+          </div>
+        ) : uploadStatus === "error" ? (
+          <div className="w-full h-full rounded-xl border border-rose-500 border-dashed bg-rose-500/5 flex flex-col items-center justify-center text-rose-500 cursor-pointer hover:bg-rose-500/10 transition-colors">
+             <AlertTriangle size={36} className="mb-2" />
+             <span className="font-bold">Transmission Failure</span>
+             <span className="text-xs mt-1 text-gray-400">Click to Retry Ignition</span>
           </div>
         ) : (
           <div className={`w-full h-full rounded-xl border border-dashed ${themeColors[theme]} flex flex-col flex-1 items-center justify-center cursor-pointer group transition-all`}>
             {icon}
-            <span className={`mt-3 font-semibold ${textColors[theme]}`}>Drag & Drop Excel File</span>
-            <span className="text-gray-500 text-xs mt-1">.xlsx, .csv sizes up to 20MB</span>
+            <span className={`mt-3 font-semibold ${textColors[theme]}`}>Select Local File</span>
+            <span className="text-gray-500 text-xs mt-1">Accepts raw .xlsx or CSV</span>
           </div>
         )}
       </div>
 
-      {/* Action Footer */}
       <div className="p-4 border-t border-[#1e222b] bg-gradient-to-t from-[#0a0c0f] to-transparent">
-        <button className="w-full py-2.5 rounded-md bg-[#1e222b]/50 text-gray-500 font-bold text-sm cursor-not-allowed flex items-center justify-center gap-2">
-           <CheckCircle2 size={16} /> Awaiting Data
+        <button className={`w-full py-2.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+          uploadStatus === 'success' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-[#1e222b]/50 text-gray-500 cursor-not-allowed'
+        }`}>
+           {uploadStatus === 'success' ? 'Ignition Sequence Complete' : 'Awaiting Encryption Key'}
         </button>
       </div>
 

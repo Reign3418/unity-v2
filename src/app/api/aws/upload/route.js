@@ -1,0 +1,42 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { uploadKingdomRoster } from "@/lib/awsDynamo";
+
+export async function POST(req) {
+  try {
+    // 1. Authenticate the Request
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized. Admin credentials required." }, { status: 401 });
+    }
+
+    // 2. Extract Data Boundaries
+    const body = await req.json();
+    const { kingdomId, rosterArray } = body;
+
+    if (!kingdomId || !rosterArray || !Array.isArray(rosterArray) || rosterArray.length === 0) {
+      return NextResponse.json({ error: "Corrupted Payload. Missing target Kingdom or Array structures." }, { status: 400 });
+    }
+
+    // Security Check: Only Leaders can upload data
+    if (!session.user.isLeader && session.user.role !== "Admin") {
+       return NextResponse.json({ error: "Clearance Denied. Admin Role Required to ignite AWS Uploads." }, { status: 403 });
+    }
+
+    // 3. Ignite DynamoDB BatchWriter
+    console.log(`[API/AWS/Upload] Initiating ingestion sequence: ${rosterArray.length} items for Kingdom ${kingdomId}...`);
+    
+    const dateKey = await uploadKingdomRoster(kingdomId, rosterArray);
+
+    return NextResponse.json({ 
+        success: true, 
+        message: `AWS Upload Successful. ${rosterArray.length} rows written.`,
+        dateKey, 
+        rowCount: rosterArray.length 
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error("[API/AWS/Upload] Ignition Failure:", error);
+    return NextResponse.json({ error: "Total Structural Failure during AWS execution." }, { status: 500 });
+  }
+}

@@ -806,6 +806,110 @@ export async function getRecruits(kingdomId) {
 }
 
 /**
+ * Executes a high-velocity BatchWrite block upload into the Unity AWS Table.
+ * Automatically handles the 25-item DynamoDB batch limit by chunking the JSON array.
+ */
+export async function uploadKingdomRoster(kingdomId, rosterArray) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+    
+    // We import BatchWriteItemCommand here because it wasn't statically imported at the top
+    const { BatchWriteItemCommand, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    // Generate a unique Scan Date ID (Format: YYYY_MM_DD_HH_MM_SS)
+    const scanDate = new Date().toISOString();
+    const dateKey = scanDate.replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
+    
+    // 1. Write the Master DATES pointer so queries know the 'Latest' scan date
+    const dateParams = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `DATES#${kingdomId}` },
+            'SK': { S: `SCAN#${dateKey}` },
+            'attributes': {
+                M: {
+                    'scanDate': { S: scanDate },
+                    'rowCount': { N: String(rosterArray.length) }
+                }
+            }
+        }
+    };
+    
+    try {
+        await dbClient.send(new PutItemCommand(dateParams));
+    } catch (e) {
+        console.error("[AWS Batch Upload] Failed to write Master DATES pointer:", e);
+        throw e;
+    }
+
+    // 2. Format the JS Objects into DynamoDB PutRequest objects
+    const putRequests = rosterArray.map(player => {
+        // Stringify numbers and format explicitly to exactly match legacy Unity 1.0 JSON scheme
+        const formatS = (val) => ({ S: String(val || '') });
+        const formatN = (val) => ({ N: String(val || 0).replace(/,/g, '') });
+
+        return {
+            PutRequest: {
+                Item: {
+                    'PK': { S: `SCAN#${kingdomId}#${dateKey}` },
+                    'SK': { S: `GOV#${player.id || player.Id}` },
+                    'attributes': {
+                        M: {
+                            'Governor ID': formatS(player.id || player.Id),
+                            'Governor Name': formatS(player.name || player.Name),
+                            'Alliance Tag': formatS(player.alliance || player.Alliance),
+                            'Power': formatN(player.power || player.Power),
+                            'Kill Points': formatN(player.killPoints || player.KillPoints),
+                            'Deads': formatN(player.deads || player.Deads),
+                            'T4 Kills': formatN(player.t4Kills || player.T4Kills),
+                            'T5 Kills': formatN(player.t5Kills || player.T5Kills),
+                            'Resources Gathered': formatN(player.gathered || player.Gathered || player.ResourcesGathered),
+                            'Assistance': formatN(player.assistance || player.Assistance),
+                            'Tech Power': formatN(player.techPower || player.TechPower),
+                            'Commander Power': formatN(player.commanderPower || player.CommanderPower),
+                            'Building Power': formatN(player.buildingPower || player.BuildingPower),
+                            // Map any deltas if provided by the client side processor
+                            'powerDelta': formatN(player.powerDelta),
+                            'kpDelta': formatN(player.kpDelta),
+                            'deadsDelta': formatN(player.deadsDelta),
+                            'gatheredDelta': formatN(player.gatheredDelta),
+                        }
+                    }
+                }
+            }
+        };
+    });
+
+    // 3. Chunk into 25-item blocks (AWS Hard Limit)
+    const chunkSize = 25;
+    const blocks_25 = [];
+    for (let i = 0; i < putRequests.length; i += chunkSize) {
+        blocks_25.push(putRequests.slice(i, i + chunkSize));
+    }
+
+    console.log(`[AWS Batch Upload] Dispatching ${blocks_25.length} threaded upload blocks for ${rosterArray.length} items...`);
+
+    // 4. Fire chunks across parallel Promise execution map
+    const promises = blocks_25.map(async (chunk) => {
+        const batchParams = {
+            RequestItems: {
+                [tableName]: chunk
+            }
+        };
+        try {
+            await dbClient.send(new BatchWriteItemCommand(batchParams));
+        } catch (e) {
+            console.error("[AWS Batch Upload] Block failure:", e);
+        }
+    });
+
+    await Promise.all(promises);
+
+    console.log(`[AWS Batch Upload] Complete! Ignited ${rosterArray.length} rows into DynamoDB.`);
+    return dateKey;
+}
+
+/**
  * Deletes a recruit.
  */
 export async function deleteRecruit(kingdomId, recruitId) {
