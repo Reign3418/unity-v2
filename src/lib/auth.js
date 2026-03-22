@@ -3,11 +3,13 @@ import Discord from "next-auth/providers/discord";
 import { getTenantConfig, getUserConfig, getGlobalConfig } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
       authorization: { params: { scope: 'identify guilds guilds.members.read' } },
+      checks: ['state'],
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
