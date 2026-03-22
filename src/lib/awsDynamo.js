@@ -806,6 +806,139 @@ export async function getRecruits(kingdomId) {
 }
 
 /**
+ * ADMIN: Safely fetches all linked User/Discord accounts.
+ * Executes a filtered Scan on the SK = CONFIG footprint.
+ */
+export async function getAllUsers() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        FilterExpression: 'SK = :sk AND begins_with(PK, :pkPrefix)',
+        ExpressionAttributeValues: {
+            ':sk': { S: 'CONFIG' },
+            ':pkPrefix': { S: 'USER#' }
+        }
+    };
+
+    try {
+        let allUsers = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = lastEvaluatedKey;
+            }
+            const result = await dbClient.send(new ScanCommand(params));
+            
+            if (result.Items) {
+                for (const item of result.Items) {
+                    const attrs = item.attributes?.M || {};
+                    const discordId = item.PK.S.replace('USER#', '');
+                    
+                    let govIds = [];
+                    if (attrs.governorIds && attrs.governorIds.L) {
+                        govIds = attrs.governorIds.L.map(item => item.S);
+                    } else if (attrs.governorId && attrs.governorId.S) {
+                        govIds = [attrs.governorId.S];
+                    }
+
+                    allUsers.push({
+                        discordId: discordId,
+                        governorIds: govIds,
+                        kingdomId: attrs.kingdomId?.S || 'None',
+                        isManualGuest: attrs.isManualGuest?.BOOL || false,
+                        role: attrs.role?.S || 'User',
+                        linkedDate: attrs.linkedDate?.S || 'Unknown'
+                    });
+                }
+            }
+            lastEvaluatedKey = result.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+
+        return allUsers;
+
+    } catch (e) {
+        console.error("AWS Get All Users Error", e);
+        return [];
+    }
+}
+
+/**
+ * ADMIN: Danger Zone - Purges all Scan records for a specific Kingdom.
+ */
+export async function purgeKingdomDatabase(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+    const { BatchWriteItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    try {
+        console.log(`[AWS DANGER] Initiating full purge sweep for Kingdom ${kingdomId}...`);
+        
+        const params = {
+            TableName: tableName,
+            FilterExpression: 'begins_with(PK, :prefix) OR PK = :datesPk',
+            ExpressionAttributeValues: {
+                ':prefix': { S: `SCAN#${kingdomId}#` },
+                ':datesPk': { S: `DATES#${kingdomId}` }
+            }
+        };
+
+        let keysToDelete = [];
+        let lastEvaluatedKey = null;
+
+        // 1. Scan and collect every single Partition Key related to the Kingdom
+        do {
+            if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+            
+            // We only need PK/SK keys
+            const scanParams = { ...params, ProjectionExpression: 'PK, SK' };
+            const result = await dbClient.send(new ScanCommand(scanParams));
+            
+            if (result.Items) {
+                result.Items.forEach(item => {
+                    keysToDelete.push({
+                        DeleteRequest: {
+                            Key: {
+                                'PK': item.PK,
+                                'SK': item.SK
+                            }
+                        }
+                    });
+                });
+            }
+            lastEvaluatedKey = result.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+
+        if (keysToDelete.length === 0) return 0;
+
+        console.log(`[AWS DANGER] Found ${keysToDelete.length} records. Commencing BatchWrite Deletions...`);
+
+        // 2. Chunk deletions by 25 and multi-thread
+        const chunkSize = 25;
+        const blocks_25 = [];
+        for (let i = 0; i < keysToDelete.length; i += chunkSize) {
+            blocks_25.push(keysToDelete.slice(i, i + chunkSize));
+        }
+
+        const promises = blocks_25.map(async (chunk) => {
+            const batchParams = { RequestItems: { [tableName]: chunk } };
+            await dbClient.send(new BatchWriteItemCommand(batchParams));
+        });
+
+        await Promise.all(promises);
+        
+        console.log(`[AWS DANGER] Purge Sweep Complete. ${keysToDelete.length} items permanently deleted.`);
+        return keysToDelete.length;
+
+    } catch (e) {
+        console.error("[AWS DANGER] Purge Failed:", e);
+        throw e;
+    }
+}
+
+/**
  * Executes a high-velocity BatchWrite block upload into the Unity AWS Table.
  * Automatically handles the 25-item DynamoDB batch limit by chunking the JSON array.
  */
