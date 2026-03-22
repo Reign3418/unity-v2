@@ -196,6 +196,112 @@ export async function getKingdomRoster(kingdomId) {
 }
 
 /**
+ * Advanced AI Engine: Fetches the last TWO AWS Scans for a Kingdom and performs a chronological mapping
+ * differential to return a Roster payload with native `powerDelta` and missing attributes.
+ */
+export async function getKingdomDeltas(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    try {
+        console.log(`[AWS Engine] Initiating Activity Differential Matrix for KD ${kingdomId}...`);
+        
+        const dateParams = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: { ':pk': { S: `DATES#${kingdomId}` } }
+        };
+
+        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+        
+        if (!dateResult.Items || dateResult.Items.length < 2) {
+            return await getKingdomRoster(kingdomId); // Fallback to Standard Roster
+        }
+        
+        const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S).sort((a, b) => new Date(b) - new Date(a));
+        const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s]/g, "_");
+        const previousDate = String(dates[1]).replace(/[.#$\/\[\]\s]/g, "_");
+        
+        const getSnapshot = async (dateStr) => {
+            const params = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk',
+                ExpressionAttributeValues: { ':pk': { S: `SCAN#${kingdomId}#${dateStr}` } }
+            };
+            const snapshot = {};
+            let lastEvaluatedKey = null;
+            do {
+                if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+                const result = await dbClient.send(new QueryCommand(params));
+                if (result.Items) {
+                    for (const item of result.Items) {
+                        const attrs = item.attributes?.M || {};
+                        const id = attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', '');
+                        snapshot[id] = {
+                            name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                            alliance: attrs['Alliance Tag']?.S || 'None',
+                            power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                            killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                            commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N) || 0,
+                        };
+                    }
+                }
+                lastEvaluatedKey = result.LastEvaluatedKey;
+            } while (lastEvaluatedKey);
+            return snapshot;
+        };
+
+        const [latestSnap, prevSnap] = await Promise.all([
+            getSnapshot(latestDate), 
+            getSnapshot(previousDate)
+        ]);
+
+        const roster = [];
+        
+        // 1. Map Latest and Diff against Previous
+        for (const [id, latestData] of Object.entries(latestSnap)) {
+            const prevData = prevSnap[id];
+            
+            // "NEW" arrival identified by `powerDelta = 'NEW'` string for UI processing
+            let powerDelta = prevData ? (latestData.power - prevData.power) : 'NEW';
+            let cmdBase = prevData ? prevData.commanderPower : 0;
+            
+            roster.push({
+                id,
+                name: latestData.name,
+                alliance: latestData.alliance,
+                power: latestData.power,
+                killPoints: latestData.killPoints,
+                commanderPower: latestData.commanderPower,
+                cmdBase: cmdBase,
+                powerDelta: powerDelta
+            });
+        }
+        
+        // 2. Identify Missing Governors (Migrated or Renamed)
+        for (const [id, prevData] of Object.entries(prevSnap)) {
+            if (!latestSnap[id]) {
+                roster.push({
+                    id,
+                    name: prevData.name,
+                    alliance: prevData.alliance,
+                    power: 0, // 0 latest power triggers "Missing" flag in Tracker UI
+                    killPoints: prevData.killPoints,
+                    commanderPower: 0,
+                    cmdBase: prevData.commanderPower,
+                    powerDelta: 'MISSING'
+                });
+            }
+        }
+
+        return roster;
+    } catch (e) {
+        console.error("AWS Kingdom Deltas Error", e);
+        return [];
+    }
+}
+
+/**
  * Fetches the historical chronological JSON footprints for a specific Governor
  */
 export async function getGovernorHistory(kingdomId, governorId, days = 5) {

@@ -15,7 +15,7 @@ export default function ActivityTracker() {
     setHasResults(false);
     
     try {
-      const res = await fetch(`/api/aws/roster?kd=${targetKd}`);
+      const res = await fetch(`/api/aws/tracker?kd=${targetKd}`);
       const data = await res.json();
       
       if (data.roster) {
@@ -23,23 +23,27 @@ export default function ActivityTracker() {
           let reason = "Active";
           let note = "Normal Growth";
           
-          if (gov.powerDelta === 0 && gov.power > 0) {
+          if (gov.powerDelta === 'NEW') {
+            reason = "New";
+            note = "Newly detected arrival";
+          } else if (gov.powerDelta === 'MISSING') {
+            reason = "Missing";
+            note = "Not found in Latest Scan";
+          } else if (gov.powerDelta === 0) {
             reason = "Zero Growth";
             note = "No gains since baseline";
           } else if (gov.powerDelta > 0 && gov.powerDelta < 500000) {
             reason = "Low Activity";
             note = "Minimal gains detected";
-          } else if (gov.power === 0 || gov.powerDelta === -1) {
-            reason = "Missing";
-            note = "Not found in Latest Scan";
-          } else if (gov.power > 0 && (!gov.powerDelta || gov.powerDelta === 0)) {
-            // Further checking for completely new arrivals
-            reason = "New";
-            note = "Newly detected arrival";
           }
 
           const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
           const formatShort = (num) => num ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
+
+          let troopDeltaDisplay = gov.powerDelta;
+          if (typeof gov.powerDelta === 'number') {
+              troopDeltaDisplay = gov.powerDelta > 0 ? `+${formatNum(gov.powerDelta)}` : formatNum(gov.powerDelta);
+          }
 
           return {
             id: gov.id,
@@ -47,14 +51,13 @@ export default function ActivityTracker() {
             reason,
             note,
             latestPower: formatNum(gov.power),
-            troopDelta: gov.powerDelta > 0 ? `+${formatNum(gov.powerDelta)}` : formatNum(gov.powerDelta),
-            troopBase: formatShort(gov.power - (gov.powerDelta || 0)),
+            troopDelta: troopDeltaDisplay,
+            troopBase: formatShort(gov.power - (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0)),
             troopLatest: formatShort(gov.power),
-            cmdBase: `C: ${formatShort(gov.commanderPower)}`,
+            cmdBase: `C: ${formatShort(gov.cmdBase)}`,
             cmdLatest: `C: ${formatShort(gov.commanderPower)}`
           };
-        }).filter(gov => gov.reason !== "Active" && gov.reason !== "New").slice(0, 100); 
-        // Filter anomalies and cap at 100 for UI performance
+        }).filter(gov => gov.reason !== "Active").slice(0, 100); 
         
         setResults(mapped);
         setHasResults(true);
