@@ -46,9 +46,7 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-[#1e222b] bg-[#0a0c0f]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-            <span className="text-white font-black tracking-tighter">U</span>
-          </div>
+          <img src="/logo.png" alt="Alliance Logo" className="w-9 h-9 object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
           <span className="text-xl font-bold tracking-widest text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">UNITY</span>
         </div>
       </div>

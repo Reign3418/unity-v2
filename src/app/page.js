@@ -17,9 +17,11 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] mb-8">
-            <span className="text-white text-3xl font-black">U</span>
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="Alliance Logo" 
+            className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(16,185,129,0.5)] mb-8 animate-pulse-slow" 
+          />
           
           <h1 className="text-5xl font-black text-white tracking-widest mb-4 drop-shadow-md">
             UNITY <span className="text-emerald-500">2.0</span>
