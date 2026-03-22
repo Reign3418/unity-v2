@@ -7,13 +7,18 @@ import {
   UserMinus, Activity, RefreshCw 
 } from "lucide-react";
 
+// Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
+let globalMatrixCache = null;
+let globalMatrixTimestamp = 0;
+
 export default function AdminConsole() {
   const { data: session } = useSession();
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [awsEnv, setAwsEnv] = useState({ region: "Scanning...", tableName: "Scanning..." });
-  const [users, setUsers] = useState([]);
-  const [tenants, setTenants] = useState([]);
+  // Initialize state directly from the silent cache if it exists
+  const [isLoading, setIsLoading] = useState(!globalMatrixCache);
+  const [awsEnv, setAwsEnv] = useState(globalMatrixCache?.env || { region: "Scanning...", tableName: "Scanning..." });
+  const [users, setUsers] = useState(globalMatrixCache?.users || []);
+  const [tenants, setTenants] = useState(globalMatrixCache?.tenants || []);
   
   const [purgeTarget, setPurgeTarget] = useState("");
   const [isPurging, setIsPurging] = useState(false);
@@ -21,6 +26,11 @@ export default function AdminConsole() {
   useEffect(() => {
     // Only fetch if session is valid and verified as Leader
     if (session?.user?.isLeader || session?.user?.role === "Admin") {
+      // If we have data from the last 60 seconds, don't brutally hammer AWS
+      if (globalMatrixCache && Date.now() - globalMatrixTimestamp < 60000) {
+        setIsLoading(false);
+        return;
+      }
       fetchAdminMatrix();
     } else {
       setIsLoading(false);
@@ -37,6 +47,10 @@ export default function AdminConsole() {
       setAwsEnv(data.env);
       setUsers(data.users || []);
       setTenants(data.tenants || []);
+      
+      // Update the Global Memory Hook
+      globalMatrixCache = data;
+      globalMatrixTimestamp = Date.now();
       
     } catch (e) {
       console.error(e);
@@ -113,8 +127,15 @@ export default function AdminConsole() {
               <p className="text-rose-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Authorized Protocol: Execution Parameters Unlocked</p>
             </div>
           </div>
-          <button onClick={fetchAdminMatrix} className="p-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-colors border border-[#1e222b]">
-            <RefreshCw size={20} />
+          <button 
+            onClick={() => {
+              globalMatrixTimestamp = 0; // Force a hard reboot
+              fetchAdminMatrix();
+            }} 
+            className="p-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-colors border border-[#1e222b]"
+            title="Force Matrix Sync"
+          >
+            <RefreshCw size={20} className={isLoading ? "animate-spin text-emerald-500" : ""} />
           </button>
         </div>
       </div>

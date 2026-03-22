@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
-import { getTenantConfig, getUserConfig } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -34,8 +34,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           let activeTenant = null;
           let ownedGuilds = [];
 
-          // Master Override for Commander
-          if (profile.username === 'reign3418' || profile.username === 'reign') {
+          // Master Override from Database (GLOBAL_CONFIG -> SUPER_ADMINS)
+          const masterConfigStr = await getGlobalConfig('SUPER_ADMINS');
+          const isSuperAdmin = masterConfigStr && masterConfigStr.includes(profile.id);
+
+          if (isSuperAdmin || profile.username === 'reign3418' || profile.username === 'reign') {
               isLeader = true;
               isMember = true;
               activeTenant = {
