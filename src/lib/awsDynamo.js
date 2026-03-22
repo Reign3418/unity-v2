@@ -1,0 +1,1492 @@
+import { DynamoDBClient, ScanCommand, QueryCommand, PutItemCommand, UpdateItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
+
+// Initialize the DynamoDB Client
+const dbClient = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+    }
+});
+
+/**
+ * Fetches a Global Configuration key from DynamoDB
+ */
+export async function getGlobalConfig(configKey) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return null;
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND SK = :sk',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_CONFIG' },
+            ':sk': { S: `CONFIG#${configKey}` }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            return result.Items[0].attributes?.M?.value?.S || null;
+        }
+        return null;
+    } catch (e) {
+        console.error(`[AWS] Failed to fetch global config ${configKey}:`, e);
+        return null;
+    }
+}
+
+/**
+ * Searches the Unity global AWS DynamoDB table for a specific Governor ID or Name
+ */
+export async function getGovernorStats(queryParam) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const exactRegex = new RegExp(`^${queryParam}$`, 'i');
+    
+    const params = {
+        TableName: tableName,
+        FilterExpression: 'begins_with(PK, :prefix) AND (contains(attributes.#n, :q) OR contains(PK, :q))',
+        ExpressionAttributeNames: {
+            '#n': 'name' // Global Profiles use lowercase keys
+        },
+        ExpressionAttributeValues: {
+            ':prefix': { S: 'GOV_PROFILE#' },
+            ':q': { S: String(queryParam) }
+        }
+    };
+
+    try {
+        console.log(`[AWS] Searching DynamoDB for ${queryParam}...`);
+        
+        let matches = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = lastEvaluatedKey;
+            }
+            
+            const result = await dbClient.send(new ScanCommand(params));
+            
+            if (result.Items) {
+                for (const item of result.Items) {
+                    const attrs = item.attributes?.M || {};
+                    const name = attrs.name?.S || 'Unknown';
+                    const id = item.PK.S.replace('GOV_PROFILE#', '');
+                    
+                    if (exactRegex.test(name) || String(id) === String(queryParam)) {
+                        matches.push({
+                            id: id,
+                            name: name,
+                            lastSeenKingdom: attrs.lastSeenKingdom?.S || attrs.lastSeenKingdom?.N || 'Unknown',
+                            lastSeenDate: attrs.lastSeenDate?.S || 'Unknown'
+                        });
+                    }
+                }
+            }
+            lastEvaluatedKey = result.LastEvaluatedKey;
+            
+            // Optimization: stop early if we found a match since IDs/Names are generally unique
+            if (matches.length > 0) break;
+            
+        } while (lastEvaluatedKey);
+        
+        return matches.length > 0 ? matches[0] : null;
+
+    } catch (e) {
+        console.error("AWS Search Error", e);
+        return null;
+    }
+}
+
+/**
+ * Searches the Unity global AWS DynamoDB table for all records matching a specific Kingdom
+ */
+export async function getKingdomRoster(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    try {
+        console.log(`[AWS] Finding the Latest Scan Date for Kingdom ${kingdomId}...`);
+        
+        // 1. First, find out the most recent date this Kingdom was scanned.
+        const dateParams = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: {
+                ':pk': { S: `DATES#${kingdomId}` }
+            }
+        };
+
+        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+        
+        if (!dateResult.Items || dateResult.Items.length === 0) {
+            console.log(`[AWS] No Scan Dates found for Kingdom ${kingdomId}.`);
+            return []; // Kingdom hasn't been scanned yet
+        }
+        
+        // Sort the dates (newest first)
+        const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S).sort((a, b) => new Date(b) - new Date(a));
+        const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s]/g, "_");
+        
+        console.log(`[AWS] Querying DynamoDB for Kingdom ${kingdomId} Roster from ${latestDate}...`);
+
+        // 2. Query the actual Roster Snapshot for that exact date
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: {
+                ':pk': { S: `SCAN#${kingdomId}#${latestDate}` }
+            }
+        };
+
+        let roster = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = lastEvaluatedKey;
+            }
+            
+            const result = await dbClient.send(new QueryCommand(params));
+            
+            if (result.Items) {
+                for (const item of result.Items) {
+                    const attrs = item.attributes?.M || {};
+                    // Raw payload from Unity uses exact capitalized strings in the Roster / Scan dumps
+                    roster.push({
+                        id: attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', ''),
+                        name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                        alliance: attrs['Alliance Tag']?.S || 'None',
+                        
+                        // Stats
+                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                        killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                        dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
+                        t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
+                        t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
+                         gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
+                        assistance: parseInt(attrs['Assistance']?.N || attrs['assistance']?.N) || 0,
+                        
+                        // Sub-Power Metrics
+                        techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
+                        commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
+                        buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0,
+                        
+                        // Deltas
+                        powerDelta: parseInt(attrs['powerDelta']?.N) || 0,
+                        kpDelta: parseInt(attrs['kpDelta']?.N) || 0,
+                        deadsDelta: parseInt(attrs['deadsDelta']?.N) || 0,
+                        gatheredDelta: parseInt(attrs['gatheredDelta']?.N) || 0
+                    });
+                }
+            }
+            lastEvaluatedKey = result.LastEvaluatedKey;
+            
+        } while (lastEvaluatedKey);
+        
+        return roster;
+    } catch (e) {
+        console.error("AWS Kingdom Roster Error", e);
+        return [];
+    }
+}
+
+/**
+ * Fetches the historical chronological JSON footprints for a specific Governor
+ */
+export async function getGovernorHistory(kingdomId, governorId, days = 5) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    try {
+        // 1. Get the last N scan dates
+        const dateParams = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: {
+                ':pk': { S: `DATES#${kingdomId}` }
+            }
+        };
+
+        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+        if (!dateResult.Items || dateResult.Items.length === 0) return [];
+        
+        // Sort dates newest first and slice top N
+        const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S)
+            .sort((a, b) => new Date(b) - new Date(a))
+            .slice(0, days)
+            .map(d => String(d).replace(/[.#$\/\[\]\s]/g, "_"));
+
+        let history = [];
+
+        // 2. Query each date explicitly for the specific Governor ID
+        for (const date of dates) {
+            const histParams = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk AND SK = :sk',
+                ExpressionAttributeValues: {
+                    ':pk': { S: `SCAN#${kingdomId}#${date}` },
+                    ':sk': { S: `GOV#${governorId}` }
+                }
+            };
+
+            const histResult = await dbClient.send(new QueryCommand(histParams));
+            if (histResult.Items && histResult.Items.length > 0) {
+                const attrs = histResult.Items[0].attributes?.M || {};
+                history.push({
+                    scanDate: date,
+                    power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                    killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                    deads: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
+                    t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
+                    t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
+                    resources: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
+                    assistance: parseInt(attrs['Assistance']?.N || attrs['assistance']?.N) || 0,
+                    techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
+                    commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
+                    buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0
+                });
+            }
+        }
+        
+        // Return oldest to newest for chronological coaching representation 
+        return history.reverse();
+
+    } catch (e) {
+        console.error("AWS Governor History Error", e);
+        return [];
+    }
+}
+
+/**
+ * Searches the Unity database for a registered Tenant (Discord Server)
+ */
+export async function getTenantConfig(guildId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND SK = :sk',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_TENANTS' },
+            ':sk': { S: `TENANT#${guildId}` }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            
+            let allowedKingdoms = [];
+            if (attrs.allowedKingdoms && attrs.allowedKingdoms.L) {
+                allowedKingdoms = attrs.allowedKingdoms.L.map(item => item.S);
+            }
+
+            return {
+                kingdomId: attrs.kingdomId?.S,
+                leadershipRoleId: attrs.leadershipRoleId?.S,
+                allowedKingdoms: allowedKingdoms
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("AWS Tenant Config Error", e);
+        return null;
+    }
+}
+
+/**
+ * Searches the Unity database for a registered User (Discord ID to Governor ID binding)
+ */
+export async function getUserConfig(discordId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND SK = :sk',
+        ExpressionAttributeValues: {
+            ':pk': { S: `USER#${discordId}` },
+            ':sk': { S: 'CONFIG' }
+        },
+        ConsistentRead: true
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            
+            // Support legacy single ID format or the new Array format
+            let govIds = [];
+            if (attrs.governorIds && attrs.governorIds.L) {
+                govIds = attrs.governorIds.L.map(item => item.S);
+            } else if (attrs.governorId && attrs.governorId.S) {
+                govIds = [attrs.governorId.S];
+            }
+
+            let allowedKingdoms = [];
+            if (attrs.allowedKingdoms && attrs.allowedKingdoms.L) {
+                allowedKingdoms = attrs.allowedKingdoms.L.map(item => item.S || item.N || item);
+            }
+            
+            let profiles = {};
+            if (attrs.profiles && attrs.profiles.M) {
+                for (const [k, v] of Object.entries(attrs.profiles.M)) {
+                    profiles[k] = v.S;
+                }
+            }
+            
+            return {
+                governorIds: govIds,
+                profiles: profiles,
+                kingdomId: attrs.kingdomId?.S,
+                isManualGuest: attrs.isManualGuest?.BOOL || false,
+                role: attrs.role?.S,
+                allowedKingdoms: allowedKingdoms
+            };
+        }
+        return null; // Not registered
+    } catch (e) {
+        console.error("AWS User Config Error", e);
+        return null;
+    }
+}
+
+/**
+ * Registers a new Alliance/Kingdom in the Unity database.
+ */
+export async function createTenantConfig(guildId, kingdomId, leadershipRoleId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'GLOBAL_TENANTS' },
+            'SK': { S: `TENANT#${guildId}` },
+            'attributes': {
+                M: {
+                    'kingdomId': { S: String(kingdomId) },
+                    'leadershipRoleId': { S: String(leadershipRoleId) },
+                    'allowedKingdoms': { L: [] },
+                    'createdDate': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Create Tenant Error", e);
+        return false;
+    }
+}
+
+/**
+ * Links a Discord user to a specific in-game Governor profile.
+ */
+export async function linkGovernorAccount(discordId, governorId, profileType = 'Main') {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    // Fetch existing user config first to preserve arrays and maps
+    const currentConfig = await getUserConfig(discordId);
+    let govIds = currentConfig && currentConfig.governorIds ? currentConfig.governorIds : [];
+    let profiles = currentConfig && currentConfig.profiles ? currentConfig.profiles : {};
+    
+    // Add new ID if it doesn't exist
+    const newIdStr = String(governorId);
+    if (!govIds.includes(newIdStr)) {
+        govIds.push(newIdStr);
+    }
+
+    // Set map relationship (Key = ID, Value = ProfileType 'Farm' etc)
+    profiles[newIdStr] = profileType;
+
+    // Format for DynamoDB List and Map type
+    const dynamoList = govIds.map(id => ({ S: id }));
+    
+    const profilesMap = {};
+    for (const [k, v] of Object.entries(profiles)) {
+        profilesMap[k] = { S: String(v) };
+    }
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' },
+            'attributes': {
+                M: {
+                    'governorIds': { L: dynamoList },
+                    'profiles': { M: profilesMap },
+                    'linkedDate': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Link Governor Error", e);
+        return false;
+    }
+}
+
+/**
+ * Unlinks a specific in-game Governor profile from a Discord user.
+ */
+export async function unlinkGovernorAccount(discordId, governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    // Fetch existing user config first to preserve arrays and maps
+    const currentConfig = await getUserConfig(discordId);
+    if (!currentConfig || (!currentConfig.governorIds && !currentConfig.governorId)) return true; // Already unlinked
+
+    let govIds = currentConfig.governorIds || [];
+    let profiles = currentConfig.profiles || {};
+    
+    // Remove ID
+    const targetIdStr = String(governorId);
+    govIds = govIds.filter(id => id !== targetIdStr);
+
+    // Remove from map (New Schema: key is ID)
+    if (profiles[targetIdStr]) {
+        delete profiles[targetIdStr];
+    }
+
+    // Also remove from map (Old Schema: value is ID)
+    for (const [k, v] of Object.entries(profiles)) {
+        if (String(v) === targetIdStr) {
+            delete profiles[k];
+        }
+    }
+
+    // Format for DynamoDB List and Map type
+    const dynamoList = govIds.map(id => ({ S: id }));
+    
+    const profilesMap = {};
+    for (const [k, v] of Object.entries(profiles)) {
+        profilesMap[k] = { S: String(v) };
+    }
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' },
+            'attributes': {
+                M: {
+                    'governorIds': { L: dynamoList },
+                    'profiles': { M: profilesMap },
+                    'linkedDate': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Unlink Governor Error", e);
+        return false;
+    }
+}
+
+/**
+ * ADMIN: Gets all registered Tenants
+ */
+export async function getAllTenants() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_TENANTS' },
+            ':skPrefix': { S: 'TENANT#' }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const tenants = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                let allowedKingdoms = [];
+                if (attrs.allowedKingdoms && attrs.allowedKingdoms.L) {
+                    allowedKingdoms = attrs.allowedKingdoms.L.map(k => k.S);
+                }
+                tenants.push({
+                    guildId: item.SK.S.replace('TENANT#', ''),
+                    kingdomId: attrs.kingdomId?.S || 'Unknown',
+                    leadershipRoleId: attrs.leadershipRoleId?.S || 'None',
+                    allowedKingdoms: allowedKingdoms,
+                    createdDate: attrs.createdDate?.S
+                });
+            }
+        }
+        return tenants;
+    } catch (e) {
+        console.error("AWS Get All Tenants Error", e);
+        return [];
+    }
+}
+
+/**
+ * ADMIN: Safely Appends an Allowed Kingdom to a Tenant
+ */
+export async function addTenantAllowedKingdom(guildId, newKingdomId) {
+    const tenant = await getTenantConfig(guildId);
+    if (!tenant) return false;
+
+    const allowed = new Set(tenant.allowedKingdoms || []);
+    allowed.add(String(newKingdomId));
+    
+    // We reuse createTenantConfig structure but with the new array
+    const tableName = process.env.AWS_TABLE_NAME;
+    
+    const dynamoList = Array.from(allowed).map(k => ({ S: k }));
+    
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'GLOBAL_TENANTS' },
+            'SK': { S: `TENANT#${guildId}` },
+            'attributes': {
+                M: {
+                    'kingdomId': { S: tenant.kingdomId },
+                    'leadershipRoleId': { S: tenant.leadershipRoleId },
+                    'allowedKingdoms': { L: dynamoList },
+                    'createdDate': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update Tenant Kingdoms Error", e);
+        return false;
+    }
+}
+
+/**
+ * ADMIN: Deletes a Tenant completely
+ */
+export async function deleteTenantConfig(guildId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const { DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_TENANTS' },
+            'SK': { S: `TENANT#${guildId}` }
+        }
+    };
+
+    try {
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Delete Tenant Error", e);
+        return false;
+    }
+}
+
+// =========================================================================
+// COMMUNITY HUB & RECRUITING 
+// =========================================================================
+
+/**
+ * Puts a new Community Hub post into DynamoDB.
+ */
+export async function createCommunityPost(postData) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const timestamp = new Date().toISOString();
+    const postId = Date.now().toString();
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'GLOBAL#COMMUNITY' },
+            'SK': { S: `POST#${postId}` },
+            'attributes': {
+                M: {
+                    'type': { S: String(postData.type || 'Message') },
+                    'name': { S: String(postData.name || 'Anonymous') },
+                    'message': { S: String(postData.message || '') },
+                    'timestamp': { S: timestamp }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return { id: postId, ...postData, timestamp };
+    } catch (e) {
+        console.error("AWS Create Community Post Error", e);
+        throw e;
+    }
+}
+
+/**
+ * Gets recent Community Hub posts (limit to last 100 for example, using scan or query).
+ */
+export async function getCommunityPosts(limit = 100) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL#COMMUNITY' },
+            ':skPrefix': { S: 'POST#' }
+        },
+        ScanIndexForward: false, // get newest first
+        Limit: limit
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const posts = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                posts.push({
+                    id: item.SK.S.replace('POST#', ''),
+                    type: attrs.type?.S,
+                    name: attrs.name?.S,
+                    message: attrs.message?.S,
+                    timestamp: attrs.timestamp?.S
+                });
+            }
+        }
+        return posts;
+    } catch (e) {
+        console.error("AWS Get Community Posts Error", e);
+        return [];
+    }
+}
+
+/**
+ * Saves an applicant/recruit to DynamoDB for a specific kingdom.
+ */
+export async function saveRecruit(kingdomId, recruitData) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const recruitId = recruitData.Name ? recruitData.Name.replace(/[\.\#\$\/\[\]]/g, '_') : Date.now().toString();
+
+    // Map the complex nested object to DynamoDB format
+    const formatValue = (val) => {
+        if (typeof val === 'number') return { N: String(val) };
+        if (typeof val === 'string') return { S: val };
+        if (val === null || val === undefined) return { NULL: true };
+        return { S: JSON.stringify(val) }; // fallback
+    };
+
+    const detailsMap = {};
+    if (recruitData.Details) {
+        for (const [k, v] of Object.entries(recruitData.Details)) {
+            detailsMap[k] = formatValue(v);
+        }
+    }
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `RECRUIT#${kingdomId}` },
+            'SK': { S: `USER#${recruitId}` },
+            'attributes': {
+                M: {
+                    'Name': formatValue(recruitData.Name),
+                    'Power': formatValue(recruitData.Power),
+                    'KillPoints': formatValue(recruitData.KillPoints),
+                    'Deads': formatValue(recruitData.Deads),
+                    'Summary': formatValue(recruitData.Summary),
+                    'Score': formatValue(recruitData.Score),
+                    'LastScanned': formatValue(recruitData.LastScanned),
+                    'Details': { M: detailsMap }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return recruitId;
+    } catch (e) {
+        console.error("AWS Save Recruit Error", e);
+        throw e;
+    }
+}
+
+/**
+ * Fetches all recruits for a given kingdom.
+ */
+export async function getRecruits(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: `RECRUIT#${kingdomId}` },
+            ':skPrefix': { S: 'USER#' }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const recruitsMap = {};
+        
+        if (result.Items) {
+            for (const item of result.Items) {
+                const idKey = item.SK.S.replace('USER#', '');
+                const attrs = item.attributes?.M || {};
+                
+                const parseDynamoVal = (obj) => {
+                    if (!obj) return null;
+                    if (obj.S !== undefined) return obj.S;
+                    if (obj.N !== undefined) return Number(obj.N);
+                    if (obj.NULL) return null;
+                    return null;
+                };
+
+                const details = {};
+                if (attrs.Details && attrs.Details.M) {
+                    for (const [k, v] of Object.entries(attrs.Details.M)) {
+                        details[k] = parseDynamoVal(v);
+                    }
+                }
+
+                recruitsMap[idKey] = {
+                    Name: parseDynamoVal(attrs.Name),
+                    Power: parseDynamoVal(attrs.Power) || 0,
+                    KillPoints: parseDynamoVal(attrs.KillPoints) || 0,
+                    Deads: parseDynamoVal(attrs.Deads) || 0,
+                    Summary: parseDynamoVal(attrs.Summary),
+                    Score: parseDynamoVal(attrs.Score),
+                    LastScanned: parseDynamoVal(attrs.LastScanned),
+                    Details: details
+                };
+            }
+        }
+        return recruitsMap;
+    } catch (e) {
+        console.error("AWS Get Recruits Error", e);
+        return {};
+    }
+}
+
+/**
+ * Deletes a recruit.
+ */
+export async function deleteRecruit(kingdomId, recruitId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `RECRUIT#${kingdomId}` },
+            'SK': { S: `USER#${recruitId}` }
+        }
+    };
+
+    try {
+        const { DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Delete Recruit Error", e);
+        return false;
+    }
+}
+
+// =========================================================================
+// GUEST PASSCODE AUTHENTICATION 
+// =========================================================================
+
+/**
+ * Creates a temporary Guest Passcode for non-Discord users.
+ */
+export async function createGuestPass(passcode, kingdomId, role, expiresInDays, playerName) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    // Automatically purge the record using DynamoDB TTL if enabled, or manual check on read
+    const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'GLOBAL_GUEST_PASSES' },
+            'SK': { S: `PASSCODE#${passcode}` },
+            'attributes': {
+                M: {
+                    'kingdomId': { S: String(kingdomId) },
+                    'role': { S: String(role) }, // 'Leader' or 'Member'
+                    'playerName': { S: String(playerName) },
+                    'expiresAt': { S: expiresAt }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return { passcode, kingdomId, role, expiresAt, playerName };
+    } catch (e) {
+        console.error("AWS Create Guest Pass Error:", e);
+        throw e;
+    }
+}
+
+/**
+ * Retrieves a Guest Passcode and ensures it hasn't expired.
+ */
+export async function getGuestPass(passcode) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND SK = :sk',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_GUEST_PASSES' },
+            ':sk': { S: `PASSCODE#${passcode}` }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            const expiresAtStr = attrs.expiresAt?.S;
+
+            if (new Date(expiresAtStr) < new Date()) {
+                console.log(`[AWS] Guest pass ${passcode} has expired.`);
+                return null; // Expired pass
+            }
+
+            return {
+                passcode: passcode,
+                kingdomId: attrs.kingdomId?.S,
+                role: attrs.role?.S,
+                playerName: attrs.playerName?.S,
+                expiresAt: expiresAtStr
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("AWS Get Guest Pass Error:", e);
+        return null;
+    }
+}
+
+// =========================================================================
+// PENDING USER APPROVAL (MANUAL GUEST ACCESS)
+// =========================================================================
+
+/**
+ * Marks a Discord user as pending manual approval by system administrators.
+ */
+export async function createPendingUser(discordId, username, avatarHash) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'GLOBAL_PENDING_USERS' },
+            'SK': { S: `USER#${discordId}` },
+            'attributes': {
+                M: {
+                    'username': { S: String(username) },
+                    'avatarHash': { S: avatarHash ? String(avatarHash) : '' },
+                    'createdAt': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Create Pending User Error:", e);
+        throw e;
+    }
+}
+
+/**
+ * Updates a pending user's context (Target Kingdom & PoC Nickname)
+ */
+export async function updatePendingUser(discordId, targetKingdom, pocNick) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_PENDING_USERS' },
+            'SK': { S: `USER#${discordId}` }
+        },
+        UpdateExpression: 'SET attributes.#tk = :tk, attributes.#poc = :poc',
+        ExpressionAttributeNames: {
+            '#tk': 'targetKingdom',
+            '#poc': 'pocNick'
+        },
+        ExpressionAttributeValues: {
+            ':tk': { S: String(targetKingdom) },
+            ':poc': { S: String(pocNick) }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update Pending User Context Error:", e);
+        throw e;
+    }
+}
+
+/**
+ * Retrieves all pending manual approval requests.
+ */
+export async function getPendingUsers() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_PENDING_USERS' },
+            ':skPrefix': { S: 'USER#' }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        return result.Items || [];
+    } catch (e) {
+        console.error("AWS Get Pending Users Error:", e);
+        return [];
+    }
+}
+
+/**
+ * Approves a user, moving them from PENDINGUSER# to a hardcoded USER# record.
+ */
+export async function approvePendingUser(discordId, kingdomId, role) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    // 1. Create the permanent USER record with manual guest flag
+    const createParams = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' },
+            'attributes': {
+                M: {
+                    'isManualGuest': { BOOL: true },
+                    'kingdomId': { S: String(kingdomId) },
+                    'role': { S: String(role) }
+                }
+            }
+        }
+    };
+
+    // 2. Delete the pending record
+    const deleteParams = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_PENDING_USERS' },
+            'SK': { S: `USER#${discordId}` }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(createParams));
+        await dbClient.send(new DeleteItemCommand(deleteParams));
+        return true;
+    } catch (e) {
+        console.error("AWS Approve Pending User Error:", e);
+        throw e;
+    }
+}
+
+/**
+ * Rejects a user, deleting them from the pending queue.
+ */
+export async function rejectPendingUser(discordId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_PENDING_USERS' },
+            'SK': { S: `USER#${discordId}` }
+        }
+    };
+
+    try {
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Reject Pending User Error:", e);
+        throw e;
+    }
+}
+
+// =========================================================================
+// PUBLIC SHARE TUNNELS (ZERO-AUTH PROXY)
+// =========================================================================
+
+/**
+ * Creates a public share record allowing read-only access to a specific JSON slice.
+ */
+export async function createPublicShare(shareData, creatorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const crypto = await import('crypto');
+    const uuid = crypto.randomBytes(6).toString('hex'); // 12-char string
+    const expiresAt = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 day TTL
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'PUBLIC#SHARE' },
+            'SK': { S: `SHARE#${uuid}` },
+            'attributes': {
+                M: {
+                    'payload': { S: JSON.stringify(shareData) },
+                    'creator': { S: String(creatorId) },
+                    'createdAt': { S: new Date().toISOString() },
+                    'expireTTL': { N: String(expiresAt) }
+                }
+            }
+        }
+    };
+
+    try {
+        const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        await dbClient.send(new PutItemCommand(params));
+        return uuid;
+    } catch (e) {
+        console.error("AWS Create Public Share Error:", e);
+        throw e;
+    }
+}
+
+/**
+ * Retrieves a public share record.
+ */
+export async function getPublicShare(uuid) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND SK = :sk',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'PUBLIC#SHARE' },
+            ':sk': { S: `SHARE#${uuid}` }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            if (attrs.payload && attrs.payload.S) {
+                return JSON.parse(attrs.payload.S);
+            }
+        }
+        return null;
+    } catch (e) {
+        console.error("AWS Get Public Share Error:", e);
+        return null; // Return null if not found or expired
+    }
+}
+
+// =========================================================================
+// SPEEDUP TRACKER
+// =========================================================================
+
+/**
+ * Saves a snapshot of a user's calculated speedups
+ */
+export async function saveUserSpeedups(discordId, totalMinutes, rawParsedMinutes, profile = 'Main') {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const timestamp = new Date().toISOString();
+    const totalDays = parseFloat((totalMinutes / 1440).toFixed(2));
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `SPEEDUPS#${discordId}#${profile}` },
+            'SK': { S: `LOG#${Date.now()}` },
+            'attributes': {
+                M: {
+                    'totalMinutes': { N: String(totalMinutes) },
+                    'totalDays': { N: String(totalDays) },
+                    'rawParsedMinutes': { S: JSON.stringify(rawParsedMinutes || {}) },
+                    'timestamp': { S: timestamp }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return { totalMinutes, totalDays, timestamp };
+    } catch (e) {
+        console.error("AWS Save Speedups Error", e);
+        throw e;
+    }
+}
+
+/**
+ * Gets the historical chronological footprints for a specific user's speedups
+ */
+export async function getUserSpeedupHistory(discordId, profile = 'Main', limit = 10) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: `SPEEDUPS#${discordId}#${profile}` },
+            ':skPrefix': { S: 'LOG#' }
+        },
+        ScanIndexForward: false, // newest first
+        Limit: limit
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const history = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                
+                let rawParsed = {};
+                if (attrs.rawParsedMinutes && attrs.rawParsedMinutes.S) {
+                    try { rawParsed = JSON.parse(attrs.rawParsedMinutes.S); } catch (err){}
+                }
+
+                history.push({
+                    totalMinutes: parseInt(attrs.totalMinutes?.N || 0),
+                    totalDays: parseFloat(attrs.totalDays?.N || 0),
+                    rawParsedMinutes: rawParsed,
+                    timestamp: attrs.timestamp?.S
+                });
+            }
+        }
+        return history.reverse(); // Return oldest to newest for chronological reporting
+    } catch (e) {
+        console.error("AWS Get Speedup History Error", e);
+        return [];
+    }
+}
+
+/**
+ * Scans for all Speedup logs across the entire database, returning only the most recent entry per user.
+ * It also dynamically resolves their linked Governor ID and in-game Alias.
+ */
+export async function exportAllSpeedups() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        FilterExpression: 'begins_with(PK, :prefix)',
+        ExpressionAttributeValues: {
+            ':prefix': { S: 'SPEEDUPS#' }
+        }
+    };
+
+    let allLogs = [];
+    let lastEvaluatedKey = null;
+
+    do {
+        if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+        const result = await dbClient.send(new ScanCommand(params));
+        if (result.Items) allLogs.push(...result.Items);
+        lastEvaluatedKey = result.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    const latestPerUser = {}; 
+    for (const item of allLogs) {
+        const pkParts = item.PK.S.split('#');
+        const discordId = pkParts[1];
+        const profile = pkParts[2] || 'Main';
+        const timestamp = item.attributes?.M?.timestamp?.S || '';
+        
+        const mapKey = `${discordId}#${profile}`;
+
+        if (!latestPerUser[mapKey] || new Date(timestamp) > new Date(latestPerUser[mapKey].timestamp)) {
+            let rawParsed = {};
+            if (item.attributes?.M?.rawParsedMinutes?.S) {
+                try { rawParsed = JSON.parse(item.attributes.M.rawParsedMinutes.S); } catch (e) {}
+            }
+            latestPerUser[mapKey] = {
+                discordId,
+                profile,
+                timestamp,
+                rawParsed,
+                totalDays: parseFloat(item.attributes?.M?.totalDays?.N || 0)
+            };
+        }
+    }
+
+    const results = [];
+    for (const [mapKey, data] of Object.entries(latestPerUser)) {
+        let governorId = 'Unknown';
+        let alias = 'Unknown';
+
+        try {
+            const userConf = await getUserConfig(data.discordId);
+            if (userConf && userConf.governorIds && userConf.governorIds.length > 0) {
+                if (data.profile === 'Main' && userConf.governorIds.length >= 1) governorId = userConf.governorIds[0];
+                else if (data.profile === 'Alt' && userConf.governorIds.length >= 2) governorId = userConf.governorIds[1];
+                else if (data.profile === 'Farm' && userConf.governorIds.length >= 3) governorId = userConf.governorIds[2];
+                else governorId = userConf.governorIds[0]; // fallback
+            }
+        } catch (e) {}
+
+        if (governorId !== 'Unknown') {
+            const govProfParams = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk AND SK = :sk',
+                ExpressionAttributeValues: {
+                    ':pk': { S: `GOV_PROFILE#${governorId}` },
+                    ':sk': { S: 'PROFILE' }
+                }
+            };
+            try {
+                const profRes = await dbClient.send(new QueryCommand(govProfParams));
+                if (profRes.Items && profRes.Items.length > 0) {
+                    alias = profRes.Items[0].attributes?.M?.name?.S || alias;
+                }
+            } catch(e) {}
+        }
+
+        results.push({
+            ...data,
+            governorId,
+            alias
+        });
+    }
+
+    return results;
+}
+
+// =========================================================================
+// RSS TRACKER
+// =========================================================================
+
+/**
+ * Saves a snapshot of a user's calculated Resources (Food, Wood, Stone, Gold)
+ */
+export async function saveUserRss(discordId, totalRSS, rawParsedRss, profile = 'Main') {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const timestamp = new Date().toISOString();
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `RSS#${discordId}#${profile}` },
+            'SK': { S: `LOG#${Date.now()}` },
+            'attributes': {
+                M: {
+                    'totalRSS': { N: String(totalRSS) },
+                    'rawParsedRss': { S: JSON.stringify(rawParsedRss || {}) },
+                    'timestamp': { S: timestamp }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return { totalRSS, timestamp };
+    } catch (e) {
+        console.error("AWS Save RSS Error", e);
+        throw e;
+    }
+}
+
+/**
+ * Gets the historical chronological footprints for a specific user's RSS
+ */
+export async function getUserRssHistory(discordId, profile = 'Main', limit = 10) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: `RSS#${discordId}#${profile}` },
+            ':skPrefix': { S: 'LOG#' }
+        },
+        ScanIndexForward: false, // newest first
+        Limit: limit
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const history = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                
+                let rawParsed = {};
+                if (attrs.rawParsedRss && attrs.rawParsedRss.S) {
+                    try { rawParsed = JSON.parse(attrs.rawParsedRss.S); } catch (err){}
+                }
+
+                history.push({
+                    totalRSS: parseInt(attrs.totalRSS?.N || 0),
+                    rawParsedRss: rawParsed,
+                    timestamp: attrs.timestamp?.S
+                });
+            }
+        }
+        return history.reverse(); // Return oldest to newest for chronological reporting
+    } catch (e) {
+        console.error("AWS Get RSS History Error", e);
+        return [];
+    }
+}
+
+/**
+ * Scans for all RSS logs across the entire database, returning only the most recent entry per user.
+ */
+export async function exportAllRss() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        FilterExpression: 'begins_with(PK, :prefix)',
+        ExpressionAttributeValues: {
+            ':prefix': { S: 'RSS#' }
+        }
+    };
+
+    let allLogs = [];
+    let lastEvaluatedKey = null;
+
+    do {
+        if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+        const result = await dbClient.send(new ScanCommand(params));
+        if (result.Items) allLogs.push(...result.Items);
+        lastEvaluatedKey = result.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    const latestPerUser = {}; 
+    for (const item of allLogs) {
+        const pkParts = item.PK.S.split('#');
+        const discordId = pkParts[1];
+        const profile = pkParts[2] || 'Main';
+        const timestamp = item.attributes?.M?.timestamp?.S || '';
+        
+        const mapKey = `${discordId}#${profile}`;
+
+        if (!latestPerUser[mapKey] || new Date(timestamp) > new Date(latestPerUser[mapKey].timestamp)) {
+            let rawParsed = {};
+            if (item.attributes?.M?.rawParsedRss?.S) {
+                try { rawParsed = JSON.parse(item.attributes.M.rawParsedRss.S); } catch (e) {}
+            }
+            latestPerUser[mapKey] = {
+                discordId,
+                profile,
+                timestamp,
+                rawParsed,
+                totalRSS: parseInt(item.attributes?.M?.totalRSS?.N || 0)
+            };
+        }
+    }
+
+    const results = [];
+    for (const [mapKey, data] of Object.entries(latestPerUser)) {
+        let governorId = 'Unknown';
+        let alias = 'Unknown';
+
+        try {
+            const userConf = await getUserConfig(data.discordId);
+            if (userConf && userConf.governorIds && userConf.governorIds.length > 0) {
+                if (data.profile === 'Main' && userConf.governorIds.length >= 1) governorId = userConf.governorIds[0];
+                else if (data.profile === 'Alt' && userConf.governorIds.length >= 2) governorId = userConf.governorIds[1];
+                else if (data.profile === 'Farm' && userConf.governorIds.length >= 3) governorId = userConf.governorIds[2];
+                else governorId = userConf.governorIds[0]; // fallback
+            }
+        } catch (e) {}
+
+        if (governorId !== 'Unknown') {
+            const govProfParams = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk AND SK = :sk',
+                ExpressionAttributeValues: {
+                    ':pk': { S: `GOV_PROFILE#${governorId}` },
+                    ':sk': { S: 'PROFILE' }
+                }
+            };
+            try {
+                const profRes = await dbClient.send(new QueryCommand(govProfParams));
+                if (profRes.Items && profRes.Items.length > 0) {
+                    alias = profRes.Items[0].attributes?.M?.name?.S || alias;
+                }
+            } catch(e) {}
+        }
+
+        results.push({
+            ...data,
+            governorId,
+            alias
+        });
+    }
+
+    return results;
+}
