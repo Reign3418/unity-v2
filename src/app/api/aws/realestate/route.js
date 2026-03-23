@@ -35,14 +35,16 @@ Analyze the alliance territory bounded by the colored graphical lines and the pl
 CRITICAL VISUAL IDENTIFICATION RULES:
 - Castles: The 3D structures on the map (which may be tinted in colors like blue, etc.).
 - Alliance Territory: Bounded areas outlined with brightly colored borders (e.g., blue, pink, red, etc.) with a faint hue inside.
+- Multi-Alliance Conflict: If you see multiple distinct territory colors (e.g., red vs orange boundaries), identify which single color the massive majority of the Castles are currently residing on. That is the "Target Alliance Territory". All other colored territories belong to enemy alliances and you MUST ignore them entirely. Never instruct Castles to move to an enemy territory color, and never place trouble spots inside enemy territory.
 - IGNORABLE ZONES: Completely disregard any transparent white or grey squares on the map. They are irrelevant map grids and NOT alliance territory.
 
 CRITICAL RISE OF KINGDOMS MECHANICS:
-1. Deep-Territory Castles: Castles situated deep inside the middle of the colored territory are actively impeding the respawn of future resource nodes. Nodes cannot spawn under cities. These players must be forcefully flagged to relocate to the physical edges.
+1. Deep-Territory Castles: Castles situated deep inside the middle of the Target Alliance Territory are actively impeding the respawn of future resource nodes. Nodes cannot spawn under cities. These players must be forcefully flagged to relocate to the physical edges of their own territory.
 2. Far Off-Territory Castles: Castles disconnected from the main colored territory (far away from the borders) are detrimental. The alliance only receives a 1% cut of gathered resources if farming occurs inside territory. Castles far outside territory are entirely disconnected and useless to the alliance.
 3. Optimal Positioning: Castles resting directly on the colored border edge, or 1 to 2 castle-widths away from the border, are acceptable as long as they can physically farm inside the borders.
 
-We need exact 2D coordinates of the most problematic castle clusters based on these rules. Provide 'troubleSpots' as an array of objects with 'x' and 'y' (which are percentage-based coordinates from 0-100, where x=0 is left, y=0 is top) pointing exactly to the centers of extreme overcrowding, deep-territory obstruction, or completely disconnected off-territory clusters.
+COORDINATE TARGETING ACCURACY (CRITICAL):
+For the 'troubleSpots' array, the 'x' and 'y' coordinates (percentage-based 0-100, where x=0 is left, y=0 is top) MUST be placed exactly, dead-center on top of the physical problem Castle or directly in the center of the crowded Castle cluster. Do not lazily place the coordinate to the left or right of the Castle. Aim specifically for the roof of the 3D model.
 Also provide a 'fineDetails' object with 'economic' (array of 2-3 specific detailed impact points based on the mechanics above) and 'tactical' (array of 2-3 specific actionable relocation steps).
 
 Return ONLY a valid JSON object matching this exact mathematical structure. Do NOT include markdown code brackets around the JSON:
