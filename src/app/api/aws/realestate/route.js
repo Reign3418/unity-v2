@@ -30,31 +30,35 @@ export async function POST(req) {
         }
 
         const prompt = `This is an overhead satellite screenshot of a Kingdom Map from Rise of Kingdoms. 
-Analyze the alliance territory bounded by the colored graphical lines (e.g. blue/pink borders). 
-Count the exact number of player 'Castles' (the 3D city models) situated inside the bounded territory space.
-Determine if the Castles are too tightly packed (high density) or well spread out (low density). Note that Resource Nodes cannot spawn underneath Castles, so extreme crowding harms the Alliance's economy.
+Analyze the alliance territory bounded by the colored graphical lines (e.g. blue/pink borders) and the player 'Castles' (the 3D city models) scattered around.
 
-We also need exact 2D coordinates of the most problematic castle clusters. Provide 'troubleSpots' as an array of objects with 'x' and 'y' (which are percentage-based coordinates from 0-100, where x=0 is left, y=0 is top) pointing exactly to the center of extreme overcrowding.
-Also provide a 'fineDetails' object with 'economic' (array of 2-3 specific detailed impact points) and 'tactical' (array of 2-3 specific actionable steps).
+CRITICAL RISE OF KINGDOMS MECHANICS:
+1. Deep-Territory Castles: Castles situated deep inside the middle of the colored territory are actively impeding the respawn of future resource nodes. Nodes cannot spawn under cities. These players must be forcefully flagged to relocate to the physical edges.
+2. Far Off-Territory Castles: Castles disconnected from the main territory (far away from the borders) are detrimental. The alliance only receives a 1% cut of gathered resources if farming occurs inside territory. Castles far outside territory are entirely disconnected and useless to the alliance.
+3. Optimal Positioning: Castles resting directly on the colored border edge, or 1 to 2 castle-widths away from the border, are acceptable as long as they can physically farm inside the borders.
+
+We need exact 2D coordinates of the most problematic castle clusters based on these rules. Provide 'troubleSpots' as an array of objects with 'x' and 'y' (which are percentage-based coordinates from 0-100, where x=0 is left, y=0 is top) pointing exactly to the centers of extreme overcrowding, deep-territory obstruction, or completely disconnected off-territory clusters.
+Also provide a 'fineDetails' object with 'economic' (array of 2-3 specific detailed impact points based on the mechanics above) and 'tactical' (array of 2-3 specific actionable relocation steps).
 
 Return ONLY a valid JSON object matching this exact mathematical structure. Do NOT include markdown code brackets around the JSON:
 {
   "castleCount": 15,
   "densityLevel": "Critical", 
-  "economicImpact": "Severe reduction in RSS spawn nodes.",
-  "tacticalAdvice": "Instruct 5 Castles in the densest cluster to teleport to the outer perimeter.",
+  "economicImpact": "Severe reduction in RSS spawn nodes due to mid-territory parking.",
+  "tacticalAdvice": "Instruct 5 Castles in the deep center to teleport to the outer perimeter.",
   "fineDetails": {
      "economic": [
-        "Food and Wood nodes have decreased spawn chance by 40% in Sector B.",
-        "Gold nodes are completely suppressed near the central flag."
+        "Multiple Castles in the northeast are too far off territory to contribute to the 1% alliance gathering tax.",
+        "Deep placement in the central corridor is suffocating Gold and Food node spawn rates."
      ],
      "tactical": [
-        "Relocate 3 castles from coordinate 45, 60 to the northern boundary.",
-        "Expand territory outwards to create 20% more breathing room for spawns."
+        "Relocate the 4 disconnected Castles at coordinate 85, 15 to the main border edge.",
+        "Clear out the core territory by shifting 6 internal Castles out to the physical borderline."
      ]
   },
   "troubleSpots": [
-     { "x": 45, "y": 60, "reason": "3 overlapping castles destroying local spawn rates" }
+     { "x": 85, "y": 15, "reason": "Disconnected from territory; 0% gathering contribution." },
+     { "x": 45, "y": 60, "reason": "Parked deep inside territory, blocking internal node respawns." }
   ]
 }`;
 
