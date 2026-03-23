@@ -26,7 +26,12 @@ export async function POST(req) {
     // 3. Ignite DynamoDB BatchWriter
     console.log(`[API/AWS/Upload] Initiating ingestion sequence: ${rosterArray.length} items for Kingdom ${kingdomId}...`);
     
-    const dateKey = await uploadKingdomRoster(kingdomId, rosterArray);
+    const uploaderData = {
+        discordId: session.user.id,
+        username: session.user.username
+    };
+    
+    const dateKey = await uploadKingdomRoster(kingdomId, rosterArray, uploaderData);
 
     return NextResponse.json({ 
         success: true, 

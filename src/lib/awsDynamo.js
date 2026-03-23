@@ -1226,7 +1226,7 @@ export async function purgeKingdomDatabase(kingdomId) {
  * Executes a high-velocity BatchWrite block upload into the Unity AWS Table.
  * Automatically handles the 25-item DynamoDB batch limit by chunking the JSON array.
  */
-export async function uploadKingdomRoster(kingdomId, rosterArray) {
+export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData = null) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
     
@@ -1268,7 +1268,9 @@ export async function uploadKingdomRoster(kingdomId, rosterArray) {
                 M: {
                     'scanDate': { S: scanDate },
                     'rowCount': { N: String(rosterArray.length) },
-                    'summary': { S: JSON.stringify(summaryData) }
+                    'summary': { S: JSON.stringify(summaryData) },
+                    'uploaderId': { S: String(uploaderData?.discordId || "Unknown") },
+                    'uploaderName': { S: String(uploaderData?.username || "System") }
                 }
             }
         }

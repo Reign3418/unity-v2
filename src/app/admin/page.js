@@ -19,6 +19,7 @@ export default function AdminConsole() {
   const [awsEnv, setAwsEnv] = useState(globalMatrixCache?.env || { region: "Scanning...", tableName: "Scanning..." });
   const [users, setUsers] = useState(globalMatrixCache?.users || []);
   const [tenants, setTenants] = useState(globalMatrixCache?.tenants || []);
+  const [uploadLogs, setUploadLogs] = useState(globalMatrixCache?.uploadLogs || []);
 
   useEffect(() => {
     // Only fetch if session is valid and verified as Super Admin
@@ -41,14 +42,18 @@ export default function AdminConsole() {
       if (!res.ok) throw new Error("Failed to fetch AWS Admin nodes.");
       const data = await res.json();
       
+      const resLogs = await fetch("/api/aws/admin/uploads");
+      const logsData = resLogs.ok ? await resLogs.json() : { uploads: [] };
+      
       setAwsEnv(data.env);
       setUsers(data.users || []);
       setTenants(data.tenants || []);
       setPasscodes(data.passcodes || []);
       setPendingUsers(data.pendingUsers || []);
+      setUploadLogs(logsData.uploads || []);
       
       // Update the Global Memory Hook
-      globalMatrixCache = data;
+      globalMatrixCache = { ...data, uploadLogs: logsData.uploads };
       globalMatrixTimestamp = Date.now();
       
     } catch (e) {
@@ -603,6 +608,50 @@ export default function AdminConsole() {
              Global Cloud Control
            </h2>
            <p className="text-gray-400 mt-2 text-sm uppercase tracking-wider font-bold">Encrypted Environment Parameters & Cloud Gateway</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+           
+           {/* Telemetry Log */}
+           <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden shadow-xl border-t-2 border-t-purple-500">
+             <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
+               <div className="flex items-center gap-3">
+                 <Server className="text-purple-500" size={20} />
+                 <h2 className="text-white font-bold tracking-widest uppercase">Database Ingestion Audit Log</h2>
+               </div>
+             </div>
+             <div className="overflow-x-auto">
+               <table className="w-full text-left text-sm text-gray-400">
+                 <thead className="text-xs uppercase bg-[#0a0c0f] border-b border-[#1e222b] text-gray-500">
+                   <tr>
+                     <th className="px-6 py-4">Ingestion Date</th>
+                     <th className="px-6 py-4">Target Kingdom</th>
+                     <th className="px-6 py-4">Rows Mapped</th>
+                     <th className="px-6 py-4">Uploader Handle</th>
+                     <th className="px-6 py-4">Uploader Discord ID</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-[#1e222b]">
+                   {uploadLogs.length === 0 && (
+                     <tr>
+                       <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">No cloud injection signatures found.</td>
+                     </tr>
+                   )}
+                   {uploadLogs.map((log, i) => (
+                     <tr key={i} className="hover:bg-[#161920] transition-colors">
+                       <td className="px-6 py-3 font-mono text-purple-400">{new Date(log.scanDate).toLocaleString()}</td>
+                       <td className="px-6 py-3 font-bold text-white">KD {log.kingdomId}</td>
+                       <td className="px-6 py-3">
+                         <span className="bg-[#1e222b] text-gray-300 py-1 px-2 rounded uppercase text-xs font-bold tracking-wider">{log.rowCount} Nodes</span>
+                       </td>
+                       <td className="px-6 py-3 font-bold text-gray-200">{log.uploaderName}</td>
+                       <td className="px-6 py-3 font-mono text-xs text-gray-500">{log.uploaderId}</td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
