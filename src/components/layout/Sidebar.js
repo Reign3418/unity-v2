@@ -7,7 +7,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -60,7 +60,7 @@ export default function Sidebar() {
 
           <SectionTitle>Analysis</SectionTitle>
           <NavItem href="/vault" icon={Building2} label="Kingdom Vault" hidden={!isLeader} />
-          <NavItem href="/analysis/realestate" icon={Map} label="Realestate Predictor" hidden={!isLeader} />
+          <NavItem href="/analysis/realestate" icon={MapIcon} label="Realestate Predictor" hidden={!isLeader} />
           <NavItem href="/analysis/kingdom" icon={BarChart2} label="Kingdom Analysis" />
           <NavItem href="/analysis/global" icon={TrendingUp} label="All Kingdom Stats" />
           <NavItem href="/rankings/pre-kvk" icon={Trophy} label="Pre-KvK Ranking" />
