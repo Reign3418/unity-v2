@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   FileSpreadsheet, Cloud, Camera, Upload, ArrowRight,
@@ -118,7 +118,21 @@ function CloudExtractor() {
   const [targetKd, setTargetKd] = useState("3155");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle");
-  const [downloadedRows, setDownloadedRows] = useState(0);
+  const [syncResult, setSyncResult] = useState(null);
+
+  useEffect(() => {
+    let activeKd = targetKd;
+    if (typeof window !== 'undefined') {
+        const storedKd = localStorage.getItem('unty_active_kd');
+        if (storedKd) {
+            activeKd = storedKd;
+            setTargetKd(storedKd);
+        } else if (session?.user?.tenant?.kingdomId) {
+            activeKd = session.user.tenant.kingdomId;
+            setTargetKd(activeKd);
+        }
+    }
+  }, [session]);
 
   const handleSync = async () => {
     setIsSyncing(true);

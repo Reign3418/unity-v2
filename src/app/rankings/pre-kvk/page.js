@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { 
-    Trophy, RefreshCw, BarChart2, Zap, Shield, Target, Medal
+    Medal, Flame, Sparkles, ShieldAlert, ArrowUpRight, Crosshair, Users, Trophy
 } from "lucide-react";
 
 export default function PreKvkRankings() {
+  const { data: session } = useSession();
   const [kd, setKd] = useState("3155");
   const [rankings, setRankings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,20 @@ export default function PreKvkRankings() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    let activeKd = kd;
+    if (typeof window !== 'undefined') {
+        const storedKd = localStorage.getItem('unty_active_kd');
+        if (storedKd) {
+            activeKd = storedKd;
+            setKd(storedKd);
+        } else if (session?.user?.tenant?.kingdomId) {
+            activeKd = session.user.tenant.kingdomId;
+            setKd(activeKd);
+        }
+    }
+  }, [session]);
 
   useEffect(() => {
     fetchRankings();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Download, RefreshCw, AlertTriangle, ShieldAlert, Zap, UserMinus, UserPlus } from "lucide-react";
 
@@ -11,6 +11,20 @@ export default function ActivityTracker() {
 
   const [targetKd, setTargetKd] = useState("3155");
   const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    let activeKd = targetKd;
+    if (typeof window !== 'undefined') {
+        const storedKd = localStorage.getItem('unty_active_kd');
+        if (storedKd) {
+            activeKd = storedKd;
+            setTargetKd(storedKd);
+        } else if (session?.user?.tenant?.kingdomId) {
+            activeKd = session.user.tenant.kingdomId;
+            setTargetKd(activeKd);
+        }
+    }
+  }, [session]);
 
   const handleRunAnalysis = async () => {
     setIsAnalyzing(true);

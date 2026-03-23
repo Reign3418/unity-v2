@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { 
-    FileText, RefreshCw, BarChart2, Shield, Target, 
-    Skull, TrendingDown, TrendingUp, Medal
-} from "lucide-react";
+    ShieldAlert, Swords, Skull, Trophy, BarChart3, Users, Clock, Flame, 
+    ArrowUpRight, ArrowDownRight, RefreshCw, Zap, Medal
+} from 'lucide-react';
 
-export default function KvkReport() {
-  const [kd, setKd] = useState("3155");
-  const [report, setReport] = useState(null);
+export default function KvkReportPage() {
+  const { data: session } = useSession();
+  const [kd, setKd] = useState('3155');
+  const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchReport = async () => {
@@ -29,6 +31,20 @@ export default function KvkReport() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    let activeKd = kd;
+    if (typeof window !== 'undefined') {
+        const storedKd = localStorage.getItem('unty_active_kd');
+        if (storedKd) {
+            activeKd = storedKd;
+            setKd(storedKd);
+        } else if (session?.user?.tenant?.kingdomId) {
+            activeKd = session.user.tenant.kingdomId;
+            setKd(activeKd);
+        }
+    }
+  }, [session]);
 
   useEffect(() => {
     fetchReport();
