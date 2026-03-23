@@ -139,12 +139,6 @@ export default function MyStats() {
             </div>
             <h1 className="text-3xl font-bold text-white mb-2 flex flex-col sm:flex-row sm:items-center gap-3">
               {session.user.username}
-              {globalPresence.status && globalPresence.status !== "Active" && (
-                 <span className="text-sm px-3 py-1 bg-[#1e222b] border border-[#2d323e] rounded-full text-indigo-400 flex items-center gap-2 max-w-fit shadow-[0_0_15px_rgba(99,102,241,0.15)] font-bold tracking-widest uppercase">
-                    {globalPresence.status === 'Working' ? '💼' : globalPresence.status === 'Vacation' ? '🏖️' : globalPresence.status === 'Sleeping' ? '💤' : '🚨'} {globalPresence.status}
-                    {globalPresence.note && <span className="text-gray-500 italic lowercase tracking-normal font-medium">- "{globalPresence.note}"</span>}
-                 </span>
-              )}
             </h1>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
               <span className="bg-[#1e222b] text-gray-400 text-xs px-3 py-1 rounded-full border border-[#2d323e]">ID: {session.user.id}</span>
@@ -178,7 +172,7 @@ export default function MyStats() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {profiles.map((gov) => (
-            <GovernorCard key={gov.id} gov={gov} onUnlink={() => handleUnlink(gov.id)} onEdit={(gov) => {
+            <GovernorCard key={gov.id} gov={gov} globalPresence={globalPresence} onUnlink={() => handleUnlink(gov.id)} onEdit={(gov) => {
                  setActiveGov(gov);
                  setPresenceForm({
                      tier: gov.tag || "Main",
@@ -367,7 +361,7 @@ export default function MyStats() {
 // ---------------------------------------------------------------------------------
 // Sub-Component: 3D Flippable Governor Baseball Card
 // ---------------------------------------------------------------------------------
-function GovernorCard({ gov, onUnlink, onEdit }) {
+function GovernorCard({ gov, globalPresence, onUnlink, onEdit }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -412,6 +406,14 @@ function GovernorCard({ gov, onUnlink, onEdit }) {
                   <span className="font-mono text-cyan-500">#{gov.id}</span>
               </div>
               <div className="text-4xl font-black text-white tracking-tight">{gov.power.toLocaleString()}</div>
+              {globalPresence?.status && globalPresence.status !== "Active" && (
+                 <div className={`mt-3 inline-flex items-center gap-2 px-3 py-1 border rounded-lg shadow-xl ${globalPresence.status === 'Emergency' ? 'bg-rose-500/10 border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.15)] text-rose-500' : 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)] text-indigo-400'}`}>
+                    <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                        {globalPresence.status === 'Working' ? '💼' : globalPresence.status === 'Vacation' ? '🏖️' : globalPresence.status === 'Sleeping' ? '💤' : '🚨'} {globalPresence.status}
+                    </span>
+                    {globalPresence.note && <span className={`italic text-[10px] max-w-[140px] truncate ${globalPresence.status === 'Emergency' ? 'text-rose-400' : 'text-indigo-300'}`}>- "{globalPresence.note}"</span>}
+                 </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1e222b]">
