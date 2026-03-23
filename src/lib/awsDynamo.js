@@ -2440,3 +2440,74 @@ export async function consumePresencePings() {
         return pings;
     } catch(e) { return []; }
 }
+
+// =========================================================================
+// CUSTOM MAIL TEMPLATES
+// =========================================================================
+
+export async function saveMailTemplate(kingdomId, creatorId, templateName, templateText) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const templateId = Math.random().toString(36).substring(2, 10);
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `MAIL_TEMPLATES#${kingdomId}` },
+            'SK': { S: `TEMPLATE#${templateId}` },
+            'attributes': {
+                M: {
+                    'creatorId': { S: String(creatorId) },
+                    'name': { S: String(templateName) },
+                    'body': { S: String(templateText) },
+                    'timestamp': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+
+    try {
+        const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        await dbClient.send(new PutItemCommand(params));
+        return { id: templateId, name: templateName, body: templateText };
+    } catch (e) {
+        console.error("AWS Save Mail Template Error:", e);
+        throw e;
+    }
+}
+
+export async function getMailTemplates(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    const { QueryCommand } = await import('@aws-sdk/client-dynamodb');
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: `MAIL_TEMPLATES#${kingdomId}` },
+            ':skPrefix': { S: 'TEMPLATE#' }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const templates = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                templates.push({
+                    id: item.SK.S.replace('TEMPLATE#', ''),
+                    name: attrs.name?.S,
+                    body: attrs.body?.S,
+                    creatorId: attrs.creatorId?.S,
+                    timestamp: attrs.timestamp?.S
+                });
+            }
+        }
+        return templates.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    } catch (e) {
+        console.error("AWS Get Mail Templates Error", e);
+        return [];
+    }
+}
