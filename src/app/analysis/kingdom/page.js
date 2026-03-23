@@ -131,8 +131,12 @@ export default function KingdomAnalysis() {
                  }}
                  className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
                >
-                 <option value="3155">Kingdom 3155</option>
-                 <option value="3156">Kingdom 3156</option>
+                 {session?.user?.tenant?.allowedKingdoms?.map(kd => (
+                    <option key={kd} value={kd}>Kingdom {kd}</option>
+                 ))}
+                 {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
+                    <option value={targetKd}>Kingdom {targetKd}</option>
+                 )}
                </select>
 
                <button 

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Search, Download, RefreshCw, AlertTriangle, ShieldAlert, Zap, UserMinus, UserPlus } from "lucide-react";
 
 export default function ActivityTracker() {
+  const { data: session } = useSession();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasResults, setHasResults] = useState(false);
 
@@ -104,8 +106,12 @@ export default function ActivityTracker() {
           <div className="flex-1 w-full">
             <label className="block text-[#64748b] text-[10px] font-bold uppercase tracking-wider mb-2">Target Kingdom</label>
             <select className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg appearance-none font-bold focus:border-indigo-500 transition-colors cursor-pointer outline-none">
-              <option value="3155">Kingdom 3155 (Springs)</option>
-              <option value="3156">Kingdom 3156</option>
+              {session?.user?.tenant?.allowedKingdoms?.map(kd => (
+                 <option key={kd} value={kd}>Kingdom {kd}</option>
+              ))}
+              {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
+                 <option value={targetKd}>Kingdom {targetKd}</option>
+              )}
             </select>
           </div>
           

@@ -79,8 +79,12 @@ export default function PreKvkRankings() {
                onChange={(e) => setKd(e.target.value)}
                className="bg-[#13161c] border border-[#1e222b] text-white focus:border-rose-500 px-4 py-2.5 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
              >
-               <option value="3155">KD 3155</option>
-               <option value="3156">KD 3156</option>
+               {session?.user?.tenant?.allowedKingdoms?.map(kd => (
+                  <option key={kd} value={kd}>KD {kd}</option>
+               ))}
+               {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
+                  <option value={targetKd}>KD {targetKd}</option>
+               )}
             </select>
             <button 
                 onClick={fetchRankings}

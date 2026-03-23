@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { 
   FileSpreadsheet, Cloud, Camera, Upload, ArrowRight,
   Database, Github, CheckCircle2, AlertTriangle, Loader2, Sparkles 
@@ -122,6 +123,7 @@ export default function UploadHub() {
 // Sub-Component: Cloud Database Extractor
 // ---------------------------------------------------------------------------------
 function CloudExtractor() {
+  const { data: session } = useSession();
   const [targetKd, setTargetKd] = useState("3155");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle");
@@ -182,8 +184,12 @@ function CloudExtractor() {
                  }}
                  className="bg-transparent text-indigo-400 font-mono font-bold outline-none cursor-pointer"
                >
-                 <option value="3155" className="bg-[#0f1115]">Kingdom 3155</option>
-                 <option value="3156" className="bg-[#0f1115]">Kingdom 3156</option>
+                 {session?.user?.tenant?.allowedKingdoms?.map(kd => (
+                    <option key={kd} value={kd} className="bg-[#0f1115]">Kingdom {kd}</option>
+                 ))}
+                 {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
+                    <option value={targetKd} className="bg-[#0f1115]">Kingdom {targetKd}</option>
+                 )}
                </select>
            </div>
            
