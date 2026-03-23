@@ -205,6 +205,13 @@ export default function RealestatePredictor() {
                                  {analyzing ? "Computing..." : "Execute Scan"}
                              </button>
                          </div>
+                         
+                         {result && (
+                             <p className="text-gray-500 text-center text-[10px] mt-2 font-bold uppercase tracking-widest px-4 leading-relaxed">
+                                 System Notice: Target Coordinates (X/Y) reflect isolated 2D Cartesian boundaries upon the provided snapshot.<br/>
+                                 <span className="text-cyan-500">They do not correspond to native in-game server coordinates.</span> They are for reference in this predictor only.
+                             </p>
+                         )}
                      </div>
                  ) : (
                      <div 
