@@ -92,6 +92,15 @@ export default function SandboxPage() {
     });
   };
 
+  const handleKingdomChange = (newKd) => {
+    setParsedTabs(prevTabs => {
+      return prevTabs.map((tab, idx) => {
+        if (idx !== activeTabIdx) return tab;
+        return { ...tab, computedKd: newKd };
+      });
+    });
+  };
+
   if (!session?.user?.isSuperAdmin) {
     return (
       <div className="flex bg-[#0f1115] min-h-screen items-center justify-center relative overflow-hidden">
@@ -345,7 +354,14 @@ export default function SandboxPage() {
                    <div>
                        <h2 className="text-white font-bold text-lg">{parsedTabs[activeTabIdx].sheetName}</h2>
                        <div className="text-xs text-gray-400 font-mono mt-1 flex items-center gap-4">
-                           <span>Target Node: <strong className="text-cyan-400">{parsedTabs[activeTabIdx].computedKd}</strong></span>
+                           <span className="flex items-center gap-2">Target Node: 
+                              <input 
+                                  className="bg-[#1e222b] hover:bg-[#252a36] text-cyan-400 font-bold px-2 py-0.5 rounded border border-[#2d323e] hover:border-cyan-500/50 outline-none focus:border-cyan-500 w-20 transition-all text-center"
+                                  value={parsedTabs[activeTabIdx].computedKd}
+                                  onChange={(e) => handleKingdomChange(e.target.value)}
+                                  placeholder="KD ID"
+                              />
+                           </span>
                            <span>Total Records: <strong>{parsedTabs[activeTabIdx].totalCount}</strong></span>
                            {parsedTabs[activeTabIdx].errorCount > 0 && (
                               <span className="text-rose-400 flex items-center gap-1"><AlertTriangle size={12} /> {parsedTabs[activeTabIdx].errorCount} Corrupted Rows Dropped</span>
