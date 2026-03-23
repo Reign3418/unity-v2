@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity } from "lucide-react";
 
@@ -11,6 +11,35 @@ export default function RealestatePredictor() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  const imgRef = useRef(null);
+  const [mouseCoords, setMouseCoords] = useState(null);
+  const [draggingIdx, setDraggingIdx] = useState(null);
+
+  const handleMouseMove = (e) => {
+    if (!imgRef.current) return;
+    const rect = imgRef.current.getBoundingClientRect();
+    let x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+    let y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+    
+    // Boundary clamp
+    x = Math.max(0, Math.min(100, x));
+    y = Math.max(0, Math.min(100, y));
+
+    setMouseCoords({ x, y });
+
+    if (draggingIdx !== null && result?.troubleSpots) {
+      const newSpots = [...result.troubleSpots];
+      newSpots[draggingIdx] = { ...newSpots[draggingIdx], x, y };
+      setResult({ ...result, troubleSpots: newSpots });
+    }
+  };
+
+  const handleMouseUp = () => setDraggingIdx(null);
+  const handleMouseLeave = () => {
+    setMouseCoords(null);
+    setDraggingIdx(null);
+  };
 
   if (!session?.user?.isLeader && session?.user?.role !== "Admin") {
       return (
@@ -110,28 +139,53 @@ export default function RealestatePredictor() {
                  {previewUrl ? (
                      <div className="space-y-4">
                          <div className="relative rounded-lg overflow-hidden border border-[#2d323e] flex items-center justify-center bg-[#0a0c0f]">
-                             <div className="relative w-full">
-                               <img src={previewUrl} alt="Map Preview" className="w-full h-auto max-h-[500px] object-contain object-center opacity-80 block" />
+                             <div 
+                               className="relative w-full"
+                               onMouseMove={handleMouseMove}
+                               onMouseUp={handleMouseUp}
+                               onMouseLeave={handleMouseLeave}
+                             >
+                               <img 
+                                 ref={imgRef}
+                                 src={previewUrl} 
+                                 alt="Map Preview" 
+                                 className="w-full h-auto max-h-[500px] object-contain object-center opacity-80 block select-none pointer-events-none" 
+                               />
+                               
+                               {/* Live Coordinate Tooltip */}
+                               {mouseCoords && !analyzing && (
+                                 <div 
+                                   className="absolute pointer-events-none z-50 bg-black/80 border border-cyan-500/50 text-cyan-400 font-mono text-[10px] px-2 py-1 rounded shadow-lg backdrop-blur-sm transform -translate-x-1/2 -translate-y-[150%]"
+                                   style={{ top: `${mouseCoords.y}%`, left: `${mouseCoords.x}%` }}
+                                 >
+                                   X: {mouseCoords.x}% | Y: {mouseCoords.y}%
+                                 </div>
+                               )}
                                
                                {/* Target Reticle Overlays */}
                                {result?.troubleSpots && result.troubleSpots.map((spot, idx) => (
                                  <div key={`ping-${idx}`}>
                                      {/* Radar Ping Animation */}
-                                     <div 
-                                          className="absolute w-8 h-8 -ml-4 -mt-4 border-2 border-rose-500 rounded-full animate-ping z-20 pointer-events-none"
-                                          style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
-                                     />
+                                     {draggingIdx !== idx && (
+                                         <div 
+                                              className="absolute w-8 h-8 -ml-4 -mt-4 border-2 border-rose-500 rounded-full animate-ping z-20 pointer-events-none"
+                                              style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
+                                         />
+                                     )}
                                      {/* Hard Reticle with Tooltip */}
                                      <div 
-                                          className="absolute w-8 h-8 -ml-4 -mt-4 border border-rose-400 bg-rose-500/20 backdrop-blur-sm rounded-full flex items-center justify-center z-20 cursor-crosshair group hover:scale-125 transition-transform"
+                                          onMouseDown={(e) => { e.preventDefault(); setDraggingIdx(idx); }}
+                                          className={`absolute w-8 h-8 -ml-4 -mt-4 border ${draggingIdx === idx ? 'border-cyan-400 bg-cyan-500/40' : 'border-rose-400 bg-rose-500/20'} backdrop-blur-sm rounded-full flex items-center justify-center z-30 cursor-grab hover:scale-125 transition-transform ${draggingIdx === idx ? 'cursor-grabbing scale-125' : ''}`}
                                           style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
                                      >
-                                        <Target className="w-4 h-4 text-rose-300" />
+                                        <Target className={`w-4 h-4 ${draggingIdx === idx ? 'text-cyan-300' : 'text-rose-300'}`} />
                                         
                                         {/* Hover Tooltip Box */}
-                                        <div className="absolute hidden group-hover:block bottom-full mb-2 w-48 p-2 bg-rose-950/90 border border-rose-500/50 text-rose-200 text-[10px] rounded shadow-xl z-30 font-medium">
-                                          {spot.reason}
-                                        </div>
+                                        {draggingIdx !== idx && (
+                                            <div className="absolute hidden group-hover:block bottom-full mb-2 w-48 p-2 bg-rose-950/90 border border-rose-500/50 text-rose-200 text-[10px] rounded shadow-xl z-40 font-medium select-none pointer-events-none">
+                                              {spot.reason}
+                                            </div>
+                                        )}
                                      </div>
                                  </div>
                                ))}
