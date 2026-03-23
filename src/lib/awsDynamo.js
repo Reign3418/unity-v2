@@ -1593,6 +1593,62 @@ export async function updatePendingUser(discordId, targetKingdom, pocNick) {
 }
 
 /**
+ * Updates tracking notes for a specific Discord Identity
+ */
+export async function updateUserNotes(discordId, notes) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'PROFILE' }
+        },
+        UpdateExpression: 'SET attributes.notes = :notes',
+        ExpressionAttributeValues: {
+            ':notes': { S: String(notes || "") }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update User Notes Error:", e);
+        throw e;
+    }
+}
+
+/**
+ * Updates tracking notes for a specific Server Tenant
+ */
+export async function updateTenantNotes(guildId, notes) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `TENANT#${guildId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: 'SET attributes.notes = :notes',
+        ExpressionAttributeValues: {
+            ':notes': { S: String(notes || "") }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update Tenant Notes Error:", e);
+        throw e;
+    }
+}
+
+/**
  * Retrieves all pending manual approval requests.
  */
 export async function getPendingUsers() {

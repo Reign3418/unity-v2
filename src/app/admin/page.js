@@ -19,9 +19,6 @@ export default function AdminConsole() {
   const [awsEnv, setAwsEnv] = useState(globalMatrixCache?.env || { region: "Scanning...", tableName: "Scanning..." });
   const [users, setUsers] = useState(globalMatrixCache?.users || []);
   const [tenants, setTenants] = useState(globalMatrixCache?.tenants || []);
-  
-  const [purgeTarget, setPurgeTarget] = useState("");
-  const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
     // Only fetch if session is valid and verified as Super Admin
@@ -107,33 +104,51 @@ export default function AdminConsole() {
     }
   };
 
-  const executeDatumPurge = async () => {
-    if (!purgeTarget) return alert("Must provide a Kingdom ID to purge.");
+  const handleEditTenantNotes = async (guildId, currentNotes) => {
+    const newNotes = window.prompt(`Enter tracking notes/infractions for Server ${guildId}:`, currentNotes || "");
+    if (newNotes === null) return; // Cancelled
     
-    if (!confirm(`WARNING: PURGE PROTOCOL INITIATED.\n\nAre you absolutely sure you want to permanently delete ALL Scan Data for Kingdom ${purgeTarget}?\n\nThis cannot be undone.`)) {
-      return;
-    }
-
-    setIsPurging(true);
     try {
+      // Optimistic Update
+      setTenants(prev => prev.map(t => t.guildId === guildId ? { ...t, notes: newNotes } : t));
+      
       const res = await fetch("/api/aws/admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "PURGE_KINGDOM",
-          payload: { kingdomId: purgeTarget }
-        })
+        body: JSON.stringify({ action: "UPDATE_TENANT_NOTES", payload: { guildId, notes: newNotes } })
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      alert(`[AWS SUCCESS]: ${data.message}`);
-      setPurgeTarget("");
+      if (!res.ok) throw new Error("Failed to save Tenant notes");
+      
+      if (globalMatrixCache) {
+        globalMatrixCache.tenants = globalMatrixCache.tenants.map(t => t.guildId === guildId ? { ...t, notes: newNotes } : t);
+      }
     } catch (e) {
-      alert(`[AWS FAILURE]: ${e.message}`);
-    } finally {
-      setIsPurging(false);
+      alert(e.message);
+      fetchAdminMatrix();
+    }
+  };
+
+  const handleEditUserNotes = async (discordId, currentNotes) => {
+    const newNotes = window.prompt(`Enter tracking notes/infractions for User ${discordId}:`, currentNotes || "");
+    if (newNotes === null) return; // Cancelled
+    
+    try {
+      // Optimistic Update
+      setUsers(prev => prev.map(u => u.discordId === discordId ? { ...u, notes: newNotes } : u));
+      
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "UPDATE_USER_NOTES", payload: { discordId, notes: newNotes } })
+      });
+      if (!res.ok) throw new Error("Failed to save User notes");
+      
+      if (globalMatrixCache) {
+        globalMatrixCache.users = globalMatrixCache.users.map(u => u.discordId === discordId ? { ...u, notes: newNotes } : u);
+      }
+    } catch (e) {
+      alert(e.message);
+      fetchAdminMatrix();
     }
   };
 
@@ -247,20 +262,21 @@ export default function AdminConsole() {
     );
   }
 
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-12 mt-4 relative z-10">
       
       {/* Header Panel */}
-      <div className="bg-[#0f1115] border-x-4 border-l-rose-500 border-r-rose-500 border-y border-y-[#1e222b] rounded-xl p-8 shadow-[0_10px_40px_rgba(244,63,94,0.1)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+      <div className="bg-[#0f1115] border-x-4 border-l-blue-500 border-r-blue-500 border-y border-y-[#1e222b] rounded-xl p-8 shadow-[0_10px_40px_rgba(59,130,246,0.1)] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjQ0LCA2MyLCA5NCwgMC4wNSkiLz48L3N2Zz4=')] opacity-50 pointer-events-none"></div>
 
         <div className="flex items-center justify-between relative z-10 w-full">
           <div className="flex items-center gap-4">
-            <Lock className="text-rose-500" size={32} />
+            <ShieldAlert className="text-blue-500" size={32} />
             <div>
-              <h1 className="text-3xl font-black text-white tracking-widest uppercase">Global Cloud Control</h1>
-              <p className="text-rose-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Authorized Protocol: Execution Parameters Unlocked</p>
+              <h1 className="text-3xl font-black text-white tracking-widest uppercase">System Administrator Panel</h1>
+              <p className="text-blue-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Authorized Operations • Identity Management</p>
             </div>
           </div>
           <button 
@@ -278,230 +294,9 @@ export default function AdminConsole() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: API Configurations */}
+        {/* Left Column: Tenant & User Management */}
         <div className="lg:col-span-1 space-y-8">
-          
-          <div className="bg-[#13161c] border border-[#1e222b] rounded-2xl overflow-hidden shadow-lg border-t-2 border-t-amber-500 relative">
-            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center gap-3 border-b border-[#1e222b]">
-              <Key className="text-amber-500" size={20} />
-              <h2 className="text-white font-bold">AWS Gateway Link</h2>
-            </div>
-            <div className="p-6 space-y-5">
-              
-              <div>
-                <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Live Region Router</label>
-                <div className="w-full bg-[#0a0c0f] border border-amber-500/50 text-amber-500 px-4 py-3 rounded-lg font-mono text-sm shadow-[inset_0_0_15px_rgba(245,158,11,0.1)] flex items-center gap-2">
-                  <Activity size={14} className="animate-pulse" /> {awsEnv.region}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">CloudDB Master Target</label>
-                <div className="w-full bg-[#0a0c0f] border border-amber-500/50 text-amber-500 px-4 py-3 rounded-lg font-mono text-sm shadow-[inset_0_0_15px_rgba(245,158,11,0.1)] flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
-                  <Database size={14} className="animate-pulse flex-shrink-0" /> {awsEnv.tableName}
-                </div>
-              </div>
-
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-xs leading-relaxed font-bold">
-                <span className="block mb-1 text-[10px] uppercase tracking-wider text-rose-500">Security Notice</span>
-                Gateway Variables are now securely locked onto the Vercel Node runtime. They cannot be edited directly via Browser Dashboards.
-              </div>
-
-            </div>
-          </div>
-
-          <div className="bg-[#13161c] border border-[#1e222b] rounded-2xl overflow-hidden shadow-lg border-t-2 border-t-rose-600 relative group transition-all duration-300 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
-            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center gap-3 border-b border-[#1e222b]">
-              <Skull className="text-rose-600" size={20} />
-              <h2 className="text-white font-bold">Danger Zone</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Target KD Payload</label>
-              <input 
-                type="text" 
-                placeholder="Ex. 3155"
-                value={purgeTarget}
-                onChange={(e) => setPurgeTarget(e.target.value)}
-                className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono text-sm focus:border-rose-500 transition-colors outline-none" 
-              />
-              <button 
-                onClick={executeDatumPurge}
-                disabled={isPurging}
-                className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:shadow-none disabled:border border-transparent text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all py-4 text-sm uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.4)]"
-              >
-                {isPurging ? <RefreshCw className="animate-spin" size={18} /> : <Skull size={18} />} 
-                Purge Kingdom Database
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Right Column: User Clearance Logs */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden shadow-xl border-t-2 border-t-cyan-500 relative">
-            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
-              <div className="flex items-center gap-3">
-                <Users className="text-cyan-500" size={20} />
-                <h2 className="text-white font-bold">Identity & Authorization Matrix</h2>
-              </div>
-              <span className="text-xs bg-[#1e222b] text-gray-400 px-3 py-1 rounded-full">{users.length} Active Identity Links</span>
-            </div>
-
-            <div className="p-6 space-y-8 h-[750px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
-              
-              {/* Authorized Tenants */}
-              <div>
-                <h3 className="text-indigo-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex items-center justify-between">
-                  <span>Registered Discord Gateways</span>
-                  <span className="text-gray-500">{tenants.length} Guilds</span>
-                </h3>
-                <div className="space-y-3">
-                  {tenants.map(tenant => (
-                    <div key={tenant.guildId} className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between gap-3 group relative overflow-hidden">
-                      <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-500/5 to-transparent pointer-events-none"></div>
-                      <div className="flex items-center justify-between gap-4 w-full z-10">
-                         <div className="flex items-center gap-4">
-                           <Database className="text-indigo-500 opacity-50 block" size={24} />
-                           <div>
-                              <div className="text-white font-bold text-sm tracking-widest font-mono">GUILD: {tenant.guildId}</div>
-                              <div className="flex items-center gap-4 mt-1">
-                                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
-                                    Default KD: {tenant.kingdomId}
-                                 </span>
-                                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
-                                    Commander Role ID: {tenant.leadershipRoleId}
-                                 </span>
-                              </div>
-                           </div>
-                         </div>
-                         <button 
-                            onClick={() => toggleTenantAi(tenant.guildId, tenant.globalAiAccess)}
-                            className={`p-2 rounded-lg border transition-all ${tenant.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}
-                            title={tenant.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
-                         >
-                            {tenant.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
-                         </button>
-                      </div>
-                      <div className="w-full h-[1px] bg-[#1e222b] my-1"></div>
-                      <div className="text-xs text-indigo-400 font-bold flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                         <span className="text-gray-500">Allowed Routing KDs: </span> 
-                         {tenant.allowedKingdoms?.length > 0 ? tenant.allowedKingdoms.join(", ") : tenant.kingdomId}
-                      </div>
-                    </div>
-                  ))}
-                  {tenants.length === 0 && (
-                    <div className="text-center py-6 border border-dashed border-[#1e222b] rounded-xl text-gray-500 text-sm font-bold">
-                      No Tenant Guilds Installed
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Authorized Users */}
-              <div>
-                <h3 className="text-cyan-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex items-center justify-between">
-                  <span>Verified Architecture Commanders</span>
-                  <span className="text-gray-500">{users.filter(u => u.role !== "User").length} Commanders</span>
-                </h3>
-                <div className="space-y-3">
-                  {users.filter(u => u.role !== "User" || u.isManualGuest).map(user => (
-                    <div key={user.discordId} className="bg-[#0a0c0f] border border-cyan-500/20 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors relative overflow-hidden">
-                      <div className="absolute right-0 top-0 h-full w-1 focus:outline-none bg-gradient-to-b from-cyan-500/50 to-transparent"></div>
-                      <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <img 
-                          src={`https://cdn.discordapp.com/avatars/${user.discordId}/${session?.user?.avatar || ""}.png`} 
-                          alt="Avatar" 
-                          className="w-10 h-10 rounded-full border border-cyan-500/30"
-                          onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn.discordapp.com/embed/avatars/0.png" }}
-                        />
-                        <div>
-                          <div className="text-white font-bold font-mono">{user.discordId}</div>
-                          <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")} | {user.governorIds?.length || 0} Linked Govs</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto z-10 mt-3 sm:mt-0">
-                        <button 
-                          onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)}
-                          className={`p-2 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}
-                          title={user.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
-                        >
-                          {user.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
-                        </button>
-                        <button className="flex-1 sm:flex-none px-4 py-2 bg-[#1e222b] hover:bg-rose-500/20 text-gray-400 hover:text-rose-500 rounded-lg font-bold text-sm transition-all border border-transparent hover:border-rose-500/30">
-                          Revoke Clearance
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-               {/* Standard Users */}
-               <div>
-                <h3 className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex justify-between">
-                  <span>Standard Infantry Nodes</span>
-                  <span className="text-gray-600">{users.filter(u => u.role === "User").length} Soldiers</span>
-                </h3>
-                <div className="space-y-3">
-                  {users.filter(u => u.role === "User").map(user => (
-                    <div key={user.discordId} className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex justify-between items-center gap-4 opacity-75 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-full bg-[#1e222b] flex items-center justify-center text-gray-500 text-xs font-bold">U</div>
-                        <div>
-                          <div className="text-gray-300 font-bold text-sm font-mono">{user.discordId}</div>
-                          <div className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{user.governorIds?.length || 0} Game Profiles</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 z-10">
-                        <button 
-                          onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)}
-                          className={`w-8 h-8 rounded flex items-center justify-center transition-all border ${user.globalAiAccess ? 'bg-[#1e222b] border-[#1e222b] text-cyan-500 hover:bg-cyan-500/10 hover:border-cyan-500/30' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.2)]'}`}
-                          title={user.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
-                        >
-                          {user.globalAiAccess ? <Bot size={14} /> : <BotOff size={14} />}
-                        </button>
-                        <button className="w-8 h-8 rounded bg-[#1e222b] border border-[#1e222b] flex items-center justify-center text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {users.filter(u => u.role === "User").length === 0 && (
-                    <div className="text-center py-6 border border-dashed border-[#1e222b] rounded-xl text-gray-500 text-sm font-bold">
-                      No standard profiles found.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* ========================================================= */}
-      {/* V1 LEGACY SYSTEM ADMINISTRATOR PANEL                      */}
-      {/* ========================================================= */}
-      
-      <div className="mt-16 pt-12 border-t border-[#1e222b]">
-        <div className="mb-8">
-           <h2 className="text-3xl font-black text-blue-500 tracking-widest uppercase flex items-center gap-3 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-             <ShieldAlert size={32} />
-             System Administrator Panel
-           </h2>
-           <p className="text-gray-400 mt-2 text-sm uppercase tracking-wider font-bold">Secure Zone • Restored Toolset • v1.0.8</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* LEFT COLUMN: TENANTS & PASSCODES */}
-          <div className="space-y-8">
-            
-            {/* Global Tenant Management */}
+{/* Global Tenant Management */}
             <div className="border border-blue-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-50"></div>
               <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2"><Server size={18}/> Global Tenant Management</h3>
@@ -537,7 +332,28 @@ export default function AdminConsole() {
               </div>
             </div>
 
-            {/* Active Guest Passcodes */}
+{/* Generate Web Passcode */}
+            <div className="border border-[#1e222b] bg-[#0a0c10] rounded-xl p-6 relative">
+              <h3 className="text-gray-300 font-bold mb-4 flex items-center gap-2"><Activity size={18}/> Generate Web Guest Passcode</h3>
+               <div className="grid grid-cols-2 gap-3 mb-3">
+                 <input type="text" placeholder="POC Nickname" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.poc} onChange={e => setPassForm({...passForm, poc: e.target.value})} />
+                 <input type="number" placeholder="Target Kingdom (e.g. 3418)" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.kingdomId} onChange={e => setPassForm({...passForm, kingdomId: e.target.value})} />
+                 <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
+                    <option value="Member">R4/Member</option>
+                    <option value="Leader">R5/Leader</option>
+                    <option value="Admin">System Admin (CAUTION)</option>
+                 </select>
+                 <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
+                    <option value="1">Expire in 24 Hours</option>
+                    <option value="3">Expire in 3 Days</option>
+                    <option value="7">Expire in 7 Days</option>
+                    <option value="30">Expire in 30 Days</option>
+                 </select>
+               </div>
+               <button onClick={handleGeneratePasscode} className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/50 rounded py-2 text-sm font-bold uppercase tracking-widest transition-all">Generate 6-Digit Slice</button>
+            </div>
+
+{/* Active Guest Passcodes */}
             <div className="border border-green-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-green-600 opacity-50"></div>
               <h3 className="text-emerald-400 font-bold mb-4 flex items-center gap-2"><Key size={18}/> Active Guest Passcodes</h3>
@@ -559,33 +375,7 @@ export default function AdminConsole() {
               </div>
             </div>
 
-          </div>
-
-          {/* RIGHT COLUMN: MANUAL USERS & IAM */}
-          <div className="space-y-8">
-            
-            {/* Generate Web Passcode */}
-            <div className="border border-[#1e222b] bg-[#0a0c10] rounded-xl p-6 relative">
-              <h3 className="text-gray-300 font-bold mb-4 flex items-center gap-2"><Activity size={18}/> Generate Web Guest Passcode</h3>
-               <div className="grid grid-cols-2 gap-3 mb-3">
-                 <input type="text" placeholder="POC Nickname" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.poc} onChange={e => setPassForm({...passForm, poc: e.target.value})} />
-                 <input type="number" placeholder="Target Kingdom (e.g. 3418)" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.kingdomId} onChange={e => setPassForm({...passForm, kingdomId: e.target.value})} />
-                 <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
-                    <option value="Member">R4/Member</option>
-                    <option value="Leader">R5/Leader</option>
-                    <option value="Admin">System Admin (CAUTION)</option>
-                 </select>
-                 <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
-                    <option value="1">Expire in 24 Hours</option>
-                    <option value="3">Expire in 3 Days</option>
-                    <option value="7">Expire in 7 Days</option>
-                    <option value="30">Expire in 30 Days</option>
-                 </select>
-               </div>
-               <button onClick={handleGeneratePasscode} className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/50 rounded py-2 text-sm font-bold uppercase tracking-widest transition-all">Generate 6-Digit Slice</button>
-            </div>
-
-            {/* Pending & Approved Manual Users */}
+{/* Pending & Approved Manual Users */}
             <div className="border border-indigo-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600 opacity-50"></div>
                <h3 className="text-indigo-400 font-bold mb-4 flex items-center gap-2"><Users size={18}/> Web User Approval Queue</h3>
@@ -622,8 +412,233 @@ export default function AdminConsole() {
                  <button onClick={handleAddManualUser} className="w-full bg-[#1e222b] hover:bg-indigo-600 text-white rounded py-1.5 text-xs font-bold uppercase tracking-widest transition-all">Direct Inject Profile</button>
                </div>
             </div>
+        </div>
 
-            {/* Master IAM Storage */}
+        {/* Right Column: Identity Matrix */}
+        <div className="lg:col-span-2 space-y-8">
+<div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden shadow-xl border-t-2 border-t-cyan-500 relative">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
+              <div className="flex items-center gap-3">
+                <Users className="text-cyan-500" size={20} />
+                <h2 className="text-white font-bold">Identity & Authorization Matrix</h2>
+              </div>
+              <span className="text-xs bg-[#1e222b] text-gray-400 px-3 py-1 rounded-full">{users.length} Active Identity Links</span>
+            </div>
+
+            <div className="p-6 space-y-8 h-[750px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+              
+              {/* Authorized Tenants */}
+              <div>
+                <h3 className="text-indigo-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex items-center justify-between">
+                  <span>Registered Discord Gateways</span>
+                  <span className="text-gray-500">{tenants.length} Guilds</span>
+                </h3>
+                <div className="space-y-3">
+                  {tenants.map(tenant => (
+                    <div key={tenant.guildId} className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between gap-3 group relative overflow-hidden">
+                      <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-500/5 to-transparent pointer-events-none"></div>
+                      <div className="flex items-center justify-between gap-4 w-full z-10">
+                         <div className="flex items-center gap-4">
+                           <Database className="text-indigo-500 opacity-50 block" size={24} />
+                           <div>
+                              <div className="text-white font-bold text-sm tracking-widest font-mono">GUILD: {tenant.guildId}</div>
+                              <div className="flex items-center gap-4 mt-1">
+                                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
+                                    Default KD: {tenant.kingdomId}
+                                 </span>
+                                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold bg-[#1e222b] px-2 py-0.5 rounded">
+                                    Commander Role ID: {tenant.leadershipRoleId}
+                                 </span>
+                              </div>
+                              {/* Display Notes if they exist */}
+                              <div className="mt-2 text-xs text-gray-400 italic">
+                                {tenant.notes ? `"${tenant.notes}"` : "No tracking notes."}
+                              </div>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-2 shrink-0">
+                           <button 
+                              onClick={() => handleEditTenantNotes(tenant.guildId, tenant.notes)}
+                              className="p-2 rounded-lg bg-[#1e222b] border border-[#1e222b] text-gray-500 hover:text-cyan-400 hover:border-cyan-500/30 transition-colors"
+                              title="Edit Tracking Notes"
+                           >
+                              📝
+                           </button>
+                           <button 
+                              onClick={() => toggleTenantAi(tenant.guildId, tenant.globalAiAccess)}
+                              className={`p-2 rounded-lg border transition-all ${tenant.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}
+                              title={tenant.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
+                           >
+                              {tenant.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
+                           </button>
+                         </div>
+                      </div>
+                      <div className="w-full h-[1px] bg-[#1e222b] my-1"></div>
+                      <div className="text-xs text-indigo-400 font-bold flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                         <span className="text-gray-500">Allowed Routing KDs: </span> 
+                         {tenant.allowedKingdoms?.length > 0 ? tenant.allowedKingdoms.join(", ") : tenant.kingdomId}
+                      </div>
+                    </div>
+                  ))}
+                  {tenants.length === 0 && (
+                    <div className="text-center py-6 border border-dashed border-[#1e222b] rounded-xl text-gray-500 text-sm font-bold">
+                      No Tenant Guilds Installed
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Authorized Users */}
+              <div>
+                <h3 className="text-cyan-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex items-center justify-between">
+                  <span>Verified Architecture Commanders</span>
+                  <span className="text-gray-500">{users.filter(u => u.role !== "User").length} Commanders</span>
+                </h3>
+                <div className="space-y-3">
+                  {users.filter(u => u.role !== "User" || u.isManualGuest).map(user => (
+                    <div key={user.discordId} className="bg-[#0a0c0f] border border-cyan-500/20 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors relative overflow-hidden">
+                      <div className="absolute right-0 top-0 h-full w-1 focus:outline-none bg-gradient-to-b from-cyan-500/50 to-transparent"></div>
+                      <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <img 
+                          src={`https://cdn.discordapp.com/avatars/${user.discordId}/${session?.user?.avatar || ""}.png`} 
+                          alt="Avatar" 
+                          className="w-10 h-10 rounded-full border border-cyan-500/30"
+                          onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn.discordapp.com/embed/avatars/0.png" }}
+                        />
+                        <div>
+                          <div className="text-white font-bold font-mono">{user.discordId}</div>
+                          <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")} | {user.governorIds?.length || 0} Linked Govs</div>
+                          <div className="text-[10px] text-gray-500 italic mt-1 max-w-[200px] sm:max-w-[300px] truncate" title={user.notes}>
+                            {user.notes ? `"${user.notes}"` : "No tracking notes"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto z-10 mt-3 sm:mt-0">
+                        <button 
+                          onClick={() => handleEditUserNotes(user.discordId, user.notes)}
+                          className="p-2 rounded-lg bg-[#1e222b] border border-[#1e222b] text-gray-500 hover:text-cyan-400 hover:border-cyan-500/30 transition-colors"
+                          title="Edit Tracking Notes"
+                        >
+                          📝
+                        </button>
+                        <button 
+                          onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)}
+                          className={`p-2 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}
+                          title={user.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
+                        >
+                          {user.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
+                        </button>
+                        <button className="flex-1 sm:flex-none px-4 py-2 bg-[#1e222b] hover:bg-rose-500/20 text-gray-400 hover:text-rose-500 rounded-lg font-bold text-sm transition-all border border-transparent hover:border-rose-500/30">
+                          Revoke Clearance
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+               {/* Standard Users */}
+               <div>
+                <h3 className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-4 border-b border-[#1e222b] pb-2 flex justify-between">
+                  <span>Standard Infantry Nodes</span>
+                  <span className="text-gray-600">{users.filter(u => u.role === "User").length} Soldiers</span>
+                </h3>
+                <div className="space-y-3">
+                  {users.filter(u => u.role === "User").map(user => (
+                    <div key={user.discordId} className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex justify-between items-center gap-4 opacity-75 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-[#1e222b] flex items-center justify-center text-gray-500 text-xs font-bold">U</div>
+                        <div>
+                          <div className="text-gray-300 font-bold text-sm font-mono">{user.discordId}</div>
+                          <div className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{user.governorIds?.length || 0} Game Profiles</div>
+                          <div className="text-[10px] text-gray-600 font-medium italic truncate max-w-[150px] mt-0.5">
+                             {user.notes ? `"${user.notes}"` : "No tracking notes"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 z-10">
+                        <button 
+                          onClick={() => handleEditUserNotes(user.discordId, user.notes)}
+                          className="w-8 h-8 rounded bg-[#1e222b] border border-[#1e222b] flex items-center justify-center text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+                          title="Edit Tracking Notes"
+                        >
+                          📝
+                        </button>
+                        <button 
+                          onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)}
+                          className={`w-8 h-8 rounded flex items-center justify-center transition-all border ${user.globalAiAccess ? 'bg-[#1e222b] border-[#1e222b] text-cyan-500 hover:bg-cyan-500/10 hover:border-cyan-500/30' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.2)]'}`}
+                          title={user.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
+                        >
+                          {user.globalAiAccess ? <Bot size={14} /> : <BotOff size={14} />}
+                        </button>
+                        <button className="w-8 h-8 rounded bg-[#1e222b] border border-[#1e222b] flex items-center justify-center text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {users.filter(u => u.role === "User").length === 0 && (
+                    <div className="text-center py-6 border border-dashed border-[#1e222b] rounded-xl text-gray-500 text-sm font-bold">
+                      No standard profiles found.
+                    </div>
+                  )}
+                 </div>
+               </div>
+
+             </div>
+           </div>
+
+        </div>
+
+      </div>
+
+      {/* ========================================================= */}
+      {/* GLOBAL CLOUD CONTROL PANEL                                */}
+      {/* ========================================================= */}
+      
+      <div className="mt-16 pt-12 border-t border-[#1e222b]">
+        <div className="mb-8">
+           <h2 className="text-3xl font-black text-rose-500 tracking-widest uppercase flex items-center gap-3 drop-shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+             <Lock size={32} />
+             Global Cloud Control
+           </h2>
+           <p className="text-gray-400 mt-2 text-sm uppercase tracking-wider font-bold">Encrypted Environment Parameters & Cloud Gateway</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          <div className="space-y-8">
+<div className="bg-[#13161c] border border-[#1e222b] rounded-2xl overflow-hidden shadow-lg border-t-2 border-t-amber-500 relative">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center gap-3 border-b border-[#1e222b]">
+              <Key className="text-amber-500" size={20} />
+              <h2 className="text-white font-bold">AWS Gateway Link</h2>
+            </div>
+            <div className="p-6 space-y-5">
+              
+              <div>
+                <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Live Region Router</label>
+                <div className="w-full bg-[#0a0c0f] border border-amber-500/50 text-amber-500 px-4 py-3 rounded-lg font-mono text-sm shadow-[inset_0_0_15px_rgba(245,158,11,0.1)] flex items-center gap-2">
+                  <Activity size={14} className="animate-pulse" /> {awsEnv.region}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">CloudDB Master Target</label>
+                <div className="w-full bg-[#0a0c0f] border border-amber-500/50 text-amber-500 px-4 py-3 rounded-lg font-mono text-sm shadow-[inset_0_0_15px_rgba(245,158,11,0.1)] flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
+                  <Database size={14} className="animate-pulse flex-shrink-0" /> {awsEnv.tableName}
+                </div>
+              </div>
+
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-xs leading-relaxed font-bold">
+                <span className="block mb-1 text-[10px] uppercase tracking-wider text-rose-500">Security Notice</span>
+                Gateway Variables are now securely locked onto the Vercel Node runtime. They cannot be edited directly via Browser Dashboards.
+              </div>
+
+            </div>
+          </div>
+
+          <div className="space-y-8">
+{/* Master IAM Storage */}
             <div className="border border-orange-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-amber-600 opacity-50"></div>
                <h3 className="text-orange-400 font-bold mb-4 flex items-center gap-2"><Lock size={18}/> Local Storage Environment Variables</h3>
@@ -650,6 +665,7 @@ export default function AdminConsole() {
         </div>
       </div>
       
+    </div>
     </div>
   );
 }

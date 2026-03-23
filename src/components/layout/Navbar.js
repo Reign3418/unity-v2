@@ -34,7 +34,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="h-16 bg-[#0a0c0f]/80 backdrop-blur-md border-b border-[#1e222b] flex items-center justify-between px-8 sticky top-0 z-10 transition-all">
+      <header className="h-16 bg-[#0a0c0f]/80 backdrop-blur-md border-b border-[#1e222b] flex items-center justify-between px-8 sticky top-0 z-50 transition-all">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-white tracking-wide">
             {getPageTitle()}

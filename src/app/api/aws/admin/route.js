@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
-  rejectPendingUser, addTenantAllowedKingdom 
+  rejectPendingUser, addTenantAllowedKingdom, updateUserNotes, updateTenantNotes 
 } from "@/lib/awsDynamo";
 
 export async function GET(req) {
@@ -155,6 +155,24 @@ export async function POST(req) {
         return NextResponse.json({ success: true, message: `Bonus Kingdom Added to Guild.` }, { status: 200 });
       }
       return NextResponse.json({ error: "Guild not found or AWS write failed." }, { status: 500 });
+    }
+
+    if (action === "UPDATE_USER_NOTES") {
+      const { discordId, notes } = payload;
+      const success = await updateUserNotes(discordId, notes);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Notes updated for user.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "Failed to update User attributes." }, { status: 500 });
+    }
+
+    if (action === "UPDATE_TENANT_NOTES") {
+      const { guildId, notes } = payload;
+      const success = await updateTenantNotes(guildId, notes);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Notes updated for tenant guild.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "Failed to update Tenant attributes." }, { status: 500 });
     }
 
     return NextResponse.json({ error: "Unknown Admin Directive." }, { status: 400 });
