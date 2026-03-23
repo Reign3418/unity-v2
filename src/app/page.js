@@ -27,7 +27,7 @@ export default function Home() {
             UN.TY <span className="text-cyan-500">2.0</span>
           </h1>
           <p className="text-gray-400 mb-12 font-medium tracking-wide">
-            The Ghost Ship is online. Awaiting Commander authorization.
+            There is no I in team.
           </p>
 
           <button 
