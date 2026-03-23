@@ -305,7 +305,7 @@ function DropZone({ title, description, icon, theme, optional = false }) {
             if (!jsonPayload || jsonPayload.length === 0) continue;
 
             // Optional: Filter out empty rows where ID is missing
-            const validPayload = jsonPayload.filter(p => p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p.name || p.NAME || p["Governor Name"]);
+            const validPayload = jsonPayload.filter(p => p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p['Character ID'] || p.CharacterID || p.name || p.NAME || p["Governor Name"] || p.Username || p.username);
             if (validPayload.length === 0) continue;
 
             setUploadStatus("idle");

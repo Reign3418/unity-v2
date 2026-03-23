@@ -1302,8 +1302,8 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         const formatS = (val) => ({ S: String(val || '') });
         const formatN = (val) => ({ N: String(val || 0).replace(/,/g, '') });
 
-        const id = player.id || player.Id || player.ID || player['Governor ID'];
-        const name = player.name || player.Name || player.NAME || player['Governor Name'];
+        const id = player.id || player.Id || player.ID || player['Governor ID'] || player['Character ID'] || player.CharacterID;
+        const name = player.name || player.Name || player.NAME || player['Governor Name'] || player.Username || player.username;
         const alliance = player.alliance || player.Alliance || player.ALLIANCE || player['Alliance Tag'] || player['Alliance Name'] || player['alliance Tag'] || "";
         const power = player.power || player.Power || player.POWER;
         const killpoints = player.killpoints || player.killPoints || player.KillPoints || player['Kill Points'];

@@ -75,8 +75,8 @@ export default function SandboxPage() {
 
           // Process rows, identifying errors
           const processedRows = jsonPayload.map((p, idx) => {
-            const id = p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "];
-            const name = p.name || p.Name || p.NAME || p['Governor Name'];
+            const id = p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p['Character ID'] || p.CharacterID;
+            const name = p.name || p.Name || p.NAME || p['Governor Name'] || p.Username || p.username;
             
             return {
               _originalIndex: idx + 2, // Excel rows are 1-indexed, +1 for header
