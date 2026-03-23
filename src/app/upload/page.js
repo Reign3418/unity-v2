@@ -244,7 +244,8 @@ function DropZone({ title, description, icon, theme, optional = false }) {
     if (!file) return;
 
     // Heroscrolls Denial Filter 1: Filename Signature
-    if (file.name.toLowerCase().startsWith('kvk_report_')) {
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.startsWith('kvk_report') || lowerName.startsWith('pre_kvk')) {
       alert("File Rejected: Heroscrolls/Third-Party reports are unsupported. Please upload a pure raw data scan.");
       return;
     }
@@ -259,7 +260,7 @@ function DropZone({ title, description, icon, theme, optional = false }) {
         const workbook = XLSX.read(data, { type: 'array' });
 
         // Heroscrolls Denial Filter 2: Proprietary Tab Signatures
-        const heroscrollsTabs = ['deltas', 'start', 'end', 'excluded governors'];
+        const heroscrollsTabs = ['deltas', 'start', 'end', 'excluded governors', 'camp totals', 'earth', 'fire', 'water', 'wind'];
         const isHeroscrolls = workbook.SheetNames.some(name => heroscrollsTabs.includes(name.toLowerCase()));
         if (isHeroscrolls) {
           alert("File Rejected: Detected Heroscrolls internal sheet structures (Deltas, Start, End). Please discard this format and upload the raw tracking scan.");
