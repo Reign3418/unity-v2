@@ -4,6 +4,23 @@ import { BookOpen, Tag, Zap, Shield, CheckCircle2, AlertTriangle, Wrench } from 
 
 const CHANGELOG = [
   {
+    version: "2.2.0",
+    date: "Late March 2026",
+    type: "minor",
+    label: "Advanced Data Sandbox & Cloud Forensics",
+    highlights: [
+      "Engineered a robust Data Sandbox for real-time dynamic mapping of legacy Excel files to native JSON parameters",
+      "Built end-to-end data audit tracking, permanently linking uploaded Source Files directly into the AWS DynamoDB Global Matrix"
+    ],
+    changes: [
+      { type: "new", text: "Sandbox Raw Data Inspector — Admins can dynamically map unrecognizable legacy Excel headers into strict Unity variable structures" },
+      { type: "new", text: "Explicit DTG Master Control — HTML5 Datetime-local inputs integrated to manually inject exact historical Scan Date times" },
+      { type: "new", text: "Global Cloud Audit Log Expansion — A new Source Origin column natively tracks and renders the actual Excel file names used to trigger Cloud uploads" },
+      { type: "security", text: "Origin File Signatures — All Sandbox cloud ingestions are permanently branded with their forensic Filename directly inside the DynamoDB DATES partition key" },
+      { type: "fix", text: "Excel Target Interception — The Sandbox matrix bypasses generic Sheet Names to extract root Kingdom IDs directly from the OS Filename" }
+    ]
+  },
+  {
     version: "2.1.0",
     date: "Late March 2026",
     type: "minor",
