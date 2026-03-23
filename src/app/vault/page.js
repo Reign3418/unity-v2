@@ -53,7 +53,7 @@ export default function KingdomVault() {
 
   if (!session?.user?.isLeader && session?.user?.role !== "Admin") {
       return (
-        <div className="max-w-6xl mx-auto flex flex-col items-center justify-center p-24 text-center">
+        <div className="w-full mx-auto flex flex-col items-center justify-center p-24 text-center">
             <ShieldAlert className="w-16 h-16 text-rose-500 mb-6 opacity-80" />
             <h1 className="text-3xl font-black text-white tracking-widest uppercase mb-2">High Command Only</h1>
             <p className="text-rose-400 font-bold uppercase tracking-widest text-sm">Clearance Level Insufficient to view Kingdom Reserves.</p>
@@ -62,7 +62,7 @@ export default function KingdomVault() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-12 mt-4">
+    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
       
       {/* Header Panel */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">

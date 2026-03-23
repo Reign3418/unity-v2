@@ -60,7 +60,7 @@ export default function PlayerHunter() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-12">
+    <div className="w-full mx-auto space-y-8 animate-fade-in pb-12">
       
       {/* Header Search Console */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-8 shadow-xl relative overflow-hidden">

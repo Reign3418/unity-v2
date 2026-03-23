@@ -83,7 +83,7 @@ export default function MyStats() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-12">
+    <div className="w-full mx-auto space-y-8 animate-fade-in pb-12">
       
       {/* Discord Identity Header */}
       {session?.user && (

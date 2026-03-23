@@ -85,7 +85,7 @@ export default function ActivityTracker() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-12">
+    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12">
       
       {/* Header Panel */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-6 shadow-xl relative overflow-hidden">

@@ -13,7 +13,7 @@ export default function UploadHub() {
 
   if (!activeTab) {
     return (
-      <div className="animate-fade-in max-w-5xl mx-auto mt-8">
+      <div className="animate-fade-in w-full mx-auto mt-8">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-white mb-3">Data Ingestion Hub</h1>
           <p className="text-gray-400 max-w-2xl mx-auto">
@@ -75,7 +75,7 @@ export default function UploadHub() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-4 animate-fade-in relative z-10 pb-12">
+    <div className="w-full mx-auto mt-4 animate-fade-in relative z-10 pb-12">
       <div className="flex items-center gap-4 mb-8 pb-4 border-b border-[#1e222b]">
         <button 
           onClick={() => setActiveTab(null)}
@@ -94,7 +94,7 @@ export default function UploadHub() {
 
       {activeTab === 'spreadsheet' ? (
         <>
-          <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 mb-8 flex items-center gap-6 shadow-xl max-w-4xl mx-auto">
+          <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 mb-8 flex items-center gap-6 shadow-xl w-full mx-auto">
              <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest pl-2">Target Routing</label>
              <select 
                value={targetKd}
@@ -106,7 +106,7 @@ export default function UploadHub() {
              </select>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 w-full mx-auto">
             <DropZone 
               title="Baseline Snapshot" 
               description="Pre-KvK metrics"

@@ -264,7 +264,7 @@ export default function AdminConsole() {
 
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-12 mt-4 relative z-10">
+    <div className="w-full mx-auto space-y-8 animate-fade-in pb-12 mt-4 relative z-10">
       
       {/* Header Panel */}
       <div className="bg-[#0f1115] border-x-4 border-l-blue-500 border-r-blue-500 border-y border-y-[#1e222b] rounded-xl p-8 shadow-[0_10px_40px_rgba(59,130,246,0.1)] relative overflow-hidden">

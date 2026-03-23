@@ -2,20 +2,21 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { Users, Send, Crown, Sword, Shield, Globe2, MessageSquare, RefreshCw, Megaphone } from "lucide-react";
+import { Users, Send, Globe2, MessageSquare, RefreshCw, Lightbulb, Bug, Star, HelpCircle } from "lucide-react";
 
 const POST_TYPES = [
-  { id: "Recruitment", label: "Recruiting", icon: <Megaphone size={12} /> },
-  { id: "Alliance", label: "Alliance", icon: <Shield size={12} /> },
-  { id: "KvK", label: "KvK Intel", icon: <Sword size={12} /> },
-  { id: "Message", label: "General", icon: <MessageSquare size={12} /> },
+  { id: "Idea / Feature Request", label: "Idea / Feature Request", icon: <Lightbulb size={12} /> },
+  { id: "Bug Report", label: "Bug Report", icon: <Bug size={12} /> },
+  { id: "Review", label: "Review", icon: <Star size={12} /> },
+  { id: "Question", label: "Question", icon: <HelpCircle size={12} /> },
 ];
 
 const TYPE_COLORS = {
-  Recruitment: { border: "border-cyan-500/30", text: "text-cyan-400", bg: "bg-cyan-500/10" },
-  Alliance: { border: "border-blue-500/30", text: "text-blue-400", bg: "bg-blue-500/10" },
-  KvK: { border: "border-red-500/30", text: "text-red-400", bg: "bg-red-500/10" },
-  Message: { border: "border-gray-500/30", text: "text-gray-400", bg: "bg-gray-500/10" },
+  "Idea / Feature Request": { border: "border-yellow-500/30", text: "text-yellow-400", bg: "bg-yellow-500/10" },
+  "Bug Report": { border: "border-rose-500/30", text: "text-rose-400", bg: "bg-rose-500/10" },
+  "Bug": { border: "border-rose-500/30", text: "text-rose-400", bg: "bg-rose-500/10" },
+  "Review": { border: "border-amber-500/30", text: "text-amber-400", bg: "bg-amber-500/10" },
+  "Question": { border: "border-blue-500/30", text: "text-blue-400", bg: "bg-blue-500/10" },
 };
 
 function timeAgo(dateStr) {
@@ -34,7 +35,7 @@ export default function CommunityHub() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [message, setMessage] = useState("");
-  const [selectedType, setSelectedType] = useState("Message");
+  const [selectedType, setSelectedType] = useState("Idea / Feature Request");
   const bottomRef = useRef(null);
 
   const fetchPosts = async () => {
@@ -80,7 +81,7 @@ export default function CommunityHub() {
     }
   };
 
-  const colors = TYPE_COLORS[selectedType] || TYPE_COLORS.Message;
+  const colors = TYPE_COLORS[selectedType] || TYPE_COLORS["Idea / Feature Request"];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-12 mt-4">
@@ -94,8 +95,8 @@ export default function CommunityHub() {
               <Users className="text-sky-400" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-widest uppercase">Community Hub</h1>
-              <p className="text-sky-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Kingdom-Wide Bulletin Board</p>
+              <h1 className="text-3xl font-black text-white tracking-widest uppercase">Unity Community Hub</h1>
+              <p className="text-sky-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Submit Feedback & Live Global Feed</p>
             </div>
           </div>
           <button
@@ -113,7 +114,7 @@ export default function CommunityHub() {
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden">
           <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center gap-2">
             <MessageSquare size={15} className="text-sky-400" />
-            <h2 className="text-white font-bold uppercase tracking-widest text-sm">Post a Message</h2>
+            <h2 className="text-white font-bold uppercase tracking-widest text-sm">Submit Feedback</h2>
           </div>
           <div className="p-5 space-y-4">
             {/* Type Selector */}
@@ -137,7 +138,7 @@ export default function CommunityHub() {
               value={message}
               onChange={e => setMessage(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePost(); }}}
-              placeholder={`Post a ${selectedType} message to the kingdom...`}
+              placeholder={`Describe your idea or report a bug...`}
               rows={3}
               maxLength={500}
               className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white placeholder:text-gray-600 p-3 rounded-lg outline-none focus:border-sky-500/50 transition-colors text-sm resize-none font-mono"
@@ -165,8 +166,13 @@ export default function CommunityHub() {
         </div>
       )}
 
-      {/* Feed */}
-      <div className="space-y-3">
+      {/* Feed Area */}
+      <div>
+        <h2 className="text-white font-bold uppercase tracking-widest text-lg mb-6 flex items-center gap-3">
+          <Globe2 className="text-sky-400" />
+          Live Global Feed
+        </h2>
+        <div className="space-y-3">
         {isLoading ? (
           <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center">
             <RefreshCw className="animate-spin text-sky-400 w-8 h-8" />
@@ -179,7 +185,7 @@ export default function CommunityHub() {
           </div>
         ) : (
           posts.map((post, idx) => {
-            const c = TYPE_COLORS[post.type] || TYPE_COLORS.Message;
+            const c = TYPE_COLORS[post.type] || TYPE_COLORS["Idea / Feature Request"];
             return (
               <div key={idx} className={`bg-[#0f1115] border ${c.border} rounded-xl p-5 shadow-lg hover:bg-[#0d1018] transition-colors`}>
                 <div className="flex items-start justify-between gap-2">
@@ -197,6 +203,7 @@ export default function CommunityHub() {
           })
         )}
         <div ref={bottomRef} />
+      </div>
       </div>
     </div>
   );

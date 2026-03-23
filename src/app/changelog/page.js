@@ -2,8 +2,63 @@
 
 import { BookOpen, Tag, Zap, Shield, CheckCircle2, AlertTriangle, Wrench } from "lucide-react";
 
-import CHANGELOG from "@/data/changelog.json";
-
+const CHANGELOG = [
+  {
+    version: "2.0.0",
+    date: "March 2026",
+    type: "major",
+    label: "The V2 Platform Rewrite",
+    highlights: [
+      "Full platform rebuild on Next.js + AWS DynamoDB — zero legacy dependencies",
+      "Discord OAuth authentication replacing manual token flows",
+      "All pages now server-side rendered with isolated API routes (no exposed secrets)",
+      "Recharts data visualizations across Kingdom, Global, Pre-KvK and DKP dashboards",
+    ],
+    changes: [
+      { type: "new", text: "Kingdom Vault — Leader-only RSS economic reserve tracker" },
+      { type: "new", text: "Pre-KvK Rankings — Algorithmic Preparedness Score leaderboard with podium" },
+      { type: "new", text: "DKP Results Board — Post-KvK Tier grading system (S+ through F)" },
+      { type: "new", text: "KvK After-Action Report — Alliance Hegemony output and Top 10 Vanguard Warriors" },
+      { type: "new", text: "Kingdom Analysis (Area Charts) — Chronological Power trajectory visualization" },
+      { type: "new", text: "All Kingdom Stats (Bar Charts) — Multi-KD comparative Power and KP metrics" },
+      { type: "new", text: "My Alliance Hub — Dynamic roster filtered by Alliance Tag via AWS query" },
+      { type: "new", text: "Activity Tracker — Chronological delta comparison (NEW / MISSING / GROWTH)" },
+      { type: "new", text: "Player Hunter — Cross-Kingdom search via DynamoDB GOV_PROFILE index" },
+      { type: "new", text: "Mail Generator — KvK Push, Rally, and General message templates" },
+      { type: "new", text: "Calculators — RSS estimation and Speedup math tools" },
+      { type: "new", text: "Admin Panel — AWS Cloud Control, Tenant Management, Upload Triggers" },
+      { type: "fix", text: "Replaced monolithic 4,716-line index.html with modular Next.js pages" },
+      { type: "fix", text: "Replaced 4,711-line render-blocking style.css with Tailwind CSS" },
+      { type: "fix", text: "Eliminated 3× exposed credential vulnerabilities from public stages" },
+      { type: "fix", text: "Migrated from self-hosted MySQL to serverless AWS DynamoDB" },
+      { type: "security", text: "All secrets now strictly server-side via .env.local — never bundled to client" },
+      { type: "security", text: "Role-based access control on all leader routes (isLeader + Admin gates)" },
+    ]
+  },
+  {
+    version: "1.5.x",
+    date: "Late 2025",
+    type: "patch",
+    label: "Final V1 Patches",
+    changes: [
+      { type: "new", text: "AI/Gemini Vision OCR engine for Discord RSS screenshot scanning" },
+      { type: "new", text: "DKP tracking Discord bot commands (/dkp, /stats, /forge)" },
+      { type: "fix", text: "Alliance tag normalization in CSV ingestion pipeline" },
+    ]
+  },
+  {
+    version: "1.0.0",
+    date: "2025",
+    type: "major",
+    label: "Unity V1 Launch",
+    changes: [
+      { type: "new", text: "Initial Discord bot with /bind, /stats, /roster slash commands" },
+      { type: "new", text: "Express.js API server with Discord OAuth" },
+      { type: "new", text: "MySQL database for DKP rosters and governor data" },
+      { type: "new", text: "Single-page HTML dashboard (index.html 4,716 lines)" },
+    ]
+  }
+];
 const TypeIcon = ({ type }) => {
   const map = {
     new: <Zap size={12} className="text-cyan-400" />,

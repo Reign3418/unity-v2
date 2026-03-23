@@ -39,7 +39,7 @@ export default function KvkReport() {
   const formatBillion = (num) => num ? (Number(num) / 1000000000).toFixed(2) + 'B' : "0";
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12 mt-4">
+    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
       
       {/* Header Panel */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">

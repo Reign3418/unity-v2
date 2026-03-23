@@ -36,7 +36,7 @@ export default function DashboardLayout({ children }) {
         {/* Dynamic Page Router injected here */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 bg-[#0a0c0f] relative scrollbar-thin scrollbar-thumb-[#1e222b]">
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
-          <div className="max-w-7xl mx-auto relative z-10 animate-fade-in">
+          <div className="w-full max-w-[1920px] 2xl:max-w-screen-3xl px-2 lg:px-8 mx-auto relative z-10 animate-fade-in">
             {children}
           </div>
         </main>
