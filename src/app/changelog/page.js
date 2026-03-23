@@ -4,6 +4,24 @@ import { BookOpen, Tag, Zap, Shield, CheckCircle2, AlertTriangle, Wrench } from 
 
 const CHANGELOG = [
   {
+    version: "2.1.0",
+    date: "Late March 2026",
+    type: "minor",
+    label: "Event & Presence Matrix",
+    highlights: [
+      "Deployed the Global Event Trajectory AWS engine, securely bridging Web UI and Discord cron jobs",
+      "Built the Governor Presence tracking architecture for live status webhook routing"
+    ],
+    changes: [
+      { type: "new", text: "Global Event Trajectory UI — Web Admins can now map out Competitive schedules natively" },
+      { type: "new", text: "Governor Presence Modal — Players can sync Working/Sleeping/Vacation schedules directly to AWS" },
+      { type: "new", text: "Discord Webhook Router — Event cron jobs aggressively ping target channels precisely 15m and 0m before events" },
+      { type: "new", text: "/event schedule (Discord) — Implemented native Timezone Offset logic to eliminate UTC paradoxes" },
+      { type: "new", text: "/config channel (Discord) — Administrators can designate exact channels for Pipeline routing" },
+      { type: "fix", text: "Repaired the /bind Discord module and flushed the missing Slash Command arrays into production" }
+    ]
+  },
+  {
     version: "2.0.0",
     date: "March 2026",
     type: "major",
