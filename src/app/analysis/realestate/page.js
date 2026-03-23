@@ -158,7 +158,7 @@ export default function RealestatePredictor() {
                                    className="absolute pointer-events-none z-50 bg-black/80 border border-cyan-500/50 text-cyan-400 font-mono text-[10px] px-2 py-1 rounded shadow-lg backdrop-blur-sm transform -translate-x-1/2 -translate-y-[150%]"
                                    style={{ top: `${mouseCoords.y}%`, left: `${mouseCoords.x}%` }}
                                  >
-                                   X: {mouseCoords.x}% | Y: {mouseCoords.y}%
+                                   X: {mouseCoords.x} | Y: {mouseCoords.y}
                                  </div>
                                )}
                                
