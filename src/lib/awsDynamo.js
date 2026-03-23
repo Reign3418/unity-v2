@@ -1287,26 +1287,43 @@ export async function uploadKingdomRoster(kingdomId, rosterArray) {
         const formatS = (val) => ({ S: String(val || '') });
         const formatN = (val) => ({ N: String(val || 0).replace(/,/g, '') });
 
+        const id = player.id || player.Id || player.ID || player['Governor ID'];
+        const name = player.name || player.Name || player.NAME || player['Governor Name'];
+        const alliance = player.alliance || player.Alliance || player.ALLIANCE || "";
+        const power = player.power || player.Power || player.POWER;
+        const killpoints = player.killpoints || player.killPoints || player.KillPoints || player['Kill Points'];
+        const deads = player.deads || player.Deads || player.Dead || player.DEAD || player.DEADS;
+        const t4kills = player.t4Kills || player.T4Kills || player['T4 Kills'];
+        const t5kills = player.t5Kills || player.T5Kills || player['T5 Kills'];
+        const gathered = player.gathered || player.Gathered || player.ResourcesGathered || player['Resources Gathered'];
+        const assistance = player.assistance || player.Assistance || player.ASSISTANCE;
+        const techPower = player.techPower || player.TechPower || player['Tech Power'];
+        const comPower = player.commanderPower || player.CommanderPower || player['Commander Power'];
+        const buildPower = player.buildingPower || player.BuildingPower || player['Building Power'];
+
+        // Drop corrupted lines if the ID failed entirely
+        if (!id) return null;
+
         return {
             PutRequest: {
                 Item: {
                     'PK': { S: `SCAN#${kingdomId}#${dateKey}` },
-                    'SK': { S: `GOV#${player.id || player.Id}` },
+                    'SK': { S: `GOV#${id}` },
                     'attributes': {
                         M: {
-                            'Governor ID': formatS(player.id || player.Id),
-                            'Governor Name': formatS(player.name || player.Name),
-                            'Alliance Tag': formatS(player.alliance || player.Alliance),
-                            'Power': formatN(player.power || player.Power),
-                            'Kill Points': formatN(player.killPoints || player.KillPoints),
-                            'Deads': formatN(player.deads || player.Deads),
-                            'T4 Kills': formatN(player.t4Kills || player.T4Kills),
-                            'T5 Kills': formatN(player.t5Kills || player.T5Kills),
-                            'Resources Gathered': formatN(player.gathered || player.Gathered || player.ResourcesGathered),
-                            'Assistance': formatN(player.assistance || player.Assistance),
-                            'Tech Power': formatN(player.techPower || player.TechPower),
-                            'Commander Power': formatN(player.commanderPower || player.CommanderPower),
-                            'Building Power': formatN(player.buildingPower || player.BuildingPower),
+                            'Governor ID': formatS(id),
+                            'Governor Name': formatS(name),
+                            'Alliance Tag': formatS(alliance),
+                            'Power': formatN(power),
+                            'Kill Points': formatN(killpoints),
+                            'Deads': formatN(deads),
+                            'T4 Kills': formatN(t4kills),
+                            'T5 Kills': formatN(t5kills),
+                            'Resources Gathered': formatN(gathered),
+                            'Assistance': formatN(assistance),
+                            'Tech Power': formatN(techPower),
+                            'Commander Power': formatN(comPower),
+                            'Building Power': formatN(buildPower),
                             // Map any deltas if provided by the client side processor
                             'powerDelta': formatN(player.powerDelta),
                             'kpDelta': formatN(player.kpDelta),
@@ -1317,7 +1334,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray) {
                 }
             }
         };
-    });
+    }).filter(Boolean);
 
     // 3. Chunk into 25-item blocks (AWS Hard Limit)
     const chunkSize = 25;

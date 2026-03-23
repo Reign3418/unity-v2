@@ -267,6 +267,10 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
+        // U1 Legacy Parsing: Extract Kingdom ID from the Excel Tab (e.g. "1302")
+        const extractedKdMatch = firstSheetName.match(/\d+/);
+        const dynamicKd = extractedKdMatch && extractedKdMatch[0].length >= 3 ? extractedKdMatch[0] : targetKd;
+        
         const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); // Fallback to 0 if empty
         setRowCount(jsonPayload.length);
 
@@ -275,7 +279,7 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
           method: 'POST',
            headers: { 'Content-Type': 'application/json' },
            body: JSON.stringify({
-             kingdomId: targetKd,
+             kingdomId: dynamicKd,
              rosterArray: jsonPayload
            })
         });
