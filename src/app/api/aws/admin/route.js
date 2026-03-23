@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess } from "@/lib/awsDynamo";
+import { 
+  getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
+  getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
+  rejectPendingUser, addTenantAllowedKingdom 
+} from "@/lib/awsDynamo";
 
 export async function GET(req) {
   try {
@@ -10,9 +14,11 @@ export async function GET(req) {
     }
 
     // Run both DynamoDB scans continuously over parallel threads
-    const [users, tenants] = await Promise.all([
+    const [users, tenants, passcodes, pendingUsers] = await Promise.all([
       getAllUsers(),
-      getAllTenants()
+      getAllTenants(),
+      getAllGuestPasses(),
+      getPendingUsers()
     ]);
 
     // Attach current Environment Gateway strings so the Admin knows which DB is active
@@ -23,7 +29,9 @@ export async function GET(req) {
         tableName: process.env.AWS_TABLE_NAME || "Not Mapped"
       },
       users,
-      tenants
+      tenants,
+      passcodes,
+      pendingUsers
     }, { status: 200 });
 
   } catch (error) {
@@ -80,6 +88,73 @@ export async function POST(req) {
         success: true, 
         message: `Database Purge Complete. ${deletedCount} nodes eradicated.` 
       }, { status: 200 });
+    }
+
+    // New Restoration Endpoints
+    if (action === "GENERATE_GUEST_PASSCODE") {
+      const { kingdomId, role, poc, expireDays } = payload;
+      // Auto-generate 6-digit pin
+      const pass = Math.floor(100000 + Math.random() * 900000).toString();
+      const res = await createGuestPass(pass, kingdomId, role, parseInt(expireDays) || 7, poc);
+      return NextResponse.json({ success: true, passcode: res.passcode, message: "Passcode slice created." }, { status: 200 });
+    }
+
+    if (action === "DELETE_GUEST_PASSCODE") {
+      const { passcode } = payload;
+      await deleteGuestPass(passcode);
+      return NextResponse.json({ success: true, message: "Passcode Revoked." }, { status: 200 });
+    }
+
+    if (action === "APPROVE_MANUAL_USER") {
+      // Moves from PENDING to Active Manual User
+      const { discordId, kingdomId, role } = payload;
+      await approvePendingUser(discordId, kingdomId, role);
+      return NextResponse.json({ success: true, message: `User ${discordId} Approved.` }, { status: 200 });
+    }
+
+    if (action === "REJECT_MANUAL_USER") {
+      const { discordId } = payload;
+      await rejectPendingUser(discordId);
+      return NextResponse.json({ success: true, message: `User ${discordId} Rejected.` }, { status: 200 });
+    }
+
+    if (action === "ADD_GLOBAL_MANUAL_USER") {
+      // Direct injection (bypasses pending phase completely because admin did it)
+      const { discordId, kingdomId, role } = payload;
+      const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const dbClient = new DynamoDBClient({
+          region: process.env.AWS_REGION || 'us-east-1',
+          credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+          }
+      });
+      const params = {
+          TableName: process.env.AWS_TABLE_NAME,
+          Item: {
+              'PK': { S: `USER#${discordId}` },
+              'SK': { S: 'CONFIG' },
+              'attributes': {
+                  M: {
+                      'isManualGuest': { BOOL: true },
+                      'kingdomId': { S: String(kingdomId) },
+                      'role': { S: String(role) }
+                  }
+              }
+          }
+      };
+      await dbClient.send(new PutItemCommand(params));
+      return NextResponse.json({ success: true, message: `Direct User ${discordId} Add Complete.` }, { status: 200 });
+    }
+
+    if (action === "ADD_TENANT_KINGDOM") {
+      const { guildId, newKingdomId } = payload;
+      const success = await addTenantAllowedKingdom(guildId, newKingdomId);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Bonus Kingdom Added to Guild.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "Guild not found or AWS write failed." }, { status: 500 });
     }
 
     return NextResponse.json({ error: "Unknown Admin Directive." }, { status: 400 });

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw, Bot, BotOff 
+  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock 
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
@@ -47,6 +47,8 @@ export default function AdminConsole() {
       setAwsEnv(data.env);
       setUsers(data.users || []);
       setTenants(data.tenants || []);
+      setPasscodes(data.passcodes || []);
+      setPendingUsers(data.pendingUsers || []);
       
       // Update the Global Memory Hook
       globalMatrixCache = data;
@@ -133,6 +135,94 @@ export default function AdminConsole() {
     } finally {
       setIsPurging(false);
     }
+  };
+
+  // --- LEGACY ADMIN PORT STATE AND HANDLERS ---
+  const [passcodes, setPasscodes] = useState(globalMatrixCache?.passcodes || []);
+  const [pendingUsers, setPendingUsers] = useState(globalMatrixCache?.pendingUsers || []);
+  
+  // Forms
+  const [passForm, setPassForm] = useState({ kingdomId: "", role: "Member", poc: "", expireDays: "7" });
+  const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "Member" });
+  const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
+
+  // Update fetchAdminMatrix assignment payload natively
+  useEffect(() => {
+    if (globalMatrixCache) {
+      setPasscodes(globalMatrixCache.passcodes || []);
+      setPendingUsers(globalMatrixCache.pendingUsers || []);
+    }
+  }, [isLoading]);
+
+  const handleGeneratePasscode = async () => {
+    if (!passForm.kingdomId || !passForm.poc) return alert("Kingdom and POC required.");
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "GENERATE_GUEST_PASSCODE", payload: passForm })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      alert(`Passcode Generated: ${data.passcode}`);
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleRevokePasscode = async (passcode) => {
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "DELETE_GUEST_PASSCODE", payload: { passcode } })
+      });
+      if (!res.ok) throw new Error("Failed to revoke.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleApprovePending = async (discordId, kingdomId, role) => {
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "APPROVE_MANUAL_USER", payload: { discordId, kingdomId, role } })
+      });
+      if (!res.ok) throw new Error("Failed to approve.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleRejectPending = async (discordId) => {
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "REJECT_MANUAL_USER", payload: { discordId } })
+      });
+      if (!res.ok) throw new Error("Failed to reject.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleAddManualUser = async () => {
+    if (!manualUserForm.discordId || !manualUserForm.poc || !manualUserForm.kingdomId) return alert("All fields required.");
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "ADD_GLOBAL_MANUAL_USER", payload: manualUserForm })
+      });
+      if (!res.ok) throw new Error("Failed to add manual user.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleAddBonusKingdom = async () => {
+    if (!tenantForm.guildId || !tenantForm.kingdomId) return alert("Server ID and Kingdom required.");
+    try {
+        const res = await fetch("/api/aws/admin", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "ADD_TENANT_KINGDOM", payload: { guildId: tenantForm.guildId, newKingdomId: tenantForm.kingdomId } })
+        });
+        if (!res.ok) throw new Error("Failed to add bonus kingdom.");
+        fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
   };
 
   // If somehow a non-master admin routes here, block the UI entirely
@@ -393,6 +483,173 @@ export default function AdminConsole() {
 
       </div>
 
+      {/* ========================================================= */}
+      {/* V1 LEGACY SYSTEM ADMINISTRATOR PANEL                      */}
+      {/* ========================================================= */}
+      
+      <div className="mt-16 pt-12 border-t border-[#1e222b]">
+        <div className="mb-8">
+           <h2 className="text-3xl font-black text-blue-500 tracking-widest uppercase flex items-center gap-3 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+             <ShieldAlert size={32} />
+             System Administrator Panel
+           </h2>
+           <p className="text-gray-400 mt-2 text-sm uppercase tracking-wider font-bold">Secure Zone • Restored Toolset • v1.0.8</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* LEFT COLUMN: TENANTS & PASSCODES */}
+          <div className="space-y-8">
+            
+            {/* Global Tenant Management */}
+            <div className="border border-blue-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-50"></div>
+              <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2"><Server size={18}/> Global Tenant Management</h3>
+              
+              <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-4 mb-4">
+                <div className="text-xs text-gray-500 font-bold mb-2 uppercase tracking-wider">Grant Bonus Kingdom</div>
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Guild/Server ID" className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={tenantForm.guildId} onChange={e => setTenantForm({...tenantForm, guildId: e.target.value})} />
+                  <input type="number" placeholder="Kingdom ID (e.g. 3418)" className="w-1/3 bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={tenantForm.kingdomId} onChange={e => setTenantForm({...tenantForm, kingdomId: e.target.value})} />
+                  <button onClick={handleAddBonusKingdom} className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded transition-colors"><Plus size={18}/></button>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-none">
+                {tenants.map(t => (
+                  <div key={t.guildId} className="bg-[#161920] rounded p-3 text-sm flex flex-col gap-1 border border-transparent hover:border-blue-500/30 transition-colors">
+                    <div className="flex justify-between font-mono">
+                      <span className="text-blue-300">{t.guildId}</span>
+                      <span className="text-gray-400 text-xs">{t.createdDate?.split('T')[0] || "Unknown"}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs mt-1">
+                      <div className="bg-[#0a0c10] p-1.5 rounded border border-[#1e222b]">
+                        <span className="text-gray-500 block">Primary Kingdom</span>
+                        <span className="text-white font-bold">{t.kingdomId}</span>
+                      </div>
+                      <div className="bg-[#0a0c10] p-1.5 rounded border border-[#1e222b]">
+                        <span className="text-gray-500 block">Bonus Domains</span>
+                        <span className="text-indigo-400 font-bold">{t.allowedKingdoms?.length || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Guest Passcodes */}
+            <div className="border border-green-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-green-600 opacity-50"></div>
+              <h3 className="text-emerald-400 font-bold mb-4 flex items-center gap-2"><Key size={18}/> Active Guest Passcodes</h3>
+              
+              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 scrollbar-none">
+                 {passcodes.length === 0 && <div className="text-gray-600 text-xs font-bold text-center py-4 border border-dashed border-[#1e222b] rounded">No active guest passes circulating.</div>}
+                 {passcodes.map(p => (
+                   <div key={p.passcode} className="bg-[#161920] border border-[#1e222b] rounded p-3 flex justify-between items-center group hover:border-emerald-500/30">
+                     <div>
+                       <div className="text-emerald-400 font-mono font-bold tracking-widest text-lg">{p.passcode}</div>
+                       <div className="text-[10px] text-gray-500 uppercase tracking-wider flex gap-2">
+                          <span>{p.playerName}</span> • <span>KD {p.kingdomId}</span> • <span>{p.role}</span>
+                       </div>
+                       <div className="text-[10px] text-emerald-600 font-bold mt-1 inline-block"><Clock size={10} className="inline mr-1"/> Expires: {new Date(p.expiresAt).toLocaleDateString()}</div>
+                     </div>
+                     <button onClick={() => handleRevokePasscode(p.passcode)} className="text-gray-600 hover:text-rose-500 p-2 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16}/></button>
+                   </div>
+                 ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: MANUAL USERS & IAM */}
+          <div className="space-y-8">
+            
+            {/* Generate Web Passcode */}
+            <div className="border border-[#1e222b] bg-[#0a0c10] rounded-xl p-6 relative">
+              <h3 className="text-gray-300 font-bold mb-4 flex items-center gap-2"><Activity size={18}/> Generate Web Guest Passcode</h3>
+               <div className="grid grid-cols-2 gap-3 mb-3">
+                 <input type="text" placeholder="POC Nickname" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.poc} onChange={e => setPassForm({...passForm, poc: e.target.value})} />
+                 <input type="number" placeholder="Target Kingdom (e.g. 3418)" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.kingdomId} onChange={e => setPassForm({...passForm, kingdomId: e.target.value})} />
+                 <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
+                    <option value="Member">R4/Member</option>
+                    <option value="Leader">R5/Leader</option>
+                    <option value="Admin">System Admin (CAUTION)</option>
+                 </select>
+                 <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
+                    <option value="1">Expire in 24 Hours</option>
+                    <option value="3">Expire in 3 Days</option>
+                    <option value="7">Expire in 7 Days</option>
+                    <option value="30">Expire in 30 Days</option>
+                 </select>
+               </div>
+               <button onClick={handleGeneratePasscode} className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/50 rounded py-2 text-sm font-bold uppercase tracking-widest transition-all">Generate 6-Digit Slice</button>
+            </div>
+
+            {/* Pending & Approved Manual Users */}
+            <div className="border border-indigo-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600 opacity-50"></div>
+               <h3 className="text-indigo-400 font-bold mb-4 flex items-center gap-2"><Users size={18}/> Web User Approval Queue</h3>
+               
+               {/* Queued Approvals */}
+               <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-none mb-6">
+                 {pendingUsers.length === 0 && <div className="text-gray-600 text-xs font-bold text-center py-4 border border-dashed border-[#1e222b] rounded">No users awaiting manual clearance.</div>}
+                 {pendingUsers.map(u => (
+                    <div key={u.SK} className="bg-[#161920] border border-indigo-500/30 rounded p-3 flex justify-between items-center group">
+                      <div>
+                         <div className="text-indigo-300 font-bold text-sm">{u.attributes?.username?.S || u.SK.replace('USER#', '')}</div>
+                         <div className="text-[10px] text-gray-500 uppercase tracking-wider">KD {u.attributes?.targetKingdom?.S || "Unknown"} | Discord ID {u.SK.replace('USER#', '')}</div>
+                      </div>
+                      <div className="flex gap-2 opacity-100">
+                         <button onClick={() => handleApprovePending(u.SK.replace('USER#', ''), u.attributes?.targetKingdom?.S || "0", "Member")} className="text-emerald-500 hover:bg-emerald-500/20 p-1.5 rounded transition-colors" title="Approve Request"><CheckCircle size={18}/></button>
+                         <button onClick={() => handleRejectPending(u.SK.replace('USER#', ''))} className="text-rose-500 hover:bg-rose-500/20 p-1.5 rounded transition-colors" title="Reject Request"><XCircle size={18}/></button>
+                      </div>
+                    </div>
+                 ))}
+               </div>
+
+               {/* Force Add Web User */}
+               <div className="pt-4 border-t border-[#1e222b]">
+                 <div className="text-xs text-gray-500 font-bold mb-3 uppercase tracking-wider">Force Add Global Web User</div>
+                 <div className="grid grid-cols-2 gap-2 mb-2">
+                   <input type="text" placeholder="Target Discord ID" className="bg-[#161920] border border-[#1e222b] rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" value={manualUserForm.discordId} onChange={e => setManualUserForm({...manualUserForm, discordId: e.target.value})} />
+                   <input type="text" placeholder="Alias / POC" className="bg-[#161920] border border-[#1e222b] rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" value={manualUserForm.poc} onChange={e => setManualUserForm({...manualUserForm, poc: e.target.value})} />
+                   <input type="number" placeholder="Kingdom (e.g 3418)" className="bg-[#161920] border border-[#1e222b] rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" value={manualUserForm.kingdomId} onChange={e => setManualUserForm({...manualUserForm, kingdomId: e.target.value})} />
+                   <select className="bg-[#161920] border border-[#1e222b] rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" value={manualUserForm.role} onChange={e => setManualUserForm({...manualUserForm, role: e.target.value})}>
+                      <option value="Member">Member</option>
+                      <option value="Leader">Leader</option>
+                   </select>
+                 </div>
+                 <button onClick={handleAddManualUser} className="w-full bg-[#1e222b] hover:bg-indigo-600 text-white rounded py-1.5 text-xs font-bold uppercase tracking-widest transition-all">Direct Inject Profile</button>
+               </div>
+            </div>
+
+            {/* Master IAM Storage */}
+            <div className="border border-orange-500/20 bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-amber-600 opacity-50"></div>
+               <h3 className="text-orange-400 font-bold mb-4 flex items-center gap-2"><Lock size={18}/> Local Storage Environment Variables</h3>
+               <p className="text-xs text-gray-400 mb-4 line-clamp-3">These keys run in your browser. They securely supersede Global API variables for 100% cloud privacy. Never export these to a screenshot or public drive.</p>
+               
+               <div className="space-y-3">
+                 <div>
+                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block">AWS Master Key ID</label>
+                   <input type="password" placeholder="••••••••••••••••••••" className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" defaultValue="LOCKED IN SERVER ENV" />
+                 </div>
+                 <div>
+                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block">AWS Master Secret</label>
+                   <input type="password" placeholder="••••••••••••••••••••••••••••••••••••••••••" className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" defaultValue="LOCKED IN SERVER ENV" />
+                 </div>
+                 <div>
+                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block">Global Gemini AI Fallback Key</label>
+                   <input type="password" placeholder="AIzaSy••••••••••••••••••••••••" className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" defaultValue="LOCKED IN SERVER ENV" />
+                 </div>
+                 <button className="w-full bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/50 rounded py-2 text-sm font-bold uppercase tracking-widest transition-all mt-2">Force Save Local Profile</button>
+               </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      
     </div>
   );
 }

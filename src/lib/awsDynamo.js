@@ -1461,6 +1461,69 @@ export async function getGuestPass(passcode) {
     }
 }
 
+/**
+ * ADMIN: Retrieves all active Guest Passcodes.
+ */
+export async function getAllGuestPasses() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_GUEST_PASSES' },
+            ':skPrefix': { S: 'PASSCODE#' }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const passcodes = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                passcodes.push({
+                    passcode: item.SK.S.replace('PASSCODE#', ''),
+                    kingdomId: attrs.kingdomId?.S,
+                    role: attrs.role?.S,
+                    playerName: attrs.playerName?.S,
+                    expiresAt: attrs.expiresAt?.S
+                });
+            }
+        }
+        return passcodes;
+    } catch (e) {
+        console.error("AWS Get All Passcodes Error", e);
+        return [];
+    }
+}
+
+/**
+ * ADMIN: Deletes a specific guest pass.
+ */
+export async function deleteGuestPass(passcode) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_GUEST_PASSES' },
+            'SK': { S: `PASSCODE#${passcode}` }
+        }
+    };
+
+    try {
+        const { DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Delete Passcode Error", e);
+        return false;
+    }
+}
+
 // =========================================================================
 // PENDING USER APPROVAL (MANUAL GUEST ACCESS)
 // =========================================================================

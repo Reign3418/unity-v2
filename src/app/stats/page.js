@@ -9,6 +9,11 @@ export default function MyStats() {
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Linkage Modal State
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkForm, setLinkForm] = useState({ id: "", profileType: "Main" });
+  const [isLinking, setIsLinking] = useState(false);
+
   const fetchProfiles = async () => {
     setIsLoading(true);
     try {
@@ -50,6 +55,30 @@ export default function MyStats() {
        }
     } catch (e) {
        alert("Network connection error during unlinking protocol.");
+    }
+  };
+
+  const handleLinkProfile = async () => {
+    if (!linkForm.id) return alert("Must provide a Scanner Output ID.");
+    setIsLinking(true);
+    try {
+      const res = await fetch("/api/aws/user/profile", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ action: "link", governorId: linkForm.id, profileType: linkForm.profileType })
+      });
+      const data = await res.json();
+      if (res.ok) {
+         await fetchProfiles();
+         setIsLinkModalOpen(false);
+         setLinkForm({ id: "", profileType: "Main" });
+      } else {
+         alert(data.error || "Failed to link profile.");
+      }
+    } catch (e) {
+      alert("Network Error during linkage.");
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -97,7 +126,7 @@ export default function MyStats() {
                  Linked Governor Profiles will automatically grant your account read-access to the Kingdom they reside in.
               </p>
            </div>
-          <button className="hidden sm:flex items-center gap-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-4 py-2 rounded-lg font-bold transition-all text-sm shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+          <button onClick={() => setIsLinkModalOpen(true)} className="hidden sm:flex items-center gap-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 px-4 py-2 rounded-lg font-bold transition-all text-sm shadow-[0_0_15px_rgba(6,182,212,0.15)]">
             <Plus size={16} /> Link Scanner Output
           </button>
         </div>
@@ -108,7 +137,7 @@ export default function MyStats() {
           ))}
 
           {/* Add New Profile Stub */}
-          <button className="bg-[#0f1115] border-2 border-dashed border-[#1e222b] hover:border-cyan-500/50 hover:bg-cyan-500/5 rounded-2xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-cyan-400 transition-all group min-h-[340px]">
+          <button onClick={() => setIsLinkModalOpen(true)} className="bg-[#0f1115] border-2 border-dashed border-[#1e222b] hover:border-cyan-500/50 hover:bg-cyan-500/5 rounded-2xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-cyan-400 transition-all group min-h-[340px]">
             <div className="w-16 h-16 rounded-full bg-[#1e222b] group-hover:bg-cyan-500/20 flex flex-col items-center justify-center mb-4 transition-colors">
               <Plus size={32} />
             </div>
@@ -117,6 +146,66 @@ export default function MyStats() {
           </button>
         </div>
       </div>
+
+      {/* Linkage Modal */}
+      {isLinkModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm">
+          <div className="bg-[#0f1115] border border-cyan-500/30 rounded-2xl w-full max-w-md overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)]">
+            
+            <div className="p-6 border-b border-[#1e222b] relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-[40px] translate-x-1/2 -translate-y-1/2"></div>
+               <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                 <Link2 className="text-cyan-400" size={20} />
+                 Architecture Binding Protocol
+               </h3>
+               <p className="text-xs text-gray-500 mt-2 font-mono">Sync external Unity Tracker ID to Discord Session.</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+               <div>
+                  <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">Governor Output ID</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 154817294"
+                    className="w-full bg-[#161920] border border-[#1e222b] rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500"
+                    value={linkForm.id}
+                    onChange={(e) => setLinkForm({ ...linkForm, id: e.target.value })}
+                  />
+               </div>
+               
+               <div>
+                  <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">Architecture Tier</label>
+                  <select 
+                    className="w-full bg-[#161920] border border-[#1e222b] rounded-lg p-3 text-white focus:outline-none focus:border-cyan-500"
+                    value={linkForm.profileType}
+                    onChange={(e) => setLinkForm({ ...linkForm, profileType: e.target.value })}
+                  >
+                     <option value="Main">Main Core (Primary)</option>
+                     <option value="Alt">Auxiliary Core (Alt)</option>
+                     <option value="Farm">Resource Array (Farm)</option>
+                  </select>
+               </div>
+            </div>
+
+            <div className="p-6 bg-[#0a0c0f] border-t border-[#1e222b] flex justify-end gap-3">
+               <button 
+                 onClick={() => setIsLinkModalOpen(false)}
+                 className="px-4 py-2 border border-[#1e222b] text-gray-400 rounded-lg hover:bg-[#1e222b] hover:text-white transition-colors text-sm font-bold tracking-wider uppercase"
+               >
+                 Abort
+               </button>
+               <button 
+                 onClick={handleLinkProfile}
+                 disabled={isLinking}
+                 className="px-6 py-2 bg-cyan-500 hover:bg-cyan-400 text-black rounded-lg transition-colors text-sm font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-50 flex items-center gap-2"
+               >
+                 {isLinking ? <Loader2 size={16} className="animate-spin" /> : "Initiate Link"}
+               </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

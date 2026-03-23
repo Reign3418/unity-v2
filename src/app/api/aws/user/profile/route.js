@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { unlinkGovernorAccount, getGovernorStats, getGovernorHistory } from "@/lib/awsDynamo";
+import { unlinkGovernorAccount, linkGovernorAccount, getGovernorStats, getGovernorHistory } from "@/lib/awsDynamo";
 
 export async function GET(req) {
     try {
@@ -73,6 +73,21 @@ export async function POST(req) {
                 return NextResponse.json({ success: true, message: `Profile ${governorId} unlinked gracefully.` });
             } else {
                 return NextResponse.json({ error: "Failed to severe DynamoDB link" }, { status: 500 });
+            }
+        }
+
+        if (action === "link") {
+            const { profileType } = body;
+            if (!governorId) return NextResponse.json({ error: "Missing Target Scanner ID" }, { status: 400 });
+
+            // Clean input (remove commas or spaces)
+            const cleanId = String(governorId).replace(/\D/g, ''); 
+            
+            const success = await linkGovernorAccount(session.user.id, cleanId, profileType || "Main");
+            if (success) {
+                return NextResponse.json({ success: true, message: `Profile ${cleanId} successfully bound.` });
+            } else {
+                return NextResponse.json({ error: "AWS DynamoDB Binding Failed." }, { status: 500 });
             }
         }
 
