@@ -30,13 +30,18 @@ const UNITY_VARS = [
   { label: "LK Count", val: "lostKingdomCount" }
 ];
 
+const getLocalDatetime = () => {
+   const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+   return (new Date(Date.now() - tzOffset)).toISOString().slice(0, 16);
+};
+
 export default function SandboxPage() {
   const { data: session } = useSession();
   const [parsedTabs, setParsedTabs] = useState([]);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("idle");
-  const [scanDateOverride, setScanDateOverride] = useState(new Date().toISOString().split('T')[0]);
+  const [scanDateOverride, setScanDateOverride] = useState(getLocalDatetime());
   const [activeFileName, setActiveFileName] = useState(null);
   const [customMappings, setCustomMappings] = useState({});
 
@@ -136,10 +141,11 @@ export default function SandboxPage() {
            const summarySheet = workbook.Sheets['Summary'];
            if (summarySheet['F2']) {
                const rawDtg = summarySheet['F2'].w || summarySheet['F2'].v;
-               // Try to parse to YYYY-MM-DD for native HTML input compatibility
+               // Try to parse to YYYY-MM-DDTHH:mm for native HTML input compatibility
                const d = new Date(rawDtg);
                if (!isNaN(d.getTime())) {
-                   setScanDateOverride(d.toISOString().split('T')[0]);
+                   const tzOffset = d.getTimezoneOffset() * 60000;
+                   setScanDateOverride(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
                }
            }
         }
@@ -369,9 +375,9 @@ export default function SandboxPage() {
                            {parsedTabs[activeTabIdx].errorCount > 0 && (
                               <span className="text-rose-400 flex items-center gap-1"><AlertTriangle size={12} /> {parsedTabs[activeTabIdx].errorCount} Corrupted Rows Dropped</span>
                            )}
-                           <span className="flex items-center gap-2 ml-4">Scan Date: 
+                           <span className="flex items-center gap-2 ml-4">Scan DTG: 
                               <input 
-                                  type="date"
+                                  type="datetime-local"
                                   className="bg-[#1e222b] hover:bg-[#252a36] text-amber-400 font-bold px-2 py-0.5 rounded border border-[#2d323e] hover:border-amber-500/50 outline-none focus:border-amber-500 transition-all text-center uppercase"
                                   value={scanDateOverride || ""}
                                   onChange={(e) => setScanDateOverride(e.target.value)}
