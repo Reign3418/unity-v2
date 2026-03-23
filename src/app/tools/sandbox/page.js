@@ -5,6 +5,31 @@ import { useSession } from "next-auth/react";
 import { Upload, AlertTriangle, CheckCircle2, Cloud, Database, Trash2, ArrowRight } from "lucide-react";
 import * as XLSX from "xlsx";
 
+const UNITY_VARS = [
+  { label: "-- Ignore --", val: "" },
+  { label: "Governor ID", val: "id" },
+  { label: "Name", val: "name" },
+  { label: "Kingdom", val: "Kingdom" },
+  { label: "Alliance", val: "alliance" },
+  { label: "Power", val: "power" },
+  { label: "Kill Points", val: "killpoints" },
+  { label: "Deads", val: "deads" },
+  { label: "Tier 1 Kills", val: "t1Kills" },
+  { label: "Tier 2 Kills", val: "t2Kills" },
+  { label: "Tier 3 Kills", val: "t3Kills" },
+  { label: "Tier 4 Kills", val: "t4Kills" },
+  { label: "Tier 5 Kills", val: "t5Kills" },
+  { label: "Acclaim", val: "acclaim" },
+  { label: "Gathered", val: "gathered" },
+  { label: "Assistance", val: "assistance" },
+  { label: "Helps", val: "helps" },
+  { label: "Troop Power", val: "troopPower" },
+  { label: "Tech Power", val: "techPower" },
+  { label: "Cmdr Power", val: "commanderPower" },
+  { label: "Bldg Power", val: "buildingPower" },
+  { label: "LK Count", val: "lostKingdomCount" }
+];
+
 export default function SandboxPage() {
   const { data: session } = useSession();
   const [parsedTabs, setParsedTabs] = useState([]);
@@ -13,8 +38,59 @@ export default function SandboxPage() {
   const [uploadStatus, setUploadStatus] = useState("idle");
   const [scanDateOverride, setScanDateOverride] = useState(null);
   const [activeFileName, setActiveFileName] = useState(null);
+  const [customMappings, setCustomMappings] = useState({});
 
   const fileInputRef = useRef(null);
+
+  const mapRow = (p, idx, mappings) => {
+      const row = { ...p };
+      for (const [rawKey, unityKey] of Object.entries(mappings)) {
+         if (unityKey) row[unityKey] = row[rawKey];
+      }
+      
+      const id = row.id || row.Id || row.ID || row['Governor ID'] || row["Governor ID "] || row[" ID "] || row['Character ID'] || row.CharacterID;
+      const name = row.name || row.Name || row.NAME || row['Governor Name'] || row.Username || row.username;
+      
+      return {
+        _originalIndex: idx + 2,
+        _isGhost: !id || !name,
+        id: id || "MISSING",
+        name: name || "MISSING",
+        kingdomCol: row.Kingdom || row.kingdom || row.KINGDOM || "Unlisted",
+        alliance: row['Alliance Tag'] || row['Alliance Name'] || row['alliance Tag'] || row.alliance || row.Alliance || row.ALLIANCE || "None",
+        power: parseInt(row.power || row.Power || row.POWER) || 0,
+        kp: parseInt(row.killpoints || row.killPoints || row.KillPoints || row['Kill Points'] || row['Total KP']) || 0,
+        dead: parseInt(row.deads || row.Deads || row.Dead || row.DEAD || row.DEADS || row.Defeat || row.DEFEAT) || 0,
+        acclaim: parseInt(row.acclaim || row.Acclaim || row.ACCLAIM) || 0,
+        t1: parseInt(row.t1Kills || row.T1Kills || row['T1 Kills'] || row['Tier 1 Kills']) || 0,
+        t2: parseInt(row.t2Kills || row.T2Kills || row['T2 Kills'] || row['Tier 2 Kills']) || 0,
+        t3: parseInt(row.t3Kills || row.T3Kills || row['T3 Kills'] || row['Tier 3 Kills']) || 0,
+        t4: parseInt(row.t4Kills || row.T4Kills || row['T4 Kills'] || row['Tier 4 Kills']) || 0,
+        t5: parseInt(row.t5Kills || row.T5Kills || row['T5 Kills'] || row['Tier 5 Kills']) || 0,
+        gathered: parseInt(row.gathered || row.Gathered || row.ResourcesGathered || row['Resources Gathered'] || row['RSS Gathered']) || 0,
+        assistance: parseInt(row.assistance || row.Assistance || row.ASSISTANCE || row['Resources Given'] || row['resources Given'] || row['RSS Assistance']) || 0,
+        helps: parseInt(row.helps || row.Helps || row.HELPS || row['Alliance Helps'] || row['Helps Given'] || row['helps Given']) || 0,
+        troop: parseInt(row.troopPower || row.TroopPower || row['Troop Power']) || 0,
+        tech: parseInt(row.techPower || row.TechPower || row['Tech Power']) || 0,
+        com: parseInt(row.commanderPower || row.CommanderPower || row['Commander Power']) || 0,
+        build: parseInt(row.buildingPower || row.BuildingPower || row['Building Power']) || 0,
+        lkCount: parseInt(row.lostKingdomCount || row.LostKingdomCount || row['Lost Kingdom Count'] || row['LK Count']) || 0,
+      };
+  };
+
+  const handleMappingChange = (rawHeader, unityKey) => {
+    setCustomMappings(prev => {
+      const updated = { ...prev, [rawHeader]: unityKey };
+      setParsedTabs(prevTabs => {
+        return prevTabs.map((tab, idx) => {
+          if (idx !== activeTabIdx) return tab;
+          const newRows = tab.rawJsonPayload.map((p, rIdx) => mapRow(p, rIdx, updated));
+          return { ...tab, rows: newRows, errorCount: newRows.filter(r => r._isGhost).length };
+        });
+      });
+      return updated;
+    });
+  };
 
   if (!session?.user?.isSuperAdmin) {
     return (
@@ -81,36 +157,7 @@ export default function SandboxPage() {
           const rawSample = jsonPayload.slice(0, 5);
 
           // Process rows, identifying errors
-          const processedRows = jsonPayload.map((p, idx) => {
-            const id = p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p['Character ID'] || p.CharacterID;
-            const name = p.name || p.Name || p.NAME || p['Governor Name'] || p.Username || p.username;
-            
-            return {
-              _originalIndex: idx + 2, // Excel rows are 1-indexed, +1 for header
-              _isGhost: !id || !name, // Flag as ghost if missing critical identifiers
-              id: id || "MISSING",
-              name: name || "MISSING",
-              kingdomCol: p.Kingdom || p.kingdom || p.KINGDOM || "Unlisted",
-              alliance: p['Alliance Tag'] || p['Alliance Name'] || p['alliance Tag'] || p.alliance || p.Alliance || p.ALLIANCE || "None",
-              power: parseInt(p.power || p.Power || p.POWER) || 0,
-              kp: parseInt(p.killpoints || p.killPoints || p.KillPoints || p['Kill Points'] || p['Total KP']) || 0,
-              dead: parseInt(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || p.Defeat || p.DEFEAT) || 0,
-              acclaim: parseInt(p.acclaim || p.Acclaim || p.ACCLAIM) || 0,
-              t1: parseInt(p.t1Kills || p.T1Kills || p['T1 Kills'] || p['Tier 1 Kills']) || 0,
-              t2: parseInt(p.t2Kills || p.T2Kills || p['T2 Kills'] || p['Tier 2 Kills']) || 0,
-              t3: parseInt(p.t3Kills || p.T3Kills || p['T3 Kills'] || p['Tier 3 Kills']) || 0,
-              t4: parseInt(p.t4Kills || p.T4Kills || p['T4 Kills'] || p['Tier 4 Kills']) || 0,
-              t5: parseInt(p.t5Kills || p.T5Kills || p['T5 Kills'] || p['Tier 5 Kills']) || 0,
-              gathered: parseInt(p.gathered || p.Gathered || p.ResourcesGathered || p['Resources Gathered'] || p['RSS Gathered']) || 0,
-              assistance: parseInt(p.assistance || p.Assistance || p.ASSISTANCE || p['Resources Given'] || p['resources Given'] || p['RSS Assistance']) || 0,
-              helps: parseInt(p.helps || p.Helps || p.HELPS || p['Alliance Helps'] || p['Helps Given'] || p['helps Given']) || 0,
-              troop: parseInt(p.troopPower || p.TroopPower || p['Troop Power']) || 0,
-              tech: parseInt(p.techPower || p.TechPower || p['Tech Power']) || 0,
-              com: parseInt(p.commanderPower || p.CommanderPower || p['Commander Power']) || 0,
-              build: parseInt(p.buildingPower || p.BuildingPower || p['Building Power']) || 0,
-              lkCount: parseInt(p.lostKingdomCount || p.LostKingdomCount || p['Lost Kingdom Count'] || p['LK Count']) || 0,
-            };
-          });
+          const processedRows = jsonPayload.map((p, idx) => mapRow(p, idx, customMappings));
 
           tempTabs.push({
             sheetName,
@@ -119,7 +166,8 @@ export default function SandboxPage() {
             totalCount: processedRows.length,
             errorCount: processedRows.filter(r => r._isGhost).length,
             rawHeaders,
-            rawSample
+            rawSample,
+            rawJsonPayload: jsonPayload
           });
         }
 
@@ -387,8 +435,17 @@ export default function SandboxPage() {
                           <tr>
                               <th className="py-3 px-4 text-xs font-black text-amber-500 uppercase tracking-wider bg-[#1e222b]/50 whitespace-nowrap">ROW #</th>
                               {parsedTabs[activeTabIdx].rawHeaders.map((hdr, i) => (
-                                  <th key={i} className="py-3 px-4 font-bold text-gray-400 text-xs tracking-wider whitespace-nowrap">
-                                      {hdr}
+                                  <th key={i} className="py-2 px-4 font-bold text-gray-400 text-xs tracking-wider whitespace-nowrap align-top max-w-[140px]">
+                                      <div className="mb-2 truncate" title={hdr}>{hdr}</div>
+                                      <select 
+                                        className="bg-[#0a0c0f] hover:bg-[#1e222b] text-cyan-400 border border-[#2d323e] hover:border-amber-500/50 rounded p-1.5 text-[10px] w-full font-mono transition-all cursor-pointer outline-none"
+                                        value={customMappings[hdr] || ""}
+                                        onChange={(e) => handleMappingChange(hdr, e.target.value)}
+                                      >
+                                        {UNITY_VARS.map(opt => (
+                                          <option key={opt.val} value={opt.val}>{opt.label}</option>
+                                        ))}
+                                      </select>
                                   </th>
                               ))}
                           </tr>
