@@ -30,11 +30,16 @@ export async function POST(req) {
         }
 
         const prompt = `This is an overhead satellite screenshot of a Kingdom Map from Rise of Kingdoms. 
-Analyze the alliance territory bounded by the colored graphical lines (e.g. blue/pink borders) and the player 'Castles' (the 3D city models) scattered around.
+Analyze the alliance territory bounded by the colored graphical lines and the player 'Castles' (the 3D city models) scattered around.
+
+CRITICAL VISUAL IDENTIFICATION RULES:
+- Castles: The 3D structures on the map (which may be tinted in colors like blue, etc.).
+- Alliance Territory: Bounded areas outlined with brightly colored borders (e.g., blue, pink, red, etc.) with a faint hue inside.
+- IGNORABLE ZONES: Completely disregard any transparent white or grey squares on the map. They are irrelevant map grids and NOT alliance territory.
 
 CRITICAL RISE OF KINGDOMS MECHANICS:
 1. Deep-Territory Castles: Castles situated deep inside the middle of the colored territory are actively impeding the respawn of future resource nodes. Nodes cannot spawn under cities. These players must be forcefully flagged to relocate to the physical edges.
-2. Far Off-Territory Castles: Castles disconnected from the main territory (far away from the borders) are detrimental. The alliance only receives a 1% cut of gathered resources if farming occurs inside territory. Castles far outside territory are entirely disconnected and useless to the alliance.
+2. Far Off-Territory Castles: Castles disconnected from the main colored territory (far away from the borders) are detrimental. The alliance only receives a 1% cut of gathered resources if farming occurs inside territory. Castles far outside territory are entirely disconnected and useless to the alliance.
 3. Optimal Positioning: Castles resting directly on the colored border edge, or 1 to 2 castle-widths away from the border, are acceptable as long as they can physically farm inside the borders.
 
 We need exact 2D coordinates of the most problematic castle clusters based on these rules. Provide 'troubleSpots' as an array of objects with 'x' and 'y' (which are percentage-based coordinates from 0-100, where x=0 is left, y=0 is top) pointing exactly to the centers of extreme overcrowding, deep-territory obstruction, or completely disconnected off-territory clusters.
