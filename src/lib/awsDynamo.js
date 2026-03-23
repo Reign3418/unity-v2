@@ -2158,3 +2158,149 @@ export async function exportAllRss() {
 
     return results;
 }
+// =========================================================================
+// KINGDOM EVENTS & DIRECTIVES
+// =========================================================================
+
+/**
+ * Creates or updates an event for a specific kingdom.
+ */
+export async function createKingdomEvent(kingdomId, eventData) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    const timestamp = new Date().toISOString();
+    const eventId = eventData.id || Date.now().toString();
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: `EVENTS#${kingdomId}` },
+            'SK': { S: `EVENT#${eventId}` },
+            'attributes': {
+                M: {
+                    'type': { S: String(eventData.type || 'System') },
+                    'name': { S: String(eventData.name || 'Untitled Event') },
+                    'desc': { S: String(eventData.desc || '') },
+                    'eventTime': { S: String(eventData.eventTime) }, // ISO string of when event starts
+                    'notified15': { BOOL: false }, // Has 15-min warning fired?
+                    'notified0': { BOOL: false }, // Has live warning fired?
+                    'created': { S: timestamp }
+                }
+            }
+        }
+    };
+
+    try {
+        const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        await dbClient.send(new PutItemCommand(params));
+        return { id: eventId, ...eventData, created: timestamp };
+    } catch (e) {
+        console.error("AWS Create Kingdom Event Error", e);
+        throw e;
+    }
+}
+
+/**
+ * Marks an event as notified (15m or 0m)
+ */
+export async function markEventNotified(kingdomId, eventId, type) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+    const field = type === 15 ? 'notified15' : 'notified0';
+    
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `EVENTS#${kingdomId}` },
+            'SK': { S: `EVENT#${eventId}` }
+        },
+        UpdateExpression: `SET #attr.#field = :val`,
+        ExpressionAttributeNames: {
+            '#attr': 'attributes',
+            '#field': field
+        },
+        ExpressionAttributeValues: {
+            ':val': { BOOL: true }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Mark Event Notified Error", e);
+        return false;
+    }
+}
+
+/**
+ * Deletes an event for a specific kingdom.
+ */
+export async function deleteKingdomEvent(kingdomId, eventId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    
+    const { DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `EVENTS#${kingdomId}` },
+            'SK': { S: `EVENT#${eventId}` }
+        }
+    };
+
+    try {
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Delete Kingdom Event Error", e);
+        return false;
+    }
+}
+
+/**
+ * Gets all future events for a kingdom.
+ */
+export async function getKingdomEvents(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    const { QueryCommand } = await import('@aws-sdk/client-dynamodb');
+
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+            ':pk': { S: `EVENTS#${kingdomId}` },
+            ':skPrefix': { S: 'EVENT#' }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        const events = [];
+        if (result.Items) {
+            for (const item of result.Items) {
+                const attrs = item.attributes?.M || {};
+                events.push({
+                    id: item.SK.S.replace('EVENT#', ''),
+                    type: attrs.type?.S,
+                    name: attrs.name?.S,
+                    desc: attrs.desc?.S,
+                    eventTime: attrs.eventTime?.S,
+                    notified15: attrs.notified15?.BOOL || false,
+                    notified0: attrs.notified0?.BOOL || false,
+                    created: attrs.created?.S
+                });
+            }
+        }
+        return events.sort((a,b) => new Date(a.eventTime) - new Date(b.eventTime));
+    } catch (e) {
+        console.error("AWS Get Kingdom Events Error", e);
+        return [];
+    }
+}
