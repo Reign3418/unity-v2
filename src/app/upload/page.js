@@ -94,20 +94,11 @@ export default function UploadHub() {
 
       {activeTab === 'spreadsheet' ? (
         <>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 w-full mx-auto">
+          <div className="flex items-center justify-center max-w-2xl mx-auto w-full">
             <DropZone 
-              title="Baseline Snapshot" 
-              description="Pre-KvK metrics"
-              icon={<Upload className="text-cyan-400" />}
-              theme="cyan"
-            />
-
-            <div className="text-[#1e222b] hidden md:block"><ArrowRight size={32} /></div>
-
-            <DropZone 
-              title="Current Trajectory" 
-              description="Latest extraction log"
-              icon={<Sparkles className="text-cyan-400" />}
+              title="Data Injection Node" 
+              description="Upload AWS-ready scan payload"
+              icon={<Upload className="text-cyan-400" size={32} />}
               theme="cyan"
             />
           </div>
