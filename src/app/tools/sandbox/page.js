@@ -80,12 +80,18 @@ export default function SandboxPage() {
               _isGhost: !id || !name, // Flag as ghost if missing critical identifiers
               id: id || "MISSING",
               name: name || "MISSING",
-              alliance: p.alliance || p.Alliance || p.ALLIANCE || "None",
+              kingdomCol: p.Kingdom || p.kingdom || p.KINGDOM || "Unlisted",
+              alliance: p['Alliance Tag'] || p['Alliance Name'] || p['alliance Tag'] || p.alliance || p.Alliance || p.ALLIANCE || "None",
               power: parseInt(p.power || p.Power || p.POWER) || 0,
               kp: parseInt(p.killpoints || p.killPoints || p.KillPoints || p['Kill Points']) || 0,
               dead: parseInt(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS) || 0,
               t4: parseInt(p.t4Kills || p.T4Kills || p['T4 Kills']) || 0,
               t5: parseInt(p.t5Kills || p.T5Kills || p['T5 Kills']) || 0,
+              gathered: parseInt(p.gathered || p.Gathered || p.ResourcesGathered || p['Resources Gathered']) || 0,
+              assistance: parseInt(p.assistance || p.Assistance || p.ASSISTANCE) || 0,
+              tech: parseInt(p.techPower || p.TechPower || p['Tech Power']) || 0,
+              com: parseInt(p.commanderPower || p.CommanderPower || p['Commander Power']) || 0,
+              build: parseInt(p.buildingPower || p.BuildingPower || p['Building Power']) || 0,
             };
           });
 
@@ -130,7 +136,12 @@ export default function SandboxPage() {
           killpoints: r.kp,
           deads: r.dead,
           t4Kills: r.t4,
-          t5Kills: r.t5
+          t5Kills: r.t5,
+          gathered: r.gathered,
+          assistance: r.assistance,
+          techPower: r.tech,
+          commanderPower: r.com,
+          buildingPower: r.build
         }));
 
       if (safeArray.length === 0) continue;
@@ -274,10 +285,16 @@ export default function SandboxPage() {
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Excel Row</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Governor ID</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Name</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Kingdom</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Alliance</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Power</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Kill Points</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Deads</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Gathered</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Assistance</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Tech Pwr</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Cmdr Pwr</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Bldg Pwr</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#1e222b]/50">
@@ -285,8 +302,9 @@ export default function SandboxPage() {
                                 <tr key={i} className={`group hover:bg-white/5 transition-colors ${row._isGhost ? 'bg-rose-500/5' : ''}`}>
                                     <td className="py-3 px-4 font-mono text-gray-600 text-xs">#{row._originalIndex}</td>
                                     <td className={`py-3 px-4 font-mono ${row.id === 'MISSING' ? 'text-rose-500 font-bold' : 'text-cyan-400'}`}>{row.id}</td>
-                                    <td className={`py-3 px-4 ${row.name === 'MISSING' ? 'text-rose-500 font-bold' : 'text-gray-300 font-medium'}`}>{row.name}</td>
-                                    <td className="py-3 px-4">
+                                    <td className={`py-3 px-4 whitespace-nowrap ${row.name === 'MISSING' ? 'text-rose-500 font-bold' : 'text-gray-300 font-medium'}`}>{row.name}</td>
+                                    <td className="py-3 px-4 text-gray-500 font-mono text-xs">{row.kingdomCol}</td>
+                                    <td className="py-3 px-4 whitespace-nowrap">
                                         <span className="px-2 py-1 rounded bg-[#1e222b] text-gray-400 text-[10px] uppercase font-bold tracking-widest">
                                             {row.alliance}
                                         </span>
@@ -294,6 +312,11 @@ export default function SandboxPage() {
                                     <td className="py-3 px-4 text-right text-gray-400 font-mono">{row.power.toLocaleString()}</td>
                                     <td className="py-3 px-4 text-right text-gray-400 font-mono">{row.kp.toLocaleString()}</td>
                                     <td className="py-3 px-4 text-right text-rose-400/80 font-mono">{row.dead.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-amber-400/80 font-mono whitespace-nowrap">{row.gathered.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-emerald-400/80 font-mono whitespace-nowrap">{row.assistance.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-cyan-400/80 font-mono whitespace-nowrap">{row.tech.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-violet-400/80 font-mono whitespace-nowrap">{row.com.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-indigo-400/80 font-mono whitespace-nowrap">{row.build.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>

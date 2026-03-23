@@ -1304,7 +1304,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
 
         const id = player.id || player.Id || player.ID || player['Governor ID'];
         const name = player.name || player.Name || player.NAME || player['Governor Name'];
-        const alliance = player.alliance || player.Alliance || player.ALLIANCE || "";
+        const alliance = player.alliance || player.Alliance || player.ALLIANCE || player['Alliance Tag'] || player['Alliance Name'] || player['alliance Tag'] || "";
         const power = player.power || player.Power || player.POWER;
         const killpoints = player.killpoints || player.killPoints || player.KillPoints || player['Kill Points'];
         const deads = player.deads || player.Deads || player.Dead || player.DEAD || player.DEADS;
