@@ -76,6 +76,10 @@ export default function SandboxPage() {
           const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 });
           if (!jsonPayload || jsonPayload.length === 0) continue;
 
+          // Extract RAW structures for the Inspector
+          const rawHeaders = Object.keys(jsonPayload[0] || {});
+          const rawSample = jsonPayload.slice(0, 5);
+
           // Process rows, identifying errors
           const processedRows = jsonPayload.map((p, idx) => {
             const id = p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p['Character ID'] || p.CharacterID;
@@ -113,7 +117,9 @@ export default function SandboxPage() {
             computedKd,
             rows: processedRows,
             totalCount: processedRows.length,
-            errorCount: processedRows.filter(r => r._isGhost).length
+            errorCount: processedRows.filter(r => r._isGhost).length,
+            rawHeaders,
+            rawSample
           });
         }
 
@@ -364,6 +370,50 @@ export default function SandboxPage() {
              </div>
           )}
         </div>
+
+        {/* Bottom Wide Box for Raw Data Inspector */}
+        {parsedTabs.length > 0 && (
+          <div className="lg:col-span-4 bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-2xl flex flex-col mt-4">
+              <div className="p-5 border-b border-[#1e222b] bg-[#0a0c0f]">
+                  <h2 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
+                    <Database size={20} className="text-amber-500" />
+                    Raw Excel Data Inspector
+                  </h2>
+                  <p className="text-xs text-gray-500 font-mono">Exactly what the Master Engine reads before Unity mapping algorithms execute.</p>
+              </div>
+              <div className="overflow-x-auto p-4 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+                  <table className="w-full text-left text-sm border-collapse bg-[#13161c] rounded-lg overflow-hidden border border-[#1e222b]">
+                      <thead className="bg-[#0a0c0f] border-b border-[#1e222b]">
+                          <tr>
+                              <th className="py-3 px-4 text-xs font-black text-amber-500 uppercase tracking-wider bg-[#1e222b]/50 whitespace-nowrap">ROW #</th>
+                              {parsedTabs[activeTabIdx].rawHeaders.map((hdr, i) => (
+                                  <th key={i} className="py-3 px-4 font-bold text-gray-400 text-xs tracking-wider whitespace-nowrap">
+                                      {hdr}
+                                  </th>
+                              ))}
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1e222b]/50">
+                          {parsedTabs[activeTabIdx].rawSample.map((rowItem, rIndex) => (
+                              <tr key={rIndex} className="hover:bg-white/5 transition-colors">
+                                  <td className="py-3 px-4 text-gray-500 font-mono text-xs bg-[#1e222b]/20">#{rIndex + 2}</td>
+                                  {parsedTabs[activeTabIdx].rawHeaders.map((hdr, cIndex) => (
+                                      <td key={cIndex} className="py-3 px-4 text-gray-400 font-mono whitespace-nowrap">
+                                          {rowItem[hdr]}
+                                      </td>
+                                  ))}
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+                  {parsedTabs[activeTabIdx].rows.length > 5 && (
+                    <div className="text-center py-4 text-xs text-gray-600 font-mono italic">
+                        Showing first 5 rows of {parsedTabs[activeTabIdx].rows.length} total raw records...
+                    </div>
+                  )}
+              </div>
+          </div>
+        )}
 
       </div>
     </div>
