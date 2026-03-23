@@ -291,25 +291,41 @@ export async function getKingdomDeltas(kingdomId) {
             return await getKingdomRoster(kingdomId); // Fallback to Standard Roster
         }
         
-        const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S).sort((a, b) => new Date(b) - new Date(a));
+        const dates = dateResult.Items.map(i => {
+           const attrs = i.attributes?.M || {};
+           let summaryObj = {};
+           try { summaryObj = JSON.parse(attrs.summary?.S || "{}"); } catch(e){}
+           return {
+               scanDate: attrs.scanDate?.S,
+               scanType: summaryObj.scanType || 'Full' // Legacy defaults to Full
+           };
+        }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
         
         // Target a 24-hour baseline for accurate growth tracking, ignoring micro-scans
-        const latestParsed = new Date(dates[0]);
+        const latestParsed = new Date(dates[0].scanDate);
         const targetTime = latestParsed.getTime() - (24 * 60 * 60 * 1000);
+        const latestType = dates[0].scanType;
         
-        let bestMatchIndex = 1;
+        let bestMatchIndex = -1;
         let smallestDiff = Infinity;
 
         for (let i = 1; i < dates.length; i++) {
-            const timeDiff = Math.abs(new Date(dates[i]).getTime() - targetTime);
+            if (dates[i].scanType !== latestType) continue; // CRITICAL: Structurally similar pairing
+            
+            const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
             if (timeDiff < smallestDiff) {
                 smallestDiff = timeDiff;
                 bestMatchIndex = i;
             }
         }
+        
+        if (bestMatchIndex === -1) {
+            console.log(`[AWS Engine] No comparable chronolog found for ${latestType} schema payload.`);
+            return await getKingdomRoster(kingdomId);
+        }
 
-        const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s]/g, "_");
-        const previousDate = String(dates[bestMatchIndex]).replace(/[.#$\/\[\]\s]/g, "_");
+        const latestDate = String(dates[0].scanDate).replace(/[.#$\/\[\]\s]/g, "_");
+        const previousDate = String(dates[bestMatchIndex].scanDate).replace(/[.#$\/\[\]\s]/g, "_");
         
         const getSnapshot = async (dateStr) => {
             const params = {
@@ -1252,8 +1268,10 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     
     // Generate macro-analytics summary to embed into the Date Pointer for O(1) Chart loading
     const summaryData = {
+        scanType: 'Full',
         totalPower: 0,
         totalKP: 0,
+        totalDeads: 0,
         activeGovernors: 0,
         alliances: {}
     };
@@ -1261,15 +1279,22 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     rosterArray.forEach(p => {
         const power = parseInt(p.power || p.Power || 0);
         const kp = parseInt(p.killPoints || p.KillPoints || 0);
+        const deads = parseInt(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || 0);
         const tag = p.alliance || p.Alliance || 'None';
         
         summaryData.totalPower += power;
         summaryData.totalKP += kp;
+        summaryData.totalDeads += deads;
         if (power > 0) summaryData.activeGovernors++;
         
         if (!summaryData.alliances[tag]) summaryData.alliances[tag] = 0;
         summaryData.alliances[tag] += power;
     });
+
+    // Detect missing variables entirely from limited payload shapes
+    if (summaryData.totalKP === 0 && summaryData.totalDeads === 0) {
+        summaryData.scanType = 'Limited';
+    }
 
     // 1. Write the Master DATES pointer so queries know the 'Latest' scan date and hold trend metadata
     const dateParams = {
