@@ -243,6 +243,12 @@ function DropZone({ title, description, icon, theme, optional = false }) {
   const processFile = (file) => {
     if (!file) return;
 
+    // Heroscrolls Denial Filter 1: Filename Signature
+    if (file.name.toLowerCase().startsWith('kvk_report_')) {
+      alert("File Rejected: Heroscrolls/Third-Party reports are unsupported. Please upload a pure raw data scan.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadStatus("idle");
 
@@ -251,6 +257,14 @@ function DropZone({ title, description, icon, theme, optional = false }) {
       try {
         const data = new Uint8Array(event.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
+
+        // Heroscrolls Denial Filter 2: Proprietary Tab Signatures
+        const heroscrollsTabs = ['deltas', 'start', 'end', 'excluded governors'];
+        const isHeroscrolls = workbook.SheetNames.some(name => heroscrollsTabs.includes(name.toLowerCase()));
+        if (isHeroscrolls) {
+          alert("File Rejected: Detected Heroscrolls internal sheet structures (Deltas, Start, End). Please discard this format and upload the raw tracking scan.");
+          return;
+        }
         
         // Extract DTG from Summary F2 if it exists
         let extractedDtg = null;
