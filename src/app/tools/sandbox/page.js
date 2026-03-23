@@ -36,7 +36,7 @@ export default function SandboxPage() {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("idle");
-  const [scanDateOverride, setScanDateOverride] = useState(null);
+  const [scanDateOverride, setScanDateOverride] = useState(new Date().toISOString().split('T')[0]);
   const [activeFileName, setActiveFileName] = useState(null);
   const [customMappings, setCustomMappings] = useState({});
 
@@ -132,12 +132,15 @@ export default function SandboxPage() {
         const workbook = XLSX.read(data, { type: "array" });
 
         // Extract DTG from Summary F2 if it exists
-        let extractedDtg = null;
         if (workbook.Sheets['Summary']) {
            const summarySheet = workbook.Sheets['Summary'];
            if (summarySheet['F2']) {
-               extractedDtg = summarySheet['F2'].w || summarySheet['F2'].v;
-               setScanDateOverride(extractedDtg);
+               const rawDtg = summarySheet['F2'].w || summarySheet['F2'].v;
+               // Try to parse to YYYY-MM-DD for native HTML input compatibility
+               const d = new Date(rawDtg);
+               if (!isNaN(d.getTime())) {
+                   setScanDateOverride(d.toISOString().split('T')[0]);
+               }
            }
         }
 
@@ -366,9 +369,14 @@ export default function SandboxPage() {
                            {parsedTabs[activeTabIdx].errorCount > 0 && (
                               <span className="text-rose-400 flex items-center gap-1"><AlertTriangle size={12} /> {parsedTabs[activeTabIdx].errorCount} Corrupted Rows Dropped</span>
                            )}
-                           {scanDateOverride && (
-                              <span className="text-amber-400 font-mono tracking-widest pl-2">DTG: {scanDateOverride}</span>
-                           )}
+                           <span className="flex items-center gap-2 ml-4">Scan Date: 
+                              <input 
+                                  type="date"
+                                  className="bg-[#1e222b] hover:bg-[#252a36] text-amber-400 font-bold px-2 py-0.5 rounded border border-[#2d323e] hover:border-amber-500/50 outline-none focus:border-amber-500 transition-all text-center uppercase"
+                                  value={scanDateOverride || ""}
+                                  onChange={(e) => setScanDateOverride(e.target.value)}
+                              />
+                           </span>
                        </div>
                    </div>
                    <button onClick={() => setParsedTabs([])} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors">
