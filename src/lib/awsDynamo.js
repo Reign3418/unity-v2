@@ -2440,3 +2440,36 @@ export async function consumePresencePings() {
         return pings;
     } catch(e) { return []; }
 }
+/**
+ * Pushes a Presence Payload alert to DynamoDB queue.
+ */
+export async function queuePresencePing(discordId, kingdomId, status, note) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+    
+    // Create random UUID for multi-pings
+    const pingId = Math.random().toString(36).substring(2, 10);
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'PENDING_PINGS' },
+            'SK': { S: `PING#${pingId}` },
+            'attributes': {
+                M: {
+                    'discordId': { S: String(discordId) },
+                    'kingdomId': { S: String(kingdomId) },
+                    'status': { S: String(status) },
+                    'note': { S: String(note || '') },
+                    'timestamp': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
