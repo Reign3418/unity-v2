@@ -537,10 +537,21 @@ export async function getUserConfig(discordId) {
                     profiles[k] = v.S;
                 }
             }
+
+            let presence = {};
+            if (attrs.presence && attrs.presence.M) {
+                presence = {
+                    status: attrs.presence.M.status?.S || "Active",
+                    note: attrs.presence.M.note?.S || "",
+                    requiresPing: attrs.presence.M.requiresPing?.BOOL || false,
+                    updatedAt: attrs.presence.M.updatedAt?.S || ""
+                };
+            }
             
             return {
                 governorIds: govIds,
                 profiles: profiles,
+                presence: presence,
                 kingdomId: attrs.kingdomId?.S,
                 isManualGuest: attrs.isManualGuest?.BOOL || false,
                 role: attrs.role?.S,
@@ -2303,4 +2314,129 @@ export async function getKingdomEvents(kingdomId) {
         console.error("AWS Get Kingdom Events Error", e);
         return [];
     }
+}
+// =========================================================================
+// PRESENCE SYSTEM
+// =========================================================================
+
+/**
+ * Updates a User's Global Presence and Architecture Profiles
+ */
+export async function updateUserPresence(discordId, presenceData, profilesMap) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    // Build the DynamoDB objects
+    const presenceAttr = {
+        M: {
+            status: { S: presenceData.status || "Active" },
+            note: { S: presenceData.note || "" },
+            requiresPing: { BOOL: !!presenceData.requiresPing },
+            updatedAt: { S: new Date().toISOString() }
+        }
+    };
+
+    const dynamoProfilesMap = {};
+    for (const [k, v] of Object.entries(profilesMap)) {
+        dynamoProfilesMap[k] = { S: String(v) };
+    }
+
+    const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: 'SET attributes.#p = :p, attributes.#prof = :prof',
+        ExpressionAttributeNames: {
+            '#p': 'presence',
+            '#prof': 'profiles'
+        },
+        ExpressionAttributeValues: {
+            ':p': presenceAttr,
+            ':prof': { M: dynamoProfilesMap }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update User Presence Error", e);
+        return false;
+    }
+}
+/**
+ * Pushes a Presence Webhook Alert to the Discord Queue
+ */
+export async function queuePresencePing(discordId, kingdomId, status, note) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+    
+    // Create random UUID for multi-pings
+    const pingId = Math.random().toString(36).substring(2, 10);
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'PENDING_PINGS' },
+            'SK': { S: `PING#${pingId}` },
+            'attributes': {
+                M: {
+                    'discordId': { S: String(discordId) },
+                    'kingdomId': { S: String(kingdomId) },
+                    'status': { S: String(status) },
+                    'note': { S: String(note || '') },
+                    'timestamp': { S: new Date().toISOString() }
+                }
+            }
+        }
+    };
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+
+/**
+ * Consumes and deletes all pending Pings from the Queue for Discord Bot
+ */
+export async function consumePresencePings() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+    const { QueryCommand, DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+    
+    const params = {
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: { ':pk': { S: 'PENDING_PINGS' } }
+    };
+    try {
+        const result = await dbClient.send(new QueryCommand(params));
+        if (!result.Items || result.Items.length === 0) return [];
+        
+        const pings = [];
+        for (const item of result.Items) {
+            const attrs = item.attributes?.M || {};
+            const sk = item.SK.S;
+            pings.push({
+                pingId: sk,
+                discordId: attrs.discordId?.S,
+                kingdomId: attrs.kingdomId?.S,
+                status: attrs.status?.S,
+                note: attrs.note?.S
+            });
+            // Delete it from the queue immediately
+            try {
+                await dbClient.send(new DeleteItemCommand({
+                    TableName: tableName,
+                    Key: { 'PK': { S: 'PENDING_PINGS' }, 'SK': { S: sk } }
+                }));
+            } catch(delErr){}
+        }
+        return pings;
+    } catch(e) { return []; }
 }

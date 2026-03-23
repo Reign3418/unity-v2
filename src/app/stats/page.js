@@ -7,12 +7,19 @@ import { useSession } from "next-auth/react";
 export default function MyStats() {
   const { data: session } = useSession();
   const [profiles, setProfiles] = useState([]);
+  const [globalPresence, setGlobalPresence] = useState({ status: "Active", note: "", requiresPing: false });
   const [isLoading, setIsLoading] = useState(true);
 
   // Linkage Modal State
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkForm, setLinkForm] = useState({ id: "", profileType: "Main" });
   const [isLinking, setIsLinking] = useState(false);
+
+  // Presence Modal State
+  const [isPresenceModalOpen, setIsPresenceModalOpen] = useState(false);
+  const [activeGov, setActiveGov] = useState(null);
+  const [presenceForm, setPresenceForm] = useState({ tier: "Main", status: "Active", note: "", requiresPing: false });
+  const [isUpdatingPresence, setIsUpdatingPresence] = useState(false);
 
   const fetchProfiles = async () => {
     setIsLoading(true);
@@ -21,6 +28,7 @@ export default function MyStats() {
       if (res.ok) {
          const data = await res.json();
          setProfiles(data.profiles || []);
+         setGlobalPresence(data.presence || { status: "Active", note: "", requiresPing: false });
       }
     } catch (e) {
       console.error(e);
@@ -82,6 +90,35 @@ export default function MyStats() {
     }
   };
 
+  const handleSavePresence = async () => {
+      setIsUpdatingPresence(true);
+      try {
+          const profilesMap = { [activeGov.id]: presenceForm.tier };
+          const res = await fetch("/api/aws/user/presence", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  status: presenceForm.status,
+                  note: presenceForm.note,
+                  requiresPing: presenceForm.requiresPing,
+                  profilesMap
+              })
+          });
+
+          if (res.ok) {
+              await fetchProfiles();
+              setIsPresenceModalOpen(false);
+          } else {
+              const err = await res.json();
+              alert(err.error || "Failed to sync presence with AWS.");
+          }
+      } catch (e) {
+          alert("Network Error during presence sync step.");
+      } finally {
+          setIsUpdatingPresence(false);
+      }
+  };
+
   return (
     <div className="w-full mx-auto space-y-8 animate-fade-in pb-12">
       
@@ -100,8 +137,16 @@ export default function MyStats() {
             <div className="text-cyan-500 text-[10px] font-black tracking-[0.2em] uppercase mb-1">
               Connected Architecture Node
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">{session.user.username}</h1>
-            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+            <h1 className="text-3xl font-bold text-white mb-2 flex flex-col sm:flex-row sm:items-center gap-3">
+              {session.user.username}
+              {globalPresence.status && globalPresence.status !== "Active" && (
+                 <span className="text-sm px-3 py-1 bg-[#1e222b] border border-[#2d323e] rounded-full text-indigo-400 flex items-center gap-2 max-w-fit shadow-[0_0_15px_rgba(99,102,241,0.15)] font-bold tracking-widest uppercase">
+                    {globalPresence.status === 'Working' ? '💼' : globalPresence.status === 'Vacation' ? '🏖️' : globalPresence.status === 'Sleeping' ? '💤' : '🚨'} {globalPresence.status}
+                    {globalPresence.note && <span className="text-gray-500 italic lowercase tracking-normal font-medium">- "{globalPresence.note}"</span>}
+                 </span>
+              )}
+            </h1>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
               <span className="bg-[#1e222b] text-gray-400 text-xs px-3 py-1 rounded-full border border-[#2d323e]">ID: {session.user.id}</span>
               {session.user.isSuperAdmin && (
                 <span className="bg-rose-500/10 text-rose-500 text-[10px] px-3 py-1 rounded-full border border-rose-500/30 uppercase tracking-widest font-bold shadow-[0_0_10px_rgba(244,63,94,0.3)]">Master Creator</span>
@@ -133,7 +178,16 @@ export default function MyStats() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {profiles.map((gov) => (
-            <GovernorCard key={gov.id} gov={gov} onUnlink={() => handleUnlink(gov.id)} />
+            <GovernorCard key={gov.id} gov={gov} onUnlink={() => handleUnlink(gov.id)} onEdit={(gov) => {
+                 setActiveGov(gov);
+                 setPresenceForm({
+                     tier: gov.tag || "Main",
+                     status: globalPresence.status || "Active",
+                     note: globalPresence.note || "",
+                     requiresPing: false
+                 });
+                 setIsPresenceModalOpen(true);
+            }} />
           ))}
 
           {/* Add New Profile Stub */}
@@ -207,6 +261,105 @@ export default function MyStats() {
         </div>
       )}
 
+      {/* Presence Modal */}
+      {isPresenceModalOpen && activeGov && (
+         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm shadow-2xl">
+           <div className="bg-[#0f1115] border border-indigo-500/30 rounded-2xl w-full max-w-lg overflow-hidden relative shadow-[0_0_50px_rgba(99,102,241,0.15)]">
+
+               <div className="p-6 border-b border-[#1e222b] relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-[40px] translate-x-1/2 -translate-y-1/2"></div>
+                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                       <Settings className="text-indigo-400" size={20} />
+                       Profile & Presence Config
+                   </h3>
+                   <p className="text-xs text-gray-500 mt-2 font-mono">Editing target ID: {activeGov.id}</p>
+               </div>
+
+               <div className="p-6 space-y-6">
+                   {/* Architecture Type */}
+                   <div className="space-y-2">
+                       <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Local Architecture Level (This Profile Only)</label>
+                       <select 
+                         className="w-full bg-[#161920] border border-[#1e222b] rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500"
+                         value={presenceForm.tier}
+                         onChange={(e) => setPresenceForm({ ...presenceForm, tier: e.target.value })}
+                       >
+                           <option value="Main">Main Core (Primary)</option>
+                           <option value="Alt">Auxiliary Core (Alt)</option>
+                           <option value="Farm">Resource Array (Farm)</option>
+                       </select>
+                   </div>
+
+                   {/* Global Presence */}
+                   <div className="border-t border-[#1e222b] pt-6 space-y-4">
+                       <div className="flex items-center justify-between">
+                           <div>
+                               <label className="text-sm font-bold text-indigo-400 block">Global Human Presence Tracker</label>
+                               <span className="text-[10px] text-gray-500 uppercase tracking-widest block mt-1">Status maps to ALL your synced profiles.</span>
+                           </div>
+                       </div>
+                       
+                       <div className="space-y-4">
+                           <select 
+                             className="w-full bg-[#161920] border border-[#1e222b] rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 font-bold"
+                             value={presenceForm.status}
+                             onChange={(e) => setPresenceForm({ ...presenceForm, status: e.target.value })}
+                           >
+                               <option value="Active">🟢 Active & Available</option>
+                               <option value="Working">💼 At Work / Busy</option>
+                               <option value="Vacation">🏖️ Vacation / Travel</option>
+                               <option value="Sleeping">💤 Sleeping / AFK</option>
+                               <option value="Emergency">🚨 Real Life Emergency</option>
+                           </select>
+
+                           {presenceForm.status !== "Active" && (
+                                <input 
+                                    type="text" 
+                                    placeholder="Optional Context Note (e.g. Back on Friday!)"
+                                    maxLength={40}
+                                    className="w-full bg-[#161920] border border-[#1e222b] rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 text-sm italic"
+                                    value={presenceForm.note}
+                                    onChange={(e) => setPresenceForm({ ...presenceForm, note: e.target.value })}
+                                />
+                           )}
+                           
+                           {presenceForm.status !== "Active" && (
+                               <label className="flex items-start gap-3 bg-[#13161c] border border-[#1e222b] rounded-lg p-3 cursor-pointer hover:border-indigo-500/50 transition-colors">
+                                   <input 
+                                     type="checkbox" 
+                                     className="w-5 h-5 rounded border-[#2d323e] bg-[#0a0c0f] text-indigo-500 focus:ring-0 focus:ring-offset-0 mt-0.5"
+                                     checked={presenceForm.requiresPing}
+                                     onChange={(e) => setPresenceForm({ ...presenceForm, requiresPing: e.target.checked })}
+                                   />
+                                   <div>
+                                       <div className="text-sm text-white font-bold">Priority Webhook Alert Notification</div>
+                                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Opt-In: Deliver an immediate Priority ping to Kingdom Leadership signaling your absence via Discord natively.</div>
+                                   </div>
+                               </label>
+                           )}
+                       </div>
+                   </div>
+               </div>
+
+               <div className="p-6 bg-[#0a0c0f] border-t border-[#1e222b] flex justify-end gap-3">
+                   <button 
+                     onClick={() => setIsPresenceModalOpen(false)}
+                     className="px-4 py-2 border border-[#1e222b] text-gray-400 rounded-lg hover:bg-[#1e222b] hover:text-white transition-colors text-sm font-bold tracking-wider uppercase"
+                   >
+                       Cancel
+                   </button>
+                   <button 
+                     onClick={handleSavePresence}
+                     disabled={isUpdatingPresence}
+                     className="px-6 py-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg transition-colors text-sm font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:opacity-50 flex items-center gap-2"
+                   >
+                       {isUpdatingPresence ? <Loader2 size={16} className="animate-spin" /> : "Save Presence & Sync"}
+                   </button>
+               </div>
+           </div>
+         </div>
+      )}
+
     </div>
   );
 }
@@ -214,7 +367,7 @@ export default function MyStats() {
 // ---------------------------------------------------------------------------------
 // Sub-Component: 3D Flippable Governor Baseball Card
 // ---------------------------------------------------------------------------------
-function GovernorCard({ gov, onUnlink }) {
+function GovernorCard({ gov, onUnlink, onEdit }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -319,7 +472,13 @@ function GovernorCard({ gov, onUnlink }) {
 
           {/* Action Footer */}
           <div className="px-6 py-3 bg-[#0a0c0f]/50 border-t border-[#1e222b] flex justify-between z-10" onClick={(e) => e.stopPropagation()}>
-             <button className="text-gray-500 hover:text-white transition-colors" title="Settings">
+             <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(gov);
+                }}
+                className="text-gray-500 hover:text-white transition-colors" title="Settings"
+             >
                <Settings size={18} />
              </button>
              <button 

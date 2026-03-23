@@ -10,9 +10,10 @@ export async function GET(req) {
         // Retrieve Linked Governors directly from the robust token session
         const govIds = session.user?.governorConfig?.governorIds || [];
         const userProfilesMap = session.user?.governorConfig?.profiles || {};
+        const presence = session.user?.governorConfig?.presence || { status: "Active", note: "", requiresPing: false };
 
         if (govIds.length === 0) {
-            return NextResponse.json({ profiles: [] }, { status: 200 });
+            return NextResponse.json({ profiles: [], presence }, { status: 200 });
         }
 
         const profiles = [];
@@ -66,7 +67,7 @@ export async function GET(req) {
             }
         }
 
-        return NextResponse.json({ profiles }, { status: 200 });
+        return NextResponse.json({ profiles, presence }, { status: 200 });
 
     } catch (e) {
         console.error("[API] Governor Profile Extraction Failure:", e);
