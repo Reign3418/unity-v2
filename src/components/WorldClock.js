@@ -123,6 +123,7 @@ export default function WorldClock() {
         {/* Top Row Timezones */}
         <div className="flex flex-wrap justify-center gap-4">
           <ClockBox tz="America/Los_Angeles" label="Pacific (PT)" />
+          <ClockBox tz="America/Chicago" label="Central (CT)" />
           <ClockBox tz="America/New_York" label="Eastern (ET)" />
           <ClockBox tz="Europe/Paris" label="Paris (CET)" />
           <ClockBox tz="Europe/Berlin" label="Germany (CET)" />
