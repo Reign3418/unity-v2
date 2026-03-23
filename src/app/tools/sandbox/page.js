@@ -12,6 +12,7 @@ export default function SandboxPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("idle");
   const [scanDateOverride, setScanDateOverride] = useState(null);
+  const [activeFileName, setActiveFileName] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -38,6 +39,8 @@ export default function SandboxPage() {
     }
     
     const reader = new FileReader();
+    setActiveFileName(file.name);
+    
     reader.onload = (event) => {
       try {
         const data = new Uint8Array(event.target.result);
@@ -227,6 +230,11 @@ export default function SandboxPage() {
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl">
               <div className="p-4 border-b border-[#1e222b] bg-[#0a0c0f]">
                 <h3 className="text-[10px] font-black tracking-widest text-gray-500 uppercase">Simulated Database Hooks</h3>
+                {activeFileName && (
+                  <div className="mt-3 text-xs font-mono text-cyan-400 font-bold truncate bg-[#1e222b] px-3 py-2 rounded-lg border border-[#2d323e]" title={activeFileName}>
+                    {activeFileName}
+                  </div>
+                )}
               </div>
               <div className="p-2 space-y-1">
                 {parsedTabs.map((tab, idx) => (
