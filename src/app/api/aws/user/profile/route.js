@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { unlinkGovernorAccount, linkGovernorAccount, getGovernorStats, getGovernorHistory } from "@/lib/awsDynamo";
+import { unlinkGovernorAccount, linkGovernorAccount, getGovernorStats, getGovernorHistory, getUserConfig } from "@/lib/awsDynamo";
 
 export async function GET(req) {
     try {
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        // Retrieve Linked Governors directly from the robust token session
-        const govIds = session.user?.governorConfig?.governorIds || [];
-        const userProfilesMap = session.user?.governorConfig?.profiles || {};
-        const presence = session.user?.governorConfig?.presence || { status: "Active", note: "", requiresPing: false };
+        // Retrieve config natively from AWS DynamoDB to prevent stale JWT session tokens from swallowing Presence updates
+        const config = await getUserConfig(session.user.id) || {};
+        const govIds = config.governorIds || [];
+        const userProfilesMap = config.profiles || {};
+        const presence = config.presence || { status: "Active", note: "", requiresPing: false };
 
         if (govIds.length === 0) {
             return NextResponse.json({ profiles: [], presence }, { status: 200 });
