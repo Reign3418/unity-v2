@@ -85,13 +85,20 @@ export default function SandboxPage() {
               power: parseInt(p.power || p.Power || p.POWER) || 0,
               kp: parseInt(p.killpoints || p.killPoints || p.KillPoints || p['Kill Points']) || 0,
               dead: parseInt(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS) || 0,
+              acclaim: parseInt(p.acclaim || p.Acclaim || p.ACCLAIM) || 0,
+              t1: parseInt(p.t1Kills || p.T1Kills || p['T1 Kills']) || 0,
+              t2: parseInt(p.t2Kills || p.T2Kills || p['T2 Kills']) || 0,
+              t3: parseInt(p.t3Kills || p.T3Kills || p['T3 Kills']) || 0,
               t4: parseInt(p.t4Kills || p.T4Kills || p['T4 Kills']) || 0,
               t5: parseInt(p.t5Kills || p.T5Kills || p['T5 Kills']) || 0,
               gathered: parseInt(p.gathered || p.Gathered || p.ResourcesGathered || p['Resources Gathered']) || 0,
-              assistance: parseInt(p.assistance || p.Assistance || p.ASSISTANCE) || 0,
+              assistance: parseInt(p.assistance || p.Assistance || p.ASSISTANCE || p['Resources Given'] || p['resources Given']) || 0,
+              helps: parseInt(p.helps || p.Helps || p.HELPS || p['Alliance Helps']) || 0,
+              troop: parseInt(p.troopPower || p.TroopPower || p['Troop Power']) || 0,
               tech: parseInt(p.techPower || p.TechPower || p['Tech Power']) || 0,
               com: parseInt(p.commanderPower || p.CommanderPower || p['Commander Power']) || 0,
               build: parseInt(p.buildingPower || p.BuildingPower || p['Building Power']) || 0,
+              lkCount: parseInt(p.lostKingdomCount || p.LostKingdomCount || p['Lost Kingdom Count'] || p['LK Count']) || 0,
             };
           });
 
@@ -135,13 +142,20 @@ export default function SandboxPage() {
           power: r.power,
           killpoints: r.kp,
           deads: r.dead,
+          acclaim: r.acclaim,
+          t1Kills: r.t1,
+          t2Kills: r.t2,
+          t3Kills: r.t3,
           t4Kills: r.t4,
           t5Kills: r.t5,
           gathered: r.gathered,
           assistance: r.assistance,
+          helps: r.helps,
+          troopPower: r.troop,
           techPower: r.tech,
           commanderPower: r.com,
-          buildingPower: r.build
+          buildingPower: r.build,
+          lostKingdomCount: r.lkCount
         }));
 
       if (safeArray.length === 0) continue;
@@ -288,13 +302,20 @@ export default function SandboxPage() {
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Kingdom</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Alliance</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Power</th>
-                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Kill Points</th>
-                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Deads</th>
-                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Gathered</th>
-                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Assistance</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Troop Pwr</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Tech Pwr</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Cmdr Pwr</th>
                                 <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Bldg Pwr</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Kill Points</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Deads</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">T1 Kills</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">T2 Kills</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">T3 Kills</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Acclaim</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Gathered</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Assistance</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Helps</th>
+                                <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">LK Count</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#1e222b]/50">
@@ -310,13 +331,20 @@ export default function SandboxPage() {
                                         </span>
                                     </td>
                                     <td className="py-3 px-4 text-right text-gray-400 font-mono">{row.power.toLocaleString()}</td>
-                                    <td className="py-3 px-4 text-right text-gray-400 font-mono">{row.kp.toLocaleString()}</td>
-                                    <td className="py-3 px-4 text-right text-rose-400/80 font-mono">{row.dead.toLocaleString()}</td>
-                                    <td className="py-3 px-4 text-right text-amber-400/80 font-mono whitespace-nowrap">{row.gathered.toLocaleString()}</td>
-                                    <td className="py-3 px-4 text-right text-emerald-400/80 font-mono whitespace-nowrap">{row.assistance.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-fuchsia-400/80 font-mono whitespace-nowrap">{row.troop.toLocaleString()}</td>
                                     <td className="py-3 px-4 text-right text-cyan-400/80 font-mono whitespace-nowrap">{row.tech.toLocaleString()}</td>
                                     <td className="py-3 px-4 text-right text-violet-400/80 font-mono whitespace-nowrap">{row.com.toLocaleString()}</td>
                                     <td className="py-3 px-4 text-right text-indigo-400/80 font-mono whitespace-nowrap">{row.build.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-gray-400 font-mono">{row.kp.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-rose-400/80 font-mono">{row.dead.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-gray-500 font-mono">{row.t1.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-gray-500 font-mono">{row.t2.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-gray-500 font-mono">{row.t3.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-yellow-500/80 font-mono">{row.acclaim.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-amber-400/80 font-mono whitespace-nowrap">{row.gathered.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-emerald-400/80 font-mono whitespace-nowrap">{row.assistance.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-teal-400/80 font-mono whitespace-nowrap">{row.helps.toLocaleString()}</td>
+                                    <td className="py-3 px-4 text-right text-purple-400/80 font-mono whitespace-nowrap">{row.lkCount.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>

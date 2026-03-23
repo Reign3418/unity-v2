@@ -1308,13 +1308,20 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         const power = player.power || player.Power || player.POWER;
         const killpoints = player.killpoints || player.killPoints || player.KillPoints || player['Kill Points'];
         const deads = player.deads || player.Deads || player.Dead || player.DEAD || player.DEADS;
+        const acclaim = player.acclaim || player.Acclaim || player.ACCLAIM;
+        const t1kills = player.t1Kills || player.T1Kills || player['T1 Kills'];
+        const t2kills = player.t2Kills || player.T2Kills || player['T2 Kills'];
+        const t3kills = player.t3Kills || player.T3Kills || player['T3 Kills'];
         const t4kills = player.t4Kills || player.T4Kills || player['T4 Kills'];
         const t5kills = player.t5Kills || player.T5Kills || player['T5 Kills'];
         const gathered = player.gathered || player.Gathered || player.ResourcesGathered || player['Resources Gathered'];
-        const assistance = player.assistance || player.Assistance || player.ASSISTANCE;
+        const assistance = player.assistance || player.Assistance || player.ASSISTANCE || player['Resources Given'] || player['resources Given'];
+        const helps = player.helps || player.Helps || player.HELPS || player['Alliance Helps'];
+        const troopPower = player.troopPower || player.TroopPower || player['Troop Power'];
         const techPower = player.techPower || player.TechPower || player['Tech Power'];
         const comPower = player.commanderPower || player.CommanderPower || player['Commander Power'];
         const buildPower = player.buildingPower || player.BuildingPower || player['Building Power'];
+        const lostKingdomCount = player.lostKingdomCount || player.LostKingdomCount || player['Lost Kingdom Count'] || player['LK Count'];
 
         // Drop corrupted lines if the ID failed entirely
         if (!id) return null;
@@ -1333,13 +1340,20 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                                 'Power': formatN(power),
                                 'Kill Points': formatN(killpoints),
                                 'Deads': formatN(deads),
+                                'Acclaim': formatN(acclaim),
+                                'T1 Kills': formatN(t1kills),
+                                'T2 Kills': formatN(t2kills),
+                                'T3 Kills': formatN(t3kills),
                                 'T4 Kills': formatN(t4kills),
                                 'T5 Kills': formatN(t5kills),
                                 'Resources Gathered': formatN(gathered),
                                 'Assistance': formatN(assistance),
+                                'Helps': formatN(helps),
+                                'Troop Power': formatN(troopPower),
                                 'Tech Power': formatN(techPower),
                                 'Commander Power': formatN(comPower),
                                 'Building Power': formatN(buildPower),
+                                'Lost Kingdom Count': formatN(lostKingdomCount),
                                 // Map any deltas if provided by the client side processor
                                 'powerDelta': formatN(player.powerDelta),
                                 'kpDelta': formatN(player.kpDelta),
