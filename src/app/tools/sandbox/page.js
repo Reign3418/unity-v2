@@ -33,19 +33,15 @@ export default function SandboxPage() {
 
   const processFile = (file) => {
     if (!file) {
-      setError("No file detected.");
+      alert("No file detected.");
       return;
     }
     
     // Heroscrolls Denial Filter 1: Filename Signature
     if (file.name.toLowerCase().startsWith('kvk_report_')) {
-      setError("File Rejected: Heroscrolls/Third-Party reports are unsupported. Please upload a pure raw data scan.");
+      alert("File Rejected: Heroscrolls/Third-Party reports are unsupported. Please upload a pure raw data scan.");
       return;
     }
-
-    setFileName(file.name);
-    setError(null);
-    setGlobalDtg(null);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -57,7 +53,7 @@ export default function SandboxPage() {
         const heroscrollsTabs = ['deltas', 'start', 'end', 'excluded governors'];
         const isHeroscrolls = workbook.SheetNames.some(name => heroscrollsTabs.includes(name.toLowerCase()));
         if (isHeroscrolls) {
-          setError("File Rejected: Detected Heroscrolls internal sheet structures (Deltas, Start, End). Please discard this format and upload the raw tracking scan.");
+          alert("File Rejected: Detected Heroscrolls internal sheet structures (Deltas, Start, End). Please discard this format and upload the raw tracking scan.");
           return;
         }
 
