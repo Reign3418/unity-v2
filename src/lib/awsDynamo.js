@@ -1306,37 +1306,54 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         // Drop corrupted lines if the ID failed entirely
         if (!id) return null;
 
-        return {
-            PutRequest: {
-                Item: {
-                    'PK': { S: `SCAN#${kingdomId}#${dateKey}` },
-                    'SK': { S: `GOV#${id}` },
-                    'attributes': {
-                        M: {
-                            'Governor ID': formatS(id),
-                            'Governor Name': formatS(name),
-                            'Alliance Tag': formatS(alliance),
-                            'Power': formatN(power),
-                            'Kill Points': formatN(killpoints),
-                            'Deads': formatN(deads),
-                            'T4 Kills': formatN(t4kills),
-                            'T5 Kills': formatN(t5kills),
-                            'Resources Gathered': formatN(gathered),
-                            'Assistance': formatN(assistance),
-                            'Tech Power': formatN(techPower),
-                            'Commander Power': formatN(comPower),
-                            'Building Power': formatN(buildPower),
-                            // Map any deltas if provided by the client side processor
-                            'powerDelta': formatN(player.powerDelta),
-                            'kpDelta': formatN(player.kpDelta),
-                            'deadsDelta': formatN(player.deadsDelta),
-                            'gatheredDelta': formatN(player.gatheredDelta),
+        return [
+            {
+                PutRequest: {
+                    Item: {
+                        'PK': { S: `SCAN#${kingdomId}#${dateKey}` },
+                        'SK': { S: `GOV#${id}` },
+                        'attributes': {
+                            M: {
+                                'Governor ID': formatS(id),
+                                'Governor Name': formatS(name),
+                                'Alliance Tag': formatS(alliance),
+                                'Power': formatN(power),
+                                'Kill Points': formatN(killpoints),
+                                'Deads': formatN(deads),
+                                'T4 Kills': formatN(t4kills),
+                                'T5 Kills': formatN(t5kills),
+                                'Resources Gathered': formatN(gathered),
+                                'Assistance': formatN(assistance),
+                                'Tech Power': formatN(techPower),
+                                'Commander Power': formatN(comPower),
+                                'Building Power': formatN(buildPower),
+                                // Map any deltas if provided by the client side processor
+                                'powerDelta': formatN(player.powerDelta),
+                                'kpDelta': formatN(player.kpDelta),
+                                'deadsDelta': formatN(player.deadsDelta),
+                                'gatheredDelta': formatN(player.gatheredDelta),
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                PutRequest: {
+                    Item: {
+                        'PK': { S: `GOV_PROFILE#${id}` },
+                        'SK': { S: 'PROFILE' },
+                        'attributes': {
+                            M: {
+                                'name': formatS(name),
+                                'lastSeenKingdom': { N: String(kingdomId) },
+                                'lastSeenDate': { S: scanDate }
+                            }
                         }
                     }
                 }
             }
-        };
-    }).filter(Boolean);
+        ];
+    }).filter(Boolean).flat();
 
     // 3. Chunk into 25-item blocks (AWS Hard Limit)
     const chunkSize = 25;

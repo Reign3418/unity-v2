@@ -264,30 +264,47 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
         const data = new Uint8Array(event.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        // U1 Legacy Parsing: Extract Kingdom ID from the Excel Tab (e.g. "1302")
-        const extractedKdMatch = firstSheetName.match(/\d+/);
-        const dynamicKd = extractedKdMatch && extractedKdMatch[0].length >= 3 ? extractedKdMatch[0] : targetKd;
-        
-        const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); // Fallback to 0 if empty
-        setRowCount(jsonPayload.length);
+        let totalRows = 0;
+        let successCount = 0;
 
-        // Transmit via Next.js Server APi
-        const res = await fetch('/api/aws/upload', {
-          method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             kingdomId: dynamicKd,
-             rosterArray: jsonPayload
-           })
-        });
+        for (const sheetName of workbook.SheetNames) {
+            const worksheet = workbook.Sheets[sheetName];
+            
+            // Extract >= 3 digit KD from tab string (e.g "KD 1302" -> "1302")
+            const extractedKdMatch = sheetName.match(/\d{3,}/);
+            const dynamicKd = extractedKdMatch ? extractedKdMatch[0] : targetKd;
+            
+            const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); 
+            if (!jsonPayload || jsonPayload.length === 0) continue;
 
-        const resData = await res.json();
+            // Optional: Filter out empty rows where ID is missing
+            const validPayload = jsonPayload.filter(p => p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p.name || p.NAME || p["Governor Name"]);
+            if (validPayload.length === 0) continue;
+
+            setUploadStatus("idle");
+            
+            // Transmit via Next.js Server APi
+            const res = await fetch('/api/aws/upload', {
+              method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                 kingdomId: dynamicKd, 
+                 rosterArray: validPayload
+               })
+            });
+
+            const resData = await res.json();
+            if (res.ok) {
+                successCount++;
+                totalRows += validPayload.length;
+            } else {
+                console.error(`Tab ${sheetName} failed:`, resData);
+            }
+        }
         
-        if (!res.ok) throw new Error(resData.error || "Upload Failed");
+        if (successCount === 0) throw new Error("All Sheets failed or were empty.");
         
+        setRowCount(totalRows);
         setUploadStatus("success");
       } catch (err) {
         console.error("Pipeline Drop Error:", err);
