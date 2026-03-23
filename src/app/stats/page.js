@@ -242,6 +242,11 @@ function GovernorCard({ gov, onUnlink }) {
           <div className="bg-[#1e222b]/40 px-6 py-4 flex justify-between items-center border-b border-[#1e222b]">
             <div className="font-mono text-cyan-400 font-bold max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">{gov.name}</div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {gov.tag && gov.tag !== "Unknown" && (
+                <span className="bg-fuchsia-500/10 text-fuchsia-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-fuchsia-500/20">
+                  {gov.tag}
+                </span>
+              )}
               <span className="bg-[#0f1115] text-gray-400 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-[#1e222b]">KD {gov.kingdom}</span>
             </div>
           </div>

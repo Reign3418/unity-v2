@@ -9,6 +9,8 @@ export async function GET(req) {
 
         // Retrieve Linked Governors directly from the robust token session
         const govIds = session.user?.governorConfig?.governorIds || [];
+        const userProfilesMap = session.user?.governorConfig?.profiles || {};
+
         if (govIds.length === 0) {
             return NextResponse.json({ profiles: [] }, { status: 200 });
         }
@@ -16,9 +18,22 @@ export async function GET(req) {
         const profiles = [];
         
         for (const gid of govIds) {
+            const profileTag = userProfilesMap[gid] || "Unknown";
+
             // Ensure we know what KD they are actually in natively to pull full stats
             const basic = await getGovernorStats(gid);
-            if (!basic || !basic.lastSeenKingdom) continue;
+            if (!basic || !basic.lastSeenKingdom) {
+                // Return a Ghost Card so they can at least see it and unlink it
+                profiles.push({
+                    id: String(gid),
+                    kingdom: "???",
+                    name: "Awaiting Scan",
+                    tag: profileTag,
+                    power: 0, killPoints: 0, dead: 0, 
+                    troopPower: 0, commanderPower: 0, techPower: 0, highestPower: 0, tier: profileTag
+                 });
+                continue;
+            }
 
             const kd = basic.lastSeenKingdom;
             const history = await getGovernorHistory(kd, gid, 1);
@@ -29,6 +44,7 @@ export async function GET(req) {
                     id: String(gid),
                     kingdom: kd,
                     name: basic.name,
+                    tag: profileTag,
                     power: latest.power || 0,
                     killPoints: latest.killPoints || 0,
                     dead: latest.deads || 0,
@@ -36,15 +52,16 @@ export async function GET(req) {
                     commanderPower: latest.commanderPower || 0,
                     techPower: latest.techPower || 0,
                     highestPower: 0, // Mock for now unless tracked specifically
-                    tier: "T5", // Default mock for architecture UI placeholder
+                    tier: profileTag, 
                 });
             } else {
                  profiles.push({
                     id: String(gid),
                     kingdom: kd,
                     name: basic.name,
+                    tag: profileTag,
                     power: 0, killPoints: 0, dead: 0, 
-                    troopPower: 0, commanderPower: 0, techPower: 0, highestPower: 0, tier: "Unknown"
+                    troopPower: 0, commanderPower: 0, techPower: 0, highestPower: 0, tier: profileTag
                  });
             }
         }
