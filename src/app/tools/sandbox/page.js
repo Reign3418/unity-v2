@@ -132,8 +132,11 @@ export default function SandboxPage() {
            }
         }
 
+        const fileNameMatch = file.name.match(/\d{3,}/);
+        const fileNameKd = fileNameMatch ? fileNameMatch[0] : "UNKNOWN";
+
         const primaryKdMatch = workbook.SheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
-        const primaryKd = primaryKdMatch ? primaryKdMatch[0] : "UNKNOWN";
+        const primaryKd = primaryKdMatch ? primaryKdMatch[0] : fileNameKd;
 
         const tempTabs = [];
 
