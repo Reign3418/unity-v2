@@ -9,7 +9,6 @@ import * as XLSX from "xlsx";
 
 export default function UploadHub() {
   const [activeTab, setActiveTab] = useState(null);
-  const [targetKd, setTargetKd] = useState("3155");
 
   if (!activeTab) {
     return (
@@ -94,25 +93,12 @@ export default function UploadHub() {
 
       {activeTab === 'spreadsheet' ? (
         <>
-          <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 mb-8 flex items-center gap-6 shadow-xl w-full mx-auto">
-             <label className="text-gray-400 text-[10px] font-bold uppercase tracking-widest pl-2">Target Routing</label>
-             <select 
-               value={targetKd}
-               onChange={(e) => setTargetKd(e.target.value)}
-               className="bg-[#0a0c0f] border border-[#1e222b] text-cyan-400 focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer flex-1 transition-colors"
-             >
-               <option value="3155">Kingdom 3155</option>
-               <option value="3156">Kingdom 3156</option>
-             </select>
-          </div>
-
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 w-full mx-auto">
             <DropZone 
               title="Baseline Snapshot" 
               description="Pre-KvK metrics"
               icon={<Upload className="text-cyan-400" />}
               theme="cyan"
-              targetKd={targetKd}
             />
 
             <div className="text-[#1e222b] hidden md:block"><ArrowRight size={32} /></div>
@@ -122,7 +108,6 @@ export default function UploadHub() {
               description="Latest extraction log"
               icon={<Sparkles className="text-cyan-400" />}
               theme="cyan"
-              targetKd={targetKd}
             />
           </div>
         </>
@@ -238,7 +223,7 @@ function CloudExtractor() {
 // ---------------------------------------------------------------------------------
 // Sub-Component: DropZone Configurator
 // ---------------------------------------------------------------------------------
-function DropZone({ title, description, icon, theme, optional = false, targetKd }) {
+function DropZone({ title, description, icon, theme, optional = false }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle, success, error
   const [rowCount, setRowCount] = useState(0);
@@ -267,13 +252,22 @@ function DropZone({ title, description, icon, theme, optional = false, targetKd 
         let totalRows = 0;
         let successCount = 0;
 
+        // Discover the overall "Primary Kingdom" for this workbook by finding the first tab possessing a \d{3,} block.
+        const primaryKdMatch = workbook.SheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
+        const primaryKd = primaryKdMatch ? primaryKdMatch[0] : null;
+
         for (const sheetName of workbook.SheetNames) {
             const worksheet = workbook.Sheets[sheetName];
             
             // Extract >= 3 digit KD from tab string (e.g "KD 1302" -> "1302")
             const extractedKdMatch = sheetName.match(/\d{3,}/);
-            const dynamicKd = extractedKdMatch ? extractedKdMatch[0] : targetKd;
+            const dynamicKd = extractedKdMatch ? extractedKdMatch[0] : primaryKd;
             
+            if (!dynamicKd) {
+                 console.warn(`[Pipeline] Skiping unmarked auxiliary sheet: ${sheetName}. No Primary Kingdom identifier could be inferred.`);
+                 continue; // A valid route is totally mandatory to fire the DB Hooks
+            }
+
             const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); 
             if (!jsonPayload || jsonPayload.length === 0) continue;
 
