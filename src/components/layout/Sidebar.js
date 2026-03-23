@@ -7,7 +7,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -79,6 +79,7 @@ export default function Sidebar() {
           <NavItem href="/events" icon={CalendarDays} label="Events Schedule" />
           <NavItem href="/mail" icon={Mail} label="Mail Generator" />
           <NavItem href="/calculators" icon={CheckSquare} label="Calculators" />
+          <NavItem href="/tools/sandbox" icon={Database} label="Data Sandbox" hidden={!isLeader} />
 
           <SectionTitle>System</SectionTitle>
           <NavItem href="/settings" icon={Settings} label="Settings" />
