@@ -93,7 +93,7 @@ export default function SandboxPage() {
               t5: parseInt(p.t5Kills || p.T5Kills || p['T5 Kills']) || 0,
               gathered: parseInt(p.gathered || p.Gathered || p.ResourcesGathered || p['Resources Gathered']) || 0,
               assistance: parseInt(p.assistance || p.Assistance || p.ASSISTANCE || p['Resources Given'] || p['resources Given']) || 0,
-              helps: parseInt(p.helps || p.Helps || p.HELPS || p['Alliance Helps']) || 0,
+              helps: parseInt(p.helps || p.Helps || p.HELPS || p['Alliance Helps'] || p['Helps Given'] || p['helps Given']) || 0,
               troop: parseInt(p.troopPower || p.TroopPower || p['Troop Power']) || 0,
               tech: parseInt(p.techPower || p.TechPower || p['Tech Power']) || 0,
               com: parseInt(p.commanderPower || p.CommanderPower || p['Commander Power']) || 0,
