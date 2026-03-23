@@ -73,8 +73,20 @@ export default function KingdomVault() {
       formData.append("screenshot", file);
       formData.append("profile", uploadProfile);
 
+      let customGeminiKey = "";
       try {
-          const res = await fetch("/api/aws/vault/upload", { method: "POST", body: formData });
+          const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+          customGeminiKey = prefs.geminiKey || "";
+      } catch (e) {}
+
+      try {
+          const res = await fetch("/api/aws/vault/upload", { 
+              method: "POST", 
+              headers: {
+                  ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+              },
+              body: formData 
+          });
           const data = await res.json();
           if (data.success) {
               setUploadSuccess(true);

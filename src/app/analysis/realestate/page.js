@@ -48,8 +48,20 @@ export default function RealestatePredictor() {
       const formData = new FormData();
       formData.append("map_screenshot", file);
 
+      let customGeminiKey = "";
       try {
-          const res = await fetch("/api/aws/realestate", { method: "POST", body: formData });
+          const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+          customGeminiKey = prefs.geminiKey || "";
+      } catch (e) {}
+
+      try {
+          const res = await fetch("/api/aws/realestate", { 
+              method: "POST", 
+              headers: {
+                  ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+              },
+              body: formData 
+          });
           const data = await res.json();
           if (data.success) {
               setResult(data.data);

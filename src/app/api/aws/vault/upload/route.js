@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { saveUserRss } from "@/lib/awsDynamo";
+import { saveUserRss, getGlobalConfig } from "@/lib/awsDynamo";
 
 export async function POST(req) {
     try {
@@ -26,9 +26,9 @@ export async function POST(req) {
             return NextResponse.json({ error: "Payload rejected. Only graphical telemetry vectors (images) are supported." }, { status: 400 });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = req.headers.get('x-gemini-key') || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) {
-            return NextResponse.json({ error: "Server Configuration Error: GEMINI_API_KEY is isolated from Vercel Edge." }, { status: 500 });
+            return NextResponse.json({ error: "Server Configuration Error: GEMINI_API_KEY is completely isolated from Vercel Edge, LocalStorage, and the Master AWS Database." }, { status: 500 });
         }
 
         const prompt = `This is a screenshot of the Resource inventory bags in Rise of Kingdoms. 
