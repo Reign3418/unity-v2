@@ -33,12 +33,29 @@ export async function POST(req) {
 Analyze the alliance territory bounded by the colored graphical lines (e.g. blue/pink borders). 
 Count the exact number of player 'Castles' (the 3D city models) situated inside the bounded territory space.
 Determine if the Castles are too tightly packed (high density) or well spread out (low density). Note that Resource Nodes cannot spawn underneath Castles, so extreme crowding harms the Alliance's economy.
+
+We also need exact 2D coordinates of the most problematic castle clusters. Provide 'troubleSpots' as an array of objects with 'x' and 'y' (which are percentage-based coordinates from 0-100, where x=0 is left, y=0 is top) pointing exactly to the center of extreme overcrowding.
+Also provide a 'fineDetails' object with 'economic' (array of 2-3 specific detailed impact points) and 'tactical' (array of 2-3 specific actionable steps).
+
 Return ONLY a valid JSON object matching this exact mathematical structure. Do NOT include markdown code brackets around the JSON:
 {
   "castleCount": 15,
   "densityLevel": "Critical", 
   "economicImpact": "Severe reduction in RSS spawn nodes.",
-  "tacticalAdvice": "Instruct 5 Castles in the densest cluster to teleport to the outer perimeter."
+  "tacticalAdvice": "Instruct 5 Castles in the densest cluster to teleport to the outer perimeter.",
+  "fineDetails": {
+     "economic": [
+        "Food and Wood nodes have decreased spawn chance by 40% in Sector B.",
+        "Gold nodes are completely suppressed near the central flag."
+     ],
+     "tactical": [
+        "Relocate 3 castles from coordinate 45, 60 to the northern boundary.",
+        "Expand territory outwards to create 20% more breathing room for spawns."
+     ]
+  },
+  "troubleSpots": [
+     { "x": 45, "y": 60, "reason": "3 overlapping castles destroying local spawn rates" }
+  ]
 }`;
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;

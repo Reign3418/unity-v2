@@ -109,14 +109,40 @@ export default function RealestatePredictor() {
              <div className="p-6">
                  {previewUrl ? (
                      <div className="space-y-4">
-                         <div className="relative rounded-lg overflow-hidden border border-[#2d323e]">
-                             <img src={previewUrl} alt="Map Preview" className="w-full h-auto max-h-[300px] object-cover opacity-80" />
-                             {analyzing && (
-                                 <div className="absolute inset-0 bg-[#0f1115]/80 flex flex-col items-center justify-center backdrop-blur-sm z-10">
-                                     <Crosshair className="text-cyan-500 animate-spin w-12 h-12 mb-4" />
-                                     <span className="text-cyan-400 font-bold uppercase tracking-widest text-xs animate-pulse">Running Geometrics...</span>
+                         <div className="relative rounded-lg overflow-hidden border border-[#2d323e] flex items-center justify-center bg-[#0a0c0f]">
+                             <div className="relative w-full">
+                               <img src={previewUrl} alt="Map Preview" className="w-full h-auto max-h-[500px] object-contain object-center opacity-80 block" />
+                               
+                               {/* Target Reticle Overlays */}
+                               {result?.troubleSpots && result.troubleSpots.map((spot, idx) => (
+                                 <div key={`ping-${idx}`}>
+                                     {/* Radar Ping Animation */}
+                                     <div 
+                                          className="absolute w-8 h-8 -ml-4 -mt-4 border-2 border-rose-500 rounded-full animate-ping z-20 pointer-events-none"
+                                          style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
+                                     />
+                                     {/* Hard Reticle with Tooltip */}
+                                     <div 
+                                          className="absolute w-8 h-8 -ml-4 -mt-4 border border-rose-400 bg-rose-500/20 backdrop-blur-sm rounded-full flex items-center justify-center z-20 cursor-crosshair group hover:scale-125 transition-transform"
+                                          style={{ top: `${spot.y}%`, left: `${spot.x}%` }}
+                                     >
+                                        <Target className="w-4 h-4 text-rose-300" />
+                                        
+                                        {/* Hover Tooltip Box */}
+                                        <div className="absolute hidden group-hover:block bottom-full mb-2 w-48 p-2 bg-rose-950/90 border border-rose-500/50 text-rose-200 text-[10px] rounded shadow-xl z-30 font-medium">
+                                          {spot.reason}
+                                        </div>
+                                     </div>
                                  </div>
-                             )}
+                               ))}
+
+                               {analyzing && (
+                                   <div className="absolute inset-0 bg-[#0f1115]/80 flex flex-col items-center justify-center backdrop-blur-sm z-40">
+                                       <Crosshair className="text-cyan-500 animate-spin w-12 h-12 mb-4" />
+                                       <span className="text-cyan-400 font-bold uppercase tracking-widest text-xs animate-pulse">Running Geometrics...</span>
+                                   </div>
+                               )}
+                             </div>
                          </div>
                          <div className="flex gap-4">
                              <button onClick={() => { setFile(null); setPreviewUrl(null); setResult(null); }} className="flex-1 py-3 bg-[#1e222b] hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Clear Target</button>
@@ -173,15 +199,41 @@ export default function RealestatePredictor() {
                          <div>
                              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Economic Impact Analysis</p>
                              <div className="bg-[#13161c] border border-rose-500/30 p-4 rounded-lg">
-                                 <p className="text-gray-300 text-sm leading-relaxed">{result.economicImpact}</p>
+                                 <p className="text-gray-300 text-sm leading-relaxed mb-3">{result.economicImpact}</p>
+                                 
+                                 {/* Finer Economic Details */}
+                                 {result.fineDetails?.economic && (
+                                     <ul className="space-y-1.5 border-t border-[#1e222b] pt-3">
+                                         {result.fineDetails.economic.map((point, i) => (
+                                             <li key={i} className="flex gap-2 items-start text-xs text-rose-200/80">
+                                                 <span className="text-rose-500 mt-0.5">•</span>
+                                                 <span>{point}</span>
+                                             </li>
+                                         ))}
+                                     </ul>
+                                 )}
                              </div>
                          </div>
 
                          <div>
                              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">AI Tactical Directive</p>
-                             <div className="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-lg flex gap-3">
-                                 <Crosshair className="text-cyan-400 shrink-0 mt-0.5" size={18} />
-                                 <p className="text-cyan-100 text-sm font-medium leading-relaxed">{result.tacticalAdvice}</p>
+                             <div className="bg-cyan-500/10 border border-cyan-500/30 p-4 rounded-lg">
+                                 <div className="flex gap-3 mb-3">
+                                     <Crosshair className="text-cyan-400 shrink-0 mt-0.5" size={18} />
+                                     <p className="text-cyan-100 text-sm font-medium leading-relaxed">{result.tacticalAdvice}</p>
+                                 </div>
+
+                                 {/* Finer Tactical Details */}
+                                 {result.fineDetails?.tactical && (
+                                     <ul className="space-y-1.5 border-t border-cyan-500/20 pt-3">
+                                         {result.fineDetails.tactical.map((point, i) => (
+                                             <li key={i} className="flex gap-2 items-start text-xs text-cyan-200/80">
+                                                 <span className="text-cyan-500 mt-0.5">•</span>
+                                                 <span>{point}</span>
+                                             </li>
+                                         ))}
+                                     </ul>
+                                 )}
                              </div>
                          </div>
 
