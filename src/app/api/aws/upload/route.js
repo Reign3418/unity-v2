@@ -19,8 +19,13 @@ export async function POST(req) {
     }
 
     // Security Check: Only Leaders can upload data
-    if (!session.user.isLeader && session.user.role !== "Admin") {
+    if (!session.user.isLeader && !session.user.isSuperAdmin) {
        return NextResponse.json({ error: "Clearance Denied. Admin Role Required to ignite AWS Uploads." }, { status: 403 });
+    }
+
+    // Cross-tenant Check
+    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kingdomId)) {
+        return NextResponse.json({ error: "Access Denied. You cannot upload data to a Kingdom outside your jurisdiction." }, { status: 403 });
     }
 
     // 3. Ignite DynamoDB BatchWriter

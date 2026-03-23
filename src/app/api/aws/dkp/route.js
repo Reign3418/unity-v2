@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { getKingdomDeltas } from "@/lib/awsDynamo";
+import { auth } from "@/lib/auth";
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const kdParam = searchParams.get('kd') || "3155";
+
+    const session = await auth();
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+    }
+
+    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kdParam)) {
+        return NextResponse.json({ error: "Access Denied. Cross-Kingdom analytical requests are strictly prohibited by your clearance level." }, { status: 403 });
+    }
 
     // Extract chronological differential tracking from the DB
     const roster = await getKingdomDeltas(kdParam);

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
     Building2, RefreshCw, Box, Layers, Pickaxe, Coins, 
-    TrendingUp, ShieldAlert, ArrowUpRight, UploadCloud, CheckCircle2, X
+    TrendingUp, ShieldAlert, ArrowUpRight, UploadCloud, CheckCircle2, X, Eye, EyeOff
 } from "lucide-react";
 import { 
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
@@ -16,6 +16,8 @@ export default function KingdomVault() {
   const [logs, setLogs] = useState([]);
   const [totals, setTotals] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [targetKd, setTargetKd] = useState("3155");
+  const [isolationMode, setIsolationMode] = useState(false);
 
   // Upload State
   const [file, setFile] = useState(null);
@@ -23,15 +25,18 @@ export default function KingdomVault() {
   const [uploadProfile, setUploadProfile] = useState("Main");
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const fetchVault = async () => {
+  const fetchVault = async (kdParam, isolated = isolationMode) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/aws/rss`);
+      const res = await fetch(`/api/aws/rss?kd=${kdParam}${isolated ? '&isolated=true' : ''}`);
       const data = await res.json();
       
       if (res.ok) {
           setLogs(data.logs || []);
           setTotals(data.totals);
+      } else {
+          setLogs([]);
+          setTotals(null);
       }
     } catch (e) {
       console.error(e);
@@ -42,9 +47,17 @@ export default function KingdomVault() {
 
   useEffect(() => {
     if (session) {
-      fetchVault();
+      let activeKd = "3155";
+      try {
+          const stored = localStorage.getItem("unty_active_kd");
+          if (stored) activeKd = stored;
+          else if (session.user?.kingdomId) activeKd = session.user.kingdomId;
+      } catch (e) {}
+
+      setTargetKd(activeKd);
+      fetchVault(activeKd, isolationMode);
     }
-  }, [session]);
+  }, [session, isolationMode]);
 
   const formatBillion = (num) => num ? (Number(num) / 1000000000).toFixed(2) + 'B' : "0";
   const formatMillion = (num) => num ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
@@ -91,7 +104,7 @@ export default function KingdomVault() {
           if (data.success) {
               setUploadSuccess(true);
               setFile(null);
-              if (session?.user?.isLeader || session?.user?.role === "Admin") fetchVault();
+              if (session?.user?.isLeader || session?.user?.role === "Admin") fetchVault(targetKd);
           } else {
               alert("OCR Engine Error: " + data.error);
           }
@@ -124,14 +137,24 @@ export default function KingdomVault() {
           </div>
           
           {isHighCommand && (
-              <button 
-                  onClick={fetchVault}
-                  disabled={isLoading}
-                  className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg flex items-center gap-2"
-              >
-                  <RefreshCw size={18} className={isLoading ? "animate-spin text-amber-500" : ""} />
-                  <span className="text-xs font-bold uppercase">Sync AWS</span>
-              </button>
+              <div className="flex items-center gap-3">
+                  <button 
+                      onClick={() => setIsolationMode(!isolationMode)}
+                      className={`p-2.5 border rounded-lg transition-colors shadow-lg flex items-center gap-2 ${isolationMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20' : 'bg-[#13161c] hover:bg-[#1e222b] text-white border-[#1e222b]'}`}
+                      title={isolationMode ? "Personal View Active" : "Kingdom View Active"}
+                  >
+                      {isolationMode ? <EyeOff size={18} /> : <Eye size={18} className="text-cyan-500" />}
+                      <span className="text-xs font-bold uppercase hidden sm:inline">{isolationMode ? "Personal View" : "Kingdom View"}</span>
+                  </button>
+                  <button 
+                      onClick={() => fetchVault(targetKd, isolationMode)}
+                      disabled={isLoading}
+                      className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg flex items-center gap-2"
+                  >
+                      <RefreshCw size={18} className={isLoading ? "animate-spin text-amber-500" : ""} />
+                      <span className="text-xs font-bold uppercase hidden sm:inline">Sync AWS</span>
+                  </button>
+              </div>
           )}
         </div>
       </div>

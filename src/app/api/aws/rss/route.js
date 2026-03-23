@@ -9,12 +9,21 @@ export async function GET(req) {
       return NextResponse.json({ error: "Unauthorized. Please log in first." }, { status: 401 });
     }
 
-    if (!session.user.isLeader && session.user.role !== "Admin") {
-       return NextResponse.json({ error: "High Command Clearance Required to access Kingdom Vault trajectories." }, { status: 403 });
+    const { searchParams } = new URL(req.url);
+    const kdParam = searchParams.get('kd') || "3155";
+
+    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kdParam)) {
+        return NextResponse.json({ error: "Access Denied. Cross-Kingdom Vault access is strictly prohibited." }, { status: 403 });
     }
 
-    // Pull entire Kingdom RSS aggregation dynamically via AWS DynamoDB Scan
-    const globalRssLogs = await exportAllRss();
+    // Leadership checks whether the entire grid is rendered, or just the isolated user's personal footprint
+    const isLeadershipClearance = session.user.isSuperAdmin || session.user.isLeader;
+    const requestedIsolation = searchParams.get('isolated') === 'true';
+    const requireIsolation = !isLeadershipClearance || requestedIsolation;
+
+    // Pull entire Kingdom RSS aggregation dynamically via AWS DynamoDB Scan, filtered by target kingdom
+    // Passes requireIsolation and callerDiscordId down the pipeline to isolate Member grids.
+    const globalRssLogs = await exportAllRss(kdParam, requireIsolation, session.user.id);
 
     // Summarize the economy matrix
     const totals = { food: 0, wood: 0, stone: 0, gold: 0, overall: 0 };

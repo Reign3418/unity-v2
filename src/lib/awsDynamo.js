@@ -2170,8 +2170,10 @@ export async function getUserRssHistory(discordId, profile = 'Main', limit = 10)
 
 /**
  * Scans for all RSS logs across the entire database, returning only the most recent entry per user.
+ * Dynamically resolves the specific Governor ID's mapped kingdom for cross-kingdom players.
+ * If requireIsolation is passed, it isolates the output strictly to only the targeted user's own nodes.
  */
-export async function exportAllRss() {
+export async function exportAllRss(filterKingdomId = null, requireIsolation = false, callerDiscordId = null) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
@@ -2224,13 +2226,42 @@ export async function exportAllRss() {
 
         try {
             const userConf = await getUserConfig(data.discordId);
-            if (userConf && userConf.governorIds && userConf.governorIds.length > 0) {
-                if (data.profile === 'Main' && userConf.governorIds.length >= 1) governorId = userConf.governorIds[0];
-                else if (data.profile === 'Alt' && userConf.governorIds.length >= 2) governorId = userConf.governorIds[1];
-                else if (data.profile === 'Farm' && userConf.governorIds.length >= 3) governorId = userConf.governorIds[2];
-                else governorId = userConf.governorIds[0]; // fallback
+            
+            // Standard Member Privacy Grid
+            if (requireIsolation && callerDiscordId && callerDiscordId !== data.discordId) {
+                continue; // Isolated mode active: Hide anyone else's stats
             }
-        } catch (e) {}
+
+            if (userConf) {
+                // Map the dynamic Governor ID linked to this specific telemetry profile
+                if (userConf.governorIds && userConf.governorIds.length > 0) {
+                    if (data.profile === 'Main' && userConf.governorIds.length >= 1) governorId = String(userConf.governorIds[0]);
+                    else if (data.profile === 'Alt' && userConf.governorIds.length >= 2) governorId = String(userConf.governorIds[1]);
+                    else if (data.profile === 'Farm' && userConf.governorIds.length >= 3) governorId = String(userConf.governorIds[2]);
+                    else governorId = String(userConf.governorIds[0]); 
+                }
+
+                if (filterKingdomId) {
+                    if (governorId !== 'Unknown') {
+                        // Dynamically resolve where the governor actually lives in the game database
+                        const stats = await getGovernorStats(governorId);
+                        if (!stats || String(stats.lastSeenKingdom) !== String(filterKingdomId)) {
+                            continue; // This governor does not exist in the targeted Kingdom interface
+                        }
+                    } else {
+                        // Unlinked Discord Tenant fallback
+                        if (userConf.kingdomId !== String(filterKingdomId)) {
+                            continue; // Root Discord tenant doesn't match the query
+                        }
+                    }
+                }
+            } else {
+                 if (filterKingdomId) continue; // Unregistered users are invisible during strict Kingdom queries
+            }
+        } catch (e) {
+            console.error("[Dynamo] Failed resolving cross-tenant Governor stats:", e);
+            if (filterKingdomId) continue;
+        }
 
         if (governorId !== 'Unknown') {
             const govProfParams = {
