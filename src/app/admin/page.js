@@ -626,6 +626,7 @@ export default function AdminConsole() {
                    <tr>
                      <th className="px-6 py-4">Ingestion Date</th>
                      <th className="px-6 py-4">Target Kingdom</th>
+                     <th className="px-6 py-4">Source Origin</th>
                      <th className="px-6 py-4">Rows Mapped</th>
                      <th className="px-6 py-4">Uploader Handle</th>
                      <th className="px-6 py-4">Uploader Discord ID</th>
@@ -634,13 +635,18 @@ export default function AdminConsole() {
                  <tbody className="divide-y divide-[#1e222b]">
                    {uploadLogs.length === 0 && (
                      <tr>
-                       <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">No cloud injection signatures found.</td>
+                       <td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">No cloud injection signatures found.</td>
                      </tr>
                    )}
                    {uploadLogs.map((log, i) => (
                      <tr key={i} className="hover:bg-[#161920] transition-colors">
                        <td className="px-6 py-3 font-mono text-purple-400">{new Date(log.scanDate).toLocaleString()}</td>
                        <td className="px-6 py-3 font-bold text-white">KD {log.kingdomId}</td>
+                       <td className="px-6 py-3">
+                         <span className="text-[10px] text-cyan-400 font-mono bg-cyan-500/10 px-2 py-1 rounded truncate block max-w-[150px]" title={log.sourceFile || "Legacy_Upload"}>
+                           {log.sourceFile || "Legacy_Upload"}
+                         </span>
+                       </td>
                        <td className="px-6 py-3">
                          <span className="bg-[#1e222b] text-gray-300 py-1 px-2 rounded uppercase text-xs font-bold tracking-wider">{log.rowCount} Nodes</span>
                        </td>

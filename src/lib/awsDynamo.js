@@ -1308,7 +1308,8 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                     'rowCount': { N: String(rosterArray.length) },
                     'summary': { S: JSON.stringify(summaryData) },
                     'uploaderId': { S: String(uploaderData?.discordId || "Unknown") },
-                    'uploaderName': { S: String(uploaderData?.username || "System") }
+                    'uploaderName': { S: String(uploaderData?.username || "System") },
+                    'sourceFile': { S: String(uploaderData?.sourceFile || "Legacy_Upload") }
                 }
             }
         }

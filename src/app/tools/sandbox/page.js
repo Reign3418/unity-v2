@@ -248,7 +248,8 @@ export default function SandboxPage() {
           body: JSON.stringify({
             kingdomId: tab.computedKd,
             rosterArray: safeArray,
-            scanDateOverride: scanDateOverride
+            scanDateOverride: scanDateOverride,
+            sourceFile: activeFileName
           })
         });
 

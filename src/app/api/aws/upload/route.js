@@ -12,7 +12,7 @@ export async function POST(req) {
 
     // 2. Extract Data Boundaries
     const body = await req.json();
-    const { kingdomId, rosterArray, scanDateOverride } = body;
+    const { kingdomId, rosterArray, scanDateOverride, sourceFile } = body;
 
     if (!kingdomId || !rosterArray || !Array.isArray(rosterArray) || rosterArray.length === 0) {
       return NextResponse.json({ error: "Corrupted Payload. Missing target Kingdom or Array structures." }, { status: 400 });
@@ -28,7 +28,8 @@ export async function POST(req) {
     
     const uploaderData = {
         discordId: session.user.id,
-        username: session.user.username
+        username: session.user.username,
+        sourceFile: sourceFile || 'Unknown_File_Data'
     };
     
     const dateKey = await uploadKingdomRoster(kingdomId, rosterArray, uploaderData, scanDateOverride);

@@ -41,7 +41,8 @@ export async function GET(req) {
                     scanDate: attrs.scanDate?.S || "",
                     rowCount: parseInt(attrs.rowCount?.N || "0"),
                     uploaderId: attrs.uploaderId?.S || "Unknown Pipeline",
-                    uploaderName: attrs.uploaderName?.S || "Legacy System Action"
+                    uploaderName: attrs.uploaderName?.S || "Legacy System Action",
+                    sourceFile: attrs.sourceFile?.S || "Legacy Upload File"
                 });
             }
         }
