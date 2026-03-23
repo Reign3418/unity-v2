@@ -236,8 +236,11 @@ function DropZone({ title, description, icon, theme, optional = false }) {
     cyan: 'text-cyan-400',
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const processFile = (file) => {
     if (!file) return;
 
     setIsUploading(true);
@@ -249,6 +252,15 @@ function DropZone({ title, description, icon, theme, optional = false }) {
         const data = new Uint8Array(event.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         
+        // Extract DTG from Summary F2 if it exists
+        let extractedDtg = null;
+        if (workbook.Sheets['Summary']) {
+           const summarySheet = workbook.Sheets['Summary'];
+           if (summarySheet['F2']) {
+               extractedDtg = summarySheet['F2'].w || summarySheet['F2'].v;
+           }
+        }
+
         let totalRows = 0;
         let successCount = 0;
 
@@ -257,6 +269,12 @@ function DropZone({ title, description, icon, theme, optional = false }) {
         const primaryKd = primaryKdMatch ? primaryKdMatch[0] : null;
 
         for (const sheetName of workbook.SheetNames) {
+            // EXCLUDE EXTRANEOUS TABS (HeroScrolls / RokBoard Metadata)
+            const lowerName = sheetName.toLowerCase();
+            if (lowerName.includes('summary') || lowerName.includes('top') || lowerName.includes('rolled up')) {
+                continue;
+            }
+
             const worksheet = workbook.Sheets[sheetName];
             
             // Extract >= 3 digit KD from tab string (e.g "KD 1302" -> "1302")
@@ -283,7 +301,8 @@ function DropZone({ title, description, icon, theme, optional = false }) {
                headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({
                  kingdomId: dynamicKd, 
-                 rosterArray: validPayload
+                 rosterArray: validPayload,
+                 scanDateOverride: extractedDtg
                })
             });
 
@@ -323,6 +342,13 @@ function DropZone({ title, description, icon, theme, optional = false }) {
 
       <div 
         onClick={() => !isUploading && uploadStatus !== 'success' && fileInputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (!isUploading && uploadStatus !== 'success') {
+            processFile(e.dataTransfer.files?.[0]);
+          }
+        }}
         className="flex-1 p-6 flex flex-col items-center justify-center relative"
       >
         <input 
@@ -330,7 +356,7 @@ function DropZone({ title, description, icon, theme, optional = false }) {
           ref={fileInputRef} 
           className="hidden" 
           accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-          onChange={handleFileChange}
+          onChange={(e) => processFile(e.target.files?.[0])}
         />
 
         {isUploading ? (

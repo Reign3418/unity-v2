@@ -1226,15 +1226,28 @@ export async function purgeKingdomDatabase(kingdomId) {
  * Executes a high-velocity BatchWrite block upload into the Unity AWS Table.
  * Automatically handles the 25-item DynamoDB batch limit by chunking the JSON array.
  */
-export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData = null) {
+export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData = null, scanDateOverride = null) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
     
     // We import BatchWriteItemCommand here because it wasn't statically imported at the top
     const { BatchWriteItemCommand, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
 
-    // Generate a unique Scan Date ID (Format: YYYY_MM_DD_HH_MM_SS)
-    const scanDate = new Date().toISOString();
+    // Determine the Scan Date 
+    let scanDate;
+    if (scanDateOverride) {
+        // Rokboard F2 often has standard date strings or Excel serial numbers
+        if (!isNaN(Number(scanDateOverride))) {
+            const excelEpoch = new Date(1899, 11, 30);
+            scanDate = new Date(excelEpoch.getTime() + (Number(scanDateOverride) * 86400 * 1000)).toISOString();
+        } else {
+            const parsed = new Date(scanDateOverride);
+            scanDate = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+        }
+    } else {
+        scanDate = new Date().toISOString();
+    }
+    
     const dateKey = scanDate.replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
     
     // Generate macro-analytics summary to embed into the Date Pointer for O(1) Chart loading

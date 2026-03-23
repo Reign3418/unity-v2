@@ -1,19 +1,37 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Upload, AlertTriangle, CheckCircle2, Cloud, Database, Trash2, ArrowRight } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export default function SandboxPage() {
+  const { data: session } = useSession();
   const [parsedTabs, setParsedTabs] = useState([]);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("idle");
+  const [scanDateOverride, setScanDateOverride] = useState(null);
 
   const fileInputRef = useRef(null);
 
-  const handleFileDrop = (e) => {
-    const file = e.target.files?.[0];
+  if (!session?.user?.isSuperAdmin) {
+    return (
+      <div className="flex bg-[#0f1115] min-h-screen items-center justify-center relative overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center">
+           <AlertTriangle size={64} className="text-rose-500 mb-6 drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]" />
+           <h1 className="text-3xl font-black text-white tracking-widest mb-4">RESTRICTED ACCESS</h1>
+           <p className="text-gray-400 font-mono tracking-wide">Data Sandbox Diagnostics requires Super Admin privileges.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const processFile = (file) => {
     if (!file) return;
 
     const reader = new FileReader();
@@ -22,12 +40,28 @@ export default function SandboxPage() {
         const data = new Uint8Array(event.target.result);
         const workbook = XLSX.read(data, { type: "array" });
 
+        // Extract DTG from Summary F2 if it exists
+        let extractedDtg = null;
+        if (workbook.Sheets['Summary']) {
+           const summarySheet = workbook.Sheets['Summary'];
+           if (summarySheet['F2']) {
+               extractedDtg = summarySheet['F2'].w || summarySheet['F2'].v;
+               setScanDateOverride(extractedDtg);
+           }
+        }
+
         const primaryKdMatch = workbook.SheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
         const primaryKd = primaryKdMatch ? primaryKdMatch[0] : "UNKNOWN";
 
         const tempTabs = [];
 
         for (const sheetName of workbook.SheetNames) {
+          // EXCLUDE EXTRANEOUS TABS (HeroScrolls / RokBoard Metadata)
+          const lowerName = sheetName.toLowerCase();
+          if (lowerName.includes('summary') || lowerName.includes('top') || lowerName.includes('rolled up')) {
+              continue;
+          }
+
           const worksheet = workbook.Sheets[sheetName];
 
           const extractedKdMatch = sheetName.match(/\d{3,}/);
@@ -107,7 +141,8 @@ export default function SandboxPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             kingdomId: tab.computedKd,
-            rosterArray: safeArray
+            rosterArray: safeArray,
+            scanDateOverride: scanDateOverride
           })
         });
 
@@ -145,8 +180,16 @@ export default function SandboxPage() {
         
         {/* Left Col: Upload & Tabs */}
         <div className="lg:col-span-1 space-y-6">
-          <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`bg-[#13161c] border-2 border-dashed border-[#1e222b] hover:border-amber-500/50 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${parsedTabs.length > 0 ? 'py-6' : 'py-24'}`}>
-            <input type="file" ref={fileInputRef} className="hidden" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleFileDrop} />
+          <div 
+            onClick={() => !isUploading && fileInputRef.current?.click()} 
+            onDragOver={handleDragOver}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (!isUploading) processFile(e.dataTransfer.files?.[0]);
+            }}
+            className={`bg-[#13161c] border-2 border-dashed border-[#1e222b] hover:border-amber-500/50 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${parsedTabs.length > 0 ? 'py-6' : 'py-24'}`}
+          >
+            <input type="file" ref={fileInputRef} className="hidden" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={(e) => processFile(e.target.files?.[0])} />
             <Upload size={32} className="text-amber-400 mb-3" />
             <span className="font-bold text-gray-300">Drop Master Scan</span>
             <span className="text-xs text-gray-500 mt-1">Accepts raw .xlsx or CSV</span>
@@ -213,6 +256,9 @@ export default function SandboxPage() {
                            <span>Total Records: <strong>{parsedTabs[activeTabIdx].totalCount}</strong></span>
                            {parsedTabs[activeTabIdx].errorCount > 0 && (
                               <span className="text-rose-400 flex items-center gap-1"><AlertTriangle size={12} /> {parsedTabs[activeTabIdx].errorCount} Corrupted Rows Dropped</span>
+                           )}
+                           {scanDateOverride && (
+                              <span className="text-amber-400 font-mono tracking-widest pl-2">DTG: {scanDateOverride}</span>
                            )}
                        </div>
                    </div>

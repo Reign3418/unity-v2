@@ -79,7 +79,7 @@ export default function Sidebar() {
           <NavItem href="/events" icon={CalendarDays} label="Events Schedule" />
           <NavItem href="/mail" icon={Mail} label="Mail Generator" />
           <NavItem href="/calculators" icon={CheckSquare} label="Calculators" />
-          <NavItem href="/tools/sandbox" icon={Database} label="Data Sandbox" hidden={!isLeader} />
+          <NavItem href="/tools/sandbox" icon={Database} label="Data Sandbox" hidden={!session?.user?.isSuperAdmin} />
 
           <SectionTitle>System</SectionTitle>
           <NavItem href="/settings" icon={Settings} label="Settings" />
