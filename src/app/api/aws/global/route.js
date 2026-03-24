@@ -11,17 +11,39 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const kdsParam = searchParams.get('kds');
-    
-    // Dynamic Role-Based Access: Default to all allowed Kingdoms for the connected Persona
-    const kingdoms = kdsParam 
-        ? kdsParam.split(',').map(k => k.trim()) 
-        : session.user.allowedKingdoms || [];
+    let kingdoms = [];
 
-    // Cross-tenant Check
-    const unauthorized = kingdoms.filter(k => !session.user.allowedKingdoms?.includes(k));
-    if (!session.user.isSuperAdmin && unauthorized.length > 0) {
-        return NextResponse.json({ error: "Access Denied. You cannot synthesize Global data for Kingdoms outside your jurisdiction." }, { status: 403 });
+    // If specific kingdoms requested via ?kds=, use them. Otherwise, pull every tracked kingdom globally.
+    if (kdsParam) {
+        kingdoms = kdsParam.split(',').map(k => k.trim());
+    } else {
+        try {
+            const { DynamoDBClient, GetItemCommand } = await import('@aws-sdk/client-dynamodb');
+            const dbClient = new DynamoDBClient({
+                region: process.env.AWS_REGION || "us-east-1",
+                credentials: {
+                    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+                }
+            });
+            const configResult = await dbClient.send(new GetItemCommand({
+                TableName: process.env.AWS_TABLE_NAME,
+                Key: { 'PK': { S: 'SYSTEM#CONFIG' }, 'SK': { S: 'TRACKED_KINGDOMS' } }
+            }));
+            if (configResult.Item && configResult.Item.kingdoms && configResult.Item.kingdoms.SS) {
+                kingdoms = configResult.Item.kingdoms.SS;
+            }
+        } catch(e) {
+            console.error("Global config tracking absent in /global:", e.message);
+        }
+        
+        // Fallback to allowed kingdoms if global tracking fails
+        if (kingdoms.length === 0) {
+            kingdoms = session.user.allowedKingdoms || [];
+        }
     }
+
+    // Global View allows cross-tenant visibility
 
     if (kingdoms.length === 0) {
       return NextResponse.json({ error: "Missing Target Kingdoms or No Assigned Permissions." }, { status: 400 });
