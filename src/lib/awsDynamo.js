@@ -1321,6 +1321,15 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     
     try {
         await dbClient.send(new PutItemCommand(dateParams));
+        
+        // Dynamically register this Kingdom into the Global Tracker so the Audit Log can find it without hardcoding
+        const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+        await dbClient.send(new UpdateItemCommand({
+            TableName: tableName,
+            Key: { 'PK': { S: 'SYSTEM#CONFIG' }, 'SK': { S: 'TRACKED_KINGDOMS' } },
+            UpdateExpression: "ADD kingdoms :kd",
+            ExpressionAttributeValues: { ":kd": { SS: [String(kingdomId)] } }
+        }));
     } catch (e) {
         console.error("[AWS Batch Upload] Failed to write Master DATES pointer:", e);
         throw e;

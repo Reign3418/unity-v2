@@ -41,6 +41,17 @@ export async function GET(req) {
         // Add hardcoded backups for common tracked kingdoms just in case
         ["3155", "3418", "3690", "3582", "3598", "1302", "2338", "4025", "3701"].forEach(k => kingdoms.add(k));
 
+        try {
+            const { GetItemCommand } = await import("@aws-sdk/client-dynamodb");
+            const configResult = await dbClient.send(new GetItemCommand({
+                TableName: tableName,
+                Key: { 'PK': { S: 'SYSTEM#CONFIG' }, 'SK': { S: 'TRACKED_KINGDOMS' } }
+            }));
+            if (configResult.Item && configResult.Item.kingdoms && configResult.Item.kingdoms.SS) {
+                configResult.Item.kingdoms.SS.forEach(k => kingdoms.add(k));
+            }
+        } catch(e) { console.error("Global config tracking absent:", e.message); }
+
         const { QueryCommand } = await import("@aws-sdk/client-dynamodb");
         const uploads = [];
 
