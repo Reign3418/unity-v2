@@ -18,7 +18,7 @@ export async function GET(req) {
       return NextResponse.json({ error: "Missing 'kd' (Kingdom ID) parameter." }, { status: 400 });
     }
 
-    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kingdomId)) {
+    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kingdomId)) {
         return NextResponse.json({ error: "Access Denied. Cross-Kingdom requests are strictly prohibited by your clearance level." }, { status: 403 });
     }
 

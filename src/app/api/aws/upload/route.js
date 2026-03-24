@@ -24,7 +24,7 @@ export async function POST(req) {
     }
 
     // Cross-tenant Check
-    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kingdomId)) {
+    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kingdomId)) {
         return NextResponse.json({ error: "Access Denied. You cannot upload data to a Kingdom outside your jurisdiction." }, { status: 403 });
     }
 

@@ -12,7 +12,7 @@ export async function GET(req) {
         return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
     }
 
-    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kdParam)) {
+    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kdParam)) {
         return NextResponse.json({ error: "Access Denied. Cross-Kingdom analytical requests are strictly prohibited by your clearance level." }, { status: 403 });
     }
 

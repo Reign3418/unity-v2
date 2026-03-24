@@ -163,6 +163,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isLeader = token.isLeader;
         session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.tenant = token.tenant;
+        session.user.allowedKingdoms = token.tenant?.allowedKingdoms || [];
         session.user.governorConfig = token.governorConfig;
         session.user.ownedGuilds = token.ownedGuilds;
         session.accessToken = token.accessToken;

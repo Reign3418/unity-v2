@@ -12,7 +12,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const kdParam = searchParams.get('kd') || "3155";
 
-    if (!session.user.isSuperAdmin && !session.user.tenant?.allowedKingdoms?.includes(kdParam)) {
+    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kdParam)) {
         return NextResponse.json({ error: "Access Denied. Cross-Kingdom Vault access is strictly prohibited." }, { status: 403 });
     }
 
