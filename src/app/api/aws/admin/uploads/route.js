@@ -39,7 +39,7 @@ export async function GET(req) {
         });
         
         // Add hardcoded backups for common tracked kingdoms just in case
-        ["3155", "3418", "3690", "3582", "3598"].forEach(k => kingdoms.add(k));
+        ["3155", "3418", "3690", "3582", "3598", "1302", "2338", "4025", "3701"].forEach(k => kingdoms.add(k));
 
         const { QueryCommand } = await import("@aws-sdk/client-dynamodb");
         const uploads = [];
@@ -61,9 +61,9 @@ export async function GET(req) {
                             kingdomId: kd,
                             scanDate: attrs.scanDate?.S || "",
                             rowCount: parseInt(attrs.rowCount?.N || "0"),
-                            uploaderId: attrs.uploaderId?.S || "Unknown Pipeline",
-                            uploaderName: attrs.uploaderName?.S || "Legacy System Action",
-                            sourceFile: attrs.sourceFile?.S || "Legacy Upload File"
+                            uploaderId: (attrs.uploaderId?.S && attrs.uploaderId.S.trim() !== "System" && attrs.uploaderId.S.trim() !== "") ? attrs.uploaderId.S : "Unknown Pipeline",
+                            uploaderName: (attrs.uploaderName?.S && attrs.uploaderName.S.trim() !== "") ? attrs.uploaderName.S : "Legacy System Action",
+                            sourceFile: (attrs.sourceFile?.S && attrs.sourceFile.S.trim() !== "") ? attrs.sourceFile.S : "Legacy Upload File"
                         });
                     }
                 }
@@ -75,7 +75,7 @@ export async function GET(req) {
         // Sort dynamically: Chronological (Newest First)
         uploads.sort((a,b) => new Date(b.scanDate) - new Date(a.scanDate));
 
-        return NextResponse.json({ uploads }, { status: 200 });
+        return NextResponse.json({ uploads: uploads.slice(0, 100) }, { status: 200 });
 
     } catch (error) {
         console.error("[AWS/Admin/Uploads] Execution Refusal:", error);

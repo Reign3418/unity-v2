@@ -620,7 +620,7 @@ export default function AdminConsole() {
                  <h2 className="text-white font-bold tracking-widest uppercase">Database Ingestion Audit Log</h2>
                </div>
              </div>
-             <div className="overflow-x-auto">
+             <div className="overflow-x-auto overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
                <table className="w-full text-left text-sm text-gray-400">
                  <thead className="text-xs uppercase bg-[#0a0c0f] border-b border-[#1e222b] text-gray-500">
                    <tr>
