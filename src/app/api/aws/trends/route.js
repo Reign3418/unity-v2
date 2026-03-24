@@ -16,6 +16,11 @@ export async function GET(req) {
       return NextResponse.json({ error: "Missing 'kd' (Kingdom ID) parameter." }, { status: 400 });
     }
 
+    // Tenant Boundary Validation
+    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kingdomId)) {
+        return NextResponse.json({ error: "Access Denied. You cannot synthesize data for Kingdoms outside your active perimeter." }, { status: 403 });
+    }
+
     // Retrieve entire chronological footprint natively via DATES pointer
     const trendsData = await getKingdomTrends(kingdomId);
 
