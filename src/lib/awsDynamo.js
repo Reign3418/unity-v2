@@ -1266,6 +1266,13 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     
     const dateKey = scanDate.replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
     
+    // First, sort the entire roster array descending by Power so we can slice Top N metrics immediately
+    const sortedRoster = [...rosterArray].sort((a, b) => {
+        const aPower = parseInt(String(a.power || a.Power || 0).replace(/,/g, '')) || 0;
+        const bPower = parseInt(String(b.power || b.Power || 0).replace(/,/g, '')) || 0;
+        return bPower - aPower;
+    });
+
     // Generate macro-analytics summary to embed into the Date Pointer for O(1) Chart loading
     const summaryData = {
         scanType: 'Full',
@@ -1273,10 +1280,17 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         totalKP: 0,
         totalDeads: 0,
         activeGovernors: 0,
-        alliances: {}
+        alliances: {},
+        topSlices: {
+            '100': { power: 0, kp: 0, elements: 0 },
+            '300': { power: 0, kp: 0, elements: 0 },
+            '400': { power: 0, kp: 0, elements: 0 },
+            '650': { power: 0, kp: 0, elements: 0 },
+            '1000': { power: 0, kp: 0, elements: 0 }
+        }
     };
 
-    rosterArray.forEach(p => {
+    sortedRoster.forEach((p, index) => {
         const powerStr = String(p.power || p.Power || 0).replace(/,/g, '');
         const kpStr = String(p.killPoints || p.KillPoints || 0).replace(/,/g, '');
         const deadsStr = String(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || 0).replace(/,/g, '');
@@ -1289,10 +1303,19 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         summaryData.totalPower += power;
         summaryData.totalKP += kp;
         summaryData.totalDeads += deads;
-        if (power > 0) summaryData.activeGovernors++;
+        if (power > 0) Object.assign(summaryData, { activeGovernors: summaryData.activeGovernors + 1 });
         
         if (!summaryData.alliances[tag]) summaryData.alliances[tag] = 0;
         summaryData.alliances[tag] += power;
+
+        // Populate Top N Slices based on sequential index mapping (since array is strictly sorted descending by power)
+        [100, 300, 400, 650, 1000].forEach(limit => {
+            if (index < limit) {
+                summaryData.topSlices[String(limit)].power += power;
+                summaryData.topSlices[String(limit)].kp += kp;
+                if (power > 0) summaryData.topSlices[String(limit)].elements += 1;
+            }
+        });
     });
 
     // Detect missing variables entirely from limited payload shapes
@@ -2642,5 +2665,60 @@ export async function getMailTemplates(kingdomId) {
     } catch (e) {
         console.error("AWS Get Mail Templates Error", e);
         return [];
+    }
+}
+
+/**
+ * Retrieves the user's custom saved Camps from DynamoDB
+ */
+export async function getUserCamps(discordId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    try {
+        const { GetItemCommand } = await import('@aws-sdk/client-dynamodb');
+        const result = await dbClient.send(new GetItemCommand({
+            TableName: tableName,
+            Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'SAVED_CAMPS' } }
+        }));
+
+        if (result.Item && result.Item.attributes && result.Item.attributes.M && result.Item.attributes.M.camps) {
+            return JSON.parse(result.Item.attributes.M.camps.S || '[]');
+        }
+        return [];
+    } catch(e) {
+        console.error('AWS getUserCamps Error', e);
+        return [];
+    }
+}
+
+/**
+ * Saves exactly the user's custom saved Camps to DynamoDB
+ */
+export async function saveUserCamps(discordId, campsArray) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        const params = {
+            TableName: tableName,
+            Item: {
+                'PK': { S: `USER#${discordId}` },
+                'SK': { S: 'SAVED_CAMPS' },
+                'attributes': {
+                    M: {
+                        'camps': { S: JSON.stringify(campsArray) },
+                        'updatedAt': { S: new Date().toISOString() }
+                    }
+                }
+            }
+        };
+
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch(e) {
+        console.error('AWS saveUserCamps Error', e);
+        return false;
     }
 }

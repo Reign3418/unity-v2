@@ -69,10 +69,10 @@ export async function GET(req) {
        const sum = r.latest.summary || { totalPower: 0, totalKP: 0, activeGovernors: 0 };
        return {
            kingdom: `KD ${r.kd}`,
-           totalPower: sum.totalPower,
-           totalKP: sum.totalKP,
-           activeGovernors: sum.activeGovernors,
-           displayPower: (sum.totalPower / 1000000000).toFixed(2) + 'B'
+           basePower: sum.totalPower,
+           baseKP: sum.totalKP,
+           baseActive: sum.activeGovernors,
+           topSlices: sum.topSlices || null
        };
     });
 
