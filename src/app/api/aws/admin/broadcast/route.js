@@ -9,7 +9,7 @@ export async function POST(req) {
         // Since Vercel Edge doesn't have passport-discord, we rely on standard session middleware
         // Actually, the frontend admin/page.js is already secured by a layout guard!
         
-        const { message } = await req.json();
+        const { message, targetKingdom } = await req.json();
 
         if (!message || message.trim() === '') {
             return NextResponse.json({ error: 'Message cannot be empty.' }, { status: 400 });
@@ -24,7 +24,7 @@ export async function POST(req) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${process.env.UNITY_INTERNAL_SECRET}`
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, targetKingdom: targetKingdom || 'ALL' })
         });
 
         if (!response.ok) {

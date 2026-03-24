@@ -167,18 +167,26 @@ export default function AdminConsole() {
   const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
 
   const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastTarget, setBroadcastTarget] = useState("ALL");
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   const handleBroadcast = async () => {
     if (!broadcastMessage.trim()) return alert("Message cannot be empty.");
-    if (!confirm("Are you sure you want to blast this maintenance alert to ALL connected Discord servers natively?")) return;
+    
+    // Safety prompt differs based on scope
+    const isGlobal = broadcastTarget === "ALL";
+    const promptMsg = isGlobal 
+        ? "Are you sure you want to blast this maintenance alert to ALL connected Discord servers natively?"
+        : `Are you sure you want to dispatch a targeted webhook exclusively to Kingdom ${broadcastTarget}?`;
+        
+    if (!confirm(promptMsg)) return;
 
     setIsBroadcasting(true);
     try {
       const res = await fetch("/api/aws/admin/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: broadcastMessage })
+        body: JSON.stringify({ message: broadcastMessage, targetKingdom: broadcastTarget })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to broadcast");
@@ -449,12 +457,26 @@ export default function AdminConsole() {
                <h3 className="text-rose-500 font-bold mb-4 flex items-center gap-2"><Radio size={18} className="animate-pulse"/> Global Broadcast Terminal</h3>
                
                <p className="text-xs text-rose-300/70 mb-3 leading-relaxed">
-                 Bypass all server caches and inject an emergency administrative alert natively into every connected Discord server's primary announcement channel simultaneously.
+                 Bypass all server caches and inject an administrative alert natively into connected Discord server channels.
                </p>
+               
+               <div className="mb-3">
+                 <select 
+                   className="w-full bg-[#1a0505] border border-rose-500/30 rounded p-2 text-sm text-white focus:outline-none focus:border-rose-500 font-bold"
+                   value={broadcastTarget}
+                   onChange={e => setBroadcastTarget(e.target.value)}
+                   disabled={isBroadcasting}
+                 >
+                   <option value="ALL">🚨 ALL REGISTERED KINGDOMS GLOBAL BLAST</option>
+                   {Array.from(new Set(tenants.map(t => t.kingdomId))).sort((a,b)=>a-b).map(kd => (
+                     <option key={kd} value={kd}>Target Webhook: Kingdom {kd}</option>
+                   ))}
+                 </select>
+               </div>
                
                <textarea 
                  className="w-full bg-[#0a0000] border border-rose-500/30 rounded p-3 text-sm text-white focus:outline-none focus:border-rose-500 min-h-[100px] mb-3 resize-none font-mono"
-                 placeholder="Enter emergency maintenance note or version update details here..."
+                 placeholder="Enter targeted notification or update details here..."
                  value={broadcastMessage}
                  onChange={e => setBroadcastMessage(e.target.value)}
                  disabled={isBroadcasting}
