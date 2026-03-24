@@ -21,31 +21,57 @@ export async function GET(req) {
             }
         });
 
-        const params = {
-            TableName: tableName,
-            FilterExpression: "begins_with(PK, :datesPrefix) AND begins_with(SK, :scanPrefix)",
-            ExpressionAttributeValues: {
-                ":datesPrefix": { S: "DATES#" },
-                ":scanPrefix": { S: "SCAN#" }
-            }
-        };
+        const [tenants, users] = await Promise.all([
+            import("@/lib/awsDynamo").then(m => m.getAllTenants()),
+            import("@/lib/awsDynamo").then(m => m.getAllUsers())
+        ]);
 
-        const result = await dbClient.send(new ScanCommand(params));
-        
-        const uploads = [];
-        if (result.Items) {
-            for (const item of result.Items) {
-                const attrs = item.attributes?.M || {};
-                uploads.push({
-                    kingdomId: item.PK.S.replace("DATES#", ""),
-                    scanDate: attrs.scanDate?.S || "",
-                    rowCount: parseInt(attrs.rowCount?.N || "0"),
-                    uploaderId: attrs.uploaderId?.S || "Unknown Pipeline",
-                    uploaderName: attrs.uploaderName?.S || "Legacy System Action",
-                    sourceFile: attrs.sourceFile?.S || "Legacy Upload File"
-                });
+        const kingdoms = new Set();
+        tenants.forEach(t => {
+            if (t.kingdomId) kingdoms.add(t.kingdomId);
+            if (t.allowedKingdoms && Array.isArray(t.allowedKingdoms)) {
+                t.allowedKingdoms.forEach(k => kingdoms.add(k));
             }
-        }
+        });
+        users.forEach(u => {
+            if (u.attributes?.targetKingdom?.S) kingdoms.add(u.attributes.targetKingdom.S);
+            if (u.attributes?.kingdomId?.S) kingdoms.add(u.attributes.kingdomId.S);
+        });
+        
+        // Add hardcoded backups for common tracked kingdoms just in case
+        ["3155", "3418", "3690", "3582", "3598"].forEach(k => kingdoms.add(k));
+
+        const { QueryCommand } = await import("@aws-sdk/client-dynamodb");
+        const uploads = [];
+
+        await Promise.all(Array.from(kingdoms).map(async (kd) => {
+            try {
+                const res = await dbClient.send(new QueryCommand({
+                    TableName: tableName,
+                    KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
+                    ExpressionAttributeValues: {
+                        ":pk": { S: `DATES#${kd}` },
+                        ":skPrefix": { S: "SCAN#" }
+                    }
+                }));
+                
+                if (res.Items) {
+                    for (const item of res.Items) {
+                        const attrs = item.attributes?.M || {};
+                        uploads.push({
+                            kingdomId: kd,
+                            scanDate: attrs.scanDate?.S || "",
+                            rowCount: parseInt(attrs.rowCount?.N || "0"),
+                            uploaderId: attrs.uploaderId?.S || "Unknown Pipeline",
+                            uploaderName: attrs.uploaderName?.S || "Legacy System Action",
+                            sourceFile: attrs.sourceFile?.S || "Legacy Upload File"
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error(`Query Failed for Kingdom ${kd}:`, e.message);
+            }
+        }));
 
         // Sort dynamically: Chronological (Newest First)
         uploads.sort((a,b) => new Date(b.scanDate) - new Date(a.scanDate));
