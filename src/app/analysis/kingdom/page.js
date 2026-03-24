@@ -110,12 +110,7 @@ export default function KingdomAnalysis() {
   }
 
   // Data Filtering for Area Chart
-  const filteredTrends = trends.filter(t => {
-      if (startDate && new Date(t.rawDate) < new Date(startDate)) return false;
-      // Append time to end date so it includes the full day
-      if (endDate && new Date(t.rawDate) > new Date(endDate + 'T23:59:59')) return false;
-      return true;
-  }).map(t => {
+  const actualTrends = trends.map(t => {
       let plotPower = t.totalPower;
       if (activeAlliance && activeAlliance !== 'Other') {
           const key = activeAlliance === 'Unallied' ? 'None' : activeAlliance;
@@ -130,9 +125,96 @@ export default function KingdomAnalysis() {
       }
       return {
           ...t,
-          plotPower: plotPower
+          plotPower: plotPower,
+          predictedPower: null,
+          isPrediction: false
       };
   });
+
+  const filteredTrends = actualTrends.filter(t => {
+      if (startDate && new Date(t.rawDate) < new Date(startDate)) return false;
+      // Append time to end date so it includes the full day
+      if (endDate && new Date(t.rawDate) > new Date(endDate + 'T23:59:59')) return false;
+      return true;
+  });
+
+  // Linear Regression for Trajectory Projection
+  let regression = null;
+  if (actualTrends.length >= 2) {
+      const n = actualTrends.length;
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+      const startMs = new Date(actualTrends[0].rawDate).getTime();
+      actualTrends.forEach(t => {
+          const x = (new Date(t.rawDate).getTime() - startMs) / (1000 * 60 * 60 * 24);
+          const y = t.plotPower;
+          sumX += x;
+          sumY += y;
+          sumXY += x * y;
+          sumXX += x * x;
+      });
+      const denominator = (n * sumXX - sumX * sumX);
+      if (denominator !== 0) {
+          const m = (n * sumXY - sumX * sumY) / denominator;
+          const b = (sumY - m * sumX) / n;
+          regression = { m, b, startMs };
+      }
+  }
+
+  // Generate Prediction Points if End Date exceeds available scans
+  const predictionPoints = [];
+  if (endDate && actualTrends.length > 0 && regression) {
+      const parsedEnd = new Date(endDate + 'T23:59:59');
+      const endMs = parsedEnd.getTime();
+      
+      const lastActualTrend = actualTrends[actualTrends.length - 1];
+      const lastActualMs = new Date(lastActualTrend.rawDate).getTime();
+      
+      if (endMs > lastActualMs) {
+          // Bridge point: Connect the last actual rendered point to the projection line
+          if (filteredTrends.length > 0 && filteredTrends[filteredTrends.length - 1].rawDate === lastActualTrend.rawDate) {
+              filteredTrends[filteredTrends.length - 1].predictedPower = filteredTrends[filteredTrends.length - 1].plotPower;
+          }
+          
+          let currentMs = lastActualMs + (1000 * 60 * 60 * 24); // Step forward day by day
+          while (currentMs <= endMs) {
+              const xDays = (currentMs - regression.startMs) / (1000 * 60 * 60 * 24);
+              let predY = regression.m * xDays + regression.b;
+              if (predY < 0) predY = 0; // Model shouldn't dip below 0 power
+              
+              const dateObj = new Date(currentMs);
+              const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              
+              predictionPoints.push({
+                  rawDate: dateObj.toISOString(),
+                  dateStr,
+                  plotPower: null,
+                  predictedPower: predY,
+                  isPrediction: true
+              });
+              currentMs += (1000 * 60 * 60 * 24);
+          }
+          
+          // Ensure the exact end date is plotted if the day iterations slightly missed the max time bound
+          if (predictionPoints.length > 0) {
+              const lastPredMs = new Date(predictionPoints[predictionPoints.length - 1].rawDate).getTime();
+              if (endMs - lastPredMs > (1000 * 60 * 60)) { 
+                 const xDays = (endMs - regression.startMs) / (1000 * 60 * 60 * 24);
+                 let predY = regression.m * xDays + regression.b;
+                 if (predY < 0) predY = 0;
+                 const dateStr = parsedEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                 predictionPoints.push({
+                      rawDate: parsedEnd.toISOString(),
+                      dateStr,
+                      plotPower: null,
+                      predictedPower: predY,
+                      isPrediction: true
+                 });
+              }
+          }
+      }
+  }
+
+  const finalChartData = [...filteredTrends, ...predictionPoints];
 
   const activeColorIndex = alliancePieData.findIndex(a => a.name === activeAlliance);
   const activeColor = activeColorIndex !== -1 ? COLORS[activeColorIndex % COLORS.length] : '#10b981';
@@ -146,11 +228,25 @@ export default function KingdomAnalysis() {
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      const val = payload[0].value;
+      const pData = payload[0].payload;
+      let val = null;
+      let isPred = false;
+      
+      if (pData.isPrediction) {
+          val = pData.predictedPower;
+          isPred = true;
+      } else {
+          val = pData.plotPower;
+      }
+      
+      if (val == null) return null;
+
       const displayVal = val >= 1000000000 ? (val / 1000000000).toFixed(3) + 'B' : (val / 1000000).toFixed(1) + 'M';
       return (
         <div className="bg-[#0f1115] border border-[#1e222b] p-4 rounded-lg shadow-xl outline-none">
-          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">{label}</p>
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+            {label} {isPred && <span className="text-cyan-500 text-[9px] tracking-widest bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">PROJECTION</span>}
+          </p>
           <p style={{ color: activeColor }} className="font-mono font-bold text-lg">{displayVal} Power</p>
           <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-wider">
               {activeAlliance ? `[${activeAlliance}] Alliance Metric` : 'Kingdom Overall Metric'}
@@ -268,7 +364,7 @@ export default function KingdomAnalysis() {
                 
                 <div className="h-[350px] w-full mt-auto">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={filteredTrends} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <AreaChart data={finalChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorPower" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={activeColor} stopOpacity={0.4}/>
@@ -289,10 +385,20 @@ export default function KingdomAnalysis() {
                                 animationDuration={800}
                                 animationEasing="ease-in-out"
                             />
+                            <Area 
+                                type="monotone" 
+                                dataKey="predictedPower" 
+                                stroke={activeColor} 
+                                strokeWidth={2} 
+                                strokeDasharray="5 5"
+                                fillOpacity={0} 
+                                animationDuration={800}
+                                animationEasing="ease-in-out"
+                            />
                         </AreaChart>
                     </ResponsiveContainer>
                     
-                    {filteredTrends.length === 0 && (
+                    {finalChartData.length === 0 && (
                         <div className="absolute inset-0 flex items-center justify-center flex-col">
                             <Calendar className="w-8 h-8 text-gray-600 mb-2" />
                             <div className="text-gray-500 text-xs uppercase tracking-widest font-bold">No Data in Timeframe</div>
