@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
-    Medal, RefreshCw, Activity, Zap, Shield, Target, ScrollText, Crosshair
+    Medal, RefreshCw, Activity, Zap, Shield, Target, ScrollText, Crosshair, Trophy
 } from "lucide-react";
 
 export default function DkpResults() {
@@ -95,8 +95,8 @@ export default function DkpResults() {
                  {session?.user?.tenant?.allowedKingdoms?.map(kd => (
                     <option key={kd} value={kd}>KD {kd}</option>
                  ))}
-                 {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
-                    <option value={targetKd}>KD {targetKd}</option>
+                 {!session?.user?.tenant?.allowedKingdoms?.includes(kd) && kd && (
+                    <option value={kd}>KD {kd}</option>
                  )}
                </select>
                <button 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
-    Medal, Flame, Sparkles, ShieldAlert, ArrowUpRight, Crosshair, Users, Trophy
+    Medal, Flame, Sparkles, ShieldAlert, ArrowUpRight, Crosshair, Users, Trophy, BarChart2, Zap, Target
 } from "lucide-react";
 
 export default function PreKvkRankings() {
@@ -98,8 +98,8 @@ export default function PreKvkRankings() {
                {session?.user?.tenant?.allowedKingdoms?.map(kd => (
                   <option key={kd} value={kd}>KD {kd}</option>
                ))}
-               {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
-                  <option value={targetKd}>KD {targetKd}</option>
+               {!session?.user?.tenant?.allowedKingdoms?.includes(kd) && kd && (
+                  <option value={kd}>KD {kd}</option>
                )}
             </select>
             <button 

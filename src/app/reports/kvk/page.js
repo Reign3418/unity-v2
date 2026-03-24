@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
     ShieldAlert, Swords, Skull, Trophy, BarChart3, Users, Clock, Flame, 
-    ArrowUpRight, ArrowDownRight, RefreshCw, Zap, Medal
+    ArrowUpRight, ArrowDownRight, RefreshCw, Zap, Medal, FileText, BarChart2, Target, TrendingUp, TrendingDown, Shield
 } from 'lucide-react';
 
 export default function KvkReportPage() {
@@ -85,8 +85,8 @@ export default function KvkReportPage() {
                  {session?.user?.tenant?.allowedKingdoms?.map(kd => (
                     <option key={kd} value={kd}>KD {kd}</option>
                  ))}
-                 {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
-                    <option value={targetKd}>KD {targetKd}</option>
+                 {!session?.user?.tenant?.allowedKingdoms?.includes(kd) && kd && (
+                    <option value={kd}>KD {kd}</option>
                  )}
                </select>
                <button 
