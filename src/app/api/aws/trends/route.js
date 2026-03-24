@@ -16,13 +16,53 @@ export async function GET(req) {
       return NextResponse.json({ error: "Missing 'kd' (Kingdom ID) parameter." }, { status: 400 });
     }
 
-    // Tenant Boundary Validation
-    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kingdomId)) {
+    if (!session.user.isSuperAdmin && kingdomId !== 'GLOBAL' && !session.user.allowedKingdoms?.includes(kingdomId)) {
         return NextResponse.json({ error: "Access Denied. You cannot synthesize data for Kingdoms outside your active perimeter." }, { status: 403 });
     }
 
-    // Retrieve entire chronological footprint natively via DATES pointer
-    const trendsData = await getKingdomTrends(kingdomId);
+    let trendsData = [];
+
+    if (kingdomId === 'GLOBAL') {
+        const allowed = session.user.allowedKingdoms || [];
+        const allTrendsMap = {};
+        
+        for (const kd of allowed) {
+            const kdTrends = await getKingdomTrends(kd);
+            kdTrends.forEach(t => {
+                let dayKey = t.scanDate;
+                if (t.scanDate && t.scanDate.includes('_')) {
+                    dayKey = t.scanDate.split('_')[0]; 
+                }
+                
+                if (!allTrendsMap[dayKey]) {
+                    allTrendsMap[dayKey] = {
+                        scanDate: t.scanDate, 
+                        rowCount: 0,
+                        summary: { totalPower: 0, activeGovernors: 0, totalKP: 0, alliances: {} }
+                    };
+                }
+                
+                allTrendsMap[dayKey].rowCount += t.rowCount;
+                if (t.summary) {
+                    allTrendsMap[dayKey].summary.totalPower += (t.summary.totalPower || 0);
+                    allTrendsMap[dayKey].summary.activeGovernors += (t.summary.activeGovernors || 0);
+                    allTrendsMap[dayKey].summary.totalKP += (t.summary.totalKP || 0);
+                    
+                    if (t.summary.alliances) {
+                        for (const [tag, power] of Object.entries(t.summary.alliances)) {
+                            const globalTag = tag === 'None' ? `[${kd}] Unallied` : `[${kd}] ${tag}`;
+                            allTrendsMap[dayKey].summary.alliances[globalTag] = 
+                                (allTrendsMap[dayKey].summary.alliances[globalTag] || 0) + power;
+                        }
+                    }
+                }
+            });
+        }
+        trendsData = Object.values(allTrendsMap).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate));
+    } else {
+        // Retrieve entire chronological footprint natively via DATES pointer
+        trendsData = await getKingdomTrends(kingdomId);
+    }
 
     return NextResponse.json({ trends: trendsData }, { status: 200 });
 

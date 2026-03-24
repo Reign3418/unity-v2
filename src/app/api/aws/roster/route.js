@@ -18,12 +18,27 @@ export async function GET(req) {
       return NextResponse.json({ error: "Missing 'kd' (Kingdom ID) parameter." }, { status: 400 });
     }
 
-    if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kingdomId)) {
+    if (!session.user.isSuperAdmin && kingdomId !== 'GLOBAL' && !session.user.allowedKingdoms?.includes(kingdomId)) {
         return NextResponse.json({ error: "Access Denied. Cross-Kingdom requests are strictly prohibited by your clearance level." }, { status: 403 });
     }
 
-    // 3. Execute DynamoDB Roster Fetch
-    const rosterData = await getKingdomRoster(kingdomId);
+    let rosterData = [];
+
+    if (kingdomId === 'GLOBAL') {
+        const allowed = session.user.allowedKingdoms || [];
+        for (const kd of allowed) {
+            const kdRoster = await getKingdomRoster(kd);
+            const taggedRoster = kdRoster.map(r => ({
+                ...r,
+                alliance: r.alliance === 'None' ? `[${kd}] Unallied` : `[${kd}] ${r.alliance}`,
+                name: `[${kd}] ${r.name}`
+            }));
+            rosterData.push(...taggedRoster);
+        }
+    } else {
+        // 3. Execute DynamoDB Roster Fetch
+        rosterData = await getKingdomRoster(kingdomId);
+    }
 
     return NextResponse.json({ roster: rosterData }, { status: 200 });
 
