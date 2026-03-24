@@ -70,7 +70,7 @@ export default function Navbar() {
           </div>
 
           {/* Global Kingdom Autoloader */}
-          {session?.user?.tenant?.allowedKingdoms?.length > 0 && (
+          {session?.user?.allowedKingdoms?.length > 0 && (
              <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-r border-[#1e222b]">
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Target KD:</span>
                 <select 
@@ -78,7 +78,7 @@ export default function Navbar() {
                   defaultValue={
                       typeof window !== 'undefined' && localStorage.getItem('unty_active_kd') 
                           ? localStorage.getItem('unty_active_kd') 
-                          : (session.user.tenant.kingdomId || "3155")
+                          : (session.user.allowedKingdoms[0] || "3155")
                   }
                   onChange={(e) => {
                       localStorage.setItem('unty_active_kd', e.target.value);
@@ -86,12 +86,12 @@ export default function Navbar() {
                       window.location.reload();
                   }}
                 >
-                  {session.user.tenant.allowedKingdoms.map(kd => (
+                  {session.user.allowedKingdoms.map(kd => (
                     <option key={kd} value={kd} className="bg-[#0f1115] text-white">[{kd}]</option>
                   ))}
-                  {/* Fallback if their allowed kingdoms array doesn't explicitly contain their default */}
-                  {!session.user.tenant.allowedKingdoms.includes(session.user.tenant.kingdomId) && (
-                     <option value={session.user.tenant.kingdomId} className="bg-[#0f1115] text-white">[{session.user.tenant.kingdomId}]</option>
+                  {/* Provide an All option for specific Global Views if needed */}
+                  {session.user.allowedKingdoms.length > 1 && (
+                     <option value="GLOBAL" className="bg-[#0f1115] text-amber-400">[ALL KINGDOMS]</option>
                   )}
                 </select>
              </div>
