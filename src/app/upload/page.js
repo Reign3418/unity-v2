@@ -356,7 +356,7 @@ function DropZone({ title, description, icon, theme, optional = false }) {
   };
 
   return (
-    <div className={`w-full flex-1 bg-[#0f1115] rounded-xl border transition-all duration-500 overflow-hidden flex flex-col h-[320px] shadow-lg ${uploadStatus === 'success' ? 'border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]' : 'border-[#1e222b]'}`}>
+    <div className={`w-full flex-1 bg-[#0f1115] rounded-xl border transition-all duration-500 overflow-hidden flex flex-col min-h-[320px] shadow-lg ${uploadStatus === 'success' ? 'border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]' : 'border-[#1e222b]'}`}>
       
       <div className="p-4 border-b border-[#1e222b] bg-[#0a0c0f] flex justify-between items-center">
         <div>

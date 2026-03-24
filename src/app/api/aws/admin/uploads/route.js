@@ -48,10 +48,9 @@ export async function GET(req) {
             try {
                 const res = await dbClient.send(new QueryCommand({
                     TableName: tableName,
-                    KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
+                    KeyConditionExpression: "PK = :pk",
                     ExpressionAttributeValues: {
-                        ":pk": { S: `DATES#${kd}` },
-                        ":skPrefix": { S: "SCAN#" }
+                        ":pk": { S: `DATES#${kd}` }
                     }
                 }));
                 
