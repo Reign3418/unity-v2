@@ -52,7 +52,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Scroll Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent pb-24">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="px-3 py-4 space-y-1">
           <NavItem href="/" icon={LayoutDashboard} label="Dashboard" />
           <NavItem href="/stats" icon={User} label="My Stats" />
@@ -88,7 +88,7 @@ export default function Sidebar() {
       </div>
 
       {/* Footer Profile / Logout Area */}
-      <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-[#0a0c0f] via-[#0f1115] border-t border-[#1e222b]">
+      <div className="w-full mt-auto p-4 bg-[#0a0c0f] border-t border-[#1e222b]">
         {session ? (
           <button 
             onClick={() => signOut({ callbackUrl: '/' })}
