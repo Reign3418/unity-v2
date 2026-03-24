@@ -296,6 +296,7 @@ export async function getKingdomDeltas(kingdomId) {
            let summaryObj = {};
            try { summaryObj = JSON.parse(attrs.summary?.S || "{}"); } catch(e){}
            return {
+               sk: i.SK.S, // "SCAN#2026_03_24_..."
                scanDate: attrs.scanDate?.S,
                scanType: summaryObj.scanType || 'Full' // Legacy defaults to Full
            };
@@ -324,8 +325,9 @@ export async function getKingdomDeltas(kingdomId) {
             return await getKingdomRoster(kingdomId);
         }
 
-        const latestDate = String(dates[0].scanDate).replace(/[.#$\/\[\]\s]/g, "_");
-        const previousDate = String(dates[bestMatchIndex].scanDate).replace(/[.#$\/\[\]\s]/g, "_");
+        // Extract the exact dateKey string stripped from the DATES# SK ("SCAN#<dateKey>")
+        const latestDateKey = dates[0].sk.replace('SCAN#', '');
+        const previousDateKey = dates[bestMatchIndex].sk.replace('SCAN#', '');
         
         const getSnapshot = async (dateStr) => {
             const params = {
@@ -357,8 +359,8 @@ export async function getKingdomDeltas(kingdomId) {
         };
 
         const [latestSnap, prevSnap] = await Promise.all([
-            getSnapshot(latestDate), 
-            getSnapshot(previousDate)
+            getSnapshot(latestDateKey),
+            getSnapshot(previousDateKey)
         ]);
 
         const roster = [];
