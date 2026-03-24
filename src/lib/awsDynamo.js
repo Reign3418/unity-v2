@@ -1277,9 +1277,13 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     };
 
     rosterArray.forEach(p => {
-        const power = parseInt(p.power || p.Power || 0);
-        const kp = parseInt(p.killPoints || p.KillPoints || 0);
-        const deads = parseInt(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || 0);
+        const powerStr = String(p.power || p.Power || 0).replace(/,/g, '');
+        const kpStr = String(p.killPoints || p.KillPoints || 0).replace(/,/g, '');
+        const deadsStr = String(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || 0).replace(/,/g, '');
+        
+        const power = parseInt(powerStr) || 0;
+        const kp = parseInt(kpStr) || 0;
+        const deads = parseInt(deadsStr) || 0;
         const tag = p.alliance || p.Alliance || 'None';
         
         summaryData.totalPower += power;

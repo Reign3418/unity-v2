@@ -15,13 +15,10 @@ export default function GlobalAnalysis() {
   const [globalStats, setGlobalStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // You can extend this to dynamic inputs later
-  const targetKds = "3155,3156"; 
-
   const fetchGlobalStats = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/aws/global?kds=${targetKds}`);
+      const res = await fetch(`/api/aws/global`);
       const data = await res.json();
       
       if (res.ok && data.globalStats) {

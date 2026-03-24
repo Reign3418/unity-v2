@@ -10,11 +10,21 @@ export async function GET(req) {
     }
 
     const { searchParams } = new URL(req.url);
-    const kdsParam = searchParams.get('kds') || "3155,3156";
-    const kingdoms = kdsParam.split(',').map(k => k.trim());
+    const kdsParam = searchParams.get('kds');
+    
+    // Dynamic Role-Based Access: Default to all allowed Kingdoms for the connected Persona
+    const kingdoms = kdsParam 
+        ? kdsParam.split(',').map(k => k.trim()) 
+        : session.user.allowedKingdoms || [];
+
+    // Cross-tenant Check
+    const unauthorized = kingdoms.filter(k => !session.user.allowedKingdoms?.includes(k));
+    if (!session.user.isSuperAdmin && unauthorized.length > 0) {
+        return NextResponse.json({ error: "Access Denied. You cannot synthesize Global data for Kingdoms outside your jurisdiction." }, { status: 403 });
+    }
 
     if (kingdoms.length === 0) {
-      return NextResponse.json({ error: "Missing Target Kingdoms." }, { status: 400 });
+      return NextResponse.json({ error: "Missing Target Kingdoms or No Assigned Permissions." }, { status: 400 });
     }
 
     const fetchPromises = kingdoms.map(async (kd) => {
