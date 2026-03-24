@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock 
+  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
@@ -165,6 +165,31 @@ export default function AdminConsole() {
   const [passForm, setPassForm] = useState({ kingdomId: "", role: "Member", poc: "", expireDays: "7" });
   const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "Member" });
   const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
+
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  const handleBroadcast = async () => {
+    if (!broadcastMessage.trim()) return alert("Message cannot be empty.");
+    if (!confirm("Are you sure you want to blast this maintenance alert to ALL connected Discord servers natively?")) return;
+
+    setIsBroadcasting(true);
+    try {
+      const res = await fetch("/api/aws/admin/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: broadcastMessage })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to broadcast");
+      alert(`Successfully broadcasted to ${data.targetsReached} actively connected Guilds!`);
+      setBroadcastMessage("");
+    } catch (e) {
+      alert(`Broadcast Failed: ${e.message}`);
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
 
   // Update fetchAdminMatrix assignment payload natively
   useEffect(() => {
@@ -416,6 +441,37 @@ export default function AdminConsole() {
                  </div>
                  <button onClick={handleAddManualUser} className="w-full bg-[#1e222b] hover:bg-indigo-600 text-white rounded py-1.5 text-xs font-bold uppercase tracking-widest transition-all">Direct Inject Profile</button>
                </div>
+            </div>
+
+{/* GLOBAL MAINTENANCE BROADCAST */}
+            <div className="border border-rose-500/30 bg-[#130000] rounded-xl p-6 relative overflow-hidden shadow-[0_0_30px_rgba(225,29,72,0.1)]">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-red-600"></div>
+               <h3 className="text-rose-500 font-bold mb-4 flex items-center gap-2"><Radio size={18} className="animate-pulse"/> Global Broadcast Terminal</h3>
+               
+               <p className="text-xs text-rose-300/70 mb-3 leading-relaxed">
+                 Bypass all server caches and inject an emergency administrative alert natively into every connected Discord server's primary announcement channel simultaneously.
+               </p>
+               
+               <textarea 
+                 className="w-full bg-[#0a0000] border border-rose-500/30 rounded p-3 text-sm text-white focus:outline-none focus:border-rose-500 min-h-[100px] mb-3 resize-none font-mono"
+                 placeholder="Enter emergency maintenance note or version update details here..."
+                 value={broadcastMessage}
+                 onChange={e => setBroadcastMessage(e.target.value)}
+                 disabled={isBroadcasting}
+               ></textarea>
+               
+               <button 
+                 onClick={handleBroadcast} 
+                 disabled={isBroadcasting || !broadcastMessage.trim()}
+                 className={`w-full py-3 rounded text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                   isBroadcasting || !broadcastMessage.trim() 
+                     ? 'bg-[#1a0505] text-rose-500/30 border border-rose-500/10 cursor-not-allowed' 
+                     : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'
+                 }`}
+               >
+                 {isBroadcasting ? <RefreshCw size={18} className="animate-spin" /> : <Radio size={18} />}
+                 {isBroadcasting ? 'TRANSMITTING...' : 'INITIATE OVERRIDE'}
+               </button>
             </div>
         </div>
 
