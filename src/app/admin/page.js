@@ -468,9 +468,18 @@ export default function AdminConsole() {
                    disabled={isBroadcasting}
                  >
                    <option value="ALL">🚨 ALL REGISTERED KINGDOMS GLOBAL BLAST</option>
-                   {Array.from(new Set(tenants.map(t => t.kingdomId))).sort((a,b)=>a-b).map(kd => (
-                     <option key={kd} value={kd}>Target Webhook: Kingdom {kd}</option>
-                   ))}
+                   
+                   <optgroup label="Target by Kingdom Integration">
+                     {Array.from(new Set(tenants.map(t => t.kingdomId))).filter(Boolean).sort((a,b)=>a-b).map(kd => (
+                       <option key={`kd-${kd}`} value={kd}>Target Webhook: Kingdom {kd}</option>
+                     ))}
+                   </optgroup>
+
+                   <optgroup label="Target by Specific Discord Server ID">
+                     {tenants.map(t => (
+                       <option key={`guild-${t.guildId}`} value={t.guildId}>Server Token: {t.guildId} (KD {t.kingdomId})</option>
+                     ))}
+                   </optgroup>
                  </select>
                </div>
                
