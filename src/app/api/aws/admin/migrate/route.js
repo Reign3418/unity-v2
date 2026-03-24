@@ -19,26 +19,32 @@ export async function GET(req) {
         });
         const tableName = process.env.AWS_TABLE_NAME;
 
-        console.log("[Migration] Sweeping Vercel Table for DATES objects...");
+        console.log("[Migration] Firing targeted O(1) Queries into DATES objects...");
         
-        // Find ALL past DATES blocks to sweep the entire history regardless of TRACKED_KINGDOMS registry
-        const scanResult = await dbClient.send(new ScanCommand({
-            TableName: tableName,
-            FilterExpression: 'begins_with(PK, :prefix)',
-            ExpressionAttributeValues: { ':prefix': { S: 'DATES#' } }
-        }));
+        // Use a targeted array to avoid the 1MB Scan Pagination limits of DynamoDB on massive legacy tables.
+        // We include 1302 explicitly to rescue it from orphanage.
+        const targetKingdoms = ['3155', '3701', '4025', '1302', '3738', '2338', '2934', '1000'];
+        const kingdoms = [];
+
+        // Verify which targeted kingdoms actually have DATES pointers
+        for (const kd of targetKingdoms) {
+            const check = await dbClient.send(new QueryCommand({
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk',
+                ExpressionAttributeValues: { ':pk': { S: `DATES#${kd}` } }
+            }));
+            if (check.Items && check.Items.length > 0) {
+                kingdoms.push(kd);
+            }
+        }
         
-        if (!scanResult.Items || scanResult.Items.length === 0) {
+        if (kingdoms.length === 0) {
             return NextResponse.json({ error: "No Scans found in Database." }, { status: 404 });
         }
         
-        // Extract unique kingdoms from DATES# PKs
-        const uniqueKds = new Set(scanResult.Items.map(item => item.PK.S.replace('DATES#', '')));
-        const kingdoms = Array.from(uniqueKds);
-        
         console.log(`[Migration] Found ${kingdoms.length} Active Kingdoms to process:`, kingdoms.join(', '));
         
-        // Ensure ALL of these discovered kingdoms exist in TRACKED_KINGDOMS (Solves '1302 Missing' Error)
+        // Ensure ALL of these discovered kingdoms exist in TRACKED_KINGDOMS
         try {
             await dbClient.send(new UpdateItemCommand({
                 TableName: tableName,
