@@ -107,12 +107,12 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
                         <select 
                             value={selectedAlliance}
                             onChange={(e) => setSelectedAlliance(e.target.value)}
-                            className="bg-transparent border-none outline-none text-white text-sm w-full font-bold cursor-pointer uppercase tracking-wider placeholder-gray-600"
+                            className="bg-transparent border-none outline-none text-white text-sm w-full font-bold cursor-pointer uppercase tracking-wider placeholder-gray-600 [&>option]:bg-[#0f1115] [&>option]:text-white"
                         >
-                            <option value="ALL">All Alliances ({rosterData.length})</option>
-                            <option value="NONE">Unallied (NONE)</option>
+                            <option value="ALL" className="bg-[#0f1115] text-white">All Alliances ({rosterData.length})</option>
+                            <option value="NONE" className="bg-[#0f1115] text-white">Unallied (NONE)</option>
                             {uniqueAlliances.map(a => (
-                                <option key={a} value={a}>{a}</option>
+                                <option key={a} value={a} className="bg-[#0f1115] text-white">{a}</option>
                             ))}
                         </select>
                     </div>

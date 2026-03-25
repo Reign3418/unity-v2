@@ -147,10 +147,10 @@ export default function KingdomAnalysis() {
                  className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
                >
                  {session?.user?.allowedKingdoms?.map(kd => (
-                    <option key={kd} value={kd}>Kingdom {kd}</option>
+                    <option key={kd} value={kd} className="bg-[#0f1115] text-white">Kingdom {kd}</option>
                  ))}
                  {!session?.user?.allowedKingdoms?.includes(targetKd) && targetKd && (
-                    <option value={targetKd}>Kingdom {targetKd}</option>
+                    <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
                  )}
                </select>
 
