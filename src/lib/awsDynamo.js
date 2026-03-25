@@ -823,6 +823,70 @@ export async function addTenantAllowedKingdom(guildId, newKingdomId) {
 }
 
 /**
+ * ADMIN: Update custom tracking notes for a Tenant
+ */
+export async function updateTenantNotes(guildId, notes) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: 'GLOBAL_TENANTS' },
+            'SK': { S: `TENANT#${guildId}` }
+        },
+        UpdateExpression: 'SET #attr.#notes = :notes',
+        ExpressionAttributeNames: {
+            '#attr': 'attributes',
+            '#notes': 'notes'
+        },
+        ExpressionAttributeValues: {
+            ':notes': { S: String(notes || "") }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update Tenant Notes Error", e);
+        return false;
+    }
+}
+
+/**
+ * ADMIN: Update custom tracking notes for a Web User
+ */
+export async function updateUserNotes(discordId, notes) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: 'SET #attr.#notes = :notes',
+        ExpressionAttributeNames: {
+            '#attr': 'attributes',
+            '#notes': 'notes'
+        },
+        ExpressionAttributeValues: {
+            ':notes': { S: String(notes || "") }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update User Notes Error", e);
+        return false;
+    }
+}
+
+/**
  * ADMIN: Deletes a Tenant completely
  */
 export async function deleteTenantConfig(guildId) {
