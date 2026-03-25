@@ -19,7 +19,7 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
     // Apply Search & Alliance Filters
     const filteredData = useMemo(() => {
         return rosterData.filter(gov => {
-            const matchesSearch = gov.govName?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = gov.name?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesAlliance = selectedAlliance === "ALL" || (gov.alliance || 'NONE') === selectedAlliance;
             return matchesSearch && matchesAlliance;
         });
@@ -31,11 +31,11 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
         const headers = ["Rank", "Governor Name", "Alliance", "Power", "Kill Points", "Deads"];
         const rows = filteredData.map((gov, idx) => [
             idx + 1,
-            `"${(gov.govName || '').replace(/"/g, '""')}"`, // Escape quotes
+            `"${(gov.name || '').replace(/"/g, '""')}"`, // Escape quotes
             gov.alliance || 'NONE',
             gov.power || 0,
             gov.killPoints || 0,
-            gov.deads || 0
+            gov.dead || 0
         ]);
 
         const csvContent = [
@@ -150,13 +150,13 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
                                 {filteredData.map((gov, idx) => (
                                     <tr key={idx} className="hover:bg-cyan-500/5 transition-colors group">
                                         <td className="py-4 px-6 text-sm font-mono text-gray-500 border-l-[3px] border-transparent group-hover:border-cyan-500 transition-colors">#{idx + 1}</td>
-                                        <td className="py-4 px-6 text-sm text-white font-bold">{gov.govName}</td>
+                                        <td className="py-4 px-6 text-sm text-white font-bold">{gov.name}</td>
                                         <td className="py-4 px-6">
                                             <span className="bg-[#1e222b] border border-[#2d323e] text-gray-300 px-3 py-1 rounded text-xs font-bold font-mono tracking-widest">{gov.alliance || 'NONE'}</span>
                                         </td>
                                         <td className="py-4 px-6 text-sm font-mono text-cyan-400 text-right">{Number(gov.power || 0).toLocaleString()}</td>
                                         <td className="py-4 px-6 text-sm font-mono text-rose-400 text-right">{Number(gov.killPoints || 0).toLocaleString()}</td>
-                                        <td className="py-4 px-6 text-sm font-mono text-amber-500 text-right">{Number(gov.deads || 0).toLocaleString()}</td>
+                                        <td className="py-4 px-6 text-sm font-mono text-amber-500 text-right">{Number(gov.dead || 0).toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
