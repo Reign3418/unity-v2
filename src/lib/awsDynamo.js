@@ -778,8 +778,16 @@ export async function getAllTenants() {
  * ADMIN: Safely Appends an Allowed Kingdom to a Tenant
  */
 export async function addTenantAllowedKingdom(guildId, newKingdomId) {
-    const tenant = await getTenantConfig(guildId);
-    if (!tenant) return false;
+    let tenant = await getTenantConfig(guildId);
+    if (!tenant) {
+        // Fallback: This is a brand new Database or Server. 
+        // Instantly generate the Tenant Profile via the Admin UI.
+        tenant = {
+            kingdomId: String(newKingdomId),
+            leadershipRoleId: "Admin-Generated",
+            allowedKingdoms: []
+        };
+    }
 
     const allowed = new Set(tenant.allowedKingdoms || []);
     allowed.add(String(newKingdomId));
