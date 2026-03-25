@@ -102,8 +102,8 @@ export default function KingdomAnalysis() {
           case 'Overview':
               return (
                   <OverviewTab 
-                      rosterData={rosterData} 
-                      isLoadingRoster={isLoadingRoster} 
+                      targetKd={targetKd}
+                      trends={trends}
                   />
               );
           default:
