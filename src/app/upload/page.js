@@ -328,7 +328,8 @@ function DropZone({ title, description, icon, theme, optional = false }) {
                body: JSON.stringify({
                  kingdomId: dynamicKd, 
                  rosterArray: validPayload,
-                 scanDateOverride: extractedDtg
+                 scanDateOverride: extractedDtg,
+                 sourceFile: file.name
                })
             });
 
