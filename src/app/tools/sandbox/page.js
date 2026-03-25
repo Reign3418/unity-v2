@@ -27,6 +27,7 @@ const UNITY_VARS = [
   { label: "Tech Power", val: "techPower" },
   { label: "Cmdr Power", val: "commanderPower" },
   { label: "Bldg Power", val: "buildingPower" },
+  { label: "Town Hall", val: "townHall" },
   { label: "LK Count", val: "lostKingdomCount" }
 ];
 
@@ -79,6 +80,7 @@ export default function SandboxPage() {
         tech: parseInt(row.techPower || row.TechPower || row['Tech Power']) || 0,
         com: parseInt(row.commanderPower || row.CommanderPower || row['Commander Power']) || 0,
         build: parseInt(row.buildingPower || row.BuildingPower || row['Building Power']) || 0,
+        th: parseInt(row.townHall || row.TownHall || row['Town Hall'] || row['CH Level'] || row.CityHall || row['City Hall']) || 0,
         lkCount: parseInt(row.lostKingdomCount || row.LostKingdomCount || row['Lost Kingdom Count'] || row['LK Count']) || 0,
       };
   };
@@ -236,6 +238,7 @@ export default function SandboxPage() {
           techPower: r.tech,
           commanderPower: r.com,
           buildingPower: r.build,
+          townHall: r.th,
           lostKingdomCount: r.lkCount
         }));
 

@@ -1393,6 +1393,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         const techPower = player.techPower || player.TechPower || player['Tech Power'];
         const comPower = player.commanderPower || player.CommanderPower || player['Commander Power'];
         const buildPower = player.buildingPower || player.BuildingPower || player['Building Power'];
+        const townHall = player.townHall || player.TownHall || player['Town Hall'] || player['CH Level'] || player.CityHall || player['City Hall'];
         const lostKingdomCount = player.lostKingdomCount || player.LostKingdomCount || player['Lost Kingdom Count'] || player['LK Count'];
 
         // Drop corrupted lines if the ID failed entirely
@@ -1425,6 +1426,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                                 'Tech Power': formatN(techPower),
                                 'Commander Power': formatN(comPower),
                                 'Building Power': formatN(buildPower),
+                                'Town Hall': formatN(townHall),
                                 'Lost Kingdom Count': formatN(lostKingdomCount),
                                 // Map any deltas if provided by the client side processor
                                 'powerDelta': formatN(player.powerDelta),
