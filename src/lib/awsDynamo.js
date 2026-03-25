@@ -1301,9 +1301,9 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     };
 
     sortedRoster.forEach((p, index) => {
-        const powerStr = String(p.power || p.Power || 0).replace(/,/g, '');
-        const kpStr = String(p.killPoints || p.KillPoints || 0).replace(/,/g, '');
-        const deadsStr = String(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || 0).replace(/,/g, '');
+        const powerStr = String(p.power || p.Power || p.POWER || 0).replace(/,/g, '');
+        const kpStr = String(p.killpoints || p.killPoints || p.KillPoints || p['Kill Points'] || p['Total KP'] || 0).replace(/,/g, '');
+        const deadsStr = String(p.deads || p.Deads || p.Dead || p.DEAD || p.DEADS || p.Defeat || p.DEFEAT || p.dead || p.defeats || p['Dead(s)'] || 0).replace(/,/g, '');
         
         const power = parseInt(powerStr) || 0;
         const kp = parseInt(kpStr) || 0;
