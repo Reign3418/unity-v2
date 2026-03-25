@@ -38,6 +38,34 @@ export async function getGlobalConfig(configKey) {
 }
 
 /**
+ * Retrieves the complete array of all kingdoms that have ever been uploaded
+ * to the AWS cloud ecosystem, automatically bypassing tenant restrictions for Super Admins.
+ */
+export async function getAllTrackedKingdoms() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+    
+    try {
+        const { GetItemCommand } = await import('@aws-sdk/client-dynamodb');
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: 'SYSTEM#CONFIG' },
+                'SK': { S: 'TRACKED_KINGDOMS' }
+            }
+        };
+        const result = await dbClient.send(new GetItemCommand(params));
+        if (result.Item && result.Item.kingdoms && result.Item.kingdoms.SS) {
+            return result.Item.kingdoms.SS.sort((a,b) => parseInt(a) - parseInt(b));
+        }
+        return [];
+    } catch (e) {
+        console.error("AWS GetAllTrackedKingdoms Error", e);
+        return [];
+    }
+}
+
+/**
  * Searches the Unity global AWS DynamoDB table for a specific Governor ID or Name
  */
 export async function getGovernorStats(queryParam) {

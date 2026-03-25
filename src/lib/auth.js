@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -90,11 +90,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               computedSuperAdmin = true;
               isLeader = true;
               isMember = true;
+              
+              const allKds = await getAllTrackedKingdoms();
+
               activeTenant = {
                   guildId: "master",
-                  kingdomId: "3155",
+                  kingdomId: allKds.length > 0 ? allKds[0] : "3155",
                   leadershipRoleId: "master",
-                  allowedKingdoms: ["3155"]
+                  allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
               };
           }
 
