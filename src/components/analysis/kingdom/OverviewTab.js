@@ -1,13 +1,56 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Download, Search, Filter, ShieldAlert, LayoutTemplate } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity } from "lucide-react";
 
-export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
+export default function OverviewTab({ targetKd, trends }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedAlliance, setSelectedAlliance] = useState("ALL");
+    
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    
+    const [rosterData, setRosterData] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Extract unique alliances for the filter dropdown
+    // Initialize Dates
+    useEffect(() => {
+        if (trends && trends.length > 0) {
+            // Default End = Latest, Start = Previous
+            if (!endDate) setEndDate(trends[trends.length - 1].scanDate.split('T')[0]);
+            if (!startDate) {
+                if (trends.length >= 2) setStartDate(trends[trends.length - 2].scanDate.split('T')[0]);
+                else setStartDate(trends[0].scanDate.split('T')[0]);
+            }
+        }
+    }, [trends, endDate, startDate]);
+
+    // Fetch Overview Deltas
+    useEffect(() => {
+        if (!targetKd || !startDate || !endDate) return;
+
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const res = await fetch(`/api/aws/overview?kd=${targetKd}&start=${startDate}&end=${endDate}`);
+                const data = await res.json();
+                if (res.ok && data.roster) {
+                    setRosterData(data.roster);
+                } else {
+                    setRosterData([]);
+                }
+            } catch (e) {
+                console.error(e);
+                setRosterData([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [targetKd, startDate, endDate]);
+
+    // Extract unique alliances
     const uniqueAlliances = useMemo(() => {
         const alliances = new Set();
         rosterData.forEach(gov => {
@@ -16,10 +59,12 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
         return Array.from(alliances).sort();
     }, [rosterData]);
 
-    // Apply Search & Alliance Filters
+    // Filter Logic
     const filteredData = useMemo(() => {
         return rosterData.filter(gov => {
-            const matchesSearch = gov.name?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = 
+                (gov.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (gov.id?.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesAlliance = selectedAlliance === "ALL" || (gov.alliance || 'NONE') === selectedAlliance;
             return matchesSearch && matchesAlliance;
         });
@@ -28,52 +73,79 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
     const handleExportCSV = () => {
         if (filteredData.length === 0) return;
 
-        const headers = ["Rank", "Governor Name", "Alliance", "Power", "Kill Points", "Deads"];
+        const headers = [
+            "Rank", "Governor ID", "Governor Name", "Alliance Tag", "Town Hall", "Status",
+            "Power (Start)", "Power (End)", "Power (Δ)",
+            "Troop Power (Start)", "Troop Power (End)", "Troop Power (Δ)",
+            "Commander Power (Start)", "Commander Power (End)", "Commander Power (Δ)",
+            "Tech Power (Start)", "Tech Power (End)", "Tech Power (Δ)",
+            "Building Power (Start)", "Building Power (End)", "Building Power (Δ)",
+            "Resources Gathered (Start)", "Resources Gathered (End)", "Resources Gathered (Δ)",
+            "Kill Points (Start)", "Kill Points (End)", "Kill Points (Δ)",
+            "Deads (Start)", "Deads (End)", "Deads (Δ)"
+        ];
+
         const rows = filteredData.map((gov, idx) => [
             idx + 1,
-            `"${(gov.name || '').replace(/"/g, '""')}"`, // Escape quotes
+            gov.id,
+            `"${(gov.name || '').replace(/"/g, '""')}"`,
             gov.alliance || 'NONE',
-            gov.power || 0,
-            gov.killPoints || 0,
-            gov.dead || 0
+            gov.townHall,
+            gov.status,
+            gov.powerStart, gov.powerEnd, gov.powerDelta,
+            gov.troopStart, gov.troopEnd, gov.troopDelta,
+            gov.cmdStart, gov.cmdEnd, gov.cmdDelta,
+            gov.techStart, gov.techEnd, gov.techDelta,
+            gov.buildStart, gov.buildEnd, gov.buildDelta,
+            gov.gatheredStart, gov.gatheredEnd, gov.gatheredDelta,
+            gov.kpStart, gov.kpEnd, gov.kpDelta,
+            gov.deadStart, gov.deadEnd, gov.deadDelta
         ]);
 
-        const csvContent = [
-            headers.join(","),
-            ...rows.map(e => e.join(","))
-        ].join("\n");
-
+        const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Unity_Kingdom_Scan_Export.csv`);
+        link.setAttribute("download", `Unity_Kingdom_${targetKd}_Overview.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    if (isLoadingRoster) {
+    const renderDelta = (delta) => {
+        if (delta === 'NEW') return <span className="text-cyan-400 font-bold">+NEW</span>;
+        if (delta === 'MISSING') return <span className="text-rose-500 font-bold tracking-widest">MISSING</span>;
+        
+        const num = Number(delta);
+        if (num > 0) return <span className="text-emerald-400">+{num.toLocaleString()}</span>;
+        if (num < 0) return <span className="text-rose-400">{num.toLocaleString()}</span>;
+        return <span className="text-gray-600">-</span>;
+    };
+
+    if (!trends || trends.length === 0) {
         return (
-            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center shadow-xl">
-                <Search className="animate-pulse text-cyan-500 w-8 h-8" />
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center shadow-xl text-gray-500">
+                <ShieldAlert className="w-12 h-12 mb-4 opacity-50" />
+                <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Temporal Matrices</h3>
+                <p className="text-sm">Cannot map Data Spreadsheets without historical infrastructure.</p>
             </div>
         );
     }
 
     return (
         <div className="animate-fade-in space-y-6">
-            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden flex flex-col items-center justify-center p-8 relative">
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden flex flex-col p-6 relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
                 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full relative z-10 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-[#1e222b] p-2.5 rounded-lg border border-[#2d323e]">
-                            <LayoutTemplate className="text-cyan-400" size={20} />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
+                            <LayoutTemplate className="text-cyan-400" size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white tracking-widest uppercase">Overview Explorer</h2>
-                            <p className="text-cyan-400 font-bold text-[10px] uppercase tracking-[0.2em]">Live Database Spreadsheet</p>
+                            <h2 className="text-2xl font-black text-white tracking-widest uppercase">Overview Explorer</h2>
+                            <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Comparative Vector Spreadsheet</p>
                         </div>
                     </div>
 
@@ -81,7 +153,7 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
                         <button 
                             onClick={handleExportCSV}
                             disabled={filteredData.length === 0}
-                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-600/20"
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(79,70,229,0.3)]"
                         >
                             <Download size={16} />
                             Export CSV
@@ -89,13 +161,42 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
                     </div>
                 </div>
 
-                {/* Filters Strip */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full bg-[#13161c] border border-[#1e222b] p-4 rounded-xl relative z-10 relative">
+                <div className="flex flex-col lg:flex-row items-center gap-4 w-full bg-[#13161c] border border-[#1e222b] p-4 rounded-xl relative z-10 shadow-inner">
+                    
+                    {/* Date Pickers */}
+                    <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shrink-0">
+                        <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Start</span>
+                             <input 
+                                 type="date" 
+                                 value={startDate} 
+                                 onChange={e => setStartDate(e.target.value)}
+                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
+                                 style={{ colorScheme: 'dark' }}
+                             />
+                        </div>
+                        <span className="text-gray-600 text-lg mx-1">/</span>
+                        <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">End</span>
+                             <input 
+                                 type="date" 
+                                 value={endDate} 
+                                 onChange={e => setEndDate(e.target.value)}
+                                 min={startDate}
+                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
+                                 style={{ colorScheme: 'dark' }}
+                             />
+                        </div>
+                    </div>
+
+                    <div className="h-8 w-px bg-[#1e222b] hidden lg:block mx-1"></div>
+
+                    {/* Filters */}
                     <div className="flex items-center gap-3 flex-1 w-full bg-[#0a0c0f] border border-[#1e222b] focus-within:border-cyan-500 transition-colors rounded-lg px-4 py-2.5">
                         <Search className="text-gray-500" size={18} />
                         <input 
                             type="text" 
-                            placeholder="Search by Gov Name..." 
+                            placeholder="Find Gov Name or ID..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="bg-transparent border-none outline-none text-white text-sm w-full font-medium placeholder-gray-600"
@@ -109,8 +210,8 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
                             onChange={(e) => setSelectedAlliance(e.target.value)}
                             className="bg-transparent border-none outline-none text-white text-sm w-full font-bold cursor-pointer uppercase tracking-wider placeholder-gray-600 [&>option]:bg-[#0f1115] [&>option]:text-white"
                         >
-                            <option value="ALL" className="bg-[#0f1115] text-white">All Alliances ({rosterData.length})</option>
-                            <option value="NONE" className="bg-[#0f1115] text-white">Unallied (NONE)</option>
+                            <option value="ALL" className="bg-[#0f1115] text-white">All Alliances</option>
+                            <option value="NONE" className="bg-[#0f1115] text-white">Unallied</option>
                             {uniqueAlliances.map(a => (
                                 <option key={a} value={a} className="bg-[#0f1115] text-white">{a}</option>
                             ))}
@@ -120,43 +221,127 @@ export default function OverviewTab({ rosterData = [], isLoadingRoster }) {
             </div>
 
             {/* Datatable */}
-            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden flex flex-col relative w-full">
-                {rosterData.length === 0 ? (
-                    <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden flex flex-col relative w-full pt-1">
+                {isLoading ? (
+                    <div className="py-32 flex flex-col items-center justify-center text-gray-500">
+                        <Activity className="w-12 h-12 mb-4 animate-[spin_3s_linear_infinite] text-cyan-500" />
+                        <h3 className="text-lg font-black text-white mb-1 uppercase tracking-widest animate-pulse">Compiling Deltas</h3>
+                        <p className="text-xs font-mono">Aggregating Cloud Trajectories...</p>
+                    </div>
+                ) : rosterData.length === 0 ? (
+                    <div className="py-24 flex flex-col items-center justify-center text-gray-500">
                         <ShieldAlert className="w-12 h-12 mb-4 opacity-50 text-cyan-500" />
-                        <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Cloud Data</h3>
-                        <p className="text-sm">Cannot formulate grids without scanned entity blocks.</p>
+                        <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">Temporal Desync</h3>
+                        <p className="text-sm">Cannot formulate grids. Check your Timeline Span to ensure Scans exist.</p>
                     </div>
                 ) : filteredData.length === 0 ? (
-                    <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+                    <div className="py-24 flex flex-col items-center justify-center text-gray-500">
                         <Search className="w-12 h-12 mb-4 opacity-50" />
                         <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Matches Found</h3>
-                        <p className="text-sm">No governors align with your strict filter query.</p>
+                        <p className="text-sm">Zero Governors align with your Query or Alliance Filter.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent max-h-[700px]">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
+                    <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent max-h-[800px]">
+                        <table className="w-full text-left border-collapse min-w-[2800px] text-[11px] font-mono">
                             <thead className="sticky top-0 bg-[#0a0c0f] z-20 shadow-md border-b border-[#1e222b]">
                                 <tr>
-                                    <th className="py-4 px-6 text-xs font-bold text-gray-500 tracking-wider">RANK</th>
-                                    <th className="py-4 px-6 text-xs font-bold text-gray-500 tracking-wider">GOVERNOR NAME</th>
-                                    <th className="py-4 px-6 text-xs font-bold text-gray-500 tracking-wider">ALLIANCE</th>
-                                    <th className="py-4 px-6 text-xs font-bold text-gray-500 tracking-wider text-right">TOTAL POWER</th>
-                                    <th className="py-4 px-6 text-xs font-bold text-gray-500 tracking-wider text-right">KILL POINTS</th>
-                                    <th className="py-4 px-6 text-xs font-bold text-gray-500 tracking-wider text-right">DEADS / SEVERELY P.</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">Rank</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">ID</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase font-sans">Name</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">Alliance</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center">TH</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center border-r border-[#1e222b]">Status</th>
+                                    
+                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">Power (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">Power (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Power (Δ)</th>
+                                    
+                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">Troops (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">Troops (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Troops (Δ)</th>
+
+                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">Cmd (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">Cmd (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Cmd (Δ)</th>
+                                    
+                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">Tech (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">Tech (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Tech (Δ)</th>
+                                    
+                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">Bldgs (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">Bldgs (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Bldgs (Δ)</th>
+
+                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">KP (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">KP (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">KP (Δ)</th>
+                                    
+                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">Deads (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">Deads (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Deads (Δ)</th>
+                                    
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">RSS (Start)</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">RSS (End)</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right">RSS (Δ)</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[#1e222b]">
+                            <tbody className="divide-y divide-[#1e222b]/50">
                                 {filteredData.map((gov, idx) => (
-                                    <tr key={idx} className="hover:bg-cyan-500/5 transition-colors group">
-                                        <td className="py-4 px-6 text-sm font-mono text-gray-500 border-l-[3px] border-transparent group-hover:border-cyan-500 transition-colors">#{idx + 1}</td>
-                                        <td className="py-4 px-6 text-sm text-white font-bold">{gov.name}</td>
-                                        <td className="py-4 px-6">
-                                            <span className="bg-[#1e222b] border border-[#2d323e] text-gray-300 px-3 py-1 rounded text-xs font-bold font-mono tracking-widest">{gov.alliance || 'NONE'}</span>
+                                    <tr key={idx} className="hover:bg-cyan-500/10 transition-colors group h-[40px]">
+                                        <td className="py-2 px-4 text-gray-500 border-l-[3px] border-transparent group-hover:border-cyan-500">#{idx + 1}</td>
+                                        <td className="py-2 px-4 text-gray-400">{gov.id}</td>
+                                        <td className="py-2 px-4 text-sm text-white font-bold font-sans tracking-wide max-w-[200px] truncate" title={gov.name}>{gov.name}</td>
+                                        <td className="py-2 px-4">
+                                            <span className="bg-[#1e222b] text-cyan-100 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest">{gov.alliance || 'NONE'}</span>
                                         </td>
-                                        <td className="py-4 px-6 text-sm font-mono text-cyan-400 text-right">{Number(gov.power || 0).toLocaleString()}</td>
-                                        <td className="py-4 px-6 text-sm font-mono text-rose-400 text-right">{Number(gov.killPoints || 0).toLocaleString()}</td>
-                                        <td className="py-4 px-6 text-sm font-mono text-amber-500 text-right">{Number(gov.dead || 0).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-center text-gray-400">{gov.townHall}</td>
+                                        <td className="py-2 px-4 text-center border-r border-[#1e222b]/50">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest ${
+                                                gov.status === 'Active' ? 'bg-emerald-500/20 text-emerald-400' : 
+                                                gov.status === 'Missing' ? 'bg-rose-500/20 text-rose-400' : 
+                                                'bg-cyan-500/20 text-cyan-400'
+                                            }`}>{gov.status}</span>
+                                        </td>
+
+                                        {/* Power */}
+                                        <td className="py-2 px-4 text-right text-gray-400">{Number(gov.powerStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-gray-200">{Number(gov.powerEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.powerDelta)}</td>
+
+                                        {/* Troops */}
+                                        <td className="py-2 px-4 text-right text-gray-400">{Number(gov.troopStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-gray-200">{Number(gov.troopEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.troopDelta)}</td>
+
+                                        {/* Cmd */}
+                                        <td className="py-2 px-4 text-right text-gray-400">{Number(gov.cmdStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-gray-200">{Number(gov.cmdEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.cmdDelta)}</td>
+
+                                        {/* Tech */}
+                                        <td className="py-2 px-4 text-right text-gray-400">{Number(gov.techStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-gray-200">{Number(gov.techEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.techDelta)}</td>
+
+                                        {/* Bldgs */}
+                                        <td className="py-2 px-4 text-right text-gray-400">{Number(gov.buildStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-gray-200">{Number(gov.buildEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.buildDelta)}</td>
+
+                                        {/* KP */}
+                                        <td className="py-2 px-4 text-right text-rose-500/60">{Number(gov.kpStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-rose-400">{Number(gov.kpEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.kpDelta)}</td>
+
+                                        {/* Deads */}
+                                        <td className="py-2 px-4 text-right text-red-600/60">{Number(gov.deadStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-red-500">{Number(gov.deadEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right border-r border-[#1e222b]/50">{renderDelta(gov.deadDelta)}</td>
+
+                                        {/* RSS */}
+                                        <td className="py-2 px-4 text-right text-gray-500">{Number(gov.gatheredStart).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right text-gray-300">{Number(gov.gatheredEnd).toLocaleString()}</td>
+                                        <td className="py-2 px-4 text-right">{renderDelta(gov.gatheredDelta)}</td>
                                     </tr>
                                 ))}
                             </tbody>

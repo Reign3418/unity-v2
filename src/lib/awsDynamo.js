@@ -408,6 +408,154 @@ export async function getKingdomDeltas(kingdomId) {
     }
 }
 
+export async function getOverviewDeltas(kingdomId, startIso, endIso) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    try {
+        const dateParams = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: { ':pk': { S: `DATES#${kingdomId}` } }
+        };
+
+        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+        if (!dateResult.Items || dateResult.Items.length < 2) {
+             return [];
+        }
+
+        const dates = dateResult.Items.map(i => ({
+           sk: i.SK.S, 
+           scanDate: i.attributes?.M?.scanDate?.S || ''
+        })).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate)); // ASCENDING
+        
+        let filteredDates = [...dates];
+        if (startIso) {
+             filteredDates = filteredDates.filter(d => new Date(d.scanDate) >= new Date(startIso + 'T00:00:00'));
+        }
+        if (endIso) {
+             filteredDates = filteredDates.filter(d => new Date(d.scanDate) <= new Date(endIso + 'T23:59:59'));
+        }
+        if (filteredDates.length < 2) {
+             filteredDates = [dates[0], dates[dates.length - 1]];
+        }
+
+        const startKey = filteredDates[0].sk.replace('SCAN#', '');
+        const endKey = filteredDates[filteredDates.length - 1].sk.replace('SCAN#', '');
+
+        const getSnapshot = async (dateStr) => {
+            const params = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk',
+                ExpressionAttributeValues: { ':pk': { S: `SCAN#${kingdomId}#${dateStr}` } }
+            };
+            const snapshot = {};
+            let lastEvaluatedKey = null;
+            do {
+                if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+                const result = await dbClient.send(new QueryCommand(params));
+                if (result.Items) {
+                    for (const item of result.Items) {
+                        const attrs = item.attributes?.M || {};
+                        const id = attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', '');
+                        snapshot[id] = {
+                            name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                            alliance: attrs['Alliance Tag']?.S || 'None',
+                            power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                            killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                            dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
+                            troopPower: parseInt(attrs['Troop Power']?.N || attrs['troop power']?.N || attrs['troopPower']?.N) || 0,
+                            commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
+                            techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
+                            buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0,
+                            gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
+                            townHall: parseInt(attrs['Town Hall']?.N || attrs['CH Level']?.N || attrs['townHall']?.N) || 0
+                        };
+                    }
+                }
+                lastEvaluatedKey = result.LastEvaluatedKey;
+            } while (lastEvaluatedKey);
+            return snapshot;
+        };
+
+        const [startSnap, endSnap] = await Promise.all([
+            getSnapshot(startKey),
+            getSnapshot(endKey)
+        ]);
+
+        const roster = [];
+        
+        for (const [id, endData] of Object.entries(endSnap)) {
+            const startData = startSnap[id] || {};
+            
+            roster.push({
+                id,
+                name: endData.name,
+                alliance: endData.alliance,
+                townHall: endData.townHall || startData.townHall || 25,
+                status: startData.power ? 'Active' : 'New',
+                powerStart: startData.power || 0,
+                powerEnd: endData.power,
+                powerDelta: startData.power ? (endData.power - startData.power) : 'NEW',
+                
+                troopStart: startData.troopPower || 0,
+                troopEnd: endData.troopPower,
+                troopDelta: startData.troopPower ? (endData.troopPower - startData.troopPower) : 0,
+
+                cmdStart: startData.commanderPower || 0,
+                cmdEnd: endData.commanderPower,
+                cmdDelta: startData.commanderPower ? (endData.commanderPower - startData.commanderPower) : 0,
+
+                techStart: startData.techPower || 0,
+                techEnd: endData.techPower,
+                techDelta: startData.techPower ? (endData.techPower - startData.techPower) : 0,
+
+                buildStart: startData.buildingPower || 0,
+                buildEnd: endData.buildingPower,
+                buildDelta: startData.buildingPower ? (endData.buildingPower - startData.buildingPower) : 0,
+
+                gatheredStart: startData.gathered || 0,
+                gatheredEnd: endData.gathered,
+                gatheredDelta: startData.gathered ? (endData.gathered - startData.gathered) : 0,
+                
+                kpStart: startData.killPoints || 0,
+                kpEnd: endData.killPoints,
+                kpDelta: startData.killPoints ? (endData.killPoints - startData.killPoints) : 0,
+                
+                deadStart: startData.dead || 0,
+                deadEnd: endData.dead,
+                deadDelta: startData.dead ? (endData.dead - startData.dead) : 0
+            });
+        }
+        
+        for (const [id, startData] of Object.entries(startSnap)) {
+            if (!endSnap[id]) {
+                roster.push({
+                    id,
+                    name: startData.name,
+                    alliance: startData.alliance,
+                    townHall: startData.townHall,
+                    status: 'Missing',
+                    powerStart: startData.power, powerEnd: 0, powerDelta: 'MISSING',
+                    troopStart: startData.troopPower, troopEnd: 0, troopDelta: 0,
+                    cmdStart: startData.commanderPower, cmdEnd: 0, cmdDelta: 0,
+                    techStart: startData.techPower, techEnd: 0, techDelta: 0,
+                    buildStart: startData.buildingPower, buildEnd: 0, buildDelta: 0,
+                    gatheredStart: startData.gathered, gatheredEnd: 0, gatheredDelta: 0,
+                    kpStart: startData.killPoints, kpEnd: 0, kpDelta: 0,
+                    deadStart: startData.dead, deadEnd: 0, deadDelta: 0
+                });
+            }
+        }
+
+        roster.sort((a, b) => b.powerEnd - a.powerEnd);
+        return roster;
+    } catch (e) {
+        console.error("AWS Overview Deltas Error", e);
+        return [];
+    }
+}
+
 /**
  * Fetches the historical chronological JSON footprints for a specific Governor
  */
