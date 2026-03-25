@@ -25,7 +25,7 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
   let alliancePieData = [];
   if (trends && trends.length > 0) {
       const latest = trends[trends.length - 1];
-      const allTags = latest.alliances || {};
+      const allTags = latest.summary?.alliances || {};
       const arr = Object.keys(allTags).map(tag => ({
           name: tag === 'None' ? 'Unallied' : tag,
           value: allTags[tag]
@@ -40,14 +40,14 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
 
   // Data Filtering for Area Chart
   const actualTrends = (trends || []).map(t => {
-      let plotPower = t.totalPower;
+      let plotPower = t.summary?.totalPower || 0;
       if (activeAlliance && activeAlliance !== 'Other') {
           const key = activeAlliance === 'Unallied' ? 'None' : activeAlliance;
-          plotPower = t.alliances?.[key] || 0;
+          plotPower = t.summary?.alliances?.[key] || 0;
       } else if (activeAlliance === 'Other') {
            const top7Names = alliancePieData.slice(0,7).map(a => a.name === 'Unallied' ? 'None' : a.name);
-           plotPower = Object.keys(t.alliances || {}).reduce((sum, tag) => {
-               if (!top7Names.includes(tag)) sum += t.alliances[tag];
+           plotPower = Object.keys(t.summary?.alliances || {}).reduce((sum, tag) => {
+               if (!top7Names.includes(tag)) sum += t.summary?.alliances[tag];
                return sum;
            }, 0);
       }
