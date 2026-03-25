@@ -40,9 +40,19 @@ export default function GlobalAnalysis() {
       if (res.ok && data.globalStats) {
           setGlobalStats(data.globalStats);
           
-          // Initial population - Top 5 standalone kingdoms if nothing is stored in local yet
-          const allKds = data.globalStats.map(s => s.kingdom);
-          setActiveEntities(allKds.length > 10 ? allKds.slice(0, 5) : allKds);
+          // Initial population - Check LocalStorage or Top 5 fallback
+          let savedActive = null;
+          if (typeof window !== 'undefined') {
+              const str = localStorage.getItem('unty_global_entities');
+              if (str) try { savedActive = JSON.parse(str); } catch(e) {}
+          }
+
+          if (savedActive && Array.isArray(savedActive) && savedActive.length > 0) {
+              setActiveEntities(savedActive);
+          } else {
+              const allKds = data.globalStats.map(s => s.kingdom);
+              setActiveEntities(allKds.length > 10 ? allKds.slice(0, 5) : allKds);
+          }
       }
     } catch (e) {
       console.error(e);
@@ -69,6 +79,13 @@ export default function GlobalAnalysis() {
     fetchGlobalStats();
     fetchUserCamps();
   }, []);
+
+  useEffect(() => {
+      // Don't save empty states initially populated before fetch
+      if (activeEntities && activeEntities.length > 0 && typeof window !== 'undefined') {
+          localStorage.setItem('unty_global_entities', JSON.stringify(activeEntities));
+      }
+  }, [activeEntities]);
 
   const saveLayoutToCloud = async () => {
       setIsSaving(true);

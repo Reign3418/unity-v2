@@ -162,7 +162,7 @@ export async function getKingdomRoster(kingdomId) {
         
         // Sort the dates (newest first)
         const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S).sort((a, b) => new Date(b) - new Date(a));
-        const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s]/g, "_");
+        const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
         
         console.log(`[AWS] Querying DynamoDB for Kingdom ${kingdomId} Roster from ${latestDate}...`);
 
