@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, Legend
@@ -13,6 +13,13 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
   const [activeAlliance, setActiveAlliance] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+      if (trends && trends.length > 0) {
+          if (!endDate) setEndDate(trends[trends.length - 1].scanDate.split('T')[0]);
+          if (!startDate) setStartDate(trends[0].scanDate.split('T')[0]);
+      }
+  }, [trends, endDate, startDate]);
 
   // Derived Data for Alliance Pie Chart
   let alliancePieData = [];
@@ -53,8 +60,8 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
   });
 
   const filteredTrends = actualTrends.filter(t => {
-      if (startDate && new Date(t.rawDate) < new Date(startDate)) return false;
-      if (endDate && new Date(t.rawDate) > new Date(endDate + 'T23:59:59')) return false;
+      if (startDate && new Date(t.scanDate) < new Date(startDate)) return false;
+      if (endDate && new Date(t.scanDate) > new Date(endDate + 'T23:59:59')) return false;
       return true;
   });
 
@@ -63,9 +70,9 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
   if (actualTrends.length >= 2) {
       const n = actualTrends.length;
       let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-      const startMs = new Date(actualTrends[0].rawDate).getTime();
+      const startMs = new Date(actualTrends[0].scanDate).getTime();
       actualTrends.forEach(t => {
-          const x = (new Date(t.rawDate).getTime() - startMs) / (1000 * 60 * 60 * 24);
+          const x = (new Date(t.scanDate).getTime() - startMs) / (1000 * 60 * 60 * 24);
           const y = t.plotPower;
           sumX += x;
           sumY += y;
@@ -85,10 +92,10 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
       const parsedEnd = new Date(endDate + 'T23:59:59');
       const endMs = parsedEnd.getTime();
       const lastActualTrend = actualTrends[actualTrends.length - 1];
-      const lastActualMs = new Date(lastActualTrend.rawDate).getTime();
+      const lastActualMs = new Date(lastActualTrend.scanDate).getTime();
       
       if (endMs > lastActualMs) {
-          if (filteredTrends.length > 0 && filteredTrends[filteredTrends.length - 1].rawDate === lastActualTrend.rawDate) {
+          if (filteredTrends.length > 0 && filteredTrends[filteredTrends.length - 1].scanDate === lastActualTrend.scanDate) {
               filteredTrends[filteredTrends.length - 1].predictedPower = filteredTrends[filteredTrends.length - 1].plotPower;
           }
           
@@ -99,7 +106,7 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
               if (predY < 0) predY = 0;
               const dateObj = new Date(currentMs);
               predictionPoints.push({
-                  rawDate: dateObj.toISOString(),
+                  scanDate: dateObj.toISOString(),
                   dateStr: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                   plotPower: null,
                   predictedPower: predY,
@@ -108,13 +115,13 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
               currentMs += (1000 * 60 * 60 * 24);
           }
           if (predictionPoints.length > 0) {
-              const lastPredMs = new Date(predictionPoints[predictionPoints.length - 1].rawDate).getTime();
+              const lastPredMs = new Date(predictionPoints[predictionPoints.length - 1].scanDate).getTime();
               if (endMs - lastPredMs > (1000 * 60 * 60)) { 
                  const xDays = (endMs - regression.startMs) / (1000 * 60 * 60 * 24);
                  let predY = regression.m * xDays + regression.b;
                  if (predY < 0) predY = 0;
                  predictionPoints.push({
-                      rawDate: parsedEnd.toISOString(),
+                      scanDate: parsedEnd.toISOString(),
                       dateStr: parsedEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                       plotPower: null,
                       predictedPower: predY,
@@ -185,27 +192,28 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                         </h2>
                     </div>
                     
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5 focus-within:border-cyan-500 transition-colors">
-                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Start</span>
-                            <input 
-                                type="date" 
-                                value={startDate} 
-                                onChange={e => setStartDate(e.target.value)}
-                                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                style={{ colorScheme: 'dark' }}
-                            />
+                    <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shrink-0 shadow-lg">
+                        <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Start</span>
+                             <input 
+                                 type="date" 
+                                 value={startDate} 
+                                 onChange={e => setStartDate(e.target.value)}
+                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
+                                 style={{ colorScheme: 'dark' }}
+                             />
                         </div>
-                        <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5 focus-within:border-cyan-500 transition-colors">
-                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">End</span>
-                            <input 
-                                type="date" 
-                                value={endDate} 
-                                onChange={e => setEndDate(e.target.value)}
-                                min={startDate}
-                                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                style={{ colorScheme: 'dark' }}
-                            />
+                        <span className="text-gray-600 text-lg mx-1">/</span>
+                        <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">End</span>
+                             <input 
+                                 type="date" 
+                                 value={endDate} 
+                                 onChange={e => setEndDate(e.target.value)}
+                                 min={startDate}
+                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
+                                 style={{ colorScheme: 'dark' }}
+                             />
                         </div>
                     </div>
                 </div>
