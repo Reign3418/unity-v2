@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
-    Medal, Flame, Sparkles, ShieldAlert, ArrowUpRight, Crosshair, Users, Trophy, BarChart2, Zap, Target
+    Medal, Flame, Sparkles, ShieldAlert, ArrowUpRight, Crosshair, Users, Trophy, BarChart2, Zap, Target, RefreshCw
 } from "lucide-react";
 
 export default function PreKvkRankings() {
