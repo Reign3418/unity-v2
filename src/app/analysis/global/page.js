@@ -178,6 +178,13 @@ export default function GlobalAnalysis() {
   };
 
   // --- AGGREGATION ENGINE ---
+  const formatMagnitude = (value) => {
+      if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B';
+      if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M';
+      if (value >= 1000) return (value / 1000).toFixed(2) + 'K';
+      return value.toString();
+  };
+
   const extractStats = (kdName) => {
       const kd = globalStats.find(g => g.kingdom === kdName);
       if (!kd) return { power: 0, kp: 0, elements: 0 };
@@ -209,7 +216,7 @@ export default function GlobalAnalysis() {
               totalPower: stats.power,
               totalKP: stats.kp,
               activeGovernors: stats.elements,
-              displayPower: (stats.power / 1000000000).toFixed(2) + 'B'
+              displayPower: formatMagnitude(stats.power)
           };
       } else if (entity.type === 'camp') {
           // Aggregated Camp
@@ -229,7 +236,7 @@ export default function GlobalAnalysis() {
               totalPower: sumPower,
               totalKP: sumKP,
               activeGovernors: sumElements,
-              displayPower: (sumPower / 1000000000).toFixed(2) + 'B',
+              displayPower: formatMagnitude(sumPower),
               isCamp: true,
               kds: entity.kds.join(', ')
           };
@@ -238,7 +245,7 @@ export default function GlobalAnalysis() {
   }).filter(Boolean);
 
   const formatYAxis = (tickItem) => {
-      return (tickItem / 1000000000).toFixed(1) + 'B';
+      return formatMagnitude(tickItem);
   };
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -251,7 +258,7 @@ export default function GlobalAnalysis() {
                  <p key={idx} style={{ color: p.fill }} className="font-mono font-bold flex justify-between gap-6">
                      <span>{p.name}:</span>
                      <span>
-                         {(p.value / 1000000000).toFixed(2)}B
+                         {formatMagnitude(p.value)}
                      </span>
                  </p>
              ))}
