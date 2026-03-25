@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -11,10 +12,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: { params: { scope: 'identify guilds guilds.members.read' } },
       checks: ['state'],
     }),
+    CredentialsProvider({
+      name: "Emergency Architecture Login",
+      credentials: {
+        username: { label: "Identifier", type: "text", placeholder: "e.g. reign3418" },
+        password: { label: "Offline Matrix Key", type: "password" }
+      },
+      async authorize(credentials) {
+        if (credentials.username === "reign3418" && credentials.password === process.env.UNITY_INTERNAL_SECRET) {
+          return {
+            id: "reign3418",
+            name: "reign3418",
+            email: "admin@unity.local",
+            image: "https://cdn.discordapp.com/embed/avatars/0.png"
+          };
+        }
+        return null;
+      }
+    }),
   ],
   secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
   callbacks: {
     async jwt({ token, user, account, profile }) {
+      if (account?.provider === 'credentials' && user) {
+          // ==========================================
+          // EMERGENCY OFFLINE LOGIN BYPASS (DISCORD DOWN)
+          // ==========================================
+          token.id = user.id;
+          token.username = user.name;
+          token.avatar = user.image;
+          token.accessToken = "OFFLINE_MODE";
+          
+          token.isMember = true;
+          token.isLeader = true;
+          token.isSuperAdmin = true;
+          
+          token.tenant = {
+              guildId: "emergency_admin",
+              kingdomId: "3418",
+              leadershipRoleId: "master",
+              allowedKingdoms: ["3418", "4025", "3155", "3738"] // Grant blanket upload powers to active servers
+          };
+          token.governorConfig = {};
+          token.ownedGuilds = [];
+          return token;
+      }
+
       if (account && profile) {
         token.id = profile.id;
         token.username = profile.username;
