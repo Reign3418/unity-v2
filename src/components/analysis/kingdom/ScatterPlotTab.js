@@ -196,7 +196,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
         const feederRatio = feed / total;
         
-        let verdict = "";
+        let verdict = "The AI Engine has dynamically sliced your selected timeframe into up to 5 chronological waypoints, measuring not just 'Total Growth' but the true tracking velocity and weekly reliability of each Governor. ";
         if (h === 0) {
             verdict += "CRITICAL WARNING: The algorithm detected absolutely zero Heroes in this scan period. Every single player who achieved above-average Kill Points simultaneously absorbed massive casualties. This is a violently bloody fighting population that trades terribly. ";
         } else if (h > (total * 0.05)) {
@@ -539,7 +539,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                         <strong className="text-gray-300 uppercase tracking-widest">Developer's Notes (The Theory of the Matrix):</strong>
                         <div className="mt-3 space-y-4 text-justify text-gray-500">
                             <p>
-                                <strong>Why two end-point scans?</strong> By mathematically comparing exactly two scans (the Start Date and End Date), we calculate the massive longitudinal jump (the True Delta). If you select the day before KvK started and the day it ended, the math strips away the noise of daily fluctuations and evaluates the absolute, undeniable truth of what their account generated over the entire war. 
+                                <strong>The Longitudinal Volatility Algorithm:</strong> To paint a mathematically precise picture of player consistency, the backend dynamically slices the requested timeframe into up to 5 equidistant chronological waypoints (Start, 3 Mid-Scans, and End) pulling concurrently from AWS DynamoDB. Instead of just calculating "Total KP Gained", the engine calculates the standard deviation across these discrete intervals. Plotted on the X-Axis (Volatility), a player who steadily grinds the exact same amount every week is statistically grounded (Variance ~0), while a player who sleeps for 3 weeks and spikes massively on the final week is mathematically flung to the absolute explosive edges of the matrix. 
                             </p>
                             <p>
                                 <strong>Why track "Deads" inside the math?</strong> In Rise of Kingdoms endgame (SOC), players no longer fight with disposable low-tier troops. If a high-power player's Dead Troops counter violently skyrockets, the algorithm mathematically maps that as T4/T5 eradication. "Deads" represent the absolute cost a player paid to fight. If they paid a massive cost but gained zero KP, they are actively feeding the enemy. 
