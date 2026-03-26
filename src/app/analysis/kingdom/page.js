@@ -111,6 +111,8 @@ export default function KingdomAnalysis() {
               return (
                   <ScatterPlotTab 
                       rosterData={rosterData}
+                      targetKd={targetKd}
+                      trends={trends}
                   />
               );
           default:
