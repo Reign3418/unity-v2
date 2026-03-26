@@ -14,6 +14,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterCH25, setFilterCH25] = useState(true);
     const [activeModalCategory, setActiveModalCategory] = useState(null);
+    const [viewType, setViewType] = useState('3d'); // 3d, donut, radar
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
@@ -157,7 +158,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                  kpRaw: gov.kpRaw,
                  deadsRaw: gov.deadsRaw,
                  archetype: archetype,
-                 activeDays: gov.activeDays
+                 activeDays: gov.activeDays,
+                 gov: gov
              });
         });
 
@@ -385,6 +387,15 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                 </div>
             </div>
 
+            {/* View Architecture Toggles */}
+            <div className="flex justify-center md:justify-start">
+                <div className="flex gap-2 bg-[#0a0c0f] p-1.5 rounded-lg border border-[#1e222b] shadow-xl relative z-20">
+                    <button onClick={() => setViewType('3d')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === '3d' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>3D Matrix</button>
+                    <button onClick={() => setViewType('donut')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === 'donut' ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>Health Radial</button>
+                    <button onClick={() => setViewType('radar')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === 'radar' ? 'bg-amber-500 text-[#0f1115] shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>Archetype Profile</button>
+                </div>
+            </div>
+
             {/* Neural Matrix Plot Viewer */}
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-2xl p-4 lg:p-8 min-h-[600px] flex flex-col relative overflow-hidden">
                 
@@ -407,71 +418,165 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#13161c_1px,transparent_1px),linear-gradient(to_bottom,#13161c_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-50"></div>
 
                 <div className="flex-1 w-full relative z-10 min-h-[600px]">
-                    <Plot
-                        data={Object.keys(chartData).map(key => ({
-                            name: key.toUpperCase(),
-                            x: chartData[key].map(d => d.x),
-                            y: chartData[key].map(d => d.y),
-                            z: chartData[key].map(d => d.z),
-                            text: chartData[key].map(d => `${d.name} [${d.alliance}]<br>ID: ${d.id}<br>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`),
-                            mode: 'markers',
-                            type: 'scatter3d',
-                            marker: {
-                                size: chartData[key].map(d => {
-                                    const q = searchQuery.toLowerCase();
-                                    const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                    return match ? 13 : 5;
-                                }),
-                                color: chartData[key].map(d => {
-                                    const q = searchQuery.toLowerCase();
-                                    const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                    return match ? '#38bdf8' : CLUSTER_COLORS[key];
-                                }),
-                                opacity: chartData[key].map(d => {
-                                    const q = searchQuery.toLowerCase();
-                                    const activeSearch = q.length > 0;
-                                    const match = activeSearch && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                    return activeSearch && !match ? 0.15 : 1;
-                                }),
-                                symbol: 'circle',
-                                line: {
+                    {(() => {
+                        let dynamicData = [];
+                        let dynamicLayout = {};
+
+                        if (viewType === '3d') {
+                            dynamicData = Object.keys(chartData).map(key => ({
+                                name: key.toUpperCase(),
+                                x: chartData[key].map(d => d.x),
+                                y: chartData[key].map(d => d.y),
+                                z: chartData[key].map(d => d.z),
+                                text: chartData[key].map(d => `${d.name} [${d.alliance}]<br>ID: ${d.id}<br>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`),
+                                mode: 'markers',
+                                type: 'scatter3d',
+                                marker: {
+                                    size: chartData[key].map(d => {
+                                        const q = searchQuery.toLowerCase();
+                                        const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                        return match ? 13 : 5;
+                                    }),
                                     color: chartData[key].map(d => {
                                         const q = searchQuery.toLowerCase();
                                         const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                        return match ? '#ffffff' : CLUSTER_COLORS[key];
+                                        return match ? '#38bdf8' : CLUSTER_COLORS[key];
                                     }),
-                                    width: 1
+                                    opacity: chartData[key].map(d => {
+                                        const q = searchQuery.toLowerCase();
+                                        const match = q.length > 0 && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                        return (q.length > 0 && !match) ? 0.15 : 1;
+                                    }),
+                                    symbol: 'circle',
+                                    line: {
+                                        color: chartData[key].map(d => {
+                                            const q = searchQuery.toLowerCase();
+                                            const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                            return match ? '#ffffff' : CLUSTER_COLORS[key];
+                                        }),
+                                        width: 1
+                                    }
+                                },
+                                hoverinfo: 'text'
+                            }));
+
+                            dynamicLayout = {
+                                autosize: true,
+                                margin: { l: 0, r: 0, b: 0, t: 0 },
+                                paper_bgcolor: 'rgba(0,0,0,0)',
+                                plot_bgcolor: 'rgba(0,0,0,0)',
+                                showlegend: true,
+                                legend: {
+                                    font: { color: '#9ca3af', family: 'monospace', size: 10 },
+                                    bgcolor: 'rgba(15,17,21,0.8)',
+                                    bordercolor: '#2d323e',
+                                    borderwidth: 1,
+                                    yanchor: 'top',
+                                    y: 0.99,
+                                    xanchor: 'left',
+                                    x: 0.01
+                                },
+                                scene: {
+                                    xaxis: { title: 'Volatility (PC1)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
+                                    yaxis: { title: 'Efficiency (PC2)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
+                                    zaxis: { title: 'Power Shift (PC3)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
+                                    bgcolor: 'rgba(0,0,0,0)',
+                                    camera: { eye: { x: 1.6, y: -1.6, z: 1.2 } }
                                 }
-                            },
-                            hoverinfo: 'text'
-                        }))}
-                        layout={{
-                            autosize: true,
-                            margin: { l: 0, r: 0, b: 0, t: 0 },
-                            paper_bgcolor: 'rgba(0,0,0,0)',
-                            plot_bgcolor: 'rgba(0,0,0,0)',
-                            showlegend: true,
-                            legend: {
-                                font: { color: '#9ca3af', family: 'monospace', size: 10 },
-                                bgcolor: 'rgba(15,17,21,0.8)',
-                                bordercolor: '#2d323e',
-                                borderwidth: 1,
-                                yanchor: 'top',
-                                y: 0.99,
-                                xanchor: 'left',
-                                x: 0.01
-                            },
-                            scene: {
-                                xaxis: { title: 'Volatility (PC1)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
-                                yaxis: { title: 'Efficiency (PC2)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
-                                zaxis: { title: 'Power Shift (PC3)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
-                                bgcolor: 'rgba(0,0,0,0)',
-                                camera: { eye: { x: 1.6, y: -1.6, z: 1.2 } }
-                            }
-                        }}
-                        style={{ width: '100%', height: '100%', minHeight: '600px' }}
-                        config={{ displayModeBar: true, displaylogo: false }}
-                    />
+                            };
+                        }
+
+                        if (viewType === 'donut') {
+                            const pieValues = [];
+                            const pieLabels = [];
+                            const pieColors = [];
+                            Object.keys(chartData).forEach(cat => {
+                                const count = chartData[cat].length;
+                                if (count > 0) {
+                                    pieLabels.push(`${cat.toUpperCase()}`);
+                                    pieValues.push(count);
+                                    pieColors.push(CLUSTER_COLORS[cat]);
+                                }
+                            });
+                            dynamicData = [{
+                                values: pieValues,
+                                labels: pieLabels,
+                                marker: { colors: pieColors },
+                                type: 'pie',
+                                hole: 0.75,
+                                textinfo: "label+percent",
+                                textposition: "outside",
+                                hoverinfo: 'label+value',
+                                textfont: { color: '#ffffff', size: 14, family: 'monospace' },
+                                rotation: 90
+                            }];
+                            dynamicLayout = {
+                                autosize: true,
+                                margin: { l: 40, r: 40, b: 40, t: 40 },
+                                paper_bgcolor: 'rgba(0,0,0,0)',
+                                plot_bgcolor: 'rgba(0,0,0,0)',
+                                showlegend: true,
+                                legend: { font: { color: '#9ca3af', family: 'monospace', size: 12 }, bgcolor: 'transparent', yanchor: 'middle', y: 0.5, xanchor: 'left', x: 1 }
+                            };
+                        }
+
+                        if (viewType === 'radar') {
+                            const categories = ['Gross Power Growth', 'Raw KP Generated', 'Troop Casualties', 'Standard Variance (Volatility)'];
+                            let maxPower = 1; let maxKp = 1; let maxDeads = 1; let maxVol = 1;
+                            const archetypeAverages = {};
+                            
+                            Object.keys(chartData).forEach(cat => {
+                                const group = chartData[cat];
+                                if (group.length === 0) return;
+                                const avgPower = Math.max(0, group.reduce((s, d) => s + (d.gov?.powerDiff || 0), 0) / group.length);
+                                const avgKp = group.reduce((s, d) => s + (d.gov?.kpDiff || d.kpRaw), 0) / group.length; 
+                                const avgDeads = group.reduce((s, d) => s + (d.gov?.deadsDiff || d.deadsRaw), 0) / group.length;
+                                const avgVol = group.reduce((s, d) => s + (d.gov?.kpVolatility || 0), 0) / group.length;
+                                archetypeAverages[cat] = { avgPower, avgKp, avgDeads, avgVol };
+                                if (avgPower > maxPower) maxPower = avgPower;
+                                if (avgKp > maxKp) maxKp = avgKp;
+                                if (avgDeads > maxDeads) maxDeads = avgDeads;
+                                if (avgVol > maxVol) maxVol = avgVol;
+                            });
+
+                            Object.keys(archetypeAverages).forEach(cat => {
+                                const a = archetypeAverages[cat];
+                                dynamicData.push({
+                                    type: 'scatterpolar',
+                                    r: [ (a.avgPower / maxPower) * 100, (a.avgKp / maxKp) * 100, (a.avgDeads / maxDeads) * 100, (a.avgVol / maxVol) * 100, (a.avgPower / maxPower) * 100 ],
+                                    theta: [...categories, categories[0]],
+                                    fill: 'toself',
+                                    opacity: 0.7,
+                                    name: cat.toUpperCase(),
+                                    line: { color: CLUSTER_COLORS[cat] },
+                                    marker: { color: CLUSTER_COLORS[cat] }
+                                });
+                            });
+
+                            dynamicLayout = {
+                                autosize: true,
+                                paper_bgcolor: 'rgba(0,0,0,0)',
+                                plot_bgcolor: 'rgba(0,0,0,0)',
+                                margin: { l: 60, r: 60, b: 40, t: 40 },
+                                polar: {
+                                    radialaxis: { visible: true, range: [0, 100], color: '#4b5563', gridcolor: '#1e222b', tickfont: { size: 9 }, ticksuffix: '%' },
+                                    angularaxis: { tickfont: { color: '#ffffff', size: 11, family: 'monospace' }, gridcolor: '#1e222b' },
+                                    bgcolor: 'rgba(0,0,0,0)'
+                                },
+                                showlegend: true,
+                                legend: { font: { color: '#9ca3af', family: 'monospace', size: 10 }, bgcolor: 'transparent', orientation: 'h', y: -0.1, x: 0.5, xanchor: 'center' }
+                            };
+                        }
+
+                        return (
+                            <Plot
+                                data={dynamicData}
+                                layout={dynamicLayout}
+                                style={{ width: '100%', height: '100%', minHeight: '600px' }}
+                                config={{ displayModeBar: true, displaylogo: false }}
+                            />
+                        );
+                    })()}
                 </div>
             </div>
 
