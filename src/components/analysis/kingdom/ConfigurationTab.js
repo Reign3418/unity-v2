@@ -18,7 +18,9 @@ export default function ConfigurationTab() {
         t5MixRatio: 0.7,
         kpMultiplier: 1.25,
         advT4Points: 10,
-        advT5Points: 20
+        advT5Points: 20,
+        farmDeadsBaseline: 500000,
+        farmKpBaseline: 5000000
     });
     
     const [isLoaded, setIsLoaded] = useState(false);
@@ -156,6 +158,16 @@ export default function ConfigurationTab() {
                             <label className="block text-sm font-semibold text-secondary mb-2">T5 Points</label>
                             <input type="number" value={config.advT5Points} onChange={(e) => updateField('advT5Points', Number(e.target.value))}
                                 className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
+                        </div>
+                        <div className="bg-purple-900/10 p-5 rounded-xl border border-purple-500/20">
+                            <label className="block text-sm font-semibold text-purple-400 mb-2">Farm Deads Baseline</label>
+                            <input type="number" value={config.farmDeadsBaseline} onChange={(e) => updateField('farmDeadsBaseline', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="50000" />
+                        </div>
+                        <div className="bg-purple-900/10 p-5 rounded-xl border border-purple-500/20">
+                            <label className="block text-sm font-semibold text-purple-400 mb-2">Farm KP Baseline</label>
+                            <input type="number" value={config.farmKpBaseline} onChange={(e) => updateField('farmKpBaseline', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="500000" />
                         </div>
                     </div>
                 )}

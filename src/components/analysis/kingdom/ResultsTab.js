@@ -9,6 +9,7 @@ export default function ResultsTab({ targetKd, trends }) {
     const [endDate, setEndDate] = useState(() => localStorage.getItem("unity_dkp_end") || "");
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
+    const [familyLinks, setFamilyLinks] = useState({});
     const [sortConfig, setSortConfig] = useState({ key: "finalDkp", direction: "desc" });
     
     // Configuration Variables (Hydrated from Storage)
@@ -91,57 +92,54 @@ export default function ResultsTab({ targetKd, trends }) {
         fetchBehavioralData();
     }, [targetKd, startDate, endDate]);
 
+    // 3.5 Fetch Configured Farm-to-Main Maps
+    useEffect(() => {
+        const fetchLinks = async () => {
+            if (!targetKd) return;
+            try {
+                const res = await fetch(`/api/aws/admin/links?kd=${targetKd}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFamilyLinks(data || {});
+                }
+            } catch (err) {
+                console.error("Failed to load family links", err);
+            }
+        };
+        fetchLinks();
+    }, [targetKd]);
+
     // 4. Contribution Mathematical Engine (Process Matrix)
     const dkpData = useMemo(() => {
         if (!behavioralRoster || behavioralRoster.length === 0) return [];
         
         const isBasic = config.dkpSystem === 'basic';
+        const farmDeadsBaseline = config.farmDeadsBaseline || 500000;
+        const farmKpBaseline = config.farmKpBaseline || 0;
         
-        return behavioralRoster.filter(g => g.powerEnd > 0).map(p => {
-            // Derive Starting Power safely (PowerDiff might be string 'NEW' or 'MISSING')
+        // Pass 1: Raw Output
+        const baseCalculations = behavioralRoster.filter(g => g.powerEnd > 0).map(p => {
             const parsedDiff = (typeof p.powerDiff === 'number') ? p.powerDiff : 0;
             const powerStart = Math.max(0, (p.powerEnd || 0) - parsedDiff);
             const deadsDiff = Math.max(0, p.deadsDiff || 0);
             const t4Diff = Math.max(0, p.t4Diff || 0);
             const t5Diff = Math.max(0, p.t5Diff || 0);
 
-            let finalDkp = 0;
+            let rawKvkKP = 0;
             let targetDkp = 0;
             let targetDeads = 0;
-            let quotaPct = 0;
-            let kvkKP = 0;
-            let kpPercent = 0;
-            let deadPercent = 0;
 
             if (isBasic) {
-                // Basic System Logic
-                kvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
-                finalDkp = kvkKP + (deadsDiff * (config.basicDeadsPoints || 0));
+                rawKvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
                 targetDkp = 0; 
-                quotaPct = 0; 
-                kpPercent = 0;
-                deadPercent = 0;
+                targetDeads = 0;
             } else {
-                // Advanced System Logic
-                kvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
+                rawKvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
                 const t4MixRatio = 1 - (config.t5MixRatio || 0);
                 const kpTargetMultiplier = ((((config.t5MixRatio || 0) * (config.advT5Points || 0)) + (t4MixRatio * (config.advT4Points || 0))) * (config.kpMultiplier || 0)) / (config.kpPowerDivisor || 1);
                 
                 targetDkp = powerStart * kpTargetMultiplier;
                 targetDeads = powerStart * (config.deadsMultiplier || 0);
-                
-                kpPercent = targetDkp > 0 ? (kvkKP / targetDkp) * 100 : 0;
-                deadPercent = targetDeads > 0 ? (deadsDiff / targetDeads) * 100 : 0;
-                
-                if (targetDkp > 0 && targetDeads > 0) {
-                    quotaPct = (kpPercent + deadPercent) / 2;
-                } else if (targetDkp > 0) {
-                    quotaPct = kpPercent;
-                } else if (targetDeads > 0) {
-                    quotaPct = deadPercent;
-                }
-                
-                finalDkp = kvkKP; // Treat kvkKP as their "Total KP/DKP" nominal score
             }
 
             let status = 'Sleeper';
@@ -155,16 +153,78 @@ export default function ResultsTab({ targetKd, trends }) {
                 powerStart,
                 targetDkp,
                 targetDeads,
+                status,
+                rawKvkKP,
+                rawDeadsDiff: deadsDiff,
+                t4t5Combined: (t4Diff + t5Diff),
+                rolloverDeads: 0,
+                rolloverKp: 0,
+                isFarm: !!familyLinks[p.id]
+            };
+        });
+
+        // Pass 2: The Overflow Siphon
+        const govMap = {};
+        baseCalculations.forEach(g => govMap[g.id] = g);
+
+        Object.entries(familyLinks).forEach(([farmId, mainId]) => {
+            const farm = govMap[farmId];
+            const main = govMap[mainId];
+            
+            if (farm && main) {
+                // Siphon Deads
+                if (farm.rawDeadsDiff > farmDeadsBaseline) {
+                    const excessDeads = farm.rawDeadsDiff - farmDeadsBaseline;
+                    farm.rawDeadsDiff = farmDeadsBaseline; // Cap the farm's metric
+                    main.rolloverDeads += excessDeads;
+                }
+                
+                // Siphon KP
+                if (farm.rawKvkKP > farmKpBaseline) {
+                    const excessKp = farm.rawKvkKP - farmKpBaseline;
+                    farm.rawKvkKP = farmKpBaseline; // Cap the farm's metric
+                    main.rolloverKp += excessKp;
+                }
+            }
+        });
+
+        // Pass 3: Final Aggregations
+        return baseCalculations.map(g => {
+            const totalEffectiveDeads = g.rawDeadsDiff + g.rolloverDeads;
+            const totalEffectiveKp = g.rawKvkKP + g.rolloverKp;
+            
+            let finalDkp = 0;
+            let quotaPct = 0;
+            let kpPercent = 0;
+            let deadPercent = 0;
+
+            if (isBasic) {
+                finalDkp = totalEffectiveKp + (totalEffectiveDeads * (config.basicDeadsPoints || 0));
+            } else {
+                kpPercent = g.targetDkp > 0 ? (totalEffectiveKp / g.targetDkp) * 100 : 0;
+                deadPercent = g.targetDeads > 0 ? (totalEffectiveDeads / g.targetDeads) * 100 : 0;
+                
+                if (g.targetDkp > 0 && g.targetDeads > 0) {
+                    quotaPct = (kpPercent + deadPercent) / 2;
+                } else if (g.targetDkp > 0) {
+                    quotaPct = kpPercent;
+                } else if (g.targetDeads > 0) {
+                    quotaPct = deadPercent;
+                }
+                finalDkp = totalEffectiveKp;
+            }
+
+            return {
+                ...g,
+                deadsDiff: totalEffectiveDeads, 
+                kvkKP: totalEffectiveKp,
                 finalDkp,
                 quotaPct: parseFloat(quotaPct.toFixed(2)),
                 kpPercent: parseFloat(kpPercent.toFixed(2)),
-                deadPercent: parseFloat(deadPercent.toFixed(2)),
-                status,
-                kvkKP,
-                t4t5Combined: (t4Diff + t5Diff)
+                deadPercent: parseFloat(deadPercent.toFixed(2))
             };
         });
-    }, [behavioralRoster, config]);
+    }, [behavioralRoster, config, familyLinks]);
 
     // 5. Search & Filter Reducer + Sorter
     const filteredData = useMemo(() => {
@@ -424,7 +484,11 @@ export default function ResultsTab({ targetKd, trends }) {
                                     return (
                                     <tr key={gov.id} className="hover:bg-[#1a1d24] transition-colors group">
                                         <td className="p-3 text-gray-400 font-mono">{gov.id}</td>
-                                        <td className="p-3 text-white font-bold whitespace-nowrap">{gov.name}</td>
+                                        <td className="p-3 text-white font-bold whitespace-nowrap">
+                                            {gov.name}
+                                            {gov.rolloverDeads > 0 && <span className="ml-2 text-[10px] text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded" title={`Includes +${gov.rolloverDeads.toLocaleString()} pooled Deads from Farm accounts!`}>+OVERFLOW</span>}
+                                            {gov.isFarm && <span className="ml-2 text-[10px] text-gray-500 bg-gray-500/10 px-1 py-0.5 rounded" title="Farm Siphon Engine is evaluating this account for Overflow metric skimming.">FARM</span>}
+                                        </td>
                                         <td className="p-3">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-widest ${statusColors[gov.status] || statusColors['Sleeper']}`}>
                                                 {gov.status}

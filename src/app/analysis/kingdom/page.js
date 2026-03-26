@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy } from "lucide-react";
+import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2 } from "lucide-react";
 import KingdomAnalysisTab from "../../../components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "../../../components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "../../../components/analysis/kingdom/ScatterPlotTab";
@@ -13,6 +13,7 @@ import AllianceMergeTab from "../../../components/analysis/kingdom/AllianceMerge
 import MGEPlannerTab from "../../../components/analysis/kingdom/MGEPlannerTab";
 import ConfigurationTab from "../../../components/analysis/kingdom/ConfigurationTab";
 import ResultsTab from "../../../components/analysis/kingdom/ResultsTab";
+import AccountLinkerTab from "../../../components/analysis/kingdom/AccountLinkerTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -24,6 +25,7 @@ const TABS = [
   { name: "Team Builder", icon: Link },
   { name: "Alliance Merge", icon: GitMerge },
   { name: "Fixed MGE", icon: Trophy },
+  { name: "Roster Linker", icon: Link2 },
   { name: "Configuration", icon: Cpu },
   { name: "Results", icon: Archive }
 ];
@@ -161,6 +163,13 @@ export default function KingdomAnalysis() {
                   <ResultsTab 
                       targetKd={targetKd}
                       trends={trends}
+                  />
+              );
+          case 'Roster Linker':
+              return (
+                  <AccountLinkerTab
+                      rosterData={rosterData}
+                      targetKd={targetKd}
                   />
               );
           default:
