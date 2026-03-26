@@ -135,6 +135,9 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
 
     const sTierCount = filteredData.filter(g => g.grade === 'S').length;
     const aTierCount = filteredData.filter(g => g.grade === 'A').length;
+    const bTierCount = filteredData.filter(g => g.grade === 'B').length;
+    const cTierCount = filteredData.filter(g => g.grade === 'C').length;
+    const dTierCount = filteredData.filter(g => g.grade === 'D').length;
     const uniqueAlliances = [...new Set(growthData.map(g => g.alliance))].sort();
 
     const formatShortNum = (num) => {
@@ -308,18 +311,31 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                 </div>
 
                 {/* Trophy Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-6 flex flex-col items-center justify-center relative overflow-hidden group">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-amber-500/50 transition-colors">
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-                        <h3 className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-2">S-Tier (Gods) 🏆</h3>
-                        <div className="text-5xl font-black text-white group-hover:scale-110 transition-transform">{sTierCount}</div>
-                        <div className="absolute -right-4 -bottom-4 opacity-5"><Crosshair className="w-32 h-32" /></div>
+                        <h3 className="text-amber-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">S-Tier (Gods)</h3>
+                        <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{sTierCount}</div>
                     </div>
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-6 flex flex-col items-center justify-center relative overflow-hidden group">
+                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
-                        <h3 className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-2">A-Tier (Elite) ⚔️</h3>
-                        <div className="text-5xl font-black text-white group-hover:scale-110 transition-transform">{aTierCount}</div>
-                        <div className="absolute -right-4 -bottom-4 opacity-5"><ShieldAlert className="w-32 h-32" /></div>
+                        <h3 className="text-emerald-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">A-Tier (Elite)</h3>
+                        <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{aTierCount}</div>
+                    </div>
+                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500/50 transition-colors">
+                        <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+                        <h3 className="text-blue-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">B-Tier (Vanguard)</h3>
+                        <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{bTierCount}</div>
+                    </div>
+                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-orange-500/50 transition-colors">
+                        <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
+                        <h3 className="text-orange-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">C-Tier (Reserve)</h3>
+                        <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{cTierCount}</div>
+                    </div>
+                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-red-500/50 transition-colors">
+                        <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-red-500 to-red-600"></div>
+                        <h3 className="text-red-500/80 font-bold uppercase tracking-widest text-[10px] mb-1">D-Tier (Review)</h3>
+                        <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{dTierCount}</div>
                     </div>
                 </div>
 
