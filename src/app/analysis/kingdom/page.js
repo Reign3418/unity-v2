@@ -8,6 +8,7 @@ import OverviewTab from "../../../components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "../../../components/analysis/kingdom/ScatterPlotTab";
 import GrowthAnalysisTab from "../../../components/analysis/kingdom/GrowthAnalysisTab";
 import AllianceDuelTab from "../../../components/analysis/kingdom/AllianceDuelTab";
+import TeamBuilderTab from "../../../components/analysis/kingdom/TeamBuilderTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -126,6 +127,12 @@ export default function KingdomAnalysis() {
                       rosterData={rosterData}
                       targetKd={targetKd}
                       trends={trends}
+                  />
+              );
+          case 'Team Builder':
+              return (
+                  <TeamBuilderTab 
+                      rosterData={rosterData}
                   />
               );
           default:
