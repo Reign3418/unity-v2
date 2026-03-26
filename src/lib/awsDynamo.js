@@ -662,17 +662,71 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
             return snapshot;
         };
 
-        const startEntry = dates[0];
-        const endEntry = dates[dates.length - 1];
-        const [baseLine, endLine] = await Promise.all([fetchSnapshot(startEntry), fetchSnapshot(endEntry)]);
+        // 3. Define the Longitudinal Waypoints (Max 5 scans to protect Vercel Memory)
+        let selectedDates = [];
+        if (dates.length <= 5) {
+            selectedDates = [...dates];
+        } else {
+            // Pick exactly 5 evenly-spaced dates: Start, 3 Mids, End
+            selectedDates.push(dates[0]);
+            const step = (dates.length - 1) / 4;
+            selectedDates.push(dates[Math.round(step * 1)]);
+            selectedDates.push(dates[Math.round(step * 2)]);
+            selectedDates.push(dates[Math.round(step * 3)]);
+            selectedDates.push(dates[dates.length - 1]);
+        }
 
-        console.log(`[BehavioralMatrix] Base: ${Object.keys(baseLine).length} govs | End: ${Object.keys(endLine).length} govs`);
+        console.log(`[BehavioralMatrix] Longitude Interpolation: Extracted ${selectedDates.length} chronological waypoints`);
+
+        // Execute parallel extraction of all selected snapshots
+        const snapshots = await Promise.all(selectedDates.map(d => fetchSnapshot(d)));
+        
+        const startLine = snapshots[0];
+        const endLine = snapshots[snapshots.length - 1];
+        const waypointCount = snapshots.length;
+
+        console.log(`[BehavioralMatrix] Base: ${Object.keys(startLine).length} govs | End: ${Object.keys(endLine).length} govs`);
 
         const roster = [];
         for (const [id, endData] of Object.entries(endLine)) {
-            const startData = baseLine[id];
+            const startData = startLine[id];
             if (!startData || endData.power === 0) continue;
 
+            // Longitudinal Metric Calculation
+            let activeIntervals = 0;
+            let sumOfJumps = 0;
+            let totalKpVariance = 0;
+            
+            const jumps = [];
+            let previousKp = startData.killPoints;
+
+            // 1. Calculate discrete gaps exactly across the waypoints
+            for (let i = 1; i < waypointCount; i++) {
+                const currentKp = snapshots[i][id]?.killPoints;
+                // If a player leaves/migrates mid-scan, preserve their previous known KP
+                const resolvedKp = currentKp !== undefined ? currentKp : previousKp;
+                
+                const jump = resolvedKp - previousKp;
+                jumps.push(jump);
+                sumOfJumps += jump;
+                
+                if (jump > 0) activeIntervals++;
+                previousKp = resolvedKp;
+            }
+
+            // 2. Standard Deviation Volatility Pathing
+            const averageJump = jumps.length > 0 ? (sumOfJumps / jumps.length) : 0;
+            if (averageJump > 0) {
+                // How wildly did their actual activity fluctuate week-to-week vs their own personal average?
+                jumps.forEach(j => {
+                    totalKpVariance += Math.abs(j - averageJump);
+                });
+            }
+
+            // Normalizing the variance metric (preventing 0 KP completely inactive players from returning 0 variance, we keep them at 0 variance but high total difference triggers normal)
+            // Note: If a player is totally dead weight (0 jumps), variance is 0. If they perfectly average 5M every week, variance is 0.
+            // If they do nothing for 4 intervals and jump 20M on the final day, averageJump is 4M. Variances: |-4|, |-4|, |-4|, |-4|, |16| = Total Variance 32M! 
+            
             roster.push({
                 id,
                 name: endData.name,
@@ -683,8 +737,8 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
                 t4Diff: endData.t4Kills - startData.t4Kills,
                 t5Diff: endData.t5Kills - startData.t5Kills,
                 kpDiff: endData.killPoints - startData.killPoints,
-                activeDays: endData.killPoints > startData.killPoints ? 1 : 0,
-                kpVolatility: Math.abs(endData.killPoints - startData.killPoints),
+                activeDays: activeIntervals, // How many distinct mid-scans they actually showed movement in
+                kpVolatility: totalKpVariance, // The new Standard Deviation trajectory algorithm
                 kpRaw: endData.killPoints,
                 deadsRaw: endData.dead,
                 powerRaw: endData.power,
@@ -693,7 +747,7 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
             });
         }
 
-        console.log(`[BehavioralMatrix] Compiled ${roster.length} governor profiles`);
+        console.log(`[BehavioralMatrix] Compiled ${roster.length} 5-Dimensional governor trajectories`);
         return roster;
 
     } catch (e) {
