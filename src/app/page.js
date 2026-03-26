@@ -86,10 +86,24 @@ export default function Home() {
             <AnimatedLogo className="w-full h-full" />
           </div>
           
-          <div className="text-center group mb-12">
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 tracking-[0.25em] mb-2 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.3em]">
-              UN.TY <span className="text-white/90 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">2.0</span>
-            </h1>
+          <div className="text-center group mb-12 flex flex-col items-center">
+            
+            <div className="font-black text-5xl tracking-[0.25em] mb-4 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.3em] flex flex-col items-center gap-1.5 cursor-default mt-2">
+               
+               <div className="grid grid-cols-[1fr_auto_1fr] gap-x-1 w-[280px]">
+                 <div className="text-right text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">UN</div>
+                 <div className="text-center text-sky-400 font-bold -translate-y-[1px]">.</div>
+                 <div className="text-left text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">TY</div>
+               </div>
+
+               <div className="grid grid-cols-[1fr_auto_1fr] gap-x-1 w-[280px] text-white/90 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)] text-[3.5rem] tracking-[0.2em] transform -translate-x-[2px]">
+                 <div className="text-right">2</div>
+                 <div className="text-center font-bold text-gray-200 -translate-y-[2px]">.</div>
+                 <div className="text-left">0</div>
+               </div>
+
+            </div>
+
             <p className="text-sky-500/60 font-medium tracking-[0.15em] text-[10px] sm:text-xs uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)] font-mono mt-1">
               Because there is no <span className="text-cyan-400 font-bold lowercase text-sm">i</span> in team.
             </p>
