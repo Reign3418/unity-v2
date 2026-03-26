@@ -10,6 +10,7 @@ import GrowthAnalysisTab from "../../../components/analysis/kingdom/GrowthAnalys
 import AllianceDuelTab from "../../../components/analysis/kingdom/AllianceDuelTab";
 import TeamBuilderTab from "../../../components/analysis/kingdom/TeamBuilderTab";
 import AllianceMergeTab from "../../../components/analysis/kingdom/AllianceMergeTab";
+import MGEPlannerTab from "../../../components/analysis/kingdom/MGEPlannerTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -18,9 +19,9 @@ const TABS = [
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
   { name: "Hall of Legends", icon: ShieldAlert },
-  { name: "Team Builder", icon: Layers },
-  { name: "Alliance Merge", icon: Layers },
-  { name: "Fixed MGE", icon: Clock },
+  { name: "Team Builder", icon: Link },
+  { name: "Alliance Merge", icon: GitMerge },
+  { name: "Fixed MGE", icon: Trophy },
   { name: "Configuration", icon: Cpu },
   { name: "Results", icon: Archive }
 ];
@@ -140,6 +141,13 @@ export default function KingdomAnalysis() {
               return (
                   <AllianceMergeTab
                       rosterData={rosterData}
+                  />
+              );
+          case 'Fixed MGE':
+              return (
+                  <MGEPlannerTab
+                      rosterData={rosterData}
+                      targetKd={targetKd}
                   />
               );
           default:
