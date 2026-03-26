@@ -158,26 +158,26 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     };
 
     const CLUSTER_COLORS = {
-        'Heroes': '#3b82f6', // Blue
-        'Warriors': '#10b981', // Green
-        'Feeders': '#ef4444', // Red
-        'Slackers': '#64748b' // Gray
+        'Heroes': '#16a34a', // Dark Green (Great)
+        'Warriors': '#84cc16', // Lime (Good)
+        'Slackers': '#f97316', // Orange (Poor)
+        'Feeders': '#dc2626' // Dark Red (Terrible)
     };
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             const bgClass =
-                data.archetype === 'Heroes' ? 'bg-blue-500/10 border-blue-500/30' :
-                data.archetype === 'Warriors' ? 'bg-green-500/10 border-green-500/30' :
+                data.archetype === 'Heroes' ? 'bg-green-500/10 border-green-500/30' :
+                data.archetype === 'Warriors' ? 'bg-lime-500/10 border-lime-500/30' :
                 data.archetype === 'Feeders' ? 'bg-red-500/10 border-red-500/30' :
-                'bg-gray-500/10 border-gray-500/30';
+                'bg-orange-500/10 border-orange-500/30'; // Slackers
 
             const txtClass = 
-                data.archetype === 'Heroes' ? 'text-blue-400' :
-                data.archetype === 'Warriors' ? 'text-green-400' :
-                data.archetype === 'Feeders' ? 'text-red-400' :
-                'text-gray-400';
+                data.archetype === 'Heroes' ? 'text-green-500' :
+                data.archetype === 'Warriors' ? 'text-lime-500' :
+                data.archetype === 'Feeders' ? 'text-red-500' :
+                'text-orange-500'; // Slackers
 
             return (
                 <div className={`border p-4 rounded-lg shadow-2xl backdrop-blur-md outline-none ${bgClass}`}>
@@ -381,21 +381,21 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
             {/* Explainer Key */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-[#0f1115] border border-blue-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-blue-500">
-                    <h4 className="text-blue-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
+                <div className="bg-[#0f1115] border border-green-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-green-500">
+                    <h4 className="text-green-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, Low Deads compared to Kingdom Avg. The most efficient garrison fighters.</p>
                 </div>
-                <div className="bg-[#0f1115] border border-green-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-green-500">
-                    <h4 className="text-green-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
+                <div className="bg-[#0f1115] border border-lime-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-lime-500">
+                    <h4 className="text-lime-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, High Deads. Brutal field commanders who trade raw power for domination.</p>
+                </div>
+                <div className="bg-[#0f1115] border border-orange-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-orange-500">
+                    <h4 className="text-orange-500 font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
+                    <p className="text-gray-600 leading-tight text-xs">Below average overall. Inactive, bubbled, or strictly hoarding infrastructure.</p>
                 </div>
                 <div className="bg-[#0f1115] border border-red-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-red-500">
                     <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-1">Feeders</h4>
                     <p className="text-gray-500 leading-tight text-xs">Low Kill Points, High Deads. Structurally broken behaviors that bleed Kingdom score.</p>
-                </div>
-                <div className="bg-[#0f1115] border border-gray-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-gray-500">
-                    <h4 className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
-                    <p className="text-gray-600 leading-tight text-xs">Below average overall. Inactive, bubbled, or strictly hoarding infrastructure.</p>
                 </div>
             </div>
 
@@ -430,10 +430,10 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                     <div className="mt-6 pt-6 border-t border-[#1e222b] text-xs">
                         <strong className="text-gray-300 uppercase tracking-widest">The Four Quadrants:</strong>
                         <ul className="mt-3 space-y-2">
-                            <li><span className="inline-block w-20 text-blue-400 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
-                            <li><span className="inline-block w-20 text-green-400 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
+                            <li><span className="inline-block w-20 text-green-500 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
+                            <li><span className="inline-block w-20 text-lime-500 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
+                            <li><span className="inline-block w-20 text-orange-500 font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
                             <li><span className="inline-block w-20 text-red-500 font-bold">Bot Left</span> (Feeders) — Low volatility, terrible efficiency. Structurally broken accounts bleeding infrastructure.</li>
-                            <li><span className="inline-block w-20 text-gray-500 font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
                         </ul>
                     </div>
                 </div>
