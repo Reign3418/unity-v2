@@ -177,6 +177,65 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         'Farmers': '#06b6d4' // Neon Cyan (Hoarding)
     };
 
+    const renderKingAnalysis = () => {
+        if (!chartData || !chartData.Heroes) return null;
+        
+        const h = chartData['Heroes'].length;
+        const w = chartData['Warriors'].length;
+        const s = chartData['Slackers'].length;
+        const feed = chartData['Feeders'].length;
+        const farm = chartData['Farmers'].length;
+        const total = h + w + s + feed + farm;
+        if (total === 0) return null;
+
+        const feederRatio = feed / total;
+        
+        let verdict = "";
+        if (h === 0) {
+            verdict += "CRITICAL WARNING: The algorithm detected absolutely zero Heroes in this scan period. Every single player who achieved above-average Kill Points simultaneously absorbed massive casualties. This is a violently bloody fighting population that trades terribly. ";
+        } else if (h > (total * 0.05)) {
+            verdict += `You have ${h} highly elite Heroes anchoring your garrison defenses. Protect them at all costs. `;
+        } else {
+            verdict += `You have a sparse handful of Heroes (${h}). These are your only truly efficient traders; lean on them heavily for rallies. `;
+        }
+
+        verdict += `Your core fighting force consists of ${w} Warriors. They are generating the vast majority of your points in the open field, but their hospitals are full and they are bleeding troops to do it. `;
+
+        if (feederRatio > 0.15) {
+            verdict += `URGENT ACTION REQUIRED: The engine has identified a massive structural liability. There are ${feed} Feeders (${(feederRatio*100).toFixed(0)}% of the tracked roster) who are actively losing T4/T5 troops while contributing almost nothing to your KvK score. These players are acting as point-piñatas for the enemy kingdom. Council should issue immediate bubble-or-bootstrap ultimatums. `;
+        } else {
+            verdict += `You only have ${feed} Feeders bleeding points, which is a highly controlled liability ratio. `;
+        }
+
+        if (farm > 0) {
+            verdict += `Furthermore, you need to expose the ${farm} Farmers who are artificially raising your kingdom's matchmaking weight by aggressively hoarding power while completely avoiding combat. `;
+        }
+        
+        if (s > (total * 0.3)) {
+            verdict += `Finally, you have ${s} Slackers sitting at the exact kingdom baseline. They aren't growing or fighting. You have a massive dead-weight problem.`;
+        }
+
+        return (
+            <div className="bg-[#1a0f14] border border-red-500/30 rounded-xl shadow-xl p-6 lg:p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-red-500 to-orange-500"></div>
+                <h3 className="text-red-500 text-lg font-black tracking-widest uppercase mb-4 flex items-center gap-2">
+                    <ShieldAlert className="text-red-500" size={20} />
+                    Automated Kingdom Diagnostics (The Blunt Truth)
+                </h3>
+                <p className="text-gray-300 leading-relaxed text-sm md:text-base font-serif">
+                    {verdict}
+                </p>
+                <div className="mt-5 pt-5 border-t border-red-500/10 grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="text-center"><span className="block text-2xl font-black text-emerald-500">{h}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Heroes</span></div>
+                    <div className="text-center"><span className="block text-2xl font-black text-yellow-500">{w}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Warriors</span></div>
+                    <div className="text-center"><span className="block text-2xl font-black text-cyan-500">{farm}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Farmers</span></div>
+                    <div className="text-center"><span className="block text-2xl font-black text-white">{s}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Slackers</span></div>
+                    <div className="text-center"><span className="block text-2xl font-black text-red-500">{feed}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Feeders</span></div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="animate-fade-in space-y-6">
             
@@ -376,6 +435,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                     <p className="text-gray-500 leading-tight text-xs">Low Kill Points, High Deads. Structurally broken behaviors that bleed Kingdom score.</p>
                 </div>
             </div>
+
+            {renderKingAnalysis()}
 
             {/* Concept Write-Up */}
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 lg:p-8 relative overflow-hidden">
