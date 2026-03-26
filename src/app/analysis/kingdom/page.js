@@ -11,6 +11,8 @@ import AllianceDuelTab from "../../../components/analysis/kingdom/AllianceDuelTa
 import TeamBuilderTab from "../../../components/analysis/kingdom/TeamBuilderTab";
 import AllianceMergeTab from "../../../components/analysis/kingdom/AllianceMergeTab";
 import MGEPlannerTab from "../../../components/analysis/kingdom/MGEPlannerTab";
+import ConfigurationTab from "../../../components/analysis/kingdom/ConfigurationTab";
+import ResultsTab from "../../../components/analysis/kingdom/ResultsTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -148,6 +150,17 @@ export default function KingdomAnalysis() {
                   <MGEPlannerTab
                       rosterData={rosterData}
                       targetKd={targetKd}
+                  />
+              );
+          case 'Configuration':
+              return (
+                  <ConfigurationTab />
+              );
+          case 'Results':
+              return (
+                  <ResultsTab 
+                      targetKd={targetKd}
+                      trends={trends}
                   />
               );
           default:
