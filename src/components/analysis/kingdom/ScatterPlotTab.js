@@ -160,10 +160,10 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     };
 
     const CLUSTER_COLORS = {
-        'Heroes': '#22c55e', // Bright Green (Great)
-        'Warriors': '#f59e0b', // Amber (Warning/Good)
-        'Slackers': '#f8fafc', // Slate White (Neutral)
-        'Feeders': '#dc2626' // Bright Red (Terrible)
+        'Heroes': '#10b981', // Neon Emerald (Great)
+        'Warriors': '#facc15', // Neon Yellow (Warning/Good)
+        'Slackers': '#ffffff', // Pure White (Neutral)
+        'Feeders': '#ef4444' // Neon Red (Terrible)
     };
 
     return (
@@ -287,9 +287,17 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                     const q = searchQuery.toLowerCase();
                                     const activeSearch = q.length > 0;
                                     const match = activeSearch && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                    return activeSearch && !match ? 0.15 : 0.8;
+                                    return activeSearch && !match ? 0.15 : 1;
                                 }),
-                                symbol: 'circle'
+                                symbol: 'circle',
+                                line: {
+                                    color: chartData[key].map(d => {
+                                        const q = searchQuery.toLowerCase();
+                                        const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                        return match ? '#ffffff' : CLUSTER_COLORS[key];
+                                    }),
+                                    width: 1
+                                }
                             },
                             hoverinfo: 'text'
                         }))}
@@ -325,16 +333,16 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
             {/* Explainer Key */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-[#0f1115] border border-green-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-green-500">
-                    <h4 className="text-green-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
+                <div className="bg-[#0f1115] border border-emerald-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-emerald-500">
+                    <h4 className="text-emerald-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, Low Deads compared to Kingdom Avg. The most efficient garrison fighters.</p>
                 </div>
-                <div className="bg-[#0f1115] border border-amber-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-amber-500">
-                    <h4 className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
+                <div className="bg-[#0f1115] border border-yellow-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-yellow-500">
+                    <h4 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, High Deads. Brutal field commanders who trade raw power for domination.</p>
                 </div>
-                <div className="bg-[#0f1115] border border-slate-100/20 rounded-xl p-4 flex flex-col border-t-2 border-t-slate-100">
-                    <h4 className="text-slate-100 font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
+                <div className="bg-[#0f1115] border border-white/20 rounded-xl p-4 flex flex-col border-t-2 border-t-white">
+                    <h4 className="text-white font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
                     <p className="text-gray-600 leading-tight text-xs">Neutral Baseline. Inactive, bubbled, or strictly hoarding infrastructure.</p>
                 </div>
                 <div className="bg-[#0f1115] border border-red-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-red-500">
@@ -374,9 +382,9 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                     <div className="mt-6 pt-6 border-t border-[#1e222b] text-xs">
                         <strong className="text-gray-300 uppercase tracking-widest">The Four Quadrants:</strong>
                         <ul className="mt-3 space-y-2">
-                            <li><span className="inline-block w-20 text-green-500 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
-                            <li><span className="inline-block w-20 text-amber-500 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
-                            <li><span className="inline-block w-20 text-slate-100 font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
+                            <li><span className="inline-block w-20 text-emerald-500 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
+                            <li><span className="inline-block w-20 text-yellow-500 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
+                            <li><span className="inline-block w-20 text-white font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
                             <li><span className="inline-block w-20 text-red-500 font-bold">Bot Left</span> (Feeders) — Low volatility, terrible efficiency. Structurally broken accounts bleeding infrastructure.</li>
                         </ul>
                     </div>
