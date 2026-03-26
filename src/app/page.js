@@ -31,11 +31,11 @@ export default function Home() {
           </div>
           
           <div className="text-center group mb-12">
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 tracking-[0.2em] mb-2 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.25em]">
-              UN.TY <span className="text-white/90">2.0</span>
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 tracking-[0.25em] mb-2 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.3em]">
+              UN.TY <span className="text-white/90 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">2.0</span>
             </h1>
-            <p className="text-sky-500/60 font-medium tracking-widest text-xs sm:text-sm uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)]">
-              There is no <span className="text-teal-400/90 font-bold">I</span> in team.
+            <p className="text-sky-500/60 font-medium tracking-[0.15em] text-[10px] sm:text-xs uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)] font-mono mt-1">
+              Because there is no <span className="text-cyan-400 font-bold lowercase text-sm">i</span> in team.
             </p>
           </div>
 

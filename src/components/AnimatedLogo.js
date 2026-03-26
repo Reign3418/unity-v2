@@ -1,87 +1,128 @@
 import React from 'react';
 
 export default function AnimatedLogo({ className = "" }) {
+  // Generate 16 firework particles
+  const particles = Array.from({ length: 16 }).map((_, i) => {
+    const angle = (i * 22.5) * (Math.PI / 180);
+    const destX = Math.cos(angle) * 120; // Explosion radius
+    const destY = Math.sin(angle) * 120;
+    return (
+      <circle
+        key={i}
+        cx="100"
+        cy="120"
+        r={i % 2 === 0 ? "3" : "1.5"}
+        fill={i % 3 === 0 ? "#38bdf8" : "#2dd4bf"}
+        className="firework-particle"
+        style={{
+          '--dest-x': `${destX}px`,
+          '--dest-y': `${destY}px`,
+        }}
+      />
+    );
+  });
+
   return (
     <div className={`relative flex items-center justify-center ${className} group cursor-pointer`}>
+      <style>
+        {`
+          .firework-particle {
+            opacity: 0;
+            transform-origin: 100px 120px;
+          }
+          .group:hover .firework-particle {
+            animation: explode 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+          }
+          @keyframes explode {
+            0% { transform: translate(0, 0) scale(0); opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { transform: translate(var(--dest-x), var(--dest-y)) scale(1.5); opacity: 0; }
+          }
+        `}
+      </style>
+
       {/* Background Pulse / Ethereal Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] w-[160%] h-[160%] bg-cyan-500/20 rounded-full blur-[40px] animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000 delay-100"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] w-[160%] h-[160%] bg-cyan-500/10 rounded-full blur-[40px] animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000 delay-100"></div>
 
       <svg 
         viewBox="0 0 200 220" 
-        className="w-full h-full drop-shadow-[0_0_20px_rgba(6,182,212,0.3)] group-hover:drop-shadow-[0_0_35px_rgba(6,182,212,0.6)] transition-all duration-700 relative z-10"
+        className="w-full h-full drop-shadow-[0_0_15px_rgba(6,182,212,0.4)] group-hover:drop-shadow-[0_0_40px_rgba(6,182,212,0.8)] transition-all duration-700 relative z-10"
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
           <linearGradient id="shieldGradLeft" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#0ea5e9" /> {/* sky-500 */}
-            <stop offset="60%" stopColor="#0284c7" /> {/* sky-600 */}
-            <stop offset="100%" stopColor="#1e3a8a" /> {/* blue-900 */}
+            <stop offset="100%" stopColor="#0f172a" /> {/* slate-900 */}
           </linearGradient>
           <linearGradient id="shieldGradRight" x1="100%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#2dd4bf" /> {/* teal-400 */}
-            <stop offset="50%" stopColor="#06b6d4" /> {/* cyan-500 */}
-            <stop offset="100%" stopColor="#1e40af" /> {/* blue-800 */}
+            <stop offset="100%" stopColor="#0f172a" /> {/* slate-900 */}
           </linearGradient>
           <radialGradient id="orbGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#cffafe" stopOpacity="1" />
-            <stop offset="40%" stopColor="#22d3ee" stopOpacity="1" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+            <stop offset="20%" stopColor="#a5f3fc" stopOpacity="1" />
+            <stop offset="60%" stopColor="#06b6d4" stopOpacity="0.8" />
             <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        {/* Central Core (The Orb) */}
-        <circle cx="100" cy="120" r="30" fill="url(#orbGlow)" className="animate-pulse" style={{ animationDuration: '3.5s' }} />
+        {/* Firework Particles layer (behind orb) */}
+        <g>{particles}</g>
 
-        {/* Left Guardian / Shield Half */}
-        <g className="transition-transform duration-700 ease-in-out group-hover:-translate-x-1 group-hover:-translate-y-1">
-            {/* Guardian Head */}
-            <circle cx="55" cy="52" r="16" fill="#0284c7" className="drop-shadow-[0_0_10px_rgba(2,132,199,0.5)]" />
-            {/* Guardian Body forming the Shield curve */}
+        {/* Central Core (The Orb) */}
+        <circle cx="100" cy="110" r="22" fill="url(#orbGlow)" className="animate-pulse" style={{ animationDuration: '2s' }} />
+
+        {/* Left Tribal Guardian */}
+        <g className="transition-transform duration-700 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:-translate-x-3 group-hover:-translate-y-3">
+            {/* The Head / Notch */}
+            <circle cx="68" cy="48" r="14" fill="#0284c7" className="drop-shadow-[0_0_8px_rgba(2,132,199,0.8)]" />
+            {/* The Blade / Shield Body */}
             <path 
-              d="M 95 10 
-                 C 80 35, 45 55, 15 45
-                 C 25 70, 45 85, 40 100
-                 C 30 130, 20 150, 40 170
-                 C 60 200, 90 215, 100 220
-                 l -15 -25
-                 C 65 170, 50 145, 65 115
-                 C 80 90, 85 85, 95 85 Z"
+              d="M 30 40 
+                 L 68 50 
+                 L 68 62
+                 A 14 14 0 0 1 68 90
+                 L 68 110
+                 L 98 140
+                 C 98 160, 95 180, 100 200
+                 L 50 160
+                 C 30 130, 20 90, 30 40 Z"
               fill="url(#shieldGradLeft)"
             />
         </g>
 
-        {/* Right Guardian / Shield Half */}
-        <g className="transition-transform duration-700 ease-in-out group-hover:translate-x-1 group-hover:-translate-y-1">
-            {/* Guardian Head */}
-            <circle cx="145" cy="52" r="16" fill="#0891b2" className="drop-shadow-[0_0_10px_rgba(8,145,178,0.5)]" />
-            {/* Guardian Body forming the Shield curve */}
+        {/* Right Tribal Guardian */}
+        <g className="transition-transform duration-700 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:translate-x-3 group-hover:-translate-y-3">
+            {/* The Head / Notch */}
+            <circle cx="132" cy="48" r="14" fill="#0d9488" className="drop-shadow-[0_0_8px_rgba(13,148,136,0.8)]" />
+            {/* The Blade / Shield Body */}
             <path 
-               d="M 105 10 
-                 C 120 35, 155 55, 185 45
-                 C 175 70, 155 85, 160 100
-                 C 170 130, 180 150, 160 170
-                 C 140 200, 110 215, 100 220
-                 l 15 -25
-                 C 135 170, 150 145, 135 115
-                 C 120 90, 115 85, 105 85 Z"
+               d="M 170 40 
+                 L 132 50 
+                 L 132 62
+                 A 14 14 0 0 0 132 90
+                 L 132 110
+                 L 102 140
+                 C 102 160, 105 180, 100 200
+                 L 150 160
+                 C 170 130, 180 90, 170 40 Z"
               fill="url(#shieldGradRight)"
             />
         </g>
         
-        {/* Inner V Geometry connecting the base */}
-        <g className="transition-transform duration-700 ease-in-out group-hover:translate-y-2">
+        {/* Inner Chevron Geometry */}
+        <g className="transition-transform duration-700 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] group-hover:translate-y-4 group-hover:scale-[1.05] origin-center">
             <path 
-              d="M 72 155 L 100 185 L 128 155 L 100 195 Z"
-              fill="#38bdf8"
-              className="animate-pulse opacity-80"
-              style={{ animationDuration: '4s' }}
+              d="M 72 150 L 100 180 L 128 150 L 100 190 Z"
+              fill="#22d3ee"
+              className="opacity-90"
             />
             <path 
-              d="M 82 170 L 100 190 L 118 170 L 100 195 Z"
-              fill="#22d3ee"
-              className="animate-pulse opacity-50"
-              style={{ animationDuration: '2s' }}
+              d="M 85 162 L 100 178 L 115 162 L 100 185 Z"
+              fill="#a5f3fc"
+              className="animate-pulse opacity-100"
+              style={{ animationDuration: '1.5s' }}
             />
         </g>
       </svg>
