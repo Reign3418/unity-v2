@@ -1665,7 +1665,8 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                     'summary': { S: JSON.stringify(summaryData) },
                     'uploaderId': { S: String(uploaderData?.discordId || "Unknown") },
                     'uploaderName': { S: String(uploaderData?.username || "System") },
-                    'sourceFile': { S: String(uploaderData?.sourceFile || "Legacy_Upload") }
+                    'sourceFile': { S: String(uploaderData?.sourceFile || "Legacy_Upload") },
+                    'importTag': { S: String(uploaderData?.importTag || "UNDOCUMENTED") }
                 }
             }
         }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { uploadKingdomRoster } from "@/lib/awsDynamo";
+import { randomUUID } from "crypto";
 
 export async function POST(req) {
   try {
@@ -34,7 +35,8 @@ export async function POST(req) {
     const uploaderData = {
         discordId: session.user.id,
         username: session.user.username,
-        sourceFile: sourceFile || 'Unknown_File_Data'
+        sourceFile: sourceFile || 'Unknown_File_Data',
+        importTag: `UP_${randomUUID().split('-')[0].toUpperCase()}`
     };
     
     const dateKey = await uploadKingdomRoster(kingdomId, rosterArray, uploaderData, scanDateOverride);

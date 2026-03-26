@@ -712,6 +712,7 @@ export default function AdminConsole() {
                  <thead className="text-xs uppercase bg-[#0a0c0f] border-b border-[#1e222b] text-gray-500">
                    <tr>
                      <th className="px-6 py-4">Ingestion Date</th>
+                     <th className="px-6 py-4">Transaction Tag</th>
                      <th className="px-6 py-4">Target Kingdom</th>
                      <th className="px-6 py-4">Source Origin</th>
                      <th className="px-6 py-4">Rows Mapped</th>
@@ -722,12 +723,17 @@ export default function AdminConsole() {
                  <tbody className="divide-y divide-[#1e222b]">
                    {uploadLogs.length === 0 && (
                      <tr>
-                       <td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">No cloud injection signatures found.</td>
+                       <td colSpan="7" className="px-6 py-8 text-center text-gray-500 italic">No cloud injection signatures found.</td>
                      </tr>
                    )}
                    {uploadLogs.map((log, i) => (
                      <tr key={i} className="hover:bg-[#161920] transition-colors">
                        <td className="px-6 py-3 font-mono text-purple-400">{new Date(log.scanDate).toLocaleString()}</td>
+                       <td className="px-6 py-3">
+                         <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold tracking-widest uppercase ${log.importTag?.startsWith('UP_') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-[#1e222b] text-gray-500'}`}>
+                           {log.importTag || "LEGACY"}
+                         </span>
+                       </td>
                        <td className="px-6 py-3 font-bold text-white">KD {log.kingdomId}</td>
                        <td className="px-6 py-3">
                          <span className="text-[10px] text-cyan-400 font-mono bg-cyan-500/10 px-2 py-1 rounded truncate block max-w-[150px]" title={log.sourceFile || "Legacy_Upload"}>

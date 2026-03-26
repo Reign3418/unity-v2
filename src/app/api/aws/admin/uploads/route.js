@@ -76,7 +76,8 @@ export async function GET(req) {
                             rowCount: parseInt(attrs.rowCount?.N || "0"),
                             uploaderId: (attrs.uploaderId?.S && attrs.uploaderId.S.trim() !== "System" && attrs.uploaderId.S.trim() !== "") ? attrs.uploaderId.S : "Unknown Pipeline",
                             uploaderName: (attrs.uploaderName?.S && attrs.uploaderName.S.trim() !== "") ? attrs.uploaderName.S : "Legacy System Action",
-                            sourceFile: (attrs.sourceFile?.S && attrs.sourceFile.S.trim() !== "") ? attrs.sourceFile.S : "Legacy Upload File"
+                            sourceFile: (attrs.sourceFile?.S && attrs.sourceFile.S.trim() !== "") ? attrs.sourceFile.S : "Legacy Upload File",
+                            importTag: attrs.importTag?.S || "LEGACY_UPLOAD"
                         });
                     }
                 }
