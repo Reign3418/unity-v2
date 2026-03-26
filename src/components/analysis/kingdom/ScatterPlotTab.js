@@ -555,6 +555,21 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             </p>
                         </div>
                     </div>
+
+                    <div className="mt-6 pt-6 border-t border-[#1e222b] text-xs">
+                        <strong className="text-gray-300 uppercase tracking-widest">Mathematical Core & Engine References:</strong>
+                        <div className="mt-3 space-y-4 text-justify text-gray-500">
+                            <p>
+                                <strong>Machine Learning (Dimensionality Reduction):</strong> This module utilizes <code>ml-pca</code>, a powerful JavaScript implementation of <strong>Principal Component Analysis (PCA)</strong>. It executes a mathematical procedure called <strong>Singular Value Decomposition (SVD)</strong>. This transforms 8 massive, highly-correlated dimensions (Total Power, KP, T4/T5 Deads, Gathering, etc.) into 3 distinct, uncorrelated "Principal Components" (PC1, PC2, PC3), allowing complex multi-layered human behavior to be cleanly plotted on an X, Y, and Z axis.
+                            </p>
+                            <p>
+                                <strong>3D Visualization Engine:</strong> The visual matrix is driven by <code>react-plotly.js</code>. This leverages <strong>WebGL</strong> (Web Graphics Library) to bypass the browser's standard DOM rendering. By communicating directly with the client's GPU, it calculates the spatial geometry, camera rotational matrix, and semantic lighting logic for over 1,000 distinct floating nodes simultaneously without suffering frame drops.
+                            </p>
+                            <p>
+                                <strong>Z-Score Standard Scaling:</strong> Before any dot is drawn, the engine utilizes a continuous normalization step. This mathematically forces all metrics to have a mean (average) of 0 and a variance of 1. Because getting 10 million Power is infinitely easier than getting 10 million Dead Troops, the engine prevents the "Power" metric from blinding the matrix. The normalization guarantees that brutal troop sacrifice is weighed as heavily as raw power growth in the algorithmic cluster assignment.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
