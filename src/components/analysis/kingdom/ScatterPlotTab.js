@@ -65,11 +65,13 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         
         if (validRoster.length === 0) return { chartData: {}, statistics: {} };
 
-        // 2. Extract Raw Averages to determine Structural Archetypes (Heroes, Warriors, Feeders, Slackers)
+        // 2. Extract Raw Averages to determine Structural Archetypes (Heroes, Warriors, Feeders, Slackers, Farmers)
         const totalKp = validRoster.reduce((sum, g) => sum + g.kpRaw, 0);
         const totalDeads = validRoster.reduce((sum, g) => sum + g.deadsRaw, 0);
+        const totalPowerDiff = validRoster.reduce((sum, g) => sum + (g.powerDiff || 0), 0);
         const avgKp = totalKp / validRoster.length;
         const avgDeads = totalDeads / validRoster.length;
+        const avgPowerDiff = Math.max(0, totalPowerDiff / validRoster.length);
 
         // 3. Define the 8 Dimensions for PCA Dimensionality Reduction
         const features = ['powerDiff', 'troopPowerDiff', 'deadsDiff', 't4Diff', 't5Diff', 'kpDiff', 'activeDays', 'kpVolatility'];
@@ -118,7 +120,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
             'Heroes': [], // Blue
             'Warriors': [], // Green
             'Feeders': [], // Red
-            'Slackers': [] // Gray
+            'Slackers': [], // Gray
+            'Farmers': [] // Cyan
         };
 
         validRoster.forEach((gov, index) => {
@@ -130,6 +133,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
              if (gov.kpRaw > avgKp && gov.deadsRaw > avgDeads) archetype = 'Warriors';
              else if (gov.kpRaw > avgKp && gov.deadsRaw <= avgDeads) archetype = 'Heroes';
              else if (gov.kpRaw <= avgKp && gov.deadsRaw > avgDeads) archetype = 'Feeders';
+             else if (gov.powerDiff > avgPowerDiff) archetype = 'Farmers';
 
              clusters[archetype].push({
                  id: gov.id,
@@ -163,7 +167,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         'Heroes': '#10b981', // Neon Emerald (Great)
         'Warriors': '#facc15', // Neon Yellow (Warning/Good)
         'Slackers': '#ffffff', // Pure White (Neutral)
-        'Feeders': '#ef4444' // Neon Red (Terrible)
+        'Feeders': '#ef4444', // Neon Red (Terrible)
+        'Farmers': '#06b6d4' // Neon Cyan (Hoarding)
     };
 
     return (
@@ -326,13 +331,13 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             }
                         }}
                         style={{ width: '100%', height: '100%', minHeight: '600px' }}
-                        config={{ displayModeBar: false }}
+                        config={{ displayModeBar: true, displaylogo: false }}
                     />
                 </div>
             </div>
 
             {/* Explainer Key */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-[#0f1115] border border-emerald-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-emerald-500">
                     <h4 className="text-emerald-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, Low Deads compared to Kingdom Avg. The most efficient garrison fighters.</p>
@@ -343,7 +348,11 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                 </div>
                 <div className="bg-[#0f1115] border border-white/20 rounded-xl p-4 flex flex-col border-t-2 border-t-white">
                     <h4 className="text-white font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
-                    <p className="text-gray-600 leading-tight text-xs">Neutral Baseline. Inactive, bubbled, or strictly hoarding infrastructure.</p>
+                    <p className="text-gray-600 leading-tight text-xs">Neutral Baseline. Inactive, bubbled, plateaued accounts.</p>
+                </div>
+                <div className="bg-[#0f1115] border border-cyan-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-cyan-500">
+                    <h4 className="text-cyan-500 font-bold uppercase tracking-widest text-sm mb-1">Farmers</h4>
+                    <p className="text-gray-500 leading-tight text-xs">High Power Growth. Low/zero fighting. Actively hoarding infrastructure.</p>
                 </div>
                 <div className="bg-[#0f1115] border border-red-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-red-500">
                     <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-1">Feeders</h4>
@@ -384,7 +393,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                         <ul className="mt-3 space-y-2">
                             <li><span className="inline-block w-20 text-emerald-500 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
                             <li><span className="inline-block w-20 text-yellow-500 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
-                            <li><span className="inline-block w-20 text-white font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
+                            <li><span className="inline-block w-20 text-cyan-500 font-bold">Center</span> (Farmers) — Low volatility, high power consumption. Visually growing infrastructure but doing zero combat.</li>
+                            <li><span className="inline-block w-20 text-white font-bold">Center Left</span> (Slackers) — Low volatility, zero growth. The truly plateaued dead-weight accounts.</li>
                             <li><span className="inline-block w-20 text-red-500 font-bold">Bot Left</span> (Feeders) — Low volatility, terrible efficiency. Structurally broken accounts bleeding infrastructure.</li>
                         </ul>
                     </div>
