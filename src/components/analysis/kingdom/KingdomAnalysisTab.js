@@ -53,6 +53,7 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
       }
       return {
           ...t,
+          dateStr: new Date(t.scanDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           plotPower: plotPower,
           predictedPower: null,
           isPrediction: false
