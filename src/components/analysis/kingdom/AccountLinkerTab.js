@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Link2, Trash2, Search, Users, AlertCircle, Save } from "lucide-react";
+import { Link2, Trash2, Search, Users, AlertCircle, Save, RefreshCw } from "lucide-react";
 
 export default function AccountLinkerTab({ rosterData, targetKd }) {
     const [links, setLinks] = useState({});
@@ -234,10 +234,11 @@ export default function AccountLinkerTab({ rosterData, targetKd }) {
                                                  </div>
                                                  <button 
                                                     onClick={() => handleRemoveLink(farmId)}
-                                                    className="p-1.5 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-all opacity-0 group-hover:opacity-100"
+                                                    className="p-2 border border-rose-500/30 text-rose-500/80 bg-rose-500/10 hover:text-rose-400 hover:bg-rose-500/20 rounded transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
                                                     title="Sever Overlink"
                                                  >
-                                                     <Trash2 size={14} />
+                                                     <Trash2 size={12} />
+                                                     Unlink
                                                  </button>
                                              </div>
                                          ))}
