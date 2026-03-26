@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession, signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Shield, Zap, TrendingUp, UploadCloud } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
@@ -8,12 +9,63 @@ import AnimatedLogo from "@/components/AnimatedLogo";
 
 export default function Home() {
   const { data: session } = useSession();
+  const [isExploding, setIsExploding] = useState(false);
+  const [fireworks, setFireworks] = useState([]);
+
+  useEffect(() => {
+    if (isExploding) {
+      // Generate 50 random fullscreen fireworks
+      const newFireworks = Array.from({ length: 50 }).map((_, i) => ({
+        id: i,
+        left: 50 + (Math.random() - 0.5) * 40 + '%', // Cluster slightly around center
+        top: 40 + (Math.random() - 0.5) * 40 + '%',
+        size: Math.random() * 8 + 4 + 'px',
+        color: ['#06b6d4', '#38bdf8', '#2dd4bf', '#818cf8', '#a5f3fc'][Math.floor(Math.random() * 5)],
+        delay: Math.random() * 0.4 + 's',
+        duration: Math.random() * 0.8 + 0.6 + 's',
+        tx: (Math.random() - 0.5) * 600 + 'px',
+        ty: (Math.random() - 0.5) * 600 + 'px',
+      }));
+      setFireworks(newFireworks);
+    } else {
+      setFireworks([]);
+    }
+  }, [isExploding]);
 
   // UNAUTHENTICATED GHOST SHIP LOGIN
   if (!session) {
     return (
       <div className="flex flex-col bg-[#05070a] min-h-screen items-center justify-center relative overflow-hidden font-sans">
         
+        {/* Fullscreen Fireworks Engine */}
+        {fireworks.map((fw) => (
+          <div
+            key={fw.id}
+            className="absolute rounded-full pointer-events-none z-0"
+            style={{
+              left: fw.left,
+              top: fw.top,
+              width: fw.size,
+              height: fw.size,
+              backgroundColor: fw.color,
+              boxShadow: `0 0 15px ${fw.color}`,
+              animation: `page-explode ${fw.duration} cubic-bezier(0.1, 0.8, 0.3, 1) ${fw.delay} forwards`,
+              '--tx': fw.tx,
+              '--ty': fw.ty,
+            }}
+          />
+        ))}
+
+        <style>
+          {`
+            @keyframes page-explode {
+              0% { transform: translate(0, 0) scale(0); opacity: 1; }
+              40% { opacity: 0.9; }
+              100% { transform: translate(var(--tx), var(--ty)) scale(2.5); opacity: 0; }
+            }
+          `}
+        </style>
+
         {/* Deep Atmospheric Blobs */}
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '6s' }}></div>
         <div className="absolute bottom-[-10%] left-[-5%] w-[800px] h-[800px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }}></div>
@@ -24,7 +76,11 @@ export default function Home() {
         {/* Central Glassmorphic Card */}
         <div className="relative z-10 flex flex-col items-center bg-[#0a0c10]/40 backdrop-blur-2xl border border-white/5 p-12 lg:p-14 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] transform hover:scale-[1.01] transition-all duration-700 w-full max-w-sm sm:max-w-md">
           
-          <div className="mb-6 w-36 h-36 sm:w-40 sm:h-40 relative group">
+          <div 
+            className="mb-6 w-36 h-36 sm:w-40 sm:h-40 relative group"
+            onMouseEnter={() => setIsExploding(true)}
+            onMouseLeave={() => setIsExploding(false)}
+          >
             {/* The Orb casting light behind the logo */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-700"></div>
             <AnimatedLogo className="w-full h-full" />
