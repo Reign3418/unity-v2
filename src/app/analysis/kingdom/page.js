@@ -11,7 +11,6 @@ import GrowthAnalysisTab from "../../../components/analysis/kingdom/GrowthAnalys
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
   { name: "Growth Analysis", icon: TrendingUp },
-  { name: "Projection", icon: Target },
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
