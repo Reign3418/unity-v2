@@ -290,9 +290,10 @@ function DropZone({ title, description, icon, theme, optional = false }) {
         let totalRows = 0;
         let successCount = 0;
 
-        // Discover the overall "Primary Kingdom" for this workbook by finding the first tab possessing a \d{3,} block.
+        // Discover the overall "Primary Kingdom" for this workbook by finding the first tab possessing a \d{3,} block or relying on the literal filename.
         const primaryKdMatch = workbook.SheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
-        const primaryKd = primaryKdMatch ? primaryKdMatch[0] : null;
+        const fallbackKdMatch = file.name.match(/\d{3,}/);
+        const primaryKd = primaryKdMatch ? primaryKdMatch[0] : (fallbackKdMatch ? fallbackKdMatch[0] : null);
 
         for (const sheetName of workbook.SheetNames) {
             // EXCLUDE EXTRANEOUS TABS (HeroScrolls / RokBoard Metadata)
