@@ -49,7 +49,10 @@ export default function ResultsTab({ targetKd, trends }) {
         const saved = localStorage.getItem("unity_dkp_config_v2");
         if (saved) {
             try {
-                setConfig(JSON.parse(saved));
+                const parsed = JSON.parse(saved);
+                // Force Advanced System to ensure legacy metric compliance
+                parsed.dkpSystem = "advanced";
+                setConfig(parsed);
             } catch (e) {
                 console.error("Failed to load DKP config", e);
             }
@@ -118,11 +121,8 @@ export default function ResultsTab({ targetKd, trends }) {
                 kpPercent = targetDkp > 0 ? (kvkKP / targetDkp) * 100 : 0;
                 deadPercent = targetDeads > 0 ? (deadsDiff / targetDeads) * 100 : 0;
                 
-                const deadsWeightFraction = (config.deadsWeight || 50) / 100;
-                const kpWeightFraction = 1 - deadsWeightFraction;
-                
                 if (targetDkp > 0 && targetDeads > 0) {
-                    quotaPct = (kpPercent * kpWeightFraction) + (deadPercent * deadsWeightFraction);
+                    quotaPct = (kpPercent + deadPercent) / 2;
                 } else if (targetDkp > 0) {
                     quotaPct = kpPercent;
                 } else if (targetDeads > 0) {
