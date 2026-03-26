@@ -94,24 +94,29 @@ export default function ResultsTab({ targetKd, trends }) {
             let targetDkp = 0;
             let targetDeads = 0;
             let quotaPct = 0;
+            let kvkKP = 0;
+            let kpPercent = 0;
+            let deadPercent = 0;
 
             if (isBasic) {
                 // Basic System Logic
-                const kvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
+                kvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
                 finalDkp = kvkKP + (deadsDiff * (config.basicDeadsPoints || 0));
                 targetDkp = 0; 
                 quotaPct = 0; 
+                kpPercent = 0;
+                deadPercent = 0;
             } else {
                 // Advanced System Logic
-                const kvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
+                kvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
                 const t4MixRatio = 1 - (config.t5MixRatio || 0);
                 const kpTargetMultiplier = ((((config.t5MixRatio || 0) * (config.advT5Points || 0)) + (t4MixRatio * (config.advT4Points || 0))) * (config.kpMultiplier || 0)) / (config.kpPowerDivisor || 1);
                 
                 targetDkp = powerStart * kpTargetMultiplier;
                 targetDeads = powerStart * (config.deadsMultiplier || 0);
                 
-                const kpPercent = targetDkp > 0 ? (kvkKP / targetDkp) * 100 : 0;
-                const deadPercent = targetDeads > 0 ? (deadsDiff / targetDeads) * 100 : 0;
+                kpPercent = targetDkp > 0 ? (kvkKP / targetDkp) * 100 : 0;
+                deadPercent = targetDeads > 0 ? (deadsDiff / targetDeads) * 100 : 0;
                 
                 const deadsWeightFraction = (config.deadsWeight || 50) / 100;
                 const kpWeightFraction = 1 - deadsWeightFraction;
