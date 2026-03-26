@@ -127,13 +127,23 @@ export default function ResultsTab({ targetKd, trends }) {
                 finalDkp = kvkKP; // Treat kvkKP as their "Total KP/DKP" nominal score
             }
 
+            let status = 'Sleeper';
+            if ((p.kpDiff || 0) > 0) status = 'Fighter';
+            else if ((p.gatheredDiff || 0) > 0) status = 'Farmer';
+            else if ((p.powerDiff || 0) > 0) status = 'Grower';
+            else if ((p.powerDiff || 0) < 0) status = 'Dropped';
+
             return {
                 ...p,
                 powerStart,
                 targetDkp,
                 targetDeads,
                 finalDkp,
-                quotaPct: parseFloat(quotaPct.toFixed(1))
+                quotaPct: parseFloat(quotaPct.toFixed(2)),
+                kpPercent: parseFloat(kpPercent.toFixed(2)),
+                deadPercent: parseFloat(deadPercent.toFixed(2)),
+                status,
+                kvkKP
             };
         }).sort((a, b) => (config.dkpSystem === "basic" ? b.finalDkp - a.finalDkp : b.quotaPct - a.quotaPct));
 
@@ -159,26 +169,33 @@ export default function ResultsTab({ targetKd, trends }) {
 
     // 6. CSV Exporter 
     const exportCSV = () => {
-        const headers = ["Rank", "ID", "Name", "Alliance", "Power Diff", "KP Diff", "T4 Diff", "T5 Diff", "Deads Diff", "Calculated Base KP", "Target KP", "Target Deads", "Final Quota %"];
-        let csvContent = headers.join(",") + "\n";
+        const headers = ["Governor ID", "Governor Name", "Status", "Starting Power", "Power +/-", "Troop Power", "T1 Kills", "T2 Kills", "T3 Kills", "T4 Kills", "T5 Kills", "T4*T5 Combined", "KvK Deads", "RSS Gathered", "KvK KP", "Target DKP", "KP % Complete", "Target Deads", "Dead % Complete", config.dkpSystem === "basic" ? "Total DKP" : "Total DKP %"];
+        let csvContent = headers.join(",") + "\\n";
         
         filteredData.forEach((row, i) => {
             const dataRow = [
-                i + 1,
                 row.id,
                 `"${row.name.replace(/"/g, '""')}"`,
-                `"${row.alliance}"`,
-                row.powerDiff,
-                row.kpDiff,
-                row.t4Diff,
-                row.t5Diff,
-                row.deadsDiff,
-                Math.round(row.finalDkp),
-                Math.round(row.targetDkp),
-                Math.round(row.targetDeads || 0),
-                row.quotaPct
+                row.status,
+                row.powerStart || 0,
+                row.powerDiff || 0,
+                row.troopPowerDiff || 0,
+                row.t1Diff || 0,
+                row.t2Diff || 0,
+                row.t3Diff || 0,
+                row.t4Diff || 0,
+                row.t5Diff || 0,
+                (row.t4Diff || 0) + (row.t5Diff || 0),
+                row.deadsDiff || 0,
+                row.gatheredDiff || 0,
+                Math.round(row.kvkKP) || 0,
+                Math.round(row.targetDkp) || 0,
+                row.kpPercent || 0,
+                Math.round(row.targetDeads) || 0,
+                row.deadPercent || 0,
+                config.dkpSystem === "basic" ? Math.round(row.finalDkp) || 0 : row.quotaPct || 0
             ];
-            csvContent += dataRow.join(",") + "\n";
+            csvContent += dataRow.join(",") + "\\n";
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -310,92 +327,107 @@ export default function ResultsTab({ targetKd, trends }) {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[1200px]">
+                        <table className="w-full text-left border-collapse min-w-[1800px] text-[11px]">
                             <thead>
                                 <tr className="bg-[#1a1d24] border-b border-[#2d323e]">
-                                    <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-center w-16">Rank</th>
-                                    <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Governor</th>
-                                    <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Alliance</th>
-                                    <th className="p-4 text-xs font-bold text-blue-400/80 uppercase tracking-widest text-right">Power Δ</th>
-                                    <th className="p-4 text-xs font-bold text-cyan-400/80 uppercase tracking-widest text-right">KP Δ</th>
-                                    <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">T4/T5 Δ</th>
-                                    <th className="p-4 text-xs font-bold text-rose-400/80 uppercase tracking-widest text-right">Deads Δ</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Governor ID</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Governor Name</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Starting Power</th>
+                                    <th className="p-3 font-bold text-blue-400/80 uppercase tracking-widest text-right whitespace-nowrap">Power +/-</th>
+                                    <th className="p-3 font-bold text-blue-400/80 uppercase tracking-widest text-right whitespace-nowrap">Troop Power</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T1 Kills</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T2 Kills</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T3 Kills</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T4 Kills</th>
+                                    <th className="p-3 font-bold text-amber-400/80 uppercase tracking-widest text-right whitespace-nowrap">T5 Kills</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T4*T5 Combined</th>
+                                    <th className="p-3 font-bold text-rose-400/80 uppercase tracking-widest text-right whitespace-nowrap">KvK Deads</th>
+                                    <th className="p-3 font-bold text-emerald-400/80 uppercase tracking-widest text-right whitespace-nowrap">RSS Gathered</th>
+                                    <th className="p-3 font-bold text-cyan-400/80 uppercase tracking-widest text-right whitespace-nowrap">KvK KP</th>
                                     {config.dkpSystem === 'advanced' && (
                                         <>
-                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Target KP</th>
-                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Target Deads</th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Target DKP</th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">KP % Complete</th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Target Deads</th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Dead % Complete</th>
                                         </>
                                     )}
-                                    <th className="p-4 text-xs font-black text-emerald-400 uppercase tracking-widest text-right">Nominal {config.dkpSystem === 'basic' ? 'Points' : 'Calculated KP'}</th>
-                                    {config.dkpSystem === 'advanced' && (
-                                        <th className="p-4 text-xs font-black text-emerald-400 uppercase tracking-widest text-right">Score %</th>
-                                    )}
+                                    <th className="p-3 font-black text-emerald-400 uppercase tracking-widest text-right whitespace-nowrap">{config.dkpSystem === 'basic' ? 'Total DKP' : 'Total DKP %'}</th>
+                                    <th className="p-3 font-bold text-gray-500 uppercase tracking-widest text-right whitespace-nowrap">Bonus</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]">
-                                {filteredData.slice(0, 300).map((gov, i) => (
+                                {filteredData.slice(0, 300).map((gov, i) => {
+                                    const statusColors = {
+                                        'Fighter': 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+                                        'Farmer': 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+                                        'Grower': 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+                                        'Dropped': 'text-rose-400 bg-rose-400/10 border-rose-400/20',
+                                        'Sleeper': 'text-gray-400 bg-gray-400/10 border-gray-400/20'
+                                    };
+                                    
+                                    return (
                                     <tr key={gov.id} className="hover:bg-[#1a1d24] transition-colors group">
-                                        <td className="p-4 text-center">
-                                            <span className={`text-xs font-black px-2 py-1 rounded ${i < 3 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-gray-500'}`}>
-                                                #{i + 1}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-bold">{gov.name}</span>
-                                                <span className="text-xs text-gray-600 font-mono tracking-wider">{gov.id}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-xs font-bold text-gray-400 bg-[#0a0c0f] border border-[#1e222b] px-2 py-1 rounded">
-                                                {gov.alliance}
+                                        <td className="p-3 text-gray-400 font-mono">{gov.id}</td>
+                                        <td className="p-3 text-white font-bold whitespace-nowrap">{gov.name}</td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-widest ${statusColors[gov.status] || statusColors['Sleeper']}`}>
+                                                {gov.status}
                                             </span>
                                         </td>
                                         
-                                        <td className="p-4 text-right font-mono text-sm group-hover:text-white text-gray-400 transition-colors">
-                                            <span className={gov.powerDiff > 0 ? "text-emerald-500" : gov.powerDiff < 0 ? "text-rose-500" : ""}>
-                                                {gov.powerDiff > 0 ? "+" : ""}{formatShortNum(gov.powerDiff)}
+                                        <td className="p-3 text-right text-gray-300 font-mono">{(gov.powerStart || 0).toLocaleString()}</td>
+                                        
+                                        <td className="p-3 text-right font-mono transition-colors">
+                                            <span className={gov.powerDiff > 0 ? "text-emerald-500" : gov.powerDiff < 0 ? "text-rose-500" : "text-gray-500"}>
+                                                {gov.powerDiff > 0 ? "+" : ""}{(gov.powerDiff || 0).toLocaleString()}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right font-mono text-sm text-cyan-400 transition-colors">
-                                            +{formatShortNum(gov.kpDiff)}
+                                        <td className="p-3 text-right font-mono transition-colors">
+                                            <span className={gov.troopPowerDiff > 0 ? "text-emerald-500" : gov.troopPowerDiff < 0 ? "text-rose-500" : "text-gray-500"}>
+                                                {gov.troopPowerDiff > 0 ? "+" : ""}{(gov.troopPowerDiff || 0).toLocaleString()}
+                                            </span>
                                         </td>
-                                        <td className="p-4 text-right font-mono text-sm group-hover:text-white text-gray-400 transition-colors">
-                                            +{formatShortNum((gov.t4Diff || 0) + (gov.t5Diff || 0))}
-                                        </td>
-                                        <td className="p-4 text-right font-mono text-sm text-rose-500 transition-colors">
-                                            +{formatShortNum(gov.deadsDiff)}
-                                        </td>
+                                        
+                                        <td className="p-3 text-right font-mono text-gray-400">{(gov.t1Diff || 0).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-gray-400">{(gov.t2Diff || 0).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-gray-400">{(gov.t3Diff || 0).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-gray-300">{(gov.t4Diff || 0).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-amber-500/90">{(gov.t5Diff || 0).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-gray-300">{((gov.t4Diff || 0) + (gov.t5Diff || 0)).toLocaleString()}</td>
+                                        
+                                        <td className="p-3 text-right font-mono text-rose-500">{(gov.deadsDiff || 0).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-emerald-500/80">{(gov.gatheredDiff || 0).toLocaleString()}</td>
+                                        
+                                        <td className="p-3 text-right font-mono text-cyan-400">{(Math.round(gov.kvkKP) || 0).toLocaleString()}</td>
                                         
                                         {config.dkpSystem === 'advanced' && (
                                             <>
-                                                <td className="p-4 text-right font-mono text-sm text-gray-400">{formatShortNum(gov.targetDkp)}</td>
-                                                <td className="p-4 text-right font-mono text-sm text-gray-400">{formatShortNum(gov.targetDeads)}</td>
+                                                <td className="p-3 text-right font-mono text-gray-400">{(Math.round(gov.targetDkp) || 0).toLocaleString()}</td>
+                                                <td className="p-3 text-right font-mono">
+                                                    <span className={gov.kpPercent >= 100 ? "text-emerald-500 font-bold" : "text-rose-400"}>{gov.kpPercent}%</span>
+                                                </td>
+                                                <td className="p-3 text-right font-mono text-gray-400">{(Math.round(gov.targetDeads) || 0).toLocaleString()}</td>
+                                                <td className="p-3 text-right font-mono">
+                                                    <span className={gov.deadPercent >= 100 ? "text-emerald-500 font-bold" : "text-rose-400"}>{gov.deadPercent}%</span>
+                                                </td>
                                             </>
                                         )}
 
-                                        <td className="p-4 text-right">
-                                            <span className="text-md font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]">
-                                                {Math.round(gov.finalDkp).toLocaleString()}
-                                            </span>
+                                        <td className="p-3 text-right font-mono">
+                                            {config.dkpSystem === 'basic' ? (
+                                                <span className="text-sm font-black text-emerald-400">{(Math.round(gov.finalDkp) || 0).toLocaleString()}</span>
+                                            ) : (
+                                                <span className={`text-sm font-black ${gov.quotaPct >= 100 ? "text-emerald-500 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]" : "text-amber-500"}`}>{gov.quotaPct}%</span>
+                                            )}
                                         </td>
-                                        {config.dkpSystem === 'advanced' && (
-                                            <td className="p-4 text-right min-w-[120px]">
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <span className={`text-xs font-black ${gov.quotaPct >= 100 ? 'text-emerald-500' : gov.quotaPct < 50 ? 'text-rose-500' : 'text-amber-500'}`}>
-                                                        {gov.quotaPct}%
-                                                    </span>
-                                                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                                        <div 
-                                                            className={`h-full ${gov.quotaPct >= 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : gov.quotaPct < 50 ? 'bg-rose-500' : 'bg-amber-500'}`}
-                                                            style={{ width: `${Math.min(gov.quotaPct, 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        )}
+                                        <td className="p-3 text-right">
+                                            <input type="number" defaultValue="0" className="w-16 bg-[#0a0c0f] border border-[#2a2f3a] rounded text-white text-xs p-1 text-center outline-none focus:border-purple-500" />
+                                        </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                         
