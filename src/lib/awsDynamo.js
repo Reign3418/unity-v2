@@ -358,8 +358,8 @@ export async function getKingdomDeltas(kingdomId) {
         }
 
         // Extract the exact dateKey string stripped from the DATES# SK ("SCAN#<dateKey>")
-        const latestDateKey = dates[0].sk.replace('SCAN#', '');
-        const previousDateKey = dates[bestMatchIndex].sk.replace('SCAN#', '');
+        const latestDateKey = dates[0].sk.replace('SCAN#', '').replace('DATE#', '');
+        const previousDateKey = dates[bestMatchIndex].sk.replace('SCAN#', '').replace('DATE#', '');
         
         const getSnapshot = async (dateStr) => {
             const params = {
@@ -472,8 +472,8 @@ export async function getOverviewDeltas(kingdomId, startIso, endIso) {
              filteredDates = [dates[0], dates[dates.length - 1]];
         }
 
-        const startKey = filteredDates[0].sk.replace('SCAN#', '');
-        const endKey = filteredDates[filteredDates.length - 1].sk.replace('SCAN#', '');
+        const startKey = filteredDates[0].sk.replace('SCAN#', '').replace('DATE#', '');
+        const endKey = filteredDates[filteredDates.length - 1].sk.replace('SCAN#', '').replace('DATE#', '');
 
         const getSnapshot = async (dateStr) => {
             const params = {
