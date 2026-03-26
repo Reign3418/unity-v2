@@ -31,10 +31,27 @@ export default function MailGenerator() {
 
   useEffect(() => {
      // Unity Cross-Module Interceptor (e.g. Behavioral Matrix payload)
-     const matrixRoster = localStorage.getItem('unity_mail_roster');
+     const matrixRoster = localStorage.getItem('unty_mail_roster') || localStorage.getItem('unity_mail_roster');
      if (matrixRoster) {
-         setMailType('custom');
-         setCustomText(`[TARGET ROSTER ACQUIRED]\n\n${matrixRoster}\n\n`);
+         try {
+             const parsed = JSON.parse(matrixRoster);
+             setMailType('custom');
+             
+             let formattedText = `[${parsed.reportName || 'TARGET ROSTER ACQUIRED'}]\n\n`;
+             if (parsed.summary) formattedText += `SUMMARY: ${parsed.summary}\n────────────────────\n\n`;
+             
+             if (Array.isArray(parsed.data)) {
+                 formattedText += parsed.data.join('\n');
+             } else {
+                 formattedText += parsed.data;
+             }
+             
+             setCustomText(formattedText + `\n\n[End Transmission]`);
+         } catch (e) {
+             setMailType('custom');
+             setCustomText(`[TARGET ROSTER ACQUIRED]\n\n${matrixRoster}\n\n`);
+         }
+         localStorage.removeItem('unty_mail_roster');
          localStorage.removeItem('unity_mail_roster');
      }
 
