@@ -392,7 +392,6 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                 <div className="flex gap-2 bg-[#0a0c0f] p-1.5 rounded-lg border border-[#1e222b] shadow-xl relative z-20">
                     <button onClick={() => setViewType('3d')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === '3d' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>3D Matrix</button>
                     <button onClick={() => setViewType('donut')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === 'donut' ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>Health Radial</button>
-                    <button onClick={() => setViewType('radar')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === 'radar' ? 'bg-amber-500 text-[#0f1115] shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>Archetype Profile</button>
                 </div>
             </div>
 
@@ -520,60 +519,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             };
                         }
 
-                        if (viewType === 'radar') {
-                            const categories = ['Gross Power Growth', 'Raw KP Generated', 'Troop Casualties', 'Standard Variance (Volatility)'];
-                            let maxPower = 1; let maxKp = 1; let maxDeads = 1; let maxVol = 1;
-                            const archetypeAverages = {};
-                            
-                            Object.keys(chartData).forEach(cat => {
-                                const group = chartData[cat];
-                                if (group.length === 0) return;
-                                const avgPower = Math.max(0, group.reduce((s, d) => s + (d.gov?.powerDiff || 0), 0) / group.length);
-                                const avgKp = group.reduce((s, d) => s + (d.gov?.kpDiff || d.kpRaw), 0) / group.length; 
-                                const avgDeads = group.reduce((s, d) => s + (d.gov?.deadsDiff || d.deadsRaw), 0) / group.length;
-                                const avgVol = group.reduce((s, d) => s + (d.gov?.kpVolatility || 0), 0) / group.length;
-                                archetypeAverages[cat] = { avgPower, avgKp, avgDeads, avgVol };
-                                if (avgPower > maxPower) maxPower = avgPower;
-                                if (avgKp > maxKp) maxKp = avgKp;
-                                if (avgDeads > maxDeads) maxDeads = avgDeads;
-                                if (avgVol > maxVol) maxVol = avgVol;
-                            });
 
-                            Object.keys(archetypeAverages).forEach(cat => {
-                                const a = archetypeAverages[cat];
-                                const pwrScore = Math.pow(a.avgPower / maxPower, 0.4) * 100;
-                                const kpScore = Math.pow(a.avgKp / maxKp, 0.4) * 100;
-                                const deadsScore = Math.pow(a.avgDeads / maxDeads, 0.4) * 100;
-                                const volScore = Math.pow(a.avgVol / maxVol, 0.4) * 100;
-
-                                dynamicData.push({
-                                    type: 'scatterpolar',
-                                    r: [ pwrScore, kpScore, deadsScore, volScore, pwrScore ],
-                                    theta: [...categories, categories[0]],
-                                    text: [ formatShortNum(a.avgPower), formatShortNum(a.avgKp), formatShortNum(a.avgDeads), formatShortNum(a.avgVol), formatShortNum(a.avgPower) ],
-                                    hoverinfo: 'name+text',
-                                    fill: 'toself',
-                                    opacity: 0.7,
-                                    name: cat.toUpperCase(),
-                                    line: { color: CLUSTER_COLORS[cat] },
-                                    marker: { color: CLUSTER_COLORS[cat] }
-                                });
-                            });
-
-                            dynamicLayout = {
-                                autosize: true,
-                                paper_bgcolor: 'rgba(0,0,0,0)',
-                                plot_bgcolor: 'rgba(0,0,0,0)',
-                                margin: { l: 60, r: 60, b: 40, t: 40 },
-                                polar: {
-                                    radialaxis: { visible: true, range: [0, 100], color: '#4b5563', gridcolor: '#1e222b', tickfont: { size: 9 }, ticksuffix: '%' },
-                                    angularaxis: { tickfont: { color: '#ffffff', size: 11, family: 'monospace' }, gridcolor: '#1e222b' },
-                                    bgcolor: 'rgba(0,0,0,0)'
-                                },
-                                showlegend: true,
-                                legend: { font: { color: '#9ca3af', family: 'monospace', size: 10 }, bgcolor: 'transparent', orientation: 'h', y: -0.1, x: 0.5, xanchor: 'center' }
-                            };
-                        }
 
                         return (
                             <Plot
