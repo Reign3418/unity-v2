@@ -547,6 +547,12 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             <p>
                                 <strong>What about Flag Fillers and Rally Garrisoners?</strong> Troops die in flags, and those players are crucial! The algorithm explicitly accounts for this. When a player fills a flag, their troops die, but they *also* generate immense Kill Points doing so. The algorithm sees that efficiency ratio and flags them as <strong>Warriors (Yellow)</strong>. It strictly punishes players who have dead troops <em>without</em> the kill points to justify the sacrifice (Feeders). 
                             </p>
+                            <p>
+                                <strong>Does Kingdom Age matter (100 days vs 7 years)?</strong> No. Because the engine computes <em>variance</em> against the median population of the specific selected snapshot, the math scales perfectly. In an old kingdom, the average player might have 2 Billion KP, so 0,0 is set there. In a young KvK 1 kingdom, the average might be 30 Million KP. The engine dynamically grades on a curve. 
+                            </p>
+                            <p>
+                                <strong>WARNING: Early Kingdoms (KvK 1-3)</strong>: The only caveat is the <strong>SOC Filter (25M+)</strong> at the top of the interface. This automatically filters out low-level farms who aren't CH25/25M+ Power (the threshold to matter in Season of Conquest). If your kingdom is brand new, a 20M power player is a core frontline fighter. You <em>must</em> toggle the SOC filter off to see your entire military.
+                            </p>
                         </div>
                     </div>
                 </div>
