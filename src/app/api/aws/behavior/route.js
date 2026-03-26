@@ -21,10 +21,13 @@ export async function GET(req) {
     }
 
     if (!session.user.isSuperAdmin && kingdomId !== 'GLOBAL' && !session.user.allowedKingdoms?.includes(kingdomId)) {
+        console.warn(`[Behavior API] Access Denied for User: ${session.user.name} on KD: ${kingdomId}`);
         return NextResponse.json({ error: "Access Denied." }, { status: 403 });
     }
 
+    console.log(`[Behavior API] Triggering Matrix Compilation for KD: ${kingdomId} | ${startIso} -> ${endIso}`);
     const roster = await getBehavioralMatrix(kingdomId, startIso, endIso);
+    console.log(`[Behavior API] Compilation Finished. Roster Length: ${roster ? roster.length : 'Falsy'}`);
 
     return NextResponse.json({ roster });
   } catch (error) {
