@@ -36,10 +36,10 @@ export default function PlayerHunter() {
             };
           }
           
-          const { id, name, lastSeenKingdom } = huntData.result;
+          const { id, name, lastSeenKingdom, lastSeenDate } = huntData.result;
 
-          // 2. Extract chronological trajectory
-          const histRes = await fetch(`/api/aws/history?kd=${lastSeenKingdom}&id=${id}&days=15`); // Expand lookback
+          // 2. Extract chronological trajectory using a massive 50-scan concurrent lookup
+          const histRes = await fetch(`/api/aws/history?kd=${lastSeenKingdom}&id=${id}&days=50`);
           const histData = await histRes.json();
           
           const rawTimeline = histData.timeline || [];
@@ -76,7 +76,8 @@ export default function PlayerHunter() {
              currentStatus: {
                name: name,
                kingdom: lastSeenKingdom,
-               power: timelineData.length > 0 ? timelineData[0].power : "Unverified"
+               power: timelineData.length > 0 ? timelineData[0].power : "Unverified",
+               lastDate: lastSeenDate ? new Date(lastSeenDate).toLocaleDateString() : "Unknown"
              },
              timeline: timelineData,
              kingdomHistory,
@@ -185,10 +186,16 @@ export default function PlayerHunter() {
                         <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-3 min-w-[120px]">
                            <div className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Latest KD</div>
                            <div className="text-xl font-mono font-bold text-white">{result.currentStatus.kingdom}</div>
+                           <div className="text-gray-600 text-[8px] mt-1">{result.currentStatus.lastDate}</div>
                         </div>
                         <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-3 min-w-[120px]">
                            <div className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Latest Power</div>
-                           <div className="text-xl font-mono font-bold text-cyan-400">{result.currentStatus.power}</div>
+                           <div className={`text-xl font-mono font-bold ${result.currentStatus.power === 'Unverified' ? 'text-rose-500' : 'text-cyan-400'}`}>
+                              {result.currentStatus.power}
+                           </div>
+                           {result.currentStatus.power === 'Unverified' && (
+                             <div className="text-rose-500/50 text-[8px] mt-1">NO RECENT SCANS</div>
+                           )}
                         </div>
                       </div>
                     </div>

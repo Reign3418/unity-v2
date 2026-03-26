@@ -799,35 +799,45 @@ export async function getGovernorHistory(kingdomId, governorId, days = 5) {
 
         let history = [];
 
-        // 2. Query each date explicitly for the specific Governor ID
-        for (const date of dates) {
-            const histParams = {
-                TableName: tableName,
-                KeyConditionExpression: 'PK = :pk AND SK = :sk',
-                ExpressionAttributeValues: {
-                    ':pk': { S: `SCAN#${kingdomId}#${date}` },
-                    ':sk': { S: `GOV#${governorId}` }
-                }
-            };
+        // 2. Query each date in parallel to avoid massive latency bottlenecks
+        const fetchPromises = dates.map(async (date) => {
+            try {
+                const histParams = {
+                    TableName: tableName,
+                    KeyConditionExpression: 'PK = :pk AND SK = :sk',
+                    ExpressionAttributeValues: {
+                        ':pk': { S: `SCAN#${kingdomId}#${date}` },
+                        ':sk': { S: `GOV#${governorId}` }
+                    }
+                };
 
-            const histResult = await dbClient.send(new QueryCommand(histParams));
-            if (histResult.Items && histResult.Items.length > 0) {
-                const attrs = histResult.Items[0].attributes?.M || {};
-                history.push({
-                    scanDate: date,
-                    power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
-                    killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                    deads: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
-                    t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
-                    t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
-                    resources: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
-                    assistance: parseInt(attrs['Assistance']?.N || attrs['assistance']?.N) || 0,
-                    techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
-                    commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
-                    buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0
-                });
+                const histResult = await dbClient.send(new QueryCommand(histParams));
+                if (histResult.Items && histResult.Items.length > 0) {
+                    const attrs = histResult.Items[0].attributes?.M || {};
+                    return {
+                        scanDate: date,
+                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                        killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                        deads: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
+                        t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
+                        t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
+                        resources: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
+                        assistance: parseInt(attrs['Assistance']?.N || attrs['assistance']?.N) || 0,
+                        techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
+                        commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
+                        buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error(`AWS Timeline fetch error for trace ${date}`, error);
+                return null;
             }
-        }
+        });
+
+        // Resolve parallel execution arrays
+        const resolvedDocs = await Promise.all(fetchPromises);
+        history = resolvedDocs.filter(doc => doc !== null).sort((a,b) => new Date(b.scanDate.replace(/_/g, " ")) - new Date(a.scanDate.replace(/_/g, " ")));
         
         // Return oldest to newest for chronological coaching representation 
         return history.reverse();
