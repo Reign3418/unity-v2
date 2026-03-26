@@ -612,8 +612,8 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
         
         let dates = dateResult.Items
             .map(i => ({
-                dateKey: i.SK?.S?.replace('DATE#', '') || '',            // e.g. "2026-03-21_20:29_UTC"
-                scanDate: i.attributes?.M?.scanDate?.S || ''              // e.g. "2026-03-21 20:29 UTC"
+                dateKey: i.SK?.S?.replace('DATE#', '').replace('SCAN#', '') || '',
+                scanDate: i.attributes?.M?.scanDate?.S || ''
             }))
             .filter(d => d.dateKey && d.scanDate)
             .sort((a, b) => parseScanDate(a.scanDate) - parseScanDate(b.scanDate));
