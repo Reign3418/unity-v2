@@ -541,10 +541,17 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
                             Object.keys(archetypeAverages).forEach(cat => {
                                 const a = archetypeAverages[cat];
+                                const pwrScore = Math.pow(a.avgPower / maxPower, 0.4) * 100;
+                                const kpScore = Math.pow(a.avgKp / maxKp, 0.4) * 100;
+                                const deadsScore = Math.pow(a.avgDeads / maxDeads, 0.4) * 100;
+                                const volScore = Math.pow(a.avgVol / maxVol, 0.4) * 100;
+
                                 dynamicData.push({
                                     type: 'scatterpolar',
-                                    r: [ (a.avgPower / maxPower) * 100, (a.avgKp / maxKp) * 100, (a.avgDeads / maxDeads) * 100, (a.avgVol / maxVol) * 100, (a.avgPower / maxPower) * 100 ],
+                                    r: [ pwrScore, kpScore, deadsScore, volScore, pwrScore ],
                                     theta: [...categories, categories[0]],
+                                    text: [ formatShortNum(a.avgPower), formatShortNum(a.avgKp), formatShortNum(a.avgDeads), formatShortNum(a.avgVol), formatShortNum(a.avgPower) ],
+                                    hoverinfo: 'name+text',
                                     fill: 'toself',
                                     opacity: 0.7,
                                     name: cat.toUpperCase(),
