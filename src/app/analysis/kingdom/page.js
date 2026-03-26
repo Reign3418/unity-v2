@@ -15,8 +15,6 @@ const TABS = [
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
-  { name: "Power Efficiency", icon: Zap },
-  { name: "Roster Analysis", icon: FileText },
   { name: "Hall of Legends", icon: ShieldAlert },
   { name: "Team Builder", icon: Layers },
   { name: "Alliance Merge", icon: Layers },
