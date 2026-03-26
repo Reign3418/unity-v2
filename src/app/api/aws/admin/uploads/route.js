@@ -86,7 +86,11 @@ export async function GET(req) {
         }));
 
         // Sort dynamically: Chronological (Newest First)
-        uploads.sort((a,b) => new Date(b.scanDate) - new Date(a.scanDate));
+        uploads.sort((a,b) => {
+            const dateA = new Date((a.scanDate || "").split('T')[0].split('_')[0]);
+            const dateB = new Date((b.scanDate || "").split('T')[0].split('_')[0]);
+            return dateB - dateA;
+        });
 
         return NextResponse.json({ uploads: uploads.slice(0, 100) }, { status: 200 });
 

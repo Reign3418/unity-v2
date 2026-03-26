@@ -287,7 +287,11 @@ export async function getKingdomTrends(kingdomId) {
                 rowCount: parseInt(attrs.rowCount?.N || 0),
                 summary: summary
             };
-        }).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate)); // Chronological ascending for Recharts plotting
+        }).sort((a, b) => {
+            const dateA = new Date((a.scanDate || "").split('T')[0].split('_')[0]);
+            const dateB = new Date((b.scanDate || "").split('T')[0].split('_')[0]);
+            return dateA - dateB;
+        }); // Chronological ascending for Recharts plotting
         
         return trends;
     } catch (e) {

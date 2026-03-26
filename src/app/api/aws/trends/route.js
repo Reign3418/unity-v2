@@ -60,7 +60,11 @@ export async function GET(req) {
                 }
             });
         }
-        trendsData = Object.values(allTrendsMap).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate));
+        trendsData = Object.values(allTrendsMap).sort((a, b) => {
+            const dateA = new Date((a.scanDate || "").split('T')[0].split('_')[0]);
+            const dateB = new Date((b.scanDate || "").split('T')[0].split('_')[0]);
+            return dateA - dateB;
+        });
     } else {
         // Retrieve entire chronological footprint natively via DATES pointer
         trendsData = await getKingdomTrends(kingdomId);
