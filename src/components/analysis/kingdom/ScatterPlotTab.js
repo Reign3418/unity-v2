@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
-import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair } from "lucide-react";
+import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X } from "lucide-react";
 import { PCA } from 'ml-pca';
 
 export default function ScatterPlotTab({ targetKd, trends }) {
@@ -13,6 +13,12 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     const [behavioralRoster, setBehavioralRoster] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterCH25, setFilterCH25] = useState(true);
+    const [activeModalCategory, setActiveModalCategory] = useState(null);
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        alert("Governor IDs copied to clipboard!");
+    };
 
     // Bulletproof Date Extractor (Handles "2026-03-21 20:29 UTC", "2025-11-26T15:31:00Z", etc.)
     const extractDate = (dateStr) => {
@@ -226,11 +232,63 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                     {verdict}
                 </p>
                 <div className="mt-5 pt-5 border-t border-red-500/10 grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="text-center"><span className="block text-2xl font-black text-emerald-500">{h}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Heroes</span></div>
-                    <div className="text-center"><span className="block text-2xl font-black text-yellow-500">{w}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Warriors</span></div>
-                    <div className="text-center"><span className="block text-2xl font-black text-cyan-500">{farm}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Farmers</span></div>
-                    <div className="text-center"><span className="block text-2xl font-black text-white">{s}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Slackers</span></div>
-                    <div className="text-center"><span className="block text-2xl font-black text-red-500">{feed}</span><span className="text-[10px] text-gray-500 uppercase tracking-widest">Feeders</span></div>
+                    <div className="text-center"><button onClick={() => setActiveModalCategory('Heroes')} className="block w-full text-2xl font-black text-emerald-500 hover:scale-110 transition-transform">{h}</button><span className="text-[10px] text-gray-500 uppercase tracking-widest">Heroes</span></div>
+                    <div className="text-center"><button onClick={() => setActiveModalCategory('Warriors')} className="block w-full text-2xl font-black text-yellow-500 hover:scale-110 transition-transform">{w}</button><span className="text-[10px] text-gray-500 uppercase tracking-widest">Warriors</span></div>
+                    <div className="text-center"><button onClick={() => setActiveModalCategory('Farmers')} className="block w-full text-2xl font-black text-cyan-500 hover:scale-110 transition-transform">{farm}</button><span className="text-[10px] text-gray-500 uppercase tracking-widest">Farmers</span></div>
+                    <div className="text-center"><button onClick={() => setActiveModalCategory('Slackers')} className="block w-full text-2xl font-black text-white hover:scale-110 transition-transform">{s}</button><span className="text-[10px] text-gray-500 uppercase tracking-widest">Slackers</span></div>
+                    <div className="text-center"><button onClick={() => setActiveModalCategory('Feeders')} className="block w-full text-2xl font-black text-red-500 hover:scale-110 transition-transform">{feed}</button><span className="text-[10px] text-gray-500 uppercase tracking-widest">Feeders</span></div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderModal = () => {
+        if (!activeModalCategory || !chartData[activeModalCategory]) return null;
+        
+        const list = chartData[activeModalCategory];
+        const rawIds = list.map(g => g.id).join('\n');
+        
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+                <div className="bg-[#0f1115] border border-[#2d323e] rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
+                    <div className="flex justify-between items-center p-4 border-b border-[#1e222b]">
+                        <h3 className="text-white font-bold tracking-widest uppercase flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: CLUSTER_COLORS[activeModalCategory], color: CLUSTER_COLORS[activeModalCategory] }}></div>
+                             {activeModalCategory} Roster ({list.length})
+                        </h3>
+                        <button onClick={() => setActiveModalCategory(null)} className="text-gray-500 hover:text-white transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    
+                    <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Raw Identifier Array (In-Game Mail Format)</span>
+                            <button 
+                                onClick={() => copyToClipboard(rawIds)}
+                                className="flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded transition-colors"
+                            >
+                                <Copy size={12} /> Copy IDs
+                            </button>
+                        </div>
+                        <textarea 
+                            readOnly 
+                            value={rawIds}
+                            className="w-full h-32 bg-[#13161c] text-gray-400 text-xs font-mono p-3 rounded border border-[#1e222b] outline-none resize-none leading-relaxed"
+                        />
+                        
+                        <div className="mt-6">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-3 block">Detailed Entity Ledger</span>
+                            <div className="space-y-1.5">
+                                {list.map(g => (
+                                    <div key={g.id} className="flex justify-between items-center bg-[#13161c] p-2.5 rounded border border-[#1e222b] hover:border-[#2d323e] transition-colors">
+                                        <span className="text-white text-xs font-bold">{g.name} <span className="text-gray-500 text-[10px] font-normal ml-1">[{g.alliance}]</span></span>
+                                        <span className="text-gray-400 font-mono text-[10px] bg-black/50 px-2 py-0.5 rounded">{g.id}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -476,9 +534,25 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             <li><span className="inline-block w-20 text-red-500 font-bold">Bot Left</span> (Feeders) — Low volatility, terrible efficiency. Structurally broken accounts bleeding infrastructure.</li>
                         </ul>
                     </div>
+
+                    <div className="mt-6 pt-6 border-t border-[#1e222b] text-xs">
+                        <strong className="text-gray-300 uppercase tracking-widest">Developer's Notes (The Theory of the Matrix):</strong>
+                        <div className="mt-3 space-y-4 text-justify text-gray-500">
+                            <p>
+                                <strong>Why two end-point scans?</strong> By mathematically comparing exactly two scans (the Start Date and End Date), we calculate the massive longitudinal jump (the True Delta). If you select the day before KvK started and the day it ended, the math strips away the noise of daily fluctuations and evaluates the absolute, undeniable truth of what their account generated over the entire war. 
+                            </p>
+                            <p>
+                                <strong>Why track "Deads" inside the math?</strong> In Rise of Kingdoms endgame (SOC), players no longer fight with disposable low-tier troops. If a high-power player's Dead Troops counter violently skyrockets, the algorithm mathematically maps that as T4/T5 eradication. "Deads" represent the absolute cost a player paid to fight. If they paid a massive cost but gained zero KP, they are actively feeding the enemy. 
+                            </p>
+                            <p>
+                                <strong>What about Flag Fillers and Rally Garrisoners?</strong> Troops die in flags, and those players are crucial! The algorithm explicitly accounts for this. When a player fills a flag, their troops die, but they *also* generate immense Kill Points doing so. The algorithm sees that efficiency ratio and flags them as <strong>Warriors (Yellow)</strong>. It strictly punishes players who have dead troops <em>without</em> the kill points to justify the sacrifice (Feeders). 
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
-
+            
+            {renderModal()}
         </div>
     );
 }
