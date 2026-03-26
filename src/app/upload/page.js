@@ -368,15 +368,15 @@ function DropZone({ title, description, icon, theme, optional = false }) {
       </div>
 
       <div 
-        onClick={() => !isUploading && uploadStatus !== 'success' && fileInputRef.current?.click()}
+        onClick={() => !isUploading && fileInputRef.current?.click()}
         onDragOver={handleDragOver}
         onDrop={(e) => {
           e.preventDefault();
-          if (!isUploading && uploadStatus !== 'success') {
+          if (!isUploading) {
             processFile(e.dataTransfer.files?.[0]);
           }
         }}
-        className="flex-1 p-6 flex flex-col items-center justify-center relative"
+        className="flex-1 p-6 flex flex-col items-center justify-center relative cursor-pointer group"
       >
         <input 
           type="file" 
@@ -393,11 +393,12 @@ function DropZone({ title, description, icon, theme, optional = false }) {
             <span className="text-xs text-gray-500 mt-2 font-mono">Transmitting JSON Blocks</span>
           </div>
         ) : uploadStatus === "success" ? (
-          <div className="w-full h-full rounded-xl border border-cyan-500 bg-cyan-500/10 flex flex-col items-center justify-center text-cyan-400">
+          <div className="w-full h-full rounded-xl border border-cyan-500 bg-cyan-500/10 flex flex-col items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
              <CheckCircle2 size={48} className="mb-3" />
              <div className="font-black text-xl">SUCCESS</div>
              <div className="text-xs font-bold uppercase mt-1 tracking-wider text-cyan-600 bg-cyan-950 px-3 py-1 rounded">AWS Pipeline Sealed</div>
-             <div className="text-[10px] text-gray-400 mt-4 font-mono">[{rowCount} Data Nodes Synchronized]</div>
+             <div className="text-[10px] text-cyan-400 mt-4 font-mono font-bold">[{rowCount} Data Nodes Synchronized]</div>
+             <div className="text-[11px] text-white mt-6 font-bold tracking-[0.2em] uppercase opacity-70 group-hover:opacity-100 transition-opacity">Click or Drop Next File</div>
           </div>
         ) : uploadStatus === "error" ? (
           <div className="w-full h-full rounded-xl border border-rose-500 border-dashed bg-rose-500/5 flex flex-col items-center justify-center text-rose-500 cursor-pointer hover:bg-rose-500/10 transition-colors">
