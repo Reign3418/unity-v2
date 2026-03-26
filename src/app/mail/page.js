@@ -30,6 +30,14 @@ export default function MailGenerator() {
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
+     // Unity Cross-Module Interceptor (e.g. Behavioral Matrix payload)
+     const matrixRoster = localStorage.getItem('unity_mail_roster');
+     if (matrixRoster) {
+         setMailType('custom');
+         setCustomText(`[TARGET ROSTER ACQUIRED]\n\n${matrixRoster}\n\n`);
+         localStorage.removeItem('unity_mail_roster');
+     }
+
      const fetchTemplates = async () => {
          setLoadingTemplates(true);
          try {

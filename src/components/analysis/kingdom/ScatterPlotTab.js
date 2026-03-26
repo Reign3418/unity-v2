@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
-import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X } from "lucide-react";
+import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send } from "lucide-react";
 import { PCA } from 'ml-pca';
 
 export default function ScatterPlotTab({ targetKd, trends }) {
@@ -242,11 +242,16 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         );
     };
 
+    const sendToMailGenerator = (namesStr) => {
+        localStorage.setItem('unity_mail_roster', namesStr);
+        window.open('/mail', '_blank');
+    };
+
     const renderModal = () => {
         if (!activeModalCategory || !chartData[activeModalCategory]) return null;
         
         const list = chartData[activeModalCategory];
-        const rawIds = list.map(g => g.id).join('\n');
+        const rawNames = list.map(g => g.name).join('\n');
         
         return (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
@@ -263,17 +268,17 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                     
                     <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Raw Identifier Array (In-Game Mail Format)</span>
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Raw Roster Array (In-Game Mail Format)</span>
                             <button 
-                                onClick={() => copyToClipboard(rawIds)}
-                                className="flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded transition-colors"
+                                onClick={() => sendToMailGenerator(rawNames)}
+                                className="flex items-center gap-1.5 text-[10px] text-[#0f1115] hover:bg-cyan-400 font-bold uppercase tracking-widest bg-cyan-500 px-3 py-1.5 rounded transition-all shadow-[0_0_10px_rgba(6,182,212,0.3)] hover:scale-105"
                             >
-                                <Copy size={12} /> Copy IDs
+                                <Send size={12} /> Send to Mail Generator
                             </button>
                         </div>
                         <textarea 
                             readOnly 
-                            value={rawIds}
+                            value={rawNames}
                             className="w-full h-32 bg-[#13161c] text-gray-400 text-xs font-mono p-3 rounded border border-[#1e222b] outline-none resize-none leading-relaxed"
                         />
                         
