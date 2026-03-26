@@ -18,18 +18,10 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     // Initialize Auto-Dates from Trends Feed
     useEffect(() => {
         if (trends && trends.length > 0 && !startDate && !endDate) {
-            setEndDate(trends[trends.length - 1].scanDate.split('T')[0]);
+            setEndDate(trends[trends.length - 1].scanDate);
             
-            // Default to ~30 days prior, or earliest available
-            const endObj = new Date(trends[trends.length - 1].scanDate);
-            const defaultStartObj = new Date(endObj.getTime() - (30 * 24 * 60 * 60 * 1000));
-            const firstAvailableObj = new Date(trends[0].scanDate);
-            
-            if (defaultStartObj > firstAvailableObj) {
-                setStartDate(defaultStartObj.toISOString().split('T')[0]);
-            } else {
-                setStartDate(firstAvailableObj.toISOString().split('T')[0]);
-            }
+            // Set Start Date to the first available date cleanly
+            setStartDate(trends[0].scanDate);
         }
     }, [trends]);
 
@@ -220,7 +212,12 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                         <div>
                             <h2 className="text-xl font-bold text-white uppercase tracking-widest leading-none">Behavioral PCA Engine</h2>
                             <p className="text-gray-500 text-xs mt-1 uppercase tracking-widest font-bold flex items-center gap-1">
-                                {statistics.totalCount ? `${statistics.totalCount.toLocaleString()} Entities Analyzed` : 'Awaiting Matrix...'}
+                                {startDate && endDate && startDate === endDate ? 
+                                    <span className="text-red-400">Error: Select 2 Distinct Dates</span> :
+                                    statistics.totalCount ? 
+                                        `${statistics.totalCount.toLocaleString()} Entities Analyzed` : 
+                                        'Awaiting Matrix...'
+                                }
                             </p>
                         </div>
                     </div>
