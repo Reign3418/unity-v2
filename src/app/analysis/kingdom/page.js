@@ -7,6 +7,7 @@ import KingdomAnalysisTab from "../../../components/analysis/kingdom/KingdomAnal
 import OverviewTab from "../../../components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "../../../components/analysis/kingdom/ScatterPlotTab";
 import GrowthAnalysisTab from "../../../components/analysis/kingdom/GrowthAnalysisTab";
+import AllianceDuelTab from "../../../components/analysis/kingdom/AllianceDuelTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -110,6 +111,13 @@ export default function KingdomAnalysis() {
           case 'Growth Analysis':
               return (
                   <GrowthAnalysisTab 
+                      targetKd={targetKd}
+                      trends={trends}
+                  />
+              );
+          case 'Alliance Duel':
+              return (
+                  <AllianceDuelTab 
                       targetKd={targetKd}
                       trends={trends}
                   />
