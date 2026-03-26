@@ -4,6 +4,7 @@ import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Shield, Zap, TrendingUp, UploadCloud } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
+import AnimatedLogo from "@/components/AnimatedLogo";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -11,33 +12,43 @@ export default function Home() {
   // UNAUTHENTICATED GHOST SHIP LOGIN
   if (!session) {
     return (
-      <div className="flex flex-col bg-[#0f1115] min-h-screen items-center justify-center relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-cyan-500/10 to-transparent pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="flex flex-col bg-[#05070a] min-h-screen items-center justify-center relative overflow-hidden font-sans">
+        
+        {/* Deep Atmospheric Blobs */}
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '6s' }}></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[800px] h-[800px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }}></div>
 
-        <div className="relative z-10 flex flex-col items-center">
-          <img 
-            src="/logo.png" 
-            alt="Alliance Logo" 
-            className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] mb-8 animate-pulse-slow" 
-          />
+        {/* Ethereal Grid Floor */}
+        <div className="absolute bottom-0 w-full h-1/2 bg-[linear-gradient(to_top,rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(to_right,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:linear-gradient(to_top,black,transparent)] pointer-events-none"></div>
+
+        {/* Central Glassmorphic Card */}
+        <div className="relative z-10 flex flex-col items-center bg-[#0a0c10]/40 backdrop-blur-2xl border border-white/5 p-12 lg:p-14 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] transform hover:scale-[1.01] transition-all duration-700 w-full max-w-sm sm:max-w-md">
           
-          <h1 className="text-5xl font-black text-white tracking-widest mb-4 drop-shadow-md">
-            UN.TY <span className="text-cyan-500">2.0</span>
-          </h1>
-          <p className="text-gray-400 mb-12 font-medium tracking-wide">
-            There is no I in team.
-          </p>
+          <div className="mb-6 w-36 h-36 sm:w-40 sm:h-40 relative group">
+            {/* The Orb casting light behind the logo */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-700"></div>
+            <AnimatedLogo className="w-full h-full" />
+          </div>
+          
+          <div className="text-center group mb-12">
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 tracking-[0.2em] mb-2 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.25em]">
+              UN.TY <span className="text-white/90">2.0</span>
+            </h1>
+            <p className="text-sky-500/60 font-medium tracking-widest text-xs sm:text-sm uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)]">
+              There is no <span className="text-teal-400/90 font-bold">I</span> in team.
+            </p>
+          </div>
 
           <button 
             onClick={() => signIn("discord")}
-            className="flex items-center gap-3 px-8 py-4 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-[#5865F2]/25"
+            className="group relative flex items-center justify-center gap-4 w-full px-8 py-4 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(88,101,242,0.6)] hover:shadow-[0_15px_40px_-5px_rgba(88,101,242,0.8)] overflow-hidden"
           >
-            <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="currentColor">
+            {/* Glossy Button Shine Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-150%] skew-x-[-15deg] transition-transform duration-700 ease-in-out group-hover:translate-x-[150%]"></div>
+            <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="currentColor" className="transform group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77.67,77.67,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.1,46,96,53,91.08,65.69,84.69,65.69Z"/>
             </svg>
-            Authenticate with Discord
+            <span className="tracking-widest uppercase text-sm drop-shadow-md">Auth Discord</span>
           </button>
         </div>
       </div>
