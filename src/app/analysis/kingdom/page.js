@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp } from "lucide-react";
 import KingdomAnalysisTab from "../../../components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "../../../components/analysis/kingdom/OverviewTab";
+import ScatterPlotTab from "../../../components/analysis/kingdom/ScatterPlotTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -104,6 +105,12 @@ export default function KingdomAnalysis() {
                   <OverviewTab 
                       targetKd={targetKd}
                       trends={trends}
+                  />
+              );
+          case 'Scatter Plot':
+              return (
+                  <ScatterPlotTab 
+                      rosterData={rosterData}
                   />
               );
           default:
