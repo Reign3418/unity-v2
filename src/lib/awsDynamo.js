@@ -625,6 +625,8 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
         console.log(`[BehavioralMatrix] KD ${kingdomId}: ${dates.length} scans in range [${startIso} → ${endIso}]`);
         if (dates.length < 2) return [];
 
+        console.log(`[BehavioralMatrix] Selected Start Key: ${dates[0].dateKey} | Selected End Key: ${dates[dates.length - 1].dateKey}`);
+
         // 2. Fetch a governor snapshot by querying the SCAN#KD#DATEKEY PK partition
         const fetchSnapshot = async ({ dateKey }) => {
             const snapshot = {};
