@@ -237,6 +237,7 @@ function CloudExtractor() {
 function DropZone({ title, description, icon, theme, optional = false }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle, success, error
+  const [errorMessage, setErrorMessage] = useState("");
   const [rowCount, setRowCount] = useState(0);
   const fileInputRef = useRef(null);
   
@@ -343,12 +344,13 @@ function DropZone({ title, description, icon, theme, optional = false }) {
             }
         }
         
-        if (successCount === 0) throw new Error("All Sheets failed or were empty.");
+        if (successCount === 0) throw new Error("This isn't allowed. Please talk to the administrator.");
         
         setRowCount(totalRows);
         setUploadStatus("success");
       } catch (err) {
         console.error("Pipeline Drop Error:", err);
+        setErrorMessage(err.message || "Transmission Defaulted");
         setUploadStatus("error");
       } finally {
         setIsUploading(false);
@@ -402,10 +404,10 @@ function DropZone({ title, description, icon, theme, optional = false }) {
              <div className="text-[11px] text-white mt-6 font-bold tracking-[0.2em] uppercase opacity-70 group-hover:opacity-100 transition-opacity">Click or Drop Next File</div>
           </div>
         ) : uploadStatus === "error" ? (
-          <div className="w-full h-full rounded-xl border border-rose-500 border-dashed bg-rose-500/5 flex flex-col items-center justify-center text-rose-500 cursor-pointer hover:bg-rose-500/10 transition-colors">
+          <div className="w-full h-full rounded-xl border border-rose-500 border-dashed bg-rose-500/5 flex flex-col items-center justify-center text-rose-500 cursor-pointer hover:bg-rose-500/10 transition-colors px-6 text-center">
              <AlertTriangle size={36} className="mb-2" />
-             <span className="font-bold">Transmission Failure</span>
-             <span className="text-xs mt-1 text-gray-400">Click to Retry Ignition</span>
+             <span className="font-bold text-sm">{errorMessage || 'Transmission Failure'}</span>
+             <span className="text-[10px] uppercase font-bold tracking-widest mt-2 text-rose-400">Click to Retry Ignition</span>
           </div>
         ) : (
           <div className={`w-full h-full rounded-xl border border-dashed ${themeColors[theme]} flex flex-col flex-1 items-center justify-center cursor-pointer group transition-all`}>
