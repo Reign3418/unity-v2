@@ -553,6 +553,9 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             <p>
                                 <strong>WARNING: Early Kingdoms (KvK 1-3)</strong>: The only caveat is the <strong>SOC Filter (CH25+)</strong> at the top of the interface. This automatically filters out low-level farms who aren't CH25/25M+ Power (the threshold to matter in Season of Conquest). If your kingdom is brand new, a 20M power player is a core frontline fighter. You <em>must</em> toggle the SOC filter off to see your entire military.
                             </p>
+                            <p>
+                                <strong>Why are Gathering and Assistance Metrics Excluded?</strong> The core goal of this matrix is <em>Operational Combat Diagnostics</em>. If "Gathering" was injected into the math, it would severely skew the Efficiency (Y-Axis) algorithms. A player who bleeds 5M T4/T5 Troops but gathers 2 Billion resources would mathematically "average out" against a player who didn't fight at all. Similarly, "Assistance" (Alliance Helps) can be artificially manipulated by spamming 1-troop garrison requests. By aggressively stripping out these economic/fluff metrics, we force the AI to act as a pure, un-sugar-coated lie detector for combat participation. <strong>Wait, then how does it find Farmers (Cyan)?</strong> The <em>Farmer</em> archetype is identified internally by measuring pure Power Growth against Kill Point passivity. If a player gains 10M Power but logs absolutely no combat volatility, the algorithm catches their hoarding behavior without ever needing to check their wood-gathering stats. 
+                            </p>
                         </div>
                     </div>
 
