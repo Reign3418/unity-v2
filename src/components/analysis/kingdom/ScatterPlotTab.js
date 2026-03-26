@@ -12,6 +12,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     const [isPcaCompiling, setIsPcaCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [filterCH25, setFilterCH25] = useState(true);
 
     // Bulletproof Date Extractor (Handles "2026-03-21 20:29 UTC", "2025-11-26T15:31:00Z", etc.)
     const extractDate = (dateStr) => {
@@ -59,9 +60,14 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
         console.log(`[PCA Pipeline] Received behavioralRoster length: ${behavioralRoster.length}`);
 
-        // 1. Sift Phantom Accounts (0 Power at End)
-        const validRoster = behavioralRoster.filter(g => g.powerEnd > 0);
-        console.log(`[PCA Pipeline] After phantom filter (powerEnd > 0): ${validRoster.length}`);
+        // 1. Sift Phantom Accounts & Apply SOC Minimums
+        const validRoster = behavioralRoster.filter(g => {
+            if (g.powerEnd <= 0) return false;
+            // Strict SOC Mode: Only include 25M+ Power OR verified TownHall 25
+            if (filterCH25 && g.powerEnd < 25000000 && g.townHall < 25) return false;
+            return true;
+        });
+        console.log(`[PCA Pipeline] After base filters (SOC CH25: ${filterCH25}): ${validRoster.length}`);
         
         if (validRoster.length === 0) return { chartData: {}, statistics: {} };
 
@@ -154,7 +160,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
             statistics: { avgKp, avgDeads, totalCount: validRoster.length }
         };
 
-    }, [behavioralRoster]);
+    }, [behavioralRoster, filterCH25]);
 
     const formatShortNum = (num) => {
         if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
@@ -229,19 +235,30 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             </select>
                         </div>
                         
-                        {/* Search Node Feature */}
-                        <div className="h-4 w-px bg-[#1e222b] mx-2 hidden sm:block"></div>
-                        <div className="flex items-center gap-2 relative">
-                             <Crosshair className="text-gray-500 w-4 h-4 absolute left-2" />
-                             <input 
-                                 type="text" 
-                                 placeholder="LOCATE GOVERNOR/TAG..." 
-                                 value={searchQuery}
-                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                 className="bg-[#13161c] text-white text-xs font-mono border border-[#2d323e] rounded py-1.5 pl-8 pr-3 focus:border-yellow-500 outline-none w-48 uppercase"
-                             />
-                        </div>
-                    </div>
+                         {/* Search Node Feature */}
+                         <div className="h-4 w-px bg-[#1e222b] mx-2 hidden sm:block"></div>
+                         <div className="flex items-center gap-2 relative">
+                              <Crosshair className="text-gray-500 w-4 h-4 absolute left-2" />
+                              <input 
+                                  type="text" 
+                                  placeholder="LOCATE GOVERNOR/TAG..." 
+                                  value={searchQuery}
+                                  onChange={(e) => setSearchQuery(e.target.value)}
+                                  className="bg-[#13161c] text-white text-xs font-mono border border-[#2d323e] rounded py-1.5 pl-8 pr-3 focus:border-yellow-500 outline-none w-48 uppercase"
+                              />
+                         </div>
+
+                         {/* CH25 SOC Filter Toggle */}
+                         <div className="h-4 w-px bg-[#1e222b] mx-2 hidden sm:block"></div>
+                         <label className="flex items-center gap-2 cursor-pointer group select-none">
+                             <div className="relative">
+                                 <input type="checkbox" className="sr-only" checked={filterCH25} onChange={() => setFilterCH25(!filterCH25)} />
+                                 <div className={`block w-9 h-5 rounded-full transition-colors ${filterCH25 ? 'bg-cyan-500' : 'bg-[#1e222b]'}`}></div>
+                                 <div className={`absolute left-[3px] top-[3px] bg-white w-3.5 h-3.5 rounded-full transition-transform ${filterCH25 ? 'translate-x-4' : ''}`}></div>
+                             </div>
+                             <span className={`text-[10px] font-black uppercase tracking-wider transition-colors ${filterCH25 ? 'text-cyan-400' : 'text-gray-600'}`}>SOC Filter (25M+)</span>
+                         </label>
+                     </div>
 
                 </div>
             </div>

@@ -654,6 +654,7 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
                         t4Kills: parseInt(attrs['T4 Kills']?.N) || 0,
                         t5Kills: parseInt(attrs['T5 Kills']?.N) || 0,
                         gathered: parseInt(attrs['Resources Gathered']?.N) || 0,
+                        townHall: parseInt(attrs['Town Hall']?.N || attrs['CH Level']?.N || attrs['townHall']?.N) || 0
                     };
                 }
                 lastKey = res.LastEvaluatedKey;
@@ -687,7 +688,8 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
                 kpRaw: endData.killPoints,
                 deadsRaw: endData.dead,
                 powerRaw: endData.power,
-                powerEnd: endData.power
+                powerEnd: endData.power,
+                townHall: endData.townHall
             });
         }
 
