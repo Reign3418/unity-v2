@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Crosshair, Search, History, ShieldAlert, Fingerprint, CalendarDays, ExternalLink, Activity } from "lucide-react";
+import { Crosshair, Search, History, ShieldAlert, Fingerprint, CalendarDays, ExternalLink, Activity, MapPin, FileText } from "lucide-react";
 
 export default function PlayerHunter() {
   const [inputText, setInputText] = useState("");
