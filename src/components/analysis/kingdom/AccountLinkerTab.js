@@ -11,7 +11,8 @@ export default function AccountLinkerTab({ rosterData, targetKd }) {
     // Form State
     const [selectedFarm, setSelectedFarm] = useState("");
     const [selectedMain, setSelectedMain] = useState("");
-    const [searchQuery, setSearchQuery] = useState("");
+    const [farmSearchQuery, setFarmSearchQuery] = useState("");
+    const [mainSearchQuery, setMainSearchQuery] = useState("");
 
     // 1. Fetch Existing Links
     useEffect(() => {
@@ -93,14 +94,20 @@ export default function AccountLinkerTab({ rosterData, targetKd }) {
     // Filtering out unlinked vs linked options for dropdowns
     const availableFarms = useMemo(() => {
         if (!rosterData) return [];
-        return rosterData.filter(g => !links[g.id] && g.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [rosterData, links, searchQuery]);
+        return rosterData.filter(g => {
+            if (links[g.id]) return false;
+            const q = farmSearchQuery.toLowerCase();
+            return g.name.toLowerCase().includes(q) || g.id.toString().includes(q);
+        });
+    }, [rosterData, links, farmSearchQuery]);
 
     const availableMains = useMemo(() => {
         if (!rosterData) return [];
-        // A main cannot be someone who is already mapped as a farm to someone else
-        return rosterData; 
-    }, [rosterData]);
+        return rosterData.filter(g => {
+            const q = mainSearchQuery.toLowerCase();
+            return g.name.toLowerCase().includes(q) || g.id.toString().includes(q);
+        });
+    }, [rosterData, mainSearchQuery]);
 
     if (isLoading) {
         return <div className="p-8 text-center text-emerald-400 font-mono animate-pulse">Synchronizing Family Trees...</div>;
@@ -135,10 +142,10 @@ export default function AccountLinkerTab({ rosterData, targetKd }) {
                                 <Search size={14} className="text-gray-500 mr-2" />
                                 <input 
                                     type="text" 
-                                    placeholder="Filter available..." 
+                                    placeholder="Filter by Name or ID..." 
                                     className="bg-transparent outline-none text-xs text-white placeholder:text-gray-600 w-full font-mono"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    value={farmSearchQuery}
+                                    onChange={(e) => setFarmSearchQuery(e.target.value)}
                                 />
                             </div>
 
@@ -166,6 +173,17 @@ export default function AccountLinkerTab({ rosterData, targetKd }) {
 
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Assign To Main</label>
+                            
+                            <div className="bg-[#1a1d24] border border-[#2d323e] rounded flex items-center p-2 mb-2 transition-all focus-within:border-amber-500/50 focus-within:shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                                <Search size={14} className="text-amber-500/50 mr-2" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Filter by Name or ID..." 
+                                    className="bg-transparent outline-none text-xs text-amber-100 placeholder:text-gray-600 w-full font-mono"
+                                    value={mainSearchQuery}
+                                    onChange={(e) => setMainSearchQuery(e.target.value)}
+                                />
+                            </div>
                             <select 
                                 value={selectedMain}
                                 onChange={e => setSelectedMain(e.target.value)}
