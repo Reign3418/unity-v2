@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { 
-    ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    ZAxis, Legend, Cell, ReferenceLine
-} from 'recharts';
+import dynamic from "next/dynamic";
+const Plot = dynamic(() => import("react-plotly.js"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
 import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair } from "lucide-react";
 import { PCA } from 'ml-pca';
 
@@ -101,12 +99,15 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         // 4. ML-PCA SVD Math Execution
         let pc1Array = [];
         let pc2Array = [];
+        let pc3Array = [];
         try {
             const pca = new PCA(matrix);
-            const projected = pca.predict(matrix, { nComponents: 2 }).to2DArray();
+            // 3 Components required for 3D XYZ Mapping
+            const projected = pca.predict(matrix, { nComponents: 3 }).to2DArray();
             pc1Array = projected.map(p => p[0]);
             pc2Array = projected.map(p => p[1]);
-            console.log(`[PCA Pipeline] PCA Math succeeded.`);
+            pc3Array = projected.map(p => p[2]);
+            console.log(`[PCA Pipeline] PCA Math succeeded in 3D Mode.`);
         } catch(e) {
             console.error("[PCA Pipeline] PCA Math Error:", e);
             return { chartData: {}, statistics: {} };
@@ -123,6 +124,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         validRoster.forEach((gov, index) => {
              const xVal = parseFloat(pc1Array[index].toFixed(2));
              const yVal = parseFloat(pc2Array[index].toFixed(2));
+             const zVal = parseFloat(pc3Array[index].toFixed(2));
 
              let archetype = 'Slackers';
              if (gov.kpRaw > avgKp && gov.deadsRaw > avgDeads) archetype = 'Warriors';
@@ -135,7 +137,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                  alliance: gov.alliance || 'None',
                  x: xVal,
                  y: yVal,
-                 z: 1,
+                 z: zVal,
                  kpRaw: gov.kpRaw,
                  deadsRaw: gov.deadsRaw,
                  archetype: archetype,
@@ -158,58 +160,10 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     };
 
     const CLUSTER_COLORS = {
-        'Heroes': '#16a34a', // Dark Green (Great)
-        'Warriors': '#84cc16', // Lime (Good)
-        'Slackers': '#f97316', // Orange (Poor)
-        'Feeders': '#dc2626' // Dark Red (Terrible)
-    };
-
-    const CustomTooltip = ({ active, payload }) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
-            const bgClass =
-                data.archetype === 'Heroes' ? 'bg-green-500/10 border-green-500/30' :
-                data.archetype === 'Warriors' ? 'bg-lime-500/10 border-lime-500/30' :
-                data.archetype === 'Feeders' ? 'bg-red-500/10 border-red-500/30' :
-                'bg-orange-500/10 border-orange-500/30'; // Slackers
-
-            const txtClass = 
-                data.archetype === 'Heroes' ? 'text-green-500' :
-                data.archetype === 'Warriors' ? 'text-lime-500' :
-                data.archetype === 'Feeders' ? 'text-red-500' :
-                'text-orange-500'; // Slackers
-
-            return (
-                <div className={`border p-4 rounded-lg shadow-2xl backdrop-blur-md outline-none ${bgClass}`}>
-                    <p className="text-white font-black text-lg flex items-center gap-2 mb-1 uppercase tracking-wider">
-                        {data.name} 
-                        <span className={`${txtClass} text-[10px] tracking-widest px-1.5 py-0.5 rounded border ml-2`}>[{data.alliance}]</span>
-                    </p>
-                    <p className="text-gray-500 font-mono text-xs tracking-widest mb-3 flex items-center gap-2">
-                        ID: {data.id} <span className="opacity-50">|</span> <span className={`${txtClass} font-bold uppercase`}>{data.archetype}</span>
-                    </p>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-md p-2">
-                             <span className="block text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Raw Kill Points</span>
-                             <span className="text-white font-mono text-sm">{formatShortNum(data.kpRaw)}</span>
-                        </div>
-                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-md p-2">
-                             <span className="block text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Raw Deads</span>
-                             <span className="text-white font-mono text-sm">{formatShortNum(data.deadsRaw)}</span>
-                        </div>
-                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-md p-2">
-                             <span className="block text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Volumetric Variance (X)</span>
-                             <span className="text-gray-400 font-mono text-sm">{data.x > 0 ? '+' : ''}{data.x}σ</span>
-                        </div>
-                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-md p-2">
-                             <span className="block text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Efficiency Variance (Y)</span>
-                             <span className="text-gray-400 font-mono text-sm">{data.y > 0 ? '+' : ''}{data.y}σ</span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        return null;
+        'Heroes': '#22c55e', // Bright Green (Great)
+        'Warriors': '#f59e0b', // Amber (Warning/Good)
+        'Slackers': '#f8fafc', // Slate White (Neutral)
+        'Feeders': '#dc2626' // Bright Red (Terrible)
     };
 
     return (
@@ -308,74 +262,64 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#13161c_1px,transparent_1px),linear-gradient(to_bottom,#13161c_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-50"></div>
 
-                <div className="flex-1 w-full relative z-10">
-                    <ResponsiveContainer width="100%" height={600}>
-                        <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e222b" opacity={0.6} />
-                            
-                            <XAxis 
-                                type="number" 
-                                dataKey="x" 
-                                name="Activity Volatility (PC1)" 
-                                stroke="#4b5563"
-                                tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }}
-                                axisLine={{ stroke: '#2d323e' }}
-                            >
-                                 <label value="STANDARD DEVIATION: ACTIVITY VOLUME (PC1)" position="insideBottom" offset={-15} fill="#4b5563" fontSize={10} fontWeight="bold" letterSpacing={2} />
-                            </XAxis>
-                            
-                            <YAxis 
-                                type="number" 
-                                dataKey="y" 
-                                name="Trading Efficiency (PC2)" 
-                                stroke="#4b5563"
-                                tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }}
-                                axisLine={{ stroke: '#2d323e' }}
-                            >
-                                <label value="EFFICIENCY VARANCE (PC2)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} offset={10} fill="#4b5563" fontSize={10} fontWeight="bold" letterSpacing={2} />
-                            </YAxis>
-                            
-                            <ZAxis type="number" dataKey="z" range={[50, 400]} />
-                            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#a855f7', opacity: 0.3 }} />
-                            
-                            <ReferenceLine x={0} stroke="#9ca3af" strokeWidth={2} opacity={0.8} />
-                            <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} opacity={0.8} />
-
-                            <Legend 
-                                wrapperStyle={{ paddingTop: '20px' }}
-                                iconType="circle"
-                                formatter={(value) => <span className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">{value}</span>}
-                            />
-
-                            {Object.keys(chartData).map(key => (
-                                <Scatter 
-                                    key={key} 
-                                    name={key} 
-                                    data={chartData[key]} 
-                                    fill={CLUSTER_COLORS[key]}
-                                    shape="circle"
-                                >
-                                    {chartData[key].map((entry, index) => {
-                                        // Real-Time Search Lighting
-                                        const query = searchQuery.toLowerCase();
-                                        const isMatch = query && (
-                                            entry.name.toLowerCase().includes(query) || 
-                                            entry.id.toString().includes(query) || 
-                                            entry.alliance.toLowerCase() === query
-                                        );
-                                        const isActiveSearch = query.length > 0;
-                                        
-                                        const nodeColor = isMatch ? '#eab308' : CLUSTER_COLORS[key];
-                                        const nodeOpacity = isActiveSearch && !isMatch ? 0.1 : (isMatch ? 1 : 0.8);
-                                        
-                                        // Enlarge matched cells drastically
-                                        const effectiveZ = isMatch ? 8 : entry.z;
-                                        return <Cell key={`cell-${index}`} fill={nodeColor} fillOpacity={nodeOpacity} style={{ r: effectiveZ }} />;
-                                    })}
-                                </Scatter>
-                            ))}
-                        </ScatterChart>
-                    </ResponsiveContainer>
+                <div className="flex-1 w-full relative z-10 min-h-[600px]">
+                    <Plot
+                        data={Object.keys(chartData).map(key => ({
+                            name: key.toUpperCase(),
+                            x: chartData[key].map(d => d.x),
+                            y: chartData[key].map(d => d.y),
+                            z: chartData[key].map(d => d.z),
+                            text: chartData[key].map(d => `${d.name} [${d.alliance}]<br>ID: ${d.id}<br>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`),
+                            mode: 'markers',
+                            type: 'scatter3d',
+                            marker: {
+                                size: chartData[key].map(d => {
+                                    const q = searchQuery.toLowerCase();
+                                    const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                    return match ? 13 : 5;
+                                }),
+                                color: chartData[key].map(d => {
+                                    const q = searchQuery.toLowerCase();
+                                    const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                    return match ? '#38bdf8' : CLUSTER_COLORS[key];
+                                }),
+                                opacity: chartData[key].map(d => {
+                                    const q = searchQuery.toLowerCase();
+                                    const activeSearch = q.length > 0;
+                                    const match = activeSearch && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                    return activeSearch && !match ? 0.15 : 0.8;
+                                }),
+                                symbol: 'circle'
+                            },
+                            hoverinfo: 'text'
+                        }))}
+                        layout={{
+                            autosize: true,
+                            margin: { l: 0, r: 0, b: 0, t: 0 },
+                            paper_bgcolor: 'rgba(0,0,0,0)',
+                            plot_bgcolor: 'rgba(0,0,0,0)',
+                            showlegend: true,
+                            legend: {
+                                font: { color: '#9ca3af', family: 'monospace', size: 10 },
+                                bgcolor: 'rgba(15,17,21,0.8)',
+                                bordercolor: '#2d323e',
+                                borderwidth: 1,
+                                yanchor: 'top',
+                                y: 0.99,
+                                xanchor: 'left',
+                                x: 0.01
+                            },
+                            scene: {
+                                xaxis: { title: 'Volatility (PC1)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
+                                yaxis: { title: 'Efficiency (PC2)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
+                                zaxis: { title: 'Power Shift (PC3)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
+                                bgcolor: 'rgba(0,0,0,0)',
+                                camera: { eye: { x: 1.6, y: -1.6, z: 1.2 } }
+                            }
+                        }}
+                        style={{ width: '100%', height: '100%', minHeight: '600px' }}
+                        config={{ displayModeBar: false }}
+                    />
                 </div>
             </div>
 
@@ -385,13 +329,13 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                     <h4 className="text-green-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, Low Deads compared to Kingdom Avg. The most efficient garrison fighters.</p>
                 </div>
-                <div className="bg-[#0f1115] border border-lime-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-lime-500">
-                    <h4 className="text-lime-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
+                <div className="bg-[#0f1115] border border-amber-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-amber-500">
+                    <h4 className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
                     <p className="text-gray-500 leading-tight text-xs">High Kill Points, High Deads. Brutal field commanders who trade raw power for domination.</p>
                 </div>
-                <div className="bg-[#0f1115] border border-orange-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-orange-500">
-                    <h4 className="text-orange-500 font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
-                    <p className="text-gray-600 leading-tight text-xs">Below average overall. Inactive, bubbled, or strictly hoarding infrastructure.</p>
+                <div className="bg-[#0f1115] border border-slate-100/20 rounded-xl p-4 flex flex-col border-t-2 border-t-slate-100">
+                    <h4 className="text-slate-100 font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
+                    <p className="text-gray-600 leading-tight text-xs">Neutral Baseline. Inactive, bubbled, or strictly hoarding infrastructure.</p>
                 </div>
                 <div className="bg-[#0f1115] border border-red-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-red-500">
                     <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-1">Feeders</h4>
@@ -431,8 +375,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                         <strong className="text-gray-300 uppercase tracking-widest">The Four Quadrants:</strong>
                         <ul className="mt-3 space-y-2">
                             <li><span className="inline-block w-20 text-green-500 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
-                            <li><span className="inline-block w-20 text-lime-500 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
-                            <li><span className="inline-block w-20 text-orange-500 font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
+                            <li><span className="inline-block w-20 text-amber-500 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
+                            <li><span className="inline-block w-20 text-slate-100 font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
                             <li><span className="inline-block w-20 text-red-500 font-bold">Bot Left</span> (Feeders) — Low volatility, terrible efficiency. Structurally broken accounts bleeding infrastructure.</li>
                         </ul>
                     </div>
