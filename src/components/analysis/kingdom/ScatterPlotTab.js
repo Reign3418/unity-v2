@@ -373,7 +373,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                  <div className={`block w-9 h-5 rounded-full transition-colors ${filterCH25 ? 'bg-cyan-500' : 'bg-[#1e222b]'}`}></div>
                                  <div className={`absolute left-[3px] top-[3px] bg-white w-3.5 h-3.5 rounded-full transition-transform ${filterCH25 ? 'translate-x-4' : ''}`}></div>
                              </div>
-                             <span className={`text-[10px] font-black uppercase tracking-wider transition-colors ${filterCH25 ? 'text-cyan-400' : 'text-gray-600'}`}>SOC Filter (25M+)</span>
+                             <span className={`text-[10px] font-black uppercase tracking-wider transition-colors ${filterCH25 ? 'text-cyan-400' : 'text-gray-600'}`}>SOC Filter (CH25+)</span>
                          </label>
                      </div>
 
@@ -551,7 +551,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                 <strong>Does Kingdom Age matter (100 days vs 7 years)?</strong> No. Because the engine computes <em>variance</em> against the median population of the specific selected snapshot, the math scales perfectly. In an old kingdom, the average player might have 2 Billion KP, so 0,0 is set there. In a young KvK 1 kingdom, the average might be 30 Million KP. The engine dynamically grades on a curve. 
                             </p>
                             <p>
-                                <strong>WARNING: Early Kingdoms (KvK 1-3)</strong>: The only caveat is the <strong>SOC Filter (25M+)</strong> at the top of the interface. This automatically filters out low-level farms who aren't CH25/25M+ Power (the threshold to matter in Season of Conquest). If your kingdom is brand new, a 20M power player is a core frontline fighter. You <em>must</em> toggle the SOC filter off to see your entire military.
+                                <strong>WARNING: Early Kingdoms (KvK 1-3)</strong>: The only caveat is the <strong>SOC Filter (CH25+)</strong> at the top of the interface. This automatically filters out low-level farms who aren't CH25/25M+ Power (the threshold to matter in Season of Conquest). If your kingdom is brand new, a 20M power player is a core frontline fighter. You <em>must</em> toggle the SOC filter off to see your entire military.
                             </p>
                         </div>
                     </div>
