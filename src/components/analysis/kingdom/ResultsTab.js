@@ -5,10 +5,11 @@ import { Archive, RefreshCw, Filter, Search, ShieldAlert, Cpu, Download, Activit
 
 export default function ResultsTab({ targetKd, trends }) {
     // Pipeline State
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
+    const [startDate, setStartDate] = useState(() => localStorage.getItem("unity_dkp_start") || "");
+    const [endDate, setEndDate] = useState(() => localStorage.getItem("unity_dkp_end") || "");
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
+    const [sortConfig, setSortConfig] = useState({ key: "finalDkp", direction: "desc" });
     
     // Configuration Variables (Hydrated from Storage)
     const [config, setConfig] = useState({
@@ -39,10 +40,22 @@ export default function ResultsTab({ targetKd, trends }) {
         if (trends && trends.length > 0 && !startDate && !endDate) {
             const rawEnd = extractDate(trends[trends.length - 1].scanDate);
             setEndDate(rawEnd);
+            localStorage.setItem("unity_dkp_end", rawEnd);
             const rawStart = extractDate(trends[0].scanDate);
             setStartDate(rawStart);
+            localStorage.setItem("unity_dkp_start", rawStart);
         }
     }, [trends]);
+
+    const handleStartDateChange = (val) => {
+        setStartDate(val);
+        localStorage.setItem("unity_dkp_start", val);
+    };
+
+    const handleEndDateChange = (val) => {
+        setEndDate(val);
+        localStorage.setItem("unity_dkp_end", val);
+    };
 
     // 2. Hydrate Configuration from the Sandbox Tab
     useEffect(() => {
@@ -50,8 +63,7 @@ export default function ResultsTab({ targetKd, trends }) {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // Force Advanced System to ensure legacy metric compliance
-                parsed.dkpSystem = "advanced";
+                if (!parsed.dkpSystem) parsed.dkpSystem = "advanced";
                 setConfig(parsed);
             } catch (e) {
                 console.error("Failed to load DKP config", e);
@@ -148,20 +160,51 @@ export default function ResultsTab({ targetKd, trends }) {
                 kpPercent: parseFloat(kpPercent.toFixed(2)),
                 deadPercent: parseFloat(deadPercent.toFixed(2)),
                 status,
-                kvkKP
+                kvkKP,
+                t4t5Combined: (t4Diff + t5Diff)
             };
-        }).sort((a, b) => (config.dkpSystem === "basic" ? b.finalDkp - a.finalDkp : b.quotaPct - a.quotaPct));
-
+        });
     }, [behavioralRoster, config]);
 
-    // 5. Search & Filter Reducer
+    // 5. Search & Filter Reducer + Sorter
     const filteredData = useMemo(() => {
-        return dkpData.filter(g => {
+        let sorted = [...dkpData].filter(g => {
             if (allianceFilter && g.alliance !== allianceFilter) return false;
             if (searchQuery && !g.name.toLowerCase().includes(searchQuery.toLowerCase()) && !g.id.toString().includes(searchQuery)) return false;
             return true;
         });
-    }, [dkpData, searchQuery, allianceFilter]);
+        
+        // Sorting Logic
+        if (sortConfig.key) {
+            sorted.sort((a, b) => {
+                let aVal = a[sortConfig.key];
+                let bVal = b[sortConfig.key];
+                
+                // Normalise text for sorting
+                if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+                if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+                if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+                return 0;
+            });
+        }
+        
+        return sorted;
+    }, [dkpData, searchQuery, allianceFilter, sortConfig]);
+
+    const requestSort = (key) => {
+        let direction = "desc";
+        if (sortConfig.key === key && sortConfig.direction === "desc") {
+            direction = "asc";
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortIcon = ({ columnKey }) => {
+        if (sortConfig.key !== columnKey) return null;
+        return <span className="ml-1 text-[10px] text-purple-400">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>;
+    };
 
     const uniqueAlliances = [...new Set(dkpData.map(g => g.alliance))].sort();
 
@@ -230,7 +273,7 @@ export default function ResultsTab({ targetKd, trends }) {
                     <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-1 flex shadow-xl">
                         <select 
                             value={startDate} 
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={(e) => handleStartDateChange(e.target.value)}
                             className="bg-transparent text-xs font-bold font-mono text-gray-300 outline-none px-2 cursor-pointer uppercase tracking-wider"
                         >
                             <option value="">Start Scan</option>
@@ -242,7 +285,7 @@ export default function ResultsTab({ targetKd, trends }) {
                         <span className="text-gray-600 px-2 font-black">-</span>
                         <select 
                             value={endDate} 
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={(e) => handleEndDateChange(e.target.value)}
                             className="bg-transparent text-xs font-bold font-mono text-gray-300 outline-none px-2 cursor-pointer uppercase tracking-wider"
                         >
                             <option value="">End Scan</option>
@@ -262,8 +305,13 @@ export default function ResultsTab({ targetKd, trends }) {
                     </button>
                     
                     <button 
-                         disabled={true} // Visual indicator mapping back to configuration
-                         className="px-4 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2"
+                         onClick={() => {
+                             const newSys = config.dkpSystem === "basic" ? "advanced" : "basic";
+                             const newConf = { ...config, dkpSystem: newSys };
+                             setConfig(newConf);
+                             localStorage.setItem("unity_dkp_config_v2", JSON.stringify(newConf));
+                         }}
+                         className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/30 text-purple-400 text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 cursor-pointer shadow-xl"
                     >
                          <Cpu size={14} /> Mode: {config.dkpSystem}
                     </button>
@@ -335,30 +383,30 @@ export default function ResultsTab({ targetKd, trends }) {
                         <table className="w-full text-left border-collapse min-w-[1800px] text-[11px]">
                             <thead>
                                 <tr className="bg-[#1a1d24] border-b border-[#2d323e]">
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Governor ID</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Governor Name</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Starting Power</th>
-                                    <th className="p-3 font-bold text-blue-400/80 uppercase tracking-widest text-right whitespace-nowrap">Power +/-</th>
-                                    <th className="p-3 font-bold text-blue-400/80 uppercase tracking-widest text-right whitespace-nowrap">Troop Power</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T1 Kills</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T2 Kills</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T3 Kills</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T4 Kills</th>
-                                    <th className="p-3 font-bold text-amber-400/80 uppercase tracking-widest text-right whitespace-nowrap">T5 Kills</th>
-                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">T4*T5 Combined</th>
-                                    <th className="p-3 font-bold text-rose-400/80 uppercase tracking-widest text-right whitespace-nowrap">KvK Deads</th>
-                                    <th className="p-3 font-bold text-emerald-400/80 uppercase tracking-widest text-right whitespace-nowrap">RSS Gathered</th>
-                                    <th className="p-3 font-bold text-cyan-400/80 uppercase tracking-widest text-right whitespace-nowrap">KvK KP</th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("id")}>Governor ID <SortIcon columnKey="id"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("name")}>Governor Name <SortIcon columnKey="name"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("status")}>Status <SortIcon columnKey="status"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("powerStart")}>Starting Power <SortIcon columnKey="powerStart"/></th>
+                                    <th className="p-3 font-bold text-blue-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("powerDiff")}>Power +/- <SortIcon columnKey="powerDiff"/></th>
+                                    <th className="p-3 font-bold text-blue-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("troopPowerDiff")}>Troop Power <SortIcon columnKey="troopPowerDiff"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t1Diff")}>T1 Kills <SortIcon columnKey="t1Diff"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t2Diff")}>T2 Kills <SortIcon columnKey="t2Diff"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t3Diff")}>T3 Kills <SortIcon columnKey="t3Diff"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t4Diff")}>T4 Kills <SortIcon columnKey="t4Diff"/></th>
+                                    <th className="p-3 font-bold text-amber-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t5Diff")}>T5 Kills <SortIcon columnKey="t5Diff"/></th>
+                                    <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t4t5Combined")}>T4*T5 Combined <SortIcon columnKey="t4t5Combined"/></th>
+                                    <th className="p-3 font-bold text-rose-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("deadsDiff")}>KvK Deads <SortIcon columnKey="deadsDiff"/></th>
+                                    <th className="p-3 font-bold text-emerald-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("gatheredDiff")}>RSS Gathered <SortIcon columnKey="gatheredDiff"/></th>
+                                    <th className="p-3 font-bold text-cyan-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kvkKP")}>KvK KP <SortIcon columnKey="kvkKP"/></th>
                                     {config.dkpSystem === 'advanced' && (
                                         <>
-                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Target DKP</th>
-                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">KP % Complete</th>
-                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Target Deads</th>
-                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">Dead % Complete</th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("targetDkp")}>Target DKP <SortIcon columnKey="targetDkp"/></th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kpPercent")}>KP % Complete <SortIcon columnKey="kpPercent"/></th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("targetDeads")}>Target Deads <SortIcon columnKey="targetDeads"/></th>
+                                            <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("deadPercent")}>Dead % Complete <SortIcon columnKey="deadPercent"/></th>
                                         </>
                                     )}
-                                    <th className="p-3 font-black text-emerald-400 uppercase tracking-widest text-right whitespace-nowrap">{config.dkpSystem === 'basic' ? 'Total DKP' : 'Total DKP %'}</th>
+                                    <th className="p-3 font-black text-emerald-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort(config.dkpSystem === 'basic' ? "finalDkp" : "quotaPct")}>{config.dkpSystem === 'basic' ? 'Total DKP' : 'Total DKP %'} <SortIcon columnKey={config.dkpSystem === 'basic' ? "finalDkp" : "quotaPct"}/></th>
                                     <th className="p-3 font-bold text-gray-500 uppercase tracking-widest text-right whitespace-nowrap">Bonus</th>
                                 </tr>
                             </thead>
@@ -400,7 +448,7 @@ export default function ResultsTab({ targetKd, trends }) {
                                         <td className="p-3 text-right font-mono text-gray-400">{(gov.t3Diff || 0).toLocaleString()}</td>
                                         <td className="p-3 text-right font-mono text-gray-300">{(gov.t4Diff || 0).toLocaleString()}</td>
                                         <td className="p-3 text-right font-mono text-amber-500/90">{(gov.t5Diff || 0).toLocaleString()}</td>
-                                        <td className="p-3 text-right font-mono text-gray-300">{((gov.t4Diff || 0) + (gov.t5Diff || 0)).toLocaleString()}</td>
+                                        <td className="p-3 text-right font-mono text-gray-300">{(gov.t4t5Combined || 0).toLocaleString()}</td>
                                         
                                         <td className="p-3 text-right font-mono text-rose-500">{(gov.deadsDiff || 0).toLocaleString()}</td>
                                         <td className="p-3 text-right font-mono text-emerald-500/80">{(gov.gatheredDiff || 0).toLocaleString()}</td>
