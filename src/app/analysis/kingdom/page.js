@@ -6,6 +6,7 @@ import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Ac
 import KingdomAnalysisTab from "../../../components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "../../../components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "../../../components/analysis/kingdom/ScatterPlotTab";
+import GrowthAnalysisTab from "../../../components/analysis/kingdom/GrowthAnalysisTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -103,6 +104,13 @@ export default function KingdomAnalysis() {
           case 'Overview':
               return (
                   <OverviewTab 
+                      targetKd={targetKd}
+                      trends={trends}
+                  />
+              );
+          case 'Growth Analysis':
+              return (
+                  <GrowthAnalysisTab 
                       targetKd={targetKd}
                       trends={trends}
                   />
