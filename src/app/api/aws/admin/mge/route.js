@@ -1,6 +1,5 @@
 import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +52,7 @@ export async function GET(request) {
  */
 export async function POST(request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
         
         // Ensure user is authenticated to push command structures
         if (!session) {
