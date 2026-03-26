@@ -13,7 +13,7 @@ export default function ResultsTab({ targetKd, trends }) {
     // Configuration Variables (Hydrated from Storage)
     const [config, setConfig] = useState({
         dkpSystem: "basic",
-        baseQuota: 30000000,
+        baseQuota: 0.15,
         t4KillWeight: 1.0,
         t5KillWeight: 1.0,
         basicDeadWeight: 3.0,
@@ -102,10 +102,17 @@ export default function ResultsTab({ targetKd, trends }) {
                 // Advanced mode dynamically correlates the highest variance tier.
             }
 
-            const quotaPct = config.baseQuota > 0 ? ((finalDkp / config.baseQuota) * 100) : 0;
+            // Derive Starting Power safely (PowerDiff might be string 'NEW' or 'MISSING')
+            const parsedDiff = (typeof p.powerDiff === 'number') ? p.powerDiff : 0;
+            const powerStart = Math.max(0, (p.powerEnd || 0) - parsedDiff);
+            const targetDkp = powerStart * config.baseQuota;
+
+            const quotaPct = targetDkp > 0 ? ((finalDkp / targetDkp) * 100) : 0;
 
             return {
                 ...p,
+                powerStart,
+                targetDkp,
                 finalDkp,
                 quotaPct: parseFloat(quotaPct.toFixed(1))
             };
@@ -249,8 +256,8 @@ export default function ResultsTab({ targetKd, trends }) {
 
                  <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 shadow-xl flex items-center justify-between">
                      <div>
-                         <span className="block text-[10px] uppercase tracking-widest text-emerald-500 font-bold">Base Quota</span>
-                         <span className="block text-white font-mono font-bold mt-1">{config.baseQuota.toLocaleString()}</span>
+                         <span className="block text-[10px] uppercase tracking-widest text-emerald-500 font-bold">Quota Multiplier</span>
+                         <span className="block text-white font-mono font-bold mt-1">x {config.baseQuota}</span>
                      </div>
                      <Target className="text-emerald-500/30 w-8 h-8" />
                  </div>

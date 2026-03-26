@@ -7,7 +7,7 @@ export default function ConfigurationTab() {
     // 1. Core State
     const [config, setConfig] = useState({
         dkpSystem: "basic",
-        baseQuota: 30000000,
+        baseQuota: 0.15, // 15% of starting power
         t4KillWeight: 1.0,
         t5KillWeight: 1.0,
         basicDeadWeight: 3.0,
@@ -106,16 +106,20 @@ export default function ConfigurationTab() {
                         </div>
 
                         <div>
-                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Base Minimum Quota</label>
+                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Starting Power Quota Multiplier</label>
                             <div className="relative">
                                 <TargetIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                                 <input 
                                     type="number"
+                                    step="0.01"
                                     value={config.baseQuota}
                                     onChange={(e) => updateField('baseQuota', Number(e.target.value))}
                                     className="w-full bg-[#0a0c0f] border border-[#1e222b] rounded-lg py-3 pl-10 pr-4 text-white font-mono font-bold outline-none focus:border-purple-500 transition-colors"
                                 />
                             </div>
+                            <p className="text-[10px] text-gray-600 uppercase tracking-widest mt-2">
+                                (e.g. 0.15 = target is 15% of their starting power)
+                            </p>
                         </div>
                     </div>
                 </div>
