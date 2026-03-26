@@ -66,7 +66,6 @@ export default function Sidebar() {
           <NavItem href="/rankings/pre-kvk" icon={Trophy} label="Pre-KvK Ranking" />
           <NavItem href="/results/dkp" icon={Medal} label="DKP Results" />
           <NavItem href="/reports/kvk" icon={FileText} label="KvK Report" />
-          <NavItem href="/tools/new-phone" icon={Smartphone} label="New Phone Who Dis" />
           <NavItem href="/tools/tracker" icon={Timer} label="Activity Tracker" />
           <NavItem href="/tools/hunter" icon={Crosshair} label="Player Hunter" />
 
