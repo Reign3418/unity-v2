@@ -312,29 +312,54 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
 
                 {/* Trophy Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-amber-500/50 transition-colors">
+                    <div 
+                        onClick={() => setGradeFilter(gradeFilter === 'S' ? 'ALL' : 'S')}
+                        className={`bg-[#13161c] border ${gradeFilter === 'S' ? 'border-amber-500 shadow-[0_0_15px_rgba(251,191,36,0.2)]' : 'border-[#1e222b]'} rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-amber-500/50 transition-all cursor-pointer`}
+                    >
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-                        <h3 className="text-amber-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">S-Tier (Gods)</h3>
+                        <h3 className="text-amber-400/80 font-bold uppercase tracking-widest text-[10px] mb-1 flex items-center gap-1">
+                            S-Tier (Gods) {gradeFilter === 'S' && <Sparkles className="w-3 h-3 text-amber-400" />}
+                        </h3>
                         <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{sTierCount}</div>
                     </div>
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+                    <div 
+                        onClick={() => setGradeFilter(gradeFilter === 'A' ? 'ALL' : 'A')}
+                        className={`bg-[#13161c] border ${gradeFilter === 'A' ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-[#1e222b]'} rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-emerald-500/50 transition-all cursor-pointer`}
+                    >
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
-                        <h3 className="text-emerald-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">A-Tier (Elite)</h3>
+                        <h3 className="text-emerald-400/80 font-bold uppercase tracking-widest text-[10px] mb-1 flex items-center gap-1">
+                            A-Tier (Elite) {gradeFilter === 'A' && <Sparkles className="w-3 h-3 text-emerald-400" />}
+                        </h3>
                         <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{aTierCount}</div>
                     </div>
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500/50 transition-colors">
+                    <div 
+                        onClick={() => setGradeFilter(gradeFilter === 'B' ? 'ALL' : 'B')}
+                        className={`bg-[#13161c] border ${gradeFilter === 'B' ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-[#1e222b]'} rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500/50 transition-all cursor-pointer`}
+                    >
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600"></div>
-                        <h3 className="text-blue-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">B-Tier (Vanguard)</h3>
+                        <h3 className="text-blue-400/80 font-bold uppercase tracking-widest text-[10px] mb-1 flex items-center gap-1">
+                            B-Tier (Vanguard) {gradeFilter === 'B' && <Sparkles className="w-3 h-3 text-blue-400" />}
+                        </h3>
                         <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{bTierCount}</div>
                     </div>
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-orange-500/50 transition-colors">
+                    <div 
+                        onClick={() => setGradeFilter(gradeFilter === 'C' ? 'ALL' : 'C')}
+                        className={`bg-[#13161c] border ${gradeFilter === 'C' ? 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'border-[#1e222b]'} rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-orange-500/50 transition-all cursor-pointer`}
+                    >
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-600"></div>
-                        <h3 className="text-orange-400/80 font-bold uppercase tracking-widest text-[10px] mb-1">C-Tier (Reserve)</h3>
+                        <h3 className="text-orange-400/80 font-bold uppercase tracking-widest text-[10px] mb-1 flex items-center gap-1">
+                            C-Tier (Reserve) {gradeFilter === 'C' && <Sparkles className="w-3 h-3 text-orange-400" />}
+                        </h3>
                         <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{cTierCount}</div>
                     </div>
-                    <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-red-500/50 transition-colors">
+                    <div 
+                        onClick={() => setGradeFilter(gradeFilter === 'D' ? 'ALL' : 'D')}
+                        className={`bg-[#13161c] border ${gradeFilter === 'D' ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-[#1e222b]'} rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:border-red-500/50 transition-all cursor-pointer`}
+                    >
                         <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-red-500 to-red-600"></div>
-                        <h3 className="text-red-500/80 font-bold uppercase tracking-widest text-[10px] mb-1">D-Tier (Review)</h3>
+                        <h3 className="text-red-500/80 font-bold uppercase tracking-widest text-[10px] mb-1 flex items-center gap-1">
+                            D-Tier (Review) {gradeFilter === 'D' && <Sparkles className="w-3 h-3 text-red-500" />}
+                        </h3>
                         <div className="text-3xl font-black text-white group-hover:scale-110 transition-transform">{dTierCount}</div>
                     </div>
                 </div>
