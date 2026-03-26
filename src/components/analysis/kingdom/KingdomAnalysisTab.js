@@ -377,8 +377,54 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                     ))}
                 </div>
             </div>
-            
         </div>
+
+        {/* Dynamic Alliance Roster List */}
+        {activeAlliance && rosterData && (
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 animate-fade-in relative overflow-hidden">
+                <div className="flex items-center gap-2 mb-6 border-b border-[#1e222b] pb-4">
+                    <ShieldAlert size={18} style={{ color: activeColor }} />
+                    <h2 className="text-white font-bold uppercase tracking-widest text-sm">
+                        [{activeAlliance === 'Unallied' ? 'None' : activeAlliance}] Governor Registry
+                    </h2>
+                    <span className="ml-auto bg-[#13161c] text-gray-400 text-xs px-2 py-1 rounded border border-[#1e222b] font-mono shadow-inner">
+                        {rosterData.filter(g => g.alliance === (activeAlliance === 'Unallied' ? 'None' : activeAlliance)).length} Members
+                    </span>
+                </div>
+
+                <div className="w-full overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-[#1e222b]">
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Governor</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-right">Registered Power</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-right">Kill Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rosterData
+                                .filter(g => g.alliance === (activeAlliance === 'Unallied' ? 'None' : activeAlliance))
+                                .sort((a, b) => b.power - a.power)
+                                .map((g, idx) => (
+                                    <tr key={g.id || idx} className="border-b border-[#1e222b]/50 hover:bg-[#13161c] transition-colors">
+                                        <td className="p-3">
+                                            <div className="font-bold text-white text-sm">{g.name || 'Unknown'}</div>
+                                            <div className="text-[10px] text-gray-500 font-mono tracking-widest">ID: {g.id}</div>
+                                        </td>
+                                        <td className="p-3 text-right">
+                                            <div className="font-mono text-emerald-400 font-bold">{formatYAxis(g.power)}</div>
+                                        </td>
+                                        <td className="p-3 text-right">
+                                            <div className="font-mono text-rose-400 font-bold">{formatYAxis(g.killPoints || 0)}</div>
+                                        </td>
+                                    </tr>
+                                ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )}
+
     </div>
   );
 }
