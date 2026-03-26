@@ -338,8 +338,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                             <ZAxis type="number" dataKey="z" range={[50, 400]} />
                             <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#a855f7', opacity: 0.3 }} />
                             
-                            <ReferenceLine x={0} stroke="#4b5563" strokeDasharray="3 3" opacity={0.5} />
-                            <ReferenceLine y={0} stroke="#4b5563" strokeDasharray="3 3" opacity={0.5} />
+                            <ReferenceLine x={0} stroke="#9ca3af" strokeWidth={2} opacity={0.8} />
+                            <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} opacity={0.8} />
 
                             <Legend 
                                 wrapperStyle={{ paddingTop: '20px' }}
@@ -396,6 +396,46 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                 <div className="bg-[#0f1115] border border-gray-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-gray-500">
                     <h4 className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
                     <p className="text-gray-600 leading-tight text-xs">Below average overall. Inactive, bubbled, or strictly hoarding infrastructure.</p>
+                </div>
+            </div>
+
+            {/* Concept Write-Up */}
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 lg:p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-purple-500 to-cyan-500"></div>
+                <h3 className="text-white text-lg font-black tracking-widest uppercase mb-4 flex items-center gap-2">
+                    <BrainCircuit className="text-cyan-400" size={20} />
+                    Understanding the Matrix
+                </h3>
+                
+                <div className="space-y-4 text-gray-400 text-sm leading-relaxed">
+                    <p>
+                        The <span className="text-purple-400 font-bold">Behavioral PCA Engine</span> (Principal Component Analysis) is an advanced machine learning module designed to mathematically compress 8 dimensions of raw governor telemetry (Power, Kill Points, T4/T5 Deaths, Online Activity Vectors) into a digestible 2D visual coordinate plane.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[#1e222b]">
+                        <div>
+                            <h4 className="text-gray-200 font-bold uppercase tracking-wider text-xs mb-2">The X-Axis: Activity Volatility (PC1)</h4>
+                            <p className="text-xs text-justify">
+                                The horizontal axis measures aggregate action volume. A governor placed far to the right (positive X) has exhibited a high magnitude of statistical volatility—meaning massive shifts in power, severe troop deaths, and skyrocketing kill points compared to the baseline population curve. A negative X placement indicates stagnation or extreme passivity relative to the kingdom average.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 className="text-gray-200 font-bold uppercase tracking-wider text-xs mb-2">The Y-Axis: Trading Efficiency (PC2)</h4>
+                            <p className="text-xs text-justify">
+                                The vertical axis computes raw sociological efficiency. Governors placed high on the matrix (positive Y) are scoring massive Kill Points while sustaining suspiciously low permanent troop deaths (T4/T5 Deads). Those mapped deep in the negative Y quadrant are "bleeding out"—absorbing catastrophic permanent troop losses for marginal competitive point gain, serving as structural feeders.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-[#1e222b] text-xs">
+                        <strong className="text-gray-300 uppercase tracking-widest">The Four Quadrants:</strong>
+                        <ul className="mt-3 space-y-2">
+                            <li><span className="inline-block w-20 text-blue-400 font-bold">Top Right</span> (Heroes) — High volatility, extreme efficiency. The ultimate elite garrison leaders.</li>
+                            <li><span className="inline-block w-20 text-green-400 font-bold">Bot Right</span> (Warriors) — High volatility, terrible efficiency. Brutal field fighters absorbing massive losses to win.</li>
+                            <li><span className="inline-block w-20 text-red-500 font-bold">Bot Left</span> (Feeders) — Low volatility, terrible efficiency. Structurally broken accounts bleeding infrastructure.</li>
+                            <li><span className="inline-block w-20 text-gray-500 font-bold">Top Left</span> (Slackers) — Low volatility, high efficiency. Farmers who cautiously tag points without risking any real loss.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
