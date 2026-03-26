@@ -15,13 +15,18 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     const [behavioralRoster, setBehavioralRoster] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Bulletproof Date Extractor (Handles "2026-03-21 20:29 UTC", "2025-11-26T15:31:00Z", etc.)
+    const extractDate = (dateStr) => {
+        if (!dateStr) return "";
+        return dateStr.split('T')[0].split(' ')[0].split('_')[0];
+    };
+
     // Initialize Auto-Dates from Trends Feed
     useEffect(() => {
         if (trends && trends.length > 0 && !startDate && !endDate) {
-            // scanDate format: "2026-03-21 20:29 UTC" — split on space to get YYYY-MM-DD
-            const rawEnd = trends[trends.length - 1].scanDate.split(' ')[0];
+            const rawEnd = extractDate(trends[trends.length - 1].scanDate);
             setEndDate(rawEnd);
-            const rawStart = trends[0].scanDate.split(' ')[0];
+            const rawStart = extractDate(trends[0].scanDate);
             setStartDate(rawStart);
         }
     }, [trends]);
@@ -244,7 +249,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                 className="bg-[#13161c] text-white text-xs border border-[#2d323e] rounded p-1.5 focus:border-cyan-500 outline-none"
                             >
                                 {trends && trends.map(t => {
-                                    const rawDate = t.scanDate.split(' ')[0];
+                                    const rawDate = extractDate(t.scanDate);
                                     const parsedDate = new Date(rawDate);
                                     const displayDate = !isNaN(parsedDate) ? parsedDate.toLocaleDateString() : rawDate;
                                     return <option key={`start-${t.scanDate}`} value={rawDate}>{displayDate}</option>
@@ -257,7 +262,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                 className="bg-[#13161c] text-white text-xs border border-[#2d323e] rounded p-1.5 focus:border-cyan-500 outline-none"
                             >
                                 {trends && trends.map(t => {
-                                    const rawDate = t.scanDate.split(' ')[0];
+                                    const rawDate = extractDate(t.scanDate);
                                     const parsedDate = new Date(rawDate);
                                     const displayDate = !isNaN(parsedDate) ? parsedDate.toLocaleDateString() : rawDate;
                                     return <option key={`end-${t.scanDate}`} value={rawDate}>{displayDate}</option>
