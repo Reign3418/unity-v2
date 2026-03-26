@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Sparkles, Filter, X } from "lucide-react";
+import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Sparkles, Filter, X, Users } from "lucide-react";
 
 export default function TeamBuilderTab({ rosterData }) {
     // Master State
