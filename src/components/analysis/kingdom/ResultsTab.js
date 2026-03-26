@@ -28,7 +28,7 @@ export default function ResultsTab({ targetKd, trends }) {
 
     // UI Filters
     const [searchQuery, setSearchQuery] = useState("");
-    const [allianceFilter, setAllianceFilter] = useState("");
+    const [topLimit, setTopLimit] = useState(300);
 
     // 1. Initialise Dates
     const extractDate = (dateStr) => {
@@ -169,7 +169,6 @@ export default function ResultsTab({ targetKd, trends }) {
     // 5. Search & Filter Reducer + Sorter
     const filteredData = useMemo(() => {
         let sorted = [...dkpData].filter(g => {
-            if (allianceFilter && g.alliance !== allianceFilter) return false;
             if (searchQuery && !g.name.toLowerCase().includes(searchQuery.toLowerCase()) && !g.id.toString().includes(searchQuery)) return false;
             return true;
         });
@@ -191,7 +190,7 @@ export default function ResultsTab({ targetKd, trends }) {
         }
         
         return sorted;
-    }, [dkpData, searchQuery, allianceFilter, sortConfig]);
+    }, [dkpData, searchQuery, sortConfig]);
 
     const requestSort = (key) => {
         let direction = "desc";
@@ -334,14 +333,16 @@ export default function ResultsTab({ targetKd, trends }) {
                  <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex items-center gap-3 shadow-xl">
                       <Filter className="text-gray-500 w-5 h-5" />
                       <select 
-                           value={allianceFilter}
-                           onChange={(e) => setAllianceFilter(e.target.value)}
+                           value={topLimit}
+                           onChange={(e) => setTopLimit(parseInt(e.target.value))}
                            className="bg-transparent text-white font-mono text-sm w-full outline-none cursor-pointer"
                       >
-                           <option value="" className="bg-[#0a0c0f]">All Alliances</option>
-                           {uniqueAlliances.map(tag => (
-                               <option key={tag} value={tag} className="bg-[#0a0c0f]">{tag}</option>
-                           ))}
+                           <option value={100} className="bg-[#0a0c0f]">Top 100</option>
+                           <option value={300} className="bg-[#0a0c0f]">Top 300</option>
+                           <option value={400} className="bg-[#0a0c0f]">Top 400</option>
+                           <option value={650} className="bg-[#0a0c0f]">Top 650</option>
+                           <option value={1000} className="bg-[#0a0c0f]">Top 1000</option>
+                           <option value={10000} className="bg-[#0a0c0f]">All Players</option>
                       </select>
                  </div>
 
@@ -411,7 +412,7 @@ export default function ResultsTab({ targetKd, trends }) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]">
-                                {filteredData.slice(0, 300).map((gov, i) => {
+                                {filteredData.slice(0, topLimit).map((gov, i) => {
                                     const statusColors = {
                                         'Fighter': 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
                                         'Farmer': 'text-amber-400 bg-amber-400/10 border-amber-400/20',
