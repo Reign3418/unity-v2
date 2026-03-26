@@ -119,10 +119,23 @@ export default function ScatterPlotTab({ targetKd, trends }) {
             const pca = new PCA(matrix);
             // 3 Components required for 3D XYZ Mapping
             const projected = pca.predict(matrix, { nComponents: 3 }).to2DArray();
-            pc1Array = projected.map(p => p[0]);
-            pc2Array = projected.map(p => p[1]);
-            pc3Array = projected.map(p => p[2]);
-            console.log(`[PCA Pipeline] PCA Math succeeded in 3D Mode.`);
+
+            // SVD mathematics arbitrarily assigns direction. To ensure visual sanity ("More" = "Positive"),
+            // we physically locate the Kingdom's most brutal Warrior, and if the ML engine mapped them 
+            // negatively, we mathematically invert the entire 3D space across that axis.
+            let maxKpIndex = 0;
+            let highestKp = -1;
+            validRoster.forEach((g, i) => { if (g.kpRaw > highestKp) { highestKp = g.kpRaw; maxKpIndex = i; }});
+            
+            const pc1Flip = projected[maxKpIndex][0] < 0 ? -1 : 1;
+            const pc2Flip = projected[maxKpIndex][1] < 0 ? -1 : 1;
+            const pc3Flip = projected[maxKpIndex][2] < 0 ? -1 : 1;
+
+            pc1Array = projected.map(p => p[0] * pc1Flip);
+            pc2Array = projected.map(p => p[1] * pc2Flip);
+            pc3Array = projected.map(p => p[2] * pc3Flip);
+            
+            console.log(`[PCA Pipeline] PCA Math succeeded in 3D Mode. Spatial Multipliers: [X:${pc1Flip}, Y:${pc2Flip}, Z:${pc3Flip}]`);
         } catch(e) {
             console.error("[PCA Pipeline] PCA Math Error:", e);
             return { chartData: {}, statistics: {} };
