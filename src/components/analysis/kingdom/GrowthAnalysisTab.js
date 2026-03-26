@@ -363,6 +363,13 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                                 if (p.grade === 'C') gradeColor = "text-orange-400 border-orange-400/20 bg-orange-400/10";
                                 if (p.grade === 'D') gradeColor = "text-red-500 border-red-500/20 bg-red-500/10";
 
+                                let archColor = "text-gray-400 bg-gray-500/10 border-gray-500/20";
+                                if (p.archetype === 'Warrior') archColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                                if (p.archetype === 'Brawler') archColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                                if (p.archetype === 'Meatshield') archColor = "text-red-400 bg-red-500/10 border-red-500/20";
+                                if (p.archetype === 'Harvester') archColor = "text-yellow-400 bg-yellow-500/10 border-yellow-500/20";
+                                if (p.archetype === 'Grower') archColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+
                                 return (
                                     <tr key={p.id} className="border-b border-[#1e222b] hover:bg-[#13161c] transition-colors">
                                         <td className="p-3">
@@ -378,7 +385,7 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                                             </span>
                                         </td>
                                         <td className="p-3">
-                                            <span className="text-xs font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded border tracking-wider uppercase ${archColor}`}>
                                                 {p.archetype}
                                             </span>
                                         </td>
