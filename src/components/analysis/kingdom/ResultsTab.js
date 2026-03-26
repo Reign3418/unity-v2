@@ -12,13 +12,17 @@ export default function ResultsTab({ targetKd, trends }) {
     
     // Configuration Variables (Hydrated from Storage)
     const [config, setConfig] = useState({
-        dkpSystem: "basic",
-        baseQuota: 0.15,
-        t4KillWeight: 1.0,
-        t5KillWeight: 1.0,
-        basicDeadWeight: 3.0,
-        advT4DeadWeight: 10.0,
-        advT5DeadWeight: 15.0
+        dkpSystem: "advanced",
+        basicT4Points: 10,
+        basicT5Points: 20,
+        basicDeadsPoints: 30,
+        deadsMultiplier: 0.02,
+        deadsWeight: 50,
+        kpPowerDivisor: 3,
+        t5MixRatio: 0.7,
+        kpMultiplier: 1.25,
+        advT4Points: 10,
+        advT5Points: 20
     });
 
     // UI Filters
@@ -79,44 +83,59 @@ export default function ResultsTab({ targetKd, trends }) {
         const isBasic = config.dkpSystem === 'basic';
         
         return behavioralRoster.filter(g => g.powerEnd > 0).map(p => {
-            // Guard Math.max(0) to prevent deletions or zeroed fields from subtracting contribution negatively
-            const kpScore = Math.max(0, p.kpDiff);
-            const t4kScore = Math.max(0, p.t4Diff || 0) * config.t4KillWeight;
-            const t5kScore = Math.max(0, p.t5Diff || 0) * config.t5KillWeight;
-            
-            // Total Combat Factor = Raw KP + Tactical Kills Component
-            const baseCombat = kpScore + t4kScore + t5kScore;
-
-            let finalDkp = 0;
-            if (isBasic) {
-                const deadsScore = Math.max(0, p.deadsDiff || 0) * config.basicDeadWeight;
-                finalDkp = baseCombat + deadsScore;
-            } else {
-                const t4DeadScore = Math.max(0, p.t4Diff || 0) * config.advT4DeadWeight;
-                const t5DeadScore = Math.max(0, p.t5Diff || 0) * config.advT5DeadWeight;
-                finalDkp = baseCombat + t4DeadScore + t5DeadScore;
-                // Note: Behavioral Matrix doesn't natively return t4DeadDiff vs t5DeadDiff. 
-                // V1 approximated Advanced Deads by mapping against total Power Loss vs T4 T5 Kill capacity.
-                // Assuming t4Diff/t5Diff here are the KILLS. In V1 `stats.hohT4` vs `t4Diff` was a manual OCR pass.
-                // Without true granular T4/T5 Deads tracking in standard Rise of Kingdoms scan parsing, 
-                // Advanced mode dynamically correlates the highest variance tier.
-            }
-
             // Derive Starting Power safely (PowerDiff might be string 'NEW' or 'MISSING')
             const parsedDiff = (typeof p.powerDiff === 'number') ? p.powerDiff : 0;
             const powerStart = Math.max(0, (p.powerEnd || 0) - parsedDiff);
-            const targetDkp = powerStart * config.baseQuota;
+            const deadsDiff = Math.max(0, p.deadsDiff || 0);
+            const t4Diff = Math.max(0, p.t4Diff || 0);
+            const t5Diff = Math.max(0, p.t5Diff || 0);
 
-            const quotaPct = targetDkp > 0 ? ((finalDkp / targetDkp) * 100) : 0;
+            let finalDkp = 0;
+            let targetDkp = 0;
+            let targetDeads = 0;
+            let quotaPct = 0;
+
+            if (isBasic) {
+                // Basic System Logic
+                const kvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
+                finalDkp = kvkKP + (deadsDiff * (config.basicDeadsPoints || 0));
+                targetDkp = 0; 
+                quotaPct = 0; 
+            } else {
+                // Advanced System Logic
+                const kvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
+                const t4MixRatio = 1 - (config.t5MixRatio || 0);
+                const kpTargetMultiplier = ((((config.t5MixRatio || 0) * (config.advT5Points || 0)) + (t4MixRatio * (config.advT4Points || 0))) * (config.kpMultiplier || 0)) / (config.kpPowerDivisor || 1);
+                
+                targetDkp = powerStart * kpTargetMultiplier;
+                targetDeads = powerStart * (config.deadsMultiplier || 0);
+                
+                const kpPercent = targetDkp > 0 ? (kvkKP / targetDkp) * 100 : 0;
+                const deadPercent = targetDeads > 0 ? (deadsDiff / targetDeads) * 100 : 0;
+                
+                const deadsWeightFraction = (config.deadsWeight || 50) / 100;
+                const kpWeightFraction = 1 - deadsWeightFraction;
+                
+                if (targetDkp > 0 && targetDeads > 0) {
+                    quotaPct = (kpPercent * kpWeightFraction) + (deadPercent * deadsWeightFraction);
+                } else if (targetDkp > 0) {
+                    quotaPct = kpPercent;
+                } else if (targetDeads > 0) {
+                    quotaPct = deadPercent;
+                }
+                
+                finalDkp = kvkKP; // Treat kvkKP as their "Total KP/DKP" nominal score
+            }
 
             return {
                 ...p,
                 powerStart,
                 targetDkp,
+                targetDeads,
                 finalDkp,
                 quotaPct: parseFloat(quotaPct.toFixed(1))
             };
-        }).sort((a, b) => b.finalDkp - a.finalDkp);
+        }).sort((a, b) => (config.dkpSystem === "basic" ? b.finalDkp - a.finalDkp : b.quotaPct - a.quotaPct));
 
     }, [behavioralRoster, config]);
 
@@ -132,7 +151,7 @@ export default function ResultsTab({ targetKd, trends }) {
     const uniqueAlliances = [...new Set(dkpData.map(g => g.alliance))].sort();
 
     const formatShortNum = (num) => {
-        if (!num) return "0";
+        if (num === null || num === undefined) return "0";
         if (Math.abs(num) >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toLocaleString();
@@ -140,7 +159,7 @@ export default function ResultsTab({ targetKd, trends }) {
 
     // 6. CSV Exporter 
     const exportCSV = () => {
-        const headers = ["Rank", "ID", "Name", "Alliance", "Power Diff", "KP Diff", "T4 Diff", "T5 Diff", "Deads Diff", "DKP Score", "Quota %"];
+        const headers = ["Rank", "ID", "Name", "Alliance", "Power Diff", "KP Diff", "T4 Diff", "T5 Diff", "Deads Diff", "Calculated Base KP", "Target KP", "Target Deads", "Final Quota %"];
         let csvContent = headers.join(",") + "\n";
         
         filteredData.forEach((row, i) => {
@@ -155,6 +174,8 @@ export default function ResultsTab({ targetKd, trends }) {
                 row.t5Diff,
                 row.deadsDiff,
                 Math.round(row.finalDkp),
+                Math.round(row.targetDkp),
+                Math.round(row.targetDeads || 0),
                 row.quotaPct
             ];
             csvContent += dataRow.join(",") + "\n";
@@ -254,13 +275,15 @@ export default function ResultsTab({ targetKd, trends }) {
                       </select>
                  </div>
 
-                 <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 shadow-xl flex items-center justify-between">
-                     <div>
-                         <span className="block text-[10px] uppercase tracking-widest text-emerald-500 font-bold">Quota Multiplier</span>
-                         <span className="block text-white font-mono font-bold mt-1">x {config.baseQuota}</span>
+                 {config.dkpSystem === "advanced" && (
+                     <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 shadow-xl flex items-center justify-between">
+                         <div>
+                             <span className="block text-[10px] uppercase tracking-widest text-emerald-500 font-bold">KP Multiplier</span>
+                             <span className="block text-white font-mono font-bold mt-1">x {config.kpMultiplier}</span>
+                         </div>
+                         <Target className="text-emerald-500/30 w-8 h-8" />
                      </div>
-                     <Target className="text-emerald-500/30 w-8 h-8" />
-                 </div>
+                 )}
 
                  <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 shadow-xl flex items-center justify-between">
                      <div>
@@ -295,11 +318,18 @@ export default function ResultsTab({ targetKd, trends }) {
                                     <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Alliance</th>
                                     <th className="p-4 text-xs font-bold text-blue-400/80 uppercase tracking-widest text-right">Power Δ</th>
                                     <th className="p-4 text-xs font-bold text-cyan-400/80 uppercase tracking-widest text-right">KP Δ</th>
-                                    <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">T4 Kills</th>
-                                    <th className="p-4 text-xs font-bold text-amber-400/80 uppercase tracking-widest text-right">T5 Kills</th>
+                                    <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">T4/T5 Δ</th>
                                     <th className="p-4 text-xs font-bold text-rose-400/80 uppercase tracking-widest text-right">Deads Δ</th>
-                                    <th className="p-4 text-xs font-black text-emerald-400 uppercase tracking-widest text-right">Total DKP</th>
-                                    <th className="p-4 text-xs font-black text-emerald-400 uppercase tracking-widest text-right">Quota</th>
+                                    {config.dkpSystem === 'advanced' && (
+                                        <>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Target KP</th>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Target Deads</th>
+                                        </>
+                                    )}
+                                    <th className="p-4 text-xs font-black text-emerald-400 uppercase tracking-widest text-right">Nominal {config.dkpSystem === 'basic' ? 'Points' : 'Calculated KP'}</th>
+                                    {config.dkpSystem === 'advanced' && (
+                                        <th className="p-4 text-xs font-black text-emerald-400 uppercase tracking-widest text-right">Score %</th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]">
@@ -331,33 +361,39 @@ export default function ResultsTab({ targetKd, trends }) {
                                             +{formatShortNum(gov.kpDiff)}
                                         </td>
                                         <td className="p-4 text-right font-mono text-sm group-hover:text-white text-gray-400 transition-colors">
-                                            +{formatShortNum(gov.t4Diff)}
-                                        </td>
-                                        <td className="p-4 text-right font-mono text-sm text-amber-500/80 transition-colors">
-                                            +{formatShortNum(gov.t5Diff)}
+                                            +{formatShortNum((gov.t4Diff || 0) + (gov.t5Diff || 0))}
                                         </td>
                                         <td className="p-4 text-right font-mono text-sm text-rose-500 transition-colors">
                                             +{formatShortNum(gov.deadsDiff)}
                                         </td>
                                         
+                                        {config.dkpSystem === 'advanced' && (
+                                            <>
+                                                <td className="p-4 text-right font-mono text-sm text-gray-400">{formatShortNum(gov.targetDkp)}</td>
+                                                <td className="p-4 text-right font-mono text-sm text-gray-400">{formatShortNum(gov.targetDeads)}</td>
+                                            </>
+                                        )}
+
                                         <td className="p-4 text-right">
                                             <span className="text-md font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]">
                                                 {Math.round(gov.finalDkp).toLocaleString()}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className={`text-xs font-black ${gov.quotaPct >= 100 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                    {gov.quotaPct}%
-                                                </span>
-                                                <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className={`h-full ${gov.quotaPct >= 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-amber-500'}`}
-                                                        style={{ width: `${Math.min(gov.quotaPct, 100)}%` }}
-                                                    />
+                                        {config.dkpSystem === 'advanced' && (
+                                            <td className="p-4 text-right min-w-[120px]">
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className={`text-xs font-black ${gov.quotaPct >= 100 ? 'text-emerald-500' : gov.quotaPct < 50 ? 'text-rose-500' : 'text-amber-500'}`}>
+                                                        {gov.quotaPct}%
+                                                    </span>
+                                                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className={`h-full ${gov.quotaPct >= 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : gov.quotaPct < 50 ? 'bg-rose-500' : 'bg-amber-500'}`}
+                                                            style={{ width: `${Math.min(gov.quotaPct, 100)}%` }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>

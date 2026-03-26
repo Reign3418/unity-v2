@@ -1,18 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Cpu, Save, RefreshCw, Settings, ShieldAlert, AlertTriangle, Fingerprint } from "lucide-react";
+import { Cpu, Save, RefreshCw, Settings, ShieldAlert } from "lucide-react";
 
 export default function ConfigurationTab() {
     // 1. Core State
     const [config, setConfig] = useState({
-        dkpSystem: "basic",
-        baseQuota: 0.15, // 15% of starting power
-        t4KillWeight: 1.0,
-        t5KillWeight: 1.0,
-        basicDeadWeight: 3.0,
-        advT4DeadWeight: 10.0,
-        advT5DeadWeight: 15.0
+        dkpSystem: "advanced",
+        // Basic System
+        basicT4Points: 10,
+        basicT5Points: 20,
+        basicDeadsPoints: 30,
+        // Advanced System
+        deadsMultiplier: 0.02,
+        deadsWeight: 50,
+        kpPowerDivisor: 3,
+        t5MixRatio: 0.7,
+        kpMultiplier: 1.25,
+        advT4Points: 10,
+        advT5Points: 20
     });
     
     const [isLoaded, setIsLoaded] = useState(false);
@@ -79,170 +85,81 @@ export default function ConfigurationTab() {
             </div>
 
             {/* Matrix Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden group">
+                <h3 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest mb-6">
+                    <Settings className="w-5 h-5 text-purple-400" /> Operational Mode
+                </h3>
                 
-                {/* Global Operation Mode */}
-                <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden group hover:border-purple-500/30 transition-colors">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-                    
-                    <h3 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest mb-6">
-                        <Settings className="w-5 h-5 text-purple-400" /> Operational Mode
-                    </h3>
-                    
-                    <div className="space-y-6">
-                        <div>
-                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">DKP Calculation Engine</label>
-                            <select 
-                                value={config.dkpSystem}
-                                onChange={(e) => updateField('dkpSystem', e.target.value)}
-                                className="w-full bg-[#0a0c0f] border border-[#1e222b] rounded-lg py-3 px-4 text-white font-bold outline-none focus:border-purple-500 transition-colors cursor-pointer"
-                            >
-                                <option value="basic">Standard DKP Array</option>
-                                <option value="advanced">Advanced Hall of Heroes Resolution</option>
-                            </select>
-                            <p className="text-[10px] text-gray-600 uppercase tracking-widest mt-2">
-                                {config.dkpSystem === 'basic' ? 'Aggregates all Tier deaths into a single unified multiplier matrix.' : 'Scans T4 and T5 death logs independently strictly parsing Hall of Heroes datasets.'}
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Starting Power Quota Multiplier</label>
-                            <div className="relative">
-                                <TargetIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                <input 
-                                    type="number"
-                                    step="0.01"
-                                    value={config.baseQuota}
-                                    onChange={(e) => updateField('baseQuota', Number(e.target.value))}
-                                    className="w-full bg-[#0a0c0f] border border-[#1e222b] rounded-lg py-3 pl-10 pr-4 text-white font-mono font-bold outline-none focus:border-purple-500 transition-colors"
-                                />
-                            </div>
-                            <p className="text-[10px] text-gray-600 uppercase tracking-widest mt-2">
-                                (e.g. 0.15 = target is 15% of their starting power)
-                            </p>
-                        </div>
-                    </div>
+                <div className="mb-6">
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">DKP Calculation Engine</label>
+                    <select 
+                        value={config.dkpSystem}
+                        onChange={(e) => updateField('dkpSystem', e.target.value)}
+                        className="w-full bg-[#0a0c0f] border border-[#1e222b] rounded-lg py-3 px-4 text-white font-bold outline-none focus:border-purple-500 transition-colors cursor-pointer"
+                    >
+                        <option value="advanced">Advanced DKP System (Target & Percentages)</option>
+                        <option value="basic">Basic DKP System (Flat Multipliers)</option>
+                    </select>
                 </div>
 
-                {/* Tactical Kill Weights */}
-                <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden group hover:border-cyan-500/30 transition-colors">
-                    <div className="absolute top-0 left-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 -translate-x-1/2"></div>
-                    
-                    <h3 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest mb-6">
-                        <CrosshairIcon className="w-5 h-5 text-cyan-400" /> Tactical Kill Multipliers
-                    </h3>
-                    
-                    <div className="space-y-5">
-                        <div className="flex items-center justify-between border-b border-[#1e222b] pb-4">
-                            <div>
-                                <span className="block text-white font-bold tracking-widest">T4 Kills Coefficient</span>
-                                <span className="block text-[10px] text-gray-500 uppercase">Ratio per individual T4 kill</span>
-                            </div>
-                            <input 
-                                type="number" step="0.1"
-                                value={config.t4KillWeight}
-                                onChange={(e) => updateField('t4KillWeight', Number(e.target.value))}
-                                className="w-24 bg-[#0a0c0f] border border-[#1e222b] rounded text-white font-mono text-center py-2 focus:border-cyan-500 outline-none transition-colors"
-                            />
+                {config.dkpSystem === "basic" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">T4 Points Multiplier</label>
+                            <input type="number" value={config.basicT4Points} onChange={(e) => updateField('basicT4Points', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
                         </div>
-
-                        <div className="flex items-center justify-between pt-2">
-                            <div>
-                                <span className="block text-amber-400 font-bold tracking-widest">T5 Kills Coefficient</span>
-                                <span className="block text-[10px] text-gray-500 uppercase">Ratio per individual T5 kill</span>
-                            </div>
-                            <input 
-                                type="number" step="0.1"
-                                value={config.t5KillWeight}
-                                onChange={(e) => updateField('t5KillWeight', Number(e.target.value))}
-                                className="w-24 bg-[#0a0c0f] border border-amber-500/30 rounded text-white font-mono text-center py-2 focus:border-amber-500 outline-none transition-colors"
-                            />
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">T5 Points Multiplier</label>
+                            <input type="number" value={config.basicT5Points} onChange={(e) => updateField('basicT5Points', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">Deads Points Multiplier</label>
+                            <input type="number" value={config.basicDeadsPoints} onChange={(e) => updateField('basicDeadsPoints', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
                         </div>
                     </div>
-                </div>
-
-                {/* Dead Weights */}
-                <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden group hover:border-rose-500/30 transition-colors md:col-span-2">
-                    <div className="absolute bottom-0 right-1/2 w-64 h-32 bg-rose-500/5 rounded-full blur-3xl pointer-events-none translate-y-1/2"></div>
-                    
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest">
-                            <ShieldAlert className="w-5 h-5 text-rose-500" /> Hospital/Death Multipliers
-                        </h3>
-                        {config.dkpSystem === 'advanced' && <span className="bg-rose-500/10 text-rose-500 text-[10px] uppercase tracking-widest px-2 py-1 rounded font-bold border border-rose-500/20">Advanced Resolution Linked</span>}
-                        {config.dkpSystem === 'basic' && <span className="bg-gray-800 text-gray-400 text-[10px] uppercase tracking-widest px-2 py-1 rounded font-bold border border-gray-700">Standard Resolution Linked</span>}
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300 relative z-10">
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">Deads Multiplier</label>
+                            <input type="number" value={config.deadsMultiplier} onChange={(e) => updateField('deadsMultiplier', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="0.01" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">Deads Weight</label>
+                            <input type="number" value={config.deadsWeight} onChange={(e) => updateField('deadsWeight', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">KP Power Divisor</label>
+                            <input type="number" value={config.kpPowerDivisor} onChange={(e) => updateField('kpPowerDivisor', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="0.1" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">T5 Mix Ratio</label>
+                            <input type="number" value={config.t5MixRatio} onChange={(e) => updateField('t5MixRatio', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="0.01" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">KP Multiplier</label>
+                            <input type="number" value={config.kpMultiplier} onChange={(e) => updateField('kpMultiplier', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="0.05" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">T4 Points</label>
+                            <input type="number" value={config.advT4Points} onChange={(e) => updateField('advT4Points', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
+                            <label className="block text-sm font-semibold text-secondary mb-2">T5 Points</label>
+                            <input type="number" value={config.advT5Points} onChange={(e) => updateField('advT5Points', Number(e.target.value))}
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
+                        </div>
                     </div>
-                    
-                    {config.dkpSystem === "basic" ? (
-                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-5 flex items-center justify-between">
-                            <div>
-                                <span className="block text-white font-bold tracking-widest">Unified Death Coefficient</span>
-                                <span className="block text-xs text-rose-400/80 uppercase tracking-widest mt-1">Multiplier applied universally to all detected combat deaths.</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-gray-500 font-bold">×</span>
-                                <input 
-                                    type="number" step="0.1"
-                                    value={config.basicDeadWeight}
-                                    onChange={(e) => updateField('basicDeadWeight', Number(e.target.value))}
-                                    className="w-32 bg-[#0a0c0f] border border-rose-500/30 rounded text-rose-400 font-black text-xl text-center py-3 focus:border-rose-500 shadow-[inset_0_0_10px_rgba(244,63,94,0.1)] outline-none transition-colors"
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div className="bg-purple-500/5 border border-purple-500/10 rounded-xl p-5 flex items-center justify-between">
-                                 <div>
-                                     <span className="block text-gray-300 font-bold tracking-widest">T4 HoH Resolution</span>
-                                     <span className="block text-[10px] text-gray-500 uppercase tracking-widest mt-1">Multiplier for verified T4 deaths.</span>
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                     <span className="text-gray-500 font-bold">×</span>
-                                     <input 
-                                         type="number" step="0.1"
-                                         value={config.advT4DeadWeight}
-                                         onChange={(e) => updateField('advT4DeadWeight', Number(e.target.value))}
-                                         className="w-24 bg-[#0a0c0f] border border-purple-500/30 rounded text-white font-mono text-center py-2 focus:border-purple-500 outline-none transition-colors"
-                                     />
-                                 </div>
-                             </div>
-
-                             <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-5 flex items-center justify-between">
-                                 <div>
-                                     <span className="block text-amber-500 font-bold tracking-widest">T5 HoH Resolution</span>
-                                     <span className="block text-[10px] text-gray-500 uppercase tracking-widest mt-1">Multiplier for verified T5 deaths.</span>
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                     <span className="text-gray-500 font-bold">×</span>
-                                     <input 
-                                         type="number" step="0.1"
-                                         value={config.advT5DeadWeight}
-                                         onChange={(e) => updateField('advT5DeadWeight', Number(e.target.value))}
-                                         className="w-24 bg-[#0a0c0f] border border-amber-500/30 rounded text-white font-mono text-center py-2 focus:border-amber-500 outline-none transition-colors"
-                                     />
-                                 </div>
-                             </div>
-                        </div>
-                    )}
-                </div>
-
+                )}
             </div>
         </div>
-    );
-}
-
-// Icon Helpers missing from direct import context
-function TargetIcon(props) {
-    return (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
-        </svg>
-    );
-}
-function CrosshairIcon(props) {
-    return (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>
-        </svg>
     );
 }
