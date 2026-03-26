@@ -611,8 +611,11 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
            scanDate: i.attributes?.M?.scanDate?.S || ''
         })).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate));
         
-        if (startIso) dates = dates.filter(d => new Date(d.scanDate) >= new Date(startIso + 'T00:00:00'));
-        if (endIso) dates = dates.filter(d => new Date(d.scanDate) <= new Date(endIso + 'T23:59:59'));
+        // Normalize scanDate for comparison — strip _UTC and convert underscores so `new Date()` can parse it
+        const normalizeDate = (d) => new Date(d.replace('_UTC', '').split('T')[0].replace(/_/g, '-').substring(0, 10));
+        
+        if (startIso) dates = dates.filter(d => normalizeDate(d.scanDate) >= new Date(startIso));
+        if (endIso) dates = dates.filter(d => normalizeDate(d.scanDate) <= new Date(endIso));
         
         if (dates.length < 2) return [];
 
@@ -651,7 +654,11 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
         };
 
         const recentDates = dates.slice(-30);
-        const snapshots = await Promise.all(recentDates.map(d => getSnapshot(d.sk.replace('SCAN#', ''))));
+        const snapshots = await Promise.all(recentDates.map(d => {
+            // d.sk is "SCAN#KD#DATEKEY" — strip "SCAN#KD#" to get just the date key
+            const dateKey = d.sk.replace(`SCAN#${kingdomId}#`, '').replace('SCAN#', '');
+            return getSnapshot(dateKey);
+        }));
         
         const baseLine = snapshots[0].data;
         const endLine = snapshots[snapshots.length - 1].data;
