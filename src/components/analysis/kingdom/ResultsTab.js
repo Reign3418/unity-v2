@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Archive, RefreshCw, Filter, Search, ShieldAlert, Cpu, Download, Activity, Target } from "lucide-react";
+import { Archive, RefreshCw, Filter, Search, ShieldAlert, Cpu, Download, Activity, Target, Layers } from "lucide-react";
 
 export default function ResultsTab({ targetKd, trends }) {
     // Pipeline State
@@ -11,6 +11,7 @@ export default function ResultsTab({ targetKd, trends }) {
     const [behavioralRoster, setBehavioralRoster] = useState([]);
     const [familyLinks, setFamilyLinks] = useState({});
     const [sortConfig, setSortConfig] = useState({ key: "finalDkp", direction: "desc" });
+    const [enableSiphon, setEnableSiphon] = useState(true);
     
     // Configuration Variables (Hydrated from Storage)
     const [config, setConfig] = useState({
@@ -190,8 +191,8 @@ export default function ResultsTab({ targetKd, trends }) {
 
         // Pass 3: Final Aggregations
         return baseCalculations.map(g => {
-            const totalEffectiveDeads = g.rawDeadsDiff + g.rolloverDeads;
-            const totalEffectiveKp = g.rawKvkKP + g.rolloverKp;
+            const totalEffectiveDeads = g.rawDeadsDiff + (enableSiphon ? g.rolloverDeads : 0);
+            const totalEffectiveKp = g.rawKvkKP + (enableSiphon ? g.rolloverKp : 0);
             
             let finalDkp = 0;
             let quotaPct = 0;
@@ -224,7 +225,7 @@ export default function ResultsTab({ targetKd, trends }) {
                 deadPercent: parseFloat(deadPercent.toFixed(2))
             };
         });
-    }, [behavioralRoster, config, familyLinks]);
+    }, [behavioralRoster, config, familyLinks, enableSiphon]);
 
     // 5. Search & Filter Reducer + Sorter
     const filteredData = useMemo(() => {
@@ -363,17 +364,23 @@ export default function ResultsTab({ targetKd, trends }) {
                         <Download size={14} className="text-emerald-500" /> Export CSV
                     </button>
                     
-                    <button 
-                         onClick={() => {
-                             const newSys = config.dkpSystem === "basic" ? "advanced" : "basic";
-                             const newConf = { ...config, dkpSystem: newSys };
-                             setConfig(newConf);
-                             localStorage.setItem("unity_dkp_config_v2", JSON.stringify(newConf));
-                         }}
-                         className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/30 text-purple-400 text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 cursor-pointer shadow-xl"
-                    >
-                         <Cpu size={14} /> Mode: {config.dkpSystem}
-                    </button>
+                     <button 
+                          onClick={() => {
+                              const newSys = config.dkpSystem === "basic" ? "advanced" : "basic";
+                              const newConf = { ...config, dkpSystem: newSys };
+                              setConfig(newConf);
+                              localStorage.setItem("unity_dkp_config_v2", JSON.stringify(newConf));
+                          }}
+                          className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/30 text-purple-400 text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 cursor-pointer shadow-xl"
+                     >
+                          <Cpu size={14} /> Mode: {config.dkpSystem}
+                     </button>
+                     <button 
+                          onClick={() => setEnableSiphon(!enableSiphon)}
+                          className={`px-4 py-2 ${enableSiphon ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-gray-500/10 border-gray-500/30 text-gray-500'} transition-colors border text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 cursor-pointer shadow-xl`}
+                     >
+                          <Layers size={14} /> Siphon: {enableSiphon ? 'ON' : 'OFF'}
+                     </button>
                 </div>
             </div>
 
@@ -457,8 +464,10 @@ export default function ResultsTab({ targetKd, trends }) {
                                     <th className="p-3 font-bold text-amber-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t5Diff")}>T5 Kills <SortIcon columnKey="t5Diff"/></th>
                                     <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t4t5Combined")}>T4*T5 Combined <SortIcon columnKey="t4t5Combined"/></th>
                                     <th className="p-3 font-bold text-rose-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("deadsDiff")}>KvK Deads <SortIcon columnKey="deadsDiff"/></th>
+                                    {(enableSiphon && config.dkpSystem === 'advanced') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverDeads")}>Farm Deads <SortIcon columnKey="rolloverDeads"/></th>}
                                     <th className="p-3 font-bold text-emerald-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("gatheredDiff")}>RSS Gathered <SortIcon columnKey="gatheredDiff"/></th>
                                     <th className="p-3 font-bold text-cyan-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kvkKP")}>KvK KP <SortIcon columnKey="kvkKP"/></th>
+                                    {(enableSiphon && config.dkpSystem === 'advanced') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverKp")}>Farm KP <SortIcon columnKey="rolloverKp"/></th>}
                                     {config.dkpSystem === 'advanced' && (
                                         <>
                                             <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("targetDkp")}>Target DKP <SortIcon columnKey="targetDkp"/></th>
@@ -486,7 +495,7 @@ export default function ResultsTab({ targetKd, trends }) {
                                         <td className="p-3 text-gray-400 font-mono">{gov.id}</td>
                                         <td className="p-3 text-white font-bold whitespace-nowrap">
                                             {gov.name}
-                                            {gov.rolloverDeads > 0 && <span className="ml-2 text-[10px] text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded" title={`Includes +${gov.rolloverDeads.toLocaleString()} pooled Deads from Farm accounts!`}>+OVERFLOW</span>}
+                                            {(gov.rolloverDeads > 0 || gov.rolloverKp > 0) && <span className="ml-2 text-[10px] text-amber-500 bg-amber-500/10 px-1 py-0.5 border border-amber-500/30 rounded" title={`Includes pooled stats from Farm accounts!`}>+OVERFLOW</span>}
                                             {gov.isFarm && <span className="ml-2 text-[10px] text-gray-500 bg-gray-500/10 px-1 py-0.5 rounded" title="Farm Siphon Engine is evaluating this account for Overflow metric skimming.">FARM</span>}
                                         </td>
                                         <td className="p-3">
@@ -514,11 +523,13 @@ export default function ResultsTab({ targetKd, trends }) {
                                         <td className="p-3 text-right font-mono text-gray-300">{(gov.t4Diff || 0).toLocaleString()}</td>
                                         <td className="p-3 text-right font-mono text-amber-500/90">{(gov.t5Diff || 0).toLocaleString()}</td>
                                         <td className="p-3 text-right font-mono text-gray-300">{(gov.t4t5Combined || 0).toLocaleString()}</td>
-                                        
-                                        <td className="p-3 text-right font-mono text-rose-500">{(gov.deadsDiff || 0).toLocaleString()}</td>
-                                        <td className="p-3 text-right font-mono text-emerald-500/80">{(gov.gatheredDiff || 0).toLocaleString()}</td>
-                                        
-                                        <td className="p-3 text-right font-mono text-cyan-400">{(Math.round(gov.kvkKP) || 0).toLocaleString()}</td>
+                                         
+                                         <td className="p-3 text-right font-mono text-rose-500">{(gov.deadsDiff || 0).toLocaleString()}</td>
+                                         {(enableSiphon && config.dkpSystem === 'advanced') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverDeads || 0).toLocaleString()}</td>}
+                                         <td className="p-3 text-right font-mono text-emerald-500/80">{(gov.gatheredDiff || 0).toLocaleString()}</td>
+                                         
+                                         <td className="p-3 text-right font-mono text-cyan-400">{(Math.round(gov.kvkKP) || 0).toLocaleString()}</td>
+                                         {(enableSiphon && config.dkpSystem === 'advanced') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverKp || 0).toLocaleString()}</td>}
                                         
                                         {config.dkpSystem === 'advanced' && (
                                             <>
