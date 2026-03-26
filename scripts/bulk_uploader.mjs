@@ -195,8 +195,8 @@ async function runBulkEngine() {
     for (const file of files) {
         const filePath = path.join(SANDBOX_DIR, file);
         
-        // Javascript \b boundary fails on underscores. Use strict character tracking:
-        const kingdomMatch = file.match(/(?:^|_)([1-4]\d{3})(?:_|$)/);
+        // Relax Kingdom Regex to find any isolated 4-digit code in the 1000-4999 range anywhere in the filename
+        const kingdomMatch = file.match(/(?:^|[^0-9])([1-4]\d{3})(?:[^0-9]|$)/);
         const kingdomId = kingdomMatch ? kingdomMatch[1] : null;
 
         if (!kingdomId) {
@@ -232,9 +232,15 @@ async function runBulkEngine() {
         }
 
         if (!scanDateIso || scanDateIso === '2020-00-00') {
-             console.error(`\n[REJECTED] Could not decipher any valid Date from string '${file}'. Skipping to protect DB.`);
-             failedFiles.push({ File: file, Reason: 'Missing Valid Format: Y-M-D or M-D-Y' });
-             continue;
+             // Fallback to strict Windows File Modification Date
+             try {
+                const stats = fs.statSync(filePath);
+                scanDateIso = stats.mtime.toISOString().split('T')[0];
+             } catch(e) {
+                 console.error(`\n[REJECTED] Could not decipher any valid Date from string '${file}' and FS Stat failed. Skipping to protect DB.`);
+                 failedFiles.push({ File: file, Reason: 'Missing Valid Format: Y-M-D or Epoch' });
+                 continue;
+             }
         }
 
         const success = await uploadFileBatch(filePath, kingdomId, scanDateIso);

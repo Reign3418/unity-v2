@@ -235,8 +235,10 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                 className="bg-[#13161c] text-white text-xs border border-[#2d323e] rounded p-1.5 focus:border-cyan-500 outline-none"
                             >
                                 {trends && trends.map(t => {
-                                    const d = t.scanDate.split('T')[0];
-                                    return <option key={`start-${d}`} value={d}>{new Date(d).toLocaleDateString()}</option>
+                                    const rawDate = t.scanDate.split('T')[0].split('_')[0];
+                                    const parsedDate = new Date(rawDate);
+                                    const displayDate = !isNaN(parsedDate) ? parsedDate.toLocaleDateString() : rawDate;
+                                    return <option key={`start-${t.scanDate}`} value={t.scanDate}>{displayDate}</option>
                                 })}
                             </select>
                             <span className="text-gray-600">-</span>
@@ -246,8 +248,10 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                                 className="bg-[#13161c] text-white text-xs border border-[#2d323e] rounded p-1.5 focus:border-cyan-500 outline-none"
                             >
                                 {trends && trends.map(t => {
-                                    const d = t.scanDate.split('T')[0];
-                                    return <option key={`end-${d}`} value={d}>{new Date(d).toLocaleDateString()}</option>
+                                    const rawDate = t.scanDate.split('T')[0].split('_')[0];
+                                    const parsedDate = new Date(rawDate);
+                                    const displayDate = !isNaN(parsedDate) ? parsedDate.toLocaleDateString() : rawDate;
+                                    return <option key={`end-${t.scanDate}`} value={t.scanDate}>{displayDate}</option>
                                 })}
                             </select>
                         </div>
