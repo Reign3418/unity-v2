@@ -380,10 +380,10 @@ export default function ResultsTab({ targetKd, trends }) {
                         <p className="text-gray-600 text-sm mt-2 text-center max-w-md">The current configuration and date parameters returned zero matching results in the DynamoDB Roster.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[1800px] text-[11px]">
-                            <thead>
-                                <tr className="bg-[#1a1d24] border-b border-[#2d323e]">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[650px] border border-[#2d323e] rounded-xl custom-scrollbar bg-[#0f1115] shadow-2xl relative z-10">
+                        <table className="w-full text-left border-collapse min-w-[1800px] text-[11px] relative">
+                            <thead className="sticky top-0 z-20 shadow-md">
+                                <tr className="bg-[#1a1d24] border-b-2 border-purple-500/20">
                                     <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("id")}>Governor ID <SortIcon columnKey="id"/></th>
                                     <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("name")}>Governor Name <SortIcon columnKey="name"/></th>
                                     <th className="p-3 font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("status")}>Status <SortIcon columnKey="status"/></th>
