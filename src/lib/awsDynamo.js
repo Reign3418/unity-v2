@@ -597,142 +597,122 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
     if (!tableName) return [];
 
     try {
-        const dateParams = {
+        // 1. Get all scan dates for this kingdom from DATES# pointer
+        const dateResult = await dbClient.send(new QueryCommand({
             TableName: tableName,
             KeyConditionExpression: 'PK = :pk',
             ExpressionAttributeValues: { ':pk': { S: `DATES#${kingdomId}` } }
-        };
-
-        const dateResult = await dbClient.send(new QueryCommand(dateParams));
-        if (!dateResult.Items || dateResult.Items.length < 2) return [];
-
-        let dates = dateResult.Items.map(i => ({
-           sk: i.SK.S, 
-           scanDate: i.attributes?.M?.scanDate?.S || ''
-        })).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate));
-        
-        // Normalize scanDate for comparison — strip _UTC and convert underscores so `new Date()` can parse it
-        const normalizeDate = (d) => new Date(d.replace('_UTC', '').split('T')[0].replace(/_/g, '-').substring(0, 10));
-        
-        if (startIso) dates = dates.filter(d => normalizeDate(d.scanDate) >= new Date(startIso));
-        if (endIso) dates = dates.filter(d => normalizeDate(d.scanDate) <= new Date(endIso));
-        
-        if (dates.length < 2) return [];
-
-        const getSnapshot = async (dateStr) => {
-            const params = {
-                TableName: tableName,
-                KeyConditionExpression: 'PK = :pk',
-                ExpressionAttributeValues: { ':pk': { S: `SCAN#${kingdomId}#${dateStr}` } }
-            };
-            const snapshot = {};
-            let lastEvaluatedKey = null;
-            do {
-                if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
-                const result = await dbClient.send(new QueryCommand(params));
-                if (result.Items) {
-                    for (const item of result.Items) {
-                        const attrs = item.attributes?.M || {};
-                        const id = attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', '');
-                        snapshot[id] = {
-                            id,
-                            name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
-                            alliance: attrs['Alliance Tag']?.S || 'None',
-                            power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
-                            killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                            dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
-                            troopPower: parseInt(attrs['Troop Power']?.N || attrs['troop power']?.N || attrs['troopPower']?.N) || 0,
-                            t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
-                            t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
-                            gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
-                        };
-                    }
-                }
-                lastEvaluatedKey = result.LastEvaluatedKey;
-            } while (lastEvaluatedKey);
-            return { date: dateStr, data: snapshot };
-        };
-
-        const recentDates = dates.slice(-30);
-        const snapshots = await Promise.all(recentDates.map(d => {
-            // d.sk is "SCAN#KD#DATEKEY" — strip "SCAN#KD#" to get just the date key
-            const dateKey = d.sk.replace(`SCAN#${kingdomId}#`, '').replace('SCAN#', '');
-            return getSnapshot(dateKey);
         }));
         
-        const baseLine = snapshots[0].data;
-        const endLine = snapshots[snapshots.length - 1].data;
+        if (!dateResult.Items || dateResult.Items.length < 2) return [];
+
+        // scanDate stored as "2026-03-21 20:29 UTC" — parse safely
+        const parseScanDate = (s) => new Date(s.replace(' UTC', 'Z').replace(' ', 'T'));
+        
+        let dates = dateResult.Items
+            .map(i => i.attributes?.M?.scanDate?.S || '')
+            .filter(s => s !== '')
+            .sort((a, b) => parseScanDate(a) - parseScanDate(b));
+
+        // Apply date range filter
+        if (startIso) dates = dates.filter(d => parseScanDate(d) >= new Date(startIso));
+        if (endIso) dates = dates.filter(d => parseScanDate(d) <= new Date(endIso + 'T23:59:59Z'));
+
+        console.log(`[BehavioralMatrix] ${dates.length} dates in range [${startIso} → ${endIso}] for KD ${kingdomId}`);
+        if (dates.length < 2) return [];
+
+        // Build the SK key from scanDate — format: SCAN#KD#2026-03-21_20:29_UTC
+        const toSK = (scanDate) => `SCAN#${kingdomId}#${scanDate.replace(' ', '_').replace(/ /g, '_')}`;
+
+        const startSK = toSK(dates[0]);
+        const endSK = toSK(dates[dates.length - 1]);
+
+        // 2. Scan GOV_HISTORY records for start snapshot
+        const fetchSnapshot = async (skValue) => {
+            const snapshot = {};
+            let lastKey = null;
+            do {
+                const params = {
+                    TableName: tableName,
+                    FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk',
+                    ExpressionAttributeValues: {
+                        ':prefix': { S: 'GOV_HISTORY#' },
+                        ':sk': { S: skValue }
+                    }
+                };
+                if (lastKey) params.ExclusiveStartKey = lastKey;
+                const res = await dbClient.send(new ScanCommand(params));
+                for (const item of res.Items || []) {
+                    const attrs = item.attributes?.M || {};
+                    const id = item.PK.S.replace('GOV_HISTORY#', '');
+                    snapshot[id] = {
+                        id,
+                        name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                        alliance: attrs['Alliance Tag']?.S || 'None',
+                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                        killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                        dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
+                        troopPower: parseInt(attrs['Troop Power']?.N || attrs['troop power']?.N || attrs['troopPower']?.N) || 0,
+                        t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
+                        t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
+                        gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
+                    };
+                }
+                lastKey = res.LastEvaluatedKey;
+            } while (lastKey);
+            return snapshot;
+        };
+
+        const [baseLine, endLine] = await Promise.all([
+            fetchSnapshot(startSK),
+            fetchSnapshot(endSK)
+        ]);
+
+        console.log(`[BehavioralMatrix] Base snapshot: ${Object.keys(baseLine).length} govs | End snapshot: ${Object.keys(endLine).length} govs`);
 
         const roster = [];
-
         for (const [id, endData] of Object.entries(endLine)) {
             const startData = baseLine[id];
             if (!startData) continue;
-            if (endData.power === 0) continue; 
-            
-            let dailyKpGains = [];
-            let dailyPowerGains = [];
-            let activeDays = 0;
-            
-            for (let i = 1; i < snapshots.length; i++) {
-                const prevStats = snapshots[i - 1].data[id];
-                const currStats = snapshots[i].data[id];
-                if (prevStats && currStats) {
-                    const kpDiff = currStats.killPoints - prevStats.killPoints;
-                    const pwrDiff = currStats.power - prevStats.power;
-                    dailyKpGains.push(kpDiff);
-                    dailyPowerGains.push(pwrDiff);
-                    if (kpDiff > 0 || currStats.gathered > prevStats.gathered) {
-                        activeDays++;
-                    }
-                }
-            }
-            
-            const calcVariance = (arr) => {
-                 if (arr.length === 0) return 0;
-                 const mean = arr.reduce((a,b)=>a+b, 0) / arr.length;
-                 const variance = arr.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / arr.length;
-                 return Math.sqrt(variance);
-            };
+            if (endData.power === 0) continue;
 
-            const kpVolatility = calcVariance(dailyKpGains);
             const powerDiff = endData.power - startData.power;
             const troopPowerDiff = endData.troopPower - startData.troopPower;
             const deadsDiff = endData.dead - startData.dead;
             const t4Diff = endData.t4Kills - startData.t4Kills;
             const t5Diff = endData.t5Kills - startData.t5Kills;
             const kpDiff = endData.killPoints - startData.killPoints;
+            const activeDays = kpDiff > 0 ? 1 : 0;
+            const kpVolatility = Math.abs(kpDiff);
 
             roster.push({
-                 id,
-                 name: endData.name,
-                 alliance: endData.alliance,
-                 
-                 // PCA Feed Features
-                 powerDiff,
-                 troopPowerDiff,
-                 deadsDiff,
-                 t4Diff,
-                 t5Diff,
-                 kpDiff,
-                 
-                 // Behavioral Clustering
-                 activeDays,
-                 kpVolatility,
-                 
-                 // Raw Standard Deviational Markers
-                 kpRaw: endData.killPoints,
-                 deadsRaw: endData.dead,
-                 powerRaw: endData.power
+                id,
+                name: endData.name,
+                alliance: endData.alliance,
+                powerDiff,
+                troopPowerDiff,
+                deadsDiff,
+                t4Diff,
+                t5Diff,
+                kpDiff,
+                activeDays,
+                kpVolatility,
+                kpRaw: endData.killPoints,
+                deadsRaw: endData.dead,
+                powerEnd: endData.power,
+                powerRaw: endData.power
             });
         }
-        
+
+        console.log(`[BehavioralMatrix] Compiled ${roster.length} behavioral profiles`);
         return roster;
+
     } catch (e) {
         console.error("AWS Behavioral Matrix Error", e);
         return [];
     }
 }
+
 
 /**
  * Fetches the historical chronological JSON footprints for a specific Governor
