@@ -32,14 +32,18 @@ export default function ScatterPlotTab({ targetKd, trends }) {
             if (!targetKd || !startDate || !endDate) return;
             setIsPcaCompiling(true);
             try {
-                const url = `/api/aws/behavior?kd=${targetKd}&start=${startDate}&end=${endDate}`;
+                const url = `/api/aws/behavior?kd=${targetKd}&start=${startDate}&end=${endDate}&_t=${Date.now()}`;
+                console.log(`[ScatterPlot Fetch] Outbound: ${url}`);
                 const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
+                    console.log(`[ScatterPlot Fetch] Inbound Success! Roster payload length: ${data.roster ? data.roster.length : 'undefined'}`);
                     setBehavioralRoster(data.roster || []);
+                } else {
+                    console.warn(`[ScatterPlot Fetch] HTTP Error ${res.status}`);
                 }
             } catch (err) {
-                console.error("Failed to load behavioral matrix", err);
+                console.error("[ScatterPlot Fetch] Network Exception:", err);
             }
             setIsPcaCompiling(false);
         };
@@ -50,8 +54,12 @@ export default function ScatterPlotTab({ targetKd, trends }) {
     const { chartData, statistics } = useMemo(() => {
         if (!behavioralRoster || behavioralRoster.length === 0) return { chartData: {}, statistics: {} };
 
+        console.log(`[PCA Pipeline] Received behavioralRoster length: ${behavioralRoster.length}`);
+
         // 1. Sift Phantom Accounts (0 Power at End)
         const validRoster = behavioralRoster.filter(g => g.powerEnd > 0);
+        console.log(`[PCA Pipeline] After phantom filter (powerEnd > 0): ${validRoster.length}`);
+        
         if (validRoster.length === 0) return { chartData: {}, statistics: {} };
 
         // 2. Extract Raw Averages to determine Structural Archetypes (Heroes, Warriors, Feeders, Slackers)
@@ -83,6 +91,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
              matrix.push(row);
         });
 
+        console.log(`[PCA Pipeline] Prepared ${matrix.length}x${features.length} feature matrix. Running ML-PCA SVD...`);
+
         // 4. ML-PCA SVD Math Execution
         let pc1Array = [];
         let pc2Array = [];
@@ -91,8 +101,9 @@ export default function ScatterPlotTab({ targetKd, trends }) {
             const projected = pca.predict(matrix, { nComponents: 2 }).to2DArray();
             pc1Array = projected.map(p => p[0]);
             pc2Array = projected.map(p => p[1]);
+            console.log(`[PCA Pipeline] PCA Math succeeded.`);
         } catch(e) {
-            console.error("PCA Math Error", e);
+            console.error("[PCA Pipeline] PCA Math Error:", e);
             return { chartData: {}, statistics: {} };
         }
 
