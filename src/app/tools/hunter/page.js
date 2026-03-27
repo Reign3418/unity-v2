@@ -40,7 +40,7 @@ export default function PlayerHunter() {
 
           // 2. Extract chronological trajectory using a massive 50-scan concurrent lookup
           // We pass kd=GLOBAL to trigger the backend scatter-gather engine across ALL known AWS partitions
-          const histRes = await fetch(`/api/aws/history?kd=GLOBAL&id=${id}&days=50`);
+          const histRes = await fetch(`/api/aws/history?kd=GLOBAL&id=${id}&days=50&bypassCache=${Date.now()}`);
           const histData = await histRes.json();
           
           const rawTimeline = histData.timeline || [];

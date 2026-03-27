@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGovernorHistory, getAllTrackedKingdoms } from "@/lib/awsDynamo";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   try {
     // 1. Authenticate the Request
