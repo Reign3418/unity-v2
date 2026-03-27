@@ -28,10 +28,16 @@ export async function GET(req) {
         const allKds = await getAllTrackedKingdoms();
         console.log(`[AWS History] Target AWS Partitions: ${allKds.length}`);
         
-        // Fire parallel asynchronous timeline extractions across all known AWS database partitions
-        const fetchPromises = allKds.map(kd => getGovernorHistory(kd, governorId, days));
-        const resolved = await Promise.all(fetchPromises);
-        console.log(`[AWS History] Thread Pool Resolved. First threaded object type: ${typeof resolved[0]}`);
+        // Fire timeline extractions in chunked batches to prevent Vercel Serverless socket exhaustion/ETIMEDOUT
+        const CHUNK_SIZE = 15;
+        const resolved = [];
+        
+        for (let i = 0; i < allKds.length; i += CHUNK_SIZE) {
+            const chunk = allKds.slice(i, i + CHUNK_SIZE);
+            const chunkPromises = chunk.map(kd => getGovernorHistory(kd, governorId, days));
+            const chunkResults = await Promise.all(chunkPromises);
+            resolved.push(...chunkResults);
+        }
 
         const flattened = resolved.flat().sort((a,b) => {
              const dateA = new Date(a.scanDate.replace(/_/g, " "));
@@ -45,7 +51,7 @@ export async function GET(req) {
             debug_info: {
                 table: process.env.AWS_TABLE_NAME || 'Missing Table',
                 kdsFound: allKds || [],
-                concurrencyLaunched: fetchPromises.length,
+                concurrencyLaunched: allKds.length,
                 totalResults: flattened.length
             }
         }, { status: 200 });
