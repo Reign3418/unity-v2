@@ -157,12 +157,16 @@ export default function KingdomAnalysis() {
               return (
                   <TeamBuilderTab 
                       rosterData={rosterData}
+                      targetKd={targetKd}
+                      isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
               );
           case 'Alliance Merge':
               return (
-                  <AllianceMergeTab
+                  <AllianceMergeTab 
                       rosterData={rosterData}
+                      targetKd={targetKd}
+                      isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
               );
           case 'Fixed MGE':
@@ -170,6 +174,7 @@ export default function KingdomAnalysis() {
                   <MGEPlannerTab
                       rosterData={rosterData}
                       targetKd={targetKd}
+                      isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
               );
           case 'Configuration':

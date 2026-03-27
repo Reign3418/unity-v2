@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Sparkles, Filter, X, Users } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Sparkles, Filter, X, Users, RefreshCw, CloudLightning, CloudUpload } from "lucide-react";
 
-export default function TeamBuilderTab({ rosterData }) {
+export default function TeamBuilderTab({ rosterData, targetKd, isLeader }) {
     // Master State
     const [squads, setSquads] = useState([]);
     
@@ -11,21 +11,65 @@ export default function TeamBuilderTab({ rosterData }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [allianceFilter, setAllianceFilter] = useState("ALL");
 
-    // Load / Save from LocalStorage
-    useEffect(() => {
-        const saved = localStorage.getItem('unity_team_builder_hq');
-        if (saved) {
-            try {
-                setSquads(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse LocalStorage Squads");
-            }
-        }
-    }, []);
+    // Cloud Sync State
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState(null);
+    const syncTimeoutRef = useRef(null);
+    const isInitialLoadRef = useRef(true);
 
-    const saveSquads = (newSquads) => {
+    const fetchCloudTeams = async () => {
+        if (!targetKd) return;
+        setIsSyncing(true);
+        try {
+            const res = await fetch(`/api/aws/admin/teams?kd=${targetKd}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.squads) setSquads(data.squads);
+                setLastSyncTime(new Date().toLocaleTimeString());
+            }
+        } catch (e) {
+            console.error("Failed to load Cloud Team Builder State", e);
+        } finally {
+            setIsSyncing(false);
+            setTimeout(() => { isInitialLoadRef.current = false; }, 1000);
+        }
+    };
+
+    // Load from Cloud
+    useEffect(() => {
+        fetchCloudTeams();
+    }, [targetKd]);
+
+    // Push to Cloud
+    const triggerCloudSync = (newSquads) => {
         setSquads(newSquads);
-        localStorage.setItem('unity_team_builder_hq', JSON.stringify(newSquads));
+        
+        if (!isLeader) return;
+        
+        if (isInitialLoadRef.current) return;
+
+        setIsSyncing(true);
+        if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+
+        syncTimeoutRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/aws/admin/teams?kd=${targetKd}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ squads: newSquads })
+                });
+                
+                if (res.ok) {
+                     setLastSyncTime(new Date().toLocaleTimeString());
+                } else {
+                     console.error("Team Builder Cloud Sync Blocked.");
+                }
+            } catch (e) {
+                console.error("Failed to dispatch AWS Teams state", e);
+            } finally {
+                setIsSyncing(false);
+            }
+        }, 1500);
     };
 
     // Calculate Distinct Alliances for the Pool Filter
@@ -67,27 +111,32 @@ export default function TeamBuilderTab({ rosterData }) {
     // --- Actions ---
 
     const createSquad = () => {
+        if (!isLeader) return;
         const newId = `squad_${Date.now()}`;
         const newSquads = [...squads, { id: newId, name: `New Squad ${squads.length + 1}`, members: [] }];
-        saveSquads(newSquads);
+        triggerCloudSync(newSquads);
     };
 
     const deleteSquad = (squadId) => {
+        if (!isLeader) return;
         if (!confirm('Are you sure you want to delete this squad? All members will be returned to the pool.')) return;
-        saveSquads(squads.filter(s => s.id !== squadId));
+        triggerCloudSync(squads.filter(s => s.id !== squadId));
     };
 
     const clearAll = () => {
+        if (!isLeader) return;
         if (!confirm('Clear all squads and return everyone to the pool?')) return;
-        saveSquads([]);
+        triggerCloudSync([]);
     };
 
     const renameSquad = (squadId, newName) => {
-        saveSquads(squads.map(s => s.id === squadId ? { ...s, name: newName } : s));
+        if (!isLeader) return;
+        triggerCloudSync(squads.map(s => s.id === squadId ? { ...s, name: newName } : s));
     };
 
     const removeMember = (squadId, memberId) => {
-        saveSquads(squads.map(sq => {
+        if (!isLeader) return;
+        triggerCloudSync(squads.map(sq => {
             if (sq.id === squadId) {
                 return { ...sq, members: sq.members.filter(m => m.id !== memberId) };
             }
@@ -134,6 +183,10 @@ export default function TeamBuilderTab({ rosterData }) {
     const [draggedItem, setDraggedItem] = useState(null); // { id: governorId, sourceId: null | squadId }
 
     const handleDragStart = (e, governor, sourceSquadId = null) => {
+        if (!isLeader) {
+            e.preventDefault();
+            return;
+        }
         // We track the dragged governor explicitly in React State to bypass complex HTML5 dataTransfer serialization bugs.
         setDraggedItem({ governor, sourceSquadId });
         e.dataTransfer.effectAllowed = "move";
@@ -163,7 +216,7 @@ export default function TeamBuilderTab({ rosterData }) {
         if (!targetSquadId) {
             if (sourceSquadId) {
                 // Remove from the source squad
-                saveSquads(squads.map(sq => {
+                triggerCloudSync(squads.map(sq => {
                     if (sq.id === sourceSquadId) return { ...sq, members: sq.members.filter(m => m.id !== governor.id) };
                     return sq;
                 }));
@@ -202,7 +255,7 @@ export default function TeamBuilderTab({ rosterData }) {
             return sq;
         });
 
-        saveSquads(newSquads);
+        triggerCloudSync(newSquads);
         setDraggedItem(null);
     };
 
@@ -273,10 +326,10 @@ export default function TeamBuilderTab({ rosterData }) {
                         availablePool.slice(0, 150).map(g => ( // Limit DOM render count
                             <div 
                                 key={`pool-${g.id}`}
-                                draggable="true"
+                                draggable={isLeader ? "true" : "false"}
                                 onDragStart={(e) => handleDragStart(e, g, null)}
                                 onDragEnd={handleDragEnd}
-                                className="bg-[#13161c] border border-[#1e222b] rounded-lg p-3 hover:border-cyan-500/50 cursor-grab active:cursor-grabbing transition-colors group flex flex-col relative overflow-hidden"
+                                className={`bg-[#13161c] border border-[#1e222b] rounded-lg p-3 transition-colors group flex flex-col relative overflow-hidden ${isLeader ? 'hover:border-cyan-500/50 cursor-grab active:cursor-grabbing' : 'opacity-80 grayscale-[30%] cursor-default'}`}
                             >
                                 {/* Left Drag Indicator Grip */}
                                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-500/20 group-hover:bg-cyan-500/80 transition-colors"></div>
@@ -310,18 +363,43 @@ export default function TeamBuilderTab({ rosterData }) {
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                 
                 {/* Workspace Header Actions */}
-                <div className="flex items-center gap-3 mb-6 sticky top-0 bg-[#07090b] py-2 z-20">
-                    <button 
-                        onClick={createSquad}
-                        className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                <div className="flex items-center gap-3 mb-6 bg-[#0a0c0f] border border-[#2d323e] rounded-xl p-3 shadow-lg z-20">
+                    <div className="flex items-center gap-3 mr-auto">
+                         {isSyncing ? (
+                              <div className="flex items-center gap-2 text-cyan-400 font-bold uppercase tracking-widest text-xs animate-pulse">
+                                  <CloudUpload size={16} /> Syncing...
+                              </div>
+                         ) : (
+                              <div className="flex items-center gap-2 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                                  <CloudLightning size={16} className="text-cyan-400" />
+                                  Cloud State {lastSyncTime && <span className="text-gray-600 font-mono bg-[#13161c] px-2 py-0.5 rounded ml-2">{lastSyncTime}</span>}
+                              </div>
+                         )}
+                    </div>
+                
+                    {isLeader && (
+                        <>
+                            <button 
+                                onClick={createSquad}
+                                className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                            >
+                                <Plus size={16} /> Standard Squad
+                            </button>
+                            <button 
+                                 onClick={clearAll}
+                                 className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ml-auto"
+                            >
+                                 Clear Board
+                            </button>
+                        </>
+                    )}
+                    
+                    <button
+                        onClick={fetchCloudTeams}
+                        disabled={isSyncing}
+                        className="bg-[#13161c] border border-[#2d323e] hover:border-cyan-500 hover:text-cyan-400 text-gray-400 transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 ml-2"
                     >
-                        <Plus size={16} /> Standard Squad
-                    </button>
-                    <button 
-                         onClick={clearAll}
-                         className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ml-auto"
-                    >
-                         Clear Board
+                        <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> Resync
                     </button>
                 </div>
 
@@ -353,8 +431,9 @@ export default function TeamBuilderTab({ rosterData }) {
                                               <input 
                                                   type="text" 
                                                   value={squad.name}
+                                                  disabled={!isLeader}
                                                   onChange={(e) => renameSquad(squad.id, e.target.value)}
-                                                  className="bg-transparent border-b border-transparent focus:border-purple-500/50 text-white font-black uppercase tracking-widest text-lg outline-none w-2/3 transition-colors"
+                                                  className="bg-transparent border-b border-transparent focus:border-purple-500/50 text-white font-black uppercase tracking-widest text-lg outline-none w-2/3 transition-colors disabled:opacity-80 disabled:cursor-not-allowed"
                                               />
                                               <div className="flex items-center gap-1">
                                                    <button 
@@ -364,13 +443,15 @@ export default function TeamBuilderTab({ rosterData }) {
                                                    >
                                                        <Mail size={16} />
                                                    </button>
-                                                   <button 
-                                                       onClick={() => deleteSquad(squad.id)}
-                                                       title="Disband Squad"
-                                                       className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                                                   >
-                                                       <Trash2 size={16} />
-                                                   </button>
+                                                   {isLeader && (
+                                                       <button 
+                                                           onClick={() => deleteSquad(squad.id)}
+                                                           title="Disband Squad"
+                                                           className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                       >
+                                                           <Trash2 size={16} />
+                                                       </button>
+                                                   )}
                                               </div>
                                           </div>
 
@@ -405,19 +486,20 @@ export default function TeamBuilderTab({ rosterData }) {
                                                squad.members.map(m => (
                                                    <div 
                                                        key={`sq-${squad.id}-m-${m.id}`}
-                                                       draggable="true"
+                                                       draggable={isLeader ? "true" : "false"}
                                                        onDragStart={(e) => handleDragStart(e, m, squad.id)}
                                                        onDragEnd={handleDragEnd}
-                                                       className="bg-[#1e222b]/50 border border-[#2d323e] hover:border-purple-500/50 rounded-lg p-2 transition-colors cursor-grab active:cursor-grabbing relative group flex flex-col"
+                                                       className={`bg-[#1e222b]/50 border border-[#2d323e] rounded-lg p-2 transition-colors relative group flex flex-col ${isLeader ? 'hover:border-purple-500/50 cursor-grab active:cursor-grabbing' : 'opacity-90 cursor-default'}`}
                                                    >
-                                                        {/* Delete from squad quick action */}
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); removeMember(squad.id, m.id); }}
-                                                            className="absolute right-2 top-2 p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                                                            title="Remove From Squad"
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
+                                                        {isLeader && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); removeMember(squad.id, m.id); }}
+                                                                className="absolute right-2 top-2 p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                                                title="Remove From Squad"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        )}
 
                                                         <div className="font-bold text-gray-300 text-sm truncate pr-6 mb-1">
                                                             <span className="text-gray-500 text-xs font-mono mr-1">[{m.alliance}]</span>

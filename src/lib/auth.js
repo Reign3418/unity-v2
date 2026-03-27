@@ -238,6 +238,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const userConfig = await getUserConfig(profile.id);
 
+          // Inherit Database Master Roles 
+          const dbRole = (userConfig?.role || '').toLowerCase();
+          
+          if (dbRole === 'admin') {
+              computedSuperAdmin = true;
+              isLeader = true;
+              isMember = true;
+              
+              if (!activeTenant || activeTenant.guildId !== "master") {
+                  const allKds = await getAllTrackedKingdoms();
+                  activeTenant = {
+                      guildId: "master",
+                      kingdomId: allKds.length > 0 ? allKds[0] : "3155",
+                      leadershipRoleId: "master",
+                      allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
+                  };
+              }
+          } else if (dbRole === 'leader') {
+              isLeader = true;
+              isMember = true;
+          }
+
           // Card-Based Key Initialization
           let cardKingdoms = [];
           if (userConfig && userConfig.governorIds) {

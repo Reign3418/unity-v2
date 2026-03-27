@@ -1136,7 +1136,8 @@ export async function getAllTenants() {
                     leadershipRoleId: attrs.leadershipRoleId?.S || 'None',
                     allowedKingdoms: allowedKingdoms,
                     globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
-                    createdDate: attrs.createdDate?.S
+                    createdDate: attrs.createdDate?.S,
+                    notes: attrs.notes?.S || ""
                 });
             }
         }
@@ -1527,7 +1528,8 @@ export async function getAllUsers() {
                                 isManualGuest: attrs.isManualGuest?.BOOL || false,
                                 role: attrs.role?.S || 'User',
                                 linkedDate: attrs.linkedDate?.S || 'Unknown',
-                                globalAiAccess: attrs.globalAiAccess?.BOOL ?? true
+                                globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
+                                notes: attrs.notes?.S || ""
                             });
                         }
                     }
@@ -3117,6 +3119,60 @@ export async function saveUserCamps(discordId, campsArray) {
         return true;
     } catch(e) {
         console.error('AWS saveUserCamps Error', e);
+        return false;
+    }
+}
+
+export async function updateUserNotes(discordId, notes) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `USER#${discordId}` },
+                'SK': { S: 'CONFIG' }
+            },
+            UpdateExpression: 'SET #attr.#notes = :notes',
+            ExpressionAttributeNames: {
+                '#attr': 'attributes',
+                '#notes': 'notes'
+            },
+            ExpressionAttributeValues: {
+                ':notes': { S: notes || "" }
+            }
+        };
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update User Notes Error", e);
+        return false;
+    }
+}
+
+export async function updateTenantNotes(guildId, notes) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `TENANT#${guildId}` },
+                'SK': { S: 'CONFIG' }
+            },
+            UpdateExpression: 'SET #attr.#notes = :notes',
+            ExpressionAttributeNames: {
+                '#attr': 'attributes',
+                '#notes': 'notes'
+            },
+            ExpressionAttributeValues: {
+                ':notes': { S: notes || "" }
+            }
+        };
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update Tenant Notes Error", e);
         return false;
     }
 }

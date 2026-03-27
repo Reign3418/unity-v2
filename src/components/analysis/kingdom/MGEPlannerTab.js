@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Plus, Trash2, Mail, ShieldAlert, X, Trophy, CloudUpload, CloudLightning, Zap } from "lucide-react";
 
-export default function MGEPlannerTab({ rosterData, targetKd }) {
+export default function MGEPlannerTab({ rosterData, targetKd, isLeader }) {
     // Master Cloud State
     const [targets, setTargets] = useState([]); 
     const [sourceAlliances, setSourceAlliances] = useState([]); 
@@ -17,25 +17,27 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     const syncTimeoutRef = useRef(null);
     const isInitialLoadRef = useRef(true);
 
+    const fetchCloudMGE = async () => {
+        if (!targetKd) return;
+        setIsSyncing(true);
+        try {
+            const res = await fetch(`/api/aws/admin/mge?kd=${targetKd}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.targets) setTargets(data.targets);
+                if (data.sources) setSourceAlliances(data.sources);
+                setLastSyncTime(new Date().toLocaleTimeString());
+            }
+        } catch (e) {
+            console.error("Failed to load Cloud MGE State", e);
+        } finally {
+            setIsSyncing(false);
+            setTimeout(() => { isInitialLoadRef.current = false; }, 1000);
+        }
+    };
+
     // Initial AWS Cloud Fetch
     useEffect(() => {
-        const fetchCloudMGE = async () => {
-            if (!targetKd) return;
-            try {
-                const res = await fetch(`/api/aws/admin/mge?kd=${targetKd}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.targets) setTargets(data.targets);
-                    if (data.sources) setSourceAlliances(data.sources);
-                    setLastSyncTime(new Date().toLocaleTimeString());
-                }
-            } catch (e) {
-                console.error("Failed to load Cloud MGE State", e);
-            } finally {
-                // Buffer to prevent auto-syncing the initial fetch
-                setTimeout(() => { isInitialLoadRef.current = false; }, 1000);
-            }
-        };
         fetchCloudMGE();
     }, [targetKd]);
 
@@ -43,6 +45,8 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     const triggerCloudSync = (newTargets, newSources) => {
         setTargets(newTargets);
         setSourceAlliances(newSources);
+        
+        if (!isLeader) return; // Fail-safe against unauthorized execution
         
         if (isInitialLoadRef.current) return;
 
@@ -78,11 +82,12 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     }, [rosterData]);
 
     const handleAddSource = (tag) => {
-        if (!tag || sourceAlliances.includes(tag)) return;
+        if (!isLeader || !tag || sourceAlliances.includes(tag)) return;
         triggerCloudSync(targets, [...sourceAlliances, tag]);
     };
 
     const handleRemoveSource = (tag) => {
+        if (!isLeader) return;
         triggerCloudSync(targets, sourceAlliances.filter(t => t !== tag));
     };
 
@@ -120,6 +125,7 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     };
 
     const createTarget = () => {
+        if (!isLeader) return;
         let nextRank = "1";
         if (targets.length > 0) {
             const last = parseInt(targets[targets.length - 1].rank);
@@ -142,15 +148,18 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     };
 
     const deleteTarget = (targetId) => {
+        if (!isLeader) return;
         triggerCloudSync(targets.filter(t => t.id !== targetId), sourceAlliances);
     };
 
     const clearAll = () => {
+        if (!isLeader) return;
         if (!confirm('Clear all MGE assignments and wipe the global Cloud State?')) return;
         triggerCloudSync([], []);
     };
 
     const updateTargetField = (targetId, field, value) => {
+        if (!isLeader) return;
         const newTargets = targets.map(t => {
             if (t.id === targetId) {
                 const updated = { ...t, [field]: value };
@@ -167,6 +176,7 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     };
 
     const removeMember = (targetId, memberId) => {
+        if (!isLeader) return;
         const newTargets = targets.map(tgt => {
             if (tgt.id === targetId) return { ...tgt, members: tgt.members.filter(m => m.id !== memberId) };
             return tgt;
@@ -225,6 +235,10 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
     const [draggedItem, setDraggedItem] = useState(null); 
 
     const handleDragStart = (e, governor, sourceTargetId = null) => {
+        if (!isLeader) {
+            e.preventDefault();
+            return;
+        }
         setDraggedItem({ governor, sourceTargetId });
         e.dataTransfer.effectAllowed = "move";
         e.target.style.opacity = '0.5';
@@ -244,7 +258,7 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (!draggedItem) return;
+        if (!isLeader || !draggedItem) return;
         const { governor, sourceTargetId } = draggedItem;
 
         // Dropped to Pool = Remove from Target
@@ -348,24 +362,28 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                     </h2>
                     
                     <div className="mb-4">
-                        <select 
-                            value=""
-                            onChange={(e) => handleAddSource(e.target.value)}
-                            className="w-full bg-[#0a0c0f] border border-amber-500/30 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors appearance-none cursor-pointer mb-2 font-bold"
-                        >
-                            <option value="" disabled>+ Filter by Alliance...</option>
-                            <option value="ALL">Show All Alliances</option>
-                            {uniqueAlliances.filter(tag => !sourceAlliances.includes(tag)).map(a => <option key={a} value={a}>[{a}]</option>)}
-                        </select>
+                        {isLeader && (
+                            <select 
+                                value=""
+                                onChange={(e) => handleAddSource(e.target.value)}
+                                className="w-full bg-[#0a0c0f] border border-amber-500/30 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors appearance-none cursor-pointer mb-2 font-bold"
+                            >
+                                <option value="" disabled>+ Filter by Alliance...</option>
+                                <option value="ALL">Show All Alliances</option>
+                                {uniqueAlliances.filter(tag => !sourceAlliances.includes(tag)).map(a => <option key={a} value={a}>[{a}]</option>)}
+                            </select>
+                        )}
 
                         <div className="flex flex-wrap gap-2">
                              {sourceAlliances.length === 0 && <span className="text-[10px] text-gray-500 uppercase tracking-widest block w-full text-center py-1">Displaying Full Kingdom</span>}
                              {sourceAlliances.map(tag => (
                                  <div key={`src-${tag}`} className="bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded text-xs font-bold text-amber-400 flex items-center gap-1">
                                      [{tag}]
-                                     <button onClick={() => handleRemoveSource(tag)} className="text-amber-500/50 hover:text-red-400 transition-colors">
-                                         <X size={12} />
-                                     </button>
+                                     {isLeader && (
+                                         <button onClick={() => handleRemoveSource(tag)} className="text-amber-500/50 hover:text-red-400 transition-colors">
+                                             <X size={12} />
+                                         </button>
+                                     )}
                                  </div>
                              ))}
                         </div>
@@ -391,10 +409,10 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                         availablePool.slice(0, 150).map(g => ( 
                             <div 
                                 key={`pool-${g.id}`}
-                                draggable="true"
+                                draggable={isLeader ? "true" : "false"}
                                 onDragStart={(e) => handleDragStart(e, g, null)}
                                 onDragEnd={handleDragEnd}
-                                className="bg-[#13161c] border border-[#1e222b] rounded-lg p-3 hover:border-amber-500/50 cursor-grab active:cursor-grabbing transition-colors group flex flex-col relative overflow-hidden"
+                                className={`bg-[#13161c] border border-[#1e222b] rounded-lg p-3 transition-colors group flex flex-col relative overflow-hidden ${isLeader ? 'hover:border-amber-500/50 cursor-grab active:cursor-grabbing' : 'opacity-80 grayscale-[30%] cursor-default'}`}
                             >
                                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500/20 group-hover:bg-amber-500/80 transition-colors"></div>
                                 
@@ -437,6 +455,13 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                     </div>
                     
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={fetchCloudMGE}
+                            disabled={isSyncing}
+                            className="bg-[#13161c] border border-[#2d323e] hover:border-cyan-500 hover:text-cyan-400 text-gray-400 transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2"
+                        >
+                            <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> Resync
+                        </button>
                         <button 
                              onClick={sendToMail}
                              className={`bg-[#13161c] border border-[#2d323e] hover:border-amber-500 hover:text-amber-400 text-gray-400 transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2`}
@@ -447,20 +472,22 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                 </div>
 
                 {/* TARGET SHELL CANVAS */}
-                <div className="flex items-center gap-3 mb-4 shrink-0 px-2">
-                    <button 
-                        onClick={createTarget}
-                        className="bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
-                    >
-                        <Plus size={16} /> Allocate MGE Target Rank
-                    </button>
-                    <button 
-                         onClick={clearAll}
-                         className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ml-auto"
-                    >
-                         Wipe Infrastructure
-                    </button>
-                </div>
+                {isLeader && (
+                    <div className="flex items-center gap-3 mb-4 shrink-0 px-2">
+                        <button 
+                            onClick={createTarget}
+                            className="bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                        >
+                            <Plus size={16} /> Allocate MGE Target Rank
+                        </button>
+                        <button 
+                             onClick={clearAll}
+                             className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ml-auto"
+                        >
+                             Wipe Infrastructure
+                        </button>
+                    </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-12">
                      {targets.length === 0 ? (
@@ -491,14 +518,17 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                                                       <select 
                                                           value={target.rank}
                                                           onChange={(e) => updateTargetField(target.id, 'rank', e.target.value)}
-                                                          className="bg-transparent text-amber-500 font-black text-xl uppercase tracking-widest outline-none border-b border-dashed border-amber-500/30 pb-1 cursor-pointer appearance-none"
+                                                          disabled={!isLeader}
+                                                          className="bg-transparent text-amber-500 font-black text-xl uppercase tracking-widest outline-none border-b border-dashed border-amber-500/30 pb-1 cursor-pointer appearance-none disabled:opacity-80 disabled:cursor-not-allowed"
                                                       >
                                                            {rankOptions.map(r => <option key={r} value={r} className="bg-[#0a0c0f] text-sm">Target: {r}</option>)}
                                                       </select>
                                                   </div>
-                                                  <div className="flex items-center gap-1 ml-2">
-                                                       <button onClick={() => deleteTarget(target.id)} title="Delete Matrix Block" className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
-                                                  </div>
+                                                  {isLeader && (
+                                                      <div className="flex items-center gap-1 ml-2">
+                                                           <button onClick={() => deleteTarget(target.id)} title="Delete Matrix Block" className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                                                      </div>
+                                                  )}
                                               </div>
 
                                               {/* Ruleset Matrix */}
@@ -507,8 +537,9 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                                                       <span className="block text-[8px] uppercase tracking-widest text-gray-500 mb-0.5">Assigned Commander</span>
                                                       <select 
                                                           value={target.commander}
+                                                          disabled={!isLeader}
                                                           onChange={(e) => updateTargetField(target.id, 'commander', e.target.value)}
-                                                          className="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none"
+                                                          className="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none disabled:opacity-80 disabled:cursor-not-allowed"
                                                       >
                                                            {cmdrOptions.map(c => <option key={c} value={c} className="bg-[#13161c] text-sm">{c}</option>)}
                                                       </select>
@@ -519,8 +550,9 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                                                           type="number"
                                                           placeholder="Unlimited"
                                                           value={target.limit}
+                                                          disabled={!isLeader}
                                                           onChange={(e) => updateTargetField(target.id, 'limit', e.target.value)}
-                                                          className="w-full bg-transparent text-white font-mono font-bold outline-none text-xs"
+                                                          className="w-full bg-transparent text-white font-mono font-bold outline-none text-xs disabled:opacity-80 disabled:cursor-not-allowed"
                                                       />
                                                   </div>
                                               </div>
@@ -537,17 +569,19 @@ export default function MGEPlannerTab({ rosterData, targetKd }) {
                                                    target.members.map(m => (
                                                        <div 
                                                            key={`tgt-${target.id}-m-${m.id}`}
-                                                           draggable="true"
+                                                           draggable={isLeader ? "true" : "false"}
                                                            onDragStart={(e) => handleDragStart(e, m, target.id)}
                                                            onDragEnd={handleDragEnd}
-                                                           className={`bg-[#1e222b]/60 border border-amber-500/30 hover:border-amber-400 rounded-lg p-3 transition-colors cursor-grab active:cursor-grabbing relative group flex flex-col shadow-[0_0_10px_rgba(245,158,11,0.05)]`}
+                                                           className={`bg-[#1e222b]/60 border border-amber-500/30 rounded-lg p-3 transition-colors relative group flex flex-col shadow-[0_0_10px_rgba(245,158,11,0.05)] ${isLeader ? 'hover:border-amber-400 cursor-grab active:cursor-grabbing' : 'opacity-90 cursor-default'}`}
                                                        >
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); removeMember(target.id, m.id); }}
-                                                                className="absolute right-2 top-2 p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                                                            >
-                                                                <X size={14} />
-                                                            </button>
+                                                            {isLeader && (
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); removeMember(target.id, m.id); }}
+                                                                    className="absolute right-2 top-2 p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                                                >
+                                                                    <X size={14} />
+                                                                </button>
+                                                            )}
 
                                                             <div className="font-bold text-gray-200 text-sm truncate pr-8 mb-2">
                                                                 <span className="text-amber-500 text-xs font-mono mr-1">[{m.alliance}]</span>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Cpu, Filter, X, Zap, Layers } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Cpu, Filter, X, Zap, Layers, RefreshCw, CloudLightning, CloudUpload } from "lucide-react";
 
-export default function AllianceMergeTab({ rosterData }) {
+export default function AllianceMergeTab({ rosterData, targetKd, isLeader }) {
     // Master State
     const [targets, setTargets] = useState([]); // { id, name, capacity, members: [] }
     const [sourceAlliances, setSourceAlliances] = useState([]); // Currently pooled tags
@@ -13,28 +13,64 @@ export default function AllianceMergeTab({ rosterData }) {
     const [algSortMethod, setAlgSortMethod] = useState("power"); // 'power' or 'kp'
     const [algMinPower, setAlgMinPower] = useState(0);
 
-    // Initialize from LocalStorage
-    useEffect(() => {
-        try {
-            const savedTargets = localStorage.getItem('unity_am_targets');
-            const savedSources = localStorage.getItem('unity_am_sources');
-            
-            if (savedTargets) setTargets(JSON.parse(savedTargets));
-            if (savedSources) setSourceAlliances(JSON.parse(savedSources));
-        } catch (e) {
-            console.error("Failed to parse AM cache");
-        }
-    }, []);
+    // Cloud Sync State
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState(null);
+    const syncTimeoutRef = useRef(null);
+    const isInitialLoadRef = useRef(true);
 
+    const fetchCloudState = async () => {
+        if (!targetKd) return;
+        setIsSyncing(true);
+        try {
+            const res = await fetch(`/api/aws/admin/merge?kd=${targetKd}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.targets) setTargets(data.targets);
+                if (data.sourceAlliances) setSourceAlliances(data.sourceAlliances);
+                setLastSyncTime(new Date().toLocaleTimeString());
+            }
+        } catch (e) {
+            console.error("Failed to load Cloud Merge State", e);
+        } finally {
+            setIsSyncing(false);
+            setTimeout(() => { isInitialLoadRef.current = false; }, 1000);
+        }
+    };
+
+    // Load from Cloud
+    useEffect(() => {
+        fetchCloudState();
+    }, [targetKd]);
+
+    // Push to Cloud
     const saveState = (newTargets, newSources) => {
-        if (newTargets !== undefined) {
-            setTargets(newTargets);
-            localStorage.setItem('unity_am_targets', JSON.stringify(newTargets));
-        }
-        if (newSources !== undefined) {
-            setSourceAlliances(newSources);
-            localStorage.setItem('unity_am_sources', JSON.stringify(newSources));
-        }
+        const payloadTargets = newTargets !== undefined ? newTargets : targets;
+        const payloadSources = newSources !== undefined ? newSources : sourceAlliances;
+        
+        if (newTargets !== undefined) setTargets(newTargets);
+        if (newSources !== undefined) setSourceAlliances(newSources);
+        
+        if (!isLeader) return;
+        if (isInitialLoadRef.current) return;
+
+        setIsSyncing(true);
+        if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+
+        syncTimeoutRef.current = setTimeout(async () => {
+             try {
+                 const res = await fetch(`/api/aws/admin/merge?kd=${targetKd}`, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ targets: payloadTargets, sourceAlliances: payloadSources })
+                 });
+                 if (res.ok) setLastSyncTime(new Date().toLocaleTimeString());
+             } catch (e) {
+                 console.error("Failed to sync Merge State", e);
+             } finally {
+                 setIsSyncing(false);
+             }
+        }, 1500);
     };
 
     // Calculate Distinct Alliances existing in the DB to populate the available Pool Dropdown
@@ -44,11 +80,13 @@ export default function AllianceMergeTab({ rosterData }) {
     }, [rosterData]);
 
     const handleAddSource = (tag) => {
+        if (!isLeader) return;
         if (!tag || sourceAlliances.includes(tag)) return;
         saveState(undefined, [...sourceAlliances, tag]);
     };
 
     const handleRemoveSource = (tag) => {
+        if (!isLeader) return;
         saveState(undefined, sourceAlliances.filter(t => t !== tag));
     };
 
@@ -83,32 +121,38 @@ export default function AllianceMergeTab({ rosterData }) {
     // --- Actions ---
 
     const createTarget = () => {
+        if (!isLeader) return;
         const newId = `tgt_${Date.now()}`;
         const newTargets = [...targets, { id: newId, name: `New Alliance ${targets.length + 1}`, capacity: 155, members: [] }];
         saveState(newTargets, undefined);
     };
 
     const deleteTarget = (targetId) => {
+        if (!isLeader) return;
         if (!confirm('Are you sure you want to delete this target? Associated members will return to the pool.')) return;
         saveState(targets.filter(t => t.id !== targetId), undefined);
     };
 
     const clearAll = () => {
+        if (!isLeader) return;
         if (!confirm('Clear all structural targets and reboot the Merge Pipeline?')) return;
         saveState([], []);
     };
 
     const renameTarget = (targetId, newName) => {
+        if (!isLeader) return;
         saveState(targets.map(t => t.id === targetId ? { ...t, name: newName } : t), undefined);
     };
 
     const updateCapacity = (targetId, newCapStr) => {
+        if (!isLeader) return;
         const cap = parseInt(newCapStr, 10);
         if (isNaN(cap) || cap < 1) return;
         saveState(targets.map(t => t.id === targetId ? { ...t, capacity: cap } : t), undefined);
     };
 
     const removeMember = (targetId, memberId) => {
+        if (!isLeader) return;
         saveState(targets.map(tgt => {
             if (tgt.id === targetId) return { ...tgt, members: tgt.members.filter(m => m.id !== memberId) };
             return tgt;
@@ -149,6 +193,7 @@ export default function AllianceMergeTab({ rosterData }) {
 
     // --- Algorithmic Auto Fill ---
     const executeAutoFill = () => {
+        if (!isLeader) return;
         if (targets.length === 0) {
             alert('CRITICAL: Insufficient Shells. You must spawn at least one Target Alliance before engaging Auto-Fill sequences.');
             return;
@@ -203,6 +248,10 @@ export default function AllianceMergeTab({ rosterData }) {
     const [draggedItem, setDraggedItem] = useState(null); // { id: governorId, sourceId: null | targetId }
 
     const handleDragStart = (e, governor, sourceTargetId = null) => {
+        if (!isLeader) {
+            e.preventDefault();
+            return;
+        }
         setDraggedItem({ governor, sourceTargetId });
         e.dataTransfer.effectAllowed = "move";
         e.target.style.opacity = '0.5';
@@ -313,8 +362,9 @@ export default function AllianceMergeTab({ rosterData }) {
                     <div className="mb-4">
                         <select 
                             value=""
+                            disabled={!isLeader}
                             onChange={(e) => handleAddSource(e.target.value)}
-                            className="w-full bg-[#0a0c0f] border border-indigo-500/30 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer mb-2 font-bold"
+                            className="w-full bg-[#0a0c0f] border border-indigo-500/30 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer mb-2 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <option value="" disabled>+ Connect Source Alliance...</option>
                             {uniqueAlliances.filter(tag => !sourceAlliances.includes(tag)).map(a => <option key={a} value={a}>[{a}]</option>)}
@@ -324,11 +374,13 @@ export default function AllianceMergeTab({ rosterData }) {
                         <div className="flex flex-wrap gap-2">
                              {sourceAlliances.length === 0 && <span className="text-[10px] text-gray-600 uppercase tracking-widest block w-full text-center py-2">No Sources Connected</span>}
                              {sourceAlliances.map(tag => (
-                                 <div key={`src-${tag}`} className="bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded text-xs font-bold text-indigo-300 flex items-center gap-1 group">
+                                 <div key={`src-${tag}`} className={`bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded text-xs font-bold text-indigo-300 flex items-center gap-1 ${isLeader ? 'group' : ''}`}>
                                      [{tag}]
-                                     <button onClick={() => handleRemoveSource(tag)} className="text-indigo-500/50 hover:text-red-400 transition-colors">
-                                         <X size={12} />
-                                     </button>
+                                     {isLeader && (
+                                         <button onClick={() => handleRemoveSource(tag)} className="text-indigo-500/50 hover:text-red-400 transition-colors">
+                                             <X size={12} />
+                                         </button>
+                                     )}
                                  </div>
                              ))}
                         </div>
@@ -356,10 +408,10 @@ export default function AllianceMergeTab({ rosterData }) {
                         availablePool.slice(0, 150).map(g => ( 
                             <div 
                                 key={`pool-${g.id}`}
-                                draggable="true"
+                                draggable={isLeader ? "true" : "false"}
                                 onDragStart={(e) => handleDragStart(e, g, null)}
                                 onDragEnd={handleDragEnd}
-                                className="bg-[#13161c] border border-[#1e222b] rounded-lg p-3 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing transition-colors group flex flex-col relative overflow-hidden"
+                                className={`bg-[#13161c] border border-[#1e222b] rounded-lg p-3 transition-colors group flex flex-col relative overflow-hidden ${isLeader ? 'hover:border-indigo-500/50 cursor-grab active:cursor-grabbing' : 'opacity-80 grayscale-[30%] cursor-default'}`}
                             >
                                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500/20 group-hover:bg-indigo-500/80 transition-colors"></div>
                                 
@@ -418,8 +470,8 @@ export default function AllianceMergeTab({ rosterData }) {
                     <div className="flex items-center gap-2 shrink-0 ml-auto">
                         <button 
                              onClick={executeAutoFill}
-                             disabled={targets.length === 0 || sourceAlliances.length === 0}
-                             className={`bg-indigo-600 hover:bg-indigo-500 text-white transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.4)] ${targets.length === 0 || sourceAlliances.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                             disabled={!isLeader || targets.length === 0 || sourceAlliances.length === 0}
+                             className={`bg-indigo-600 hover:bg-indigo-500 text-white transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.4)] ${(!isLeader || targets.length === 0 || sourceAlliances.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <Cpu size={16} /> Execute Auto-Merge
                         </button>
@@ -427,18 +479,42 @@ export default function AllianceMergeTab({ rosterData }) {
                 </div>
 
                 {/* TARGET SHELL CANVAS */}
-                <div className="flex items-center gap-3 mb-4 shrink-0">
-                    <button 
-                        onClick={createTarget}
-                        className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 hover:border-indigo-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                <div className="flex items-center gap-3 mb-4 shrink-0 bg-[#0a0c0f] border border-[#2d323e] rounded-xl p-3 shadow-lg z-20">
+                     <div className="flex items-center gap-3 mr-auto">
+                          {isSyncing ? (
+                               <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-widest text-xs animate-pulse">
+                                   <CloudUpload size={16} /> Syncing...
+                               </div>
+                          ) : (
+                               <div className="flex items-center gap-2 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                                   <CloudLightning size={16} className="text-indigo-400" />
+                                   Cloud State {lastSyncTime && <span className="text-gray-600 font-mono bg-[#13161c] px-2 py-0.5 rounded ml-2">{lastSyncTime}</span>}
+                               </div>
+                          )}
+                     </div>
+
+                    {isLeader && (
+                        <>
+                            <button 
+                                onClick={createTarget}
+                                className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 hover:border-indigo-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                            >
+                                <Plus size={16} /> Spawn Target Shell
+                            </button>
+                            <button 
+                                 onClick={clearAll}
+                                 className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ml-auto"
+                            >
+                                 Annihilate Grid
+                            </button>
+                        </>
+                    )}
+                    <button
+                        onClick={fetchCloudState}
+                        disabled={isSyncing}
+                        className="bg-[#13161c] border border-[#2d323e] hover:border-indigo-500 hover:text-indigo-400 text-gray-400 transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 ml-2"
                     >
-                        <Plus size={16} /> Spawn Target Shell
-                    </button>
-                    <button 
-                         onClick={clearAll}
-                         className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ml-auto"
-                    >
-                         Annihilate Grid
+                        <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> Resync
                     </button>
                 </div>
 
@@ -471,8 +547,9 @@ export default function AllianceMergeTab({ rosterData }) {
                                                   <input 
                                                       type="text" 
                                                       value={target.name}
+                                                      disabled={!isLeader}
                                                       onChange={(e) => renameTarget(target.id, e.target.value)}
-                                                      className="bg-transparent border-b border-transparent focus:border-indigo-500/50 text-white font-black uppercase tracking-widest text-lg outline-none w-1/2 transition-colors truncate"
+                                                      className="bg-transparent border-b border-transparent focus:border-indigo-500/50 text-white font-black uppercase tracking-widest text-lg outline-none w-1/2 transition-colors truncate disabled:opacity-80 disabled:cursor-not-allowed"
                                                   />
                                                   
                                                   <div className="flex items-center gap-1 bg-[#0a0c0f] border border-[#1e222b] px-2 py-1 rounded">
@@ -480,14 +557,15 @@ export default function AllianceMergeTab({ rosterData }) {
                                                       <input 
                                                           type="number"
                                                           value={target.capacity}
+                                                          disabled={!isLeader}
                                                           onChange={(e) => updateCapacity(target.id, e.target.value)}
-                                                          className="w-10 bg-transparent text-white font-mono font-bold text-right outline-none text-xs"
+                                                          className="w-10 bg-transparent text-white font-mono font-bold text-right outline-none text-xs disabled:opacity-80 disabled:cursor-not-allowed"
                                                       />
                                                   </div>
 
                                                   <div className="flex items-center gap-1 ml-2">
                                                        <button onClick={() => sendToMail(target)} title="Dispatch Merge Roster" className="p-1.5 rounded-md text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"><Mail size={16} /></button>
-                                                       <button onClick={() => deleteTarget(target.id)} title="Disband Shell" className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>
+                                                       {isLeader && <button onClick={() => deleteTarget(target.id)} title="Disband Shell" className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={16} /></button>}
                                                   </div>
                                               </div>
 
@@ -521,17 +599,19 @@ export default function AllianceMergeTab({ rosterData }) {
                                                    target.members.map(m => (
                                                        <div 
                                                            key={`tgt-${target.id}-m-${m.id}`}
-                                                           draggable="true"
+                                                           draggable={isLeader ? "true" : "false"}
                                                            onDragStart={(e) => handleDragStart(e, m, target.id)}
                                                            onDragEnd={handleDragEnd}
-                                                           className={`bg-[#1e222b]/50 border ${isFull ? 'border-red-500/20 hover:border-red-500/50' : 'border-[#2d323e] hover:border-indigo-500/50'} rounded-lg p-2 transition-colors cursor-grab active:cursor-grabbing relative group flex flex-col`}
+                                                           className={`bg-[#1e222b]/50 border ${isFull ? 'border-red-500/20 hover:border-red-500/50' : 'border-[#2d323e] hover:border-indigo-500/50'} rounded-lg p-2 transition-colors relative group flex flex-col ${isLeader ? 'cursor-grab active:cursor-grabbing' : 'opacity-90 cursor-default'}`}
                                                        >
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); removeMember(target.id, m.id); }}
-                                                                className="absolute right-2 top-2 p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                                                            >
-                                                                <X size={12} />
-                                                            </button>
+                                                            {isLeader && (
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); removeMember(target.id, m.id); }}
+                                                                    className="absolute right-2 top-2 p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            )}
 
                                                             <div className="font-bold text-gray-300 text-sm truncate pr-6 mb-1">
                                                                 <span className="text-gray-500 text-xs font-mono mr-1">[{m.alliance}]</span>
