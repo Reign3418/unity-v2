@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Un.ty Application Kernel",
-  description: "Next.js Enclave Architecture",
+  title: "Un.ty | Architecture",
+  description: "Advanced Data Visualization and Calculation Engine built for Kingdom Leadership.",
+  icons: {
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚡</text></svg>'
+  }
 };
 
 export default function RootLayout({ children }) {
