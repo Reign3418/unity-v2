@@ -230,6 +230,7 @@ export default function GlobalAnalysis() {
 
   // --- AGGREGATION ENGINE ---
   const formatMagnitude = (value) => {
+      if (value == null || isNaN(value)) return "0";
       if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B';
       if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M';
       if (value >= 1000) return (value / 1000).toFixed(2) + 'K';
@@ -417,23 +418,7 @@ export default function GlobalAnalysis() {
                </div>
             </div>
             
-            {/* Tab Toggles */}
-            <div className="absolute bottom-0 left-8 flex gap-6 z-10 translate-y-px">
-                <button 
-                  onClick={() => setActiveTab('CAMP_BUILDER')}
-                  className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'CAMP_BUILDER' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
-                >
-                  Camp Builder
-                </button>
-                <button 
-                  onClick={() => setActiveTab('DELTA')}
-                  className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'DELTA' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
-                >
-                  Delta Analytics
-                </button>
-            </div>
-            
-            <div className="flex items-center gap-3 self-start md:self-auto z-10">
+            <div className="flex items-center gap-3 self-start md:self-auto z-10 pb-8 md:pb-0">
                 <select 
                     value={topNFilter}
                     onChange={(e) => setTopNFilter(e.target.value)}
@@ -456,6 +441,22 @@ export default function GlobalAnalysis() {
                     <RefreshCw size={20} className={isLoading ? "animate-spin text-indigo-500" : ""} />
                 </button>
             </div>
+         </div>
+
+         {/* Tab Toggles */}
+         <div className="absolute bottom-0 left-8 flex gap-6 z-10 translate-y-px">
+             <button 
+               onClick={() => setActiveTab('CAMP_BUILDER')}
+               className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'CAMP_BUILDER' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+             >
+               Camp Builder
+             </button>
+             <button 
+               onClick={() => setActiveTab('DELTA')}
+               className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'DELTA' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+             >
+               Delta Analytics
+             </button>
          </div>
       </div>
 
