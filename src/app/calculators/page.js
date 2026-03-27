@@ -28,6 +28,10 @@ export default function CalculatorsPage() {
   const [apStatus, setApStatus] = useState("");
   const apInputRef = useRef(null);
 
+  const [isResourceScanning, setIsResourceScanning] = useState(false);
+  const [resourceStatus, setResourceStatus] = useState("");
+  const resourceInputRef = useRef(null);
+
   // === Equipment Forge States ===
   const [forgeTargetQuality, setForgeTargetQuality] = useState("legendary");
   const [forgeData, setForgeData] = useState({
@@ -460,6 +464,69 @@ export default function CalculatorsPage() {
       }
   };
 
+  const processResourceFile = async (file) => {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+          setResourceStatus("Error: Invalid file format (PNG/JPEG).");
+          return;
+      }
+      
+      try {
+          setIsResourceScanning(true);
+          setResourceStatus("Scanning screenshot with Gemini Vision...");
+
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = async () => {
+              const base64 = reader.result.split(',')[1];
+              
+              let customGeminiKey = "";
+              try {
+                  const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+                  customGeminiKey = prefs.geminiKey || "";
+              } catch (e) {}
+
+              const res = await fetch('/api/aws/admin/vision/resources', {
+                  method: 'POST',
+                  headers: { 
+                      'Content-Type': 'application/json',
+                      ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                  },
+                  body: JSON.stringify({ base64, mimeType: file.type })
+              });
+
+              if (!res.ok) {
+                  const errJson = await res.json();
+                  throw new Error(errJson.error || "Vision OCR Server Error");
+              }
+
+              const parsed = await res.json();
+              
+              setResources(prev => ({
+                  food: { ...prev.food, ...(parsed.food || {}) },
+                  wood: { ...prev.wood, ...(parsed.wood || {}) },
+                  stone: { ...prev.stone, ...(parsed.stone || {}) },
+                  gold: { ...prev.gold, ...(parsed.gold || {}) }
+              }));
+              
+              setResourceStatus("Synthesis Payload Applied Successfully!");
+              setTimeout(() => setResourceStatus(""), 5000);
+          };
+      } catch (e) {
+          console.error("OCR Exception", e);
+          setResourceStatus("OCR Failure: " + (e.message || "Could not read matrix."));
+      } finally {
+          setIsResourceScanning(false);
+      }
+  };
+
+  const handleResourceDrop = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          processResourceFile(e.dataTransfer.files[0]);
+      }
+  };
+
   const handleResourceChange = (type, tier, val) => {
     setResources(prev => ({
       ...prev,
@@ -756,6 +823,36 @@ export default function CalculatorsPage() {
 
       {activeTab === "resources" && (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden animate-fade-in">
+          
+          <div className="flex border-b border-[#1e222b] pb-4 mb-6 items-center justify-between">
+            <h2 className="text-white font-bold flex items-center gap-2 uppercase tracking-widest">
+              <Wheat className="text-amber-500" size={20} /> Advanced Resource Extractor
+            </h2>
+          </div>
+
+          <div 
+              onDragOver={(e) => e.preventDefault()} 
+              onDrop={handleResourceDrop}
+              onClick={() => resourceInputRef.current?.click()}
+              className="border-2 border-dashed border-[#2d323e] hover:border-amber-500/50 bg-[#0a0c0f] rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer mb-8 shadow-[inset_0_0_50px_rgba(245,158,11,0.02)]"
+          >
+              {isResourceScanning ? (
+                  <>
+                     <RefreshCw size={32} className="text-amber-500 animate-spin mb-3" />
+                     <h3 className="text-amber-400 font-black tracking-widest uppercase text-xs mb-1">Scanning 28-Tile Inventory...</h3>
+                     <p className="text-amber-500/50 text-[10px] uppercase font-bold tracking-wider">{resourceStatus}</p>
+                  </>
+              ) : (
+                  <>
+                     <ImageIcon size={32} className="text-gray-600 mb-3" />
+                     <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">Drag Resources Screenshot</h3>
+                     <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-2">or click to browse to autofill all tokens</p>
+                     {resourceStatus && <p className="text-amber-400 text-[10px] uppercase font-bold tracking-wider">{resourceStatus}</p>}
+                  </>
+              )}
+              <input type="file" ref={resourceInputRef} accept="image/*" onChange={(e) => { if (e.target.files?.length) processResourceFile(e.target.files[0]); }} hidden />
+          </div>
+
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 space-y-8">
               {['food', 'wood', 'stone', 'gold'].map(type => (
