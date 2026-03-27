@@ -23,7 +23,10 @@ export default function CalculatorsPage() {
     gold: { "500": 0, "5K": 0, "15K": 0, "50K": 0, "200K": 0, "600K": 0, "2M": 0 }
   });
 
-  const [ap, setAp] = useState({ "50": 0, "100": 0, "500": 0, "1000": 0 });
+  const [apData, setApData] = useState({ "50": 0, "100": 0, "500": 0, "1000": 0 });
+  const [isApScanning, setIsApScanning] = useState(false);
+  const [apStatus, setApStatus] = useState("");
+  const apInputRef = useRef(null);
 
   // === Equipment Forge States ===
   const [forgeTargetQuality, setForgeTargetQuality] = useState("legendary");
@@ -391,7 +394,70 @@ export default function CalculatorsPage() {
   const speedupTotals = calculateTotalSpeedups();
 
   const handleApChange = (tier, val) => {
-    setAp(prev => ({ ...prev, [tier]: parseInt(val) || 0 }));
+    setApData(prev => ({ ...prev, [tier]: parseInt(val) || 0 }));
+  };
+
+  const processApFile = async (file) => {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+          setApStatus("Error: Invalid file format (PNG/JPEG).");
+          return;
+      }
+      
+      try {
+          setIsApScanning(true);
+          setApStatus("Scanning screenshot with Gemini Vision...");
+
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = async () => {
+              const base64 = reader.result.split(',')[1];
+              
+              let customGeminiKey = "";
+              try {
+                  const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+                  customGeminiKey = prefs.geminiKey || "";
+              } catch (e) {}
+
+              const res = await fetch('/api/aws/admin/vision/ap', {
+                  method: 'POST',
+                  headers: { 
+                      'Content-Type': 'application/json',
+                      ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                  },
+                  body: JSON.stringify({ base64, mimeType: file.type })
+              });
+
+              if (!res.ok) {
+                  const errJson = await res.json();
+                  throw new Error(errJson.error || "Vision OCR Server Error");
+              }
+
+              const parsed = await res.json();
+              
+              setApData(prev => ({
+                  "50": parsed.ap50 ?? prev["50"],
+                  "100": parsed.ap100 ?? prev["100"],
+                  "500": parsed.ap500 ?? prev["500"],
+                  "1000": parsed.ap1000 ?? prev["1000"],
+              }));
+              
+              setApStatus("Synthesis Payload Applied Successfully!");
+              setTimeout(() => setApStatus(""), 5000);
+          };
+      } catch (e) {
+          console.error("OCR Exception", e);
+          setApStatus("OCR Failure: " + (e.message || "Could not read matrix."));
+      } finally {
+          setIsApScanning(false);
+      }
+  };
+
+  const handleApDrop = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          processApFile(e.dataTransfer.files[0]);
+      }
   };
 
   const handleResourceChange = (type, tier, val) => {
@@ -734,31 +800,72 @@ export default function CalculatorsPage() {
 
       {activeTab === "ap" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-          <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden">
-            <h2 className="text-white font-bold mb-6 flex items-center gap-2 border-b border-[#1e222b] pb-4">
-              <Zap className="text-cyan-500" size={20} /> Action Point Reserve Math
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {['50', '100', '500', '1000'].map(tier => (
-                <div key={tier} className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg flex flex-col items-center gap-2 group hover:border-cyan-500/40 transition-colors">
-                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{tier} AP Vials</div>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={ap[tier] || ""}
-                    onChange={(e) => handleApChange(tier, e.target.value)}
-                    className="w-full text-center bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-2 text-xl focus:border-cyan-500 outline-none"
-                  />
+          <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl flex flex-col shadow-xl relative overflow-hidden h-full">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
+                <div className="flex items-center gap-3">
+                  <Zap className="text-cyan-500" size={20} />
+                  <h2 className="text-white font-bold mb-0 uppercase tracking-widest text-sm">Action Points OCR Scanner</h2>
                 </div>
-              ))}
+            </div>
+            <div className="p-6 flex flex-col">
+                <p className="text-gray-500 text-xs mb-6 leading-relaxed font-bold uppercase tracking-widest">
+                    Drop a screenshot of your <span className="text-cyan-400 border border-cyan-400/30 bg-cyan-500/10 px-1 rounded">Action Points</span> inventory to automatically sum your reserves using AI.
+                </p>
+
+                <div 
+                    onDragOver={(e) => e.preventDefault()} 
+                    onDrop={handleApDrop}
+                    onClick={() => apInputRef.current?.click()}
+                    className="border-2 border-dashed border-[#2d323e] hover:border-cyan-500/50 bg-[#0f1115] rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer mb-8"
+                >
+                    {isApScanning ? (
+                        <>
+                           <RefreshCw size={32} className="text-cyan-500 animate-spin mb-3" />
+                           <h3 className="text-cyan-400 font-black tracking-widest uppercase text-xs mb-1">Scanning Image...</h3>
+                           <p className="text-cyan-500/50 text-[10px] uppercase font-bold tracking-wider">{apStatus}</p>
+                        </>
+                    ) : (
+                        <>
+                           <ImageIcon size={32} className="text-gray-600 mb-3" />
+                           <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">Drag Action Points Screenshot</h3>
+                           <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-2">or click to browse</p>
+                           {apStatus && <p className="text-cyan-400 text-[10px] uppercase font-bold tracking-wider">{apStatus}</p>}
+                        </>
+                    )}
+                    <input type="file" ref={apInputRef} accept="image/*" onChange={(e) => { if (e.target.files?.length) processApFile(e.target.files[0]); }} hidden />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pb-6">
+                  {['50', '100', '500', '1000'].map(tier => (
+                    <div key={tier} className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg flex flex-col items-center gap-2 group hover:border-cyan-500/40 transition-colors">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{tier} AP Vials</div>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={apData[tier] || ""}
+                        onChange={(e) => handleApChange(tier, e.target.value)}
+                        className="w-full text-center bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-2 text-xl focus:border-cyan-500 outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-auto">
+                    <button 
+                      onClick={() => setApData({ "50": 0, "100": 0, "500": 0, "1000": 0 })}
+                      className="w-full py-3 bg-[#1e222b] hover:bg-gray-800 text-rose-500 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Trash2 size={14} /> Clear Form Math
+                    </button>
+                </div>
             </div>
           </div>
-          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-cyan-500 rounded-xl p-6 shadow-xl sticky top-6">
+          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-cyan-500 rounded-xl p-6 shadow-xl sticky top-6 self-start">
             <h2 className="text-cyan-400 font-black text-xl mb-6 uppercase tracking-widest text-center">Total Reserves</h2>
             <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-6 text-center shadow-[inset_0_0_30px_rgba(6,182,212,0.05)] border-l-4 border-l-cyan-500 mb-6">
               <div className="text-4xl font-black text-white font-mono">
-                {((ap['50']||0)*50 + (ap['100']||0)*100 + (ap['500']||0)*500 + (ap['1000']||0)*1000).toLocaleString()} <span className="text-cyan-500 text-2xl">AP</span>
+                {((apData['50']||0)*50 + (apData['100']||0)*100 + (apData['500']||0)*500 + (apData['1000']||0)*1000).toLocaleString()} <span className="text-cyan-500 text-2xl">AP</span>
               </div>
             </div>
           </div>
