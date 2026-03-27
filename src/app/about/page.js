@@ -25,35 +25,40 @@ export default function AboutPage() {
       {/* Content Block */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-8 relative overflow-hidden shadow-xl">
         <div className="prose prose-invert max-w-none text-gray-300">
-          <p className="text-lg leading-relaxed mb-8">
-            Welcome to the <strong className="text-white">Unity Dashboard</strong>. We are a specialized analytics platform built specifically for the Rise of Kingdoms community. Our mission is to provide kingdoms, alliances, and individual governors with the data pipelines and actionable insights they need to optimize their performance in Kingdom vs Kingdom (KvK) combat.
+          <p className="text-xl font-medium text-white italic border-l-4 border-cyan-500 pl-6 mb-10">
+            "Gamer at heart, Nerd the rest of the time!"
           </p>
 
-          <h2 className="text-2xl font-bold text-white mb-4 mt-8 uppercase tracking-wider border-b border-[#1e222b] pb-2">Our Vision</h2>
-          <p className="leading-relaxed mb-6">
-            In the highly competitive environment of Rise of Kingdoms, data is power. We realized that tracking kill points, dead troops, resources, and overall contributions across massive rosters of players during a grueling 50-day KvK was a logistical nightmare for leadership.
+          <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-wider border-b border-[#1e222b] pb-2">The Journey</h2>
+          <p className="leading-relaxed mb-6 text-lg">
+            This endeavor was years in the making. Learning the intricate DKP systems and mastering all the tools involved in scanning and compiling data has been an absolute adventure. 
           </p>
           <p className="leading-relaxed mb-6">
-            Unity was built to replace complicated spreadsheets and manual tracking with an automated, sleek, and high-performance pipeline. We want to give back time to kingdom leadership so they can focus on strategy and diplomacy instead of math.
+            After spending COUNTLESS hours grinding through reports, I noticed a lot of kingdoms facing the exact same dilemma: <strong className="text-rose-400">Pay up, or learn how to spreadsheet.</strong>
+          </p>
+          <p className="leading-relaxed mb-6">
+            I built this tool to take my master spreadsheet and do all the heavy math for you. <strong className="text-cyan-400">You provide the data, it handles the rest.</strong> I truly hope it helps leadership teams reclaim their time.
           </p>
 
-          <h2 className="text-2xl font-bold text-white mb-4 mt-10 uppercase tracking-wider border-b border-[#1e222b] pb-2">What We Do</h2>
+          <h2 className="text-2xl font-bold text-white mb-4 mt-10 uppercase tracking-wider border-b border-[#1e222b] pb-2">A Twist of AI</h2>
           <p className="leading-relaxed mb-6">
-            We process raw kingdom scan data and transform it into dynamic leaderboards, race charts, DKP analysis, and automated mail generation systems. We believe in complete transparency, allowing every governor to see exactly where they stand in their kingdom's ranks.
+            I've recently started learning how to integrate next-generation artificial intelligence directly into the calculation engines. I'm going to continue learning and developing these automated processes so we can all get back to doing what we actually enjoy: <strong className="text-white">playing the game.</strong>
           </p>
 
-          <h2 className="text-2xl font-bold text-cyan-400 mb-4 mt-10 uppercase tracking-wider border-b border-[#1e222b] pb-2">Data Scraping vs. BYOD SaaS</h2>
-          <p className="leading-relaxed mb-6">
-            The vast majority of third-party companion tools in the strategy gaming landscape rely on automated "data scraping" bots. These bots log into accounts, extract coordinate data, and index intellectual property on centralized servers, often without player consent or awareness.
+          <h2 className="text-2xl font-bold text-cyan-400 mb-4 mt-10 uppercase tracking-wider border-b border-[#1e222b] pb-2">To the Community</h2>
+          <p className="leading-relaxed mb-6 text-lg">
+            I've met a lot of incredible people along this journey. I definitely can't name them all, but I want to give a massive shoutout to the friends who helped make this possible:
           </p>
-          <p className="text-rose-400 font-black tracking-widest uppercase mb-6 text-xl">
-            Unity fundamentally rejects this approach.
-          </p>
-          <p className="leading-relaxed mb-6">
-            We operate strictly as a <strong className="text-cyan-400">Bring Your Own Data (BYOD) Software-as-a-Service (SaaS)</strong> platform. We do not extract, scrape, sell, or aggregate any game data. Instead, kingdom leadership teams independently export their own raw in-game spreadsheets and <i className="text-white">choose</i> to securely upload them into our calculation engine.
-          </p>
-          <p className="leading-relaxed">
-            All sensitive algorithms, complex mathematics, and player timelines are strictly isolated. For advanced alliances, your data is securely stored within your own dedicated, encrypted AWS Cloud Workspace—ensuring Zero Data Liability and guaranteeing that your kingdom's competitive intelligence never falls into the wrong hands.
+          
+          <div className="flex flex-wrap gap-4 mb-8">
+            <span className="px-5 py-2 rounded-full bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20 tracking-widest uppercase shadow-[0_4px_14px_rgba(6,182,212,0.15)]">Freya</span>
+            <span className="px-5 py-2 rounded-full bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20 tracking-widest uppercase shadow-[0_4px_14px_rgba(6,182,212,0.15)]">Em</span>
+            <span className="px-5 py-2 rounded-full bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20 tracking-widest uppercase shadow-[0_4px_14px_rgba(6,182,212,0.15)]">Coca</span>
+            <span className="px-5 py-2 rounded-full bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20 tracking-widest uppercase shadow-[0_4px_14px_rgba(6,182,212,0.15)]">DarkC</span>
+          </div>
+
+          <p className="leading-relaxed text-xl font-bold text-white text-center mt-12 bg-[#0a0c10] border border-[#1e222b] rounded-xl p-8 shadow-inner">
+            Let's play some games and enjoy each other's friendship, good times, and epic laughter! 🎮
           </p>
         </div>
       </div>
