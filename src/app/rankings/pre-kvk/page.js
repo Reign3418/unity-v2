@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { Trophy, RefreshCw, BarChart2, ShieldAlert, ChevronDown, ChevronUp } from "lucide-react";
+import { Trophy, RefreshCw, BarChart2, ShieldAlert, ChevronDown, ChevronUp, Plus, X, Search } from "lucide-react";
 
 export default function PreKvkRankings() {
   const { data: session } = useSession();
@@ -11,11 +11,16 @@ export default function PreKvkRankings() {
   
   const [topNFilter, setTopNFilter] = useState('300'); // Default to Top 300
   const [sortConfig, setSortConfig] = useState({ key: 'power', direction: 'desc' });
+  
+  // Custom Kingdom Scoping
+  const [targetKds, setTargetKds] = useState([]);
+  const [domainInput, setDomainInput] = useState('');
 
   const fetchGlobalStats = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/aws/global`);
+      const url = targetKds.length > 0 ? `/api/aws/global?kds=${targetKds.join(',')}` : `/api/aws/global`;
+      const res = await fetch(url);
       const data = await res.json();
       
       if (res.ok && data.globalStats) {
@@ -30,7 +35,26 @@ export default function PreKvkRankings() {
 
   useEffect(() => {
     fetchGlobalStats();
-  }, []);
+  }, [targetKds]); // Re-fetch automatically when target scope changes
+
+  const handleAddDomain = (e) => {
+      e.preventDefault();
+      if (!domainInput.trim()) return;
+      
+      let kdName = domainInput.trim().toUpperCase();
+      if (!kdName.startsWith("KD ")) {
+          kdName = `KD ${kdName}`;
+      }
+      
+      if (!targetKds.includes(kdName.replace('KD ', ''))) {
+          setTargetKds([...targetKds, kdName.replace('KD ', '')]);
+      }
+      setDomainInput('');
+  };
+
+  const removeDomain = (kd) => {
+      setTargetKds(targetKds.filter(k => k !== kd));
+  };
 
   const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
 
@@ -122,7 +146,7 @@ export default function PreKvkRankings() {
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-2 shadow-inner">
                 <span className="text-gray-500 text-xs font-bold tracking-widest uppercase">Governor Count:</span>
                 <select 
                    value={topNFilter}
@@ -141,11 +165,48 @@ export default function PreKvkRankings() {
             <button 
                 onClick={fetchGlobalStats}
                 disabled={isLoading}
+                title="Refresh Analytics"
                 className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg disabled:opacity-50 flex items-center gap-2"
             >
                 <RefreshCw size={20} className={isLoading ? "animate-spin text-rose-500" : ""} />
             </button>
           </div>
+        </div>
+
+        {/* Dynamic Filtering Row */}
+        <div className="relative z-10 w-full mt-6 pt-6 border-t border-[#1e222b] flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest mr-2 flex items-center gap-2">
+                    <Search size={14} className="text-rose-500" />
+                    Target Scope: 
+                </span>
+                
+                {targetKds.length === 0 ? (
+                    <span className="text-rose-400 font-mono text-xs font-bold bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded">Global Scope (All Servers)</span>
+                ) : (
+                    targetKds.map(kd => (
+                        <div key={kd} className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 px-3 py-1 rounded">
+                            <span className="text-xs font-bold font-mono text-rose-300">KD {kd}</span>
+                            <button onClick={() => removeDomain(kd)} className="text-rose-400/50 hover:text-rose-400 transition-colors">
+                                <X size={12} />
+                            </button>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <form onSubmit={handleAddDomain} className="flex items-center gap-2 w-full md:w-auto">
+                <input 
+                    type="text" 
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    placeholder="Enter KD # (e.g. 3065)"
+                    className="w-full md:w-48 bg-[#13161c] border border-[#1e222b] text-white text-xs font-bold font-mono p-2.5 rounded-lg outline-none focus:border-rose-500 placeholder-[#2d323e]"
+                />
+                <button type="submit" disabled={!domainInput.trim()} className="p-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-600/50 disabled:text-rose-300/50 text-white rounded-lg transition-colors border border-rose-500/50 shadow-md flex items-center justify-center">
+                    <Plus size={16} />
+                </button>
+            </form>
         </div>
       </div>
 
