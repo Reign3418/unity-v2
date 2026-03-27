@@ -404,8 +404,8 @@ export default function AdminConsole() {
                  <input type="text" placeholder="POC Nickname" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.poc} onChange={e => setPassForm({...passForm, poc: e.target.value})} />
                  <input type="number" placeholder="Target Kingdom (e.g. 3418)" className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.kingdomId} onChange={e => setPassForm({...passForm, kingdomId: e.target.value})} />
                  <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
-                    <option value="Member">R4/Member</option>
-                    <option value="Leader">R5/Leader</option>
+                    <option value="Member">R3 or Below (Member)</option>
+                    <option value="Leader">R4/R5 (Leader)</option>
                     <option value="Admin">System Admin (CAUTION)</option>
                  </select>
                  <select className="bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>

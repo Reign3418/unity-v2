@@ -102,9 +102,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.accessToken = "GUEST_MODE";
           
           token.isMember = true;
-          // E.g. Role "leadership" inherently grants leader privileges
-          token.isLeader = user.guestData?.role === "leadership";
-          token.isSuperAdmin = false;
+          // E.g. Role "Leader" inherently grants leader privileges
+          token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
+          token.isSuperAdmin = user.guestData?.role === "Admin";
           
           token.tenant = {
               guildId: "guest",
