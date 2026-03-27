@@ -3,7 +3,7 @@
 import { useSession, signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Zap, TrendingUp, UploadCloud } from "lucide-react";
+import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
 
@@ -11,6 +11,8 @@ export default function Home() {
   const { data: session } = useSession();
   const [isExploding, setIsExploding] = useState(false);
   const [fireworks, setFireworks] = useState([]);
+  const [isGuestModalOpen, setGuestModalOpen] = useState(false);
+  const [guestPasscode, setGuestPasscode] = useState("");
 
   useEffect(() => {
     if (isExploding) {
@@ -118,9 +120,69 @@ export default function Home() {
             <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="currentColor" className="transform group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77.67,77.67,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.1,46,96,53,91.08,65.69,84.69,65.69Z"/>
             </svg>
-            <span className="tracking-widest uppercase text-sm drop-shadow-md">Auth Discord</span>
+            <span className="tracking-widest uppercase text-sm drop-shadow-md">Login with Discord</span>
           </button>
+
+          <div className="flex items-center w-full my-6 opacity-60">
+            <div className="flex-grow border-t border-gray-600"></div>
+            <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Missing Discord?</span>
+            <div className="flex-grow border-t border-gray-600"></div>
+          </div>
+
+          <div className="w-full space-y-3">
+             <button 
+                onClick={() => setGuestModalOpen(true)}
+                className="w-full py-3.5 bg-[#161a23] hover:bg-[#1c212d] border border-[#2a3041] text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2 group"
+             >
+                <div className="w-5 h-3 bg-rose-500 rounded-[2px] relative flex items-center justify-center before:content-[''] before:w-1 before:h-1 before:bg-[#161a23] before:rounded-full after:content-[''] after:w-1 after:h-1 after:bg-[#161a23] after:rounded-full gap-[2px]"></div>
+                Use Guest Passcode
+             </button>
+
+             <button 
+                onClick={() => signIn("freemode")}
+                className="w-full py-3.5 bg-transparent border border-dashed border-[#2a3041] hover:border-cyan-500/50 text-gray-500 hover:text-cyan-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2 group"
+             >
+                <Globe size={16} className="opacity-50 group-hover:opacity-100" /> Try Freemode
+             </button>
+          </div>
         </div>
+
+        {/* Passcode Modal Overlay */}
+        {isGuestModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl w-full max-w-sm p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+               <button onClick={() => setGuestModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+                  <X size={20} />
+               </button>
+               
+               <div className="flex justify-center mb-6">
+                 <div className="w-16 h-16 bg-[#161a23] rounded-full border border-[#2a3041] flex items-center justify-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                    <Key className="text-rose-500" size={28} />
+                 </div>
+               </div>
+
+               <h2 className="text-center text-white font-bold text-xl tracking-widest uppercase mb-2">Access Key</h2>
+               <p className="text-center text-gray-400 text-xs mb-8">Enter the 6-digit passcode provided by your Kingdom Leadership to access your private dashboard.</p>
+               
+               <input
+                 type="text"
+                 value={guestPasscode}
+                 onChange={(e) => setGuestPasscode(e.target.value.toUpperCase())}
+                 placeholder="XXXXXX"
+                 maxLength={6}
+                 className="w-full bg-[#0a0c10] border-2 border-[#1e222b] focus:border-rose-500 h-14 rounded-lg text-center text-2xl tracking-[0.5em] font-mono text-white outline-none transition-colors mb-6 placeholder:text-[#1e222b]"
+               />
+
+               <button
+                 onClick={() => signIn("guest", { passcode: guestPasscode })}
+                 disabled={guestPasscode.length !== 6}
+                 className="w-full bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg uppercase tracking-widest text-sm transition-all"
+               >
+                 Verify & Enter
+               </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -30,6 +30,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return null;
       }
     }),
+    CredentialsProvider({
+      id: "guest",
+      name: "Guest Passcode",
+      credentials: {
+        passcode: { label: "Passcode", type: "text" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.passcode) return null;
+        const guestData = await getGuestPass(credentials.passcode);
+        if (guestData) {
+          return {
+             id: `GUEST_${guestData.passcode}`,
+             name: guestData.playerName || "Temporary Guest",
+             email: "guest@unity.local",
+             image: "https://cdn.discordapp.com/embed/avatars/3.png",
+             guestData: guestData // Passing DB payload to JWT hook
+          };
+        }
+        return null; // Invalid or expired passcode
+      }
+    }),
+    CredentialsProvider({
+      id: "freemode",
+      name: "Freemode",
+      credentials: {},
+      async authorize() {
+        return {
+           id: "freemode",
+           name: "Anonymous User",
+           email: "free@unity.local",
+           image: "https://cdn.discordapp.com/embed/avatars/1.png"
+        };
+      }
+    }),
   ],
   secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
   callbacks: {
@@ -52,6 +86,55 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               kingdomId: "3418",
               leadershipRoleId: "master",
               allowedKingdoms: ["3418", "4025", "3155", "3738"] // Grant blanket upload powers to active servers
+          };
+          token.governorConfig = {};
+          token.ownedGuilds = [];
+          return token;
+      }
+
+      // ==========================================
+      // WEB GUEST LOGIN BYPASS
+      // ==========================================
+      if (account?.provider === 'guest' && user) {
+          token.id = user.id;
+          token.username = user.name;
+          token.avatar = user.image;
+          token.accessToken = "GUEST_MODE";
+          
+          token.isMember = true;
+          // E.g. Role "leadership" inherently grants leader privileges
+          token.isLeader = user.guestData?.role === "leadership";
+          token.isSuperAdmin = false;
+          
+          token.tenant = {
+              guildId: "guest",
+              kingdomId: user.guestData?.kingdomId || "3155",
+              leadershipRoleId: "guest",
+              allowedKingdoms: [user.guestData?.kingdomId || "3155"]
+          };
+          token.governorConfig = {};
+          token.ownedGuilds = [];
+          return token;
+      }
+
+      // ==========================================
+      // UNRESTRICTED FREEMODE LOGIN BYPASS
+      // ==========================================
+      if (account?.provider === 'freemode' && user) {
+          token.id = user.id;
+          token.username = user.name;
+          token.avatar = user.image;
+          token.accessToken = "FREE_MODE";
+          
+          token.isMember = true;
+          token.isLeader = false;
+          token.isSuperAdmin = false;
+          
+          token.tenant = {
+              guildId: "freemode",
+              kingdomId: "3155", // Lock freemode users to a default state
+              leadershipRoleId: "freemode",
+              allowedKingdoms: ["3155"]
           };
           token.governorConfig = {};
           token.ownedGuilds = [];
