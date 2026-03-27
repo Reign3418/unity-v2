@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Plus, Trash2, Mail, ShieldAlert, X, Trophy, CloudUpload, CloudLightning, Zap } from "lucide-react";
+import { Search, Plus, Trash2, Mail, ShieldAlert, X, Trophy, CloudUpload, CloudLightning, Zap, RefreshCw } from "lucide-react";
 
 export default function MGEPlannerTab({ rosterData, targetKd, isLeader }) {
     // Master Cloud State
