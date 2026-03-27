@@ -791,10 +791,10 @@ export async function getGovernorHistory(kingdomId, governorId, days = 5) {
         if (!dateResult.Items || dateResult.Items.length === 0) return [];
         
         // Sort dates newest first and slice top N
-        const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S)
-            .sort((a, b) => new Date(b) - new Date(a))
-            .slice(0, days)
-            .map(d => String(d).replace(/[.#$\/\[\]\s]/g, "_"));
+        const dates = dateResult.Items.map(i => {
+             const rawDateStr = i.SK?.S || '';
+             return rawDateStr.replace('SCAN#', '').replace('DATE#', '');
+        }).filter(d => d.length > 5).sort().reverse().slice(0, days);
 
         let history = [];
 
