@@ -38,12 +38,21 @@ export default function GlobalAnalysis() {
   const [startScan, setStartScan] = useState('');
   const [endScan, setEndScan] = useState('');
   const [availableDates, setAvailableDates] = useState([]);
+  
+  // Target Scope Routing (Delta)
+  const [targetKds, setTargetKds] = useState([]);
+  const [deltaTargetInput, setDeltaTargetInput] = useState('');
 
   const fetchGlobalStats = async () => {
     setIsLoading(true);
     try {
-      const url = activeTab === 'DELTA' ? `/api/aws/global?mode=history` : `/api/aws/global`;
-      const res = await fetch(url);
+      let queryUrl = `/api/aws/global`;
+      if (activeTab === 'DELTA') {
+          queryUrl += `?mode=history`;
+          if (targetKds.length > 0) queryUrl += `&kds=${targetKds.join(',')}`;
+      }
+      
+      const res = await fetch(queryUrl);
       const data = await res.json();
       
       if (res.ok && data.globalStats) {
@@ -112,7 +121,7 @@ export default function GlobalAnalysis() {
   useEffect(() => {
     fetchGlobalStats();
     fetchUserCamps();
-  }, [activeTab]);
+  }, [activeTab, targetKds]);
 
   useEffect(() => {
       // Don't save empty states initially populated before fetch
@@ -186,6 +195,22 @@ export default function GlobalAnalysis() {
           setActiveEntities([...activeEntities, kdName]);
       }
       setNewDomainInput('');
+  };
+
+  const handleAddDeltaTarget = (e) => {
+      e.preventDefault();
+      if (!deltaTargetInput.trim()) return;
+      
+      let kdName = deltaTargetInput.trim().toUpperCase().replace('KD ', '');
+      
+      if (!targetKds.includes(kdName)) {
+          setTargetKds([...targetKds, kdName]);
+      }
+      setDeltaTargetInput('');
+  };
+  
+  const removeDeltaTarget = (kd) => {
+      setTargetKds(targetKds.filter(k => k !== kd));
   };
 
   const removeEntity = (entity) => {
@@ -358,19 +383,25 @@ export default function GlobalAnalysis() {
 
           if (!startNode || !endNode) return;
 
-          let sPower = 0, sKp = 0;
-          let ePower = 0, eKp = 0;
+          let sPower = 0, sKp = 0, sDead = 0;
+          let ePower = 0, eKp = 0, eDead = 0;
 
           if (topNFilter === 'All') {
               sPower = startNode.summary?.totalPower || 0;
               sKp = startNode.summary?.totalKP || 0;
+              sDead = startNode.summary?.totalDeads || startNode.summary?.deadTroops || startNode.summary?.totalDead || 0;
+              
               ePower = endNode.summary?.totalPower || 0;
               eKp = endNode.summary?.totalKP || 0;
+              eDead = endNode.summary?.totalDeads || endNode.summary?.deadTroops || endNode.summary?.totalDead || 0;
           } else {
               sPower = startNode.summary?.topSlices?.[topNFilter]?.power || 0;
               sKp = startNode.summary?.topSlices?.[topNFilter]?.kp || 0;
+              sDead = startNode.summary?.topSlices?.[topNFilter]?.deads || startNode.summary?.topSlices?.[topNFilter]?.deadTroops || startNode.summary?.topSlices?.[topNFilter]?.dead || 0;
+              
               ePower = endNode.summary?.topSlices?.[topNFilter]?.power || 0;
               eKp = endNode.summary?.topSlices?.[topNFilter]?.kp || 0;
+              eDead = endNode.summary?.topSlices?.[topNFilter]?.deads || endNode.summary?.topSlices?.[topNFilter]?.deadTroops || endNode.summary?.topSlices?.[topNFilter]?.dead || 0;
           }
 
           results.push({
@@ -378,7 +409,8 @@ export default function GlobalAnalysis() {
               startPower: sPower,
               endPower: ePower,
               powerDelta: ePower - sPower,
-              kpGained: eKp - sKp
+              kpGained: eKp - sKp,
+              deadsGained: eDead - sDead
           });
       });
 
@@ -675,37 +707,75 @@ export default function GlobalAnalysis() {
       ) : (
         /* DELTA ANALYSIS TAB */
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl mt-6">
-            <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex flex-col">
-                    <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
-                       <BarChart size={18} className="text-indigo-500" />
-                       All Kingdom Analysis
-                    </h2>
-                    <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mt-1">
-                       Comprehensive Power & KP Deltas Across Selected Scans
-                    </p>
+            <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex flex-col items-start gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
+                    <div className="flex flex-col">
+                        <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
+                           <BarChart size={18} className="text-indigo-500" />
+                           All Kingdom Analysis
+                        </h2>
+                        <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mt-1">
+                           Comprehensive Power & KP Deltas Across Selected Scans
+                        </p>
+                    </div>
+                    
+                    <div className="flex flex-col md:flex-row items-center gap-3">
+                        <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
+                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Start Scan:</span>
+                            <select 
+                                value={startScan}
+                                onChange={(e) => setStartScan(e.target.value)}
+                                className="bg-transparent text-indigo-400 font-mono text-xs font-bold outline-none cursor-pointer"
+                            >
+                                {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
+                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">End Scan:</span>
+                            <select 
+                                value={endScan}
+                                onChange={(e) => setEndScan(e.target.value)}
+                                className="bg-transparent text-indigo-400 font-mono text-xs font-bold outline-none cursor-pointer"
+                            >
+                                {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 
-                <div className="flex flex-col md:flex-row items-center gap-3">
-                    <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
-                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Start Scan:</span>
-                        <select 
-                            value={startScan}
-                            onChange={(e) => setStartScan(e.target.value)}
-                            className="bg-transparent text-indigo-400 font-mono text-xs font-bold outline-none cursor-pointer"
-                        >
-                            {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                    </div>
-                    <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
-                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">End Scan:</span>
-                        <select 
-                            value={endScan}
-                            onChange={(e) => setEndScan(e.target.value)}
-                            className="bg-transparent text-indigo-400 font-mono text-xs font-bold outline-none cursor-pointer"
-                        >
-                            {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
+                {/* Target Scope Delta Filter */}
+                <div className="w-full pt-4 border-t border-[#1e222b]">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <form onSubmit={handleAddDeltaTarget} className="flex gap-2">
+                            <input 
+                                type="text"
+                                value={deltaTargetInput}
+                                onChange={(e) => setDeltaTargetInput(e.target.value)}
+                                placeholder="Filter KD # (Optional)"
+                                className="w-48 bg-[#13161c] border border-[#1e222b] text-white text-xs font-bold uppercase px-3 py-2 rounded outline-none focus:border-indigo-500 transition-colors placeholder-gray-600"
+                            />
+                            <button type="submit" className="bg-[#13161c] hover:bg-indigo-500 hover:text-white text-indigo-400 border border-[#1e222b] hover:border-indigo-500 px-3 py-2 rounded transition-colors font-bold flex items-center gap-1 shadow-lg">
+                                <Plus size={14} /> Add
+                            </button>
+                        </form>
+
+                        <div className="flex flex-wrap gap-2">
+                            {targetKds.length === 0 ? (
+                                <div className="text-gray-600 text-[10px] font-bold uppercase tracking-widest px-2 py-2 flex items-center gap-2">
+                                    <Globe2 size={12} className="opacity-50" />
+                                    No Active Scope Filter (Showing Full Array)
+                                </div>
+                            ) : (
+                                targetKds.map(kd => (
+                                    <div key={kd} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-3 py-1.5 rounded-lg text-xs font-bold font-mono shadow-inner animate-zoom-in">
+                                        KD {kd}
+                                        <button onClick={() => removeDeltaTarget(kd)} className="hover:text-red-400 transition-colors p-0.5">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -729,8 +799,8 @@ export default function GlobalAnalysis() {
                             <th onClick={() => handleDeltaSort('kpGained')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
                                 KP Gained {deltaSort.key === 'kpGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
-                            <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-500 border-b border-[#1e222b]">
-                                Dead Troops
+                            <th onClick={() => handleDeltaSort('deadsGained')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
+                                Dead Troops {deltaSort.key === 'deadsGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                         </tr>
                     </thead>
@@ -763,7 +833,11 @@ export default function GlobalAnalysis() {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <div className="font-bold text-amber-500/50 font-mono tracking-wider italic text-xs">+0 (Pending Metric)</div>
+                                    {row.deadsGained > 0 ? (
+                                        <div className="font-bold text-amber-500 font-mono tracking-wider">+{formatDeltaNum(row.deadsGained)}</div>
+                                    ) : (
+                                        <div className="font-bold text-gray-500 font-mono tracking-wider">0</div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
