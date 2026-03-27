@@ -1,5 +1,4 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import AuthProvider from "@/components/providers/AuthProvider";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import "./globals.css";
@@ -31,20 +30,6 @@ export default function RootLayout({ children }) {
             {children}
           </DashboardLayout>
         </AuthProvider>
-
-        <Script 
-          src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
-          strategy="afterInteractive"
-          data-name="BMC-Widget"
-          data-cfasync="false"
-          data-id="ReignsPlace"
-          data-description="Support me on Buy me a coffee!"
-          data-message=""
-          data-color="#5F7FFF"
-          data-position="Right"
-          data-x_margin="18"
-          data-y_margin="18"
-        />
       </body>
     </html>
   );

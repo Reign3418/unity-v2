@@ -90,6 +90,14 @@ export default function Sidebar() {
         
         {/* Support Engine */}
         <div className="flex flex-col gap-4">
+          <a href="https://www.buymeacoffee.com/ReignsPlace" target="_blank" rel="noreferrer" className="flex justify-center hover:-translate-y-0.5 transition-transform drop-shadow-[0_4px_14px_rgba(54,194,196,0.15)]">
+            <img 
+              src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=ReignsPlace&button_colour=36c2c4&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" 
+              alt="Buy me a coffee" 
+              className="h-[42px] object-contain rounded-[5px]" 
+            />
+          </a>
+
           {session ? (
             <button 
               onClick={() => signOut({ callbackUrl: '/' })}
