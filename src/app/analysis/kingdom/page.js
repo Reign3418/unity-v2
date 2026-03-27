@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2 } from "lucide-react";
 import KingdomAnalysisTab from "../../../components/analysis/kingdom/KingdomAnalysisTab";
@@ -41,6 +41,15 @@ export default function KingdomAnalysis() {
   
   // Tab Routing State
   const [activeTab, setActiveTab] = useState("Kingdom Analysis"); // Defaulting to Kingdom Analysis to maintain immediate compatibility until Overview is built.
+
+  // Dynamic Array mapping to wipe restricted components from the view entirely for standard users
+  const availableTabs = useMemo(() => {
+     const isLeader = session?.user?.isLeader || session?.user?.isSuperAdmin;
+     return TABS.filter(t => {
+         if (!isLeader && (t.name === "Scatter Plot" || t.name === "Roster Linker")) return false;
+         return true;
+     });
+  }, [session]);
 
   const fetchTrends = async (forceKd = null) => {
     const kd = forceKd || targetKd;
@@ -128,6 +137,15 @@ export default function KingdomAnalysis() {
                   />
               );
           case 'Scatter Plot':
+              if (!session?.user?.isLeader && !session?.user?.isSuperAdmin) {
+                  return (
+                      <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
+                          <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
+                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">R4 Clearance Required</h3>
+                          <p className="text-sm text-gray-400">Your current role does not have permission to view advanced mathematical modeling.</p>
+                      </div>
+                  );
+              }
               return (
                   <ScatterPlotTab 
                       rosterData={rosterData}
@@ -166,6 +184,15 @@ export default function KingdomAnalysis() {
                   />
               );
           case 'Roster Linker':
+              if (!session?.user?.isLeader && !session?.user?.isSuperAdmin) {
+                  return (
+                      <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
+                          <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
+                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">R4 Clearance Required</h3>
+                          <p className="text-sm text-gray-400">Your current role does not have permission to view the Account Linking utility.</p>
+                      </div>
+                  );
+              }
               return (
                   <AccountLinkerTab
                       rosterData={rosterData}
@@ -234,7 +261,7 @@ export default function KingdomAnalysis() {
       {/* Legacy Horizontal Sub-Navigation Tab Array */}
       <div className="w-full overflow-x-auto pb-4 pt-2 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
         <div className="flex items-center gap-3 min-w-max px-2">
-          {TABS.map(tab => {
+          {availableTabs.map(tab => {
              const Icon = tab.icon;
              const isActive = activeTab === tab.name;
              return (
