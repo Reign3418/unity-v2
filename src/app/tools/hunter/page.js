@@ -42,6 +42,7 @@ export default function PlayerHunter() {
           // We pass kd=GLOBAL to trigger the backend scatter-gather engine across ALL known AWS partitions
           const histRes = await fetch(`/api/aws/history?kd=GLOBAL&id=${id}&days=50&bypassCache=${Date.now()}`);
           const histData = await histRes.json();
+          console.error("DEBUG HUNTER SERVER PAYLOAD:", histData.debug_info);
           
           const rawTimeline = histData.timeline || [];
           const timelineData = rawTimeline.map((scan, i) => ({

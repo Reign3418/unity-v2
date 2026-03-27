@@ -33,7 +33,6 @@ export async function GET(req) {
         const resolved = await Promise.all(fetchPromises);
         console.log(`[AWS History] Thread Pool Resolved. First threaded object type: ${typeof resolved[0]}`);
 
-        // Flatten the multi-dimensional mapping arrays and sort by timestamp (Oldest to Newest, matching the legacy history format)
         const flattened = resolved.flat().sort((a,b) => {
              const dateA = new Date(a.scanDate.replace(/_/g, " "));
              const dateB = new Date(b.scanDate.replace(/_/g, " "));
@@ -41,7 +40,15 @@ export async function GET(req) {
         });
         console.log(`[AWS History] Final Timeline length: ${flattened.length}`);
         
-        return NextResponse.json({ timeline: flattened }, { status: 200 });
+        return NextResponse.json({ 
+            timeline: flattened,
+            debug_info: {
+                table: process.env.AWS_TABLE_NAME || 'Missing Table',
+                kdsFound: allKds || [],
+                concurrencyLaunched: fetchPromises.length,
+                totalResults: flattened.length
+            }
+        }, { status: 200 });
     }
 
     // 4. Execute Historical Chronology Extractor (Legacy Fallback)
