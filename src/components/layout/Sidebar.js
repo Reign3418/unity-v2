@@ -69,7 +69,6 @@ export default function Sidebar() {
 
           <SectionTitle>Community</SectionTitle>
           <NavItem href="/changelog" icon={BookOpen} label="Changelog" />
-          <NavItem href="/alliance" icon={Shield} label="My Alliance" />
           <NavItem href="/community" icon={MessageSquare} label="Community Hub" />
 
           <SectionTitle>Tools</SectionTitle>
