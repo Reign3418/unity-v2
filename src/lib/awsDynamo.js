@@ -816,6 +816,7 @@ export async function getGovernorHistory(kingdomId, governorId, days = 5) {
                     const attrs = histResult.Items[0].attributes?.M || {};
                     return {
                         scanDate: date,
+                        kingdom: kingdomId,
                         power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
                         killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
                         deads: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
