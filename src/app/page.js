@@ -12,6 +12,7 @@ export default function Home() {
   const [isExploding, setIsExploding] = useState(false);
   const [fireworks, setFireworks] = useState([]);
   const [isGuestModalOpen, setGuestModalOpen] = useState(false);
+  const [isApplyModalOpen, setApplyModalOpen] = useState(false);
   const [guestPasscode, setGuestPasscode] = useState("");
 
   useEffect(() => {
@@ -138,12 +139,21 @@ export default function Home() {
                 Use Guest Passcode
              </button>
 
-             <button 
+              <button 
                 onClick={() => signIn("freemode")}
                 className="w-full py-3.5 bg-transparent border border-dashed border-[#2a3041] hover:border-cyan-500/50 text-gray-500 hover:text-cyan-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2 group"
              >
                 <Globe size={16} className="opacity-50 group-hover:opacity-100" /> Try Freemode
              </button>
+
+             <div className="pt-4 w-full">
+                <button 
+                  onClick={() => setApplyModalOpen(true)}
+                  className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+                >
+                  <Zap size={14} /> Request Kingdom Setup
+                </button>
+             </div>
           </div>
         </div>
 
@@ -179,6 +189,40 @@ export default function Home() {
                  className="w-full bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg uppercase tracking-widest text-sm transition-all"
                >
                  Verify & Enter
+               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Apply for Access Modal */}
+        {isApplyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#0f1115] border border-cyan-500/30 rounded-2xl w-full max-w-sm p-8 shadow-[0_0_40px_rgba(6,182,212,0.15)] relative animate-in fade-in zoom-in duration-200">
+               <button onClick={() => setApplyModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+                  <X size={20} />
+               </button>
+               
+               <div className="flex justify-center mb-6">
+                 <div className="w-16 h-16 bg-[#161a23] rounded-full border border-cyan-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                    <Zap className="text-cyan-400" size={28} />
+                 </div>
+               </div>
+
+               <h2 className="text-center text-white font-bold text-xl tracking-widest uppercase mb-2">Request Access</h2>
+               <p className="text-center text-gray-400 text-xs mb-8 leading-relaxed">
+                 Unity is a private architectural framework. To register your Discord Server for a dedicated SaaS tenant, reach out to the Lead Architect.
+               </p>
+               
+               <div className="bg-[#0a0c10] border-2 border-[#1e222b] rounded-xl p-4 flex flex-col items-center mb-6">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Discord Contact</span>
+                  <span className="text-xl text-white tracking-widest font-mono font-bold select-all">reign3418</span>
+               </div>
+
+               <button
+                 onClick={() => setApplyModalOpen(false)}
+                 className="w-full bg-[#1e222b] hover:bg-[#2d323e] text-white font-bold py-3.5 rounded-lg uppercase tracking-widest text-sm transition-all"
+               >
+                 Acknowledge
                </button>
             </div>
           </div>
