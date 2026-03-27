@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Un.ty | Architecture",
+  title: "Un.ty",
   description: "Advanced Data Visualization and Calculation Engine built for Kingdom Leadership.",
   icons: {
     icon: '/logo-smooth-dark.png'
