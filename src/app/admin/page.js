@@ -424,12 +424,12 @@ export default function AdminConsole() {
                  {pendingUsers.map(u => (
                     <div key={u.SK} className="bg-[#161920] border border-indigo-500/30 rounded p-3 flex justify-between items-center group">
                       <div>
-                         <div className="text-indigo-300 font-bold text-sm">{u.attributes?.username?.S || u.SK.replace('USER#', '')}</div>
-                         <div className="text-[10px] text-gray-500 uppercase tracking-wider">KD {u.attributes?.targetKingdom?.S || "Unknown"} | Discord ID {u.SK.replace('USER#', '')}</div>
+                         <div className="text-indigo-300 font-bold text-sm">{u.attributes?.username?.S || (u.SK?.S || u.SK || '').replace('USER#', '')}</div>
+                         <div className="text-[10px] text-gray-500 uppercase tracking-wider">KD {u.attributes?.targetKingdom?.S || "Unknown"} | Discord ID {(u.SK?.S || u.SK || '').replace('USER#', '')}</div>
                       </div>
                       <div className="flex gap-2 opacity-100">
-                         <button onClick={() => handleApprovePending(u.SK.replace('USER#', ''), u.attributes?.targetKingdom?.S || "0", "Member")} className="text-emerald-500 hover:bg-emerald-500/20 p-1.5 rounded transition-colors" title="Approve Request"><CheckCircle size={18}/></button>
-                         <button onClick={() => handleRejectPending(u.SK.replace('USER#', ''))} className="text-rose-500 hover:bg-rose-500/20 p-1.5 rounded transition-colors" title="Reject Request"><XCircle size={18}/></button>
+                         <button onClick={() => handleApprovePending((u.SK?.S || u.SK || '').replace('USER#', ''), u.attributes?.targetKingdom?.S || "0", "Member")} className="text-emerald-500 hover:bg-emerald-500/20 p-1.5 rounded transition-colors" title="Approve Request"><CheckCircle size={18}/></button>
+                         <button onClick={() => handleRejectPending((u.SK?.S || u.SK || '').replace('USER#', ''))} className="text-rose-500 hover:bg-rose-500/20 p-1.5 rounded transition-colors" title="Reject Request"><XCircle size={18}/></button>
                       </div>
                     </div>
                  ))}

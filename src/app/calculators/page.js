@@ -260,9 +260,18 @@ export default function CalculatorsPage() {
         reader.onload = async () => {
             const base64 = reader.result.split(',')[1];
             
+            let customGeminiKey = "";
+            try {
+                const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+                customGeminiKey = prefs.geminiKey || "";
+            } catch (e) {}
+
             const res = await fetch('/api/aws/admin/vision/forge', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                },
                 body: JSON.stringify({ base64, mimeType: file.type })
             });
 

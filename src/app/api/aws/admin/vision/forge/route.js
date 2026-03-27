@@ -9,7 +9,8 @@ export async function POST(req) {
             return NextResponse.json({ error: "Missing image data payload." }, { status: 400 });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const customKey = req.headers.get('x-gemini-key');
+        const apiKey = customKey || process.env.GEMINI_API_KEY;
         if (!apiKey) {
             return NextResponse.json({ error: "Gemini server API Key is missing from V2 env variables." }, { status: 500 });
         }
