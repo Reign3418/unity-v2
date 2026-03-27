@@ -100,6 +100,12 @@ export default function KvkReportPage() {
          </div>
       </div>
 
+      {/* WIP Banner */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg animate-pulse">
+         <ShieldAlert className="text-amber-500" size={20} />
+         <p className="text-amber-400 font-bold text-sm tracking-wider uppercase">Work In Progress - Analytics Models Under Active Construction</p>
+      </div>
+
       {isLoading ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center">
             <RefreshCw className="animate-spin text-cyan-500 w-8 h-8" />
