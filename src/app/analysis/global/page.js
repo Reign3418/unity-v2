@@ -74,10 +74,22 @@ export default function GlobalAnalysis() {
               setAvailableDates(sortedDates);
               
               if (sortedDates.length > 0) {
-                  if (!startScan || !sortedDates.includes(startScan)) {
+                  let storedStart = null;
+                  let storedEnd = null;
+                  if (typeof window !== 'undefined') {
+                      storedStart = localStorage.getItem('unty_global_startScan');
+                      storedEnd = localStorage.getItem('unty_global_endScan');
+                  }
+
+                  if (storedStart && sortedDates.includes(storedStart)) {
+                      setStartScan(storedStart);
+                  } else if (!startScan || !sortedDates.includes(startScan)) {
                       setStartScan(sortedDates[0]); // Earliest available
                   }
-                  if (!endScan || !sortedDates.includes(endScan)) {
+                  
+                  if (storedEnd && sortedDates.includes(storedEnd)) {
+                      setEndScan(storedEnd);
+                  } else if (!endScan || !sortedDates.includes(endScan)) {
                       setEndScan(sortedDates[sortedDates.length - 1]); // Most recent
                   }
               }
@@ -123,8 +135,47 @@ export default function GlobalAnalysis() {
     fetchUserCamps();
   }, [activeTab, targetKds]);
 
+  // Initial State Hydration
   useEffect(() => {
-      // Don't save empty states initially populated before fetch
+    if (typeof window !== 'undefined') {
+      const sTab = localStorage.getItem('unty_global_tab');
+      if (sTab) setActiveTab(sTab);
+      
+      const sTopN = localStorage.getItem('unty_global_topN');
+      if (sTopN) setTopNFilter(sTopN);
+      
+      const sTargetKds = localStorage.getItem('unty_global_targetKds');
+      if (sTargetKds) {
+          try {
+              const parsed = JSON.parse(sTargetKds);
+              if (Array.isArray(parsed)) setTargetKds(parsed);
+          } catch(e) {}
+      }
+    }
+  }, []);
+
+  // Sync Listeners
+  useEffect(() => {
+      if (typeof window !== 'undefined') localStorage.setItem('unty_global_tab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+      if (typeof window !== 'undefined') localStorage.setItem('unty_global_topN', topNFilter);
+  }, [topNFilter]);
+
+  useEffect(() => {
+      if (typeof window !== 'undefined') localStorage.setItem('unty_global_targetKds', JSON.stringify(targetKds));
+  }, [targetKds]);
+
+  useEffect(() => {
+      if (typeof window !== 'undefined' && startScan) localStorage.setItem('unty_global_startScan', startScan);
+  }, [startScan]);
+
+  useEffect(() => {
+      if (typeof window !== 'undefined' && endScan) localStorage.setItem('unty_global_endScan', endScan);
+  }, [endScan]);
+
+  useEffect(() => {
       if (activeEntities && activeEntities.length > 0 && typeof window !== 'undefined') {
           localStorage.setItem('unty_global_entities', JSON.stringify(activeEntities));
       }
