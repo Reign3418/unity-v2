@@ -22,17 +22,22 @@ export async function GET(req) {
 
     // 3. Global Scatter-Gather Protocol
     if (kingdomId === 'GLOBAL') {
+        console.log(`[AWS History] Triggering GLOBAL scatter-gather for GOV ${governorId}...`);
         const allKds = await getAllTrackedKingdoms();
+        console.log(`[AWS History] Target AWS Partitions: ${allKds.length}`);
+        
         // Fire parallel asynchronous timeline extractions across all known AWS database partitions
         const fetchPromises = allKds.map(kd => getGovernorHistory(kd, governorId, days));
         const resolved = await Promise.all(fetchPromises);
-        
+        console.log(`[AWS History] Thread Pool Resolved. First threaded object type: ${typeof resolved[0]}`);
+
         // Flatten the multi-dimensional mapping arrays and sort by timestamp (Oldest to Newest, matching the legacy history format)
         const flattened = resolved.flat().sort((a,b) => {
              const dateA = new Date(a.scanDate.replace(/_/g, " "));
              const dateB = new Date(b.scanDate.replace(/_/g, " "));
              return dateA - dateB; // Oldest first
         });
+        console.log(`[AWS History] Final Timeline length: ${flattened.length}`);
         
         return NextResponse.json({ timeline: flattened }, { status: 200 });
     }

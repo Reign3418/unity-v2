@@ -46,7 +46,6 @@ export async function getAllTrackedKingdoms() {
     if (!tableName) return [];
     
     try {
-        const { GetItemCommand } = await import('@aws-sdk/client-dynamodb');
         const params = {
             TableName: tableName,
             Key: {
