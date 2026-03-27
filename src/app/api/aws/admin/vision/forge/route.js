@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getGlobalConfig } from "@/lib/awsDynamo";
 
 export async function POST(req) {
     try {
@@ -10,7 +11,7 @@ export async function POST(req) {
         }
 
         const customKey = req.headers.get('x-gemini-key');
-        const apiKey = customKey || process.env.GEMINI_API_KEY;
+        const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) {
             return NextResponse.json({ error: "Gemini server API Key is missing from V2 env variables." }, { status: 500 });
         }
