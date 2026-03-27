@@ -166,6 +166,33 @@ export default function AdminConsole() {
   const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "Member" });
   const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
 
+  // Local Storage Secure Fallbacks
+  const [localKeys, setLocalKeys] = useState({ awsKey: "", awsSecret: "", geminiKey: "" });
+  
+  useEffect(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+      setLocalKeys({
+        awsKey: prefs.awsKey || "",
+        awsSecret: prefs.awsSecret || "",
+        geminiKey: prefs.geminiKey || ""
+      });
+    } catch(e){}
+  }, []);
+
+  const handleSaveLocalKeys = () => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+      if (localKeys.awsKey) prefs.awsKey = localKeys.awsKey;
+      if (localKeys.awsSecret) prefs.awsSecret = localKeys.awsSecret;
+      if (localKeys.geminiKey) prefs.geminiKey = localKeys.geminiKey;
+      localStorage.setItem('unty_prefs', JSON.stringify(prefs));
+      alert("Local Engine Credentials securely written to Browser Storage.");
+    } catch (e) {
+      alert("Failed to save credentials.");
+    }
+  };
+
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("ALL");
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -795,17 +822,17 @@ export default function AdminConsole() {
                <div className="space-y-3">
                  <div>
                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block">AWS Master Key ID</label>
-                   <input type="password" placeholder="••••••••••••••••••••" className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" defaultValue="LOCKED IN SERVER ENV" />
+                   <input type="password" placeholder={localKeys.awsKey ? "•••••••••••••••••••• (SET)" : "LOCKED IN SERVER ENV"} className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" value={localKeys.awsKey} onChange={e => setLocalKeys({...localKeys, awsKey: e.target.value})} />
                  </div>
                  <div>
                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block">AWS Master Secret</label>
-                   <input type="password" placeholder="••••••••••••••••••••••••••••••••••••••••••" className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" defaultValue="LOCKED IN SERVER ENV" />
+                   <input type="password" placeholder={localKeys.awsSecret ? "•••••••••••••••••••••••••••••••••••••••••• (SET)" : "LOCKED IN SERVER ENV"} className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" value={localKeys.awsSecret} onChange={e => setLocalKeys({...localKeys, awsSecret: e.target.value})} />
                  </div>
                  <div>
                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1 block">Global Gemini AI Fallback Key</label>
-                   <input type="password" placeholder="AIzaSy••••••••••••••••••••••••" className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" defaultValue="LOCKED IN SERVER ENV" />
+                   <input type="password" placeholder={localKeys.geminiKey ? "AIzaSy•••••••••••••••••••••••• (SET)" : "LOCKED IN SERVER ENV"} className="w-full bg-[#161920] border border-[#1e222b] rounded p-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500" value={localKeys.geminiKey} onChange={e => setLocalKeys({...localKeys, geminiKey: e.target.value})} />
                  </div>
-                 <button className="w-full bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/50 rounded py-2 text-sm font-bold uppercase tracking-widest transition-all mt-2">Force Save Local Profile</button>
+                 <button onClick={handleSaveLocalKeys} className="w-full bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/50 rounded py-2 text-sm font-bold uppercase tracking-widest transition-all mt-2">Force Save Local Profile</button>
                </div>
             </div>
 
