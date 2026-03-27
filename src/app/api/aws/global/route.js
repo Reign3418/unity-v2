@@ -11,6 +11,8 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const kdsParam = searchParams.get('kds');
+    const mode = searchParams.get('mode');
+    
     let kingdoms = [];
 
     // If specific kingdoms requested via ?kds=, use them. Otherwise, pull every tracked kingdom globally.
@@ -53,18 +55,30 @@ export async function GET(req) {
         try {
             const trends = await getKingdomTrends(kd);
             if (trends.length > 0) {
+                if (mode === 'history') {
+                    return { kd, history: trends };
+                }
                 // Get the latest snapshot to represent the current state of the kingdom
                 return { kd, latest: trends[trends.length - 1] };
             }
-            return { kd, latest: null };
+            return { kd, latest: null, history: [] };
         } catch (e) {
-            return { kd, latest: null };
+            return { kd, latest: null, history: [] };
         }
     });
 
     const globalResults = await Promise.all(fetchPromises);
 
-    // Format for Recharts consumption
+    if (mode === 'history') {
+        // Return full chronological trace for the Delta Tool
+        const historyData = globalResults.filter(r => r.history && r.history.length > 0).map(r => ({
+            kingdom: `KD ${r.kd}`,
+            history: r.history
+        }));
+        return NextResponse.json({ globalStats: historyData }, { status: 200 });
+    }
+
+    // Format for Recharts consumption / Camp Builder View
     const chartData = globalResults.filter(r => r.latest).map(r => {
        const sum = r.latest.summary || { totalPower: 0, totalKP: 0, activeGovernors: 0 };
        return {

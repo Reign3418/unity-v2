@@ -16,6 +16,9 @@ export default function GlobalAnalysis() {
   const [globalStats, setGlobalStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Tab Routing
+  const [activeTab, setActiveTab] = useState('CAMP_BUILDER'); // 'CAMP_BUILDER' | 'DELTA'
+
   // Top N Filtering
   const [topNFilter, setTopNFilter] = useState('All');
   
@@ -31,27 +34,58 @@ export default function GlobalAnalysis() {
   const [savedLayouts, setSavedLayouts] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Delta Engine State
+  const [startScan, setStartScan] = useState('');
+  const [endScan, setEndScan] = useState('');
+  const [availableDates, setAvailableDates] = useState([]);
+
   const fetchGlobalStats = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/aws/global`);
+      const url = activeTab === 'DELTA' ? `/api/aws/global?mode=history` : `/api/aws/global`;
+      const res = await fetch(url);
       const data = await res.json();
       
       if (res.ok && data.globalStats) {
           setGlobalStats(data.globalStats);
           
-          // Initial population - Check LocalStorage or Top 5 fallback
-          let savedActive = null;
-          if (typeof window !== 'undefined') {
-              const str = localStorage.getItem('unty_global_entities');
-              if (str) try { savedActive = JSON.parse(str); } catch(e) {}
-          }
-
-          if (savedActive && Array.isArray(savedActive) && savedActive.length > 0) {
-              setActiveEntities(savedActive);
+          if (activeTab === 'DELTA') {
+              // Extract unique string dates for dropdowns
+              const dates = new Set();
+              data.globalStats.forEach(kd => {
+                 if (kd.history) {
+                     kd.history.forEach(t => {
+                         if (t.scanDate) {
+                             dates.add(t.scanDate.split('T')[0]);
+                         }
+                     });
+                 }
+              });
+              const sortedDates = Array.from(dates).sort((a,b) => new Date(a) - new Date(b));
+              setAvailableDates(sortedDates);
+              
+              if (sortedDates.length > 0) {
+                  if (!startScan || !sortedDates.includes(startScan)) {
+                      setStartScan(sortedDates[0]); // Earliest available
+                  }
+                  if (!endScan || !sortedDates.includes(endScan)) {
+                      setEndScan(sortedDates[sortedDates.length - 1]); // Most recent
+                  }
+              }
           } else {
-              const allKds = data.globalStats.map(s => s.kingdom);
-              setActiveEntities(allKds.length > 10 ? allKds.slice(0, 5) : allKds);
+              // Camp Builder Logic
+              let savedActive = null;
+              if (typeof window !== 'undefined') {
+                  const str = localStorage.getItem('unty_global_entities');
+                  if (str) try { savedActive = JSON.parse(str); } catch(e) {}
+              }
+
+              if (savedActive && Array.isArray(savedActive) && savedActive.length > 0) {
+                  setActiveEntities(savedActive);
+              } else {
+                  const allKds = data.globalStats.map(s => s.kingdom);
+                  setActiveEntities(allKds.length > 10 ? allKds.slice(0, 5) : allKds);
+              }
           }
       }
     } catch (e) {
@@ -78,7 +112,7 @@ export default function GlobalAnalysis() {
   useEffect(() => {
     fetchGlobalStats();
     fetchUserCamps();
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
       // Don't save empty states initially populated before fetch
@@ -286,6 +320,86 @@ export default function GlobalAnalysis() {
     return null;
   };
 
+  // --- DELTA ENGINE PROCESSING ---
+  const processedDeltaData = useMemo(() => {
+      if (activeTab !== 'DELTA' || !globalStats || !startScan || !endScan) return [];
+      
+      const results = [];
+      const targetStart = new Date(startScan);
+      const targetEnd = new Date(endScan);
+
+      globalStats.forEach(kdData => {
+          if (!kdData.history || kdData.history.length === 0) return;
+          
+          let startNode = null;
+          let endNode = null;
+
+          let closestStartDiff = Infinity;
+          let closestEndDiff = Infinity;
+
+          kdData.history.forEach(t => {
+              if (!t.scanDate) return;
+              const dateStr = t.scanDate.split('T')[0];
+              const tDate = new Date(dateStr);
+              
+              const startDiff = Math.abs(tDate - targetStart);
+              if (startDiff < closestStartDiff) {
+                  closestStartDiff = startDiff;
+                  startNode = t;
+              }
+
+              const endDiff = Math.abs(tDate - targetEnd);
+              if (endDiff < closestEndDiff) {
+                  closestEndDiff = endDiff;
+                  endNode = t;
+              }
+          });
+
+          if (!startNode || !endNode) return;
+
+          let sPower = 0, sKp = 0;
+          let ePower = 0, eKp = 0;
+
+          if (topNFilter === 'All') {
+              sPower = startNode.summary?.totalPower || 0;
+              sKp = startNode.summary?.totalKP || 0;
+              ePower = endNode.summary?.totalPower || 0;
+              eKp = endNode.summary?.totalKP || 0;
+          } else {
+              sPower = startNode.summary?.topSlices?.[topNFilter]?.power || 0;
+              sKp = startNode.summary?.topSlices?.[topNFilter]?.kp || 0;
+              ePower = endNode.summary?.topSlices?.[topNFilter]?.power || 0;
+              eKp = endNode.summary?.topSlices?.[topNFilter]?.kp || 0;
+          }
+
+          results.push({
+              kingdom: kdData.kingdom.replace('KD ', ''),
+              startPower: sPower,
+              endPower: ePower,
+              powerDelta: ePower - sPower,
+              kpGained: eKp - sKp
+          });
+      });
+
+      return results.sort((a,b) => b.powerDelta - a.powerDelta);
+  }, [globalStats, startScan, endScan, topNFilter, activeTab]);
+
+  const [deltaSort, setDeltaSort] = useState({ key: 'powerDelta', direction: 'desc' });
+  const handleDeltaSort = (key) => {
+      let direction = 'desc';
+      if (deltaSort.key === key && deltaSort.direction === 'desc') direction = 'asc';
+      setDeltaSort({ key, direction });
+  };
+  const sortedDeltaData = useMemo(() => {
+      return [...processedDeltaData].sort((a, b) => {
+          let aVal = a[deltaSort.key];
+          let bVal = b[deltaSort.key];
+          return deltaSort.direction === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+      });
+  }, [processedDeltaData, deltaSort]);
+
+  const formatDeltaNum = (num) => num ? Number(num).toLocaleString() : "0";
+
   return (
     <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
       
@@ -298,12 +412,28 @@ export default function GlobalAnalysis() {
                  <Globe2 className="text-indigo-500" size={32} />
                </div>
                <div>
-                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">Global Camp Builder</h1>
+                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">Global Analysis</h1>
                  <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Cross-Server Macro Diagnostics</p>
                </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            {/* Tab Toggles */}
+            <div className="absolute bottom-0 left-8 flex gap-6 z-10 translate-y-px">
+                <button 
+                  onClick={() => setActiveTab('CAMP_BUILDER')}
+                  className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'CAMP_BUILDER' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+                >
+                  Camp Builder
+                </button>
+                <button 
+                  onClick={() => setActiveTab('DELTA')}
+                  className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'DELTA' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+                >
+                  Delta Analytics
+                </button>
+            </div>
+            
+            <div className="flex items-center gap-3 self-start md:self-auto z-10">
                 <select 
                     value={topNFilter}
                     onChange={(e) => setTopNFilter(e.target.value)}
@@ -339,7 +469,7 @@ export default function GlobalAnalysis() {
             <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Global Architecture Verified</h3>
             <p className="text-sm">Cannot formulate models. Ensure the ingestion pipeline operates on multiple servers.</p>
         </div>
-      ) : (
+      ) : activeTab === 'CAMP_BUILDER' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Control Center */}
@@ -528,6 +658,112 @@ export default function GlobalAnalysis() {
                ))}
             </div>
 
+        </div>
+      ) : (
+        /* DELTA ANALYSIS TAB */
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl mt-6">
+            <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col">
+                    <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
+                       <BarChart size={18} className="text-indigo-500" />
+                       All Kingdom Analysis
+                    </h2>
+                    <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mt-1">
+                       Comprehensive Power & KP Deltas Across Selected Scans
+                    </p>
+                </div>
+                
+                <div className="flex flex-col md:flex-row items-center gap-3">
+                    <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
+                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Start Scan:</span>
+                        <select 
+                            value={startScan}
+                            onChange={(e) => setStartScan(e.target.value)}
+                            className="bg-transparent text-indigo-400 font-mono text-xs font-bold outline-none cursor-pointer"
+                        >
+                            {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
+                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">End Scan:</span>
+                        <select 
+                            value={endScan}
+                            onChange={(e) => setEndScan(e.target.value)}
+                            className="bg-transparent text-indigo-400 font-mono text-xs font-bold outline-none cursor-pointer"
+                        >
+                            {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+                <table className="w-full whitespace-nowrap">
+                    <thead className="bg-[#13161c] select-none">
+                        <tr>
+                            <th onClick={() => handleDeltaSort('kingdom')} className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors w-1/4">
+                                Kingdom {deltaSort.key === 'kingdom' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th onClick={() => handleDeltaSort('startPower')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
+                                Total Start Power {deltaSort.key === 'startPower' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th onClick={() => handleDeltaSort('endPower')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
+                                Total End Power {deltaSort.key === 'endPower' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th onClick={() => handleDeltaSort('powerDelta')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
+                                Power Δ {deltaSort.key === 'powerDelta' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th onClick={() => handleDeltaSort('kpGained')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
+                                KP Gained {deltaSort.key === 'kpGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-500 border-b border-[#1e222b]">
+                                Dead Troops
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1e222b]">
+                        {sortedDeltaData.map((row, idx) => (
+                            <tr key={row.kingdom} className="hover:bg-white/5 transition-colors">
+                                <td className="px-6 py-4 text-left">
+                                    <div className="font-bold text-indigo-400 tracking-widest">Kingdom {row.kingdom}</div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="font-bold text-gray-400 font-mono tracking-wider">{formatDeltaNum(row.startPower)}</div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="font-bold text-gray-400 font-mono tracking-wider">{formatDeltaNum(row.endPower)}</div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    {row.powerDelta > 0 ? (
+                                        <div className="font-bold text-green-500 font-mono tracking-wider">+{formatDeltaNum(row.powerDelta)}</div>
+                                    ) : row.powerDelta < 0 ? (
+                                        <div className="font-bold text-rose-500 font-mono tracking-wider">{formatDeltaNum(row.powerDelta)}</div>
+                                    ) : (
+                                        <div className="font-bold text-gray-500 font-mono tracking-wider">0</div>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    {row.kpGained > 0 ? (
+                                        <div className="font-bold text-indigo-400 font-mono tracking-wider">+{formatDeltaNum(row.kpGained)}</div>
+                                    ) : (
+                                        <div className="font-bold text-gray-500 font-mono tracking-wider">0</div>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="font-bold text-amber-500/50 font-mono tracking-wider italic text-xs">+0 (Pending Metric)</div>
+                                </td>
+                            </tr>
+                        ))}
+                        {sortedDeltaData.length === 0 && (
+                            <tr>
+                                <td colSpan="6" className="px-6 py-12 text-center text-gray-500 font-bold uppercase tracking-widest text-xs">
+                                    Insufficient Scans to calculate Temporal Deltas
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
       )}
     </div>
