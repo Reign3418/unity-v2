@@ -242,14 +242,14 @@ export default function GlobalAnalysis() {
       if (!kd) return { power: 0, kp: 0, elements: 0 };
       
       if (topNFilter === 'All') {
-          return { power: kd.basePower, kp: kd.baseKP, elements: kd.baseActive };
+          return { power: kd.basePower || 0, kp: kd.baseKP || 0, elements: kd.baseActive || 0 };
       } else {
           // Pre-calculated Top N slicer format
           if (kd.topSlices && kd.topSlices[topNFilter]) {
               return { 
                   power: kd.topSlices[topNFilter].power || 0, 
                   kp: kd.topSlices[topNFilter].kp || 0, 
-                  elements: kd.topSlices[topNFilter].elements || parseInt(topNFilter)
+                  elements: kd.topSlices[topNFilter].elements || parseInt(topNFilter) || 0
               };
           } else {
               // Legacy scans before Top Slices update default to 0 to prevent crashes
@@ -418,7 +418,7 @@ export default function GlobalAnalysis() {
                </div>
             </div>
             
-            <div className="flex items-center gap-3 self-start md:self-auto z-10 pb-8 md:pb-0">
+            <div className="flex items-center gap-3 self-start md:self-auto z-10">
                 <select 
                     value={topNFilter}
                     onChange={(e) => setTopNFilter(e.target.value)}
@@ -442,22 +442,34 @@ export default function GlobalAnalysis() {
                 </button>
             </div>
          </div>
+      </div>
 
-         {/* Tab Toggles */}
-         <div className="absolute bottom-0 left-8 flex gap-6 z-10 translate-y-px">
-             <button 
-               onClick={() => setActiveTab('CAMP_BUILDER')}
-               className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'CAMP_BUILDER' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
-             >
-               Camp Builder
-             </button>
-             <button 
-               onClick={() => setActiveTab('DELTA')}
-               className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === 'DELTA' ? 'text-indigo-400 border-indigo-400' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
-             >
-               Delta Analytics
-             </button>
-         </div>
+      {/* Horizontal Sub-Navigation Tab Array */}
+      <div className="w-full overflow-x-auto pb-4 pt-2 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+        <div className="flex items-center gap-3 min-w-max px-2">
+           <button
+             onClick={() => setActiveTab('CAMP_BUILDER')}
+             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+               activeTab === 'CAMP_BUILDER' 
+                 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 shadow-[inset_4px_0_0_0_rgba(99,102,241,1)] shadow-lg' 
+                 : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
+             }`}
+           >
+             <Users size={14} /> Camp Builder
+           </button>
+           
+           <button
+             onClick={() => setActiveTab('DELTA')}
+             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+               activeTab === 'DELTA' 
+                 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 shadow-[inset_4px_0_0_0_rgba(99,102,241,1)] shadow-lg' 
+                 : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
+             }`}
+           >
+             <BarChart size={14} /> Delta Analytics
+           </button>
+        </div>
+
       </div>
 
       {isLoading ? (
