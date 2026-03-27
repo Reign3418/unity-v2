@@ -816,6 +816,8 @@ export async function getGovernorHistory(kingdomId, governorId, days = 5) {
                     return {
                         scanDate: date,
                         kingdom: kingdomId,
+                        name: attrs['Governor Name']?.S || attrs['name']?.S || '',
+                        alliance: attrs['Alliance Tag']?.S || attrs['alliance']?.S || '',
                         power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
                         killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
                         deads: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,

@@ -75,10 +75,10 @@ export default function PlayerHunter() {
              status: 'Resolved',
              id: id,
              currentStatus: {
-               name: name,
-               kingdom: lastSeenKingdom,
+               name: timelineData.length > 0 ? timelineData[0].name : name,
+               kingdom: timelineData.length > 0 ? timelineData[0].kingdom : lastSeenKingdom,
                power: timelineData.length > 0 ? timelineData[0].power : "Unverified",
-               lastDate: lastSeenDate ? new Date(lastSeenDate).toLocaleDateString() : "Unknown"
+               lastDate: timelineData.length > 0 ? timelineData[0].date : (lastSeenDate ? new Date(lastSeenDate).toLocaleDateString() : "Unknown")
              },
              timeline: timelineData,
              kingdomHistory,
