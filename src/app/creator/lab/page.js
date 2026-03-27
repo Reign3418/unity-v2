@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { FlaskConical, AlertTriangle, Code, Cpu } from "lucide-react";
+import { FlaskConical, AlertTriangle, Code, Cpu, Crosshair } from "lucide-react";
 import Link from "next/link";
 
 export default function ExperimentalLab() {
@@ -59,9 +59,23 @@ export default function ExperimentalLab() {
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(79,70,229,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(79,70,229,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
                     
                     <div className="text-center z-10 flex flex-col items-center">
-                        <Code size={48} className="text-[#1e222b] mb-4 group-hover:text-indigo-500/50 transition-colors duration-500" />
-                        <h2 className="text-xl font-bold text-gray-500 tracking-widest uppercase mb-2">Workspace Empty</h2>
-                        <p className="text-sm text-gray-600 font-mono">Inject experimental modules here.</p>
+                    <div className="z-10 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            
+                            {/* BOUNTY RADAR MODULE */}
+                            <Link href="/creator/lab/radar" className="group">
+                                <div className="h-full bg-[#13161c] border border-[#1e222b] hover:border-indigo-500/50 rounded-xl p-6 transition-all duration-300 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <Crosshair size={32} className="text-indigo-500 mb-4 group-hover:scale-110 transition-transform" />
+                                    <h3 className="text-lg font-bold text-gray-200 uppercase tracking-widest mb-2">Bounty Radar</h3>
+                                    <p className="text-xs text-gray-500 font-mono">
+                                        Query the autonomous computer vision bot's grid sweeps to locate governor coordinates on the world map.
+                                    </p>
+                                </div>
+                            </Link>
+
+                        </div>
+                    </div>
                     </div>
                 </div>
 
