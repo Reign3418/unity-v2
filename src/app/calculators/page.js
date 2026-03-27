@@ -673,7 +673,7 @@ export default function CalculatorsPage() {
             </div>
             <div className="p-6 flex flex-col">
                 <p className="text-gray-500 text-xs mb-6 leading-relaxed font-bold uppercase tracking-widest">
-                    Drop a screenshot of your <span className="text-indigo-400 border border-indigo-400/30 bg-indigo-500/10 px-1 rounded">Resources & Speedups</span> tab to automatically calculate your total speedup pools using AI.
+                    Drop a screenshot of your <span className="text-indigo-400 border border-indigo-400/30 bg-indigo-500/10 px-1 rounded">Speedups</span> tab to automatically calculate your total speedup pools using AI.
                 </p>
 
                 <div 
