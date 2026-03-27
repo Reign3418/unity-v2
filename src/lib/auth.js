@@ -132,9 +132,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           
           token.tenant = {
               guildId: "freemode",
-              kingdomId: "3155", // Lock freemode users to a default state
+              kingdomId: null, // Lock freemode users to a default state with no data access
               leadershipRoleId: "freemode",
-              allowedKingdoms: ["3155"]
+              allowedKingdoms: []
           };
           token.governorConfig = {};
           token.ownedGuilds = [];
