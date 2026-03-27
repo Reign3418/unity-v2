@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import AuthProvider from "@/components/providers/AuthProvider";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Analytics } from "@vercel/analytics/react";
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
             <Analytics />
           </DashboardLayout>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
