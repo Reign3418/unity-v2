@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/providers/AuthProvider";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <DashboardLayout>
             {children}
+            <Analytics />
           </DashboardLayout>
         </AuthProvider>
       </body>
