@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2, Shield, Upload, X, Check, Loader2, ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity } from "lucide-react";
+import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2, Shield, Upload, X, Check, Loader2, ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity, Eye, Users, CheckCircle2, Image as ImageIcon, FileText, Sparkles, Filter, Play } from "lucide-react";
 
 export default function CalculatorsPage() {
   const { data: session } = useSession();
@@ -44,6 +44,14 @@ export default function CalculatorsPage() {
   const rsImgRef = useRef(null);
   const [rsMouseCoords, setRsMouseCoords] = useState(null);
   const [rsDraggingIdx, setRsDraggingIdx] = useState(null);
+
+  // === Deadeye Engine States ===
+  const [deadeyeQueue, setDeadeyeQueue] = useState([]);
+  const [deadeyeExtractedNames, setDeadeyeExtractedNames] = useState([]);
+  const [isDeadeyeProcessing, setIsDeadeyeProcessing] = useState(false);
+  const [deadeyeFilterMode, setDeadeyeFilterMode] = useState('exact');
+  const deadeyeInputRef = useRef(null);
+  const [deadeyeCopied, setDeadeyeCopied] = useState(false);
 
   // === Real Estate Engine Math ===
   const handleRsMouseMove = (e) => {
@@ -122,6 +130,168 @@ export default function CalculatorsPage() {
           setRsAnalyzing(false);
       }
   };
+
+  // === Deadeye Engine Math ===
+  const handleDeadeyeDrop = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          addDeadeyeFiles(Array.from(e.dataTransfer.files));
+      }
+  };
+
+  const handleDeadeyeFileSelect = (e) => {
+      if(e.target.files && e.target.files.length > 0) { 
+          addDeadeyeFiles(Array.from(e.target.files));
+      }
+  };
+
+  const addDeadeyeFiles = (files) => {
+      const newFiles = files.filter(f => f.type.startsWith('image/')).map(file => ({
+          id: 'img_' + Math.random().toString(36).substr(2, 9),
+          file,
+          status: 'pending'
+      }));
+      setDeadeyeQueue(prev => [...prev, ...newFiles]);
+  };
+
+  const clearDeadeyeSession = () => {
+    if (confirm("Clear all scanned names and the current queue?")) {
+        setDeadeyeQueue([]);
+        setDeadeyeExtractedNames([]);
+        if (deadeyeInputRef.current) deadeyeInputRef.current.value = '';
+    }
+  };
+
+  const calculateSimilarity = (s1, s2) => {
+        let longer = s1.toLowerCase();
+        let shorter = s2.toLowerCase();
+        if (longer.length < shorter.length) {
+            longer = s2.toLowerCase();
+            shorter = s1.toLowerCase();
+        }
+        let longerLength = longer.length;
+        if (longerLength === 0) return 1.0;
+
+        let costs = new Array();
+        for (let i = 0; i <= longer.length; i++) {
+            let lastValue = i;
+            for (let j = 0; j <= shorter.length; j++) {
+                if (i === 0) costs[j] = j;
+                else {
+                    if (j > 0) {
+                        let newValue = costs[j - 1];
+                        if (longer.charAt(i - 1) !== shorter.charAt(j - 1))
+                            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                        costs[j - 1] = lastValue;
+                        lastValue = newValue;
+                    }
+                }
+            }
+            if (i > 0) costs[shorter.length] = lastValue;
+        }
+
+        return (longerLength - costs[shorter.length]) / parseFloat(longerLength);
+    };
+
+    const processDeadeyeQueue = async () => {
+        if (isDeadeyeProcessing) return;
+        const pendingItems = deadeyeQueue.filter(i => i.status === 'pending');
+        if (pendingItems.length === 0) return;
+
+        let customGeminiKey = "";
+        try {
+            const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+            customGeminiKey = prefs.geminiKey || "";
+        } catch (e) {}
+
+        setIsDeadeyeProcessing(true);
+        let currentExtracted = new Set(deadeyeExtractedNames);
+
+        try {
+            for (let i = 0; i < deadeyeQueue.length; i++) {
+                if (deadeyeQueue[i].status !== 'pending') continue;
+
+                setDeadeyeQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'processing' } : item));
+
+                try {
+                    const base64Data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = e => resolve(e.target.result.split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(deadeyeQueue[i].file);
+                    });
+
+                    const res = await fetch("/api/aws/admin/vision/deadeye", {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                        },
+                        body: JSON.stringify({ base64: base64Data, mimeType: deadeyeQueue[i].file.type || 'image/jpeg' })
+                    });
+
+                    if (!res.ok) {
+                        if (res.status === 429) throw new Error("429 Quota Exceeded");
+                        const err = await res.json();
+                        throw new Error(err.error || "Vision API Failed");
+                    }
+
+                    const data = await res.json();
+                    if (data.names && data.names.length > 0) {
+                        data.names.forEach(n => currentExtracted.add(n));
+                        setDeadeyeExtractedNames(Array.from(currentExtracted));
+                    }
+
+                    setDeadeyeQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'complete' } : item));
+                } catch (err) {
+                    console.error(`Error processing ${deadeyeQueue[i].file.name}:`, err);
+                    setDeadeyeQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error' } : item));
+                    if (err.message.includes('429')) {
+                        alert("Quota Exceeded (429). Server limits restricted. Stopping queue calculation.");
+                        break;
+                    }
+                }
+
+                await new Promise(r => setTimeout(r, 1500));
+            }
+        } catch (globalErr) {
+            alert("A fatal error occurred while scanning: " + globalErr.message);
+        } finally {
+            setIsDeadeyeProcessing(false);
+        }
+    };
+
+    const getProcessedDeadeyeNames = () => {
+        let nameArray = [...deadeyeExtractedNames];
+
+        if (deadeyeFilterMode === 'similarity') {
+            const filteredArray = [];
+            for (const name of nameArray) {
+                let isDuplicate = false;
+                for (const existing of filteredArray) {
+                    const n1 = name.toLowerCase();
+                    const n2 = existing.toLowerCase();
+
+                    if (n1.includes(n2) || n2.includes(n1)) {
+                        isDuplicate = true;
+                        break;
+                    }
+
+                    const sim = calculateSimilarity(n1, n2);
+                    if (sim >= 0.70) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+                if (!isDuplicate) {
+                    filteredArray.push(name);
+                }
+            }
+            nameArray = filteredArray;
+        }
+
+        return nameArray.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    };
 
   const DensityBadge = ({ level }) => {
       const p = level?.toLowerCase();
@@ -362,6 +532,7 @@ export default function CalculatorsPage() {
         <TabButton id="ap" icon={Zap} label="Action Points" color="cyan" />
         <TabButton id="forge" icon={Shield} label="Equipment Forge" color="blue" />
         <TabButton id="realestate" icon={Map} label="Realestate Predictor" color="teal" />
+        <TabButton id="deadeye" icon={Eye} label="Deadeye" color="fuchsia" />
       </div>
 
       {/* Content Area */}
@@ -805,6 +976,130 @@ export default function CalculatorsPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* DEADEYE SCANNER */}
+      {activeTab === "deadeye" && (
+        <div className="animate-fade-in grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column: Upload & Queue */}
+          <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg flex flex-col h-[800px]">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center gap-3 border-b border-[#1e222b]">
+              <Eye className="text-fuchsia-500" size={20} />
+              <h2 className="text-white font-bold uppercase tracking-widest text-sm">Deadeye Intelligence</h2>
+            </div>
+            
+            <div className="p-6 flex flex-col flex-1 overflow-hidden">
+                <p className="text-gray-500 text-xs mb-6 leading-relaxed font-bold uppercase tracking-widest">
+                    Upload multiple battle report screenshots. The AI will extract and merge all visible names automatically.
+                </p>
+
+                <div 
+                    onDragOver={(e) => e.preventDefault()} 
+                    onDrop={handleDeadeyeDrop}
+                    onClick={() => deadeyeInputRef.current?.click()}
+                    className="border-2 border-dashed border-[#2d323e] hover:border-fuchsia-500/50 bg-[#0f1115] rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer mb-6"
+                >
+                    <ImageIcon size={32} className="text-gray-600 mb-3" />
+                    <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">Drag Images Here</h3>
+                    <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">or click to browse</p>
+                    <input type="file" ref={deadeyeInputRef} multiple accept="image/*" onChange={handleDeadeyeFileSelect} hidden />
+                </div>
+
+                <div className="flex-1 flex flex-col border border-[#1e222b] bg-[#0a0c0f] rounded-lg overflow-hidden mb-6">
+                    <div className="px-4 py-2 border-b border-[#1e222b] bg-[#13161c]">
+                        <h4 className="text-[10px] text-fuchsia-500 font-bold uppercase tracking-widest">Capture Queue</h4>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                        {deadeyeQueue.length === 0 ? (
+                            <div className="text-center text-gray-600 text-[10px] font-bold uppercase tracking-widest italic mt-8">
+                                No images buffered.
+                            </div>
+                        ) : (
+                            deadeyeQueue.map(item => (
+                                <div key={item.id} className="flex justify-between items-center p-2 rounded bg-[#0f1115] border border-[#1e222b]">
+                                    <span className="text-xs text-gray-300 truncate w-3/4">{item.file.name}</span>
+                                    {item.status === 'pending' && <Clock size={14} className="text-gray-500" />}
+                                    {item.status === 'processing' && <RefreshCw size={14} className="text-fuchsia-500 animate-spin" />}
+                                    {item.status === 'complete' && <CheckCircle2 size={14} className="text-green-500" />}
+                                    {item.status === 'error' && <AlertCircle size={14} className="text-rose-500" />}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                <button 
+                  onClick={processDeadeyeQueue} 
+                  disabled={isDeadeyeProcessing || deadeyeQueue.filter(i => i.status === 'pending').length === 0}
+                  className="w-full py-3 mb-3 bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-[0_0_15px_rgba(192,38,211,0.2)] transition-all flex items-center justify-center gap-2"
+                >
+                  {isDeadeyeProcessing ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
+                  {isDeadeyeProcessing ? "Synthesizing..." : "Scan Queue with AI"}
+                </button>
+
+                <button 
+                  onClick={clearDeadeyeSession}
+                  className="w-full py-3 bg-[#1e222b] hover:bg-gray-800 text-rose-500 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={14} /> Clear Cache
+                </button>
+            </div>
+          </div>
+
+          {/* Right Column: Output */}
+          <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg flex flex-col h-[800px]">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
+              <div className="flex items-center gap-3">
+                  <Users className="text-fuchsia-500" size={20} />
+                  <h2 className="text-white font-bold uppercase tracking-widest text-sm">Extracted Roster</h2>
+                  <span className="bg-[#1e222b] text-fuchsia-400 font-mono text-xs px-2 py-0.5 rounded ml-2">
+                      {getProcessedDeadeyeNames().length}
+                  </span>
+              </div>
+              <div className="flex items-center gap-3">
+                  <div className="flex bg-[#13161c] p-1 rounded-lg border border-[#1e222b]">
+                      <button 
+                         onClick={() => setDeadeyeFilterMode('exact')}
+                         className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded ${deadeyeFilterMode === 'exact' ? 'bg-fuchsia-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                      >
+                          Exact Dedupe
+                      </button>
+                      <button 
+                         onClick={() => setDeadeyeFilterMode('similarity')}
+                         className={`px-3 py-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest rounded ${deadeyeFilterMode === 'similarity' ? 'bg-fuchsia-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                      >
+                          <Sparkles size={10} /> Smart Filter
+                      </button>
+                  </div>
+                  <button 
+                     onClick={() => {
+                         const txt = getProcessedDeadeyeNames().join('\\n');
+                         if(txt) {
+                             navigator.clipboard.writeText(txt);
+                             setDeadeyeCopied(true);
+                             setTimeout(() => setDeadeyeCopied(false), 2000);
+                         }
+                     }}
+                     className="bg-[#1e222b] hover:bg-gray-700 text-gray-300 px-4 py-[6px] rounded flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors"
+                  >
+                      {deadeyeCopied ? <Check size={14} className="text-green-500" /> : <FileText size={14} />}
+                      {deadeyeCopied ? "Copied" : "Copy"}
+                  </button>
+              </div>
+            </div>
+            
+            <div className="p-6 flex-1 flex">
+                <textarea 
+                   readOnly 
+                   value={getProcessedDeadeyeNames().join('\n')}
+                   placeholder="Scanned intelligence will parse here..."
+                   className="w-full flex-1 bg-[#13161c] border border-[#1e222b] rounded-lg p-6 text-gray-300 font-mono text-sm leading-relaxed focus:outline-none focus:border-fuchsia-500/50 resize-none"
+                />
+            </div>
+          </div>
+
         </div>
       )}
 
