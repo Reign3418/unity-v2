@@ -7,7 +7,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -86,16 +86,50 @@ export default function Sidebar() {
       </div>
 
       {/* Footer Profile / Logout Area */}
-      <div className="w-full mt-auto p-4 bg-[#0a0c0f] border-t border-[#1e222b]">
-        {session ? (
-          <button 
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all font-semibold"
+      <div className="w-full mt-auto p-4 bg-[#0a0c0f] border-t border-[#1e222b] flex flex-col gap-5">
+        
+        {/* Support Engine */}
+        <div className="flex flex-col gap-4">
+          <a 
+            href="https://buymeacoffee.com/reign3418" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex items-center w-full h-11 rounded-lg overflow-hidden group hover:-translate-y-0.5 transition-transform shadow-[0_4px_14px_rgba(255,221,0,0.15)] cursor-pointer"
           >
-            <LogOut size={16} />
-            <span>Logout</span>
-          </button>
-        ) : null}
+            <div className="flex items-center justify-center gap-2.5 bg-[#FFDD00] text-black font-black flex-1 h-full px-2 text-sm tracking-wide">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>
+              <span>Buy me a coffee</span>
+            </div>
+            <div className="flex flex-col items-center justify-center bg-[#E5C700] text-white w-12 h-full font-bold text-xs">
+              <Heart size={15} fill="currentColor" strokeWidth={0} className="mb-0.5" />
+              <span>1</span>
+            </div>
+          </a>
+
+          {session ? (
+            <button 
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 border border-red-500/20 transition-all font-bold text-sm tracking-widest uppercase"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          ) : null}
+        </div>
+
+        {/* Branding Disclaimers */}
+        <div className="text-center space-y-2.5 mt-1 pt-4 border-t border-[#1e222b]/50">
+          <p className="text-[#6b7280] text-xs font-medium tracking-wide">© 2026 Unity Dashboard.</p>
+          <div className="flex items-center justify-center gap-2 text-[10px] text-[#4b5563] font-bold tracking-widest uppercase">
+            <Link href="/about" className="hover:text-cyan-500 transition-colors">About</Link>
+            <span>•</span>
+            <Link href="/contact" className="hover:text-cyan-500 transition-colors">Contact</Link>
+            <span>•</span>
+            <Link href="/privacy" className="hover:text-cyan-500 transition-colors">Privacy</Link>
+            <span>•</span>
+            <Link href="/terms" className="hover:text-cyan-500 transition-colors">Terms</Link>
+          </div>
+        </div>
       </div>
     </aside>
   );
