@@ -9,11 +9,12 @@ export default function CalculatorsPage() {
   const [activeTab, setActiveTab] = useState("speedups");
 
   // State hooks for all calculators
-  const [speedups, setSpeedups] = useState({ 
-    "1m": 0, "5m": 0, "10m": 0, "15m": 0, 
-    "30m": 0, "60m": 0, "3h": 0, "8h": 0, 
-    "15h": 0, "24h": 0, "3d": 0, "7d": 0, "30d": 0 
+  const [speedupData, setSpeedupData] = useState({ 
+    building: 0, research: 0, training: 0, healing: 0, universal: 0 
   });
+  const [isSpeedupScanning, setIsSpeedupScanning] = useState(false);
+  const [speedupStatus, setSpeedupStatus] = useState("");
+  const speedupInputRef = useRef(null);
   
   const [resources, setResources] = useState({
     food: { "1K": 0, "10K": 0, "50K": 0, "150K": 0, "500K": 0, "1.5M": 0, "5M": 0 },
@@ -293,6 +294,75 @@ export default function CalculatorsPage() {
         return nameArray.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     };
 
+    // === Speedups OCR Engine ===
+    const handleSpeedupChange = (type, val) => {
+        setSpeedupData(prev => ({ ...prev, [type]: parseInt(val) || 0 }));
+    };
+
+    const processSpeedupFile = async (file) => {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            setSpeedupStatus("Error: Invalid file format (PNG/JPEG).");
+            return;
+        }
+        
+        try {
+            setIsSpeedupScanning(true);
+            setSpeedupStatus("Scanning screenshot with Gemini Vision...");
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64 = reader.result.split(',')[1];
+                
+                let customGeminiKey = "";
+                try {
+                    const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+                    customGeminiKey = prefs.geminiKey || "";
+                } catch (e) {}
+
+                const res = await fetch('/api/aws/admin/vision/speedup', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                    },
+                    body: JSON.stringify({ base64, mimeType: file.type })
+                });
+
+                if (!res.ok) {
+                    const errJson = await res.json();
+                    throw new Error(errJson.error || "Vision OCR Server Error");
+                }
+
+                const parsed = await res.json();
+                
+                setSpeedupData(prev => ({
+                    building: parsed.building || prev.building,
+                    research: parsed.research || prev.research,
+                    training: parsed.training || prev.training,
+                    healing: parsed.healing || prev.healing,
+                    universal: parsed.universal || prev.universal
+                }));
+                
+                setSpeedupStatus("Synthesis Payload Applied Successfully!");
+                setTimeout(() => setSpeedupStatus(""), 5000);
+            };
+        } catch (e) {
+            console.error("OCR Exception", e);
+            setSpeedupStatus("OCR Failure: " + (e.message || "Could not read matrix."));
+        } finally {
+            setIsSpeedupScanning(false);
+        }
+    };
+
+    const handleSpeedupDrop = (e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            processSpeedupFile(e.dataTransfer.files[0]);
+        }
+    };
+
   const DensityBadge = ({ level }) => {
       const p = level?.toLowerCase();
       if (p === 'optimal' || p === 'low') return <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded font-bold uppercase tracking-widest text-xs">Optimal Spread</span>;
@@ -303,32 +373,22 @@ export default function CalculatorsPage() {
   // Math engines
   const calculateTotalSpeedups = () => {
     let totalMinutes = 0;
-    totalMinutes += (speedups["1m"] || 0) * 1;
-    totalMinutes += (speedups["5m"] || 0) * 5;
-    totalMinutes += (speedups["10m"] || 0) * 10;
-    totalMinutes += (speedups["15m"] || 0) * 15;
-    totalMinutes += (speedups["30m"] || 0) * 30;
-    totalMinutes += (speedups["60m"] || 0) * 60;
-    totalMinutes += (speedups["3h"] || 0) * 180;
-    totalMinutes += (speedups["8h"] || 0) * 480;
-    totalMinutes += (speedups["15h"] || 0) * 900;
-    totalMinutes += (speedups["24h"] || 0) * 1440;
-    totalMinutes += (speedups["3d"] || 0) * 4320;
-    totalMinutes += (speedups["7d"] || 0) * 10080;
-    totalMinutes += (speedups["30d"] || 0) * 43200;
+    totalMinutes += speedupData.building || 0;
+    totalMinutes += speedupData.research || 0;
+    totalMinutes += speedupData.training || 0;
+    totalMinutes += speedupData.healing || 0;
+    totalMinutes += speedupData.universal || 0;
     
     const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
-    const minutes = totalMinutes % 60;
-    
-    return { days, hours, minutes, totalMinutes };
+    const remainderHours = Math.floor((totalMinutes % 1440) / 60);
+    const remainderMins = totalMinutes % 60;
+    return { 
+      total: totalMinutes,
+      formatted: `${days}d ${remainderHours}h ${remainderMins}m`
+    };
   };
 
   const speedupTotals = calculateTotalSpeedups();
-
-  const handleSpeedupChange = (tier, val) => {
-    setSpeedups(prev => ({ ...prev, [tier]: parseInt(val) || 0 }));
-  };
 
   const handleApChange = (tier, val) => {
     setAp(prev => ({ ...prev, [tier]: parseInt(val) || 0 }));
@@ -538,52 +598,89 @@ export default function CalculatorsPage() {
       {/* Content Area */}
       {activeTab === "speedups" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-          <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl relative overflow-hidden">
-            <h2 className="text-white font-bold mb-6 flex items-center gap-2 border-b border-[#1e222b] pb-4">
-              <Timer className="text-indigo-500" size={20} /> Speedup Inventory Matrix
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {Object.keys(speedups).map((tier) => (
-                <div key={tier} className="bg-[#0a0c0f] border border-[#1e222b] p-3 rounded-lg flex flex-col items-center gap-2 group hover:border-indigo-500/40 transition-colors">
-                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{tier} Items</div>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={speedups[tier] || ""}
-                    onChange={(e) => handleSpeedupChange(tier, e.target.value)}
-                    className="w-full text-center bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-2 text-lg focus:border-indigo-500 outline-none"
-                  />
+          <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl flex flex-col shadow-xl relative overflow-hidden h-full">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
+                <div className="flex items-center gap-3">
+                  <Timer className="text-indigo-500" size={20} />
+                  <h2 className="text-white font-bold mb-0 uppercase tracking-widest text-sm">Speedup OCR Scanner</h2>
                 </div>
-              ))}
             </div>
-            <button 
-              onClick={() => setSpeedups({ "1m": 0, "5m": 0, "10m": 0, "15m": 0, "30m": 0, "60m": 0, "3h": 0, "8h": 0, "15h": 0, "24h": 0, "3d": 0, "7d": 0, "30d": 0 })}
-              className="mt-6 text-xs text-rose-500 hover:text-rose-400 font-bold uppercase tracking-wider flex items-center gap-1"
-            >
-              <Trash2 size={12} /> Clear Form
-            </button>
+            <div className="p-6 flex flex-col">
+                <p className="text-gray-500 text-xs mb-6 leading-relaxed font-bold uppercase tracking-widest">
+                    Drop a screenshot of your <span className="text-indigo-400 border border-indigo-400/30 bg-indigo-500/10 px-1 rounded">Resources & Speedups</span> tab to automatically calculate your total speedup pools using AI.
+                </p>
+
+                <div 
+                    onDragOver={(e) => e.preventDefault()} 
+                    onDrop={handleSpeedupDrop}
+                    onClick={() => speedupInputRef.current?.click()}
+                    className="border-2 border-dashed border-[#2d323e] hover:border-indigo-500/50 bg-[#0f1115] rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer mb-8"
+                >
+                    {isSpeedupScanning ? (
+                        <>
+                           <RefreshCw size={32} className="text-indigo-500 animate-spin mb-3" />
+                           <h3 className="text-indigo-400 font-black tracking-widest uppercase text-xs mb-1">Scanning Image...</h3>
+                           <p className="text-indigo-500/50 text-[10px] uppercase font-bold tracking-wider">{speedupStatus}</p>
+                        </>
+                    ) : (
+                        <>
+                           <ImageIcon size={32} className="text-gray-600 mb-3" />
+                           <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">Drag Speedup Screenshot</h3>
+                           <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-2">or click to browse</p>
+                           {speedupStatus && <p className="text-indigo-400 text-[10px] uppercase font-bold tracking-wider">{speedupStatus}</p>}
+                        </>
+                    )}
+                    <input type="file" ref={speedupInputRef} accept="image/*" onChange={(e) => { if (e.target.files?.length) processSpeedupFile(e.target.files[0]); }} hidden />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pb-6">
+                    {Object.entries({ building: 'Building', research: 'Research', training: 'Training', healing: 'Healing', universal: 'Universal' }).map(([key, label]) => (
+                        <div key={key} className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg flex flex-col items-center gap-2 group hover:border-indigo-500/40 transition-colors">
+                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                                {label} (Mins) {key === 'universal' && <Sparkles size={12} className="text-amber-500" />}
+                            </div>
+                            <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={speedupData[key] || ""}
+                                onChange={(e) => handleSpeedupChange(key, e.target.value)}
+                                className="w-full text-center bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-2 text-xl focus:border-indigo-500 outline-none"
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-auto">
+                    <button 
+                      onClick={() => setSpeedupData({ building: 0, research: 0, training: 0, healing: 0, universal: 0 })}
+                      className="w-full py-3 bg-[#1e222b] hover:bg-gray-800 text-rose-500 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Trash2 size={14} /> Clear Form Math
+                    </button>
+                </div>
+            </div>
           </div>
 
-          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-indigo-500 rounded-xl p-6 shadow-xl sticky top-6">
+          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-indigo-500 rounded-xl p-6 shadow-xl sticky top-6 self-start">
             <h2 className="text-indigo-400 font-black text-xl mb-6 uppercase tracking-widest text-center">Total Time Yield</h2>
             <div className="space-y-4">
               <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-5 text-center shadow-[inset_0_0_20px_rgba(99,102,241,0.05)] border-l-4 border-l-indigo-500">
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Standard Display</div>
                 <div className="text-2xl font-black text-white font-mono">
-                  {speedupTotals.days}d {speedupTotals.hours}h {speedupTotals.minutes}m
+                  {speedupTotals.formatted}
                 </div>
               </div>
               <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 text-center">
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total Hours</div>
                 <div className="text-xl font-bold text-gray-300 font-mono">
-                  {(speedupTotals.totalMinutes / 60).toLocaleString(undefined, {maximumFractionDigits: 1})} hrs
+                  {(speedupTotals.total / 60).toLocaleString(undefined, {maximumFractionDigits: 1})} hrs
                 </div>
               </div>
                <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 text-center">
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total Minutes</div>
                 <div className="text-xl font-bold text-gray-300 font-mono">
-                  {speedupTotals.totalMinutes.toLocaleString()} m
+                  {speedupTotals.total.toLocaleString()} m
                 </div>
               </div>
             </div>
