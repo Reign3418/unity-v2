@@ -8,8 +8,8 @@ export async function GET(request) {
         const query = searchParams.get('q'); // name or alliance
 
         // Locate the physical AI Output file on the host machine
-        // Because the bot runs in a completely separate directory parallel to unity-v2
-        const rawPath = path.join(process.cwd(), '../rok-bot-farm/radar_db.json');
+        // Force an absolute localized path specifically for the Experimental Lab
+        const rawPath = "e:\\Unity BU\\rok-bot-farm\\radar_db.json";
         
         if (!fs.existsSync(rawPath)) {
             return NextResponse.json({ success: false, message: 'Radar Database offline. Have you started the autonomous PyTesseract scan sweep?' }, { status: 404 });
