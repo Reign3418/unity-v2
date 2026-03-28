@@ -1685,7 +1685,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         const power = parseInt(powerStr) || 0;
         const kp = parseInt(kpStr) || 0;
         const deads = parseInt(deadsStr) || 0;
-        const tag = p.alliance || p.Alliance || 'None';
+        const tag = p.alliance || p.Alliance || p.ALLIANCE || p['Alliance Tag'] || p['Alliance Name'] || p['alliance Tag'] || 'None';
         
         summaryData.totalPower += power;
         summaryData.totalKP += kp;
