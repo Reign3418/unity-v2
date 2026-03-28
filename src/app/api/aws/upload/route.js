@@ -18,6 +18,8 @@ export async function POST(req) {
     if (!kingdomId || !rosterArray || !Array.isArray(rosterArray) || rosterArray.length === 0) {
       return NextResponse.json({ error: "Corrupted Payload. Missing target Kingdom or Array structures." }, { status: 400 });
     }
+    
+    console.log("[DEBUG] First uploaded row:", JSON.stringify(rosterArray[0]));
 
     // Security Check: Only Leaders can upload data
     if (!session.user.isLeader && !session.user.isSuperAdmin) {

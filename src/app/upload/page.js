@@ -314,11 +314,20 @@ function DropZone({ title, description, icon, theme, optional = false }) {
                  continue; // A valid route is totally mandatory to fire the DB Hooks
             }
 
-            const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); 
-            if (!jsonPayload || jsonPayload.length === 0) continue;
+            const jsonPayloadRaw = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); 
+            if (!jsonPayloadRaw || jsonPayloadRaw.length === 0) continue;
+
+            // SANITIZER ENGINE: Forcibly strip trailing whitespaces from third-party CSV headers (e.g 'Alliance ')
+            const jsonPayload = jsonPayloadRaw.map(row => {
+               const sanitizedRow = {};
+               for (const key in row) {
+                   sanitizedRow[key.trim()] = row[key];
+               }
+               return sanitizedRow;
+            });
 
             // Optional: Filter out empty rows where ID is missing
-            const validPayload = jsonPayload.filter(p => p.id || p.Id || p.ID || p['Governor ID'] || p["Governor ID "] || p[" ID "] || p['Character ID'] || p.CharacterID || p.name || p.NAME || p["Governor Name"] || p.Username || p.username);
+            const validPayload = jsonPayload.filter(p => p.id || p.Id || p.ID || p['Governor ID'] || p['Character ID'] || p.CharacterID || p.name || p.NAME || p["Governor Name"] || p.Username || p.username);
             if (validPayload.length === 0) continue;
 
             setUploadStatus("idle");
