@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Crosshair, Search, ShieldAlert, Fingerprint, MapPin, FileText, Activity, Users, Download, Target, Table } from "lucide-react";
 
 export default function PlayerHunter() {
-  const [activeTab, setActiveTab] = useState("talent"); // "trajectory" or "talent"
+  const [activeTab, setActiveTab] = useState("trajectory"); // "trajectory" or "talent"
 
   // Tab A State (Global Trajectory)
   const [inputText, setInputText] = useState("");
@@ -149,17 +149,6 @@ export default function PlayerHunter() {
       {/* Header Selector Navigation */}
       <div className="flex flex-col md:flex-row gap-4 w-full">
          <button 
-           onClick={() => setActiveTab("talent")}
-           className={`flex-1 py-4 px-6 flex items-center justify-center gap-3 rounded-xl border-2 transition-all font-bold tracking-widest uppercase ${
-             activeTab === "talent" 
-               ? 'bg-fuchsia-500/10 border-fuchsia-500 text-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.15)]' 
-               : 'bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-white hover:bg-white/5'
-           }`}
-         >
-           <Target size={20} /> Talent Acquisition
-         </button>
-         
-         <button 
            onClick={() => setActiveTab("trajectory")}
            className={`flex-1 py-4 px-6 flex items-center justify-center gap-3 rounded-xl border-2 transition-all font-bold tracking-widest uppercase ${
              activeTab === "trajectory" 
@@ -168,6 +157,17 @@ export default function PlayerHunter() {
            }`}
          >
            <Crosshair size={20} /> Identity Trajectory
+         </button>
+
+         <button 
+           onClick={() => setActiveTab("talent")}
+           className={`flex-1 py-4 px-6 flex items-center justify-center gap-3 rounded-xl border-2 transition-all font-bold tracking-widest uppercase ${
+             activeTab === "talent" 
+               ? 'bg-fuchsia-500/10 border-fuchsia-500 text-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.15)]' 
+               : 'bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-white hover:bg-white/5'
+           }`}
+         >
+           <Target size={20} /> Talent Acquisition
          </button>
       </div>
 
