@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { Search, Download, RefreshCw, AlertTriangle, ShieldAlert, Zap, UserMinus, UserPlus } from "lucide-react";
+import { Search, Download, RefreshCw, AlertTriangle, ShieldAlert, Zap, UserMinus, UserPlus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function ActivityTracker() {
   const { data: session } = useSession();
@@ -11,6 +11,7 @@ export default function ActivityTracker() {
 
   const [targetKd, setTargetKd] = useState("3155");
   const [results, setResults] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'rawPower', direction: 'desc' });
 
   useEffect(() => {
     let activeKd = targetKd;
@@ -25,6 +26,31 @@ export default function ActivityTracker() {
         }
     }
   }, [session]);
+
+  const handleSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedResults = useMemo(() => {
+    let sortable = [...results];
+    if (sortConfig.key !== null) {
+      sortable.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortable;
+  }, [results, sortConfig]);
+
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) return <ArrowUpDown size={12} className="opacity-40" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp size={12} className="text-indigo-400" /> : <ArrowDown size={12} className="text-indigo-400" />;
+  };
 
   const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
@@ -67,10 +93,14 @@ export default function ActivityTracker() {
             reason,
             note,
             latestPower: formatNum(gov.power),
+            rawPower: gov.power,
             troopDelta: troopDeltaDisplay,
+            rawDelta: typeof gov.powerDelta === 'number' ? gov.powerDelta : (gov.powerDelta === 'NEW' ? Infinity : -Infinity),
             troopBase: formatShort(gov.power - (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0)),
             troopLatest: formatShort(gov.power),
             cmdBase: `C: ${formatShort(gov.cmdBase)}`,
+            cmdLatest: `C: ${formatShort(gov.commanderPower)}`,
+            rawCmdLatest: gov.commanderPower,
         };
         }).filter(gov => gov.reason !== "Active"); 
         
@@ -157,15 +187,25 @@ export default function ActivityTracker() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#13161c] border-b border-[#1e222b]">
-                  <th className="py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold">Governor</th>
-                  <th className="py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold">Classification</th>
-                  <th className="py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold">Latest Power</th>
-                  <th className="py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold">Troop Trajectory</th>
-                  <th className="py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold">Commander / Gather</th>
+                  <th onClick={() => handleSort('name')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                    <div className="flex items-center gap-2">Governor {renderSortIcon('name')}</div>
+                  </th>
+                  <th onClick={() => handleSort('reason')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                    <div className="flex items-center gap-2">Classification {renderSortIcon('reason')}</div>
+                  </th>
+                  <th onClick={() => handleSort('rawPower')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                    <div className="flex items-center gap-2">Latest Power {renderSortIcon('rawPower')}</div>
+                  </th>
+                  <th onClick={() => handleSort('rawDelta')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                    <div className="flex items-center gap-2">Troop Trajectory {renderSortIcon('rawDelta')}</div>
+                  </th>
+                  <th onClick={() => handleSort('rawCmdLatest')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                    <div className="flex items-center gap-2">Commander / Gather {renderSortIcon('rawCmdLatest')}</div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1e222b]">
-                {results.map((gov) => (
+                {sortedResults.map((gov) => (
                   <tr key={gov.id} className="hover:bg-[#13161c]/50 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="font-bold text-white text-sm">{gov.name}</div>
