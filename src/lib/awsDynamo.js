@@ -1864,11 +1864,11 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         activeGovernors: 0,
         alliances: {},
         topSlices: {
-            '100': { power: 0, kp: 0, elements: 0 },
-            '300': { power: 0, kp: 0, elements: 0 },
-            '400': { power: 0, kp: 0, elements: 0 },
-            '650': { power: 0, kp: 0, elements: 0 },
-            '1000': { power: 0, kp: 0, elements: 0 }
+            '100': { power: 0, kp: 0, deads: 0, elements: 0 },
+            '300': { power: 0, kp: 0, deads: 0, elements: 0 },
+            '400': { power: 0, kp: 0, deads: 0, elements: 0 },
+            '650': { power: 0, kp: 0, deads: 0, elements: 0 },
+            '1000': { power: 0, kp: 0, deads: 0, elements: 0 }
         }
     };
 
@@ -1895,6 +1895,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
             if (index < limit) {
                 summaryData.topSlices[String(limit)].power += power;
                 summaryData.topSlices[String(limit)].kp += kp;
+                summaryData.topSlices[String(limit)].deads += deads;
                 if (power > 0) summaryData.topSlices[String(limit)].elements += 1;
             }
         });
