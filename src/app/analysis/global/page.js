@@ -879,6 +879,8 @@ export default function GlobalAnalysis() {
                                 <td className="px-6 py-4 text-right">
                                     {row.kpGained > 0 ? (
                                         <div className="font-bold text-indigo-400 font-mono tracking-wider">+{formatDeltaNum(row.kpGained)}</div>
+                                    ) : row.kpGained < 0 ? (
+                                        <div className="font-bold text-rose-500/80 font-mono tracking-wider">{formatDeltaNum(row.kpGained)}</div>
                                     ) : (
                                         <div className="font-bold text-gray-500 font-mono tracking-wider">0</div>
                                     )}
@@ -886,6 +888,8 @@ export default function GlobalAnalysis() {
                                 <td className="px-6 py-4 text-right">
                                     {row.deadsGained > 0 ? (
                                         <div className="font-bold text-amber-500 font-mono tracking-wider">+{formatDeltaNum(row.deadsGained)}</div>
+                                    ) : row.deadsGained < 0 ? (
+                                        <div className="font-bold text-rose-500/80 font-mono tracking-wider">{formatDeltaNum(row.deadsGained)}</div>
                                     ) : (
                                         <div className="font-bold text-gray-500 font-mono tracking-wider">0</div>
                                     )}
