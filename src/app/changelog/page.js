@@ -4,6 +4,24 @@ import { BookOpen, Tag, Zap, Shield, CheckCircle2, AlertTriangle, Wrench } from 
 
 const CHANGELOG = [
   {
+    version: "2.2.1",
+    date: "Late March 2026",
+    type: "patch",
+    label: "Global Analytics Patches & Feature Expansion",
+    highlights: [
+      "Secured data integrity globally by permanently fixing Activity Tracker KP drops and missing Dead Troop summaries",
+      "Overhauled the Discord Server commands route handling to properly mount the /bind Farm Siphoning mechanics"
+    ],
+    changes: [
+      { type: "fix", text: "Global Analytics (Delta Engine) — Repaired structural mapping bug where calculating dead troop deltas strictly resolved to zero." },
+      { type: "fix", text: "Activity Tracker Data Normalization — Resolved a case-sensitivity parsing drop from AWS DynamoDB to properly extract kill points." },
+      { type: "fix", text: "Discord Bot Data Retrieval — Corrected an outdated timestamp mapping pattern that inadvertently blocked /jarvis and /stats API queries." },
+      { type: "new", text: "Activity Tracker Wildcards — Upgraded the tracker's dashboard API to permit unbounded cross-kingdom trajectory retrieval." },
+      { type: "new", text: "AWS DynamoDB Retroactive Injection — Executed a master system patch to backfill historically missing 'Deads' metrics directly into the chronological data pools." },
+      { type: "new", text: "Discord Slash Commands — Overhauled the native Discord /help UI embed and fully mounted the Farm Authentication bindings logic." }
+    ]
+  },
+  {
     version: "2.2.0",
     date: "Late March 2026",
     type: "minor",
