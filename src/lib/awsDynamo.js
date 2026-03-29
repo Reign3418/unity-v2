@@ -838,12 +838,12 @@ export async function getMigrationMatrix(kingdomId, startIso, endIso) {
                         id,
                         name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
                         alliance: attrs['Alliance Tag']?.S || 'None',
-                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
-                        killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                        dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
-                        gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
-                        troopPower: parseInt(attrs['Troop Power']?.N || attrs['troopPower']?.N) || 0,
-                        commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commanderPower']?.N || attrs['commander power']?.N) || 0
+                        power: parseInt(attrs['Power']?.N) || parseInt(attrs['power']?.N) || 0,
+                        killPoints: parseInt(attrs['Kill Points']?.N) || parseInt(attrs['killPoints']?.N) || parseInt(attrs['kp']?.N) || parseInt(attrs['kill points']?.N) || 0,
+                        dead: parseInt(attrs['Deads']?.N) || parseInt(attrs['dead']?.N) || 0,
+                        gathered: parseInt(attrs['Resources Gathered']?.N) || parseInt(attrs['gathered']?.N) || 0,
+                        troopPower: parseInt(attrs['Troop Power']?.N) || parseInt(attrs['troopPower']?.N) || 0,
+                        commanderPower: parseInt(attrs['Commander Power']?.N) || parseInt(attrs['commanderPower']?.N) || parseInt(attrs['commander power']?.N) || 0
                     };
                 }
                 lastKey = res.LastEvaluatedKey;
