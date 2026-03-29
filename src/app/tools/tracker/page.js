@@ -44,11 +44,11 @@ export default function ActivityTracker() {
        .then(data => {
            if (data.trends && data.trends.length > 0) {
                setTrends(data.trends);
-               // Growth tab reverse-maps so trends[0] is latest.
+               // Growth tab reverse-maps so index 0 is latest.
                const reversed = [...data.trends].reverse();
-               // Initial auto-select: start = first scan, end = latest scan
-               setStartDate(extractDate(reversed[0].scanDate));
-               setEndDate(extractDate(reversed[reversed.length-1].scanDate));
+               // Initial auto-select: start = 1 scan ago (baseline), end = latest scan
+               setStartDate(extractDate(reversed[1]?.scanDate || reversed[0].scanDate));
+               setEndDate(extractDate(reversed[0].scanDate));
            } else {
                setTrends([]);
            }
@@ -105,8 +105,8 @@ export default function ActivityTracker() {
             note = gov.note;
           }
 
-          const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
-          const formatShort = (num) => num ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
+          const formatNum = (num) => typeof num === 'number' ? Number(num).toLocaleString() : "0";
+          const formatShort = (num) => typeof num === 'number' ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
 
           let troopDeltaDisplay = gov.troopDelta;
           if (typeof gov.troopDelta === 'number') {
@@ -115,12 +115,17 @@ export default function ActivityTracker() {
               troopDeltaDisplay = gov.powerDelta;
           }
 
+          let latestPowerDisplay = formatNum(gov.latestPower || gov.powerRaw);
+          if (reason === "Migrated Out" || reason === "Missing") {
+              latestPowerDisplay = `${formatNum(gov.latestPower)} (Left)`;
+          }
+
           return {
             id: gov.id,
             name: gov.name || "Unknown",
             reason,
             note,
-            latestPower: formatNum(gov.latestPower || gov.powerRaw),
+            latestPower: latestPowerDisplay,
             rawPower: gov.latestPower || gov.powerRaw || 0,
             troopDelta: troopDeltaDisplay,
             rawDelta: typeof gov.powerDelta === 'number' ? gov.powerDelta : (gov.powerDelta === 'NEW' ? Infinity : -Infinity),
@@ -158,7 +163,7 @@ export default function ActivityTracker() {
         return <span className="flex items-center gap-1 text-purple-400 bg-purple-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserMinus size={12}/> Migrated Out</span>;
       case "New":
       case "New Arrival":
-        return <span className="flex items-center gap-1 text-cyan-500 bg-cyan-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserPlus size={12}/> New Arrival</span>;
+        return <span className="flex items-center gap-1 text-cyan-500 bg-cyan-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserPlus size={12}/> Migrated In</span>;
       default:
         return null;
     }
@@ -282,28 +287,28 @@ export default function ActivityTracker() {
                       {gov.latestPower}
                     </td>
                     <td className="py-4 px-6">
-                      {gov.reason === "Missing" || gov.reason === "New" ? (
+                      {gov.reason === "New" ? (
                         <div className="text-gray-600">-</div>
                       ) : (
                         <div>
-                          <div className={`font-mono text-xs font-bold ${gov.rawDelta === 0 ? 'text-gray-500' : 'text-cyan-400'}`}>
+                          <div className={`font-mono text-xs font-bold ${gov.rawDelta === 0 ? 'text-gray-500' : (gov.rawDelta < 0 ? 'text-rose-500' : 'text-cyan-400')}`}>
                             {gov.rawDelta > 0 ? `+${gov.rawDelta.toLocaleString()}` : gov.rawDelta.toLocaleString()}
                           </div>
                           <div className="text-[10px] text-gray-500 mt-1 flex flex-col gap-0.5">
-                            <span>Troop: {gov.troopDelta}</span>
+                            <span className={gov.reason === "Migrated Out" || gov.reason === "Missing" ? "text-rose-500" : ""}>Troop: {gov.troopDelta}</span>
                           </div>
                         </div>
                       )}
                     </td>
                     <td className="py-4 px-6">
-                      {gov.reason === "Missing" || gov.reason === "New" ? (
+                      {gov.reason === "New" ? (
                         <div className="text-gray-600">-</div>
                       ) : (
                         <div>
-                          <div className="font-mono text-xs text-amber-500 font-bold">
+                          <div className={`font-mono text-xs font-bold ${gov.reason === "Migrated Out" || gov.reason === "Missing" ? "text-gray-600" : "text-amber-500"}`}>
                             {gov.kpDelta}
                           </div>
-                          <div className="font-mono text-[10px] text-emerald-500 mt-1">
+                          <div className={`font-mono text-[10px] mt-1 ${gov.reason === "Migrated Out" || gov.reason === "Missing" ? "text-gray-600" : "text-emerald-500"}`}>
                             Harvest: {gov.gatheredDelta}
                           </div>
                         </div>

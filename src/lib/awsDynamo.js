@@ -858,7 +858,18 @@ export async function getMigrationMatrix(kingdomId, startIso, endIso) {
             const endData = endLine[id];
             
             if (!endData) {
-                missingNodes.push({...startData, type: 'MISSING', reason: 'Missing', powerDelta: 'MISSING', kpDelta: 0});
+                missingNodes.push({
+                   ...startData, 
+                   type: 'MISSING', 
+                   reason: 'Missing', 
+                   latestPower: startData.power,
+                   powerDelta: -startData.power, 
+                   troopDelta: -startData.troopPower,
+                   kpDelta: 0,
+                   gatheredDelta: 0,
+                   troopBase: startData.troopPower,
+                   cmdBase: startData.commanderPower
+                });
                 continue;
             }
 
