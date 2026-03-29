@@ -47,12 +47,16 @@ export default function PlayerHunter() {
           
           const rawTimeline = histData.timeline || [];
           const timelineData = rawTimeline.map((scan, i) => ({
-            date: scan.scanDate.replace(/_/g, " "),
+            date: scan.scanDate ? scan.scanDate.replace(/_/g, " ") : "Unknown",
             kingdom: scan.kingdom || lastSeenKingdom,
             power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
             name: scan.name || name,
-            note: i === (rawTimeline.length - 1) ? "Latest Snapshot" : "Historical Record"
-          })).reverse(); 
+            note: "Historical Record"
+          })).sort((a, b) => b.date.localeCompare(a.date)); 
+
+          if (timelineData.length > 0) {
+            timelineData[0].note = "Latest Snapshot";
+          }
 
           const kHistorySet = new Set();
           const aHistorySet = new Set();
