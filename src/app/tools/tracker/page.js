@@ -71,9 +71,8 @@ export default function ActivityTracker() {
             troopBase: formatShort(gov.power - (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0)),
             troopLatest: formatShort(gov.power),
             cmdBase: `C: ${formatShort(gov.cmdBase)}`,
-            cmdLatest: `C: ${formatShort(gov.commanderPower)}`
-          };
-        }).filter(gov => gov.reason !== "Active").slice(0, 100); 
+        };
+        }).filter(gov => gov.reason !== "Active"); 
         
         setResults(mapped);
         setHasResults(true);
