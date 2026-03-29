@@ -36,17 +36,58 @@ export default function ActivityTracker() {
     }
   }, [session]);
 
+  // Load Cached Results on Mount
+  useEffect(() => {
+     try {
+         const cacheStr = localStorage.getItem('unity_tracker_cache');
+         if (cacheStr) {
+             const cache = JSON.parse(cacheStr);
+             if (cache && cache.kd === targetKd && cache.results && cache.results.length > 0) {
+                 setResults(cache.results);
+                 setHasResults(true);
+             }
+         }
+     } catch (e) {
+         console.warn("Failed to load tracker cache", e);
+     }
+  }, [targetKd]);
+
   // Fetch Trends dynamically when KD changes to populate the Date picker dropdowns
   useEffect(() => {
      if (!targetKd) return;
+
+     // Clear visual results immediately if KD doesn't match the cache
+     try {
+         const cacheStr = localStorage.getItem('unity_tracker_cache');
+         if (cacheStr) {
+             const cache = JSON.parse(cacheStr);
+             if (cache.kd !== targetKd) {
+                 setResults([]);
+                 setHasResults(false);
+             }
+         }
+     } catch (e) {}
+
      fetch(`/api/aws/trends?kd=${targetKd}`)
        .then(res => res.json())
        .then(data => {
            if (data.trends && data.trends.length > 0) {
                setTrends(data.trends);
-               // Growth tab reverse-maps so index 0 is latest.
                const reversed = [...data.trends].reverse();
-               // Initial auto-select: start = 1 scan ago (baseline), end = latest scan
+               
+               // Restore dates from cache if valid for this KD, otherwise use latest defaults
+               try {
+                   const cacheStr = localStorage.getItem('unity_tracker_cache');
+                   if (cacheStr) {
+                       const cache = JSON.parse(cacheStr);
+                       if (cache.kd === targetKd && cache.start && cache.end) {
+                           setStartDate(cache.start);
+                           setEndDate(cache.end);
+                           return; // Skip default assignment
+                       }
+                   }
+               } catch(e) {}
+
                setStartDate(extractDate(reversed[1]?.scanDate || reversed[0].scanDate));
                setEndDate(extractDate(reversed[0].scanDate));
            } else {
@@ -141,6 +182,19 @@ export default function ActivityTracker() {
         
         setResults(mapped);
         setHasResults(true);
+
+        // Cache the heavy computation locally to persist across page navigations
+        try {
+            localStorage.setItem('unity_tracker_cache', JSON.stringify({
+                kd: targetKd,
+                start: startDate,
+                end: endDate,
+                results: mapped
+            }));
+        } catch (e) {
+            console.warn("Failed to save tracker cache block size", e);
+        }
+
       }
     } catch (err) {
       console.error(err);
