@@ -71,7 +71,9 @@ export async function getGovernorStats(queryParam) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
-    const exactRegex = new RegExp(`^${queryParam}$`, 'i');
+    const isWildcard = String(queryParam).includes('*');
+    const safeQuery = String(queryParam).replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+    const exactRegex = new RegExp(`^${safeQuery}$`, 'i');
     
     // Optimization 1: If the query is completely numeric, it's a Governor ID. 
     // We can do a direct O(1) Key Query instead of a massive database scan.

@@ -40,56 +40,68 @@ export default function PlayerHunter() {
             return { query, status: 'Not Found', currentStatus: null, timeline: [], kingdomHistory: [], aliasHistory: [] };
           }
           
-          const { id, name, lastSeenKingdom, lastSeenDate } = huntData.result;
-
-          const histRes = await fetch(`/api/aws/history?kd=GLOBAL&id=${id}&days=50&bypassCache=${Date.now()}`);
-          const histData = await histRes.json();
+          const targets = Array.isArray(huntData.result) ? huntData.result : [huntData.result];
           
-          const rawTimeline = histData.timeline || [];
-          const timelineData = rawTimeline.map((scan, i) => ({
-            date: scan.scanDate ? scan.scanDate.replace(/_/g, " ") : "Unknown",
-            kingdom: scan.kingdom || lastSeenKingdom,
-            power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
-            name: scan.name || name,
-            note: "Historical Record"
-          })).sort((a, b) => b.date.localeCompare(a.date)); 
+          const multiPromises = targets.map(async (target) => {
+              const { id, name, lastSeenKingdom, lastSeenDate } = target;
 
-          if (timelineData.length > 0) {
-            timelineData[0].note = "Latest Snapshot";
-          }
+              try {
+                  const histRes = await fetch(`/api/aws/history?kd=GLOBAL&id=${id}&days=50&bypassCache=${Date.now()}`);
+                  const histData = await histRes.json();
+                  
+                  const rawTimeline = histData.timeline || [];
+                  const timelineData = rawTimeline.map((scan) => ({
+                    date: scan.scanDate ? scan.scanDate.replace(/_/g, " ") : "Unknown",
+                    kingdom: scan.kingdom || lastSeenKingdom,
+                    power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
+                    name: scan.name || name,
+                    note: "Historical Record"
+                  })).sort((a, b) => b.date.localeCompare(a.date)); 
 
-          const kHistorySet = new Set();
-          const aHistorySet = new Set();
-          
-          kHistorySet.add(lastSeenKingdom); 
-          aHistorySet.add(name);
+                  if (timelineData.length > 0) {
+                    timelineData[0].note = "Latest Snapshot";
+                  }
 
-          timelineData.forEach(t => {
-            if (t.kingdom) kHistorySet.add(t.kingdom);
-            if (t.name) aHistorySet.add(t.name);
+                  const kHistorySet = new Set();
+                  const aHistorySet = new Set();
+                  
+                  kHistorySet.add(lastSeenKingdom); 
+                  aHistorySet.add(name);
+
+                  timelineData.forEach(t => {
+                    if (t.kingdom) kHistorySet.add(t.kingdom);
+                    if (t.name) aHistorySet.add(t.name);
+                  });
+                  
+                  return {
+                     query,
+                     status: 'Resolved',
+                     id: id,
+                     currentStatus: {
+                       name: timelineData.length > 0 ? timelineData[0].name : name,
+                       kingdom: timelineData.length > 0 ? timelineData[0].kingdom : lastSeenKingdom,
+                       power: timelineData.length > 0 ? timelineData[0].power : "Unverified",
+                       lastDate: timelineData.length > 0 ? timelineData[0].date : (lastSeenDate ? new Date(lastSeenDate).toLocaleDateString() : "Unknown")
+                     },
+                     timeline: timelineData,
+                     kingdomHistory: Array.from(kHistorySet),
+                     aliasHistory: Array.from(aHistorySet)
+                  };
+              } catch (histErr) {
+                  return { query, status: 'Not Found', currentStatus: null, timeline: [], kingdomHistory: [], aliasHistory: [] };
+              }
           });
           
-          return {
-             query,
-             status: 'Resolved',
-             id: id,
-             currentStatus: {
-               name: timelineData.length > 0 ? timelineData[0].name : name,
-               kingdom: timelineData.length > 0 ? timelineData[0].kingdom : lastSeenKingdom,
-               power: timelineData.length > 0 ? timelineData[0].power : "Unverified",
-               lastDate: timelineData.length > 0 ? timelineData[0].date : (lastSeenDate ? new Date(lastSeenDate).toLocaleDateString() : "Unknown")
-             },
-             timeline: timelineData,
-             kingdomHistory: Array.from(kHistorySet),
-             aliasHistory: Array.from(aHistorySet)
-          };
+          const expandedResults = await Promise.all(multiPromises);
+          return expandedResults;
           
         } catch (e) {
-            return { query, status: 'Not Found', currentStatus: null, timeline: [], kingdomHistory: [], aliasHistory: [] };
+            return [{ query, status: 'Not Found', currentStatus: null, timeline: [], kingdomHistory: [], aliasHistory: [] }];
         }
       });
 
-      const finalResults = await Promise.all(fetchPromises);
+      const rawResults = await Promise.all(fetchPromises);
+      const finalResults = rawResults.flat();
       setHunterResults(finalResults);
       setHasResults(true);
     } catch (err) {
