@@ -1,4 +1,4 @@
-import { DynamoDBClient, ScanCommand, QueryCommand, PutItemCommand, UpdateItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, ScanCommand, QueryCommand, PutItemCommand, UpdateItemCommand, GetItemCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
 
 // Initialize the DynamoDB Client
 const dbClient = new DynamoDBClient({
@@ -773,6 +773,188 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
 /**
  * Fetches the historical chronological JSON footprints for a specific Governor
  */
+
+/**
+ * Resolves comprehensive Asleep, Missing, and Migration cross-kingdom paths.
+ */
+export async function getMigrationMatrix(kingdomId, startIso, endIso) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    try {
+        console.log(`[MigrationMatrix] Triggered KD ${kingdomId}: ${startIso || 'LATEST-24'} -> ${endIso || 'LATEST'}`);
+        const dateResult = await dbClient.send(new QueryCommand({
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: { ':pk': { S: `DATES#${kingdomId}` } }
+        }));
+        if (!dateResult.Items || dateResult.Items.length < 2) return [];
+
+        const parseScanDate = (s) => new Date(s.replace(' UTC', 'Z').replace(' ', 'T'));
+        
+        let dates = dateResult.Items
+            .map(i => ({
+                dateKey: i.SK?.S?.replace('DATE#', '').replace('SCAN#', '') || '',
+                scanDate: i.attributes?.M?.scanDate?.S || ''
+            }))
+            .filter(d => d.dateKey && d.scanDate)
+            .sort((a, b) => parseScanDate(a.scanDate) - parseScanDate(b.scanDate));
+
+        let startTarget = null;
+        let endTarget = null;
+
+        if (startIso) {
+           const sI = new Date(startIso).getTime();
+           startTarget = dates.find(d => Math.abs(parseScanDate(d.scanDate).getTime() - sI) < 86400000) || dates[0];
+        } else { 
+           startTarget = dates[dates.length - 2] || dates[0]; 
+        }
+
+        if (endIso) {
+           const eI = new Date(endIso).getTime();
+           endTarget = dates.reverse().find(d => Math.abs(parseScanDate(d.scanDate).getTime() - eI) < 86400000) || dates[dates.length-1];
+        } else { endTarget = dates[dates.length-1]; }
+
+        dates.sort((a, b) => parseScanDate(a.scanDate) - parseScanDate(b.scanDate));
+
+        const fetchSnapshot = async ({ dateKey }) => {
+            const snapshot = {};
+            let lastKey = null;
+            do {
+                const params = {
+                    TableName: tableName,
+                    KeyConditionExpression: 'PK = :pk',
+                    ExpressionAttributeValues: { ':pk': { S: `SCAN#${kingdomId}#${dateKey}` } }
+                };
+                if (lastKey) params.ExclusiveStartKey = lastKey;
+                const res = await dbClient.send(new QueryCommand(params));
+                for (const item of res.Items || []) {
+                    const attrs = item.attributes?.M || {};
+                    const id = attrs['Governor ID']?.S || attrs['id']?.S || item.SK?.S?.replace('GOV#', '') || '';
+                    if (!id) continue;
+                    snapshot[id] = {
+                        id,
+                        name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                        alliance: attrs['Alliance Tag']?.S || 'None',
+                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                        killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                        dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
+                        gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
+                        troopPower: parseInt(attrs['Troop Power']?.N || attrs['troopPower']?.N) || 0,
+                        commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commanderPower']?.N || attrs['commander power']?.N) || 0
+                    };
+                }
+                lastKey = res.LastEvaluatedKey;
+            } while (lastKey);
+            return snapshot;
+        };
+
+        const [startLine, endLine] = await Promise.all([fetchSnapshot(startTarget), fetchSnapshot(endTarget)]);
+        const roster = [];
+        const missingNodes = [];
+        const newNodes = [];
+
+        for (const [id, startData] of Object.entries(startLine)) {
+            const endData = endLine[id];
+            
+            if (!endData) {
+                missingNodes.push({...startData, type: 'MISSING', reason: 'Missing', powerDelta: 'MISSING', kpDelta: 0});
+                continue;
+            }
+
+            const pDiff = endData.power - startData.power;
+            const kpDiff = endData.killPoints - startData.killPoints;
+            const troopDiff = endData.troopPower - startData.troopPower;
+            const gatherDiff = endData.gathered - startData.gathered;
+            const deadsDiff = endData.dead - startData.dead;
+            
+            let reason = "Active";
+            let note = "Normal Growth";
+            
+            if (pDiff === 0 && kpDiff === 0 && gatherDiff === 0) {
+                reason = "Asleep";
+                note = "Absolutely 0 growth detected";
+            } else if (pDiff < 300000 && kpDiff < 100000 && deadsDiff < 10000) {
+                reason = "Low Activity";
+                note = "Minimal engagement metrics";
+            } else {
+                continue; // Do not include Active players in the Activity Engine Tracker (it only filters for Anomalous behavior!)
+            }
+
+            roster.push({
+               id,
+               name: endData.name,
+               alliance: endData.alliance,
+               type: reason,
+               reason,
+               note,
+               latestPower: endData.power,
+               powerDelta: pDiff,
+               kpDelta: kpDiff,
+               deadsDelta: deadsDiff,
+               troopDelta: troopDiff,
+               troopBase: startData.troopPower,
+               troopLatest: endData.troopPower,
+               gatheredDelta: gatherDiff,
+               cmdBase: startData.commanderPower,
+               cmdLatest: endData.commanderPower,
+               powerBase: startData.power
+            });
+        }
+
+        for (const [id, endData] of Object.entries(endLine)) {
+            if (!startLine[id]) {
+                newNodes.push({...endData, type: 'NEW', reason: 'New', note: 'Newly detected arrival', latestPower: endData.power, powerDelta: 'NEW', kpDelta: 0});
+            }
+        }
+
+        const resolveGlobalProfiles = async (nodes, isMissing) => {
+            const BATCH_SIZE = 100;
+            const results = [];
+            for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
+               const chunk = nodes.slice(i, i + BATCH_SIZE);
+               const keys = chunk.map(n => ({ PK: { S: `GOV_PROFILE#${n.id}` }, SK: { S: 'PROFILE' } }));
+               if (keys.length === 0) continue;
+               try {
+                   const batchRes = await dbClient.send(new BatchGetItemCommand({
+                       RequestItems: { [tableName]: { Keys: keys } }
+                   }));
+                   const profiles = batchRes.Responses[tableName] || [];
+                   
+                   for (const node of chunk) {
+                       const pf = profiles.find(p => p.PK.S === `GOV_PROFILE#${node.id}`);
+                       if (pf) {
+                           const attrs = pf.attributes?.M || {};
+                           const globalKd = attrs.lastSeenKingdom?.N || attrs.lastSeenKingdom?.S;
+                           let globalName = attrs.name?.S;
+                           if (!globalName) globalName = attrs.GovernorName?.S || attrs.governorName?.S;
+                           
+                           if (isMissing && globalKd && String(globalKd) !== String(kingdomId)) {
+                               node.reason = "Migrated";
+                               node.type = "MIGRATED_OUT";
+                               node.note = `Migrated to KD ${globalKd}`;
+                               if (globalName && globalName !== node.name) {
+                                   node.note += ` | AKA: ${globalName}`;
+                               }
+                           }
+                       }
+                       results.push(node);
+                   }
+               } catch(e) { console.error("Global Profile Batch Error", e); }
+            }
+            return results;
+        };
+
+        const resolvedMissing = await resolveGlobalProfiles(missingNodes, true);
+        const resolvedNew = await resolveGlobalProfiles(newNodes, false);
+
+        return [...roster, ...resolvedMissing, ...resolvedNew];
+    } catch(e) {
+        console.error("Migration Matrix Error", e);
+        return [];
+    }
+}
+
 export async function getGovernorHistory(kingdomId, governorId, days = 5) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) return [];

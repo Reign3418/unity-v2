@@ -10,8 +10,17 @@ export default function ActivityTracker() {
   const [hasResults, setHasResults] = useState(false);
 
   const [targetKd, setTargetKd] = useState("3155");
+  const [trends, setTrends] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
   const [results, setResults] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'rawPower', direction: 'desc' });
+
+  const extractDate = (dateStr) => {
+      if (!dateStr) return "";
+      return dateStr.split('T')[0].split(' ')[0].split('_')[0];
+  };
 
   useEffect(() => {
     let activeKd = targetKd;
@@ -26,6 +35,25 @@ export default function ActivityTracker() {
         }
     }
   }, [session]);
+
+  // Fetch Trends dynamically when KD changes to populate the Date picker dropdowns
+  useEffect(() => {
+     if (!targetKd) return;
+     fetch(`/api/aws/trends?kd=${targetKd}`)
+       .then(res => res.json())
+       .then(data => {
+           if (data.trends && data.trends.length > 0) {
+               setTrends(data.trends);
+               // Growth tab reverse-maps so trends[0] is latest.
+               const reversed = [...data.trends].reverse();
+               // Initial auto-select: start = first scan, end = latest scan
+               setStartDate(extractDate(reversed[0].scanDate));
+               setEndDate(extractDate(reversed[reversed.length-1].scanDate));
+           } else {
+               setTrends([]);
+           }
+       }).catch(console.error);
+  }, [targetKd]);
 
   const handleSort = (key) => {
     let direction = 'desc';
@@ -57,34 +85,34 @@ export default function ActivityTracker() {
     setHasResults(false);
     
     try {
-      const res = await fetch(`/api/aws/tracker?kd=${targetKd}`);
+      const res = await fetch(`/api/aws/tracker?kd=${targetKd}&start=${startDate}&end=${endDate}`);
       const data = await res.json();
       
       if (data.roster) {
         const mapped = data.roster.map(gov => {
-          let reason = "Active";
-          let note = "Normal Growth";
-          
-          if (gov.powerDelta === 'NEW') {
+          let reason = gov.reason || "Active";
+          let note = gov.note || "Normal Growth";
+
+          // Legacy mapping overrides if API sends reason keys natively
+          if (gov.type === 'NEW') {
             reason = "New";
-            note = "Newly detected arrival";
-          } else if (gov.powerDelta === 'MISSING') {
+            note = gov.note || "Newly detected arrival";
+          } else if (gov.type === 'MISSING') {
             reason = "Missing";
-            note = "Not found in Latest Scan";
-          } else if (gov.powerDelta === 0) {
-            reason = "Zero Growth";
-            note = "No gains since baseline";
-          } else if (gov.powerDelta > 0 && gov.powerDelta < 500000) {
-            reason = "Low Activity";
-            note = "Minimal gains detected";
+            note = gov.note || "Not found in Latest Scan";
+          } else if (gov.type === 'MIGRATED_OUT') {
+            reason = "Migrated Out";
+            note = gov.note;
           }
 
           const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
           const formatShort = (num) => num ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
 
-          let troopDeltaDisplay = gov.powerDelta;
-          if (typeof gov.powerDelta === 'number') {
-              troopDeltaDisplay = gov.powerDelta > 0 ? `+${formatNum(gov.powerDelta)}` : formatNum(gov.powerDelta);
+          let troopDeltaDisplay = gov.troopDelta;
+          if (typeof gov.troopDelta === 'number') {
+              troopDeltaDisplay = gov.troopDelta > 0 ? `+${formatNum(gov.troopDelta)}` : formatNum(gov.troopDelta);
+          } else if (gov.powerDelta === 'NEW' || gov.powerDelta === 'MISSING') {
+              troopDeltaDisplay = gov.powerDelta;
           }
 
           return {
@@ -92,15 +120,17 @@ export default function ActivityTracker() {
             name: gov.name || "Unknown",
             reason,
             note,
-            latestPower: formatNum(gov.power),
-            rawPower: gov.power,
+            latestPower: formatNum(gov.latestPower || gov.powerRaw),
+            rawPower: gov.latestPower || gov.powerRaw || 0,
             troopDelta: troopDeltaDisplay,
             rawDelta: typeof gov.powerDelta === 'number' ? gov.powerDelta : (gov.powerDelta === 'NEW' ? Infinity : -Infinity),
-            troopBase: formatShort(gov.power - (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0)),
-            troopLatest: formatShort(gov.power),
-            cmdBase: `C: ${formatShort(gov.cmdBase)}`,
-            cmdLatest: `C: ${formatShort(gov.commanderPower)}`,
-            rawCmdLatest: gov.commanderPower,
+            troopBase: formatShort(gov.troopBase),
+            troopLatest: formatShort(gov.troopLatest),
+            cmdBase: formatShort(gov.cmdBase),
+            cmdLatest: formatShort(gov.cmdLatest),
+            rawCmdLatest: gov.cmdLatest || 0,
+            gatheredDelta: gov.gatheredDelta > 0 ? `+${formatShort(gov.gatheredDelta)}` : formatShort(gov.gatheredDelta),
+            kpDelta: gov.kpDelta > 0 ? `+${formatNum(gov.kpDelta)}` : formatNum(gov.kpDelta)
         };
         }).filter(gov => gov.reason !== "Active"); 
         
@@ -118,11 +148,16 @@ export default function ActivityTracker() {
     switch (reason) {
       case "Low Activity":
         return <span className="flex items-center gap-1 text-amber-500 bg-amber-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><AlertTriangle size={12}/> Low Activity</span>;
+      case "Asleep":
       case "Zero Growth":
         return <span className="flex items-center gap-1 text-gray-400 bg-gray-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><ShieldAlert size={12}/> Asleep</span>;
       case "Missing":
-        return <span className="flex items-center gap-1 text-rose-500 bg-rose-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserMinus size={12}/> Missing (Migrated)</span>;
+        return <span className="flex items-center gap-1 text-rose-500 bg-rose-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserMinus size={12}/> Missing / Zero</span>;
+      case "Migrated Out":
+      case "Migrated":
+        return <span className="flex items-center gap-1 text-purple-400 bg-purple-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserMinus size={12}/> Migrated Out</span>;
       case "New":
+      case "New Arrival":
         return <span className="flex items-center gap-1 text-cyan-500 bg-cyan-500/10 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider"><UserPlus size={12}/> New Arrival</span>;
       default:
         return null;
@@ -146,9 +181,12 @@ export default function ActivityTracker() {
 
         {/* Control Desk */}
         <div className="flex flex-col sm:flex-row items-end gap-4 bg-[#13161c] p-4 rounded-xl border border-[#1e222b]">
-          <div className="flex-1 w-full">
+          <div className="w-full sm:w-auto">
             <label className="block text-[#64748b] text-[10px] font-bold uppercase tracking-wider mb-2">Target Kingdom</label>
-            <select className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg appearance-none font-bold focus:border-indigo-500 transition-colors cursor-pointer outline-none">
+            <select 
+               value={targetKd}
+               onChange={(e) => setTargetKd(e.target.value)}
+               className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg appearance-none font-bold focus:border-indigo-500 transition-colors cursor-pointer outline-none">
               {session?.user?.tenant?.allowedKingdoms?.map(kd => (
                  <option key={kd} value={kd}>Kingdom {kd}</option>
               ))}
@@ -156,6 +194,38 @@ export default function ActivityTracker() {
                  <option value={targetKd}>Kingdom {targetKd}</option>
               )}
             </select>
+          </div>
+
+          <div className="flex-1 w-full flex items-center gap-2">
+            <div className="flex-1">
+                <label className="block text-[#64748b] text-[10px] font-bold uppercase tracking-wider mb-2">Baseline Start Date</label>
+                <select 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg appearance-none font-bold focus:border-indigo-500 transition-colors cursor-pointer outline-none uppercase tracking-wider"
+                >
+                    <option value="">Start Scan</option>
+                    {[...trends].reverse().map(t => {
+                        const d = extractDate(t.scanDate);
+                        return <option key={`start-${d}`} value={d} className="bg-[#0f1115] text-white py-2">{d}</option>
+                    })}
+                </select>
+            </div>
+            <span className="text-gray-600 px-2 font-black mt-6">-</span>
+            <div className="flex-1">
+                <label className="block text-[#64748b] text-[10px] font-bold uppercase tracking-wider mb-2">Final End Date</label>
+                <select 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg appearance-none font-bold focus:border-indigo-500 transition-colors cursor-pointer outline-none uppercase tracking-wider"
+                >
+                    <option value="">End Scan</option>
+                    {[...trends].reverse().map(t => {
+                        const d = extractDate(t.scanDate);
+                        return <option key={`end-${d}`} value={d} className="bg-[#0f1115] text-white py-2">{d}</option>
+                    })}
+                </select>
+            </div>
           </div>
           
           <button 
@@ -170,13 +240,6 @@ export default function ActivityTracker() {
             {isAnalyzing ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
             {isAnalyzing ? 'Crunching AWS Data...' : 'Run Diagnostics'}
           </button>
-
-          {hasResults && (
-            <button className="w-full sm:w-auto px-6 py-3 bg-[#1e222b] hover:bg-[#2d323e] text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors border border-[#2d323e]">
-              <Download size={18} />
-              Export
-            </button>
-          )}
         </div>
       </div>
 
@@ -187,20 +250,20 @@ export default function ActivityTracker() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#13161c] border-b border-[#1e222b]">
-                  <th onClick={() => handleSort('name')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                  <th onClick={() => handleSort('name')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none whitespace-nowrap">
                     <div className="flex items-center gap-2">Governor {renderSortIcon('name')}</div>
                   </th>
-                  <th onClick={() => handleSort('reason')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                  <th onClick={() => handleSort('reason')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none whitespace-nowrap">
                     <div className="flex items-center gap-2">Classification {renderSortIcon('reason')}</div>
                   </th>
-                  <th onClick={() => handleSort('rawPower')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
+                  <th onClick={() => handleSort('rawPower')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none whitespace-nowrap">
                     <div className="flex items-center gap-2">Latest Power {renderSortIcon('rawPower')}</div>
                   </th>
-                  <th onClick={() => handleSort('rawDelta')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
-                    <div className="flex items-center gap-2">Troop Trajectory {renderSortIcon('rawDelta')}</div>
+                  <th onClick={() => handleSort('rawDelta')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none whitespace-nowrap">
+                    <div className="flex items-center gap-2">Power \ Troop Δ {renderSortIcon('rawDelta')}</div>
                   </th>
-                  <th onClick={() => handleSort('rawCmdLatest')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none">
-                    <div className="flex items-center gap-2">Commander / Gather {renderSortIcon('rawCmdLatest')}</div>
+                  <th onClick={() => handleSort('rawCmdLatest')} className="cursor-pointer hover:text-white transition-colors py-4 px-6 text-[10px] uppercase tracking-wider text-gray-500 font-bold select-none whitespace-nowrap">
+                    <div className="flex items-center gap-2">KP \ Gathered Δ {renderSortIcon('rawCmdLatest')}</div>
                   </th>
                 </tr>
               </thead>
@@ -213,7 +276,7 @@ export default function ActivityTracker() {
                     </td>
                     <td className="py-4 px-6">
                       <div className="mb-1"><StatusBadge reason={gov.reason} /></div>
-                      <div className="text-gray-500 text-xs">{gov.note}</div>
+                      <div className="text-gray-500 text-[10px] font-mono whitespace-nowrap break-words max-w-[200px] overflow-hidden truncate">{gov.note}</div>
                     </td>
                     <td className="py-4 px-6 font-mono font-bold text-white">
                       {gov.latestPower}
@@ -223,12 +286,11 @@ export default function ActivityTracker() {
                         <div className="text-gray-600">-</div>
                       ) : (
                         <div>
-                          <div className={`font-mono text-sm font-bold ${gov.troopDelta === '0' ? 'text-gray-500' : 'text-cyan-400'}`}>
-                            {gov.troopDelta}
+                          <div className={`font-mono text-xs font-bold ${gov.rawDelta === 0 ? 'text-gray-500' : 'text-cyan-400'}`}>
+                            {gov.rawDelta > 0 ? `+${gov.rawDelta.toLocaleString()}` : gov.rawDelta.toLocaleString()}
                           </div>
-                          <div className="text-[10px] text-gray-600 mt-1 flex flex-col gap-0.5">
-                            <span>Base: {gov.troopBase}</span>
-                            <span>Latest: {gov.troopLatest}</span>
+                          <div className="text-[10px] text-gray-500 mt-1 flex flex-col gap-0.5">
+                            <span>Troop: {gov.troopDelta}</span>
                           </div>
                         </div>
                       )}
@@ -238,9 +300,11 @@ export default function ActivityTracker() {
                         <div className="text-gray-600">-</div>
                       ) : (
                         <div>
-                          <div className="font-mono text-[10px] text-gray-400 mt-1 flex flex-col gap-0.5">
-                            <span className="text-gray-500">Base {gov.cmdBase}</span>
-                            <span className="text-white">Late {gov.cmdLatest}</span>
+                          <div className="font-mono text-xs text-amber-500 font-bold">
+                            {gov.kpDelta}
+                          </div>
+                          <div className="font-mono text-[10px] text-emerald-500 mt-1">
+                            Harvest: {gov.gatheredDelta}
                           </div>
                         </div>
                       )}
@@ -252,8 +316,8 @@ export default function ActivityTracker() {
           </div>
           
           <div className="p-4 bg-[#0a0c0f] border-t border-[#1e222b] text-center text-xs text-gray-500 flex items-center justify-between px-6">
-            <span>Showing {results.length} anomalies detected from the live AWS data stream.</span>
-            <span className="text-indigo-500 font-bold">AWS Synchronization Active</span>
+            <span>Showing {results.length} anomalies tracked between {startDate || 'Auto'} and {endDate || 'Auto'}</span>
+            <span className="text-indigo-500 font-bold">AWS Historical Sync Active</span>
           </div>
         </div>
       )}

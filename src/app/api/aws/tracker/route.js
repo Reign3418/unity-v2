@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getKingdomDeltas } from "@/lib/awsDynamo";
+import { getMigrationMatrix } from "@/lib/awsDynamo";
 
 export async function GET(req) {
   try {
@@ -10,9 +10,11 @@ export async function GET(req) {
       return NextResponse.json({ error: "Unauthorized. Please log in first." }, { status: 401 });
     }
 
-    // 2. Extract Kingdom ID Parameter
+    // 2. Extract Kingdom ID and Timeline Parameters
     const { searchParams } = new URL(req.url);
     const kingdomId = searchParams.get('kd');
+    const startIso = searchParams.get('start');
+    const endIso = searchParams.get('end');
 
     if (!kingdomId) {
       return NextResponse.json({ error: "Missing 'kd' (Kingdom ID) parameter." }, { status: 400 });
@@ -22,8 +24,8 @@ export async function GET(req) {
         return NextResponse.json({ error: "Access Denied. Cross-Kingdom requests are strictly prohibited by your clearance level." }, { status: 403 });
     }
 
-    // 3. Execute DynamoDB Advanced Differencing Engine
-    const deltaData = await getKingdomDeltas(kingdomId);
+    // 3. Execute DynamoDB Advanced Historical Engine
+    const deltaData = await getMigrationMatrix(kingdomId, startIso, endIso);
 
     return NextResponse.json({ roster: deltaData }, { status: 200 });
 
