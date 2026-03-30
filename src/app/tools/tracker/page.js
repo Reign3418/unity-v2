@@ -16,6 +16,13 @@ export default function ActivityTracker() {
   
   const [results, setResults] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'rawPower', direction: 'desc' });
+  const [filters, setFilters] = useState({
+    lowActivity: true,
+    asleep: true,
+    missing: true,
+    migratedOut: true,
+    newArrival: true
+  });
 
   const extractDate = (dateStr) => {
       if (!dateStr) return "";
@@ -105,7 +112,15 @@ export default function ActivityTracker() {
   };
 
   const sortedResults = useMemo(() => {
-    let sortable = [...results];
+    let sortable = results.filter(gov => {
+      if (gov.reason === "Low Activity" && !filters.lowActivity) return false;
+      if ((gov.reason === "Asleep" || gov.reason === "Zero Growth") && !filters.asleep) return false;
+      if (gov.reason === "Missing" && !filters.missing) return false;
+      if ((gov.reason === "Migrated Out" || gov.reason === "Migrated") && !filters.migratedOut) return false;
+      if ((gov.reason === "New" || gov.reason === "New Arrival") && !filters.newArrival) return false;
+      return true;
+    });
+
     if (sortConfig.key !== null) {
       sortable.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -114,7 +129,7 @@ export default function ActivityTracker() {
       });
     }
     return sortable;
-  }, [results, sortConfig]);
+  }, [results, sortConfig, filters]);
 
   const renderSortIcon = (key) => {
     if (sortConfig.key !== key) return <ArrowUpDown size={12} className="opacity-40" />;
@@ -299,6 +314,30 @@ export default function ActivityTracker() {
             {isAnalyzing ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
             {isAnalyzing ? 'Crunching AWS Data...' : 'Run Diagnostics'}
           </button>
+        </div>
+
+        {/* Visibility Filters */}
+        <div className="flex flex-wrap items-center gap-6 mt-6 px-2">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" checked={filters.lowActivity} onChange={(e) => setFilters({...filters, lowActivity: e.target.checked})} className="accent-amber-500 w-4 h-4 rounded border-[#1e222b] cursor-pointer" />
+            <span className="text-xs text-amber-500/80 group-hover:text-amber-500 transition-colors font-bold uppercase tracking-wider flex items-center gap-1"><AlertTriangle size={12}/> Low Activity</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" checked={filters.asleep} onChange={(e) => setFilters({...filters, asleep: e.target.checked})} className="accent-gray-400 w-4 h-4 rounded border-[#1e222b] cursor-pointer" />
+            <span className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors font-bold uppercase tracking-wider flex items-center gap-1"><ShieldAlert size={12}/> Asleep / Zero Growth</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" checked={filters.missing} onChange={(e) => setFilters({...filters, missing: e.target.checked})} className="accent-rose-500 w-4 h-4 rounded border-[#1e222b] cursor-pointer" />
+            <span className="text-xs text-rose-500/80 group-hover:text-rose-500 transition-colors font-bold uppercase tracking-wider flex items-center gap-1"><UserMinus size={12}/> Missing</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" checked={filters.migratedOut} onChange={(e) => setFilters({...filters, migratedOut: e.target.checked})} className="accent-purple-500 w-4 h-4 rounded border-[#1e222b] cursor-pointer" />
+            <span className="text-xs text-purple-400/80 group-hover:text-purple-400 transition-colors font-bold uppercase tracking-wider flex items-center gap-1"><UserMinus size={12}/> Migrated Out</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" checked={filters.newArrival} onChange={(e) => setFilters({...filters, newArrival: e.target.checked})} className="accent-cyan-500 w-4 h-4 rounded border-[#1e222b] cursor-pointer" />
+            <span className="text-xs text-cyan-500/80 group-hover:text-cyan-500 transition-colors font-bold uppercase tracking-wider flex items-center gap-1"><UserPlus size={12}/> New Arrival</span>
+          </label>
         </div>
       </div>
 
