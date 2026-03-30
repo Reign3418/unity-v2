@@ -55,6 +55,7 @@ export default function PlayerHunter() {
                     kingdom: scan.kingdom || lastSeenKingdom,
                     power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
                     name: scan.name || name,
+                    alliance: scan.alliance && scan.alliance !== "None" ? scan.alliance : null,
                     note: "Historical Record"
                   })).sort((a, b) => b.date.localeCompare(a.date)); 
 
@@ -447,7 +448,13 @@ export default function PlayerHunter() {
                                     </div>
                                     <div className="grid grid-cols-3 gap-6 flex-1 text-sm">
                                        <div className="flex items-center gap-2"><span className="text-gray-500">KD:</span> <span className="text-white font-mono font-bold">{event.kingdom}</span></div>
-                                       <div className="flex items-center gap-2 truncate"><span className="text-gray-500">Alias:</span> <span className="text-white font-bold truncate">{event.name}</span></div>
+                                       <div className="flex items-center gap-2 truncate">
+                                          <span className="text-gray-500">Alias:</span> 
+                                          <span className="text-white font-bold truncate">
+                                            {event.alliance && <span className="text-cyan-500/80 mr-1 opacity-80">[{event.alliance}]</span>}
+                                            {event.name}
+                                          </span>
+                                       </div>
                                        <div className="flex items-center gap-2"><span className="text-gray-500">Pwr:</span> <span className="text-cyan-400 font-mono font-bold">{event.power}</span></div>
                                     </div>
                                  </div>
