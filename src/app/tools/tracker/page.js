@@ -131,6 +131,24 @@ export default function ActivityTracker() {
     return sortable;
   }, [results, sortConfig, filters]);
 
+  const powerRollup = useMemo(() => {
+    let migratedOut = 0;
+    let missing = 0;
+    let newArrivals = 0;
+    let asleep = 0;
+    let lowActivity = 0;
+
+    results.forEach(gov => {
+       if (gov.reason === "Migrated Out" || gov.reason === "Migrated") migratedOut += gov.rawPower;
+       else if (gov.reason === "Missing") missing += gov.rawPower;
+       else if (gov.reason === "New" || gov.reason === "New Arrival") newArrivals += gov.rawPower;
+       else if (gov.reason === "Asleep" || gov.reason === "Zero Growth") asleep += gov.rawDelta;
+       else if (gov.reason === "Low Activity") lowActivity += gov.rawDelta;
+    });
+
+    return { migratedOut: -migratedOut, missing: -missing, newArrivals, asleep, lowActivity };
+  }, [results]);
+
   const renderSortIcon = (key) => {
     if (sortConfig.key !== key) return <ArrowUpDown size={12} className="opacity-40" />;
     return sortConfig.direction === 'asc' ? <ArrowUp size={12} className="text-indigo-400" /> : <ArrowDown size={12} className="text-indigo-400" />;
@@ -340,6 +358,32 @@ export default function ActivityTracker() {
           </label>
         </div>
       </div>
+
+      {/* Power Flow Rollup */}
+      {hasResults && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-2 animate-fade-in">
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest flex items-center gap-1"><AlertTriangle size={12}/> Low Activity Δ</span>
+            <span className={`text-lg font-mono font-bold mt-2 truncate ${powerRollup.lowActivity >= 0 ? 'text-amber-400' : 'text-rose-500'}`} title={powerRollup.lowActivity.toLocaleString()}>{powerRollup.lowActivity > 0 ? '+' : ''}{powerRollup.lowActivity.toLocaleString()}</span>
+          </div>
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1"><ShieldAlert size={12}/> Asleep Δ</span>
+            <span className={`text-lg font-mono font-bold mt-2 truncate ${powerRollup.asleep >= 0 ? 'text-gray-400' : 'text-rose-500'}`} title={powerRollup.asleep.toLocaleString()}>{powerRollup.asleep > 0 ? '+' : ''}{powerRollup.asleep.toLocaleString()}</span>
+          </div>
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] text-rose-500 font-bold uppercase tracking-widest flex items-center gap-1"><UserMinus size={12}/> Missing (Lost)</span>
+            <span className="text-lg font-mono font-bold mt-2 text-rose-500 truncate" title={powerRollup.missing.toLocaleString()}>{powerRollup.missing.toLocaleString()}</span>
+          </div>
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest flex items-center gap-1"><UserMinus size={12}/> Migrated Out</span>
+            <span className="text-lg font-mono font-bold mt-2 text-rose-500 truncate" title={powerRollup.migratedOut.toLocaleString()}>{powerRollup.migratedOut.toLocaleString()}</span>
+          </div>
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest flex items-center gap-1"><UserPlus size={12}/> New Inbounds</span>
+            <span className="text-lg font-mono font-bold mt-2 text-cyan-400 truncate" title={powerRollup.newArrivals.toLocaleString()}>+{powerRollup.newArrivals.toLocaleString()}</span>
+          </div>
+        </div>
+      )}
 
       {/* Results Table View */}
       {hasResults && (
