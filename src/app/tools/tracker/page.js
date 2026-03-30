@@ -132,21 +132,32 @@ export default function ActivityTracker() {
   }, [results, sortConfig, filters]);
 
   const powerRollup = useMemo(() => {
-    let migratedOut = 0;
-    let missing = 0;
-    let newArrivals = 0;
-    let asleep = 0;
-    let lowActivity = 0;
+    let migratedOut = { p: 0, kp: 0 };
+    let missing = { p: 0, kp: 0 };
+    let newArrivals = { p: 0, kp: 0 };
+    let asleep = { p: 0, kp: 0 };
+    let lowActivity = { p: 0, kp: 0 };
 
     results.forEach(gov => {
-       if (gov.reason === "Migrated Out" || gov.reason === "Migrated") migratedOut += gov.rawPower;
-       else if (gov.reason === "Missing") missing += gov.rawPower;
-       else if (gov.reason === "New" || gov.reason === "New Arrival") newArrivals += gov.rawPower;
-       else if (gov.reason === "Asleep" || gov.reason === "Zero Growth") asleep += gov.rawDelta;
-       else if (gov.reason === "Low Activity") lowActivity += gov.rawDelta;
+       if (gov.reason === "Migrated Out" || gov.reason === "Migrated") {
+         migratedOut.p += gov.rawPower;
+         migratedOut.kp += gov.rawCmdLatest;
+       } else if (gov.reason === "Missing") {
+         missing.p += gov.rawPower;
+         missing.kp += gov.rawCmdLatest;
+       } else if (gov.reason === "New" || gov.reason === "New Arrival") {
+         newArrivals.p += gov.rawPower;
+         newArrivals.kp += gov.rawCmdLatest;
+       } else if (gov.reason === "Asleep" || gov.reason === "Zero Growth") {
+         asleep.p += gov.rawPower;
+         asleep.kp += gov.rawCmdLatest;
+       } else if (gov.reason === "Low Activity") {
+         lowActivity.p += gov.rawPower;
+         lowActivity.kp += gov.rawCmdLatest;
+       }
     });
 
-    return { migratedOut: -migratedOut, missing: -missing, newArrivals, asleep, lowActivity };
+    return { migratedOut, missing, newArrivals, asleep, lowActivity };
   }, [results]);
 
   const renderSortIcon = (key) => {
@@ -361,27 +372,42 @@ export default function ActivityTracker() {
 
       {/* Power Flow Rollup */}
       {hasResults && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-2 animate-fade-in">
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
-            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest flex items-center gap-1"><AlertTriangle size={12}/> Low Activity Δ</span>
-            <span className={`text-lg font-mono font-bold mt-2 truncate ${powerRollup.lowActivity >= 0 ? 'text-amber-400' : 'text-rose-500'}`} title={powerRollup.lowActivity.toLocaleString()}>{powerRollup.lowActivity > 0 ? '+' : ''}{powerRollup.lowActivity.toLocaleString()}</span>
+        <div className="flex flex-wrap gap-4 mb-2 animate-fade-in w-full px-2 mt-4">
+          {filters.lowActivity && (
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col shadow-lg flex-1 min-w-[200px]">
+             <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest flex items-center gap-1 mb-2"><AlertTriangle size={12}/> Low Activity Total</span>
+             <span className="text-lg font-mono font-bold text-amber-500 truncate" title={powerRollup.lowActivity.p.toLocaleString()}>{powerRollup.lowActivity.p.toLocaleString()}</span>
+             <span className="text-xs font-mono text-amber-500/60 mt-1 truncate">KP: {powerRollup.lowActivity.kp.toLocaleString()}</span>
           </div>
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1"><ShieldAlert size={12}/> Asleep Δ</span>
-            <span className={`text-lg font-mono font-bold mt-2 truncate ${powerRollup.asleep >= 0 ? 'text-gray-400' : 'text-rose-500'}`} title={powerRollup.asleep.toLocaleString()}>{powerRollup.asleep > 0 ? '+' : ''}{powerRollup.asleep.toLocaleString()}</span>
+          )}
+          {filters.asleep && (
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col shadow-lg flex-1 min-w-[200px]">
+             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1 mb-2"><ShieldAlert size={12}/> Asleep Total</span>
+             <span className="text-lg font-mono font-bold text-gray-400 truncate" title={powerRollup.asleep.p.toLocaleString()}>{powerRollup.asleep.p.toLocaleString()}</span>
+             <span className="text-xs font-mono text-gray-400/60 mt-1 truncate">KP: {powerRollup.asleep.kp.toLocaleString()}</span>
           </div>
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
-            <span className="text-[10px] text-rose-500 font-bold uppercase tracking-widest flex items-center gap-1"><UserMinus size={12}/> Missing (Lost)</span>
-            <span className="text-lg font-mono font-bold mt-2 text-rose-500 truncate" title={powerRollup.missing.toLocaleString()}>{powerRollup.missing.toLocaleString()}</span>
+          )}
+          {filters.missing && (
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col shadow-lg flex-1 min-w-[200px]">
+             <span className="text-[10px] text-rose-500 font-bold uppercase tracking-widest flex items-center gap-1 mb-2"><UserMinus size={12}/> Missing (Lost)</span>
+             <span className="text-lg font-mono font-bold text-rose-500 truncate" title={powerRollup.missing.p.toLocaleString()}>-{powerRollup.missing.p.toLocaleString()}</span>
+             <span className="text-xs font-mono text-rose-500/80 mt-1 truncate">KP: -{powerRollup.missing.kp.toLocaleString()}</span>
           </div>
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
-            <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest flex items-center gap-1"><UserMinus size={12}/> Migrated Out</span>
-            <span className="text-lg font-mono font-bold mt-2 text-rose-500 truncate" title={powerRollup.migratedOut.toLocaleString()}>{powerRollup.migratedOut.toLocaleString()}</span>
+          )}
+          {filters.migratedOut && (
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col shadow-lg flex-1 min-w-[200px]">
+             <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest flex items-center gap-1 mb-2"><UserMinus size={12}/> Migrated Out</span>
+             <span className="text-lg font-mono font-bold text-purple-400 truncate" title={powerRollup.migratedOut.p.toLocaleString()}>-{powerRollup.migratedOut.p.toLocaleString()}</span>
+             <span className="text-xs font-mono text-purple-400/80 mt-1 truncate">KP: -{powerRollup.migratedOut.kp.toLocaleString()}</span>
           </div>
-          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-lg">
-            <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest flex items-center gap-1"><UserPlus size={12}/> New Inbounds</span>
-            <span className="text-lg font-mono font-bold mt-2 text-cyan-400 truncate" title={powerRollup.newArrivals.toLocaleString()}>+{powerRollup.newArrivals.toLocaleString()}</span>
+          )}
+          {filters.newArrival && (
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex flex-col shadow-lg flex-1 min-w-[200px]">
+             <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest flex items-center gap-1 mb-2"><UserPlus size={12}/> New Inbounds</span>
+             <span className="text-lg font-mono font-bold text-cyan-500 truncate" title={powerRollup.newArrivals.p.toLocaleString()}>+{powerRollup.newArrivals.p.toLocaleString()}</span>
+             <span className="text-xs font-mono text-cyan-500/80 mt-1 truncate">KP: +{powerRollup.newArrivals.kp.toLocaleString()}</span>
           </div>
+          )}
         </div>
       )}
 
