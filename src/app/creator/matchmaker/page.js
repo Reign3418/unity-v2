@@ -30,9 +30,20 @@ export default function Matchmaker() {
         setIsScanning(true);
 
         try {
+            let customGeminiKey = "";
+            if (typeof window !== 'undefined') {
+                try {
+                    const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
+                    customGeminiKey = prefs.geminiKey || "";
+                } catch(e) {}
+            }
+
             const res = await fetch("/api/aws/matchmaker", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                },
                 body: JSON.stringify({ kingdoms, timeframeDays: timeframe })
             });
             const data = await res.json();
