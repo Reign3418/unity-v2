@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGovernorStats } from "@/lib/awsDynamo";
+import { logEvent } from "@/lib/eventLogger";
 
 export async function GET(req) {
   try {
@@ -20,6 +21,12 @@ export async function GET(req) {
 
     // 3. Execute DynamoDB Global Search
     const hunterData = await getGovernorStats(queryParam);
+
+    // Fire-and-forget event log
+    logEvent('HUNTER_SEARCH', { query: queryParam, resultsCount: hunterData?.length || 0 }, {
+        userEmail: session?.user?.email || 'anonymous',
+        userAgent: req.headers.get('user-agent') || '',
+    });
 
     return NextResponse.json({ result: hunterData }, { status: 200 });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getMigrationMatrix } from "@/lib/awsDynamo";
+import { logEvent } from "@/lib/eventLogger";
 
 export async function GET(req) {
   try {
@@ -26,6 +27,12 @@ export async function GET(req) {
 
     // 3. Execute DynamoDB Advanced Historical Engine
     const deltaData = await getMigrationMatrix(kingdomId, startIso, endIso);
+
+    // Fire-and-forget event log
+    logEvent('TRACKER_SCAN', { kingdomId, startIso, endIso, resultsCount: deltaData?.length || 0 }, {
+        userEmail: session?.user?.email || 'anonymous',
+        userAgent: req.headers.get('user-agent') || '',
+    });
 
     return NextResponse.json({ roster: deltaData }, { status: 200 });
 

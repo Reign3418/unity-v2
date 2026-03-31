@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGlobalConfig, getAdvancedKingdomDeltas } from "@/lib/awsDynamo";
+import { logEvent } from "@/lib/eventLogger";
 
 export const maxDuration = 60; // Vercel: extend function timeout to 60s for multi-kingdom AWS queries
 
@@ -110,6 +111,16 @@ export async function POST(req) {
         if (kdDataArr.length === 0) {
             return NextResponse.json({ error: "Failed to locate actionable historical data for the requested kingdoms." }, { status: 404 });
         }
+
+        // Fire-and-forget event log — never awaited so it adds zero latency
+        logEvent('MATCHMAKER_SCAN', {
+            kingdoms: limitedKingdoms,
+            timeframeDays,
+            kingdomCount: kdDataArr.length,
+        }, {
+            userEmail: session?.user?.email || 'anonymous',
+            userAgent: req.headers.get('user-agent') || '',
+        });
 
         const prompt = `You are a military migration analyst for Rise of Kingdoms.
 Review the following aggregated economic and growth data for multiple kingdoms. Your goal is to single out the ONE BEST kingdom for migration based strictly on signs of high economic activity and heavy player spending.
