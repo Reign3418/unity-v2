@@ -20,7 +20,10 @@ export async function POST(req) {
 
         const apiKey = req.headers.get('x-gemini-key') || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) {
-            return NextResponse.json({ error: "Server Configuration Error: Vision Key Missing." }, { status: 500 });
+            return NextResponse.json({ 
+                error: "Server Configuration Error: Vision Key Missing.",
+                debug: `header=${!!req.headers.get('x-gemini-key')}, env=${!!process.env.GEMINI_API_KEY}`
+            }, { status: 500 });
         }
 
         // Aggregate statistics per kingdom
@@ -161,6 +164,9 @@ ${JSON.stringify(kdDataArr, null, 2)}`;
 
     } catch (error) {
         console.error("[Matchmaker API] Error:", error);
-        return NextResponse.json({ error: "Internal Server Fault during Matchmaker routine." }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Internal Server Fault during Matchmaker routine.",
+            debug: error?.message || String(error)
+        }, { status: 500 });
     }
 }
