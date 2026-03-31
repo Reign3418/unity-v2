@@ -26,7 +26,8 @@ export async function POST(req) {
 
         const apiKey = req.headers.get('x-gemini-key') || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) {
-            return NextResponse.json({ error: "Server Configuration Error: GEMINI_API_KEY is completely isolated from Vercel Edge, LocalStorage, and the Master AWS Database." }, { status: 500 });
+            const diags = `[Header: ${!!req.headers.get('x-gemini-key')}] [Env: ${!!process.env.GEMINI_API_KEY}] [Fallback: ${process.env.GOOGLE_VISION_API_KEY ? 'Yes' : 'No'}]`;
+            return NextResponse.json({ error: `Server Configuration Error: Vision Key Missing. Details: ${diags}` }, { status: 500 });
         }
 
         const prompt = `This is an overhead satellite screenshot of a Kingdom Map from Rise of Kingdoms. 

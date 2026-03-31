@@ -968,6 +968,136 @@ export async function getMigrationMatrix(kingdomId, startIso, endIso) {
     }
 }
 
+/**
+ * Advanced AI Engine: Fetches the latest AWS Scan for a Kingdom and performs a chronological mapping
+ * differential against a scan from `timeframeHours` ago.
+ */
+export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+
+    try {
+        const dateParams = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: { ':pk': { S: `DATES#${kingdomId}` } }
+        };
+
+        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+
+        if (!dateResult.Items || dateResult.Items.length < 2) {
+            return await getKingdomRoster(kingdomId);
+        }
+
+        const dates = dateResult.Items.map(i => {
+           const attrs = i.attributes?.M || {};
+           let summaryObj = {};
+           try { summaryObj = JSON.parse(attrs.summary?.S || "{}"); } catch(e){}
+           return {
+               sk: i.SK.S,
+               scanDate: attrs.scanDate?.S,
+               scanType: summaryObj.scanType || 'Full'
+           };
+        }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
+
+        const latestParsed = new Date(dates[0].scanDate);
+        const targetTime = latestParsed.getTime() - (timeframeHours * 60 * 60 * 1000);
+        const latestType = dates[0].scanType;
+
+        let bestMatchIndex = -1;
+        let smallestDiff = Infinity;
+
+        // Find the scan that is closest to `targetTime`
+        for (let i = 1; i < dates.length; i++) {
+            if (dates[i].scanType !== latestType) continue; 
+            
+            const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
+            if (timeDiff < smallestDiff) {
+                smallestDiff = timeDiff;
+                bestMatchIndex = i;
+            }
+        }
+
+        if (bestMatchIndex === -1) {
+            return await getKingdomRoster(kingdomId);
+        }
+
+        const latestDateKey = dates[0].sk.replace('SCAN#', '').replace('DATE#', '');
+        const previousDateKey = dates[bestMatchIndex].sk.replace('SCAN#', '').replace('DATE#', '');
+
+        const getSnapshot = async (dateStr) => {
+            const params = {
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk',
+                ExpressionAttributeValues: { ':pk': { S: `SCAN#${kingdomId}#${dateStr}` } }
+            };
+            const snapshot = {};
+            let lastEvaluatedKey = null;
+            do {
+                if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+                const result = await dbClient.send(new QueryCommand(params));
+                if (result.Items) {
+                    for (const item of result.Items) {
+                        const attrs = item.attributes?.M || {};
+                        const id = attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', '');
+                        snapshot[id] = {
+                            name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                            alliance: attrs['Alliance Tag']?.S || 'None',
+                            power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                            killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                            techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
+                            commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
+                            buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0,
+                        };
+                    }
+                }
+                lastEvaluatedKey = result.LastEvaluatedKey;
+            } while (lastEvaluatedKey);
+            return snapshot;
+        };
+
+        const [latestSnap, prevSnap] = await Promise.all([
+            getSnapshot(latestDateKey),
+            getSnapshot(previousDateKey)
+        ]);
+
+        const roster = [];
+
+        // 1. Existing and Migrated In Players
+        for (const [id, latestData] of Object.entries(latestSnap)) {
+            const prevData = prevSnap[id];
+
+            let powerDelta = prevData ? (latestData.power - prevData.power) : 'NEW';
+            let kpDelta = prevData ? (latestData.killPoints - prevData.killPoints) : 'NEW';
+
+            roster.push({
+                ...latestData,
+                id,
+                powerDelta,
+                kpDelta
+            });
+        }
+
+        // 2. Missing/Migrated Out Players
+        for (const [id, prevData] of Object.entries(prevSnap)) {
+            if (!latestSnap[id]) {
+                roster.push({
+                    ...prevData,
+                    id,
+                    powerDelta: 'MISSING',
+                    kpDelta: 'MISSING',
+                    missingBasePower: prevData.power
+                });
+            }
+        }
+
+        return roster;
+    } catch (e) {
+        console.error("AWS Temporal Matchmaker Error", e);
+        return [];
+    }
+}
+
 export async function getGovernorHistory(kingdomId, governorId, days = 5) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) return [];

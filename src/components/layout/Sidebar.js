@@ -7,7 +7,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -81,6 +81,7 @@ export default function Sidebar() {
                   <SectionTitle>Creator Studio</SectionTitle>
                   <NavItem href="/creator/sandbox" icon={Database} label="Data Sandbox" />
                   <NavItem href="/creator/lab" icon={FlaskConical} label="Experimental Lab" />
+                  <NavItem href="/creator/matchmaker" icon={Target} label="AI Matchmaker" />
               </>
           )}
 
