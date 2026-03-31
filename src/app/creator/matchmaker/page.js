@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { Target, Activity, Zap, TrendingUp, Trophy, AlertTriangle, Crosshair, Clock, Shield, Users } from "lucide-react";
 
+const Tooltip = ({ children, tip }) => (
+    <span className="relative group/tip inline-flex items-center gap-1 cursor-help">
+        <span className="border-b border-dotted border-gray-600">{children}</span>
+        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 bg-[#1a1d26] border border-[#2a3040] text-gray-300 text-[10px] leading-relaxed rounded-xl px-3 py-2.5 shadow-2xl opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150">
+            {tip}
+            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#2a3040]" />
+        </span>
+    </span>
+);
+
 export default function Matchmaker() {
     const [targetKds, setTargetKds] = useState("");
     const [timeframe, setTimeframe] = useState("30");
@@ -153,42 +163,60 @@ export default function Matchmaker() {
                                     </div>
                                     <div className="bg-[#0f1115] p-4 space-y-2 text-xs font-mono">
                                         <div className="flex justify-between items-center py-2 border-b border-[#1e222b]">
-                                            <span className="text-gray-500 text-[10px] uppercase tracking-wider">Power Δ Overall</span>
+                                            <Tooltip tip="Net power change across all top 300 players. New recruits count as +power; exiting players count as -power. High growth = active spenders driving the kingdom forward.">
+                                                <span className="text-gray-500 text-[10px] uppercase tracking-wider">Power Δ Overall</span>
+                                            </Tooltip>
                                             <span className={`font-bold text-sm ${(kdSt.growthMetrics?.powerDeltaOverall || 0) >= 0 ? 'text-green-400' : 'text-rose-400'}`}>
                                                 {(kdSt.growthMetrics?.powerDeltaOverall || 0) >= 0 ? '+' : ''}{(kdSt.growthMetrics?.powerDeltaOverall || 0).toLocaleString()}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center px-1 py-1">
-                                            <span className="text-gray-600">Tech Power</span>
+                                            <Tooltip tip="Total technology research power of the Top 300. High tech power signals an organized kingdom that invests in permanent kingdom-wide upgrades.">
+                                                <span className="text-gray-600">Tech Power</span>
+                                            </Tooltip>
                                             <span className="text-cyan-400 font-bold">{(kdSt.growthMetrics?.totalTechPower || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between items-center px-1 py-1">
-                                            <span className="text-gray-600">Commander Power</span>
+                                            <Tooltip tip="Total commander star/skill power across the Top 300. Leveling commanders is gem-intensive — high values confirm players are actively spending.">
+                                                <span className="text-gray-600">Commander Power</span>
+                                            </Tooltip>
                                             <span className="text-purple-400 font-bold">{(kdSt.growthMetrics?.totalCommanderPower || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between items-center px-1 py-1">
-                                            <span className="text-gray-600">Troop Power</span>
+                                            <Tooltip tip="Total troop training power. Training T5 troops is extremely resource-heavy — this is arguably the strongest individual spending signal in the entire dataset.">
+                                                <span className="text-gray-600">Troop Power</span>
+                                            </Tooltip>
                                             <span className="text-red-400 font-bold">{(kdSt.growthMetrics?.totalTroopPower || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between items-center px-1 py-1 border-b border-[#1e222b] pb-3 mb-1">
-                                            <span className="text-gray-600">Building Power</span>
+                                            <Tooltip tip="Total city construction power of the Top 300. Core progression metric — reflects how many players are actively building and upgrading their cities.">
+                                                <span className="text-gray-600">Building Power</span>
+                                            </Tooltip>
                                             <span className="text-amber-400 font-bold">{(kdSt.growthMetrics?.totalBuildingPower || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between items-center bg-green-500/5 border border-green-500/10 px-2 py-1.5 rounded">
-                                            <span className="text-green-500/70">↑ Recruited In</span>
+                                            <Tooltip tip="Power of players who appear in the latest snapshot but not the historical one. Indicates active recruitment of strong governors — a sign of a healthy, growing kingdom.">
+                                                <span className="text-green-500/70">↑ Recruited In</span>
+                                            </Tooltip>
                                             <span className="text-green-400 font-bold">+{(kdSt.behavioralMatrix?.migrantsInRecruitedPower || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between items-center bg-rose-500/5 border border-rose-500/10 px-2 py-1.5 rounded">
-                                            <span className="text-rose-500/70">↓ Exodus Out</span>
+                                            <Tooltip tip="Power of players present in the old snapshot who are completely gone now. High exodus strongly signals a leadership failure, coup, or mass defection event.">
+                                                <span className="text-rose-500/70">↓ Exodus Out</span>
+                                            </Tooltip>
                                             <span className="text-rose-400 font-bold">-{(kdSt.behavioralMatrix?.migrantsOutExodusPower || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between items-center bg-orange-500/5 border border-orange-500/10 px-2 py-1.5 rounded">
-                                            <span className="text-orange-500/60">☾ Sleeping</span>
+                                            <Tooltip tip="Power held by Top 300 players with zero power AND zero KP gain during the entire timeframe. These players are completely inactive — dead weight that hurts kingdom culture and motivation.">
+                                                <span className="text-orange-500/60">☾ Sleeping</span>
+                                            </Tooltip>
                                             <span className="text-orange-400 font-bold">{(kdSt.behavioralMatrix?.sleepingDeadWeightPower || 0).toLocaleString()}</span>
                                         </div>
                                     </div>
                                     <div className="bg-[#13161c] px-4 py-3 border-t border-[#1e222b] flex justify-between items-center">
-                                        <span className="text-gray-600 text-[10px] uppercase tracking-wider">Net Migration</span>
+                                        <Tooltip tip="Recruited In minus Exodus Out power. Positive = the kingdom is a net winner of player movement. Negative = they are losing more power than they are gaining through migration.">
+                                            <span className="text-gray-600 text-[10px] uppercase tracking-wider">Net Migration</span>
+                                        </Tooltip>
                                         {(() => {
                                             const net = (kdSt.behavioralMatrix?.migrantsInRecruitedPower || 0) - (kdSt.behavioralMatrix?.migrantsOutExodusPower || 0);
                                             return <span className={`font-mono font-bold text-sm ${net >= 0 ? 'text-green-400' : 'text-rose-400'}`}>{net >= 0 ? '+' : ''}{net.toLocaleString()}</span>;
@@ -212,7 +240,9 @@ export default function Matchmaker() {
                                                         kdSt.leadershipIntel.stabilityScore >= 80 ? 'text-green-400' :
                                                         kdSt.leadershipIntel.stabilityScore >= 60 ? 'text-yellow-400' : 'text-rose-400'
                                                     }`}>{kdSt.leadershipIntel.stabilityScore}%</div>
-                                                    <div className="text-gray-600 text-[9px] uppercase tracking-wide mt-0.5">Stability</div>
+                                                    <Tooltip tip="% of the old Top 20 leaders still in the current Top 20. ≥80% = stable leadership. 60-79% = some churn. Below 60% = RED FLAG — likely a coup, defection wave, or forced leadership change.">
+                                                        <div className="text-gray-600 text-[9px] uppercase tracking-wide mt-0.5">Stability</div>
+                                                    </Tooltip>
                                                 </div>
                                                 <div className={`px-2 py-2 rounded border text-center ${
                                                     kdSt.leadershipIntel.activityRate >= 70 ? 'bg-green-500/10 border-green-500/20' :
@@ -223,20 +253,28 @@ export default function Matchmaker() {
                                                         kdSt.leadershipIntel.activityRate >= 70 ? 'text-green-400' :
                                                         kdSt.leadershipIntel.activityRate >= 50 ? 'text-yellow-400' : 'text-rose-400'
                                                     }`}>{kdSt.leadershipIntel.activityRate}%</div>
-                                                    <div className="text-gray-600 text-[9px] uppercase tracking-wide mt-0.5">Active</div>
+                                                    <Tooltip tip="% of the current Top 20 leaders who gained power or KP during the timeframe. Below 70% = leadership is checked out. Below 50% = catastrophic — the people supposed to lead are not playing.">
+                                                        <div className="text-gray-600 text-[9px] uppercase tracking-wide mt-0.5">Active</div>
+                                                    </Tooltip>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center px-2 py-1.5 bg-indigo-500/5 border border-indigo-500/10 rounded">
-                                                <span className="text-gray-600 text-[10px]">Pwr Concentration</span>
+                                                <Tooltip tip="% of the Top 300's total power held by just the Top 10 players. Very high (>40%) = kingdom depends on a tiny whale core. Moderate (15-30%) = healthier distributed strength.">
+                                                    <span className="text-gray-600 text-[10px]">Pwr Concentration</span>
+                                                </Tooltip>
                                                 <span className="text-indigo-300 font-bold text-xs">{kdSt.leadershipIntel.powerConcentration}%</span>
                                             </div>
                                             <div className="flex justify-between items-center px-2 py-1.5">
-                                                <span className="text-gray-600 text-[10px]">Surviving Leaders</span>
+                                                <Tooltip tip="How many of the original Top 20 leaders from the historical snapshot are still present in the latest one. Low count = significant leadership turnover has occurred.">
+                                                    <span className="text-gray-600 text-[10px]">Surviving Leaders</span>
+                                                </Tooltip>
                                                 <span className="text-white font-bold text-xs">{kdSt.leadershipIntel.survivingLeaderCount} / 20</span>
                                             </div>
                                             {kdSt.leadershipIntel.sleepingLeaderPower > 0 && (
                                                 <div className="flex justify-between items-center px-2 py-1.5 bg-orange-500/5 border border-orange-500/10 rounded">
-                                                    <span className="text-orange-500/60 text-[10px]">Sleeping Leader Pwr</span>
+                                                    <Tooltip tip="Raw power held by Top 20 leaders with zero activity during the timeframe. Inactive leaders are a catastrophic signal — they demoralize the kingdom and signal organizational rot at the top.">
+                                                        <span className="text-orange-500/60 text-[10px]">Sleeping Leader Pwr</span>
+                                                    </Tooltip>
                                                     <span className="text-orange-400 font-bold text-xs">{kdSt.leadershipIntel.sleepingLeaderPower.toLocaleString()}</span>
                                                 </div>
                                             )}
