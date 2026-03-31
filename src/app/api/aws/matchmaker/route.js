@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGlobalConfig, getAdvancedKingdomDeltas } from "@/lib/awsDynamo";
 
+export const maxDuration = 60; // Vercel: extend function timeout to 60s for multi-kingdom AWS queries
+
 export async function POST(req) {
     try {
         const session = await auth();
@@ -29,15 +31,23 @@ export async function POST(req) {
         // Aggregate statistics per kingdom
         const kdDataArr = [];
 
-        for (const kd of kingdoms) {
-            const roster = await getAdvancedKingdomDeltas(kd, timeframeHours);
-            if (!roster || roster.length === 0) {
-                continue;
-            }
+        const MAX_KINGDOMS = 8;
+        const limitedKingdoms = kingdoms.slice(0, MAX_KINGDOMS);
+
+        // Run ALL kingdom lookups in PARALLEL — turns 4x sequential 3s waits into one 3s batch
+        const rosterResults = await Promise.all(
+            limitedKingdoms.map(kd => getAdvancedKingdomDeltas(kd, timeframeHours).catch(() => []))
+        );
+
+        for (let i = 0; i < limitedKingdoms.length; i++) {
+            const kd = limitedKingdoms[i];
+            const roster = rosterResults[i];
+            if (!roster || roster.length === 0) continue;
 
             // Slice top 300 to represent the core fighting/spending force context
             // To properly slice, we figure out their relative weight or just sort by base power.
             const coreRoster = roster.sort((a,b) => (b.power || b.missingBasePower || 0) - (a.power || a.missingBasePower || 0)).slice(0, 300);
+
 
             let totalPowerDelta = 0;
             let totalTechPower = 0;
