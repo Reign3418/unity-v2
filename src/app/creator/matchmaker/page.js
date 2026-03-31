@@ -166,6 +166,10 @@ export default function Matchmaker() {
                                             <span className="text-gray-600">Commander Power</span>
                                             <span className="text-purple-400 font-bold">{(kdSt.growthMetrics?.totalCommanderPower || 0).toLocaleString()}</span>
                                         </div>
+                                        <div className="flex justify-between items-center px-1 py-1">
+                                            <span className="text-gray-600">Troop Power</span>
+                                            <span className="text-red-400 font-bold">{(kdSt.growthMetrics?.totalTroopPower || 0).toLocaleString()}</span>
+                                        </div>
                                         <div className="flex justify-between items-center px-1 py-1 border-b border-[#1e222b] pb-3 mb-1">
                                             <span className="text-gray-600">Building Power</span>
                                             <span className="text-amber-400 font-bold">{(kdSt.growthMetrics?.totalBuildingPower || 0).toLocaleString()}</span>

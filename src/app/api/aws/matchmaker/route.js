@@ -43,6 +43,7 @@ export async function POST(req) {
             let totalTechPower = 0;
             let totalBuildingPower = 0;
             let totalCommanderPower = 0;
+            let totalTroopPower = 0;
             let sumBasePower = 0;
 
             let migrantInPower = 0;
@@ -55,6 +56,7 @@ export async function POST(req) {
                     totalTechPower += (gov.techPower || 0);
                     totalBuildingPower += (gov.buildingPower || 0);
                     totalCommanderPower += (gov.commanderPower || 0);
+                    totalTroopPower += (gov.troopPower || 0);
                     sumBasePower += gov.power;
                 }
 
@@ -87,6 +89,7 @@ export async function POST(req) {
                     totalTechPower: totalTechPower,
                     totalBuildingPower: totalBuildingPower,
                     totalCommanderPower: totalCommanderPower,
+                    totalTroopPower: totalTroopPower,
                 },
                 behavioralMatrix: {
                     migrantsInRecruitedPower: migrantInPower,
@@ -107,7 +110,7 @@ CRITICAL INSTRUCTIONS:
 1. EXAMINE THE 'behavioralMatrix'. Large 'migrantsOutExodusPower' over the timeframe strongly indicates a leadership failure, coup, or mass exodus. Punish this severely.
 2. Large 'migrantsInRecruitedPower' indicates highly successful recruitment engines. Reward this.
 3. High 'sleepingDeadWeightPower' means many of their top 300 players have literally 0 activity (Zero Power Growth & Zero KP Growth) over the timeframe. Heavily penalize kingdoms floating dead weight.
-4. PLACE HIGH VALUE on the 'powerDeltaOverall'. Fast massive growth among active players proves the presence of big spenders/whales. High 'totalTechPower' and 'totalCommanderPower' confirm systemic strength.
+4. PLACE HIGH VALUE on the 'powerDeltaOverall'. Fast massive growth among active players proves the presence of big spenders/whales. High 'totalTechPower', 'totalCommanderPower', and 'totalTroopPower' confirm systemic strength — troop power in particular is VERY expensive to develop and is a strong spending signal.
 5. IGNORE ordinary Kill Points (KP). We do not care if they have high combat KP; we only care about macro-economic health and structural behavior.
 6. Structure your response as a valid RAW JSON object (NO MARKDOWN CODE BLOCKS).
 

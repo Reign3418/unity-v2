@@ -1045,6 +1045,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
                             alliance: attrs['Alliance Tag']?.S || 'None',
                             power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
                             killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
+                            troopPower: parseInt(attrs['Troop Power']?.N || attrs['troop power']?.N || attrs['troopPower']?.N) || 0,
                             techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
                             commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
                             buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0,
