@@ -1092,12 +1092,71 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
             }
         }
 
-        return roster;
+        // ── Leadership Intelligence Engine ─────────────────────────────────────
+        // Sort both snapshots by power to identify who the "leadership" is
+        const LEADERSHIP_DEPTH = 20;
+        const latestByPower = Object.entries(latestSnap).sort((a, b) => b[1].power - a[1].power);
+        const prevByPower = Object.entries(prevSnap).sort((a, b) => b[1].power - a[1].power);
+
+        const latestTop20Ids = new Set(latestByPower.slice(0, LEADERSHIP_DEPTH).map(([id]) => id));
+        const prevTop20Ids = new Set(prevByPower.slice(0, LEADERSHIP_DEPTH).map(([id]) => id));
+
+        // 1. Leadership Stability Score: how many of the OLD top 20 are still in the NEW top 20?
+        let survivingLeaders = 0;
+        for (const id of prevTop20Ids) {
+            if (latestTop20Ids.has(id)) survivingLeaders++;
+        }
+        const leadershipStabilityScore = prevTop20Ids.size > 0
+            ? Math.round((survivingLeaders / prevTop20Ids.size) * 100)
+            : 0;
+
+        // 2. Leadership Activity Rate: % of CURRENT top 20 who actually gained power
+        let activeLeaders = 0;
+        let sleepingLeaderPower = 0;
+        for (const [id, latestData] of latestByPower.slice(0, LEADERSHIP_DEPTH)) {
+            const prevData = prevSnap[id];
+            const delta = prevData ? (latestData.power - prevData.power) : latestData.power;
+            const kpDelta = prevData ? (latestData.killPoints - prevData.killPoints) : 0;
+            if (delta > 0 || kpDelta > 0) {
+                activeLeaders++;
+            } else if (delta === 0 && kpDelta === 0 && prevData) {
+                sleepingLeaderPower += latestData.power;
+            }
+        }
+        const leadershipActivityRate = Math.round((activeLeaders / LEADERSHIP_DEPTH) * 100);
+
+        // 3. Leadership Power Concentration: Top 10 power / Top 300 power
+        const top10Power = latestByPower.slice(0, 10).reduce((sum, [, d]) => sum + d.power, 0);
+        const top300Power = latestByPower.slice(0, 300).reduce((sum, [, d]) => sum + d.power, 0);
+        const leadershipConcentration = top300Power > 0
+            ? Math.round((top10Power / top300Power) * 100)
+            : 0;
+
+        // 4. Build leadership snapshot list for context
+        const leaderSnapshot = latestByPower.slice(0, 10).map(([id, d]) => ({
+            name: d.name,
+            power: d.power,
+            isNew: !prevTop20Ids.has(id),
+            powerDelta: prevSnap[id] ? (d.power - prevSnap[id].power) : 'NEW'
+        }));
+
+        const leadershipIntel = {
+            stabilityScore: leadershipStabilityScore,      // 0-100%, 100 = zero leadership churn
+            activityRate: leadershipActivityRate,           // 0-100%, 100 = all top 20 are actively growing
+            powerConcentration: leadershipConcentration,    // % of power held by top 10
+            sleepingLeaderPower: sleepingLeaderPower,       // Raw power of inactive top-20 leaders
+            survivingLeaderCount: survivingLeaders,          // # of original top-20 still present
+            top10Snapshot: leaderSnapshot                   // Named list of current top 10 leaders
+        };
+        // ──────────────────────────────────────────────────────────────────────
+
+        return { roster, leadershipIntel };
     } catch (e) {
         console.error("AWS Temporal Matchmaker Error", e);
-        return [];
+        return { roster: [], leadershipIntel: null };
     }
 }
+
 
 export async function getGovernorHistory(kingdomId, governorId, days = 5) {
     const tableName = process.env.AWS_TABLE_NAME;

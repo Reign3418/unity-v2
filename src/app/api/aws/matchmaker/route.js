@@ -36,18 +36,16 @@ export async function POST(req) {
 
         // Run ALL kingdom lookups in PARALLEL — turns 4x sequential 3s waits into one 3s batch
         const rosterResults = await Promise.all(
-            limitedKingdoms.map(kd => getAdvancedKingdomDeltas(kd, timeframeHours).catch(() => []))
+            limitedKingdoms.map(kd => getAdvancedKingdomDeltas(kd, timeframeHours).catch(() => ({ roster: [], leadershipIntel: null })))
         );
 
         for (let i = 0; i < limitedKingdoms.length; i++) {
             const kd = limitedKingdoms[i];
-            const roster = rosterResults[i];
+            const { roster, leadershipIntel } = rosterResults[i] || { roster: [], leadershipIntel: null };
             if (!roster || roster.length === 0) continue;
 
             // Slice top 300 to represent the core fighting/spending force context
-            // To properly slice, we figure out their relative weight or just sort by base power.
             const coreRoster = roster.sort((a,b) => (b.power || b.missingBasePower || 0) - (a.power || a.missingBasePower || 0)).slice(0, 300);
-
 
             let totalPowerDelta = 0;
             let totalTechPower = 0;
@@ -73,16 +71,14 @@ export async function POST(req) {
                 // Temporal State Categorization
                 if (gov.powerDelta === 'NEW') {
                     migrantInPower += gov.power;
-                    totalPowerDelta += gov.power; // New players are effectively 100% positive delta to the system
+                    totalPowerDelta += gov.power;
                 } else if (gov.powerDelta === 'MISSING') {
                     migrantOutPower += (gov.missingBasePower || 0);
-                    totalPowerDelta -= (gov.missingBasePower || 0); // Exiting players negative delta to the system
+                    totalPowerDelta -= (gov.missingBasePower || 0);
                 } else {
                     const powerD = Number(gov.powerDelta) || 0;
                     totalPowerDelta += powerD;
-                    
                     const kpD = Number(gov.kpDelta) || 0;
-                    // If a player hasn't moved a single point of Power or KP in the timeframe, they are completely stagnant
                     if (powerD === 0 && kpD === 0) {
                         sleepingPower += gov.power;
                     }
@@ -105,9 +101,11 @@ export async function POST(req) {
                     migrantsInRecruitedPower: migrantInPower,
                     migrantsOutExodusPower: migrantOutPower,
                     sleepingDeadWeightPower: sleepingPower
-                }
+                },
+                leadershipIntel: leadershipIntel || null
             });
         }
+
 
         if (kdDataArr.length === 0) {
             return NextResponse.json({ error: "Failed to locate actionable historical data for the requested kingdoms." }, { status: 404 });
@@ -119,21 +117,31 @@ Review the following aggregated economic and growth data for multiple kingdoms. 
 CRITICAL INSTRUCTIONS:
 1. EXAMINE THE 'behavioralMatrix'. Large 'migrantsOutExodusPower' over the timeframe strongly indicates a leadership failure, coup, or mass exodus. Punish this severely.
 2. Large 'migrantsInRecruitedPower' indicates highly successful recruitment engines. Reward this.
-3. High 'sleepingDeadWeightPower' means many of their top 300 players have literally 0 activity (Zero Power Growth & Zero KP Growth) over the timeframe. Heavily penalize kingdoms floating dead weight.
-4. PLACE HIGH VALUE on the 'powerDeltaOverall'. Fast massive growth among active players proves the presence of big spenders/whales. High 'totalTechPower', 'totalCommanderPower', and 'totalTroopPower' confirm systemic strength — troop power in particular is VERY expensive to develop and is a strong spending signal.
-5. IGNORE ordinary Kill Points (KP). We do not care if they have high combat KP; we only care about macro-economic health and structural behavior.
-6. Structure your response as a valid RAW JSON object (NO MARKDOWN CODE BLOCKS).
+3. High 'sleepingDeadWeightPower' means many of their top 300 players have literally 0 activity over the timeframe. Heavily penalize kingdoms floating dead weight.
+4. PLACE HIGH VALUE on 'powerDeltaOverall'. High 'totalTechPower', 'totalCommanderPower', and 'totalTroopPower' confirm systemic strength — troop power is VERY expensive and is a strong spending signal.
+5. ANALYZE 'leadershipIntel' with extreme scrutiny:
+   - 'stabilityScore' (0-100%): How many of the OLD Top 20 are still in the current Top 20. Low score = coup d'état or mass defection at the top. Below 60% is a RED FLAG.
+   - 'activityRate' (0-100%): What % of current Top 20 leaders are actually growing. Below 70% means leadership is checked out — a catastrophic signal for migration.
+   - 'powerConcentration' (0-100%): % of the top 300 power held by the top 10. Very high (>40%) = whale-dependent; moderate (15-30%) = distributed healthy kingdom.
+   - 'sleepingLeaderPower': Raw power of inactive top-20 leaders. Massive sleeping leader power = dead leadership class.
+   - 'top10Snapshot': Named list of leaders. Look for 'isNew: true' entries — new faces in top leadership = instability signal.
+6. IGNORE raw Kill Points. We only care about economic health and leadership accountability.
+7. Structure your response as a valid RAW JSON object (NO MARKDOWN CODE BLOCKS).
 
 JSON SCHEMA TO RETURN:
 {
   "winner": "4025",
   "confidenceScore": "95%",
-  "verdictSummary": "A punchy, 2-sentence executive summary declaring the winner.",
-  "competitiveAnalysis": [
-     { "kd": "4025", "assessment": "Brief technical analysis of their growth trends detailing why they are strong." },
-     { "kd": "4026", "assessment": "Brief critique of why they lag behind." }
+  "verdictSummary": "A punchy 2-sentence executive summary declaring the winner and specifically citing their leadership metrics.",
+  "leadershipVerdicts": [
+    { "kd": "4025", "stabilityGrade": "A", "activityGrade": "B+", "leadershipAssessment": "1-2 sentence qualitative judgment on leadership health." },
+    { "kd": "4026", "stabilityGrade": "D", "activityGrade": "F", "leadershipAssessment": "1-2 sentence explanation of why leadership is failing." }
   ],
-  "spendingSignature": "Point out which specific sub-metric (Tech/Building/Power Delta) proved the presence of high spending or activity."
+  "competitiveAnalysis": [
+     { "kd": "4025", "assessment": "Brief technical analysis of growth trends and leadership accountability." },
+     { "kd": "4026", "assessment": "Brief critique including specific leadership failure points." }
+  ],
+  "spendingSignature": "Point out which sub-metric proved the presence of high spending or activity."
 }
 
 DATA PAYLOAD:

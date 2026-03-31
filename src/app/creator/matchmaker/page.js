@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Target, Activity, Zap, TrendingUp, Trophy, AlertTriangle, Crosshair, ArrowRight, Clock } from "lucide-react";
+import { Target, Activity, Zap, TrendingUp, Trophy, AlertTriangle, Crosshair, Clock, Shield, Users } from "lucide-react";
 
 export default function Matchmaker() {
     const [targetKds, setTargetKds] = useState("");
@@ -194,6 +194,54 @@ export default function Matchmaker() {
                                             return <span className={`font-mono font-bold text-sm ${net >= 0 ? 'text-green-400' : 'text-rose-400'}`}>{net >= 0 ? '+' : ''}{net.toLocaleString()}</span>;
                                         })()}
                                     </div>
+
+                                    {/* Leadership Intelligence Block */}
+                                    {kdSt.leadershipIntel && (
+                                        <div className="bg-[#0a0c0f] border-t border-[#1e222b] p-4 space-y-2">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Shield size={12} className="text-indigo-400" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Leadership Intel</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                                                <div className={`px-2 py-2 rounded border text-center ${
+                                                    kdSt.leadershipIntel.stabilityScore >= 80 ? 'bg-green-500/10 border-green-500/20' :
+                                                    kdSt.leadershipIntel.stabilityScore >= 60 ? 'bg-yellow-500/10 border-yellow-500/20' :
+                                                    'bg-rose-500/10 border-rose-500/20'
+                                                }`}>
+                                                    <div className={`text-lg font-black ${
+                                                        kdSt.leadershipIntel.stabilityScore >= 80 ? 'text-green-400' :
+                                                        kdSt.leadershipIntel.stabilityScore >= 60 ? 'text-yellow-400' : 'text-rose-400'
+                                                    }`}>{kdSt.leadershipIntel.stabilityScore}%</div>
+                                                    <div className="text-gray-600 text-[9px] uppercase tracking-wide mt-0.5">Stability</div>
+                                                </div>
+                                                <div className={`px-2 py-2 rounded border text-center ${
+                                                    kdSt.leadershipIntel.activityRate >= 70 ? 'bg-green-500/10 border-green-500/20' :
+                                                    kdSt.leadershipIntel.activityRate >= 50 ? 'bg-yellow-500/10 border-yellow-500/20' :
+                                                    'bg-rose-500/10 border-rose-500/20'
+                                                }`}>
+                                                    <div className={`text-lg font-black ${
+                                                        kdSt.leadershipIntel.activityRate >= 70 ? 'text-green-400' :
+                                                        kdSt.leadershipIntel.activityRate >= 50 ? 'text-yellow-400' : 'text-rose-400'
+                                                    }`}>{kdSt.leadershipIntel.activityRate}%</div>
+                                                    <div className="text-gray-600 text-[9px] uppercase tracking-wide mt-0.5">Active</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center px-2 py-1.5 bg-indigo-500/5 border border-indigo-500/10 rounded">
+                                                <span className="text-gray-600 text-[10px]">Pwr Concentration</span>
+                                                <span className="text-indigo-300 font-bold text-xs">{kdSt.leadershipIntel.powerConcentration}%</span>
+                                            </div>
+                                            <div className="flex justify-between items-center px-2 py-1.5">
+                                                <span className="text-gray-600 text-[10px]">Surviving Leaders</span>
+                                                <span className="text-white font-bold text-xs">{kdSt.leadershipIntel.survivingLeaderCount} / 20</span>
+                                            </div>
+                                            {kdSt.leadershipIntel.sleepingLeaderPower > 0 && (
+                                                <div className="flex justify-between items-center px-2 py-1.5 bg-orange-500/5 border border-orange-500/10 rounded">
+                                                    <span className="text-orange-500/60 text-[10px]">Sleeping Leader Pwr</span>
+                                                    <span className="text-orange-400 font-bold text-xs">{kdSt.leadershipIntel.sleepingLeaderPower.toLocaleString()}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -229,6 +277,39 @@ export default function Matchmaker() {
                                     {matchResult.spendingSignature}
                                 </div>
                             </div>
+
+                            {matchResult.leadershipVerdicts && matchResult.leadershipVerdicts.length > 0 && (
+                                <div>
+                                    <h4 className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <Shield size={12}/> Leadership Accountability Report
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {matchResult.leadershipVerdicts.map((lv, idx) => (
+                                            <div key={idx} className="bg-[#13161c] border border-[#1e222b] p-4 rounded-lg">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className="bg-[#1e222b] text-white font-mono font-bold px-2 py-0.5 rounded text-xs shrink-0">KD {lv.kd}</div>
+                                                    <div className="flex items-center gap-2 ml-auto">
+                                                        <span className="text-[10px] text-gray-600 uppercase tracking-wider">Stability</span>
+                                                        <span className={`font-mono font-black text-sm px-2 py-0.5 rounded ${
+                                                            ['A+','A','A-'].includes(lv.stabilityGrade) ? 'text-green-400 bg-green-500/10' :
+                                                            ['B+','B','B-'].includes(lv.stabilityGrade) ? 'text-yellow-400 bg-yellow-500/10' :
+                                                            'text-rose-400 bg-rose-500/10'
+                                                        }`}>{lv.stabilityGrade}</span>
+                                                        <span className="text-[10px] text-gray-600 uppercase tracking-wider ml-2">Activity</span>
+                                                        <span className={`font-mono font-black text-sm px-2 py-0.5 rounded ${
+                                                            ['A+','A','A-'].includes(lv.activityGrade) ? 'text-green-400 bg-green-500/10' :
+                                                            ['B+','B','B-'].includes(lv.activityGrade) ? 'text-yellow-400 bg-yellow-500/10' :
+                                                            'text-rose-400 bg-rose-500/10'
+                                                        }`}>{lv.activityGrade}</span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-gray-400 text-xs leading-relaxed">{lv.leadershipAssessment}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <h4 className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <Activity size={12}/> Competitive Analysis
