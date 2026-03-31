@@ -3,15 +3,39 @@
 import { useState } from "react";
 import { Target, Activity, Zap, TrendingUp, Trophy, AlertTriangle, Crosshair, Clock, Shield, Users } from "lucide-react";
 
-const Tooltip = ({ children, tip }) => (
-    <span className="relative group/tip inline-flex items-center gap-1 cursor-help">
-        <span className="border-b border-dotted border-gray-600">{children}</span>
-        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 bg-[#1a1d26] border border-[#2a3040] text-gray-300 text-[10px] leading-relaxed rounded-xl px-3 py-2.5 shadow-2xl opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150">
-            {tip}
-            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#2a3040]" />
+const Tooltip = ({ children, tip }) => {
+    const [pos, setPos] = useState(null);
+    return (
+        <span
+            className="relative inline-flex items-center gap-1 cursor-help"
+            onMouseEnter={e => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setPos({ x: rect.left + rect.width / 2, y: rect.top });
+            }}
+            onMouseLeave={() => setPos(null)}
+        >
+            <span className="border-b border-dotted border-gray-600">{children}</span>
+            {pos && (
+                <span
+                    style={{
+                        position: 'fixed',
+                        left: pos.x,
+                        top: pos.y - 8,
+                        transform: 'translateX(-50%) translateY(-100%)',
+                        zIndex: 9999,
+                        width: '224px',
+                        pointerEvents: 'none',
+                    }}
+                    className="bg-[#1a1d26] border border-[#2a3040] text-gray-300 text-[10px] leading-relaxed rounded-xl px-3 py-2.5 shadow-2xl"
+                >
+                    {tip}
+                    <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#2a3040]" />
+                </span>
+            )}
         </span>
-    </span>
-);
+    );
+};
+
 
 export default function Matchmaker() {
     const [targetKds, setTargetKds] = useState("");
