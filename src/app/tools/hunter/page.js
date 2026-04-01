@@ -50,14 +50,33 @@ export default function PlayerHunter() {
                   const histData = await histRes.json();
                   
                   const rawTimeline = histData.timeline || [];
-                  const timelineData = rawTimeline.map((scan) => ({
-                    date: scan.scanDate ? scan.scanDate.replace(/_/g, " ") : "Unknown",
-                    kingdom: scan.kingdom || lastSeenKingdom,
-                    power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
-                    name: scan.name || name,
-                    alliance: scan.alliance && scan.alliance !== "None" ? scan.alliance : null,
-                    note: "Historical Record"
-                  })).sort((a, b) => b.date.localeCompare(a.date)); 
+                  rawTimeline.sort((a, b) => (b.scanDate || "").localeCompare(a.scanDate || ""));
+                  
+                  const timelineData = rawTimeline.map((scan, i) => {
+                    const olderScan = rawTimeline[i + 1] || null;
+                    const powerRaw = scan.power || 0;
+                    const olderPowerRaw = olderScan ? (olderScan.power || 0) : powerRaw;
+                    const pwrDelta = powerRaw - olderPowerRaw;
+                    
+                    const troopRaw = scan.troopPower || 0;
+                    const olderTroopRaw = olderScan ? (olderScan.troopPower || 0) : troopRaw;
+                    const troopDelta = troopRaw - olderTroopRaw;
+
+                    return {
+                      date: scan.scanDate ? scan.scanDate.replace(/_/g, " ") : "Unknown",
+                      kingdom: scan.kingdom || lastSeenKingdom,
+                      powerRaw,
+                      power: scan.power ? (scan.power / 1000000).toFixed(1) + 'M' : "0",
+                      pwrDelta,
+                      pwrDeltaFormatted: pwrDelta !== 0 ? (pwrDelta / 1000000).toFixed(1) + 'M' : "0",
+                      troopRaw,
+                      troopDelta,
+                      troopDeltaFormatted: troopDelta !== 0 ? (troopDelta / 1000000).toFixed(1) + 'M' : "0",
+                      name: scan.name || name,
+                      alliance: scan.alliance && scan.alliance !== "None" ? scan.alliance : null,
+                      note: "Historical Record"
+                    };
+                  });
 
                   if (timelineData.length > 0) {
                     timelineData[0].note = "Latest Snapshot";
@@ -455,7 +474,19 @@ export default function PlayerHunter() {
                                             {event.name}
                                           </span>
                                        </div>
-                                       <div className="flex items-center gap-2"><span className="text-gray-500">Pwr:</span> <span className="text-cyan-400 font-mono font-bold">{event.power}</span></div>
+                                       <div className="flex flex-wrap items-center gap-2">
+                                           <span className="text-gray-500">Pwr:</span> <span className="text-cyan-400 font-mono font-bold">{event.power}</span>
+                                           {event.pwrDelta !== 0 && (
+                                               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${event.pwrDelta < -3000000 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : event.pwrDelta > 0 ? 'text-emerald-500/80 bg-emerald-500/10 border border-emerald-500/20' : 'text-rose-400/80 bg-rose-500/10 border border-rose-500/20'}`}>
+                                                   {event.pwrDelta > 0 ? '+' : ''}{event.pwrDeltaFormatted}
+                                               </span>
+                                           )}
+                                           {event.troopDelta <= -1000000 && (
+                                               <span className="text-[9px] font-bold uppercase tracking-widest text-rose-200 bg-rose-700/80 border border-rose-500 px-1.5 py-0.5 rounded ml-1 animate-pulse" title={`Troop Loss: ${event.troopDeltaFormatted}`}>
+                                                   🚨 ZEROED / SWARMED
+                                                </span>
+                                           )}
+                                       </div>
                                     </div>
                                  </div>
                                </div>
