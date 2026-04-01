@@ -117,14 +117,35 @@ export async function GET(req) {
             };
         });
 
-        // AI verdict (adapts to 2-4 kingdoms)
+        // AI per-kingdom narrative verdict — harsh, specific, no sugar coating
         let verdict = null;
         try {
-            const kdSummaries = kingdoms.map(kd =>
-                `KD ${kd.kdId}: Score ${kd.stats.combatScore}/100, ${kd.stats.lifetimeFighterCount}/${kd.stats.totalScoredRoster} fighters (${kd.stats.lifetimeFightRate}%), ${kd.stats.t5EligibleCount} T5-eligible, ${kd.stats.activityRate}% active`
-            ).join("\n");
+            const kdSummaries = kingdoms.map((kd, i) => {
+                const s = kd.stats;
+                const lines2 = [
+                    `KD ${kd.kdId} [Rank #${i + 1} — Combat Score ${s.combatScore}/100]`,
+                    `  Lifetime fighters: ${s.lifetimeFighterCount}/${s.totalScoredRoster} (${s.lifetimeFightRate}% have ever fought in KvK)`,
+                    `  T5-eligible (>40M power): ${s.t5EligibleCount} players (${s.t5EligiblePct}% of scored roster)`,
+                    `  Currently active/growing this window: ${s.activityRate}%`,
+                    `  Troop power density: ${s.troopDensityPct}% (fighter-built = high, economic = low)`,
+                    `  Leadership stability: ${s.stabilityScore}% | Leadership activity: ${s.leadershipActivityRate}%`,
+                    `  All-time kill points: ${s.totalLifetimeKP.toLocaleString()}`,
+                ];
+                return lines2.join("\n");
+            }).join("\n\n");
 
-            const prompt = `You are a Rise of Kingdoms military analyst. ${kingdoms.length} kingdoms are being evaluated for KvK capability. Rank them 1st to ${kingdoms.length} and give a 3-sentence assessment.\n\n${kdSummaries}\n\nSentence 1: Final ranking with odds if two best met head-to-head.\nSentence 2: The single biggest factor separating 1st from 2nd place.\nSentence 3: The most dangerous upset risk.\nPlain text. No markdown. Under 450 characters.`;
+            const prompt = [
+                `You are a savage, no-nonsense Rise of Kingdoms KvK military analyst. You do not sugarcoat. You do not encourage. You call it exactly as the data shows. You have ${kingdoms.length} kingdoms to dissect.`,
+                "",
+                kdSummaries,
+                "",
+                "Write one brutal, honest paragraph for EACH kingdom. Label each with its KD number. Rules:",
+                "- WINNER: Name what specifically makes them dangerous. Cite the numbers. Tell them what advantage they must press in KvK and warn them if there is any crack in their armor.",
+                "- MID-TIER: Be direct about what is wrong. Do not say they have potential. Tell them exactly which metric is their weakness and how far behind they are from being competitive.",
+                "- LOSERS: Do not be kind. Tell them clearly they will lose, and why the data guarantees it. Name the exact stat that condemns them. If they have any shot at all, name the ONE drastic change they would need to make — and make it clear it would take significant effort. If they have no realistic shot, say so.",
+                "End with one hard final sentence: name the winner, give the margin of confidence, and state exactly what the runner-up would need to flip it.",
+                "No headers. No bullets. No markdown. No flattery. Plain paragraphs separated by blank lines. Numbers from the data only. Be ruthless."
+            ].join("\n");
 
             const apiKey = process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
             if (apiKey) {
