@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
-  rejectPendingUser, addTenantAllowedKingdom, updateUserNotes, updateTenantNotes 
+  rejectPendingUser, addTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig
 } from "@/lib/awsDynamo";
 
 export async function GET(req) {
@@ -173,6 +173,13 @@ export async function POST(req) {
         return NextResponse.json({ success: true, message: `Notes updated for tenant guild.` }, { status: 200 });
       }
       return NextResponse.json({ error: "Failed to update Tenant attributes." }, { status: 500 });
+    }
+
+    if (action === "DELETE_TENANT") {
+      const { guildId } = payload;
+      if (!guildId) return NextResponse.json({ error: "Missing Guild ID." }, { status: 400 });
+      await deleteTenantConfig(guildId);
+      return NextResponse.json({ success: true, message: `Tenant ${guildId} access terminated.` }, { status: 200 });
     }
 
     return NextResponse.json({ error: "Unknown Admin Directive." }, { status: 400 });

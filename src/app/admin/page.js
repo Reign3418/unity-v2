@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio
+  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
@@ -305,6 +305,24 @@ export default function AdminConsole() {
     } catch (e) { alert(e.message); }
   };
 
+  const handleTerminateTenant = async (guildId, kingdomId) => {
+    if (!confirm(`⚠️ TERMINATE ACCESS\n\nThis will permanently remove Guild ${guildId} (KD ${kingdomId}) from the registry.\n\nTheir bot and all web access will stop working immediately.\n\nThis cannot be undone. Proceed?`)) return;
+    try {
+      setTenants(prev => prev.filter(t => t.guildId !== guildId)); // Optimistic
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "DELETE_TENANT", payload: { guildId } })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to terminate tenant.");
+      if (globalMatrixCache) globalMatrixCache.tenants = globalMatrixCache.tenants.filter(t => t.guildId !== guildId);
+    } catch (e) {
+      alert(e.message);
+      fetchAdminMatrix(); // Revert on failure
+    }
+  };
+
   // If somehow a non-master admin routes here, block the UI entirely
   if (session && !session.user?.isSuperAdmin) {
     return (
@@ -589,6 +607,13 @@ export default function AdminConsole() {
                               title={tenant.globalAiAccess ? "Global AI Active - Click to Disable" : "Global AI Disabled - Click to Enable"}
                            >
                               {tenant.globalAiAccess ? <Bot size={18} /> : <BotOff size={18} />}
+                           </button>
+                           <button
+                              onClick={() => handleTerminateTenant(tenant.guildId, tenant.kingdomId)}
+                              className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
+                              title="Terminate Kingdom Access — Permanently Remove This Guild"
+                           >
+                              <PowerOff size={18} />
                            </button>
                          </div>
                       </div>
