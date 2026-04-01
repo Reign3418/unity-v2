@@ -4,8 +4,10 @@ import { Swords, RefreshCw, Shield, Zap, TrendingUp } from "lucide-react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 
 const FMT = (v, fmt) => {
+    if (v === null || v === undefined) return "—";
     if (fmt === "pct") return `${v}%`;
     if (fmt === "score") return `${v}/100`;
+    if (fmt === "count") return v.toLocaleString();
     if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
     if (v >= 1e6) return `${(v / 1e6).toFixed(0)}M`;
     return v?.toLocaleString?.() || v;
@@ -32,11 +34,12 @@ export default function BattlePredictor() {
     };
 
     const radarData = data ? [
-        { metric: "Combat Score", kd1: data.kd1Stats.combatScore, kd2: data.kd2Stats.combatScore, max: 100 },
-        { metric: "Fight Rate", kd1: data.kd1Stats.fightRate, kd2: data.kd2Stats.fightRate, max: 100 },
-        { metric: "Activity", kd1: data.kd1Stats.activityRate, kd2: data.kd2Stats.activityRate, max: 100 },
-        { metric: "Leadership", kd1: data.kd1Stats.stabilityScore, kd2: data.kd2Stats.stabilityScore, max: 100 },
-        { metric: "Ldr Activity", kd1: data.kd1Stats.leadershipActivityRate, kd2: data.kd2Stats.leadershipActivityRate, max: 100 },
+        { metric: "Combat Score",    kd1: data.kd1Stats.combatScore,       kd2: data.kd2Stats.combatScore },
+        { metric: "Fight Rate",      kd1: data.kd1Stats.lifetimeFightRate,  kd2: data.kd2Stats.lifetimeFightRate },
+        { metric: "Activity",        kd1: data.kd1Stats.activityRate,       kd2: data.kd2Stats.activityRate },
+        { metric: "T5 Eligible %",   kd1: data.kd1Stats.t5EligiblePct,      kd2: data.kd2Stats.t5EligiblePct },
+        { metric: "Leadership",      kd1: data.kd1Stats.stabilityScore,     kd2: data.kd2Stats.stabilityScore },
+        { metric: "Ldr Activity",    kd1: data.kd1Stats.leadershipActivityRate, kd2: data.kd2Stats.leadershipActivityRate },
     ] : [];
 
     return (
@@ -70,6 +73,7 @@ export default function BattlePredictor() {
                             <div className="text-center flex-1">
                                 <div className={`text-6xl font-black ${data.winner === data.kd1 ? "text-rose-400" : "text-gray-500"}`}>{data.kd1Stats.combatScore}</div>
                                 <div className="text-gray-400 font-bold">KD {data.kd1}</div>
+                                <div className="text-gray-600 text-xs mt-1">{data.kd1Stats.totalRoster} members · {data.kd1Stats.t5EligibleCount} T5-eligible</div>
                                 {data.winner === data.kd1 && <div className="text-xs text-rose-400 font-bold mt-1">⚔️ WINNER</div>}
                             </div>
                             <div className="text-center px-8">
@@ -79,6 +83,7 @@ export default function BattlePredictor() {
                             <div className="text-center flex-1">
                                 <div className={`text-6xl font-black ${data.winner === data.kd2 ? "text-cyan-400" : "text-gray-500"}`}>{data.kd2Stats.combatScore}</div>
                                 <div className="text-gray-400 font-bold">KD {data.kd2}</div>
+                                <div className="text-gray-600 text-xs mt-1">{data.kd2Stats.totalRoster} members · {data.kd2Stats.t5EligibleCount} T5-eligible</div>
                                 {data.winner === data.kd2 && <div className="text-xs text-cyan-400 font-bold mt-1">⚔️ WINNER</div>}
                             </div>
                         </div>
@@ -107,30 +112,55 @@ export default function BattlePredictor() {
                                         <Radar name={`KD ${data.kd2}`} dataKey="kd2" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.15} strokeWidth={2}/>
                                     </RadarChart>
                                 </ResponsiveContainer>
+                                <div className="flex items-center justify-center gap-6 mt-2">
+                                    <span className="flex items-center gap-1.5 text-xs text-rose-400"><span className="w-3 h-0.5 bg-rose-400 inline-block rounded"/>KD {data.kd1}</span>
+                                    <span className="flex items-center gap-1.5 text-xs text-cyan-400"><span className="w-3 h-0.5 bg-cyan-400 inline-block rounded"/>KD {data.kd2}</span>
+                                </div>
                             </div>
 
                             {/* Metric Breakdown */}
                             <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-6">
                                 <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">Per-Metric Breakdown</h3>
                                 <div className="space-y-3">
-                                    {data.metricResults.map(m => (
-                                        <div key={m.key} className="flex items-center gap-3">
-                                            <div className="text-xs text-gray-400 w-32 shrink-0">{m.label}</div>
-                                            <div className={`text-xs font-mono w-20 text-right ${m.winner === data.kd1 ? "text-rose-400 font-bold" : "text-gray-500"}`}>{FMT(m.kd1Value, m.format)}</div>
-                                            <div className="flex-1 h-1.5 bg-[#1e222b] rounded-full overflow-hidden">
-                                                <div className="h-full flex">
-                                                    <div className="bg-rose-500/60 rounded-l" style={{ width: `${(m.kd1Value / (m.kd1Value + m.kd2Value || 1)) * 100}%` }}/>
-                                                    <div className="bg-cyan-500/60 rounded-r flex-1"/>
+                                    {data.metricResults.map(m => {
+                                        const isTie = m.winner === "TIE";
+                                        const totalVal = (m.kd1Value || 0) + (m.kd2Value || 0);
+                                        const kd1Pct = totalVal > 0 ? (m.kd1Value / totalVal) * 100 : 50;
+                                        return (
+                                            <div key={m.key}>
+                                                <div className="flex items-baseline gap-1 mb-1">
+                                                    <span className="text-xs text-gray-400 flex-1">{m.label}</span>
+                                                    {m.note && <span className="text-[9px] text-gray-600 italic">{m.note}</span>}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`text-xs font-mono w-20 text-right ${m.winner === data.kd1 ? "text-rose-400 font-bold" : "text-gray-500"}`}>{FMT(m.kd1Value, m.format)}</div>
+                                                    <div className="flex-1 h-1.5 bg-[#1e222b] rounded-full overflow-hidden">
+                                                        <div className="h-full flex">
+                                                            <div className="bg-rose-500/60 rounded-l transition-all" style={{ width: `${kd1Pct}%` }}/>
+                                                            <div className="bg-cyan-500/60 rounded-r flex-1"/>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`text-xs font-mono w-20 ${m.winner === data.kd2 ? "text-cyan-400 font-bold" : "text-gray-500"}`}>{FMT(m.kd2Value, m.format)}</div>
+                                                    <div className="text-[10px] w-14 text-center font-bold">
+                                                        {isTie
+                                                            ? <span className="text-gray-600">—</span>
+                                                            : <span className={m.winner === data.kd1 ? "text-rose-400" : "text-cyan-400"}>KD {m.winner}</span>
+                                                        }
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className={`text-xs font-mono w-20 ${m.winner === data.kd2 ? "text-cyan-400 font-bold" : "text-gray-500"}`}>{FMT(m.kd2Value, m.format)}</div>
-                                            <div className="text-[10px] w-12 text-center">
-                                                {m.winner !== "TIE" ? <span className={m.winner === data.kd1 ? "text-rose-400" : "text-cyan-400"}>KD {m.winner}</span> : <span className="text-gray-600">TIE</span>}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Scoring methodology note */}
+                        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 text-xs text-gray-600 leading-relaxed">
+                            <span className="text-gray-500 font-bold">Scoring methodology: </span>
+                            Activity 30% · Lifetime Fight Rate 25% · Troop Density 20% · T5 Eligibility 15% · Leadership 10% ·
+                            Kill Points use all-time totals (not windowed deltas) to avoid false zeroes during non-KvK periods ·
+                            T5 Eligibility = % of top-300 with &gt;40M power
                         </div>
                     </>
                 )}
