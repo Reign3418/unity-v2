@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getAdvancedKingdomDeltas } from "@/lib/awsDynamo";
-import { GoogleGenAI } from "@google/genai";
+import { getAdvancedKingdomDeltas, getGlobalConfig } from "@/lib/awsDynamo";
 
 export const maxDuration = 60;
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function GET(req) {
     try {
@@ -90,24 +87,27 @@ export async function GET(req) {
             winner: s1[m.key] > s2[m.key] ? kd1 : s2[m.key] > s1[m.key] ? kd2 : "TIE",
         }));
 
-        // AI odds
+        // AI odds via Gemini REST API
         let verdict = null;
         try {
-            const prompt = `You are a Rise of Kingdoms military analyst. Two kingdoms are about to go to war. Based on this combat data, give a 2-sentence odds assessment. Be direct and numerical.
+            const prompt = `You are a Rise of Kingdoms military analyst. Two kingdoms are about to go to war. Based on this combat data, give a 2-sentence odds assessment. Be direct and numerical.\n\nKingdom ${kd1}: Combat Score ${s1.combatScore}/100, ${s1.fighters} active fighters, ${s1.t5Kills.toLocaleString()} T5 kills, ${s1.fightRate}% fight rate, Leadership stability ${s1.stabilityScore}%\nKingdom ${kd2}: Combat Score ${s2.combatScore}/100, ${s2.fighters} active fighters, ${s2.t5Kills.toLocaleString()} T5 kills, ${s2.fightRate}% fight rate, Leadership stability ${s2.stabilityScore}%\n\nSentence 1: State the odds (e.g. "KD ${kd1} wins this 65-35") and the single biggest reason.\nSentence 2: Name the one thing that could flip the result.\nNo markdown. Under 300 characters.`;
 
-Kingdom ${kd1}: Combat Score ${s1.combatScore}/100, ${s1.fighters} active fighters, ${s1.t5Kills.toLocaleString()} T5 kills, ${s1.fightRate}% fight rate, Leadership stability ${s1.stabilityScore}%
-Kingdom ${kd2}: Combat Score ${s2.combatScore}/100, ${s2.fighters} active fighters, ${s2.t5Kills.toLocaleString()} T5 kills, ${s2.fightRate}% fight rate, Leadership stability ${s2.stabilityScore}%
-
-Sentence 1: State the odds (e.g. "KD ${kd1} wins this 65-35") and the single biggest reason.
-Sentence 2: Name the one thing that could flip the result.
-No markdown. Under 300 characters.`;
-
-            const res = await ai.models.generateContent({
-                model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-                contents: [{ text: prompt }],
-                config: { temperature: 0.7 },
-            });
-            verdict = res.text || null;
+            const apiKey = process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
+            if (apiKey) {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+                const geminiRes = await fetch(`${apiUrl}?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.7 },
+                    }),
+                });
+                if (geminiRes.ok) {
+                    const geminiData = await geminiRes.json();
+                    verdict = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                }
+            }
         } catch {}
 
         return NextResponse.json({
