@@ -119,6 +119,7 @@ export async function GET(req) {
 
         // AI per-kingdom narrative verdict — harsh, specific, no sugar coating
         let verdict = null;
+        let verdictSections = null; // parsed per-kingdom sections for UI cards
         try {
             const kdSummaries = kingdoms.map((kd, i) => {
                 const s = kd.stats;
@@ -134,17 +135,23 @@ export async function GET(req) {
                 return lines2.join("\n");
             }).join("\n\n");
 
+            const kdIds = kingdoms.map(k => k.kdId).join(", ");
+
             const prompt = [
-                `You are a savage, no-nonsense Rise of Kingdoms KvK military analyst. You do not sugarcoat. You do not encourage. You call it exactly as the data shows. You have ${kingdoms.length} kingdoms to dissect.`,
+                `You are a savage, no-nonsense Rise of Kingdoms KvK military analyst. Zero sugarcoating. Zero encouragement. You call it exactly as the data says. You have ${kingdoms.length} kingdoms to dissect.`,
                 "",
                 kdSummaries,
                 "",
-                "Write one brutal, honest paragraph for EACH kingdom. Label each with its KD number. Rules:",
-                "- WINNER: Name what specifically makes them dangerous. Cite the numbers. Tell them what advantage they must press in KvK and warn them if there is any crack in their armor.",
-                "- MID-TIER: Be direct about what is wrong. Do not say they have potential. Tell them exactly which metric is their weakness and how far behind they are from being competitive.",
-                "- LOSERS: Do not be kind. Tell them clearly they will lose, and why the data guarantees it. Name the exact stat that condemns them. If they have any shot at all, name the ONE drastic change they would need to make — and make it clear it would take significant effort. If they have no realistic shot, say so.",
-                "End with one hard final sentence: name the winner, give the margin of confidence, and state exactly what the runner-up would need to flip it.",
-                "No headers. No bullets. No markdown. No flattery. Plain paragraphs separated by blank lines. Numbers from the data only. Be ruthless."
+                "RESPONSE FORMAT — follow this exactly:",
+                `For each kingdom write exactly: KD [kdId]: [your paragraph]`,
+                "One paragraph per kingdom. Then on a new line write: VERDICT: [one brutal final sentence]",
+                "",
+                "RULES for each paragraph:",
+                "- WINNER: What specifically makes them dangerous — exact numbers. What advantage they must press. Any crack in their armor that could cost them.",
+                "- MID-TIER: What is actually wrong. No potential talk. Name the exact metric holding them back and how far behind they are.",
+                "- LOSERS: Tell them bluntly they will lose. Name the exact stat that guarantees it. Either give them the ONE drastic change with realistic odds, or tell them straight they have no shot.",
+                "VERDICT line: name the winner, confidence level, one condition under which the runner-up flips it.",
+                "No headers, no bullets, no markdown, no flattery. Be ruthless. Numbers only."
             ].join("\n");
 
             const apiKey = process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
@@ -160,6 +167,26 @@ export async function GET(req) {
                 if (geminiRes.ok) {
                     const geminiData = await geminiRes.json();
                     verdict = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+
+                    // Parse into sections: { kdId, text }[] + { kdId: "VERDICT", text }
+                    if (verdict) {
+                        const sections = [];
+                        // Split on "KD XXXX:" or "VERDICT:" patterns
+                        const regex = /(?:KD\s*(\d+):|VERDICT:)/gi;
+                        let match;
+                        let lastIndex = 0;
+                        let lastKey = null;
+                        const matches = [];
+                        while ((match = regex.exec(verdict)) !== null) {
+                            matches.push({ key: match[1] || "VERDICT", index: match.index, end: match.index + match[0].length });
+                        }
+                        matches.forEach((m, i) => {
+                            const textStart = m.end;
+                            const textEnd = matches[i + 1]?.index ?? verdict.length;
+                            sections.push({ kdId: m.key, text: verdict.slice(textStart, textEnd).trim() });
+                        });
+                        verdictSections = sections.length ? sections : null;
+                    }
                 }
             }
         } catch {}
@@ -172,6 +199,7 @@ export async function GET(req) {
             kingdoms,       // sorted 1st place first
             metricResults,
             verdict,
+            verdictSections, // parsed per-kingdom cards
         });
 
     } catch (e) {

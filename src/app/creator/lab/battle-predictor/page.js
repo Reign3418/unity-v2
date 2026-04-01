@@ -167,16 +167,63 @@ export default function BattlePredictor() {
                             </div>
                         </div>
 
-                        {/* AI Verdict */}
-                        {data.verdict && (
-                            <div className="bg-gradient-to-r from-rose-500/5 to-violet-500/5 border border-rose-500/20 rounded-2xl p-5 mb-6 flex items-start gap-3">
-                                <Zap size={18} className="text-yellow-400 shrink-0 mt-0.5"/>
-                                <div>
-                                    <div className="text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1">AI Battle Assessment</div>
-                                    <p className="text-gray-300 text-sm leading-relaxed">{data.verdict}</p>
+                        {/* AI Verdict — per-kingdom cards */}
+                        {(data.verdictSections || data.verdict) && (() => {
+                            const sections = data.verdictSections;
+                            const kdSections = sections?.filter(s => s.kdId !== "VERDICT") || [];
+                            const finalVerdict = sections?.find(s => s.kdId === "VERDICT");
+
+                            return (
+                                <div className="mb-6 space-y-3">
+                                    {/* Header */}
+                                    <div className="flex items-center gap-2">
+                                        <Zap size={15} className="text-yellow-400"/>
+                                        <span className="text-yellow-400 text-xs font-bold uppercase tracking-widest">AI Battle Assessment</span>
+                                    </div>
+
+                                    {/* Per-kingdom cards (parsed) */}
+                                    {kdSections.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {kdSections.map((section) => {
+                                                const kdObj = data.kingdoms.find(k => k.kdId === section.kdId);
+                                                const rank = data.kingdoms.indexOf(kdObj);
+                                                const color = KD_COLORS[rank] || KD_COLORS[0];
+                                                const placeLabel = PLACE_LABELS[rank] || `#${rank + 1}`;
+                                                return (
+                                                    <div key={section.kdId} className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-5 relative overflow-hidden">
+                                                        {/* Color accent bar */}
+                                                        <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl" style={{ background: color }}/>
+                                                        {/* Kingdom header */}
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }}/>
+                                                            <span className="font-black text-sm" style={{ color }}>KD {section.kdId}</span>
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ml-auto" style={{ color, borderColor: `${color}40`, background: `${color}10` }}>
+                                                                {placeLabel}
+                                                            </span>
+                                                        </div>
+                                                        {/* Assessment text */}
+                                                        <p className="text-gray-300 text-sm leading-relaxed">{section.text}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        /* Fallback: raw text if parsing failed */
+                                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-5">
+                                            <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{data.verdict}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Final verdict bar */}
+                                    {finalVerdict && (
+                                        <div className="bg-gradient-to-r from-yellow-500/5 to-rose-500/5 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
+                                            <Zap size={15} className="text-yellow-400 shrink-0 mt-0.5"/>
+                                            <p className="text-yellow-300 text-sm font-bold leading-relaxed">{finalVerdict.text}</p>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                             {/* Radar */}
