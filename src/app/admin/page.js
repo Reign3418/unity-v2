@@ -133,6 +133,26 @@ export default function AdminConsole() {
     }
   };
 
+
+  const handleUserRoleChange = async (discordId, newRole) => {
+    if (!confirm(`Warning: Modifying clearance level for ${discordId} to ${newRole.toUpperCase()}. Proced?`)) return;
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "UPDATE_USER_ROLE", payload: { discordId, role: newRole } })
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error);
+      else {
+        // optimistically update state
+        setUsers(users.map(u => u.discordId === discordId ? { ...u, role: newRole } : u));
+      }
+    } catch (e) {
+      alert("System fault while swapping roles.");
+    }
+  };
+
   const handleEditUserNotes = async (discordId, currentNotes) => {
     const newNotes = window.prompt(`Enter tracking notes/infractions for User ${discordId}:`, currentNotes || "");
     if (newNotes === null) return; // Cancelled
@@ -490,6 +510,8 @@ export default function AdminConsole() {
                    <select className="bg-[#161920] border border-[#1e222b] rounded p-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" value={manualUserForm.role} onChange={e => setManualUserForm({...manualUserForm, role: e.target.value})}>
                       <option value="Member">Member</option>
                       <option value="Leader">Leader</option>
+                      <option value="Data Analyst">Data Analyst</option>
+                      <option value="Admin">Admin</option>
                    </select>
                  </div>
                  <button onClick={handleAddManualUser} className="w-full bg-[#1e222b] hover:bg-indigo-600 text-white rounded py-1.5 text-xs font-bold uppercase tracking-widest transition-all">Direct Inject Profile</button>

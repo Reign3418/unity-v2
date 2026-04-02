@@ -1494,6 +1494,36 @@ export async function unlinkGovernorAccount(discordId, governorId) {
 
 /**
  * ADMIN: Gets all registered Tenants
+
+/**
+ * ADMIN: Update a user's RBAC string
+ */
+export async function updateUserRole(discordId, newRole) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+    
+    // We import UpdateItemCommand at the top of the file, it's already there (Wait, let me double check top of file. Line 1 has UpdateItemCommand)
+    
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: 'SET attributes.#role = :role',
+        ExpressionAttributeNames: { '#role': 'role' },
+        ExpressionAttributeValues: { ':role': { S: String(newRole) } }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Update User Role Error", e);
+        return false;
+    }
+}
+
  */
 export async function getAllTenants() {
     const tableName = process.env.AWS_TABLE_NAME;

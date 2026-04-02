@@ -255,6 +255,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                       allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
                   };
               }
+          } else if (dbRole === 'data analyst') {
+              computedSuperAdmin = false;
+              isLeader = true;
+              isMember = true;
+              
+              if (!activeTenant || activeTenant.guildId !== "analyst") {
+                  const allKds = await getAllTrackedKingdoms();
+                  activeTenant = {
+                      guildId: "analyst",
+                      kingdomId: allKds.length > 0 ? allKds[0] : "3155",
+                      leadershipRoleId: "analyst",
+                      allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
+                  };
+              }
           } else if (dbRole === 'leader') {
               isLeader = true;
               isMember = true;

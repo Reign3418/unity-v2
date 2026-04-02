@@ -148,6 +148,16 @@ export async function POST(req) {
       return NextResponse.json({ success: true, message: `Direct User ${discordId} Add Complete.` }, { status: 200 });
     }
 
+
+    if (action === "UPDATE_USER_ROLE") {
+      const { discordId, role } = payload;
+      const success = await updateUserRole(discordId, role);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Access clearance updated for ${discordId}.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "Failed to update User clearance." }, { status: 500 });
+    }
+
     if (action === "ADD_TENANT_KINGDOM") {
       const { guildId, newKingdomId } = payload;
       const success = await addTenantAllowedKingdom(guildId, newKingdomId);
