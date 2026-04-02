@@ -1524,6 +1524,8 @@ export async function updateUserRole(discordId, newRole) {
     }
 }
 
+/**
+ * ADMIN: Gets all registered Tenants
  */
 export async function getAllTenants() {
     const tableName = process.env.AWS_TABLE_NAME;
