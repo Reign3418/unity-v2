@@ -198,7 +198,8 @@
     "gemini_model": "Gemini Architecture Model",
     "gemini_flash_rec": "Gemini 2.5 Flash (Recommended)",
     "gemini_pro": "Gemini 1.5 Pro (Heavy Duty)",
-    "gemini_legacy": "Gemini 1.5 Flash (Legacy)"
+    "gemini_legacy": "Gemini 1.5 Flash (Legacy)",
+    "btn_saved": "Changes Saved!"
   },
   "Changelog": {
     "title": "Changelog",
