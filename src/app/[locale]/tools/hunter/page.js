@@ -18,6 +18,7 @@ export default function PlayerHunter() {
   const [targetKingdoms, setTargetKingdoms] = useState("");
   const [minPower, setMinPower] = useState(0);
   const [maxPower, setMaxPower] = useState(200000000);
+  const [allianceTag, setAllianceTag] = useState("");
   const [isHunting, setIsHunting] = useState(false);
   const [talentResults, setTalentResults] = useState([]);
   const [hasTalentResults, setHasTalentResults] = useState(false);
@@ -142,7 +143,7 @@ export default function PlayerHunter() {
     setHasTalentResults(false);
 
     try {
-        const res = await fetch(`/api/aws/hunter/talent?kingdoms=${encodeURIComponent(targetKingdoms)}&minPower=${minPower}&maxPower=${maxPower}`);
+        const res = await fetch(`/api/aws/hunter/talent?kingdoms=${encodeURIComponent(targetKingdoms)}&minPower=${minPower}&maxPower=${maxPower}&allianceTag=${encodeURIComponent(allianceTag)}`);
         const data = await res.json();
         
         if (res.ok) {
@@ -228,17 +229,31 @@ export default function PlayerHunter() {
 
             <form onSubmit={handleTalentHunt} className="space-y-6 relative z-10 w-full">
                 
-                <div className="w-full">
-                  <label className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 block">
-                    {t('target_kd')}
-                  </label>
-                  <input 
-                    type="text" 
-                    value={targetKingdoms}
-                    onChange={(e) => setTargetKingdoms(e.target.value)}
-                    placeholder="e.g. 4023, 4024, 4025"
-                    className="w-full bg-[#0a0c0f] border border-[#1e222b] focus:border-fuchsia-500 text-white p-4 rounded-xl font-mono text-lg transition-all outline-none"
-                  />
+                <div className="flex flex-col md:flex-row gap-6 w-full">
+                  <div className="flex-[2]">
+                    <label className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 block">
+                      {t('target_kd')}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={targetKingdoms}
+                      onChange={(e) => setTargetKingdoms(e.target.value)}
+                      placeholder="e.g. 4023, 4024"
+                      className="w-full bg-[#0a0c0f] border border-[#1e222b] focus:border-fuchsia-500 text-white p-4 rounded-xl font-mono text-lg transition-all outline-none"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 block animate-pulse text-fuchsia-500">
+                      Target Alliance Tag
+                    </label>
+                    <input 
+                      type="text" 
+                      value={allianceTag}
+                      onChange={(e) => setAllianceTag(e.target.value)}
+                      placeholder="e.g. x023 (Optional)"
+                      className="w-full bg-[#0a0c0f] border border-[#1e222b] focus:border-fuchsia-500 text-white p-4 rounded-xl font-bold text-lg transition-all outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6 w-full">

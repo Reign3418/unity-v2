@@ -15,6 +15,7 @@ export async function GET(req) {
     const kingdomsParam = searchParams.get('kingdoms');
     const minPower = parseInt(searchParams.get('minPower')) || 0;
     const maxPower = parseInt(searchParams.get('maxPower')) || Infinity;
+    const allianceTag = searchParams.get('allianceTag') || '';
 
     if (!kingdomsParam) {
       return NextResponse.json({ error: "Missing 'kingdoms' array." }, { status: 400 });
@@ -46,8 +47,12 @@ export async function GET(req) {
     const combinedMatrices = await Promise.all(pullRequests);
     const flatRoster = combinedMatrices.flat();
     
-    // 4. Mathematical Power Filtration
-    const filteredRoster = flatRoster.filter(gov => gov.power >= minPower && gov.power <= maxPower);
+    // 4. Mathematical Power & Alliance Filtration
+    const filteredRoster = flatRoster.filter(gov => {
+       const meetsPower = gov.power >= minPower && gov.power <= maxPower;
+       const meetsAlliance = allianceTag ? (gov.alliance && gov.alliance.toLowerCase() === allianceTag.toLowerCase()) : true;
+       return meetsPower && meetsAlliance;
+    });
     
     // 5. Global Power Descending Sort (Highest targets at the top)
     filteredRoster.sort((a, b) => b.power - a.power);
