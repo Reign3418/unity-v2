@@ -52,7 +52,7 @@ export default function SettingsPage() {
     // Sync Presence Settings to AWS DynamoDB via Discord Backend
     if (prefs.timezone && prefs.playtimeStart && prefs.playtimeEnd) {
       try {
-        await fetch('/api/user/settings', {
+        const res = await fetch('/api/user/settings', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -63,8 +63,11 @@ export default function SettingsPage() {
             playtimeEnd: prefs.playtimeEnd
           })
         });
+        if (!res.ok) throw new Error('Network Error');
       } catch (e) {
         console.error("Failed to sync backend user settings", e);
+        alert("Failed to save settings: " + e.message);
+        return; // Don't show "saved" if it failed
       }
     }
 
