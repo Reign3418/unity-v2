@@ -1,26 +1,28 @@
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 
-// Supported core locs mapped statically to avoid NextJS Turbopack dynamic resolution faults
-const locales = {
-  en: () => import('./messages/en.json'),
-  vi: () => import('./messages/vi.json'),
-  ar: () => import('./messages/ar.json'),
-  ru: () => import('./messages/ru.json'),
-  zh: () => import('./messages/zh.json'),
-  es: () => import('./messages/es.json'),
-  id: () => import('./messages/id.json'),
-  ko: () => import('./messages/ko.json'),
-  tr: () => import('./messages/tr.json'),
-  fr: () => import('./messages/fr.json'),
-  de: () => import('./messages/de.json'),
-  pt: () => import('./messages/pt.json')
-};
+import en from './messages/en.json';
+import vi from './messages/vi.json';
+import ar from './messages/ar.json';
+import ru from './messages/ru.json';
+import zh from './messages/zh.json';
+import es from './messages/es.json';
+import id from './messages/id.json';
+import ko from './messages/ko.json';
+import tr from './messages/tr.json';
+import fr from './messages/fr.json';
+import de from './messages/de.json';
+import pt from './messages/pt.json';
+
+const locales = { en, vi, ar, ru, zh, es, id, ko, tr, fr, de, pt };
 
 export default getRequestConfig(async ({locale}) => {
-  if (!locales[locale]) notFound();
-
+  console.log("@@@ REQUEST LOCALE: ", locale);
+  if (!locales[locale]) {
+    console.log("@@@ LOCALE FAILED MATCH, TRIGGERING NOT FOUND");
+    notFound();
+  }
   return {
-    messages: (await locales[locale]()).default
+    messages: locales[locale]
   };
 });
