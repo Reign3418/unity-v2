@@ -54,6 +54,7 @@ export default function SettingsPage() {
       try {
         await fetch('https://unity-app-production.up.railway.app/api/user/settings', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
             // Express Session will pick up the existing credentials/cookies natively

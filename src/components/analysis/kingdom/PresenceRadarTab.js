@@ -12,6 +12,7 @@ export default function PresenceRadarTab({ targetKd }) {
             setIsLoading(true);
             try {
                 const res = await fetch(`https://unity-app-production.up.railway.app/api/user/presence?kd=${targetKd}`, {
+                    credentials: 'include',
                     headers: {
                         'Authorization': typeof window !== 'undefined' ? localStorage.getItem('auth_token') : undefined
                     }
