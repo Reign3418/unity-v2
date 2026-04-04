@@ -267,5 +267,25 @@
     "hist_alias": "曾用名演化",
     "raw_timeline": "原始 AWS 时间线",
     "zeroed": "🚨 被清零 / 围殴"
+  },
+  "Tabs": {
+    "Overview": "总览",
+    "Growth Analysis": "数据增长分析",
+    "Kingdom Analysis": "王国分析",
+    "Alliance Duel": "联盟对决",
+    "Scatter Plot": "离散数据图 (坐标系)",
+    "Hall of Legends": "传奇大厅",
+    "Team Builder": "组队系统",
+    "Alliance Merge": "联盟合服",
+    "Fixed MGE": "最强执政官",
+    "Roster Linker": "名单链接绑定",
+    "Configuration": "后台管理",
+    "Results": "KVK 结算",
+    "workbench_title": "王国工作台",
+    "workbench_subtitle": "互动遗留工具",
+    "tab_in_dev": "开发中",
+    "tab_in_dev_desc": "正在向新框架迁移中。",
+    "r4_clearance": "需要 R4 权限",
+    "r4_desc": "您的角色无查看权限。"
   }
 }

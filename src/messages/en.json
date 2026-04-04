@@ -267,5 +267,25 @@
     "hist_alias": "Known Alias Evolution",
     "raw_timeline": "Raw AWS Timeline Scans",
     "zeroed": "🚨 ZEROED / SWARMED"
+  },
+  "Tabs": {
+    "Overview": "Overview",
+    "Growth Analysis": "Growth Analysis",
+    "Kingdom Analysis": "Kingdom Analysis",
+    "Alliance Duel": "Alliance Duel",
+    "Scatter Plot": "Scatter Plot",
+    "Hall of Legends": "Hall of Legends",
+    "Team Builder": "Team Builder",
+    "Alliance Merge": "Alliance Merge",
+    "Fixed MGE": "Fixed MGE",
+    "Roster Linker": "Roster Linker",
+    "Configuration": "Configuration",
+    "Results": "Results",
+    "workbench_title": "Kingdom Workbench",
+    "workbench_subtitle": "Interactive Legacy Tools",
+    "tab_in_dev": "Tab In Development",
+    "tab_in_dev_desc": "The component is currently undergoing V2 framework migration.",
+    "r4_clearance": "R4 Clearance Required",
+    "r4_desc": "Your current role does not have permission to view this utility."
   }
 }

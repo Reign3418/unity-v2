@@ -14,6 +14,7 @@ import MGEPlannerTab from "@/components/analysis/kingdom/MGEPlannerTab";
 import ConfigurationTab from "@/components/analysis/kingdom/ConfigurationTab";
 import ResultsTab from "@/components/analysis/kingdom/ResultsTab";
 import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
+import { useTranslations } from "next-intl";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -31,6 +32,7 @@ const TABS = [
 ];
 
 export default function KingdomAnalysis() {
+  const tTabs = useTranslations('Tabs');
   const { data: session } = useSession();
   
   const [targetKd, setTargetKd] = useState("");
@@ -141,8 +143,8 @@ export default function KingdomAnalysis() {
                   return (
                       <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
                           <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
-                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">R4 Clearance Required</h3>
-                          <p className="text-sm text-gray-400">Your current role does not have permission to view advanced mathematical modeling.</p>
+                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('r4_clearance')}</h3>
+                          <p className="text-sm text-gray-400">{tTabs('r4_desc')}</p>
                       </div>
                   );
               }
@@ -193,8 +195,8 @@ export default function KingdomAnalysis() {
                   return (
                       <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
                           <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
-                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">R4 Clearance Required</h3>
-                          <p className="text-sm text-gray-400">Your current role does not have permission to view the Account Linking utility.</p>
+                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('r4_clearance')}</h3>
+                          <p className="text-sm text-gray-400">{tTabs('r4_desc')}</p>
                       </div>
                   );
               }
@@ -208,8 +210,8 @@ export default function KingdomAnalysis() {
               return (
                   <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500 shadow-xl">
                       <Activity className="w-12 h-12 mb-4 opacity-50 text-cyan-500" />
-                      <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">Tab In Development</h3>
-                      <p className="text-sm">The <strong>{activeTab}</strong> component is currently undergoing V2 framework migration.</p>
+                      <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('tab_in_dev')}</h3>
+                      <p className="text-sm">{tTabs('tab_in_dev_desc')}</p>
                   </div>
               );
       }
@@ -227,8 +229,8 @@ export default function KingdomAnalysis() {
                  <BarChart2 className="text-cyan-500" size={32} />
                </div>
                <div>
-                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">Kingdom Workbench</h1>
-                 <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Interactive Legacy Tools</p>
+                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">{tTabs('workbench_title')}</h1>
+                 <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{tTabs('workbench_subtitle')}</p>
                </div>
             </div>
             
@@ -280,7 +282,7 @@ export default function KingdomAnalysis() {
                   }`}
                 >
                   <Icon size={16} className={isActive ? 'text-cyan-400' : 'text-gray-600'} />
-                  {tab.name}
+                  {tTabs(tab.name) || tab.name}
                 </button>
              );
           })}
