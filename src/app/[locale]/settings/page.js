@@ -52,13 +52,10 @@ export default function SettingsPage() {
     // Sync Presence Settings to AWS DynamoDB via Discord Backend
     if (prefs.timezone && prefs.playtimeStart && prefs.playtimeEnd) {
       try {
-        await fetch('https://unity-app-production.up.railway.app/api/user/settings', {
+        await fetch('/api/user/settings', {
           method: 'POST',
-          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            // Express Session will pick up the existing credentials/cookies natively
-            'Authorization': typeof window !== 'undefined' ? localStorage.getItem('auth_token') : undefined
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             timezone: prefs.timezone,

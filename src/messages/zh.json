@@ -194,7 +194,11 @@
     "hybrid_mode": "Hybrid Mode",
     "api_desc": "Unity runs a hybrid cloud infrastructure. Heavy OCR analysis for image uploads requires a Google Gemini Pro API key to operate.",
     "gemini_key": "Google Gemini Secret Key",
-    "btn_save": "Save Changes"
+    "btn_save": "Save Changes",
+    "gemini_model": "Gemini Architecture Model",
+    "gemini_flash_rec": "Gemini 2.5 Flash (Recommended)",
+    "gemini_pro": "Gemini 1.5 Pro (Heavy Duty)",
+    "gemini_legacy": "Gemini 1.5 Flash (Legacy)"
   },
   "Changelog": {
     "title": "Changelog",

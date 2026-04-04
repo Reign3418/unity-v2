@@ -3544,3 +3544,85 @@ export async function saveUserCamps(discordId, campsArray) {
     }
 }
 
+
+ * Sweeps the entire DB for users whose allowedKingdoms matches the target.
+ */
+export async function getAllUsersInKingdom(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    const params = {
+        TableName: tableName,
+        FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk AND contains(attributes.allowedKingdoms, :kd)',
+        ExpressionAttributeValues: {
+            ':pkPrefix': { S: 'USER#' },
+            ':sk': { S: 'CONFIG' },
+            ':kd': { S: String(kingdomId) }
+        }
+    };
+
+    try {
+        const result = await dbClient.send(new ScanCommand(params));
+        if (!result.Items) return [];
+
+        return result.Items.map(item => {
+            const attrs = item.attributes?.M || {};
+            const pkParts = item.PK.S.split('#');
+            const discordId = pkParts.length > 1 ? pkParts[1] : null;
+
+            let govIds = [];
+            if (attrs.governorIds && attrs.governorIds.L) {
+                govIds = attrs.governorIds.L.map(i => i.S);
+            }
+
+            return {
+                discordId: discordId,
+                governorIds: govIds,
+                timezone: attrs.timezone?.S || null,
+                playtimeStart: attrs.playtimeStart?.S || null,
+                playtimeEnd: attrs.playtimeEnd?.S || null,
+                lastActiveTimestamp: attrs.lastActiveTimestamp?.S || null
+            };
+        });
+    } catch (e) {
+        console.error("AWS GetAllUsersInKingdom Error", e);
+        return [];
+    }
+}
+
+/**
+ * Updates a user's self-reported typical playtime and native timezone.
+ */
+export async function updateUserPlaytime(discordId, timezone, playStart, playEnd) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: 'SET #attrs.#tz = :tz, #attrs.#start = :start, #attrs.#end = :end',
+        ExpressionAttributeNames: {
+            '#attrs': 'attributes',
+            '#tz': 'timezone',
+            '#start': 'playtimeStart',
+            '#end': 'playtimeEnd'
+        },
+        ExpressionAttributeValues: {
+            ':tz': { S: String(timezone) },
+            ':start': { S: String(playStart) },
+            ':end': { S: String(playEnd) }
+        }
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (err) {
+        console.error(`[AWS] Failed to update playtime for ${discordId}:`, err);
+        return false;
+    }
+}
+

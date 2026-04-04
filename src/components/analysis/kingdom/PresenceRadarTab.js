@@ -11,12 +11,7 @@ export default function PresenceRadarTab({ targetKd }) {
             if (!targetKd) return;
             setIsLoading(true);
             try {
-                const res = await fetch(`https://unity-app-production.up.railway.app/api/user/presence?kd=${targetKd}`, {
-                    credentials: 'include',
-                    headers: {
-                        'Authorization': typeof window !== 'undefined' ? localStorage.getItem('auth_token') : undefined
-                    }
-                });
+                const res = await fetch(`/api/user/presence?kd=${targetKd}`);
                 const json = await res.json();
                 if (json.success && json.presenceData) {
                     setPresenceData(json.presenceData);
