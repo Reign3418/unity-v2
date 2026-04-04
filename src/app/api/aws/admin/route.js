@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
-  rejectPendingUser, addTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig
+  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig
 } from "@/lib/awsDynamo";
 
 export async function GET(req) {
@@ -163,6 +163,15 @@ export async function POST(req) {
       const success = await addTenantAllowedKingdom(guildId, newKingdomId);
       if (success) {
         return NextResponse.json({ success: true, message: `Bonus Kingdom Added to Guild.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "Guild not found or AWS write failed." }, { status: 500 });
+    }
+
+    if (action === "REMOVE_TENANT_KINGDOM") {
+      const { guildId, removeKingdomId } = payload;
+      const success = await removeTenantAllowedKingdom(guildId, removeKingdomId);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Kingdom Access Revoked for Guild.` }, { status: 200 });
       }
       return NextResponse.json({ error: "Guild not found or AWS write failed." }, { status: 500 });
     }

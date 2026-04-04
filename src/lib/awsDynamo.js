@@ -1616,6 +1616,44 @@ export async function addTenantAllowedKingdom(guildId, newKingdomId) {
     }
 }
 
+export async function removeTenantAllowedKingdom(guildId, targetKingdomId) {
+    const { PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+    let tenant = await getTenantConfig(guildId);
+    if (!tenant) return false;
+
+    const allowed = new Set(tenant.allowedKingdoms || []);
+    allowed.delete(String(targetKingdomId));
+    
+    const tableName = process.env.AWS_TABLE_NAME;
+    const dynamoList = Array.from(allowed).map(k => ({ S: k }));
+    
+    const params = {
+        TableName: tableName,
+        Item: {
+            'PK': { S: 'GLOBAL_TENANTS' },
+            'SK': { S: `TENANT#${guildId}` },
+            'attributes': {
+                M: {
+                    'kingdomId': { S: tenant.kingdomId },
+                    'leadershipRoleId': { S: tenant.leadershipRoleId || "Admin-Generated" },
+                    'allowedKingdoms': { L: dynamoList },
+                    'createdDate': { S: tenant.createdDate || new Date().toISOString() },
+                    'notes': { S: tenant.notes || "" },
+                    'globalAiAccess': { BOOL: tenant.globalAiAccess || false }
+                }
+            }
+        }
+    };
+
+    try {
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Remove Tenant Kingdom Error", e);
+        return false;
+    }
+}
+
 /**
  * ADMIN: Deletes a Tenant completely
  */

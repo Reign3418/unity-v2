@@ -206,6 +206,16 @@ export default function AdminConsole() {
     try {
       const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ADD_TENANT_KINGDOM", payload: { guildId: tenantForm.guildId, newKingdomId: tenantForm.kingdomId } }) });
       if (!res.ok) throw new Error("Failed to add bonus kingdom.");
+      tenantForm.kingdomId = "";
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleRemoveTenantKingdom = async (guildId, removeKingdomId) => {
+    if (!confirm(`Remove Kingdom ${removeKingdomId} access from Guild ${guildId}?`)) return;
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "REMOVE_TENANT_KINGDOM", payload: { guildId, removeKingdomId } }) });
+      if (!res.ok) throw new Error("Failed to remove kingdom.");
       fetchAdminMatrix();
     } catch (e) { alert(e.message); }
   };
@@ -296,7 +306,7 @@ export default function AdminConsole() {
                            <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-1">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")}</div>
                          </div>
                        </div>
-                       <button onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`p-1.5 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}><Bot size={14} /></button>
+                       <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`p-1.5 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}><Bot size={14} /></button>
                     </div>
                     <div className="text-[10px] text-gray-500 uppercase flex gap-4 mt-1">
                        <span>{user.governorIds?.length || 0} Linked Profiles</span>
@@ -320,7 +330,7 @@ export default function AdminConsole() {
                        <span className="text-gray-300 font-bold text-sm font-mono">{user.discordId}</span>
                        <div className="flex gap-2">
                            <button onClick={() => handleEditUserNotes(user.discordId, user.notes)} className="text-gray-500 hover:text-cyan-400 transition-colors"><TextSelect size={14}/></button>
-                           <button onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`transition-colors ${user.globalAiAccess?'text-cyan-500':'text-rose-500'}`}><Bot size={14}/></button>
+                           <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`transition-colors ${user.globalAiAccess?'text-cyan-500':'text-rose-500'}`}><Bot size={14}/></button>
                        </div>
                     </div>
                     <div className="text-[10px] text-gray-600 uppercase tracking-widest">{user.governorIds?.length || 0} Profiles Linked</div>
@@ -420,8 +430,8 @@ export default function AdminConsole() {
                    </div>
                  </div>
                  <div className="flex gap-2">
-                    <button onClick={() => toggleTenantAi(tenant.guildId, tenant.globalAiAccess)} className={`p-2 rounded border ${tenant.globalAiAccess?'bg-cyan-500/10 text-cyan-500 border-cyan-500/30':'bg-rose-500/10 text-rose-500 border-rose-500/30'}`}><Bot size={16}/></button>
-                    <button onClick={() => handleTerminateTenant(tenant.guildId, tenant.kingdomId)} className="p-2 rounded bg-[#1e222b] hover:bg-rose-500 text-gray-500 hover:text-white transition-colors"><PowerOff size={16}/></button>
+                    <button title={tenant.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleTenantAi(tenant.guildId, tenant.globalAiAccess)} className={`p-2 rounded border ${tenant.globalAiAccess?'bg-cyan-500/10 text-cyan-500 border-cyan-500/30':'bg-rose-500/10 text-rose-500 border-rose-500/30'}`}><Bot size={16}/></button>
+                    <button title="Terminate Server Connection" onClick={() => handleTerminateTenant(tenant.guildId, tenant.kingdomId)} className="p-2 rounded bg-[#1e222b] hover:bg-rose-500 text-gray-500 hover:text-white transition-colors"><PowerOff size={16}/></button>
                  </div>
               </div>
 
@@ -431,8 +441,15 @@ export default function AdminConsole() {
                    <span className="text-gray-300 font-mono">{tenant.leadershipRoleId || "N/A"}</span>
                  </div>
                  <div className="flex-1">
-                   <span className="text-gray-500 uppercase block mb-1 tracking-wider">Allowed Domains</span>
-                   <span className="text-indigo-400 font-bold">{tenant.allowedKingdoms?.length || 0} Routing Blocks</span>
+                   <span className="text-gray-500 uppercase block mb-1 tracking-wider">Allowed Kingdoms</span>
+                   <div className="flex flex-wrap gap-1 mt-1">
+                     {tenant.allowedKingdoms?.length > 0 ? tenant.allowedKingdoms.map(kd => (
+                       <span key={kd} className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 group/kd">
+                         {kd}
+                         <button onClick={() => handleRemoveTenantKingdom(tenant.guildId, kd)} className="text-blue-400 hover:text-rose-500 transition-colors ml-1" title={`Remove Kingdom ${kd}`}><XCircle size={10}/></button>
+                       </span>
+                     )) : <span className="text-gray-600 text-[10px] italic">No bonus kingdoms mapped.</span>}
+                   </div>
                  </div>
               </div>
 
