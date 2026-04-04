@@ -1,6 +1,13 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { getAllUsersInKingdom } from "@/lib/awsDynamo";
+import { unstable_cache } from "next/cache";
+
+const getCachedKingdomUsers = unstable_cache(
+    async (kd) => getAllUsersInKingdom(kd),
+    ['kingdom-presence-data'],
+    { revalidate: 60 * 5, tags: ['presence'] } // Cache for 5 minutes instead of querying AWS continuously
+);
 
 export async function GET(req) {
     const session = await auth();
@@ -16,7 +23,7 @@ export async function GET(req) {
     }
 
     try {
-        const users = await getAllUsersInKingdom(kd);
+        const users = await getCachedKingdomUsers(kd);
         return NextResponse.json({ success: true, presenceData: users }, { status: 200 });
     } catch (e) {
         console.error("API Presence Failed:", e);
