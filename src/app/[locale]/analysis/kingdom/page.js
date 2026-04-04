@@ -3,17 +3,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2 } from "lucide-react";
-import KingdomAnalysisTab from "../../../components/analysis/kingdom/KingdomAnalysisTab";
-import OverviewTab from "../../../components/analysis/kingdom/OverviewTab";
-import ScatterPlotTab from "../../../components/analysis/kingdom/ScatterPlotTab";
-import GrowthAnalysisTab from "../../../components/analysis/kingdom/GrowthAnalysisTab";
-import AllianceDuelTab from "../../../components/analysis/kingdom/AllianceDuelTab";
-import TeamBuilderTab from "../../../components/analysis/kingdom/TeamBuilderTab";
-import AllianceMergeTab from "../../../components/analysis/kingdom/AllianceMergeTab";
-import MGEPlannerTab from "../../../components/analysis/kingdom/MGEPlannerTab";
-import ConfigurationTab from "../../../components/analysis/kingdom/ConfigurationTab";
-import ResultsTab from "../../../components/analysis/kingdom/ResultsTab";
-import AccountLinkerTab from "../../../components/analysis/kingdom/AccountLinkerTab";
+import KingdomAnalysisTab from "@/components/analysis/kingdom/KingdomAnalysisTab";
+import OverviewTab from "@/components/analysis/kingdom/OverviewTab";
+import ScatterPlotTab from "@/components/analysis/kingdom/ScatterPlotTab";
+import GrowthAnalysisTab from "@/components/analysis/kingdom/GrowthAnalysisTab";
+import AllianceDuelTab from "@/components/analysis/kingdom/AllianceDuelTab";
+import TeamBuilderTab from "@/components/analysis/kingdom/TeamBuilderTab";
+import AllianceMergeTab from "@/components/analysis/kingdom/AllianceMergeTab";
+import MGEPlannerTab from "@/components/analysis/kingdom/MGEPlannerTab";
+import ConfigurationTab from "@/components/analysis/kingdom/ConfigurationTab";
+import ResultsTab from "@/components/analysis/kingdom/ResultsTab";
+import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },

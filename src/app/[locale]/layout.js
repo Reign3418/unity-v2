@@ -2,7 +2,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/providers/AuthProvider";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Analytics } from "@vercel/analytics/react";
-import "./globals.css";
+import "../globals.css";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,16 +24,20 @@ export const metadata = {
   }
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children, params: { locale } }) {
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0c0f]`}>
-        <AuthProvider>
-          <DashboardLayout>
-            {children}
-            <Analytics />
-          </DashboardLayout>
-        </AuthProvider>
+        <NextIntlClientProvider messages={messages}>
+          <AuthProvider>
+            <DashboardLayout>
+              {children}
+              <Analytics />
+            </DashboardLayout>
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
