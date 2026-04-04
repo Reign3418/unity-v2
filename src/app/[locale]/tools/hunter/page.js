@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Crosshair, Search, ShieldAlert, Fingerprint, MapPin, FileText, Activity, Users, Download, Target, Table } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function PlayerHunter() {
+  const t = useTranslations('Hunter');
   const [activeTab, setActiveTab] = useState("trajectory"); // "trajectory" or "talent"
 
   // Tab A State (Global Trajectory)
@@ -188,7 +190,7 @@ export default function PlayerHunter() {
                : 'bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-white hover:bg-white/5'
            }`}
          >
-           <Crosshair size={20} /> Identity Trajectory
+           <Crosshair size={20} /> {t('tab_trajectory')}
          </button>
 
          <button 
@@ -199,7 +201,7 @@ export default function PlayerHunter() {
                : 'bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-white hover:bg-white/5'
            }`}
          >
-           <Target size={20} /> Talent Acquisition
+           <Target size={20} /> {t('tab_talent')}
          </button>
       </div>
 
@@ -212,15 +214,15 @@ export default function PlayerHunter() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10 mb-8 pb-8 border-b border-[#1e222b]">
                <div>
                   <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                    Player Hunter <Target className="text-fuchsia-500" size={28} />
+                    {t('hunter_title')} <Target className="text-fuchsia-500" size={28} />
                   </h1>
                   <p className="text-gray-400 text-sm max-w-xl">
-                    Query the AWS Cloud Database to find players matching specific power criteria across multiple kingdoms in real time.
+                    {t('hunter_desc')}
                   </p>
                </div>
                
                <button onClick={exportToExcel} disabled={talentResults.length === 0} className="flex items-center gap-2 px-6 py-3 bg-[#6366f1] hover:bg-[#4f46e5] disabled:bg-[#6366f1]/30 disabled:text-white/30 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all uppercase tracking-wider text-sm">
-                  <Download size={18} /> Export to Excel
+                  <Download size={18} /> {t('export_excel')}
                </button>
             </div>
 
@@ -228,7 +230,7 @@ export default function PlayerHunter() {
                 
                 <div className="w-full">
                   <label className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 block">
-                    Target Kingdoms (Comma Separated)
+                    {t('target_kd')}
                   </label>
                   <input 
                     type="text" 
@@ -242,7 +244,7 @@ export default function PlayerHunter() {
                 <div className="flex flex-col md:flex-row gap-6 w-full">
                    <div className="flex-1">
                       <label className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 block">
-                        Min Power
+                        {t('min_power')}
                       </label>
                       <input 
                         type="number" 
@@ -253,7 +255,7 @@ export default function PlayerHunter() {
                    </div>
                    <div className="flex-1">
                       <label className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 block">
-                        Max Power
+                        {t('max_power')}
                       </label>
                       <input 
                         type="number" 
@@ -274,7 +276,7 @@ export default function PlayerHunter() {
                   }`}
                 >
                   {isHunting ? <Activity className="animate-spin" size={18} /> : <Search size={18} />}
-                  {isHunting ? 'Scanning AWS Target Nodes...' : 'Start Hunt'}
+                  {isHunting ? t('btn_scanning') : t('btn_start_hunt')}
                 </button>
             </form>
           </div>

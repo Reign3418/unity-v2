@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Users, Send, Globe2, MessageSquare, RefreshCw, Lightbulb, Bug, Star, HelpCircle } from "lucide-react";
 
 const POST_TYPES = [
@@ -30,6 +31,7 @@ function timeAgo(dateStr) {
 }
 
 export default function CommunityHub() {
+  const t = useTranslations('Community');
   const { data: session } = useSession();
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,8 +97,8 @@ export default function CommunityHub() {
               <Users className="text-sky-400" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-widest uppercase">Unity Community Hub</h1>
-              <p className="text-sky-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Submit Feedback & Live Global Feed</p>
+              <h1 className="text-3xl font-black text-white tracking-widest uppercase">{t('title')}</h1>
+              <p className="text-sky-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
             </div>
           </div>
           <button
@@ -114,7 +116,7 @@ export default function CommunityHub() {
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden">
           <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center gap-2">
             <MessageSquare size={15} className="text-sky-400" />
-            <h2 className="text-white font-bold uppercase tracking-widest text-sm">Submit Feedback</h2>
+            <h2 className="text-white font-bold uppercase tracking-widest text-sm">{t('submit_title')}</h2>
           </div>
           <div className="p-5 space-y-4">
             {/* Type Selector */}
@@ -138,7 +140,7 @@ export default function CommunityHub() {
               value={message}
               onChange={e => setMessage(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePost(); }}}
-              placeholder={`Describe your idea or report a bug...`}
+              placeholder={t('placeholder')}
               rows={3}
               maxLength={500}
               className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white placeholder:text-gray-600 p-3 rounded-lg outline-none focus:border-sky-500/50 transition-colors text-sm resize-none font-mono"
@@ -152,7 +154,7 @@ export default function CommunityHub() {
                 className="flex items-center gap-2 px-5 py-2 bg-sky-500 hover:bg-sky-600 disabled:bg-[#1e222b] disabled:text-gray-600 text-white font-bold uppercase tracking-widest text-xs rounded-lg transition-colors shadow-lg"
               >
                 {isPosting ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} />}
-                {isPosting ? "Posting..." : "Post"}
+                {isPosting ? t('btn_posting') : t('btn_post')}
               </button>
             </div>
           </div>
@@ -161,7 +163,7 @@ export default function CommunityHub() {
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 flex items-center gap-4">
           <Globe2 size={24} className="text-sky-400 shrink-0" />
           <p className="text-gray-400 text-sm">
-            <span className="text-white font-bold">Sign in with Discord</span> to post messages and interact with the kingdom community.
+            <span className="text-white font-bold">{t('sign_in')}</span> {t('sign_in_desc')}
           </p>
         </div>
       )}
@@ -170,7 +172,7 @@ export default function CommunityHub() {
       <div>
         <h2 className="text-white font-bold uppercase tracking-widest text-lg mb-6 flex items-center gap-3">
           <Globe2 className="text-sky-400" />
-          Live Global Feed
+          {t('live_feed')}
         </h2>
         <div className="space-y-3">
         {isLoading ? (
@@ -180,8 +182,8 @@ export default function CommunityHub() {
         ) : posts.length === 0 ? (
           <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-600">
             <MessageSquare className="w-10 h-10 mb-3 opacity-40" />
-            <p className="text-sm font-bold uppercase tracking-widest">No Posts Yet</p>
-            <p className="text-xs mt-1">Be the first to post in the Community Hub.</p>
+            <p className="text-sm font-bold uppercase tracking-widest">{t('no_posts_title')}</p>
+            <p className="text-xs mt-1">{t('no_posts_desc')}</p>
           </div>
         ) : (
           posts.map((post, idx) => {
