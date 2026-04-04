@@ -1525,6 +1525,32 @@ export async function updateUserRole(discordId, newRole) {
 }
 
 /**
+ * ADMIN: Delete a user's access entirely
+ */
+export async function deleteUserAccess(discordId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+    
+    // Using DeleteItemCommand which must be imported at the top
+    const { DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        }
+    };
+
+    try {
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS Delete User Access Error", e);
+        return false;
+    }
+}
+
+/**
  * ADMIN: Gets all registered Tenants
  */
 export async function getAllTenants() {
@@ -1987,6 +2013,8 @@ export async function getAllUsers() {
                                 role: attrs.role?.S || 'User',
                                 linkedDate: attrs.linkedDate?.S || 'Unknown',
                                 globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
+                                username: attrs.username?.S || null,
+                                avatar: attrs.avatar?.S || null,
                                 notes: attrs.notes?.S || ""
                             });
                         }

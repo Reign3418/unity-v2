@@ -130,6 +130,23 @@ export default function AdminConsole() {
     } catch (e) { alert(e.message); fetchAdminMatrix(); }
   };
 
+  const handleUpdateUserRole = async (discordId, role) => {
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "UPDATE_USER_ROLE", payload: { discordId, role } }) });
+      if (!res.ok) throw new Error("Failed to update role.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleDeleteUserAccess = async (discordId) => {
+    if (!confirm(`CRITICAL WARNING: Are you sure you want to permanently revoke network access for User ${discordId}?`)) return;
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "DELETE_USER_ACCESS", payload: { discordId } }) });
+      if (!res.ok) throw new Error("Failed to revoke access.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
   const handleSaveLocalKeys = () => {
     try {
       const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
@@ -326,7 +343,14 @@ export default function AdminConsole() {
                            <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-1">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")}</div>
                          </div>
                        </div>
-                       <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`p-1.5 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}><Bot size={14} /></button>
+                       <div className="flex gap-2">
+                           <button onClick={() => {
+                               const newRole = prompt(`Modify access level for ${user.discordId}:\n(User, LEADER, DATA ANALYST, etc)`, user.role || "User");
+                               if(newRole && newRole !== user.role) handleUpdateUserRole(user.discordId, newRole);
+                           }} className="p-1.5 rounded-lg border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 transition-all" title="Edit Role Permissions"><ShieldAlert size={14} /></button>
+                           <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`p-1.5 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}><Bot size={14} /></button>
+                           <button onClick={() => handleDeleteUserAccess(user.discordId)} className="p-1.5 rounded-lg border border-rose-500/30 text-rose-500 hover:bg-rose-500/20 transition-all" title="Revoke Network Access"><Trash2 size={14} /></button>
+                        </div>
                     </div>
                     <div className="text-[10px] text-gray-500 uppercase flex gap-4 mt-1">
                        <span>{user.governorIds?.length || 0} Linked Profiles</span>

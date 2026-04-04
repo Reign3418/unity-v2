@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
-  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig
+  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess
 } from "@/lib/awsDynamo";
 
 export async function GET(req) {
@@ -156,6 +156,16 @@ export async function POST(req) {
         return NextResponse.json({ success: true, message: `Access clearance updated for ${discordId}.` }, { status: 200 });
       }
       return NextResponse.json({ error: "Failed to update User clearance." }, { status: 500 });
+    }
+
+    if (action === "DELETE_USER_ACCESS") {
+      const { discordId } = payload;
+      if (!discordId) return NextResponse.json({ error: "Missing Discord ID." }, { status: 400 });
+      const success = await deleteUserAccess(discordId);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Access permanently revoked for ${discordId}.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "Failed to delete User clearance." }, { status: 500 });
     }
 
     if (action === "ADD_TENANT_KINGDOM") {
