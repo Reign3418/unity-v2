@@ -151,12 +151,55 @@ export default function ExperimentalApplet() {
                 {!image && !isLoading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-dashed border-slate-700/50 rounded-xl bg-slate-900/20 text-center p-6 transition-colors hover:border-slate-500/50 hover:bg-slate-800/30">
                         <Camera size={48} className="text-slate-600 mb-4" />
-                        <h3 className="text-lg font-bold text-white mb-2">Drop Zone Active</h3>
-                        <p className="text-sm text-slate-400">
-                            Simply take a screenshot in-game and press <br/>
-                            <kbd className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 mx-1 font-mono text-cyan-400">Ctrl + V</kbd> 
-                            anywhere in this window.
+                        <h3 className="text-lg font-bold text-white mb-2">Scanner Offline</h3>
+                        <p className="text-sm text-slate-400 mb-6">
+                            Press <kbd className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 mx-1 font-mono text-cyan-400">Ctrl + V</kbd> to paste an image instantly, <br/>
+                            OR capture a window natively:
                         </p>
+                        <button 
+                            onClick={async () => {
+                                try {
+                                    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+                                    const video = document.createElement('video');
+                                    video.srcObject = stream;
+                                    video.play();
+
+                                    video.onloadedmetadata = () => {
+                                        const canvas = canvasRef.current;
+                                        // Smart Scaling to 1920 cap to save bandwidth
+                                        let width = video.videoWidth;
+                                        let height = video.videoHeight;
+                                        const MAX_WIDTH = 1920; 
+                        
+                                        if (width > MAX_WIDTH) {
+                                            height = Math.round((height * MAX_WIDTH) / width);
+                                            width = MAX_WIDTH;
+                                        }
+
+                                        canvas.width = width;
+                                        canvas.height = height;
+                                        const ctx = canvas.getContext('2d');
+                                        
+                                        // Snap the exact frame
+                                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                        
+                                        // Instantly kill the web stream
+                                        stream.getTracks().forEach(track => track.stop());
+                                        
+                                        // Process it
+                                        const webPBase64 = canvas.toDataURL('image/webp', 0.8);
+                                        setImage(webPBase64);
+                                        transmitToAiEngine(webPBase64);
+                                    };
+                                } catch (err) {
+                                    console.error("Screen Share Capture Failed:", err);
+                                }
+                            }}
+                            className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-mono text-[10px] uppercase tracking-widest px-6 py-3 rounded-lg shadow-[0_0_15px_rgba(192,38,211,0.4)] transition-all flex items-center gap-2"
+                        >
+                            <Camera size={16} />
+                            <span>Take Picture of Window</span>
+                        </button>
                     </div>
                 )}
 
