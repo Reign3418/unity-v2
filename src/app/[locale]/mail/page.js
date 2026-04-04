@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Mail, Edit3, ShieldAlert, Send, Flame, RefreshCw, Copy, Check, Crosshair, CalendarDays, BellRing, Database, Save, FolderOpen } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Mail, Edit3, ShieldAlert, Send, Flame, RefreshCw, Copy, Check, Crosshair, CalendarDays, BellRing, Database, Save, FolderOpen, Bold, Italic, Type, Palette, Eye } from "lucide-react";
 
 export default function MailGenerator() {
   const [copied, setCopied] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [mailType, setMailType] = useState("mge");
-  const [variables, setVariables] = useState({
-    title: "MGE Stage 5 Protocol",
-    kingdom: "3155",
-    time: "00:00 UTC",
-    target: "750,000",
-  });
   
   const [scheduleEvent, setScheduleEvent] = useState(false);
   const [pushToDiscord, setPushToDiscord] = useState(true);
@@ -22,20 +15,19 @@ export default function MailGenerator() {
     offset: "0"
   });
 
-  // Custom Template States
   const [customText, setCustomText] = useState("");
   const [templateNameInput, setTemplateNameInput] = useState("");
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
 
+  const textareaRef = useRef(null);
+
   useEffect(() => {
-     // Unity Cross-Module Interceptor (e.g. Behavioral Matrix payload)
      const matrixRoster = localStorage.getItem('unty_mail_roster') || localStorage.getItem('unity_mail_roster');
      if (matrixRoster) {
          try {
              const parsed = JSON.parse(matrixRoster);
-             setMailType('custom');
              
              if (Array.isArray(parsed)) {
                  const reportObj = parsed[0];
@@ -52,7 +44,6 @@ export default function MailGenerator() {
                  setCustomText(formattedText + `\n\n[End Transmission]`);
              }
          } catch (e) {
-             setMailType('custom');
              setCustomText(`[TARGET ROSTER ACQUIRED]\n\n${matrixRoster}\n\n`);
          }
          localStorage.removeItem('unty_mail_roster');
@@ -101,34 +92,18 @@ export default function MailGenerator() {
       }
   };
 
-  const generateMailText = () => {
-    switch(mailType) {
-      case "mge":
-        return `⚠️ KINGDOM ${variables.kingdom} DIRECTIVE ⚠️\n\nMightiest Governor Stage 5 (Kill Event) initiates at ${variables.time}.\n\nRules of Engagement:\n1. The Point Cap is strictly set to ${variables.target} points.\n2. Do NOT hit farms or farmers.\n3. Do NOT hit cities zeroed outside of Zone 1.\n\nViolators will be zeroed. Ensure you abide by all title rotations.\n\n- High Command`;
-      case "kvk":
-        return `🔥 LIGHT VS DARK PREPARATION 🔥\n\nAttention Kingdom ${variables.kingdom},\n\nMatchmaking protocols lock in soon. All players must ensure hospital capacities are managed and resources are packed.\n\nRuins open exactly at ${variables.time}. Formations must be T4+ Infantry strictly.`;
-      case "rogue":
-        return `🚨 ROGUE ALERT 🚨\n\nTarget located in Zone 3.\n\nDo not reinforce without high command orders. Rally leaders are preparing at ${variables.time}.\n\nStay out of the AoE.`;
-      case "custom":
-        return customText;
-      default:
-        return "Drafting new mail template...";
-    }
-  };
-
   const handleDeploy = async () => {
-    const text = generateMailText();
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(customText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
 
-    if (!scheduleEvent && !pushToDiscord) return; // Only copying to clipboard
+    if (!scheduleEvent && !pushToDiscord) return;
 
     setIsDeploying(true);
     try {
         const payload = {
-            mailText: text,
-            mailType,
+            mailText: customText,
+            mailType: "custom",
             pushToDiscord,
             scheduleData: scheduleEvent ? scheduleData : null
         };
@@ -149,138 +124,247 @@ export default function MailGenerator() {
     }
   };
 
+  const applyFormatting = (tagOpen, tagClose) => {
+      if (!textareaRef.current) return;
+      
+      const start = textareaRef.current.selectionStart;
+      const end = textareaRef.current.selectionEnd;
+      
+      const before = customText.substring(0, start);
+      const selected = customText.substring(start, end) || "TEXT";
+      const after = customText.substring(end);
+      
+      const newText = before + tagOpen + selected + tagClose + after;
+      setCustomText(newText);
+      
+      setTimeout(() => {
+          if (textareaRef.current) {
+              textareaRef.current.focus();
+              textareaRef.current.setSelectionRange(start + tagOpen.length, start + tagOpen.length + selected.length);
+          }
+      }, 0);
+  };
+
+  const parseBBCodeToHTML = (text) => {
+      if (!text) return "";
+      let html = text
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\n/g, "<br/>");
+          
+      // Parse nested tags safely
+      for(let i=0; i<4; i++) {
+          html = html
+              .replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gis, "<b>$1</b>")
+              .replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/gis, "<i>$1</i>")
+              .replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/gis, "<u>$1</u>")
+              .replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/gis, "<s>$1</s>")
+              .replace(/&lt;size=(\d+)&gt;(.*?)&lt;\/size&gt;/gis, "<span style='font-size: $1px'>$2</span>")
+              .replace(/&lt;color=(#?\w+)&gt;(.*?)&lt;\/color&gt;/gis, "<span style='color: $1'>$2</span>");
+      }
+      return html;
+  };
+
   return (
-    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
+    <div className="w-full mx-auto space-y-8 animate-fade-in pb-12 mt-4">
       
       {/* Header Panel */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-        <div className="flex items-center gap-4 relative z-10 w-full mb-2">
-          <Crosshair className="text-rose-500" size={32} />
-          <div>
-            <h1 className="text-3xl font-black text-white tracking-widest uppercase">Unified Command Center</h1>
-            <p className="text-rose-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Mail, Event Mapping, and Discord Dispatch Matrix</p>
-          </div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+        <div className="flex items-center justify-between relative z-10 w-full mb-2">
+            <div className="flex items-center gap-4">
+                <Crosshair className="text-cyan-500" size={32} />
+                <div>
+                    <h1 className="text-3xl font-black text-white tracking-widest uppercase">Mail Generator</h1>
+                    <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Rich Text Broadcasting & Cloud Matrix</p>
+                </div>
+            </div>
+            
+            <div>
+                 <button 
+                   onClick={handleDeploy}
+                   disabled={isDeploying || (scheduleEvent && (!scheduleData.date || !scheduleData.time))}
+                   className={`flex items-center gap-2 px-8 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                     copied 
+                     ? 'bg-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.6)] scale-105' 
+                     : 'bg-white text-black hover:bg-gray-200 shadow-xl'
+                   } disabled:opacity-50`}
+                 >
+                   {isDeploying ? <RefreshCw size={16} className="animate-spin" /> : (copied ? <Check size={16} /> : <Copy size={16} />)} 
+                   {isDeploying ? 'Deploying...' : (copied ? 'Deployed!' : 'Deploy & Copy to Clipboard')}
+                 </button>
+            </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Left Column: Form Editor */}
-        <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg border-t-2 border-t-rose-500 relative">
-            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center gap-3 border-b border-[#1e222b]">
-              <Edit3 className="text-rose-500" size={20} />
-              <h2 className="text-white font-bold">Mail Parameters</h2>
+        {/* Editor Engine */}
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl flex flex-col h-[600px]">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex flex-wrap items-center justify-between border-b border-[#1e222b] gap-4">
+              
+              <div className="flex items-center gap-2 font-bold text-white text-sm tracking-widest uppercase">
+                  <Edit3 className="text-rose-500" size={16} /> Editor
+              </div>
+
+              <div className="flex items-center gap-1.5 p-1 bg-[#13161c] rounded-lg border border-[#1e222b]">
+                 <button onClick={() => applyFormatting('<b>', '</b>')} className="p-2 hover:bg-[#1e222b] text-gray-400 hover:text-white rounded transition-colors tooltip-btn" title="Bold">
+                     <Bold size={16} />
+                 </button>
+                 <button onClick={() => applyFormatting('<i>', '</i>')} className="p-2 hover:bg-[#1e222b] text-gray-400 hover:text-white rounded transition-colors" title="Italic">
+                     <Italic size={16} />
+                 </button>
+                 
+                 <div className="w-px h-6 bg-[#1e222b] mx-1"></div>
+                 
+                 <button onClick={() => applyFormatting('<size=28>', '</size>')} className="p-2 hover:bg-[#1e222b] text-gray-400 hover:text-white rounded transition-colors flex gap-1 items-center" title="Large Title">
+                     <Type size={16} /> <span className="text-[10px] font-black uppercase tracking-widest">Big</span>
+                 </button>
+                 
+                 <div className="w-px h-6 bg-[#1e222b] mx-1"></div>
+                 
+                 {/* Color Swatches */}
+                 <div className="flex gap-1.5 items-center px-2">
+                    <button onClick={() => applyFormatting('<color=#EF4444>', '</color>')} className="w-4 h-4 rounded-full bg-red-500 hover:scale-125 transition-transform border border-red-400/50" title="Red"></button>
+                    <button onClick={() => applyFormatting('<color=#F59E0B>', '</color>')} className="w-4 h-4 rounded-full bg-amber-500 hover:scale-125 transition-transform border border-amber-400/50" title="Gold"></button>
+                    <button onClick={() => applyFormatting('<color=#10B981>', '</color>')} className="w-4 h-4 rounded-full bg-emerald-500 hover:scale-125 transition-transform border border-emerald-400/50" title="Green"></button>
+                    <button onClick={() => applyFormatting('<color=#06B6D4>', '</color>')} className="w-4 h-4 rounded-full bg-cyan-500 hover:scale-125 transition-transform border border-cyan-400/50" title="Cyan"></button>
+                    <button onClick={() => applyFormatting('<color=#8B5CF6>', '</color>')} className="w-4 h-4 rounded-full bg-violet-500 hover:scale-125 transition-transform border border-violet-400/50" title="Purple"></button>
+                 </div>
+              </div>
+
             </div>
             
-            <div className="p-6 space-y-5">
-               {/* Template Selector */}
-               <div className="flex gap-2 bg-[#0a0c0f] p-1.5 rounded-lg border border-[#1e222b]">
-                  <button 
-                    onClick={() => setMailType('mge')} 
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-colors ${mailType === 'mge' ? 'bg-rose-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                  >MGE Rules</button>
-                  <button 
-                    onClick={() => setMailType('kvk')} 
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-colors ${mailType === 'kvk' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                  >KvK Push</button>
-                  <button 
-                    onClick={() => setMailType('rogue')} 
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-colors ${mailType === 'rogue' ? 'bg-amber-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                  >Rogue Alert</button>
-                  <button 
-                    onClick={() => setMailType('custom')} 
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-colors ${mailType === 'custom' ? 'bg-cyan-500 text-[#0f1115] shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                  >Custom</button>
+            <div className="p-0 flex-1 bg-[#13161c] flex flex-col relative w-full h-full">
+               <textarea 
+                 ref={textareaRef}
+                 maxLength={2000}
+                 value={customText}
+                 onChange={(e) => setCustomText(e.target.value)}
+                 className="w-full h-full bg-transparent text-gray-300 font-mono text-sm leading-relaxed outline-none resize-none selection:bg-cyan-500/30 p-6 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent focus:ring-1 focus:ring-cyan-500/50"
+                 placeholder="Type your mail outline here. Highlight text and click the buttons above to format using native game tags..."
+               ></textarea>
+               
+               <div className="absolute bottom-4 right-4 bg-[#0f1115]/80 backdrop-blur border border-[#1e222b] px-3 py-1 rounded text-[10px] font-black tracking-widest uppercase pointer-events-none">
+                   <span className={customText.length >= 2000 ? 'text-rose-500' : 'text-gray-500'}>Limit: {customText.length}/2000</span>
+               </div>
+            </div>
+        </div>
+
+        {/* Live WYSIWYG Preview */}
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl flex flex-col h-[600px] relative">
+            <div className="bg-[#0a0c0f] px-6 py-4 flex flex-wrap items-center justify-between border-b border-[#1e222b] gap-4">
+              <div className="flex items-center gap-2 font-bold text-white text-sm tracking-widest uppercase">
+                  <Eye className="text-cyan-500" size={16} /> Live In-Game Preview
+              </div>
+            </div>
+            
+            <div className="p-6 flex-1 bg-[url('/img/game-bg-pattern.png')] bg-opacity-10 bg-[#0f1115] relative overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+               
+               <div className="max-w-[450px] mx-auto bg-[#1a1714] border-2 border-[#3b2d1e] rounded-md shadow-[0_0_30px_rgba(0,0,0,0.8)] mt-4">
+                   {/* Fake In-Game Mail Header */}
+                   <div className="bg-gradient-to-b from-[#2e2115] to-[#1c120a] border-b border-[#3b2d1e] p-3 flex justify-between items-center relative">
+                       <div className="text-[#a58661] text-xs font-serif font-bold uppercase tracking-wider">Kingdom Alliance</div>
+                       <div className="w-6 h-6 rounded-sm bg-[#5c4a36] flex items-center justify-center text-[#ffea6c] shadow-inner text-xs border border-[#7f6c56]">X</div>
+                   </div>
+                   
+                   {/* Avatar/Sender Row */}
+                   <div className="p-4 flex gap-3 border-b border-[#251b11]">
+                       <div className="w-12 h-12 bg-[#33261a] rounded-sm border border-[#524131] shadow-[0_0_10px_black] relative overflow-hidden flex items-center justify-center">
+                           <ShieldAlert className="text-[#a58661] w-6 h-6" />
+                       </div>
+                       <div>
+                           <div className="text-[#ffdf99] font-bold text-sm tracking-wide shadow-black drop-shadow-md">[ALLY] High Command</div>
+                           <div className="text-[#8e7256] text-[10px] mt-0.5">To: All Members</div>
+                       </div>
+                   </div>
+
+                   {/* Rendered Body */}
+                   <div className="p-5 text-[#d8cab7] text-sm leading-relaxed font-sans min-h-[300px] break-words">
+                       {customText ? (
+                           <div dangerouslySetInnerHTML={{ __html: parseBBCodeToHTML(customText) }}></div>
+                       ) : (
+                           <div className="text-[#8e7256] italic text-center mt-10 opacity-50">Draft a mail on the left to see it rendered in-game here...</div>
+                       )}
+                   </div>
+               </div>
+            </div>
+        </div>
+
+      </div>
+
+      {/* Utilities Drawer */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+            
+            <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg border-t-2 border-t-cyan-500">
+               <div className="bg-[#0a0c0f] px-6 py-4 flex items-center gap-3 border-b border-[#1e222b]">
+                 <FolderOpen className="text-cyan-500" size={20} />
+                 <h2 className="text-white font-bold uppercase tracking-widest text-sm">Cloud Templates</h2>
+               </div>
+               
+               <div className="p-6">
+                   {loadingTemplates ? (
+                       <div className="flex items-center justify-center py-6"><RefreshCw className="animate-spin text-cyan-500" size={18} /></div>
+                   ) : (
+                       <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-transparent pr-2">
+                           {savedTemplates.length === 0 ? (
+                               <p className="text-xs text-gray-500 italic text-center py-4 font-mono">No templates stored in Cloud Matrix.</p>
+                           ) : savedTemplates.map(t => (
+                               <div key={t.id} onClick={() => setCustomText(t.body)} className="bg-[#0f1115] border border-[#2d323e] p-3 rounded-lg cursor-pointer hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-colors group">
+                                   <p className="text-cyan-400 font-bold text-[11px] uppercase tracking-widest">{t.name}</p>
+                                   <p className="text-gray-500 text-xs truncate mt-2 font-mono group-hover:text-gray-300">{t.body.substring(0, 45)}...</p>
+                               </div>
+                           ))}
+                       </div>
+                   )}
+
+                   <div className="w-full flex md:flex-row flex-col gap-3 mt-6 border-t border-[#1e222b] pt-6">
+                       <input 
+                           type="text" 
+                           placeholder="Template Title..." 
+                           value={templateNameInput}
+                           onChange={e => setTemplateNameInput(e.target.value)}
+                           className="bg-[#0a0c0f] border border-[#2d323e] text-white px-4 py-3 rounded-lg text-xs font-mono outline-none focus:border-cyan-500 flex-1"
+                       />
+                       <button 
+                           onClick={executeSaveTemplate}
+                           disabled={savingTemplate}
+                           className="bg-[#1e222b] hover:bg-cyan-500 hover:text-[#0f1115] text-white border border-[#2d323e] px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 max-w-xs"
+                       >
+                           {savingTemplate ? <RefreshCw size={16} className="animate-spin" /> : <Database size={16} />}
+                           {savingTemplate ? "Caching..." : "Save Template"}
+                       </button>
+                   </div>
+               </div>
+            </div>
+
+            <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg p-6 space-y-6">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <BellRing className="text-amber-500" size={18} />
+                     <div>
+                        <p className="text-white font-bold text-sm tracking-widest uppercase">Discord Webhook</p>
+                        <p className="text-[10px] text-gray-500 font-medium">Broadcast mail to Server Channels</p>
+                     </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                     <input type="checkbox" checked={pushToDiscord} onChange={() => setPushToDiscord(!pushToDiscord)} className="sr-only peer" />
+                     <div className="w-11 h-6 bg-[#1e222b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
                </div>
 
-               {mailType === 'custom' && (
-                  <div className="bg-[#1e222b]/30 border border-[#2d323e] p-4 rounded-xl space-y-4 animate-in fade-in zoom-in-95">
-                      <div className="flex items-center gap-2 mb-2 border-b border-[#2d323e] pb-2">
-                          <FolderOpen size={16} className="text-cyan-400" />
-                          <p className="text-xs font-bold text-white uppercase tracking-widest">Load Cloud Template</p>
-                      </div>
-                      {loadingTemplates ? (
-                          <div className="flex items-center justify-center py-2"><RefreshCw className="animate-spin text-cyan-500" size={18} /></div>
-                      ) : (
-                          <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-transparent">
-                              {savedTemplates.length === 0 ? (
-                                  <p className="text-xs text-gray-500 italic text-center py-2 font-mono">No templates stored in Cloud Matrix.</p>
-                              ) : savedTemplates.map(t => (
-                                  <div key={t.id} onClick={() => setCustomText(t.body)} className="bg-[#0a0c0f] border border-[#2d323e] p-2.5 rounded-lg cursor-pointer hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-colors group">
-                                      <p className="text-cyan-400 font-bold text-[10px] uppercase tracking-widest">{t.name}</p>
-                                      <p className="text-gray-500 text-xs truncate mt-1 group-hover:text-gray-300">{t.body.substring(0, 40)}...</p>
-                                  </div>
-                              ))}
-                          </div>
-                      )}
-                  </div>
-               )}
-
-               {mailType !== 'custom' && (
-                   <>
-                       <div>
-                         <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Kingdom Target</label>
-                         <input 
-                           type="text" 
-                           value={variables.kingdom}
-                           onChange={e => setVariables({...variables, kingdom: e.target.value})}
-                           className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono text-sm outline-none focus:border-rose-500 transition-colors"
-                         />
-                       </div>
-
-                       <div>
-                         <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Execution Time (UTC)</label>
-                         <input 
-                           type="text" 
-                           value={variables.time}
-                           onChange={e => setVariables({...variables, time: e.target.value})}
-                           className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono text-sm outline-none focus:border-rose-500 transition-colors"
-                         />
-                       </div>
-                   </>
-               )}
-
-               {mailType === 'mge' && (
-                 <div>
-                   <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Point Limit Target</label>
-                   <input 
-                     type="text" 
-                     value={variables.target}
-                     onChange={e => setVariables({...variables, target: e.target.value})}
-                     className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono text-sm outline-none focus:border-rose-500 transition-colors"
-                   />
-                 </div>
-               )}
-
-               <div className="border-t border-[#1e222b] pt-5 mt-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <BellRing className="text-amber-500" size={18} />
-                        <div>
-                           <p className="text-white font-bold text-sm tracking-widest uppercase">Discord Webhook</p>
-                           <p className="text-[10px] text-gray-500 font-medium">Broadcast mail natively to external Server Channels</p>
-                        </div>
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <CalendarDays className="text-violet-500" size={18} />
+                     <div>
+                        <p className="text-white font-bold text-sm tracking-widest uppercase">Cron Sync</p>
+                        <p className="text-[10px] text-gray-500 font-medium">Map to Global Trajectory Events</p>
                      </div>
-                     <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={pushToDiscord} onChange={() => setPushToDiscord(!pushToDiscord)} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-[#1e222b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                     </label>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <CalendarDays className="text-violet-500" size={18} />
-                        <div>
-                           <p className="text-white font-bold text-sm tracking-widest uppercase">Chronological Sync</p>
-                           <p className="text-[10px] text-gray-500 font-medium">Map this event to the Global Trajectory Timeline DB</p>
-                        </div>
-                     </div>
-                     <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={scheduleEvent} onChange={() => setScheduleEvent(!scheduleEvent)} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-[#1e222b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-500"></div>
-                     </label>
-                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                     <input type="checkbox" checked={scheduleEvent} onChange={() => setScheduleEvent(!scheduleEvent)} className="sr-only peer" />
+                     <div className="w-11 h-6 bg-[#1e222b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-500"></div>
+                  </label>
                </div>
 
                {scheduleEvent && (
@@ -288,11 +372,11 @@ export default function MailGenerator() {
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                            <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Local Date</label>
-                           <input type="date" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white p-3 rounded-lg text-sm outline-none focus:border-violet-500" />
+                           <input type="date" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white p-3 rounded-lg text-[10px] outline-none focus:border-violet-500 cursor-pointer" />
                         </div>
                         <div>
                            <label className="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Local Time</label>
-                           <input type="time" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white p-3 rounded-lg text-sm outline-none focus:border-violet-500" />
+                           <input type="time" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white p-3 rounded-lg text-[10px] outline-none focus:border-violet-500 cursor-pointer" />
                         </div>
                      </div>
                      <div>
@@ -301,67 +385,7 @@ export default function MailGenerator() {
                      </div>
                   </div>
                )}
-
             </div>
-        </div>
-
-        {/* Right Column: Output Preview */}
-        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl flex flex-col h-full">
-            <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
-              <div className="flex flex-row items-center gap-2">
-                <Send className="text-cyan-500" size={18} />
-                <span className="text-white font-bold text-sm tracking-widest uppercase">Draft Preview</span>
-              </div>
-              <button 
-                onClick={handleDeploy}
-                disabled={isDeploying || (scheduleEvent && (!scheduleData.date || !scheduleData.time))}
-                className={`flex items-center gap-2 px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
-                  copied 
-                  ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(243,24,70,0.5)]' 
-                  : 'bg-white text-black hover:bg-gray-200 shadow-xl'
-                } disabled:opacity-50`}
-              >
-                {isDeploying ? <RefreshCw size={14} className="animate-spin" /> : (copied ? <Check size={14} /> : <Copy size={14} />)} 
-                {isDeploying ? 'Deploying...' : (copied ? 'Deployed to Clipboard!' : 'Deploy & Copy to Clipboard')}
-              </button>
-            </div>
-            
-            <div className="p-6 flex-1 bg-[#13161c] flex flex-col items-end">
-               <textarea 
-                 maxLength={2000}
-                 value={mailType === 'custom' ? customText : generateMailText()}
-                 onChange={(e) => { 
-                    setMailType('custom');
-                    setCustomText(e.target.value);
-                 }}
-                 className="w-full h-full min-h-[300px] bg-transparent text-gray-300 font-mono text-sm leading-relaxed outline-none resize-none selection:bg-rose-500/30 focus:ring-1 focus:ring-cyan-500/50 p-2 border border-transparent focus:border-[#2d323e] rounded-lg"
-                 placeholder="Enter custom diplomatic mail mapping natively bound strictly to the 2,000 character limit..."
-               ></textarea>
-               
-               <p className={`text-[10px] font-black tracking-widest uppercase mt-4 ${generateMailText().length >= 2000 ? 'text-rose-500' : 'text-gray-500'}`}>Character Limit: {generateMailText().length}/2000</p>
-               
-               {mailType === 'custom' && (
-                   <div className="w-full flex gap-3 mt-6 border-t border-[#1e222b] pt-6 animate-in fade-in slide-in-from-bottom-2">
-                       <input 
-                           type="text" 
-                           placeholder="Save Template As... (e.g. 'KvK Defeat')" 
-                           value={templateNameInput}
-                           onChange={e => setTemplateNameInput(e.target.value)}
-                           className="flex-1 bg-[#0a0c0f] border border-[#2d323e] text-white px-4 py-2.5 rounded-lg text-xs font-mono outline-none focus:border-cyan-500"
-                       />
-                       <button 
-                           onClick={executeSaveTemplate}
-                           disabled={savingTemplate}
-                           className="bg-[#1e222b] hover:bg-cyan-500 hover:text-[#0f1115] text-white border border-[#2d323e] px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                       >
-                           {savingTemplate ? <RefreshCw size={16} className="animate-spin" /> : <Database size={16} />}
-                           {savingTemplate ? "Caching..." : "Save to Cloud"}
-                       </button>
-                   </div>
-               )}
-            </div>
-        </div>
-
       </div>
 
     </div>
