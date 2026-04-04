@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen, Tag, Zap, Shield, CheckCircle2, AlertTriangle, Wrench } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const CHANGELOG = [
   {
@@ -135,6 +136,7 @@ const TypeLabel = ({ type }) => {
 };
 
 export default function Changelog() {
+  const t = useTranslations('Changelog');
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-12 mt-4">
 
@@ -146,8 +148,8 @@ export default function Changelog() {
             <BookOpen className="text-violet-400" size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-white tracking-widest uppercase">Changelog</h1>
-            <p className="text-violet-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Unity Platform Version History</p>
+            <h1 className="text-3xl font-black text-white tracking-widest uppercase">{t('title')}</h1>
+            <p className="text-violet-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
           </div>
         </div>
       </div>
@@ -174,7 +176,7 @@ export default function Changelog() {
                       <div className="flex items-center gap-2">
                         <span className="text-white font-black font-mono text-lg">v{release.version}</span>
                         {release.type === "major" && (
-                          <span className="text-[9px] bg-violet-500/20 text-violet-400 border border-violet-500/30 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Major</span>
+                          <span className="text-[9px] bg-violet-500/20 text-violet-400 border border-violet-500/30 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">{t('label_major')}</span>
                         )}
                       </div>
                       <p className="text-gray-500 text-xs font-bold tracking-wider mt-0.5">{release.label}</p>

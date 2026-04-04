@@ -5,8 +5,10 @@ import dynamic from "next/dynamic";
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
 import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send } from "lucide-react";
 import { PCA } from 'ml-pca';
+import { useTranslations } from 'next-intl';
 
 export default function ScatterPlotTab({ targetKd, trends }) {
+    const t = useTranslations('ScatterPlot');
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isPcaCompiling, setIsPcaCompiling] = useState(false);
@@ -211,29 +213,29 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
         const feederRatio = feed / total;
         
-        let verdict = "The AI Engine has dynamically sliced your selected timeframe into up to 5 chronological waypoints, measuring not just 'Total Growth' but the true tracking velocity and weekly reliability of each Governor. ";
+        let verdict = t('verdict_intro');
         if (h === 0) {
-            verdict += "CRITICAL WARNING: The algorithm detected absolutely zero Heroes in this scan period. Every single player who achieved above-average Kill Points simultaneously absorbed massive casualties. This is a violently bloody fighting population that trades terribly. ";
+            verdict += t('verdict_zero_heroes');
         } else if (h > (total * 0.05)) {
-            verdict += `You have ${h} highly elite Heroes anchoring your garrison defenses. Protect them at all costs. `;
+            verdict += t('verdict_elite_heroes', { count: h });
         } else {
-            verdict += `You have a sparse handful of Heroes (${h}). These are your only truly efficient traders; lean on them heavily for rallies. `;
+            verdict += t('verdict_sparse_heroes', { count: h });
         }
 
-        verdict += `Your core fighting force consists of ${w} Warriors. They are generating the vast majority of your points in the open field, but their hospitals are full and they are bleeding troops to do it. `;
+        verdict += t('verdict_warriors', { count: w });
 
         if (feederRatio > 0.15) {
-            verdict += `URGENT ACTION REQUIRED: The engine has identified a massive structural liability. There are ${feed} Feeders (${(feederRatio*100).toFixed(0)}% of the tracked roster) who are actively losing T4/T5 troops while contributing almost nothing to your KvK score. These players are acting as point-piñatas for the enemy kingdom. Council should issue immediate bubble-or-bootstrap ultimatums. `;
+            verdict += t('verdict_massive_feeders', { count: feed, ratio: (feederRatio*100).toFixed(0) });
         } else {
-            verdict += `You only have ${feed} Feeders bleeding points, which is a highly controlled liability ratio. `;
+            verdict += t('verdict_controlled_feeders', { count: feed });
         }
 
         if (farm > 0) {
-            verdict += `Furthermore, you need to expose the ${farm} Farmers who are artificially raising your kingdom's matchmaking weight by aggressively hoarding power while completely avoiding combat. `;
+            verdict += t('verdict_farmers', { count: farm });
         }
         
         if (s > (total * 0.3)) {
-            verdict += `Finally, you have ${s} Slackers sitting at the exact kingdom baseline. They aren't growing or fighting. You have a massive dead-weight problem.`;
+            verdict += t('verdict_slackers', { count: s });
         }
 
         return (
@@ -241,7 +243,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
                 <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-red-500 to-orange-500"></div>
                 <h3 className="text-red-500 text-lg font-black tracking-widest uppercase mb-4 flex items-center gap-2">
                     <ShieldAlert className="text-red-500" size={20} />
-                    Automated Kingdom Diagnostics (The Blunt Truth)
+                    {t('diag_title')}
                 </h3>
                 <p className="text-gray-300 leading-relaxed text-sm md:text-base font-serif">
                     {verdict}
@@ -549,24 +551,24 @@ export default function ScatterPlotTab({ targetKd, trends }) {
             {/* Explainer Key */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-[#0f1115] border border-emerald-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-emerald-500">
-                    <h4 className="text-emerald-500 font-bold uppercase tracking-widest text-sm mb-1">Heroes</h4>
-                    <p className="text-gray-500 leading-tight text-xs">High Kill Points, Low Deads compared to Kingdom Avg. The most efficient garrison fighters.</p>
+                    <h4 className="text-emerald-500 font-bold uppercase tracking-widest text-sm mb-1">{t('hero_title')}</h4>
+                    <p className="text-gray-500 leading-tight text-xs">{t('hero_desc')}</p>
                 </div>
                 <div className="bg-[#0f1115] border border-yellow-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-yellow-500">
-                    <h4 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-1">Warriors</h4>
-                    <p className="text-gray-500 leading-tight text-xs">High Kill Points, High Deads. Brutal field commanders who trade raw power for domination.</p>
+                    <h4 className="text-yellow-500 font-bold uppercase tracking-widest text-sm mb-1">{t('warrior_title')}</h4>
+                    <p className="text-gray-500 leading-tight text-xs">{t('warrior_desc')}</p>
                 </div>
                 <div className="bg-[#0f1115] border border-white/20 rounded-xl p-4 flex flex-col border-t-2 border-t-white">
-                    <h4 className="text-white font-bold uppercase tracking-widest text-sm mb-1">Slackers</h4>
-                    <p className="text-gray-600 leading-tight text-xs">Neutral Baseline. Inactive, bubbled, plateaued accounts.</p>
+                    <h4 className="text-white font-bold uppercase tracking-widest text-sm mb-1">{t('slacker_title')}</h4>
+                    <p className="text-gray-600 leading-tight text-xs">{t('slacker_desc')}</p>
                 </div>
                 <div className="bg-[#0f1115] border border-cyan-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-cyan-500">
-                    <h4 className="text-cyan-500 font-bold uppercase tracking-widest text-sm mb-1">Farmers</h4>
-                    <p className="text-gray-500 leading-tight text-xs">High Power Growth. Low/zero fighting. Actively hoarding infrastructure.</p>
+                    <h4 className="text-cyan-500 font-bold uppercase tracking-widest text-sm mb-1">{t('farmer_title')}</h4>
+                    <p className="text-gray-500 leading-tight text-xs">{t('farmer_desc')}</p>
                 </div>
                 <div className="bg-[#0f1115] border border-red-500/20 rounded-xl p-4 flex flex-col border-t-2 border-t-red-500">
-                    <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-1">Feeders</h4>
-                    <p className="text-gray-500 leading-tight text-xs">Low Kill Points, High Deads. Structurally broken behaviors that bleed Kingdom score.</p>
+                    <h4 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-1">{t('feeder_title')}</h4>
+                    <p className="text-gray-500 leading-tight text-xs">{t('feeder_desc')}</p>
                 </div>
             </div>
 
