@@ -12,6 +12,7 @@
     "@aws-sdk/client-dynamodb": "^3.1014.0",
     "@aws-sdk/client-sts": "^3.1014.0",
     "@vercel/analytics": "^2.0.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "lucide-react": "^0.577.0",
     "ml-kmeans": "^7.0.0",

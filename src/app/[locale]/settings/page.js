@@ -17,23 +17,59 @@ export default function SettingsPage() {
     theme: "dark",
     geminiKey: "",
     geminiModel: "gemini-2.5-flash",
+    timezone: "",
+    playtimeStart: "",
+    playtimeEnd: ""
   });
 
-  // Hydrate preferences from local storage
+  // Hydrate preferences from local storage and session database state
   useEffect(() => {
+    let basePrefs = { ...prefs };
+    
     const savedPrefs = localStorage.getItem("unity_prefs");
     if (savedPrefs) {
       try {
-        setPrefs(p => ({ ...p, ...JSON.parse(savedPrefs) }));
+        basePrefs = { ...basePrefs, ...JSON.parse(savedPrefs) };
       } catch (e) {
         console.error("Failed to parse local preferences", e);
       }
     }
-  }, []);
 
-  const handleSave = () => {
-    // Preferences stored locally for now (no backend needed for client prefs)
+    if (session?.user?.governorConfig) {
+      const dbConf = session.user.governorConfig;
+      if (dbConf.timezone) basePrefs.timezone = dbConf.timezone;
+      if (dbConf.playtimeStart) basePrefs.playtimeStart = dbConf.playtimeStart;
+      if (dbConf.playtimeEnd) basePrefs.playtimeEnd = dbConf.playtimeEnd;
+    }
+
+    setPrefs(basePrefs);
+  }, [session]);
+
+  const handleSave = async () => {
+    // Preferences stored locally for typical client prefs
     localStorage.setItem("unity_prefs", JSON.stringify(prefs));
+    
+    // Sync Presence Settings to AWS DynamoDB via Discord Backend
+    if (prefs.timezone && prefs.playtimeStart && prefs.playtimeEnd) {
+      try {
+        await fetch('https://unity-app-production.up.railway.app/api/user/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Express Session will pick up the existing credentials/cookies natively
+            'Authorization': typeof window !== 'undefined' ? localStorage.getItem('auth_token') : undefined
+          },
+          body: JSON.stringify({
+            timezone: prefs.timezone,
+            playtimeStart: prefs.playtimeStart,
+            playtimeEnd: prefs.playtimeEnd
+          })
+        });
+      } catch (e) {
+        console.error("Failed to sync backend user settings", e);
+      }
+    }
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -134,6 +170,56 @@ export default function SettingsPage() {
               <div className="text-gray-500 text-xs italic">{t('no_arch_keys')}</div>
             )}
             
+          </div>
+        </div>
+      </div>
+
+      {/* Presence & Uptime Preferences */}
+      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl overflow-hidden">
+        <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Cpu size={16} className="text-cyan-400" />
+            <h2 className="text-white font-bold uppercase tracking-widest text-sm">Presence & Uptime</h2>
+          </div>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+            Report your native timezone and daily playtime so Kingdom Leadership can accurately determine your availability across global boundaries.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">Native Timezone</label>
+              <input 
+                type="text"
+                placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                value={prefs.timezone || ''}
+                onChange={e => setPrefs(p => ({ ...p, timezone: e.target.value }))}
+                className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                title="Example: America/New_York or Europe/London"
+              />
+            </div>
+            
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">Typical Start ({prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone})</label>
+                <input 
+                  type="time"
+                  value={prefs.playtimeStart || ''}
+                  onChange={e => setPrefs(p => ({ ...p, playtimeStart: e.target.value }))}
+                  className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50 transition-colors cursor-pointer"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">Typical End</label>
+                <input 
+                  type="time"
+                  value={prefs.playtimeEnd || ''}
+                  onChange={e => setPrefs(p => ({ ...p, playtimeEnd: e.target.value }))}
+                  className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50 transition-colors cursor-pointer"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

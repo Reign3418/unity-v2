@@ -15,12 +15,14 @@ import ConfigurationTab from "@/components/analysis/kingdom/ConfigurationTab";
 import ResultsTab from "@/components/analysis/kingdom/ResultsTab";
 import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
 import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
+import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import { useTranslations } from "next-intl";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
-  { name: "Growth Analysis", icon: TrendingUp },
   { name: "Kingdom Analysis", icon: BarChart2 },
+  { name: "Growth Analysis", icon: TrendingUp },
+  { name: "Presence Radar", icon: Clock },
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
   { name: "War Room", label: "War Room", icon: Map },
@@ -128,6 +130,21 @@ export default function KingdomAnalysis() {
           case 'War Room':
               return (
                   <WarRoomTab 
+                      targetKd={targetKd}
+                  />
+              );
+          case 'Presence Radar':
+              if (!session?.user?.isLeader && !session?.user?.isSuperAdmin) {
+                  return (
+                      <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
+                          <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
+                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('r4_clearance')}</h3>
+                          <p className="text-sm text-gray-400">{tTabs('r4_desc')}</p>
+                      </div>
+                  );
+              }
+              return (
+                  <PresenceRadarTab 
                       targetKd={targetKd}
                   />
               );
