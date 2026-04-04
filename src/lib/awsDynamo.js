@@ -3576,6 +3576,8 @@ export async function getAllUsersInKingdom(kingdomId) {
             let govIds = [];
             if (attrs.governorIds && attrs.governorIds.L) {
                 govIds = attrs.governorIds.L.map(i => i.S);
+            } else if (attrs.governorId && attrs.governorId.S) {
+                govIds = [attrs.governorId.S];
             }
 
             return {
