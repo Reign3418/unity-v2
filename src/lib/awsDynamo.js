@@ -3544,7 +3544,7 @@ export async function saveUserCamps(discordId, campsArray) {
     }
 }
 
-
+/**
  * Sweeps the entire DB for users whose allowedKingdoms matches the target.
  */
 export async function getAllUsersInKingdom(kingdomId) {
