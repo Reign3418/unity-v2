@@ -50,7 +50,7 @@ export async function GET(req) {
     // 4. Mathematical Power & Alliance Filtration
     const filteredRoster = flatRoster.filter(gov => {
        const meetsPower = gov.power >= minPower && gov.power <= maxPower;
-       const meetsAlliance = allianceTag ? (gov.alliance && gov.alliance.toLowerCase() === allianceTag.toLowerCase()) : true;
+       const meetsAlliance = allianceTag ? (gov.alliance && gov.alliance.toLowerCase().includes(allianceTag.toLowerCase())) : true;
        return meetsPower && meetsAlliance;
     });
     
