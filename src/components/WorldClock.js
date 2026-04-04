@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Globe } from "lucide-react";
+import { useTranslations } from 'next-intl';
 
 export default function WorldClock() {
+  const t = useTranslations('WorldClock');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [converterInput, setConverterInput] = useState("");
   const [frozenTime, setFrozenTime] = useState(null);
@@ -84,10 +86,10 @@ export default function WorldClock() {
           <div className={`absolute top-0 right-0 w-32 h-32 blur-[50px] pointer-events-none transition-colors ${frozenTime ? 'bg-rose-500/20 group-hover:bg-rose-500/30' : 'bg-cyan-500/10 group-hover:bg-cyan-500/20'}`}></div>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4">
-            <div className={`${frozenTime ? 'text-rose-500' : 'text-cyan-500'} font-bold uppercase tracking-widest text-xs transition-colors`}>Universal Coordinated Time (UTC)</div>
+            <div className={`${frozenTime ? 'text-rose-500' : 'text-cyan-500'} font-bold uppercase tracking-widest text-xs transition-colors`}>{t('utc_label')}</div>
             {frozenTime && (
                <div className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-rose-500/30 shadow-sm">
-                 Time Frozen
+                 {t('time_frozen')}
                </div>
             )}
           </div>
@@ -114,7 +116,7 @@ export default function WorldClock() {
       <div className="flex items-center justify-center gap-3 mb-8 relative z-10">
         <Globe className={frozenTime ? "text-rose-500" : "text-cyan-500"} size={28} />
         <h2 className="text-2xl font-bold text-white tracking-wide">
-          Global Master Clock {frozenTime && <span className="text-rose-500 opacity-70">(FROZEN)</span>}
+          {t('header')} {frozenTime && <span className="text-rose-500 opacity-70">{t('header_frozen')}</span>}
         </h2>
       </div>
 
@@ -136,7 +138,7 @@ export default function WorldClock() {
           
           {/* Converter Stub (Will attach logic if needed later) */}
           <div className={`bg-[#0f1115] border border-dashed ${frozenTime ? 'border-rose-500/50' : 'border-[#2d323e]'} rounded-2xl p-6 flex-1 flex flex-col justify-center text-center items-center transition-colors`}>
-             <div className={`${frozenTime ? 'text-rose-400' : 'text-indigo-400'} font-bold uppercase tracking-widest text-xs mb-4`}>Time Converter (UTC)</div>
+             <div className={`${frozenTime ? 'text-rose-400' : 'text-indigo-400'} font-bold uppercase tracking-widest text-xs mb-4`}>{t('converter_label')}</div>
              <div className="flex items-center gap-3 w-full max-w-[250px]">
                <input 
                  type="time" 
@@ -148,11 +150,11 @@ export default function WorldClock() {
                  onClick={handleClear}
                  className="bg-[#1e222b] hover:bg-[#2d323e] text-white px-4 py-2 rounded-lg font-medium transition-colors"
                >
-                 Clear
+                 {t('converter_btn')}
                </button>
              </div>
              <div className={`text-[10px] mt-4 uppercase ${frozenTime ? 'text-rose-500 font-bold' : 'text-gray-500'}`}>
-               {frozenTime ? 'TIME INPUT FROZEN' : 'Enter a UTC time to freeze & convert'}
+               {frozenTime ? t('converter_frozen') : t('converter_placeholder')}
              </div>
           </div>
         </div>

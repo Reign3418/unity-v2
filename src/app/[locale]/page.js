@@ -6,8 +6,10 @@ import Link from "next/link";
 import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
+import { useTranslations } from 'next-intl';
 
 export default function Home() {
+  const t = useTranslations('HomePage');
   const { data: session } = useSession();
   const [isExploding, setIsExploding] = useState(false);
   const [fireworks, setFireworks] = useState([]);
@@ -108,7 +110,7 @@ export default function Home() {
             </div>
 
             <p className="text-sky-500/60 font-medium tracking-[0.15em] text-[10px] sm:text-xs uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)] font-mono mt-1">
-              Because there is no <span className="text-cyan-400 font-bold lowercase text-sm">i</span> in team.
+              {t('subtitle_prefix')} <span className="text-cyan-400 font-bold lowercase text-sm">i</span> {t('subtitle_suffix')}
             </p>
           </div>
 
@@ -121,12 +123,12 @@ export default function Home() {
             <svg width="22" height="22" viewBox="0 0 127.14 96.36" fill="currentColor" className="transform group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77.67,77.67,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.1,46,96,53,91.08,65.69,84.69,65.69Z"/>
             </svg>
-            <span className="tracking-widest uppercase text-sm drop-shadow-md">Login with Discord</span>
+            <span className="tracking-widest uppercase text-sm drop-shadow-md">{t('login_discord')}</span>
           </button>
 
           <div className="flex items-center w-full my-6 opacity-60">
             <div className="flex-grow border-t border-gray-600"></div>
-            <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Missing Discord?</span>
+            <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">{t('missing_discord')}</span>
             <div className="flex-grow border-t border-gray-600"></div>
           </div>
 
@@ -136,14 +138,14 @@ export default function Home() {
                 className="w-full py-3.5 bg-[#161a23] hover:bg-[#1c212d] border border-[#2a3041] text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2 group"
              >
                 <div className="w-5 h-3 bg-rose-500 rounded-[2px] relative flex items-center justify-center before:content-[''] before:w-1 before:h-1 before:bg-[#161a23] before:rounded-full after:content-[''] after:w-1 after:h-1 after:bg-[#161a23] after:rounded-full gap-[2px]"></div>
-                Use Guest Passcode
+                {t('use_guest')}
              </button>
 
               <button 
                 onClick={() => signIn("freemode")}
                 className="w-full py-3.5 bg-transparent border border-dashed border-[#2a3041] hover:border-cyan-500/50 text-gray-500 hover:text-cyan-400 rounded-lg text-sm transition-all flex items-center justify-center gap-2 group"
              >
-                <Globe size={16} className="opacity-50 group-hover:opacity-100" /> Try Freemode
+                <Globe size={16} className="opacity-50 group-hover:opacity-100" /> {t('try_freemode')}
              </button>
 
              <div className="pt-4 w-full">
@@ -151,7 +153,7 @@ export default function Home() {
                   onClick={() => setApplyModalOpen(true)}
                   className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
                 >
-                  <Zap size={14} /> Request Kingdom Setup
+                  <Zap size={14} /> {t('request_setup')}
                 </button>
              </div>
           </div>
@@ -171,8 +173,8 @@ export default function Home() {
                  </div>
                </div>
 
-               <h2 className="text-center text-white font-bold text-xl tracking-widest uppercase mb-2">Access Key</h2>
-               <p className="text-center text-gray-400 text-xs mb-8">Enter the 6-digit passcode provided by your Kingdom Leadership to access your private dashboard.</p>
+               <h2 className="text-center text-white font-bold text-xl tracking-widest uppercase mb-2">{t('access_key_title')}</h2>
+               <p className="text-center text-gray-400 text-xs mb-8">{t('access_key_desc')}</p>
                
                <input
                  type="text"
@@ -188,7 +190,7 @@ export default function Home() {
                  disabled={guestPasscode.length !== 6}
                  className="w-full bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg uppercase tracking-widest text-sm transition-all"
                >
-                 Verify & Enter
+                 {t('btn_verify')}
                </button>
             </div>
           </div>
@@ -208,13 +210,13 @@ export default function Home() {
                  </div>
                </div>
 
-               <h2 className="text-center text-white font-bold text-xl tracking-widest uppercase mb-2">Request Access</h2>
+               <h2 className="text-center text-white font-bold text-xl tracking-widest uppercase mb-2">{t('req_access_title')}</h2>
                <p className="text-center text-gray-400 text-xs mb-8 leading-relaxed">
-                 Unity is a private architectural framework. To register your Discord Server for a dedicated SaaS tenant, reach out to the Lead Architect.
+                 {t('req_access_desc')}
                </p>
                
                <div className="bg-[#0a0c10] border-2 border-[#1e222b] rounded-xl p-4 flex flex-col items-center mb-6">
-                  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Discord Contact</span>
+                  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">{t('discord_contact')}</span>
                   <span className="text-xl text-white tracking-widest font-mono font-bold select-all">reign3418</span>
                </div>
 
@@ -222,7 +224,7 @@ export default function Home() {
                  onClick={() => setApplyModalOpen(false)}
                  className="w-full bg-[#1e222b] hover:bg-[#2d323e] text-white font-bold py-3.5 rounded-lg uppercase tracking-widest text-sm transition-all"
                >
-                 Acknowledge
+                 {t('btn_acknowledge')}
                </button>
             </div>
           </div>
@@ -239,16 +241,16 @@ export default function Home() {
       <div className="relative overflow-hidden rounded-2xl bg-[#0f1115] border border-[#1e222b] p-10 text-center shadow-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
         
-        <h2 className="text-3xl font-bold text-white mb-4">Welcome to Un.ty</h2>
+        <h2 className="text-3xl font-bold text-white mb-4">{t('welcome_title')}</h2>
         <p className="text-gray-400 max-w-2xl mx-auto mb-8 text-lg">
-          We analyze scans, generate reports, track DKP, evaluate recruits, parse MGE layouts, and handle your mail generation entirely from the cloud.
+          {t('welcome_desc')}
         </p>
         <Link 
           href="/upload" 
           className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
         >
           <UploadCloud size={20} />
-          Start by Uploading a Scan
+          {t('btn_upload')}
         </Link>
       </div>
 
@@ -259,9 +261,9 @@ export default function Home() {
       <div className="rounded-2xl border-t-2 border-cyan-500 bg-gradient-to-b from-[#13161c] to-[#0a0c0f] p-10 border border-[#1e222b] shadow-2xl relative overflow-hidden">
         
         <div className="text-center mb-12 relative z-10">
-          <h2 className="text-2xl font-bold text-cyan-400 mb-3">Intelligent Analytics, Zero Liability.</h2>
+          <h2 className="text-2xl font-bold text-cyan-400 mb-3">{t('saas_title')}</h2>
           <p className="text-gray-400 max-w-3xl mx-auto text-sm leading-relaxed">
-            Un.ty is a premium Data Visualization and Calculation Engine (SaaS) built exclusively for elite Kingdom Leadership, operating on a strict <span className="text-white font-bold">Bring Your Own Data (BYOD)</span> architecture.
+            {t('saas_desc_prefix')} <span className="text-white font-bold">{t('saas_desc_highlight')}</span> {t('saas_desc_suffix')}
           </p>
         </div>
 
@@ -272,9 +274,9 @@ export default function Home() {
             <div className="w-14 h-14 mx-auto bg-[#0a0c0f] rounded-full border border-[#1e222b] flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(99,102,241,0.1)] group-hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] transition-shadow">
               <Shield className="text-indigo-400" size={24} />
             </div>
-            <h3 className="text-white font-bold mb-3">100% Private Tenants</h3>
+            <h3 className="text-white font-bold mb-3">{t('card_1_title')}</h3>
             <p className="text-gray-400 text-xs leading-relaxed">
-              We do not scrape, sell, or aggregate your intellectual property. Your kingdom's data is strictly isolated within its own dedicated, encrypted AWS workspace.
+              {t('card_1_desc')}
             </p>
           </div>
 
@@ -284,9 +286,9 @@ export default function Home() {
             <div className="w-14 h-14 mx-auto bg-[#0a0c0f] rounded-full border border-cyan-500/50 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
               <Zap className="text-cyan-400" size={24} fill="currentColor" fillOpacity={0.2} />
             </div>
-            <h3 className="text-cyan-400 font-bold mb-3">Secure SaaS Engine</h3>
+            <h3 className="text-cyan-400 font-bold mb-3">{t('card_2_title')}</h3>
             <p className="text-gray-400 text-xs leading-relaxed">
-              Upload your raw exported game spreadsheets directly into the dashboard. Un.ty processes millions of rows in milliseconds securely in your browser.
+              {t('card_2_desc')}
             </p>
           </div>
 
@@ -295,9 +297,9 @@ export default function Home() {
             <div className="w-14 h-14 mx-auto bg-[#0a0c0f] rounded-full border border-[#1e222b] flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(34,197,94,0.1)] group-hover:shadow-[0_0_25px_rgba(34,197,94,0.2)] transition-shadow">
               <TrendingUp className="text-green-400" size={24} />
             </div>
-            <h3 className="text-white font-bold mb-3">Actionable Insights</h3>
+            <h3 className="text-white font-bold mb-3">{t('card_3_title')}</h3>
             <p className="text-gray-400 text-xs leading-relaxed">
-              Transform raw numbers into dynamic leaderboards, interactive graphs, KvK recovery trackers, and beautifully structured player reports.
+              {t('card_3_desc')}
             </p>
           </div>
 

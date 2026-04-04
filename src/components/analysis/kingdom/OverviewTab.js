@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity } from "lucide-react";
+import { useTranslations } from 'next-intl';
 
 export default function OverviewTab({ targetKd, trends }) {
+    const t = useTranslations('OverviewTab');
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedAlliance, setSelectedAlliance] = useState("ALL");
     
@@ -114,8 +116,8 @@ export default function OverviewTab({ targetKd, trends }) {
     };
 
     const renderDelta = (delta) => {
-        if (delta === 'NEW') return <span className="text-cyan-400 font-bold">+NEW</span>;
-        if (delta === 'MISSING') return <span className="text-rose-500 font-bold tracking-widest">MISSING</span>;
+        if (delta === 'NEW') return <span className="text-cyan-400 font-bold">{t('delta_new')}</span>;
+        if (delta === 'MISSING') return <span className="text-rose-500 font-bold tracking-widest">{t('delta_missing')}</span>;
         
         const num = Number(delta);
         if (num > 0) return <span className="text-emerald-400">+{num.toLocaleString()}</span>;
@@ -127,8 +129,8 @@ export default function OverviewTab({ targetKd, trends }) {
         return (
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center shadow-xl text-gray-500">
                 <ShieldAlert className="w-12 h-12 mb-4 opacity-50" />
-                <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Temporal Matrices</h3>
-                <p className="text-sm">Cannot map Data Spreadsheets without historical infrastructure.</p>
+                <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_temporal_title')}</h3>
+                <p className="text-sm">{t('no_temporal_desc')}</p>
             </div>
         );
     }
@@ -144,8 +146,8 @@ export default function OverviewTab({ targetKd, trends }) {
                             <LayoutTemplate className="text-cyan-400" size={24} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-white tracking-widest uppercase">Overview Explorer</h2>
-                            <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Comparative Vector Spreadsheet</p>
+                            <h2 className="text-2xl font-black text-white tracking-widest uppercase">{t('title')}</h2>
+                            <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
                         </div>
                     </div>
 
@@ -156,7 +158,7 @@ export default function OverviewTab({ targetKd, trends }) {
                             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(79,70,229,0.3)]"
                         >
                             <Download size={16} />
-                            Export CSV
+                            {t('btn_export')}
                         </button>
                     </div>
                 </div>
@@ -166,7 +168,7 @@ export default function OverviewTab({ targetKd, trends }) {
                     {/* Date Pickers */}
                     <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shrink-0">
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Start</span>
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_start')}</span>
                              <input 
                                  type="date" 
                                  value={startDate} 
@@ -177,7 +179,7 @@ export default function OverviewTab({ targetKd, trends }) {
                         </div>
                         <span className="text-gray-600 text-lg mx-1">/</span>
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">End</span>
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_end')}</span>
                              <input 
                                  type="date" 
                                  value={endDate} 
@@ -196,7 +198,7 @@ export default function OverviewTab({ targetKd, trends }) {
                         <Search className="text-gray-500" size={18} />
                         <input 
                             type="text" 
-                            placeholder="Find Gov Name or ID..." 
+                            placeholder={t('search_placeholder')} 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="bg-transparent border-none outline-none text-white text-sm w-full font-medium placeholder-gray-600"
@@ -210,8 +212,8 @@ export default function OverviewTab({ targetKd, trends }) {
                             onChange={(e) => setSelectedAlliance(e.target.value)}
                             className="bg-transparent border-none outline-none text-white text-sm w-full font-bold cursor-pointer uppercase tracking-wider placeholder-gray-600 [&>option]:bg-[#0f1115] [&>option]:text-white"
                         >
-                            <option value="ALL" className="bg-[#0f1115] text-white">All Alliances</option>
-                            <option value="NONE" className="bg-[#0f1115] text-white">Unallied</option>
+                            <option value="ALL" className="bg-[#0f1115] text-white">{t('filter_all')}</option>
+                            <option value="NONE" className="bg-[#0f1115] text-white">{t('filter_none')}</option>
                             {uniqueAlliances.map(a => (
                                 <option key={a} value={a} className="bg-[#0f1115] text-white">{a}</option>
                             ))}
@@ -225,64 +227,64 @@ export default function OverviewTab({ targetKd, trends }) {
                 {isLoading ? (
                     <div className="py-32 flex flex-col items-center justify-center text-gray-500">
                         <Activity className="w-12 h-12 mb-4 animate-[spin_3s_linear_infinite] text-cyan-500" />
-                        <h3 className="text-lg font-black text-white mb-1 uppercase tracking-widest animate-pulse">Compiling Deltas</h3>
-                        <p className="text-xs font-mono">Aggregating Cloud Trajectories...</p>
+                        <h3 className="text-lg font-black text-white mb-1 uppercase tracking-widest animate-pulse">{t('loading_title')}</h3>
+                        <p className="text-xs font-mono">{t('loading_desc')}</p>
                     </div>
                 ) : rosterData.length === 0 ? (
                     <div className="py-24 flex flex-col items-center justify-center text-gray-500">
                         <ShieldAlert className="w-12 h-12 mb-4 opacity-50 text-cyan-500" />
-                        <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">Temporal Desync</h3>
-                        <p className="text-sm">Cannot formulate grids. Check your Timeline Span to ensure Scans exist.</p>
+                        <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('empty_title')}</h3>
+                        <p className="text-sm">{t('empty_desc')}</p>
                     </div>
                 ) : filteredData.length === 0 ? (
                     <div className="py-24 flex flex-col items-center justify-center text-gray-500">
                         <Search className="w-12 h-12 mb-4 opacity-50" />
-                        <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Matches Found</h3>
-                        <p className="text-sm">Zero Governors align with your Query or Alliance Filter.</p>
+                        <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_match_title')}</h3>
+                        <p className="text-sm">{t('no_match_desc')}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent max-h-[800px]">
                         <table className="w-full text-left border-collapse min-w-[2800px] text-[11px] font-mono">
                             <thead className="sticky top-0 bg-[#0a0c0f] z-20 shadow-md border-b border-[#1e222b]">
                                 <tr>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">Rank</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">ID</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase font-sans">Name</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">Alliance</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center">TH</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center border-r border-[#1e222b]">Status</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_rank')}</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_id')}</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase font-sans">{t('col_name')}</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_alliance')}</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center">{t('col_th')}</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center border-r border-[#1e222b]">{t('col_status')}</th>
                                     
-                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">Power (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">Power (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Power (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">{t('col_power_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">{t('col_power_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_power_delta')}</th>
                                     
-                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">Troops (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">Troops (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Troops (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">{t('col_troops_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">{t('col_troops_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_troops_delta')}</th>
 
-                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">Cmd (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">Cmd (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Cmd (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">{t('col_cmd_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">{t('col_cmd_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_cmd_delta')}</th>
                                     
-                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">Tech (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">Tech (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Tech (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">{t('col_tech_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">{t('col_tech_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_tech_delta')}</th>
                                     
-                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">Bldgs (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">Bldgs (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Bldgs (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">{t('col_bldgs_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">{t('col_bldgs_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_bldgs_delta')}</th>
 
-                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">KP (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">KP (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">KP (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">{t('col_kp_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">{t('col_kp_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_kp_delta')}</th>
                                     
-                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">Deads (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">Deads (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">Deads (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">{t('col_deads_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">{t('col_deads_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_deads_delta')}</th>
                                     
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">RSS (Start)</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">RSS (End)</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right">RSS (Δ)</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">{t('col_rss_start')}</th>
+                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">{t('col_rss_end')}</th>
+                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right">{t('col_rss_delta')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]/50">

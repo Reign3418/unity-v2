@@ -6,10 +6,12 @@ import {
     PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { ShieldAlert, TrendingUp, Search } from "lucide-react";
+import { useTranslations } from 'next-intl';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#64748b'];
 
 export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
+  const t = useTranslations('KingdomAnalysis');
   const [activeAlliance, setActiveAlliance] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -27,25 +29,25 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
       const latest = trends[trends.length - 1];
       const allTags = latest.summary?.alliances || {};
       const arr = Object.keys(allTags).map(tag => ({
-          name: tag === 'None' ? 'Unallied' : tag,
+          name: tag === 'None' ? t('label_unallied') : tag,
           value: allTags[tag]
       })).sort((a, b) => b.value - a.value);
       
       alliancePieData = arr.slice(0, 7);
       if (arr.length > 7) {
           const otherValue = arr.slice(7).reduce((acc, curr) => acc + curr.value, 0);
-          if (otherValue > 0) alliancePieData.push({ name: 'Other', value: otherValue });
+          if (otherValue > 0) alliancePieData.push({ name: t('label_other'), value: otherValue });
       }
   }
 
   // Data Filtering for Area Chart
   const actualTrends = (trends || []).map(t => {
       let plotPower = t.summary?.totalPower || 0;
-      if (activeAlliance && activeAlliance !== 'Other') {
-          const key = activeAlliance === 'Unallied' ? 'None' : activeAlliance;
+      if (activeAlliance && activeAlliance !== t('label_other')) {
+          const key = activeAlliance === t('label_unallied') ? 'None' : activeAlliance;
           plotPower = t.summary?.alliances?.[key] || 0;
-      } else if (activeAlliance === 'Other') {
-           const top7Names = alliancePieData.slice(0,7).map(a => a.name === 'Unallied' ? 'None' : a.name);
+      } else if (activeAlliance === t('label_other')) {
+           const top7Names = alliancePieData.slice(0,7).map(a => a.name === t('label_unallied') ? 'None' : a.name);
            plotPower = Object.keys(t.summary?.alliances || {}).reduce((sum, tag) => {
                if (!top7Names.includes(tag)) sum += t.summary?.alliances[tag];
                return sum;
@@ -157,11 +159,11 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
       return (
         <div className="bg-[#0f1115] border border-[#1e222b] p-4 rounded-lg shadow-xl outline-none">
           <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-            {label} {isPred && <span className="text-cyan-500 text-[9px] tracking-widest bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">PROJECTION</span>}
+            {label} {isPred && <span className="text-cyan-500 text-[9px] tracking-widest bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">{t('tooltip_projection')}</span>}
           </p>
-          <p style={{ color: activeColor }} className="font-mono font-bold text-lg">{displayVal} Power</p>
+          <p style={{ color: activeColor }} className="font-mono font-bold text-lg">{displayVal} {t('tooltip_power')}</p>
           <p className="text-gray-500 text-[10px] mt-1 uppercase tracking-wider">
-              {activeAlliance ? `[${activeAlliance}] Alliance Metric` : 'Kingdom Overall Metric'}
+              {activeAlliance ? t('tooltip_metric_alliance', { alliance: activeAlliance }) : t('tooltip_metric_all')}
           </p>
         </div>
       );
@@ -173,8 +175,8 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
       return (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
             <ShieldAlert className="w-12 h-12 mb-4 opacity-50" />
-            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Telemetry Verified</h3>
-            <p className="text-sm">Cannot formulate models. Ensure the ingestion pipeline has processed at least one scan for this server.</p>
+            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_telemetry_title')}</h3>
+            <p className="text-sm">{t('no_telemetry_desc')}</p>
         </div>
       );
   }
@@ -189,13 +191,13 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                     <div className="flex items-center gap-2">
                         <TrendingUp size={18} style={{ color: activeColor }} />
                         <h2 className="text-white font-bold uppercase tracking-widest text-sm">
-                            {activeAlliance ? `[${activeAlliance}] Trajectory` : 'Chronological Power Trajectory'}
+                            {activeAlliance ? t('trajectory_title_alliance', { alliance: activeAlliance }) : t('trajectory_title_all')}
                         </h2>
                     </div>
                     
                     <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shrink-0 shadow-lg">
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Start</span>
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_start')}</span>
                              <input 
                                  type="date" 
                                  value={startDate} 
@@ -206,7 +208,7 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                         </div>
                         <span className="text-gray-600 text-lg mx-1">/</span>
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">End</span>
+                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_end')}</span>
                              <input 
                                  type="date" 
                                  value={endDate} 
@@ -284,10 +286,10 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 flex flex-col items-center relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-2 w-full justify-center z-10">
                     <Search size={16} className="text-rose-500" />
-                    <h2 className="text-white font-bold uppercase tracking-widest text-sm text-center">Alliance Hegemony</h2>
+                    <h2 className="text-white font-bold uppercase tracking-widest text-sm text-center">{t('hegemony_title')}</h2>
                 </div>
                 <p className="text-gray-500 text-[10px] uppercase tracking-wider text-center mb-6 z-10 w-full px-4">
-                    Select a slice to filter the Trajectory tracking models.
+                    {t('hegemony_desc')}
                 </p>
 
                 <div className="h-[240px] w-full relative z-10 flex justify-center items-center">
@@ -300,7 +302,7 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                                       return (
                                         <div className="bg-[#0f1115] border border-[#1e222b] p-3 rounded-lg shadow-xl outline-none text-center">
                                           <p className="text-white font-bold uppercase tracking-widest text-sm mb-1">{data.name}</p>
-                                          <p className="font-mono text-xs text-gray-400">{(data.value / 1000000000).toFixed(2)}B Power</p>
+                                          <p className="font-mono text-xs text-gray-400">{(data.value / 1000000000).toFixed(2)}B {t('tooltip_power')}</p>
                                         </div>
                                       );
                                     }
@@ -339,9 +341,9 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                     
                     {/* Active Pie Chart Center Label */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-2xl font-black text-white">{activeAlliance || 'ALL'}</span>
+                        <span className="text-2xl font-black text-white">{activeAlliance || t('pie_center_all')}</span>
                         <span className="text-[9px] text-gray-500 uppercase tracking-widest">
-                            {activeAlliance ? 'Isolated' : 'Entities'}
+                            {activeAlliance ? t('pie_center_isolated') : t('pie_center_entities')}
                         </span>
                     </div>
                 </div>
@@ -355,7 +357,7 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                                  : 'bg-transparent text-gray-500 border-[#1e222b] hover:border-gray-600 hover:text-gray-300'
                          }`}
                     >
-                         RESET
+                         {t('btn_reset')}
                     </button>
                     {alliancePieData.map((a, i) => (
                         <button
@@ -385,10 +387,10 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                 <div className="flex items-center gap-2 mb-6 border-b border-[#1e222b] pb-4">
                     <ShieldAlert size={18} style={{ color: activeColor }} />
                     <h2 className="text-white font-bold uppercase tracking-widest text-sm">
-                        [{activeAlliance === 'Unallied' ? 'None' : activeAlliance}] Governor Registry
+                        {t('roster_title', { alliance: activeAlliance === t('label_unallied') ? 'None' : activeAlliance })}
                     </h2>
                     <span className="ml-auto bg-[#13161c] text-gray-400 text-xs px-2 py-1 rounded border border-[#1e222b] font-mono shadow-inner">
-                        {rosterData.filter(g => g.alliance === (activeAlliance === 'Unallied' ? 'None' : activeAlliance)).length} Members
+                        {rosterData.filter(g => g.alliance === (activeAlliance === t('label_unallied') ? 'None' : activeAlliance)).length} {t('roster_members')}
                     </span>
                 </div>
 
@@ -396,19 +398,19 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-[#1e222b]">
-                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Governor</th>
-                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-right">Registered Power</th>
-                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-right">Kill Points</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">{t('col_governor')}</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-right">{t('col_power')}</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-right">{t('col_killpoints')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rosterData
-                                .filter(g => g.alliance === (activeAlliance === 'Unallied' ? 'None' : activeAlliance))
+                                .filter(g => g.alliance === (activeAlliance === t('label_unallied') ? 'None' : activeAlliance))
                                 .sort((a, b) => b.power - a.power)
                                 .map((g, idx) => (
                                     <tr key={g.id || idx} className="border-b border-[#1e222b]/50 hover:bg-[#13161c] transition-colors">
                                         <td className="p-3">
-                                            <div className="font-bold text-white text-sm">{g.name || 'Unknown'}</div>
+                                            <div className="font-bold text-white text-sm">{g.name || t('roster_unknown')}</div>
                                             <div className="text-[10px] text-gray-500 font-mono tracking-widest">ID: {g.id}</div>
                                         </td>
                                         <td className="p-3 text-right">
