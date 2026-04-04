@@ -14,10 +14,12 @@ import MGEPlannerTab from "@/components/analysis/kingdom/MGEPlannerTab";
 import ConfigurationTab from "@/components/analysis/kingdom/ConfigurationTab";
 import ResultsTab from "@/components/analysis/kingdom/ResultsTab";
 import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
+import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
 import { useTranslations } from "next-intl";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
+  { name: "War Room", icon: Map },
   { name: "Growth Analysis", icon: TrendingUp },
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Alliance Duel", icon: Crosshair },
@@ -122,6 +124,12 @@ export default function KingdomAnalysis() {
                   <OverviewTab 
                       targetKd={targetKd}
                       trends={trends}
+                  />
+              );
+          case 'War Room':
+              return (
+                  <WarRoomTab 
+                      targetKd={targetKd}
                   />
               );
           case 'Growth Analysis':

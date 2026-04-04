@@ -74,7 +74,6 @@ export default function Sidebar() {
           <NavItem href="/community" icon={MessageSquare} label={t('nav_community_hub')} />
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
-          <NavItem href="/whiteboard" icon={MapIcon} label="War Room" />
           <NavItem href="/events" icon={CalendarDays} label={t('nav_events')} />
           <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} />
