@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush, Image as ImageIcon } from "lucide-react";
+import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush, Image as ImageIcon, Pipette } from "lucide-react";
 import io from 'socket.io-client';
 
 const RAILWAY_WS = 'https://unity-app-production.up.railway.app';
@@ -271,6 +271,27 @@ export default function WarRoomTab({ targetKd }) {
                       <button onClick={() => setColor('#10B981')} className={`w-6 h-6 rounded flex items-center justify-center transition-all ${color === '#10B981' ? 'bg-emerald-500 text-white scale-110 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-emerald-500/20 border border-emerald-500/50 hover:bg-emerald-500/40'}`} title="Ally Vectors"></button>
                       <button onClick={() => setColor('#06B6D4')} className={`w-6 h-6 rounded flex items-center justify-center transition-all ${color === '#06B6D4' ? 'bg-cyan-500 text-white scale-110 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-cyan-500/20 border border-cyan-500/50 hover:bg-cyan-500/40'}`} title="Rally Paths"></button>
                       <button onClick={() => setColor('#F59E0B')} className={`w-6 h-6 rounded flex items-center justify-center transition-all ${color === '#F59E0B' ? 'bg-amber-500 text-white scale-110 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-amber-500/20 border border-amber-500/50 hover:bg-amber-500/40'}`} title="Objectives"></button>
+                      
+                      {/* Color Picker / Eyedropper */}
+                      <div className="w-px h-6 bg-[#1e222b] mx-1"></div>
+                      <button 
+                         onClick={async () => {
+                             if ('EyeDropper' in window) {
+                                 try { const ed = new window.EyeDropper(); const res = await ed.open(); setColor(res.sRGBHex); } catch(e){}
+                             } else {
+                                 document.getElementById('native-color').click();
+                             }
+                         }} 
+                         className="w-6 h-6 rounded flex items-center justify-center transition-all bg-[#0f1115] border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-white" 
+                         title="Pick from Screen"
+                      >
+                         <Pipette size={12} />
+                      </button>
+                      <label className="w-6 h-6 rounded flex items-center justify-center transition-all cursor-pointer overflow-hidden border border-[#2d3342] hover:border-gray-300 relative group" title="Custom Hex">
+                         <div className="absolute inset-0 bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                         <input id="native-color" type="color" value={color} onChange={(e) => setColor(e.target.value)} className="opacity-0 absolute inset-0 w-10 h-10 cursor-pointer" />
+                      </label>
+
                       <div className="w-px h-6 bg-[#1e222b] mx-1"></div>
                       <button onClick={() => setColor('#0f1115')} className={`w-6 h-6 rounded flex items-center justify-center transition-all ${color === '#0f1115' ? 'bg-gray-300 text-black scale-110' : 'bg-[#0f1115] border border-gray-500 text-gray-500 hover:text-white'}`} title="Eraser">
                          <Eraser size={12} />
