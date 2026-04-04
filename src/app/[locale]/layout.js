@@ -24,7 +24,8 @@ export const metadata = {
   }
 };
 
-export default async function RootLayout({ children, params: { locale } }) {
+export default async function RootLayout({ children, params }) {
+  const { locale } = await params;
   const messages = await getMessages();
 
   return (
