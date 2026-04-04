@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
@@ -21,6 +22,18 @@ export default function DashboardLayout({ children }) {
   // Hide the shell entirely if the user is unauthenticated
   if (!session) {
     return <>{children}</>;
+  }
+
+  const pathname = usePathname();
+  const isExperimentalApplet = pathname?.includes('/experimental/ocr');
+
+  // Strip all shell rendering if we are in an isolated desktop applet
+  if (isExperimentalApplet) {
+      return (
+        <div className="flex bg-[#0a0c0f] min-h-screen text-slate-300 overflow-hidden font-sans">
+            {children}
+        </div>
+      );
   }
 
   // Render the fully authenticated Ghost Ship App Shell

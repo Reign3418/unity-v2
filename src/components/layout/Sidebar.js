@@ -90,6 +90,19 @@ export default function Sidebar() {
           <SectionTitle>{t('sec_system')}</SectionTitle>
           <NavItem href="/settings" icon={Settings} label={t('nav_settings')} />
           <NavItem href="/admin" icon={Lock} label={t('nav_admin')} hidden={!session?.user?.isSuperAdmin} />
+
+          {/* AI Experimental OCR Desktop Applet Injection */}
+          <SectionTitle>Experimental Lab</SectionTitle>
+          <button 
+            onClick={() => window.open('/en/experimental/ocr', 'Unity Applet', 'width=550,height=850,toolbar=0,menubar=0,location=0')}
+            className={`w-[calc(100%-2rem)] mx-4 flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200 group relative border border-fuchsia-500/20 bg-fuchsia-500/5 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/40 text-fuchsia-300 mt-2`}
+          >
+              <div className="flex items-center gap-3">
+                  <FlaskConical size={18} className="text-fuchsia-400 group-hover:animate-pulse" />
+                  <span className="text-sm font-medium">AI Vision OCR</span>
+              </div>
+              <span className="text-[10px] font-mono bg-fuchsia-500/20 px-2 py-0.5 rounded text-fuchsia-200 uppercase tracking-widest border border-fuchsia-500/30">Applet</span>
+          </button>
         </div>
       </div>
 
