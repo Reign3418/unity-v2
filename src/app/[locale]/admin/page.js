@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight
+  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
@@ -243,21 +243,25 @@ export default function AdminConsole() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-cyan-500">
-           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Connected Users</div>
-           <div className="text-4xl font-black text-white mt-2">{users.length}</div>
+        <div onClick={() => setActiveTab('identity')} className="cursor-pointer group bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-cyan-500 hover:bg-[#111318] transition-colors relative overflow-hidden">
+           <div className="absolute right-4 top-4 text-cyan-500/20 group-hover:text-cyan-500/50 transition-colors"><ExternalLink size={16}/></div>
+           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest group-hover:text-cyan-400 transition-colors">Connected Users</div>
+           <div className="text-4xl font-black text-white mt-2 group-hover:scale-105 transition-transform origin-left">{users.length}</div>
         </div>
-        <div className="bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-indigo-500">
-           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Tenant Guilds</div>
-           <div className="text-4xl font-black text-white mt-2">{tenants.length}</div>
+        <div onClick={() => setActiveTab('tenants')} className="cursor-pointer group bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-indigo-500 hover:bg-[#111318] transition-colors relative overflow-hidden">
+           <div className="absolute right-4 top-4 text-indigo-500/20 group-hover:text-indigo-500/50 transition-colors"><ExternalLink size={16}/></div>
+           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Tenant Guilds</div>
+           <div className="text-4xl font-black text-white mt-2 group-hover:scale-105 transition-transform origin-left">{tenants.length}</div>
         </div>
-        <div className="bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-emerald-500">
-           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Active Passes</div>
-           <div className="text-4xl font-black text-white mt-2">{passcodes.length}</div>
+        <div onClick={() => setActiveTab('passcodes')} className="cursor-pointer group bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-emerald-500 hover:bg-[#111318] transition-colors relative overflow-hidden">
+           <div className="absolute right-4 top-4 text-emerald-500/20 group-hover:text-emerald-500/50 transition-colors"><ExternalLink size={16}/></div>
+           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest group-hover:text-emerald-400 transition-colors">Active Passes</div>
+           <div className="text-4xl font-black text-white mt-2 group-hover:scale-105 transition-transform origin-left">{passcodes.length}</div>
         </div>
-        <div className="bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-amber-500">
-           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Database Node</div>
-           <div className="text-sm font-mono text-cyan-400 mt-4 overflow-hidden text-ellipsis">{awsEnv.tableName}</div>
+        <div onClick={() => setActiveTab('cloud')} className="cursor-pointer group bg-[#0a0c10] border border-[#1e222b] rounded-lg p-6 shadow-md border-t-2 border-t-amber-500 hover:bg-[#111318] transition-colors relative overflow-hidden">
+           <div className="absolute right-4 top-4 text-amber-500/20 group-hover:text-amber-500/50 transition-colors"><ExternalLink size={16}/></div>
+           <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-400 transition-colors">Database Node</div>
+           <div className="text-sm font-mono text-cyan-400 mt-4 overflow-hidden text-ellipsis group-hover:text-cyan-300 transition-colors">{awsEnv.tableName}</div>
         </div>
       </div>
       
@@ -265,18 +269,34 @@ export default function AdminConsole() {
          <h3 className="text-indigo-400 font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-wider"><Users size={18}/> Web User Approval Queue</h3>
          <div className="space-y-2">
            {pendingUsers.length === 0 && <div className="text-gray-600 text-xs font-bold text-center py-6 border border-dashed border-[#1e222b] rounded">System Clear. No users awaiting manual clearance.</div>}
-           {pendingUsers.map(u => (
-              <div key={u.SK} className="bg-[#161920] border border-[#1e222b] rounded p-4 flex justify-between items-center group hover:border-indigo-500/30 transition-colors">
-                <div>
-                   <div className="text-indigo-300 font-bold text-sm">{u.attributes?.username?.S || (u.SK?.S || u.SK || '').replace('USER#', '')}</div>
-                   <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">KD {u.attributes?.targetKingdom?.S || "Unknown"} | Discord ID {(u.SK?.S || u.SK || '').replace('USER#', '')}</div>
+           {pendingUsers.map(u => {
+              const discordId = (u.SK?.S || u.SK || '').replace('USER#', '');
+              const discordLink = `https://discord.com/users/${discordId}`;
+              return (
+                <div key={u.SK} className="bg-[#161920] border border-[#1e222b] rounded p-4 flex flex-col md:flex-row justify-between md:items-center gap-4 group hover:border-indigo-500/30 transition-colors">
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                     <img src={`https://cdn.discordapp.com/avatars/${discordId}/${u.attributes?.avatar?.S || ""}.png`} onError={(e)=>{e.target.src="https://cdn.discordapp.com/embed/avatars/0.png"}} className="w-10 h-10 rounded-full bg-[#1e222b] shrink-0 border border-[#1e222b]" alt="" />
+                     <div>
+                       <div className="text-indigo-300 font-bold text-sm flex items-center gap-2">
+                           {u.attributes?.username?.S || discordId}
+                           <a href={discordLink} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors" title="View Discord Profile">
+                               <ExternalLink size={14} />
+                           </a>
+                       </div>
+                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-1 flex items-center gap-2">
+                           <span className="text-rose-400 font-bold">Unverified</span>
+                           <span>• KD {u.attributes?.targetKingdom?.S || "Unknown"}</span>
+                           <span className="hidden md:inline">• Discord ID {discordId}</span>
+                       </div>
+                     </div>
+                  </div>
+                  <div className="flex gap-2 w-full md:w-auto">
+                     <button onClick={() => handleApprovePending(discordId, u.attributes?.targetKingdom?.S || "0", "Member")} className="flex-1 md:flex-none flex items-center justify-center text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 p-2 rounded transition-colors" title="Approve Request"><CheckCircle size={18}/></button>
+                     <button onClick={() => handleRejectPending(discordId)} className="flex-1 md:flex-none flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500 hover:text-white border border-rose-500/30 p-2 rounded transition-colors" title="Reject Request"><XCircle size={18}/></button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                   <button onClick={() => handleApprovePending((u.SK?.S || u.SK || '').replace('USER#', ''), u.attributes?.targetKingdom?.S || "0", "Member")} className="text-emerald-500 hover:bg-emerald-500/20 p-2 rounded transition-colors" title="Approve Request"><CheckCircle size={18}/></button>
-                   <button onClick={() => handleRejectPending((u.SK?.S || u.SK || '').replace('USER#', ''))} className="text-rose-500 hover:bg-rose-500/20 p-2 rounded transition-colors" title="Reject Request"><XCircle size={18}/></button>
-                </div>
-              </div>
-           ))}
+              );
+           })}
          </div>
       </div>
     </div>
