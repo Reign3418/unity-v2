@@ -3553,17 +3553,20 @@ export async function getAllUsersInKingdom(kingdomId) {
 
     const params = {
         TableName: tableName,
-        FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk AND contains(attributes.allowedKingdoms, :kd)',
+        FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
         ExpressionAttributeValues: {
             ':pkPrefix': { S: 'USER#' },
-            ':sk': { S: 'CONFIG' },
-            ':kd': { S: String(kingdomId) }
+            ':sk': { S: 'CONFIG' }
         }
     };
 
     try {
         const result = await dbClient.send(new ScanCommand(params));
         if (!result.Items) return [];
+
+        // Fetch the active Kingdom Roster from the AWS Scraper
+        const kdRoster = await getKingdomRoster(kingdomId);
+        const activeKdIds = kdRoster.map(g => String(g.id));
 
         return result.Items.map(item => {
             const attrs = item.attributes?.M || {};
@@ -3583,6 +3586,10 @@ export async function getAllUsersInKingdom(kingdomId) {
                 playtimeEnd: attrs.playtimeEnd?.S || null,
                 lastActiveTimestamp: attrs.lastActiveTimestamp?.S || null
             };
+        }).filter(user => {
+            // Only return Discord Users who own at least one active Governor Profile in this Kingdom
+            if (user.governorIds.length === 0) return false;
+            return user.governorIds.some(id => activeKdIds.includes(String(id)));
         });
     } catch (e) {
         console.error("AWS GetAllUsersInKingdom Error", e);
