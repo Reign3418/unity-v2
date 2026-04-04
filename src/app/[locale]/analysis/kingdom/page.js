@@ -19,12 +19,11 @@ import { useTranslations } from "next-intl";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
-  { name: "War Room", icon: Map },
   { name: "Growth Analysis", icon: TrendingUp },
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
-  { name: "Hall of Legends", icon: ShieldAlert },
+  { name: "War Room", label: "War Room", icon: Map },
   { name: "Team Builder", icon: Link },
   { name: "Alliance Merge", icon: GitMerge },
   { name: "Fixed MGE", icon: Trophy },
@@ -290,7 +289,7 @@ export default function KingdomAnalysis() {
                   }`}
                 >
                   <Icon size={16} className={isActive ? 'text-cyan-400' : 'text-gray-600'} />
-                  {tTabs(tab.name) || tab.name}
+                  {tab.label || tTabs(tab.name) || tab.name}
                 </button>
              );
           })}
