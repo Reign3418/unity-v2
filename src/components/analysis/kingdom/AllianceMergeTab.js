@@ -187,7 +187,8 @@ export default function AllianceMergeTab({ rosterData, targetKd, isLeader }) {
         if (navigationLinks && navigationLinks.length > 0) {
              navigationLinks[0].click();
         } else {
-             window.open('/mail', '_blank');
+             const locale = window.location.pathname.split('/')[1] || 'en';
+             window.open(`/${locale}/mail`, '_blank');
         }
     };
 

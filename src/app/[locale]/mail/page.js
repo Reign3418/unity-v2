@@ -37,16 +37,20 @@ export default function MailGenerator() {
              const parsed = JSON.parse(matrixRoster);
              setMailType('custom');
              
-             let formattedText = `[${parsed.reportName || 'TARGET ROSTER ACQUIRED'}]\n\n`;
-             if (parsed.summary) formattedText += `SUMMARY: ${parsed.summary}\n────────────────────\n\n`;
-             
-             if (Array.isArray(parsed.data)) {
-                 formattedText += parsed.data.join('\n');
+             if (Array.isArray(parsed)) {
+                 const reportObj = parsed[0];
+                 setCustomText(reportObj.customText || JSON.stringify(parsed, null, 2));
              } else {
-                 formattedText += parsed.data;
+                 let formattedText = `[${parsed.reportName || 'TARGET ROSTER ACQUIRED'}]\n\n`;
+                 if (parsed.summary) formattedText += `SUMMARY: ${parsed.summary}\n────────────────────\n\n`;
+                 
+                 if (Array.isArray(parsed.data)) {
+                     formattedText += parsed.data.join('\n');
+                 } else {
+                     formattedText += parsed.data || "";
+                 }
+                 setCustomText(formattedText + `\n\n[End Transmission]`);
              }
-             
-             setCustomText(formattedText + `\n\n[End Transmission]`);
          } catch (e) {
              setMailType('custom');
              setCustomText(`[TARGET ROSTER ACQUIRED]\n\n${matrixRoster}\n\n`);
@@ -324,12 +328,14 @@ export default function MailGenerator() {
             
             <div className="p-6 flex-1 bg-[#13161c] flex flex-col items-end">
                <textarea 
-                 readOnly={mailType !== 'custom'}
                  maxLength={2000}
                  value={mailType === 'custom' ? customText : generateMailText()}
-                 onChange={(e) => { if (mailType === 'custom') setCustomText(e.target.value); }}
-                 className={`w-full h-full min-h-[300px] bg-transparent text-gray-300 font-mono text-sm leading-relaxed outline-none resize-none selection:bg-rose-500/30 ${mailType === 'custom' ? 'focus:ring-1 focus:ring-cyan-500/50 p-2 border border-transparent focus:border-[#2d323e] rounded-lg' : ''}`}
-                 placeholder={mailType === 'custom' ? "Enter custom diplomatic mail mapping natively bound strictly to the 2,000 character limit..." : ""}
+                 onChange={(e) => { 
+                    setMailType('custom');
+                    setCustomText(e.target.value);
+                 }}
+                 className="w-full h-full min-h-[300px] bg-transparent text-gray-300 font-mono text-sm leading-relaxed outline-none resize-none selection:bg-rose-500/30 focus:ring-1 focus:ring-cyan-500/50 p-2 border border-transparent focus:border-[#2d323e] rounded-lg"
+                 placeholder="Enter custom diplomatic mail mapping natively bound strictly to the 2,000 character limit..."
                ></textarea>
                
                <p className={`text-[10px] font-black tracking-widest uppercase mt-4 ${generateMailText().length >= 2000 ? 'text-rose-500' : 'text-gray-500'}`}>Character Limit: {generateMailText().length}/2000</p>

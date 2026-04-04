@@ -174,7 +174,8 @@ export default function TeamBuilderTab({ rosterData, targetKd, isLeader }) {
              navigationLinks[0].click();
         } else {
              // Fallback routing
-             window.open('/mail', '_blank');
+             const locale = window.location.pathname.split('/')[1] || 'en';
+             window.open(`/${locale}/mail`, '_blank');
         }
     };
 

@@ -261,7 +261,8 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
     const sendToMailGenerator = (namesStr) => {
         localStorage.setItem('unity_mail_roster', namesStr);
-        window.open('/mail', '_blank');
+        const locale = window.location.pathname.split('/')[1] || 'en';
+        window.open(`/${locale}/mail`, '_blank');
     };
 
     const renderModal = () => {

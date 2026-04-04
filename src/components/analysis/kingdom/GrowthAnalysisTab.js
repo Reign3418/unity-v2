@@ -219,7 +219,8 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
             customText: report
         }]));
         
-        window.open('/mail', '_blank');
+        const locale = window.location.pathname.split('/')[1] || 'en';
+        window.open(`/${locale}/mail`, '_blank');
     };
 
     return (
