@@ -60,10 +60,44 @@ export default function ExperimentalApplet() {
         reader.readAsDataURL(fileBlob);
     };
 
+    const handleNativeScreenCapture = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+
+            video.onloadedmetadata = () => {
+                const canvas = canvasRef.current;
+                let width = video.videoWidth;
+                let height = video.videoHeight;
+                const MAX_WIDTH = 1920; 
+
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                stream.getTracks().forEach(track => track.stop());
+                
+                const webPBase64 = canvas.toDataURL('image/webp', 0.8);
+                setImage(webPBase64);
+                transmitToAiEngine(webPBase64);
+            };
+        } catch (err) {
+            console.error("Screen Share Capture Failed:", err);
+        }
+    };
+
     const transmitToAiEngine = async (encodedImage) => {
         setIsLoading(true);
         setError(null);
-        setScannedData([]);
+        // Do NOT clear scannedData here anymore. We want to append.
 
         try {
             // Ping the Unity backend specifically assigned to the isolated Experimental Lab route
@@ -72,14 +106,17 @@ export default function ExperimentalApplet() {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('unity_session_token') || 'local_test'}`
-                    // Note: session architecture handles auth naturally, but we fallback gracefully
                 },
                 body: JSON.stringify({ image: encodedImage })
             });
 
             const json = await res.json();
             if (json.success && Array.isArray(json.data)) {
-                setScannedData(json.data);
+                // Determine if this is a fresh scan or appending to an existing table
+                setScannedData(prev => {
+                    // Smart de-duplication can go here later, but for now we trust the user's scroll
+                    return [...prev, ...json.data];
+                });
             } else {
                 setError(json.error || "The AI failed to format the matrix. Please try a cleaner screenshot.");
             }
@@ -157,44 +194,7 @@ export default function ExperimentalApplet() {
                             OR capture a window natively:
                         </p>
                         <button 
-                            onClick={async () => {
-                                try {
-                                    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-                                    const video = document.createElement('video');
-                                    video.srcObject = stream;
-                                    video.play();
-
-                                    video.onloadedmetadata = () => {
-                                        const canvas = canvasRef.current;
-                                        // Smart Scaling to 1920 cap to save bandwidth
-                                        let width = video.videoWidth;
-                                        let height = video.videoHeight;
-                                        const MAX_WIDTH = 1920; 
-                        
-                                        if (width > MAX_WIDTH) {
-                                            height = Math.round((height * MAX_WIDTH) / width);
-                                            width = MAX_WIDTH;
-                                        }
-
-                                        canvas.width = width;
-                                        canvas.height = height;
-                                        const ctx = canvas.getContext('2d');
-                                        
-                                        // Snap the exact frame
-                                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                                        
-                                        // Instantly kill the web stream
-                                        stream.getTracks().forEach(track => track.stop());
-                                        
-                                        // Process it
-                                        const webPBase64 = canvas.toDataURL('image/webp', 0.8);
-                                        setImage(webPBase64);
-                                        transmitToAiEngine(webPBase64);
-                                    };
-                                } catch (err) {
-                                    console.error("Screen Share Capture Failed:", err);
-                                }
-                            }}
+                            onClick={handleNativeScreenCapture}
                             className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-mono text-[10px] uppercase tracking-widest px-6 py-3 rounded-lg shadow-[0_0_15px_rgba(192,38,211,0.4)] transition-all flex items-center gap-2"
                         >
                             <Camera size={16} />
@@ -265,15 +265,25 @@ export default function ExperimentalApplet() {
                         </div>
 
                         {/* Export Toolbar */}
-                        <div className="bg-[#15181e] border border-t-0 border-slate-800 rounded-b-lg p-3 flex items-center justify-end gap-2 shrink-0">
-                            <button onClick={copyToClipboard} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group">
-                                <Copy size={14} className="text-slate-400 group-hover:text-white" />
-                                <span>Copy Text</span>
+                        <div className="bg-[#15181e] border border-t-0 border-slate-800 rounded-b-lg p-3 flex items-center justify-between shrink-0">
+                            <button 
+                                onClick={handleNativeScreenCapture} 
+                                className="flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group"
+                            >
+                                <Camera size={14} className="group-hover:scale-110 transition-transform" />
+                                <span>Snap Next Scroll Chunk</span>
                             </button>
-                            <button onClick={exportToCSV} className="flex items-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded shadow-lg shadow-fuchsia-500/20 transition-colors">
-                                <Download size={14} />
-                                <span>Export CSV</span>
-                            </button>
+
+                            <div className="flex items-center gap-2">
+                                <button onClick={copyToClipboard} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group">
+                                    <Copy size={14} className="text-slate-400 group-hover:text-white" />
+                                    <span>Copy Text</span>
+                                </button>
+                                <button onClick={exportToCSV} className="flex items-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded shadow-lg shadow-fuchsia-500/20 transition-colors">
+                                    <Download size={14} />
+                                    <span>Export CSV</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
