@@ -16,13 +16,15 @@ import pt from './messages/pt.json';
 
 const locales = { en, vi, ar, ru, zh, es, id, ko, tr, fr, de, pt };
 
-export default getRequestConfig(async ({locale}) => {
-  console.log("@@@ REQUEST LOCALE: ", locale);
-  if (!locales[locale]) {
-    console.log("@@@ LOCALE FAILED MATCH, TRIGGERING NOT FOUND");
-    notFound();
+export default getRequestConfig(async ({requestLocale}) => {
+  let locale = await requestLocale;
+  
+  if (!locale || !locales[locale]) {
+    locale = 'en';
   }
+  
   return {
+    locale,
     messages: locales[locale]
   };
 });
