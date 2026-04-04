@@ -1,5 +1,37 @@
 {
   "Index": {
     "title": "Welcome to Unity"
+  },
+  "Sidebar": {
+    "nav_dashboard": "Dashboard",
+    "nav_stats": "My Stats",
+    "nav_load": "Load Data",
+    "sec_analysis": "Analysis",
+    "nav_vault": "Kingdom Vault",
+    "nav_kingdom_analysis": "Kingdom Analysis",
+    "nav_global_analysis": "All Kingdom Stats",
+    "nav_pre_kvk": "Pre-KvK Ranking",
+    "nav_dkp": "DKP Results",
+    "nav_activity_tracker": "Activity Tracker",
+    "nav_player_hunter": "Player Hunter",
+    "sec_community": "Community",
+    "nav_changelog": "Changelog",
+    "nav_community_hub": "Community Hub",
+    "sec_tools": "Tools",
+    "nav_events": "Events Schedule",
+    "nav_mail": "Mail Generator",
+    "nav_calculators": "Calculators",
+    "sec_creator": "Creator Studio",
+    "nav_sandbox": "Data Sandbox",
+    "nav_lab": "Experimental Lab",
+    "nav_matchmaker": "AI Matchmaker",
+    "sec_system": "System",
+    "nav_settings": "Settings",
+    "nav_admin": "Admin Controls",
+    "btn_logout": "Logout",
+    "footer_about": "About",
+    "footer_contact": "Contact",
+    "footer_privacy": "Privacy",
+    "footer_terms": "Terms"
   }
 }

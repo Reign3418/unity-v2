@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { 
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
@@ -13,12 +14,13 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const t = useTranslations('Sidebar');
 
   const isLeader = session?.user?.isLeader;
 
   const NavItem = ({ href, icon: Icon, label, hidden }) => {
     if (hidden) return null;
-    const isActive = pathname === href;
+    const isActive = pathname === href || pathname === `/en${href}` || pathname.includes(`${href}`); // fuzzy match over locale
     
     return (
       <Link 
@@ -54,40 +56,40 @@ export default function Sidebar() {
       {/* Navigation Scroll Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="px-3 py-4 space-y-1">
-          <NavItem href="/" icon={LayoutDashboard} label="Dashboard" />
-          <NavItem href="/stats" icon={User} label="My Stats" />
-          <NavItem href="/upload" icon={UploadCloud} label="Load Data" />
+          <NavItem href="/" icon={LayoutDashboard} label={t('nav_dashboard')} />
+          <NavItem href="/stats" icon={User} label={t('nav_stats')} />
+          <NavItem href="/upload" icon={UploadCloud} label={t('nav_load')} />
 
-          <SectionTitle>Analysis</SectionTitle>
-          <NavItem href="/vault" icon={Building2} label="Kingdom Vault" hidden={!isLeader} />
-          <NavItem href="/analysis/kingdom" icon={BarChart2} label="Kingdom Analysis" />
-          <NavItem href="/analysis/global" icon={TrendingUp} label="All Kingdom Stats" />
-          <NavItem href="/rankings/pre-kvk" icon={Trophy} label="Pre-KvK Ranking" />
-          <NavItem href="/results/dkp" icon={Medal} label="DKP Results" />
-          <NavItem href="/tools/tracker" icon={Timer} label="Activity Tracker" />
-          <NavItem href="/tools/hunter" icon={Crosshair} label="Player Hunter" />
+          <SectionTitle>{t('sec_analysis')}</SectionTitle>
+          <NavItem href="/vault" icon={Building2} label={t('nav_vault')} hidden={!isLeader} />
+          <NavItem href="/analysis/kingdom" icon={BarChart2} label={t('nav_kingdom_analysis')} />
+          <NavItem href="/analysis/global" icon={TrendingUp} label={t('nav_global_analysis')} />
+          <NavItem href="/rankings/pre-kvk" icon={Trophy} label={t('nav_pre_kvk')} />
+          <NavItem href="/results/dkp" icon={Medal} label={t('nav_dkp')} />
+          <NavItem href="/tools/tracker" icon={Timer} label={t('nav_activity_tracker')} />
+          <NavItem href="/tools/hunter" icon={Crosshair} label={t('nav_player_hunter')} />
 
-          <SectionTitle>Community</SectionTitle>
-          <NavItem href="/changelog" icon={BookOpen} label="Changelog" />
-          <NavItem href="/community" icon={MessageSquare} label="Community Hub" />
+          <SectionTitle>{t('sec_community')}</SectionTitle>
+          <NavItem href="/changelog" icon={BookOpen} label={t('nav_changelog')} />
+          <NavItem href="/community" icon={MessageSquare} label={t('nav_community_hub')} />
 
-          <SectionTitle>Tools</SectionTitle>
-          <NavItem href="/events" icon={CalendarDays} label="Events Schedule" />
-          <NavItem href="/mail" icon={Mail} label="Mail Generator" />
-          <NavItem href="/calculators" icon={CheckSquare} label="Calculators" />
+          <SectionTitle>{t('sec_tools')}</SectionTitle>
+          <NavItem href="/events" icon={CalendarDays} label={t('nav_events')} />
+          <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
+          <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} />
 
           {session?.user?.isSuperAdmin && (
               <>
-                  <SectionTitle>Creator Studio</SectionTitle>
-                  <NavItem href="/creator/sandbox" icon={Database} label="Data Sandbox" />
-                  <NavItem href="/creator/lab" icon={FlaskConical} label="Experimental Lab" />
-                  <NavItem href="/creator/matchmaker" icon={Target} label="AI Matchmaker" />
+                  <SectionTitle>{t('sec_creator')}</SectionTitle>
+                  <NavItem href="/creator/sandbox" icon={Database} label={t('nav_sandbox')} />
+                  <NavItem href="/creator/lab" icon={FlaskConical} label={t('nav_lab')} />
+                  <NavItem href="/creator/matchmaker" icon={Target} label={t('nav_matchmaker')} />
               </>
           )}
 
-          <SectionTitle>System</SectionTitle>
-          <NavItem href="/settings" icon={Settings} label="Settings" />
-          <NavItem href="/admin" icon={Lock} label="Admin Controls" hidden={!session?.user?.isSuperAdmin} />
+          <SectionTitle>{t('sec_system')}</SectionTitle>
+          <NavItem href="/settings" icon={Settings} label={t('nav_settings')} />
+          <NavItem href="/admin" icon={Lock} label={t('nav_admin')} hidden={!session?.user?.isSuperAdmin} />
         </div>
       </div>
 
@@ -110,7 +112,7 @@ export default function Sidebar() {
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 border border-red-500/20 transition-all font-bold text-sm tracking-widest uppercase"
             >
               <LogOut size={16} />
-              <span>Logout</span>
+              <span>{t('btn_logout')}</span>
             </button>
           ) : null}
         </div>
@@ -119,13 +121,13 @@ export default function Sidebar() {
         <div className="text-center space-y-2.5 mt-1 pt-4 border-t border-[#1e222b]/50">
           <p className="text-[#6b7280] text-xs font-medium tracking-wide">© 2026 Unity Dashboard.</p>
           <div className="flex items-center justify-center gap-2 text-[10px] text-[#4b5563] font-bold tracking-widest uppercase">
-            <Link href="/about" className="hover:text-cyan-500 transition-colors">About</Link>
+            <Link href="/about" className="hover:text-cyan-500 transition-colors">{t('footer_about')}</Link>
             <span>•</span>
-            <Link href="/contact" className="hover:text-cyan-500 transition-colors">Contact</Link>
+            <Link href="/contact" className="hover:text-cyan-500 transition-colors">{t('footer_contact')}</Link>
             <span>•</span>
-            <Link href="/privacy" className="hover:text-cyan-500 transition-colors">Privacy</Link>
+            <Link href="/privacy" className="hover:text-cyan-500 transition-colors">{t('footer_privacy')}</Link>
             <span>•</span>
-            <Link href="/terms" className="hover:text-cyan-500 transition-colors">Terms</Link>
+            <Link href="/terms" className="hover:text-cyan-500 transition-colors">{t('footer_terms')}</Link>
           </div>
         </div>
       </div>
