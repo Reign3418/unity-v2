@@ -2,10 +2,10 @@
 
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X } from 'lucide-react';
+import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -34,13 +34,16 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="h-16 bg-[#0a0c0f]/80 backdrop-blur-md border-b border-[#1e222b] flex items-center justify-between px-8 sticky top-0 z-50 transition-all">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white tracking-wide">
+      <header className="h-16 bg-[#0a0c0f]/80 backdrop-blur-md border-b border-[#1e222b] flex items-center justify-between px-4 md:px-8 sticky top-0 z-50 transition-all">
+        <div className="flex items-center gap-2 md:gap-4">
+          <button onClick={onMenuClick} className="md:hidden p-2 text-cyan-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+             <Menu size={20} />
+          </button>
+          <h1 className="text-lg md:text-xl font-bold text-white tracking-wide truncate max-w-[150px] md:max-w-none">
             {getPageTitle()}
           </h1>
           {session?.user?.isLeader && (
-            <span className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="hidden sm:flex bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full items-center gap-1">
               <ShieldCheck size={12} />
               Command
             </span>

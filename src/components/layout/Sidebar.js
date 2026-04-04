@@ -11,7 +11,7 @@ import {
   Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target
 } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const t = useTranslations('Sidebar');
@@ -25,6 +25,7 @@ export default function Sidebar() {
     return (
       <Link 
         href={href} 
+        onClick={() => setIsOpen && setIsOpen(false)}
         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative
           ${isActive 
             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)]' 
@@ -44,7 +45,20 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-64 h-screen bg-[#0f1115] border-r border-[#1e222b] flex flex-col flex-shrink-0 relative z-20 overflow-hidden shadow-2xl">
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Drawer Container */}
+      <aside className={`
+        fixed inset-y-0 left-0 w-64 bg-[#0f1115] border-r border-[#1e222b] flex flex-col flex-shrink-0 z-50 overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.8)] md:shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] md:relative md:translate-x-0
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-[#1e222b] bg-[#0a0c0f]">
         <div className="flex items-center gap-3">
@@ -145,5 +159,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
