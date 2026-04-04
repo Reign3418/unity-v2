@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush } from "lucide-react";
+import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush, Image as ImageIcon } from "lucide-react";
 import io from 'socket.io-client';
 
 const RAILWAY_WS = 'https://unity-app-production.up.railway.app';
@@ -15,11 +15,46 @@ export default function WarRoomTab({ targetKd }) {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   
+  const bgImageRef = useRef(null);
+  const currentPath = useRef([]);
+
   // Isolate by Kingdom ID securely so plans don't bleed over
   const WAR_ROOM_ID = `kingdom-${targetKd || 'global'}`;
 
+  const drawBackgroundLocally = (base64) => {
+      bgImageRef.current = base64;
+      const canvas = canvasRef.current;
+      const ctx = contextRef.current;
+      if (!canvas || !ctx) return;
+      
+      const img = new window.Image();
+      img.onload = () => {
+          const rect = canvas.getBoundingClientRect();
+          ctx.fillStyle = '#0f1115';
+          ctx.fillRect(0, 0, rect.width, rect.height);
+          
+          const scale = Math.min(rect.width / img.width, rect.height / img.height);
+          const x = (rect.width / 2) - (img.width / 2) * scale;
+          const y = (rect.height / 2) - (img.height / 2) * scale;
+          
+          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      };
+      img.src = base64;
+  };
+
+  const clearCanvasLocally = () => {
+      if (!contextRef.current || !canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      contextRef.current.fillStyle = '#0f1115';
+      contextRef.current.fillRect(0, 0, rect.width, rect.height);
+      
+      if (bgImageRef.current) {
+          drawBackgroundLocally(bgImageRef.current);
+      }
+  };
+
   useEffect(() => {
-    // Connect to Railway Socket Engine natively bypassing DB
     const socketIo = io(RAILWAY_WS, {
         withCredentials: true,
         transports: ['websocket', 'polling']
@@ -34,7 +69,6 @@ export default function WarRoomTab({ targetKd }) {
         setIsConnected(false);
     });
 
-    // Inbound peer stroke parsing
     socketIo.on('peer_stroke', (strokeRaw) => {
         try {
             const parsed = typeof strokeRaw === 'string' ? JSON.parse(strokeRaw) : strokeRaw;
@@ -42,17 +76,18 @@ export default function WarRoomTab({ targetKd }) {
         } catch(e) {}
     });
 
-    // Clear board payload
+    socketIo.on('peer_background', (base64) => {
+        drawBackgroundLocally(base64);
+    });
+
     socketIo.on('peer_clear', () => {
         clearCanvasLocally();
     });
 
     setSocket(socketIo);
 
-    // Initial Canvas Context Setup
     const canvas = canvasRef.current;
     if (canvas) {
-        // High DPI Support for Retina
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * dpr;
@@ -64,7 +99,6 @@ export default function WarRoomTab({ targetKd }) {
         ctx.lineJoin = 'round';
         contextRef.current = ctx;
         
-        // Setup default background
         ctx.fillStyle = '#0f1115';
         ctx.fillRect(0, 0, rect.width, rect.height);
     }
@@ -74,7 +108,6 @@ export default function WarRoomTab({ targetKd }) {
     };
   }, [WAR_ROOM_ID]);
 
-  // Sync stroke config
   useEffect(() => {
       if (contextRef.current) {
           contextRef.current.strokeStyle = color;
@@ -82,13 +115,59 @@ export default function WarRoomTab({ targetKd }) {
       }
   }, [color, brushSize]);
 
-  const currentPath = useRef([]);
+  const processImageFile = (file) => {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          const img = new window.Image();
+          img.onload = () => {
+              // High performance WebP compression matrix to fit under 10MB bounds
+              const maxDim = 1920; 
+              let w = img.width;
+              let h = img.height;
+              if (w > maxDim || h > maxDim) {
+                  if (w > h) { h = Math.round((h * maxDim)/w); w = maxDim; }
+                  else { w = Math.round((w * maxDim)/h); h = maxDim; }
+              }
+              const offScreen = document.createElement('canvas');
+              offScreen.width = w; offScreen.height = h;
+              offScreen.getContext('2d').drawImage(img, 0, 0, w, h);
+              const base64 = offScreen.toDataURL('image/jpeg', 0.85);
+              
+              drawBackgroundLocally(base64);
+              if (socket) {
+                  socket.emit('set_background', { roomId: WAR_ROOM_ID, bgBase64: base64 });
+              }
+          };
+          img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+  };
+
+  useEffect(() => {
+      const handlePaste = (e) => {
+          const items = e.clipboardData?.items;
+          if (!items) return;
+          for (let i = 0; i < items.length; i++) {
+              if (items[i].type.indexOf('image') !== -1) {
+                  const file = items[i].getAsFile();
+                  processImageFile(file);
+                  break;
+              }
+          }
+      };
+      window.addEventListener('paste', handlePaste);
+      return () => window.removeEventListener('paste', handlePaste);
+  }, [socket, WAR_ROOM_ID]);
+
+  const handleFileUpload = (e) => {
+      if (e.target.files && e.target.files[0]) {
+          processImageFile(e.target.files[0]);
+      }
+  };
 
   const startDrawing = (e) => {
-    // Normalize Event for React Pointer Events
     const { offsetX, offsetY } = e.nativeEvent;
-    
-    // Normalize coordinates relative to actual container layout dimensions
     const rect = canvasRef.current.getBoundingClientRect();
     const nx = offsetX / rect.width;
     const ny = offsetY / rect.height;
@@ -96,7 +175,6 @@ export default function WarRoomTab({ targetKd }) {
     contextRef.current.beginPath();
     contextRef.current.moveTo(offsetX, offsetY);
     setIsDrawing(true);
-    
     currentPath.current = [{ nx, ny }];
   };
 
@@ -104,7 +182,6 @@ export default function WarRoomTab({ targetKd }) {
     if (!isDrawing) return;
     const { offsetX, offsetY } = e.nativeEvent;
     
-    // Local UI rendering
     contextRef.current.lineTo(offsetX, offsetY);
     contextRef.current.stroke();
 
@@ -117,15 +194,10 @@ export default function WarRoomTab({ targetKd }) {
     contextRef.current.closePath();
     setIsDrawing(false);
 
-    // Broadcast the full stroke path asynchronously
     if (socket && currentPath.current.length > 0) {
         socket.emit('draw_stroke', {
             roomId: WAR_ROOM_ID,
-            stroke: {
-                color,
-                size: brushSize,
-                points: currentPath.current
-            }
+            stroke: { color, size: brushSize, points: currentPath.current }
         });
     }
     currentPath.current = [];
@@ -133,7 +205,6 @@ export default function WarRoomTab({ targetKd }) {
 
   const drawStrokeLocally = (stroke) => {
       if (!contextRef.current || !canvasRef.current || !stroke.points || stroke.points.length === 0) return;
-      
       const ctx = contextRef.current;
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
@@ -143,7 +214,6 @@ export default function WarRoomTab({ targetKd }) {
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.size;
-      
       ctx.moveTo(p[0].nx * rect.width, p[0].ny * rect.height);
       for(let i = 1; i < p.length; i++) {
           ctx.lineTo(p[i].nx * rect.width, p[i].ny * rect.height);
@@ -153,19 +223,10 @@ export default function WarRoomTab({ targetKd }) {
       ctx.restore();
   };
 
-  const clearCanvasLocally = () => {
-      if (!contextRef.current || !canvasRef.current) return;
-      const canvas = canvasRef.current;
-      const rect = canvas.getBoundingClientRect();
-      contextRef.current.fillStyle = '#0f1115';
-      contextRef.current.fillRect(0, 0, rect.width, rect.height);
-  };
-
   const broadcastClear = () => {
+      bgImageRef.current = null; // Full wipe clears bg too
       clearCanvasLocally();
-      if (socket) {
-          socket.emit('clear_board', WAR_ROOM_ID);
-      }
+      if (socket) socket.emit('clear_board', WAR_ROOM_ID);
   };
 
   return (
@@ -224,7 +285,14 @@ export default function WarRoomTab({ targetKd }) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button onClick={broadcastClear} className="flex items-center gap-2 px-6 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all bg-rose-500/10 text-rose-500 border border-rose-500/50 hover:bg-rose-500 hover:text-white">
+                    <label className="flex items-center gap-2 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all bg-[#1e222b] text-gray-300 hover:bg-emerald-500 hover:text-white cursor-pointer group">
+                       <ImageIcon size={14} className="text-gray-400 group-hover:text-white" /> 
+                       Upload Map 
+                       <span className="hidden md:inline font-mono opacity-50 ml-1 truncate max-w-[80px]">(or Ctrl+V)</span>
+                       <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                    </label>
+                    <div className="w-px h-6 bg-[#1e222b] mx-1"></div>
+                    <button onClick={broadcastClear} className="flex items-center gap-2 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all bg-rose-500/10 text-rose-500 border border-rose-500/50 hover:bg-rose-500 hover:text-white">
                        <Eraser size={14} /> Wipe Board
                     </button>
                 </div>
