@@ -67,7 +67,7 @@ export default function ExperimentalApplet() {
 
         try {
             // Ping the Unity backend specifically assigned to the isolated Experimental Lab route
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://unity-bot.up.railway.app'}/api/experimental/scan`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://unity-app-production.up.railway.app'}/api/experimental/scan`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
