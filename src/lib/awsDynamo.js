@@ -3606,28 +3606,36 @@ export async function updateUserPlaytime(discordId, timezone, playStart, playEnd
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) return false;
 
-    const params = {
-        TableName: tableName,
-        Key: {
+    try {
+        const { GetItemCommand, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        
+        const getParams = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `USER#${discordId}` },
+                'SK': { S: 'CONFIG' }
+            }
+        };
+
+        const result = await dbClient.send(new GetItemCommand(getParams));
+        const existingItem = result.Item || {
             'PK': { S: `USER#${discordId}` },
             'SK': { S: 'CONFIG' }
-        },
-        UpdateExpression: 'SET #attrs.#tz = :tz, #attrs.#start = :start, #attrs.#end = :end',
-        ExpressionAttributeNames: {
-            '#attrs': 'attributes',
-            '#tz': 'timezone',
-            '#start': 'playtimeStart',
-            '#end': 'playtimeEnd'
-        },
-        ExpressionAttributeValues: {
-            ':tz': { S: String(timezone) },
-            ':start': { S: String(playStart) },
-            ':end': { S: String(playEnd) }
-        }
-    };
+        };
 
-    try {
-        await dbClient.send(new UpdateItemCommand(params));
+        const attrs = existingItem.attributes?.M || {};
+        attrs['timezone'] = { S: String(timezone) };
+        attrs['playtimeStart'] = { S: String(playStart) };
+        attrs['playtimeEnd'] = { S: String(playEnd) };
+
+        existingItem.attributes = { M: attrs };
+
+        const putParams = {
+            TableName: tableName,
+            Item: existingItem
+        };
+
+        await dbClient.send(new PutItemCommand(putParams));
         return true;
     } catch (err) {
         console.error(`[AWS] Failed to update playtime for ${discordId}:`, err);
