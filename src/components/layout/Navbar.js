@@ -82,20 +82,50 @@ export default function Navbar() {
                   }
                   onChange={(e) => {
                       localStorage.setItem('unty_active_kd', e.target.value);
-                      // Force a soft refresh so the current page mounts with the new globally active kingdom
                       window.location.reload();
                   }}
                 >
                   {session.user.allowedKingdoms.map(kd => (
                     <option key={kd} value={kd} className="bg-[#0f1115] text-white">[{kd}]</option>
                   ))}
-                  {/* Provide an All option for specific Global Views if needed */}
                   {session.user.allowedKingdoms.length > 1 && (
                      <option value="GLOBAL" className="bg-[#0f1115] text-amber-400">[ALL KINGDOMS]</option>
                   )}
                 </select>
              </div>
           )}
+
+          {/* Core App Language Switcher */}
+          <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-r border-[#1e222b] group">
+            <Globe size={14} className="text-gray-500 group-hover:text-cyan-500 transition-colors" />
+            <select
+              className="bg-transparent text-gray-400 font-bold text-xs uppercase tracking-widest outline-none cursor-pointer hover:text-cyan-400 transition-colors"
+              value={pathname.split('/')[1] || 'en'}
+              onChange={(e) => {
+                const newLocale = e.target.value;
+                const segments = pathname.split('/');
+                if (segments.length >= 2 && ['en', 'vi', 'ar', 'ru', 'zh', 'es', 'id', 'ko', 'tr', 'fr', 'de', 'pt'].includes(segments[1])) {
+                    segments[1] = newLocale; 
+                    window.location.href = segments.join('/');
+                } else {
+                    window.location.href = `/${newLocale}${pathname}`;
+                }
+              }}
+            >
+              <option value="en" className="bg-[#0f1115] text-white">English 🇺🇸</option>
+              <option value="zh" className="bg-[#0f1115] text-white">中文 🇨🇳</option>
+              <option value="es" className="bg-[#0f1115] text-white">Español 🇪🇸</option>
+              <option value="fr" className="bg-[#0f1115] text-white">Français 🇫🇷</option>
+              <option value="de" className="bg-[#0f1115] text-white">Deutsch 🇩🇪</option>
+              <option value="ru" className="bg-[#0f1115] text-white">Русский 🇷🇺</option>
+              <option value="ko" className="bg-[#0f1115] text-white">한국어 🇰🇷</option>
+              <option value="vi" className="bg-[#0f1115] text-white">Tiếng Việt 🇻🇳</option>
+              <option value="tr" className="bg-[#0f1115] text-white">Türkçe 🇹🇷</option>
+              <option value="pt" className="bg-[#0f1115] text-white">Português 🇧🇷</option>
+              <option value="id" className="bg-[#0f1115] text-white">Bahasa 🇮🇩</option>
+              <option value="ar" className="bg-[#0f1115] text-white">العربية 🇸🇦</option>
+            </select>
+          </div>
 
           {/* Action Icons */}
           <div className="flex items-center gap-3 text-gray-400">
