@@ -8,8 +8,10 @@ import {
 import { 
   BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import { useTranslations } from "next-intl";
 
 export default function GlobalAnalysis() {
+  const t = useTranslations('GlobalAnalysis');
   const { data: session } = useSession();
   
   // Base Data from AWS
@@ -496,8 +498,8 @@ export default function GlobalAnalysis() {
                  <Globe2 className="text-indigo-500" size={32} />
                </div>
                <div>
-                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">Global Analysis</h1>
-                 <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Cross-Server Macro Diagnostics</p>
+                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">{t('title')}</h1>
+                 <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
                </div>
             </div>
             
@@ -538,7 +540,7 @@ export default function GlobalAnalysis() {
                  : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
              }`}
            >
-             <Users size={14} /> Camp Builder
+             <Users size={14} /> {t('camp_builder')}
            </button>
            
            <button
@@ -549,7 +551,7 @@ export default function GlobalAnalysis() {
                  : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
              }`}
            >
-             <BarChart size={14} /> Delta Analytics
+             <BarChart size={14} /> {t('delta_analytics')}
            </button>
         </div>
 
@@ -763,16 +765,16 @@ export default function GlobalAnalysis() {
                     <div className="flex flex-col">
                         <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
                            <BarChart size={18} className="text-indigo-500" />
-                           All Kingdom Analysis
+                           {t('all_kd_analysis')}
                         </h2>
                         <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mt-1">
-                           Comprehensive Power & KP Deltas Across Selected Scans
+                           {t('comprehensive_deltas')}
                         </p>
                     </div>
                     
                     <div className="flex flex-col md:flex-row items-center gap-3">
                         <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
-                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Start Scan:</span>
+                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">{t('start_scan')}</span>
                             <select 
                                 value={startScan}
                                 onChange={(e) => setStartScan(e.target.value)}
@@ -782,7 +784,7 @@ export default function GlobalAnalysis() {
                             </select>
                         </div>
                         <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded px-3 py-1.5">
-                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">End Scan:</span>
+                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">{t('end_scan')}</span>
                             <select 
                                 value={endScan}
                                 onChange={(e) => setEndScan(e.target.value)}
@@ -802,11 +804,11 @@ export default function GlobalAnalysis() {
                                 type="text"
                                 value={deltaTargetInput}
                                 onChange={(e) => setDeltaTargetInput(e.target.value)}
-                                placeholder="Filter KD # (Optional)"
+                                placeholder={t('filter_kd')}
                                 className="w-48 bg-[#13161c] border border-[#1e222b] text-white text-xs font-bold uppercase px-3 py-2 rounded outline-none focus:border-indigo-500 transition-colors placeholder-gray-600"
                             />
                             <button type="submit" className="bg-[#13161c] hover:bg-indigo-500 hover:text-white text-indigo-400 border border-[#1e222b] hover:border-indigo-500 px-3 py-2 rounded transition-colors font-bold flex items-center gap-1 shadow-lg">
-                                <Plus size={14} /> Add
+                                <Plus size={14} /> {t('add')}
                             </button>
                         </form>
 
@@ -836,22 +838,22 @@ export default function GlobalAnalysis() {
                     <thead className="bg-[#13161c] select-none">
                         <tr>
                             <th onClick={() => handleDeltaSort('kingdom')} className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors w-1/4">
-                                Kingdom {deltaSort.key === 'kingdom' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                                {t('col_kd')} {deltaSort.key === 'kingdom' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                             <th onClick={() => handleDeltaSort('startPower')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
-                                Total Start Power {deltaSort.key === 'startPower' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                                {t('col_start_p')} {deltaSort.key === 'startPower' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                             <th onClick={() => handleDeltaSort('endPower')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
-                                Total End Power {deltaSort.key === 'endPower' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                                {t('col_end_p')} {deltaSort.key === 'endPower' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                             <th onClick={() => handleDeltaSort('powerDelta')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
-                                Power Δ {deltaSort.key === 'powerDelta' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                                {t('col_power_d')} {deltaSort.key === 'powerDelta' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                             <th onClick={() => handleDeltaSort('kpGained')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
-                                KP Gained {deltaSort.key === 'kpGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                                {t('col_kp_gained')} {deltaSort.key === 'kpGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                             <th onClick={() => handleDeltaSort('deadsGained')} className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors">
-                                Dead Troops {deltaSort.key === 'deadsGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
+                                {t('col_deads')} {deltaSort.key === 'deadsGained' && (deltaSort.direction === 'asc' ? '↑' : '↓')}
                             </th>
                         </tr>
                     </thead>

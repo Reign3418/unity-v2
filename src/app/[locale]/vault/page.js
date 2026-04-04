@@ -9,8 +9,10 @@ import {
 import { 
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import { useTranslations } from "next-intl";
 
 export default function KingdomVault() {
+  const t = useTranslations('Vault');
   const { data: session } = useSession();
   
   const [logs, setLogs] = useState([]);
@@ -130,9 +132,9 @@ export default function KingdomVault() {
              </div>
              <div>
                <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-3">
-                 Kingdom Vault
+                 {t('title')}
                </h1>
-               <p className="text-amber-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Pre-KvK Economic Reserves matrix</p>
+               <p className="text-amber-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
              </div>
           </div>
           
@@ -141,10 +143,10 @@ export default function KingdomVault() {
                   <button 
                       onClick={() => setIsolationMode(!isolationMode)}
                       className={`p-2.5 border rounded-lg transition-colors shadow-lg flex items-center gap-2 ${isolationMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20' : 'bg-[#13161c] hover:bg-[#1e222b] text-white border-[#1e222b]'}`}
-                      title={isolationMode ? "Personal View Active" : "Kingdom View Active"}
+                      title={isolationMode ? t('personal_view_active') : t('kingdom_view_active')}
                   >
                       {isolationMode ? <EyeOff size={18} /> : <Eye size={18} className="text-cyan-500" />}
-                      <span className="text-xs font-bold uppercase hidden sm:inline">{isolationMode ? "Personal View" : "Kingdom View"}</span>
+                      <span className="text-xs font-bold uppercase hidden sm:inline">{isolationMode ? t('personal_view') : t('kingdom_view')}</span>
                   </button>
                   <button 
                       onClick={() => fetchVault(targetKd, isolationMode)}
@@ -152,7 +154,7 @@ export default function KingdomVault() {
                       className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg flex items-center gap-2"
                   >
                       <RefreshCw size={18} className={isLoading ? "animate-spin text-amber-500" : ""} />
-                      <span className="text-xs font-bold uppercase hidden sm:inline">Sync AWS</span>
+                      <span className="text-xs font-bold uppercase hidden sm:inline">{t('sync_aws')}</span>
                   </button>
               </div>
           )}
@@ -164,7 +166,7 @@ export default function KingdomVault() {
          <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <ShieldAlert size={18} className="text-cyan-500" />
-                <h2 className="text-white font-bold uppercase tracking-widest">Secret Asset Verification Override</h2>
+                <h2 className="text-white font-bold uppercase tracking-widest">{t('secret_override')}</h2>
             </div>
             <select 
                 value={uploadProfile} 
@@ -188,15 +190,15 @@ export default function KingdomVault() {
                {uploadSuccess ? (
                    <>
                        <CheckCircle2 size={48} className="text-green-500 mb-4 animate-bounce" />
-                       <h3 className="text-green-400 font-black tracking-widest uppercase text-xl mb-1">Payload Verified</h3>
-                       <p className="text-gray-400 text-sm font-medium">Your resources have been secretly compiled into the Kingdom Vault.</p>
-                       <button onClick={() => setUploadSuccess(false)} className="mt-6 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest underline">Scan Another Target</button>
+                       <h3 className="text-green-400 font-black tracking-widest uppercase text-xl mb-1">{t('payload_verified')}</h3>
+                       <p className="text-gray-400 text-sm font-medium">{t('resources_compiled')}</p>
+                       <button onClick={() => setUploadSuccess(false)} className="mt-6 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest underline">{t('scan_another')}</button>
                    </>
                ) : (
                    <>
                        <UploadCloud size={48} className="text-gray-600 mb-4" />
-                       <h3 className="text-white font-black tracking-widest uppercase text-lg mb-2">Drag & Drop Database Screenshot</h3>
-                       <p className="text-gray-500 text-sm font-medium max-w-md mx-auto mb-6">Our Google Gemini AI Engine will securely read your Food, Wood, Stone, and Gold inventory tokens instantly without logging IP endpoints.</p>
+                       <h3 className="text-white font-black tracking-widest uppercase text-lg mb-2">{t('drag_drop')}</h3>
+                       <p className="text-gray-500 text-sm font-medium max-w-md mx-auto mb-6">{t('ai_engine_desc')}</p>
                        
                        <input 
                           type="file" 
@@ -208,7 +210,7 @@ export default function KingdomVault() {
                        
                        <div className="flex gap-4">
                            <label htmlFor="fileUpload" className="px-6 py-3 bg-[#1e222b] hover:bg-gray-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest cursor-pointer transition-colors border border-[#2d323e]">
-                               Locate File
+                               {t('locate_file')}
                            </label>
                            
                            {file && (
@@ -218,7 +220,7 @@ export default function KingdomVault() {
                                    className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-[#0f1115] rounded-lg font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all disabled:opacity-50"
                                >
                                    {uploading ? <RefreshCw className="animate-spin" size={16} /> : <ArrowUpRight size={16} />}
-                                   {uploading ? "Analyzing Topology..." : "Trigger AI Override"}
+                                   {uploading ? t('analyzing') : t('trigger_ai')}
                                </button>
                            )}
                        </div>
@@ -236,7 +238,7 @@ export default function KingdomVault() {
       {!isHighCommand ? (
           <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 text-center flex flex-col items-center justify-center space-y-4">
               <ShieldAlert size={32} className="text-rose-500 opacity-50" />
-              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Matrix Locked. Kingdom Aggregated totals require High Command access.</p>
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">{t('security_locked')}</p>
           </div>
       ) : isLoading ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center">
@@ -245,8 +247,8 @@ export default function KingdomVault() {
       ) : logs.length === 0 ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
             <Box className="w-12 h-12 mb-4 opacity-50 text-amber-500" />
-            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">Vault Empty</h3>
-            <p className="text-sm">No Discord OCR RSS Logs have been uploaded into DynamoDB.</p>
+            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('empty_vault')}</h3>
+            <p className="text-sm">{t('no_logs')}</p>
         </div>
       ) : (
         <>
@@ -255,10 +257,10 @@ export default function KingdomVault() {
               <div className="md:col-span-2 bg-[#13161c] border border-[#1e222b] rounded-xl p-6 shadow-lg relative overflow-hidden flex flex-col justify-center border-l-4 border-l-amber-500">
                   <div className="flex justify-between items-center mb-2">
                      <h3 className="text-gray-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                         <TrendingUp size={14} className="text-amber-500"/> Total Tracked Gross
+                         <TrendingUp size={14} className="text-amber-500"/> {t('total_tracked')}
                      </h3>
                      <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded font-bold uppercase tracking-widest">
-                         {logs.length} Sub-Nodes
+                         {t('sub_nodes', { count: logs.length })}
                      </span>
                   </div>
                   <div className="text-4xl font-black text-white font-mono">{formatBillion(totals.overall)}</div>
@@ -282,7 +284,7 @@ export default function KingdomVault() {
                 
                 {/* Pie Chart Analysis */}
                 <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 flex flex-col">
-                    <h2 className="text-white font-bold uppercase tracking-widest text-sm mb-4">Economic Weight Model</h2>
+                    <h2 className="text-white font-bold uppercase tracking-widest text-sm mb-4">{t('economic_weight')}</h2>
                     <div className="flex-1 min-h-[300px] relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -316,7 +318,7 @@ export default function KingdomVault() {
                     <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
                         <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
                         <ArrowUpRight size={18} className="text-cyan-500" />
-                        Top Logistics Governors (Aggregated Assets)
+                        {t('top_logistics')}
                         </h2>
                     </div>
                     <div className="overflow-auto flex-1 h-[400px]">
@@ -324,12 +326,12 @@ export default function KingdomVault() {
                             <thead className="bg-[#13161c] sticky top-0 z-10">
                             <tr>
                                 <th className="px-4 py-3 w-16 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">#</th>
-                                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Governor / Profile</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total Net Worth</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Food</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Wood</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Stone</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Gold</th>
+                                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_gov')}</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_worth')}</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_food')}</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_wood')}</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_stone')}</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_gold')}</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]">

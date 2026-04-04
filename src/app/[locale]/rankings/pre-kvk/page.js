@@ -3,8 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Trophy, RefreshCw, BarChart2, ShieldAlert, ChevronDown, ChevronUp, Plus, X, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function PreKvkRankings() {
+  const t = useTranslations('PreKVK');
   const { data: session } = useSession();
   const [globalStats, setGlobalStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,9 +141,9 @@ export default function PreKvkRankings() {
              </div>
              <div>
                <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-3">
-                 Pre-KvK Rankings
+                 {t('title')}
                </h1>
-               <p className="text-rose-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Global Top {topNFilter === 'All' ? 'Field' : topNFilter} Comparison</p>
+               <p className="text-rose-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
              </div>
           </div>
           
@@ -178,11 +180,11 @@ export default function PreKvkRankings() {
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <span className="text-gray-500 text-xs font-bold uppercase tracking-widest mr-2 flex items-center gap-2">
                     <Search size={14} className="text-rose-500" />
-                    Target Scope: 
+                    {t('target_scope')} 
                 </span>
                 
                 {targetKds.length === 0 ? (
-                    <span className="text-rose-400 font-mono text-xs font-bold bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded">Global Scope (All Servers)</span>
+                    <span className="text-rose-400 font-mono text-xs font-bold bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded">{t('global_scope')}</span>
                 ) : (
                     targetKds.map(kd => (
                         <div key={kd} className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 px-3 py-1 rounded">
@@ -200,7 +202,7 @@ export default function PreKvkRankings() {
                     type="text" 
                     value={domainInput}
                     onChange={(e) => setDomainInput(e.target.value)}
-                    placeholder="Enter KD # (e.g. 3065)"
+                    placeholder={t('enter_kd')}
                     className="w-full md:w-48 bg-[#13161c] border border-[#1e222b] text-white text-xs font-bold font-mono p-2.5 rounded-lg outline-none focus:border-rose-500 placeholder-[#2d323e]"
                 />
                 <button type="submit" disabled={!domainInput.trim()} className="p-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-600/50 disabled:text-rose-300/50 text-white rounded-lg transition-colors border border-rose-500/50 shadow-md flex items-center justify-center">
@@ -223,44 +225,44 @@ export default function PreKvkRankings() {
       ) : (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl mt-6">
             <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
-                <h2 className="text-white font-bold uppercase tracking-widest text-sm">Target Scope: {processedData.length} Kingdoms</h2>
+                <h2 className="text-white font-bold uppercase tracking-widest text-sm">{t('target_count', { count: processedData.length })}</h2>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full whitespace-nowrap">
                     <thead className="bg-[#13161c] select-none">
                         <tr>
                             <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] w-20">
-                                Rank
+                                {t('col_rank')}
                             </th>
                             <th 
                                 onClick={() => handleSort('kingdom')}
                                 className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors"
                             >
-                                Kingdom <SortIcon columnKey="kingdom" />
+                                {t('col_kingdom')} <SortIcon columnKey="kingdom" />
                             </th>
                             <th 
                                 onClick={() => handleSort('power')}
                                 className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors"
                             >
-                                Top {topNFilter === 'All' ? 'Field' : topNFilter} Power <SortIcon columnKey="power" />
+                                {t('col_power')} <SortIcon columnKey="power" />
                             </th>
                             <th 
                                 onClick={() => handleSort('kp')}
                                 className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors"
                             >
-                                Total KP <SortIcon columnKey="kp" />
+                                {t('col_kp')} <SortIcon columnKey="kp" />
                             </th>
                             <th 
                                 onClick={() => handleSort('powerRank')}
                                 className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors"
                             >
-                                Power Rank <SortIcon columnKey="powerRank" />
+                                {t('col_prank')} <SortIcon columnKey="powerRank" />
                             </th>
                             <th 
                                 onClick={() => handleSort('kpRank')}
                                 className="px-6 py-4 text-right text-xs font-black uppercase tracking-wider text-gray-400 border-b border-[#1e222b] cursor-pointer hover:bg-white/5 transition-colors"
                             >
-                                KP Rank <SortIcon columnKey="kpRank" />
+                                {t('col_kprank')} <SortIcon columnKey="kpRank" />
                             </th>
                         </tr>
                     </thead>

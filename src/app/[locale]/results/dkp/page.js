@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { 
     Medal, RefreshCw, Activity, Zap, Shield, Target, ScrollText, Crosshair, Trophy
 } from "lucide-react";
 
 export default function DkpResults() {
+  const t = useTranslations('DKP');
   const { data: session } = useSession();
   const [kd, setKd] = useState("3155");
   const [rankings, setRankings] = useState([]);
@@ -80,9 +82,9 @@ export default function DkpResults() {
                </div>
                <div>
                  <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-3">
-                   DKP Results
+                   {t('title')}
                  </h1>
-                 <p className="text-fuchsia-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Dragon Kill Points (Post-KvK Aggregation)</p>
+                 <p className="text-fuchsia-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
                </div>
             </div>
             
@@ -117,8 +119,8 @@ export default function DkpResults() {
       ) : rankings.length === 0 ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
             <Activity className="w-12 h-12 mb-4 opacity-50 text-fuchsia-500" />
-            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Lethality Identified</h3>
-            <p className="text-sm">Cannot calculate algorithmic models. Double check chronological mapping logic over the latest server timeline.</p>
+            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_lethality')}</h3>
+            <p className="text-sm">{t('no_lethality_desc')}</p>
         </div>
       ) : (
         <>
@@ -126,7 +128,7 @@ export default function DkpResults() {
             {podium[0] && (
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 relative overflow-hidden shadow-xl">
                  <div className="absolute top-0 right-0 w-48 h-48 bg-fuchsia-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-                 <h2 className="text-gray-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-6"><Trophy size={14} className="text-fuchsia-500" /> Undisputed Kingdom Vanguard</h2>
+                 <h2 className="text-gray-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-6"><Trophy size={14} className="text-fuchsia-500" /> {t('top_vanguard')}</h2>
                  
                  <div className="flex flex-col md:flex-row items-center gap-8 relative z-10 w-full justify-between">
                      <div className="flex items-center gap-6 text-left">
@@ -140,7 +142,7 @@ export default function DkpResults() {
                          </div>
                      </div>
                      <div className="w-full md:w-auto bg-[#13161c] p-6 rounded-xl border border-[#1e222b] flex flex-col items-center md:items-end shadow-inner">
-                          <span className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-2 flex items-center gap-1"><Zap size={14} className="text-fuchsia-500"/> Calculated DKP Contribution</span>
+                          <span className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-2 flex items-center gap-1"><Zap size={14} className="text-fuchsia-500"/> {t('calculated_dkp')}</span>
                           <span className="text-5xl font-black text-white font-mono drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{formatNum(podium[0].dkpScore)}</span>
                      </div>
                  </div>
@@ -152,10 +154,10 @@ export default function DkpResults() {
               <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
                  <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
                    <Target size={18} className="text-fuchsia-500" />
-                   Official KvK Commendations
+                   {t('official_commendations')}
                  </h2>
                  <span className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">
-                    {grid.length + podium.length} Nodes Indexed
+                    {t('nodes_indexed', { count: grid.length + podium.length })}
                  </span>
               </div>
               
@@ -163,12 +165,12 @@ export default function DkpResults() {
                  <table className="w-full whitespace-nowrap">
                     <thead className="bg-[#13161c]">
                        <tr>
-                          <th className="px-4 py-3 w-16 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Rank</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Performance Grade</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Governor Name</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">DKP Total</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Core Drops (Deads)</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Kill Point Deltas</th>
+                          <th className="px-4 py-3 w-16 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_rank')}</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_grade')}</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_name')}</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_dkp')}</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_deads')}</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_kp')}</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-[#1e222b]">
