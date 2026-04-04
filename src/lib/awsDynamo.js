@@ -3561,14 +3561,28 @@ export async function getAllUsersInKingdom(kingdomId) {
     };
 
     try {
-        const result = await dbClient.send(new ScanCommand(params));
-        if (!result.Items) return [];
+        let allItems = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = lastEvaluatedKey;
+            }
+            
+            const result = await dbClient.send(new ScanCommand(params));
+            if (result.Items) {
+                allItems = allItems.concat(result.Items);
+            }
+            lastEvaluatedKey = result.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+
+        if (allItems.length === 0) return [];
 
         // Fetch the active Kingdom Roster from the AWS Scraper
         const kdRoster = await getKingdomRoster(kingdomId);
         const activeKdIds = kdRoster.map(g => String(g.id));
 
-        return result.Items.map(item => {
+        return allItems.map(item => {
             const attrs = item.attributes?.M || {};
             const pkParts = item.PK.S.split('#');
             const discordId = pkParts.length > 1 ? pkParts[1] : null;
