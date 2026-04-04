@@ -41,30 +41,30 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
   }
 
   // Data Filtering for Area Chart
-  const actualTrends = (trends || []).map(t => {
-      let plotPower = t.summary?.totalPower || 0;
+  const actualTrends = (trends || []).map(trend => {
+      let plotPower = trend.summary?.totalPower || 0;
       if (activeAlliance && activeAlliance !== t('label_other')) {
           const key = activeAlliance === t('label_unallied') ? 'None' : activeAlliance;
-          plotPower = t.summary?.alliances?.[key] || 0;
+          plotPower = trend.summary?.alliances?.[key] || 0;
       } else if (activeAlliance === t('label_other')) {
            const top7Names = alliancePieData.slice(0,7).map(a => a.name === t('label_unallied') ? 'None' : a.name);
-           plotPower = Object.keys(t.summary?.alliances || {}).reduce((sum, tag) => {
-               if (!top7Names.includes(tag)) sum += t.summary?.alliances[tag];
+           plotPower = Object.keys(trend.summary?.alliances || {}).reduce((sum, tag) => {
+               if (!top7Names.includes(tag)) sum += trend.summary?.alliances[tag];
                return sum;
            }, 0);
       }
       return {
-          ...t,
-          dateStr: new Date(t.scanDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          ...trend,
+          dateStr: new Date(trend.scanDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           plotPower: plotPower,
           predictedPower: null,
           isPrediction: false
       };
   });
 
-  const filteredTrends = actualTrends.filter(t => {
-      if (startDate && new Date(t.scanDate) < new Date(startDate)) return false;
-      if (endDate && new Date(t.scanDate) > new Date(endDate + 'T23:59:59')) return false;
+  const filteredTrends = actualTrends.filter(trend => {
+      if (startDate && new Date(trend.scanDate) < new Date(startDate)) return false;
+      if (endDate && new Date(trend.scanDate) > new Date(endDate + 'T23:59:59')) return false;
       return true;
   });
 
