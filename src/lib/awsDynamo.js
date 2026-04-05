@@ -55,7 +55,7 @@ export async function getAllTrackedKingdoms() {
         };
         const result = await dbClient.send(new GetItemCommand(params));
         if (result.Item && result.Item.kingdoms && result.Item.kingdoms.SS) {
-            return result.Item.kingdoms.SS.sort((a,b) => parseInt(a) - parseInt(b));
+            return result.Item.kingdoms.SS.filter(kd => /^\\d{3,5}$/.test(kd)).sort((a,b) => parseInt(a) - parseInt(b));
         }
         return [];
     } catch (e) {
