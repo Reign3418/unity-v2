@@ -61,7 +61,18 @@
     "card_2_title": "Secure SaaS Engine",
     "card_2_desc": "Upload your raw exported game spreadsheets directly into the dashboard. Un.ty processes millions of rows in milliseconds securely in your browser.",
     "card_3_title": "Actionable Insights",
-    "card_3_desc": "Transform raw numbers into dynamic leaderboards, interactive graphs, KvK recovery trackers, and beautifully structured player reports."
+    "card_3_desc": "Transform raw numbers into dynamic leaderboards, interactive graphs, KvK recovery trackers, and beautifully structured player reports.",
+    "mkt_hero_title": "Data-Driven Kingdom Architecture",
+    "mkt_hero_desc": "Automate your KvK DKP tracking, run mathematical player diagnostics, and replace chaotic spreadsheets with blazing-fast interactive dashboards.",
+    "mkt_feat_1_title": "AI Vision Engine",
+    "mkt_feat_1_desc": "Raw visual data extraction. Upload hundreds of screenshots from the game; our integrated Google Gemini OCR engine reads Food, Wood, Stone, and Kill Points natively in seconds.",
+    "mkt_feat_2_title": "Algorithmic Population Diagnostics",
+    "mkt_feat_2_desc": "Stop guessing who is active. Our behavior matrix maps longitudinal data to instantly classify your population into Heroes, Warriors, Farmers, and Slackers based on Kill-Point-to-Dead ratios.",
+    "mkt_feat_3_title": "Master Discord Orchestration",
+    "mkt_feat_3_desc": "Sync Discord IDs to in-game Governors, unify Farm accounts automatically, and query live DKP leaderboards directly from any Discord text channel.",
+    "mkt_kofi_title": "Achieve VIP Supporter Status",
+    "mkt_kofi_desc": "Unity runs brutal computational loads globally. If your Kingdom leadership tips us, your entire server is instantly, permanently whitelisted for all restricted features server-wide.",
+    "btn_support_us": "Whitelisting via Ko-fi"
   },
   "WorldClock": {
     "header": "Global Master Clock",
