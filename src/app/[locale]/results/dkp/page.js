@@ -4,26 +4,58 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { 
-    Medal, RefreshCw, Activity, Zap, Shield, Target, ScrollText, Crosshair, Trophy
+    Medal, RefreshCw, Activity, Zap, Target, Trophy, Settings2
 } from "lucide-react";
 
 export default function DkpResults() {
   const t = useTranslations('DKP');
   const { data: session } = useSession();
+  
   const [kd, setKd] = useState("3155");
   const [rankings, setRankings] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDatesLoading, setIsDatesLoading] = useState(true);
+
+  // U1 Constraints
+  const [availableDates, setAvailableDates] = useState([]);
+  const [startScan, setStartScan] = useState("");
+  const [endScan, setEndScan] = useState("");
+  
+  const [t4Pts, setT4Pts] = useState(1);
+  const [t5Pts, setT5Pts] = useState(2);
+  const [deadsPts, setDeadsPts] = useState(10);
+
+  const fetchDates = async (targetKd) => {
+      setIsDatesLoading(true);
+      try {
+          const res = await fetch(`/api/aws/dkp/dates?kd=${targetKd}`);
+          const data = await res.json();
+          if (res.ok && data.dates) {
+              setAvailableDates(data.dates);
+              if (data.dates.length >= 2) {
+                  setStartScan(data.dates[0]);
+                  setEndScan(data.dates[data.dates.length - 1]);
+              }
+          }
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setIsDatesLoading(false);
+      }
+  };
 
   const fetchRankings = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/aws/dkp?kd=${kd}`);
+      const url = `/api/aws/dkp?kd=${kd}&start=${encodeURIComponent(startScan)}&end=${encodeURIComponent(endScan)}&t4=${t4Pts}&t5=${t5Pts}&deads=${deadsPts}`;
+      const res = await fetch(url);
       const data = await res.json();
       
       if (res.ok && data.rankings) {
-          // Exclude extreme zeroes to maintain combat relevance
           const filtered = data.rankings.filter(r => r.dkpScore > 0);
           setRankings(filtered);
+      } else {
+          setRankings([]);
       }
     } catch (e) {
       console.error(e);
@@ -44,11 +76,20 @@ export default function DkpResults() {
             setKd(activeKd);
         }
     }
+    fetchDates(activeKd);
   }, [session]);
 
+  // Handle re-fetching automatically when scan dates are fully mounted
   useEffect(() => {
-    fetchRankings();
-  }, [kd]);
+      if (startScan && endScan) {
+          fetchRankings();
+      }
+  }, [kd, startScan, endScan, t4Pts, t5Pts, deadsPts]); // Auto-update on algorithm changes
+
+  const handleKdChange = (newKd) => {
+      setKd(newKd);
+      fetchDates(newKd); // Pull timeline for new KD
+  };
 
   const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
   const formatBillion = (num) => num ? (Number(num) / 1000000000).toFixed(2) + 'B' : "0";
@@ -64,18 +105,18 @@ export default function DkpResults() {
       }
   };
 
-  // Podium Array (Top 3)
   const podium = rankings.slice(0, 3);
-  // Grid Array (Rest of leaderboard)
   const grid = rankings.slice(3);
 
   return (
-    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
+    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4 flex flex-col items-center">
       
-      {/* Header Panel */}
-      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
+      {/* V2 Header Panel with Internal U1 Controls */}
+      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden w-full max-w-7xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
+        
+        {/* Title Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full border-b border-[#1e222b] pb-6 mb-6">
             <div className="flex items-center gap-4">
                <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
                  <Medal className="text-fuchsia-500" size={32} />
@@ -91,11 +132,11 @@ export default function DkpResults() {
             <div className="flex items-center gap-2">
                <select 
                  value={kd}
-                 onChange={(e) => setKd(e.target.value)}
+                 onChange={(e) => handleKdChange(e.target.value)}
                  className="bg-[#13161c] border border-[#1e222b] text-white focus:border-fuchsia-500 px-4 py-2.5 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
                >
-                 {session?.user?.tenant?.allowedKingdoms?.map(kd => (
-                    <option key={kd} value={kd}>KD {kd}</option>
+                 {session?.user?.tenant?.allowedKingdoms?.map(k => (
+                    <option key={k} value={k}>KD {k}</option>
                  ))}
                  {!session?.user?.tenant?.allowedKingdoms?.includes(kd) && kd && (
                     <option value={kd}>KD {kd}</option>
@@ -103,28 +144,88 @@ export default function DkpResults() {
                </select>
                <button 
                   onClick={fetchRankings}
-                  disabled={isLoading}
+                  disabled={isLoading || isDatesLoading}
                    className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg disabled:opacity-50 flex items-center gap-2"
                >
                   <RefreshCw size={20} className={isLoading ? "animate-spin text-fuchsia-500" : ""} />
                </button>
             </div>
-         </div>
+        </div>
+
+        {/* U1 Style Constraints Bar */}
+        <div className="relative z-10 w-full flex flex-col lg:flex-row items-center gap-6 justify-between bg-[#0a0c0f] p-4 rounded-lg border border-[#1e222b]">
+            <div className="flex flex-col gap-2 w-full lg:w-1/3">
+                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
+                    <Settings2 size={12} className="text-fuchsia-500"/>
+                    Algorithmic Start Scan
+                </span>
+                <select 
+                   value={startScan}
+                   onChange={(e) => setStartScan(e.target.value)}
+                   disabled={isDatesLoading || availableDates.length === 0}
+                   className="w-full bg-[#13161c] border border-[#1e222b] text-white p-2 rounded text-xs font-mono disabled:opacity-50 outline-none focus:border-fuchsia-500"
+                >
+                    {availableDates.map(d => <option key={`start-${d}`} value={d}>{d}</option>)}
+                    {availableDates.length === 0 && <option value="">No Active Scans</option>}
+                </select>
+                
+                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1 left-2">Algorithmic End Scan</span>
+                <select 
+                   value={endScan}
+                   onChange={(e) => setEndScan(e.target.value)}
+                   disabled={isDatesLoading || availableDates.length === 0}
+                   className="w-full bg-[#13161c] border border-[#1e222b] text-white p-2 rounded text-xs font-mono disabled:opacity-50 outline-none focus:border-fuchsia-500"
+                >
+                    {availableDates.map(d => <option key={`end-${d}`} value={d}>{d}</option>)}
+                    {availableDates.length === 0 && <option value="">No Active Scans</option>}
+                </select>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto h-full justify-center">
+                <div className="flex flex-col items-center bg-[#13161c] p-3 rounded-lg border border-[#1e222b]">
+                    <span className="text-[10px] text-cyan-500 uppercase font-bold tracking-widest mb-1">T4 Pts</span>
+                    <input 
+                        type="number" 
+                        value={t4Pts}
+                        onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)}
+                        className="w-16 bg-transparent text-white font-mono text-center font-bold outline-none border-b border-transparent focus:border-cyan-500 transition-colors"
+                    />
+                </div>
+                <div className="flex flex-col items-center bg-[#13161c] p-3 rounded-lg border border-[#1e222b]">
+                    <span className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest mb-1">T5 Pts</span>
+                    <input 
+                        type="number" 
+                        value={t5Pts}
+                        onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)}
+                        className="w-16 bg-transparent text-white font-mono text-center font-bold outline-none border-b border-transparent focus:border-indigo-500 transition-colors"
+                    />
+                </div>
+                <div className="flex flex-col items-center bg-[#13161c] p-3 rounded-lg border border-[#1e222b]">
+                    <span className="text-[10px] text-rose-500 uppercase font-bold tracking-widest mb-1">Deads Pts</span>
+                    <input 
+                        type="number" 
+                        value={deadsPts}
+                        onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)}
+                        className="w-16 bg-transparent text-white font-mono text-center font-bold outline-none border-b border-transparent focus:border-rose-500 transition-colors"
+                    />
+                </div>
+            </div>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center">
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center w-full max-w-7xl">
             <RefreshCw className="animate-spin text-fuchsia-500 w-8 h-8" />
         </div>
       ) : rankings.length === 0 ? (
-        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500 w-full max-w-7xl">
             <Activity className="w-12 h-12 mb-4 opacity-50 text-fuchsia-500" />
             <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_lethality')}</h3>
-            <p className="text-sm">{t('no_lethality_desc')}</p>
+            <p className="text-sm text-center">Cannot calculate algorithms. Target constraints may be too narrow or point weights may be 0.</p>
         </div>
       ) : (
-        <>
-            {/* The MVP Highlight Podium (1st Place Only Highlight) */}
+        <div className="w-full max-w-7xl gap-6 flex flex-col">
+            {/* The MVP Highlight Podium */}
             {podium[0] && (
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 relative overflow-hidden shadow-xl">
                  <div className="absolute top-0 right-0 w-48 h-48 bg-fuchsia-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
@@ -149,7 +250,7 @@ export default function DkpResults() {
             </div>
             )}
 
-            {/* General Leaderboard Table */}
+            {/* Leaderboard Table */}
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl">
               <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
                  <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
@@ -157,7 +258,7 @@ export default function DkpResults() {
                    {t('official_commendations')}
                  </h2>
                  <span className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">
-                    {t('nodes_indexed', { count: grid.length + podium.length })}
+                    Indexed Output: {grid.length + podium.length}
                  </span>
               </div>
               
@@ -165,12 +266,13 @@ export default function DkpResults() {
                  <table className="w-full whitespace-nowrap">
                     <thead className="bg-[#13161c]">
                        <tr>
-                          <th className="px-4 py-3 w-16 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_rank')}</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_grade')}</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_name')}</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_dkp')}</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_deads')}</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">{t('col_kp')}</th>
+                          <th className="px-4 py-3 w-16 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Rank</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Grade</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Governor</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">DKP Score</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Deads Delta</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">T4 Delta</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">T5 Delta</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-[#1e222b]">
@@ -198,14 +300,21 @@ export default function DkpResults() {
                                </td>
                                <td className="px-4 py-3 text-right">
                                   {gov.dDelta > 0 ? (
-                                      <div className="font-bold text-rose-500 font-mono">{formatNum(gov.dDelta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(gov.dDelta * 0.20)} DKP)</span></div>
+                                      <div className="font-bold text-rose-500 font-mono">{formatNum(gov.dDelta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(gov.dDelta * deadsPts)} DKP)</span></div>
                                   ) : (
                                       <div className="font-bold text-gray-600 font-mono">0</div>
                                   )}
                                </td>
                                <td className="px-4 py-3 text-right">
-                                  {gov.kDelta > 0 ? (
-                                      <div className="font-bold text-cyan-500 font-mono">+{formatNum(gov.kDelta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.kDelta * 0.05))} DKP)</span></div>
+                                  {gov.t4Delta > 0 ? (
+                                      <div className="font-bold text-cyan-500 font-mono">+{formatNum(gov.t4Delta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.t4Delta * t4Pts))} DKP)</span></div>
+                                  ) : (
+                                      <div className="font-bold text-gray-600 font-mono">0</div>
+                                  )}
+                               </td>
+                               <td className="px-4 py-3 text-right">
+                                  {gov.t5Delta > 0 ? (
+                                      <div className="font-bold text-indigo-400 font-mono">+{formatNum(gov.t5Delta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.t5Delta * t5Pts))} DKP)</span></div>
                                   ) : (
                                       <div className="font-bold text-gray-600 font-mono">0</div>
                                   )}
@@ -216,7 +325,7 @@ export default function DkpResults() {
                  </table>
               </div>
             </div>
-        </>
+        </div>
       )}
 
     </div>

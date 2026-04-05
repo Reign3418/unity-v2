@@ -306,7 +306,7 @@ export async function getKingdomTrends(kingdomId) {
  * Advanced AI Engine: Fetches the last TWO AWS Scans for a Kingdom and performs a chronological mapping
  * differential to return a Roster payload with native `powerDelta` and missing attributes.
  */
-export async function getKingdomDeltas(kingdomId) {
+export async function getKingdomDeltas(kingdomId, customStart = null, customEnd = null) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
@@ -383,8 +383,10 @@ export async function getKingdomDeltas(kingdomId) {
                             alliance: attrs['Alliance Tag']?.S || 'None',
                             power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
                             killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                            commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N) || 0,
                             deads: parseInt(attrs['Dead']?.N || attrs['deads']?.N) || parseInt(attrs['dead']?.N) || 0,
+                            t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['T4 Kills']?.N) || 0,
+                            t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['T5 Kills']?.N) || 0,
+                            commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N) || 0,
                         };
                     }
                 }
@@ -408,6 +410,8 @@ export async function getKingdomDeltas(kingdomId) {
             let powerDelta = prevData ? (latestData.power - prevData.power) : 'NEW';
             let kpDelta = prevData ? (latestData.killPoints - prevData.killPoints) : 0;
             let deadsDelta = prevData ? (latestData.deads - prevData.deads) : 0;
+            let t4Delta = prevData ? (latestData.t4Kills - prevData.t4Kills) : 0;
+            let t5Delta = prevData ? (latestData.t5Kills - prevData.t5Kills) : 0;
             let cmdBase = prevData ? prevData.commanderPower : 0;
             
             roster.push({
@@ -417,11 +421,15 @@ export async function getKingdomDeltas(kingdomId) {
                 power: latestData.power,
                 killPoints: latestData.killPoints,
                 deads: latestData.deads,
+                t4Kills: latestData.t4Kills,
+                t5Kills: latestData.t5Kills,
                 commanderPower: latestData.commanderPower,
                 cmdBase: cmdBase,
                 powerDelta: powerDelta,
                 kpDelta: kpDelta,
-                deadsDelta: deadsDelta
+                deadsDelta: deadsDelta,
+                t4Delta: Math.max(0, t4Delta),
+                t5Delta: Math.max(0, t5Delta)
             });
         }
         
