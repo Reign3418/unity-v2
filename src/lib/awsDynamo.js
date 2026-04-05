@@ -3730,10 +3730,10 @@ export async function updateUserPlaytime(discordId, timezone, playStart, playEnd
  */
 export async function syncDiscordProfiles() {
     const tableName = process.env.AWS_TABLE_NAME;
-    const botToken = process.env.DISCORD_BOT_TOKEN?.replace(/['"]/g, '').trim();
+    const botToken = (process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN)?.replace(/['"]/g, '').trim();
     
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
-    if (!botToken) throw new Error('DISCORD_BOT_TOKEN is missing! Please inject this into Vercel/local .env to perform background scans.');
+    if (!botToken) throw new Error('DISCORD_TOKEN is missing! Please inject this into Vercel/local .env to perform background scans.');
 
     try {
         console.log(`[AWS Multi-Thread] Scanning MATRIX for undocumented identities...`);
