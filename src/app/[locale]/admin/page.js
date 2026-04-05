@@ -354,7 +354,7 @@ export default function AdminConsole() {
                 <span>Verified Architecture Commanders</span>
                 <span className="text-gray-500">{users.filter(u => u.role !== "User").length} Commanders</span>
              </h3>
-             <div className="space-y-3 h-[600px] overflow-y-auto pr-2 scrollbar-none">
+             <div className="space-y-3 h-[calc(100vh-250px)] min-h-[500px] overflow-y-auto pr-2 scrollbar-none">
                 {users.filter(u => u.role !== "User" || u.isManualGuest).map(user => (
                   <div key={user.discordId} className="bg-[#0a0c0f] border border-[#1e222b] hover:border-cyan-500/30 rounded-lg p-4 flex flex-col gap-3 transition-colors relative overflow-hidden">
                     <div className="flex justify-between items-start">
@@ -398,7 +398,7 @@ export default function AdminConsole() {
                 <span>Standard Infantry Nodes</span>
                 <span className="text-gray-600">{users.filter(u => u.role === "User").length} Soldiers</span>
              </h3>
-             <div className="space-y-3 h-[600px] overflow-y-auto pr-2 scrollbar-none">
+             <div className="space-y-3 h-[calc(100vh-250px)] min-h-[500px] overflow-y-auto pr-2 scrollbar-none">
                 {users.filter(u => u.role === "User").map(user => (
                   <div key={user.discordId} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 flex flex-col gap-2 relative">
                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
