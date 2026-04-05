@@ -3,7 +3,7 @@
 import { useSession, signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key } from "lucide-react";
+import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key, Cpu, Database, Activity, Terminal } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import { useTranslations } from 'next-intl';
@@ -127,7 +127,34 @@ export default function Home() {
                </p>
             </div>
 
-            {/* Central Glassmorphic Card (Preserved Identity Block) */}
+            {/* Central Glassmorphic Card & Hologram Wrappers */}
+            <div className="flex flex-col xl:flex-row items-center justify-center gap-16 w-full max-w-[1400px] mx-auto perspective-1000">
+
+               {/* LEFT HOLOGRAPHIC PANEL */}
+               <div className="hidden xl:flex flex-col opacity-60 hover:opacity-100 transition-duration-700 hover:-translate-y-2 backdrop-blur-md border border-cyan-500/20 bg-cyan-500/5 p-8 rounded-3xl transform rotate-y-[15deg] rotate-z-[2deg] shadow-[-20px_0_50px_rgba(6,182,212,0.1)] w-[320px]">
+                   <h3 className="text-cyan-400 font-bold tracking-widest uppercase mb-8 flex items-center gap-3 border-b border-cyan-500/20 pb-4 text-sm shadow-[0_0_15px_rgba(6,182,212,0.2)]"><Cpu size={18} className="animate-pulse"/> Scanner Array</h3>
+                   
+                   <div className="space-y-6 flex-1 flex flex-col justify-center">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500"><span>Optical Engine</span><span className="text-cyan-400">Online</span></div>
+                        <div className="h-1 bg-[#1e222b] rounded overflow-hidden"><div className="h-full w-full bg-cyan-500 opacity-50 relative overflow-hidden"><div className="absolute inset-0 bg-white/30 animate-[translateX_2s_infinite]"></div></div></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500"><span>DKP Extractor</span><span className="text-emerald-400">Synced</span></div>
+                        <div className="h-1 bg-[#1e222b] rounded overflow-hidden"><div className="h-full w-full bg-emerald-500 opacity-50 relative overflow-hidden"><div className="absolute inset-0 bg-white/30 animate-[translateX_3s_infinite]"></div></div></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500"><span>AWS Core Node</span><span className="text-amber-400">Stable</span></div>
+                        <div className="h-1 bg-[#1e222b] rounded overflow-hidden"><div className="h-full w-[90%] bg-amber-500 opacity-50"></div></div>
+                      </div>
+                   </div>
+
+                   <div className="mt-8 pt-4 border-t border-cyan-500/20 flex items-center justify-between opacity-50 text-[10px] font-mono text-cyan-400">
+                      <span>SYS.NODE.X9</span>
+                      <Activity size={12} className="animate-bounce" />
+                   </div>
+               </div>
+
             <div className="relative z-10 flex flex-col items-center bg-[#0a0c10]/70 backdrop-blur-3xl border border-white/5 p-10 lg:p-14 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] transform hover:-translate-y-1 transition-all duration-500 w-full max-w-[420px]">
           
           <div 
@@ -207,6 +234,33 @@ export default function Home() {
              </div>
           </div>
         </div>
+
+               {/* RIGHT HOLOGRAPHIC PANEL */}
+               <div className="hidden xl:flex flex-col opacity-60 hover:opacity-100 transition-duration-700 hover:-translate-y-2 backdrop-blur-md border border-indigo-500/20 bg-indigo-500/5 p-8 rounded-3xl transform -rotate-y-[15deg] -rotate-z-[2deg] shadow-[20px_0_50px_rgba(99,102,241,0.1)] w-[320px]">
+                   <h3 className="text-indigo-400 font-bold tracking-widest uppercase mb-6 flex items-center gap-3 border-b border-indigo-500/20 pb-4 text-sm shadow-[0_0_15px_rgba(99,102,241,0.2)]"><Database size={18} className="animate-pulse"/> Network Access</h3>
+                   
+                   <div className="space-y-4 flex-1 flex flex-col justify-center">
+                      <div className="border border-indigo-500/10 bg-[#0a0c10]/50 rounded p-3 text-[10px] font-mono text-indigo-300">
+                         <div>&gt; _Discord Handshake ...</div>
+                         <div className="text-indigo-500">Authorized.</div>
+                      </div>
+                      <div className="border border-indigo-500/10 bg-[#0a0c10]/50 rounded p-3 text-[10px] font-mono text-indigo-300">
+                         <div>&gt; _Fetch Guild Topology ...</div>
+                         <div className="text-emerald-500">3 Nodes Discovered.</div>
+                      </div>
+                      <div className="border border-indigo-500/10 bg-[#0a0c10]/50 rounded p-3 text-[10px] font-mono text-indigo-300">
+                         <div>&gt; _Awaiting Auth Payload ...</div>
+                         <div className="text-indigo-500 animate-pulse">Standby.</div>
+                      </div>
+                   </div>
+
+                   <div className="mt-8 pt-4 border-t border-indigo-500/20 flex items-center justify-between opacity-50 text-[10px] font-mono text-indigo-400">
+                      <span>SECURE PIPELINE</span>
+                      <Terminal size={12} />
+                   </div>
+               </div>
+
+            </div> {/* <--- Closes Hologram Wrapper */}
 
         {/* Passcode Modal Overlay */}
         {isGuestModalOpen && (
