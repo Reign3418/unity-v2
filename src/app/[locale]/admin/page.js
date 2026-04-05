@@ -337,9 +337,9 @@ export default function AdminConsole() {
                   <div key={user.discordId} className="bg-[#0a0c0f] border border-[#1e222b] hover:border-cyan-500/30 rounded-lg p-4 flex flex-col gap-3 transition-colors relative overflow-hidden">
                     <div className="flex justify-between items-start">
                        <div className="flex items-center gap-3">
-                         <img src={`https://cdn.discordapp.com/avatars/${user.discordId}/${session?.user?.avatar || ""}.png`} className="w-8 h-8 rounded-full bg-[#1e222b]" onError={(e)=>{e.target.src="https://cdn.discordapp.com/embed/avatars/0.png"}} alt=""/>
+                         <img src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar || ""}.png`} className="w-8 h-8 rounded-full bg-[#1e222b]" onError={(e)=>{e.target.src="https://cdn.discordapp.com/embed/avatars/0.png"}} alt=""/>
                          <div>
-                           <div className="text-white font-bold text-sm tracking-widest">{user.discordId}</div>
+                           <div className="text-white font-bold text-sm tracking-widest">{user.notes || user.username || user.discordId}</div>
                            <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-1">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")}</div>
                          </div>
                        </div>
@@ -384,10 +384,10 @@ export default function AdminConsole() {
                            <img src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar || ""}.png`} className="w-8 h-8 rounded-full bg-[#1e222b]" onError={(e)=>{e.target.src="https://cdn.discordapp.com/embed/avatars/0.png"}} alt=""/>
                            <div className="flex flex-col">
                               <div className="text-gray-300 font-bold text-sm font-mono flex items-center gap-2">
-                                  {user.username || user.discordId}
+                                  {user.notes || user.username || user.discordId}
                                   <a href={`https://discord.com/users/${user.discordId}`} target="_blank" rel="noreferrer" className="text-gray-600 hover:text-white transition-colors" title="View Discord Profile"><ExternalLink size={12}/></a>
                               </div>
-                              <span className="text-[10px] text-gray-600 uppercase tracking-widest">ID: {user.discordId}</span>
+                              <span className="text-[10px] text-gray-600 uppercase tracking-widest">UID: {user.discordId}</span>
                            </div>
                         </div>
                        <div className="flex gap-2 items-center">
