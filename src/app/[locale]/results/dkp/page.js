@@ -4,31 +4,39 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { 
-    Medal, RefreshCw, Activity, Zap, Target, Trophy, Settings2
+    Medal, RefreshCw, Activity, Target, Settings2
 } from "lucide-react";
 
 export default function DkpResults() {
   const t = useTranslations('DKP');
   const { data: session } = useSession();
   
-  const [kd, setKd] = useState("3155");
-  const [rankings, setRankings] = useState([]);
+  // They can select multiple kingdoms now. We'll store an array. 
+  // For simplicity, we initialize with what's in local storage or their tenant allowed.
+  const [targetKds, setTargetKds] = useState([]);
+  
+  // Data State: Array of Kingdom Aggregation Objects
+  const [kingdomData, setKingdomData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDatesLoading, setIsDatesLoading] = useState(true);
+  const [isDatesLoading, setIsDatesLoading] = useState(false);
 
   // U1 Constraints
   const [availableDates, setAvailableDates] = useState([]);
   const [startScan, setStartScan] = useState("");
   const [endScan, setEndScan] = useState("");
   
-  const [t4Pts, setT4Pts] = useState(1);
-  const [t5Pts, setT5Pts] = useState(2);
-  const [deadsPts, setDeadsPts] = useState(10);
+  const [t4Pts, setT4Pts] = useState(10); // Standardized to match screenshot
+  const [t5Pts, setT5Pts] = useState(20);
+  const [deadsPts, setDeadsPts] = useState(30);
+  
+  const [govCount, setGovCount] = useState("All"); // All, 1000, 650, 400, 300, 100
 
-  const fetchDates = async (targetKd) => {
+  // Grab available dates using the FIRST selected kingdom as a proxy, 
+  // since tracking global dates for multiple KDs simultaneously is complex. Assumes generic KVK overlap.
+  const fetchDates = async (proxyKd) => {
       setIsDatesLoading(true);
       try {
-          const res = await fetch(`/api/aws/dkp/dates?kd=${targetKd}`);
+          const res = await fetch(`/api/aws/dkp/dates?kd=${proxyKd}`);
           const data = await res.json();
           if (res.ok && data.dates) {
               setAvailableDates(data.dates);
@@ -45,18 +53,57 @@ export default function DkpResults() {
   };
 
   const fetchRankings = async () => {
+    if (targetKds.length === 0) return;
     setIsLoading(true);
+    
     try {
-      const url = `/api/aws/dkp?kd=${kd}&start=${encodeURIComponent(startScan)}&end=${encodeURIComponent(endScan)}&t4=${t4Pts}&t5=${t5Pts}&deads=${deadsPts}`;
-      const res = await fetch(url);
-      const data = await res.json();
+      const results = [];
       
-      if (res.ok && data.rankings) {
-          const filtered = data.rankings.filter(r => r.dkpScore > 0);
-          setRankings(filtered);
-      } else {
-          setRankings([]);
+      // Fetch each Kingdom independently & aggregate
+      for (const kd of targetKds) {
+          const url = `/api/aws/dkp?kd=${kd}&start=${encodeURIComponent(startScan)}&end=${encodeURIComponent(endScan)}&t4=${t4Pts}&t5=${t5Pts}&deads=${deadsPts}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          
+          if (res.ok && data.rankings) {
+              let players = [...data.rankings];
+              
+              // Sort by power or DKP? DKP defines rank here
+              players = players.sort((a, b) => b.dkpScore - a.dkpScore);
+              
+              if (govCount !== "All") {
+                  const limit = parseInt(govCount);
+                  players = players.slice(0, limit);
+              }
+              
+              // Aggregate sum
+              const agg = players.reduce((acc, gov) => {
+                  acc.totalPower += (gov.power || 0);
+                  acc.powerDelta += (gov.pDelta || 0);
+                  acc.t4Kills += (gov.t4Kills || 0);
+                  acc.t5Kills += (gov.t5Kills || 0);
+                  acc.totalDeads += (gov.dDelta || 0); // Using Delta for Deads calculation
+                  acc.totalKp += (gov.kDelta || 0); // Using Delta for KP calculations
+                  acc.totalDkp += (gov.dkpScore || 0);
+                  return acc;
+              }, {
+                  kingdom: kd,
+                  totalPower: 0,
+                  powerDelta: 0,
+                  t4Kills: 0,
+                  t5Kills: 0,
+                  totalDeads: 0,
+                  totalKp: 0,
+                  totalDkp: 0
+              });
+              
+              results.push(agg);
+          }
       }
+      
+      // Sort kingdoms by Total DKP
+      setKingdomData(results.sort((a,b) => b.totalDkp - a.totalDkp));
+      
     } catch (e) {
       console.error(e);
     } finally {
@@ -65,269 +112,176 @@ export default function DkpResults() {
   };
 
   useEffect(() => {
-    let activeKd = kd;
     if (typeof window !== 'undefined') {
         const storedKd = localStorage.getItem('unty_active_kd');
         if (storedKd) {
-            activeKd = storedKd;
-            setKd(storedKd);
+            setTargetKds([storedKd]);
+            fetchDates(storedKd);
         } else if (session?.user?.tenant?.kingdomId) {
-            activeKd = session.user.tenant.kingdomId;
-            setKd(activeKd);
+            setTargetKds([session.user.tenant.kingdomId]);
+            fetchDates(session.user.tenant.kingdomId);
         }
     }
-    fetchDates(activeKd);
   }, [session]);
 
-  // Handle re-fetching automatically when scan dates are fully mounted
   useEffect(() => {
-      if (startScan && endScan) {
+      if (startScan && endScan && targetKds.length > 0) {
           fetchRankings();
       }
-  }, [kd, startScan, endScan, t4Pts, t5Pts, deadsPts]); // Auto-update on algorithm changes
+  }, [startScan, endScan, t4Pts, t5Pts, deadsPts, govCount]);
 
-  const handleKdChange = (newKd) => {
-      setKd(newKd);
-      fetchDates(newKd); // Pull timeline for new KD
+  const toggleKingdom = (kdStr) => {
+      setTargetKds(prev => {
+          if (prev.includes(kdStr)) {
+              return prev.filter(k => k !== kdStr);
+          } else {
+              const nu = [...prev, kdStr];
+              if (prev.length === 0) fetchDates(kdStr); // Proxy fetch if first
+              return nu;
+          }
+      });
   };
 
   const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
-  const formatBillion = (num) => num ? (Number(num) / 1000000000).toFixed(2) + 'B' : "0";
-
-  const getTierColors = (tier) => {
-      switch(tier) {
-          case 'S+': return 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 shadow-[0_0_15px_rgba(217,70,239,0.3)]';
-          case 'S': return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-          case 'A': return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
-          case 'B': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-          case 'C': return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
-          default: return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
-      }
-  };
-
-  const podium = rankings.slice(0, 3);
-  const grid = rankings.slice(3);
 
   return (
     <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4 flex flex-col items-center">
       
-      {/* V2 Header Panel with Internal U1 Controls */}
+      {/* Target Selector Toolbar (Macro Nav) */}
+      <div className="w-full max-w-7xl overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+         <div className="flex items-center gap-2 min-w-max">
+             {session?.user?.tenant?.allowedKingdoms?.map(k => (
+                <button
+                   key={k}
+                   onClick={() => toggleKingdom(k)}
+                   className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                       targetKds.includes(k) 
+                       ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 shadow-[inset_4px_0_0_0_rgba(217,70,239,1)]' 
+                       : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
+                   }`}
+                >
+                   Kingdom {k}
+                </button>
+             ))}
+         </div>
+      </div>
+
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden w-full max-w-7xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-        
-        {/* Title Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full border-b border-[#1e222b] pb-6 mb-6">
-            <div className="flex items-center gap-4">
-               <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
-                 <Medal className="text-fuchsia-500" size={32} />
-               </div>
-               <div>
-                 <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-3">
-                   {t('title')}
+        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8 relative z-10 w-full">
+            
+            {/* Title Details */}
+            <div className="flex flex-col gap-2">
+                 <h1 className="text-2xl font-black text-white tracking-widest uppercase">
+                   All Kingdom DKP Results
                  </h1>
-                 <p className="text-fuchsia-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
-               </div>
+                 
+                 <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
+                    <select 
+                       value={startScan}
+                       onChange={(e) => setStartScan(e.target.value)}
+                       disabled={isDatesLoading || availableDates.length === 0}
+                       className="bg-[#13161c] border border-[#1e222b] text-white p-1.5 rounded text-xs font-mono disabled:opacity-50 outline-none"
+                    >
+                        {availableDates.map(d => <option key={`start-${d}`} value={d}>{d}</option>)}
+                    </select>
+
+                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest ml-4">End Scan</span>
+                    <select 
+                       value={endScan}
+                       onChange={(e) => setEndScan(e.target.value)}
+                       disabled={isDatesLoading || availableDates.length === 0}
+                       className="bg-[#13161c] border border-[#1e222b] text-white p-1.5 rounded text-xs font-mono disabled:opacity-50 outline-none"
+                    >
+                        {availableDates.map(d => <option key={`end-${d}`} value={d}>{d}</option>)}
+                    </select>
+                 </div>
             </div>
             
-            <div className="flex items-center gap-2">
-               <select 
-                 value={kd}
-                 onChange={(e) => handleKdChange(e.target.value)}
-                 className="bg-[#13161c] border border-[#1e222b] text-white focus:border-fuchsia-500 px-4 py-2.5 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
-               >
-                 {session?.user?.tenant?.allowedKingdoms?.map(k => (
-                    <option key={k} value={k}>KD {k}</option>
-                 ))}
-                 {!session?.user?.tenant?.allowedKingdoms?.includes(kd) && kd && (
-                    <option value={kd}>KD {kd}</option>
-                 )}
-               </select>
-               <button 
-                  onClick={fetchRankings}
-                  disabled={isLoading || isDatesLoading}
-                   className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg disabled:opacity-50 flex items-center gap-2"
-               >
-                  <RefreshCw size={20} className={isLoading ? "animate-spin text-fuchsia-500" : ""} />
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center bg-[#13161c] p-2 px-3 rounded border border-[#1e222b] gap-2">
+                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">DKP Mode</span>
+                    <select className="bg-transparent text-white text-xs outline-none">
+                        <option>Basic</option>
+                        <option>Advanced (HoH Scan)</option>
+                    </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-cyan-500 uppercase font-bold tracking-widest">T4 Pts:</span>
+                    <input type="number" value={t4Pts} onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)} className="w-12 bg-[#13161c] text-white font-mono text-center text-sm font-bold border border-[#1e222b] rounded py-1 outline-none" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">T5 Pts:</span>
+                    <input type="number" value={t5Pts} onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)} className="w-12 bg-[#13161c] text-white font-mono text-center text-sm font-bold border border-[#1e222b] rounded py-1 outline-none" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-rose-500 uppercase font-bold tracking-widest">Deads Pts:</span>
+                    <input type="number" value={deadsPts} onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)} className="w-12 bg-[#13161c] text-white font-mono text-center text-sm font-bold border border-[#1e222b] rounded py-1 outline-none" />
+                </div>
+
+                <div className="flex items-center bg-[#13161c] p-2 px-3 rounded border border-[#1e222b] gap-2 ml-4">
+                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Governor Count</span>
+                    <select value={govCount} onChange={(e) => setGovCount(e.target.value)} className="bg-transparent text-white text-xs outline-none font-bold">
+                        <option value="All">All Governors</option>
+                        <option value="1000">Top 1000</option>
+                        <option value="650">Top 650</option>
+                        <option value="400">Top 400</option>
+                        <option value="300">Top 300</option>
+                        <option value="100">Top 100</option>
+                    </select>
+                </div>
+                
+                <button onClick={fetchRankings} disabled={isLoading || targetKds.length === 0} className="p-2 ml-2 bg-[#0a0c0f] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded transition-colors disabled:opacity-50">
+                  <RefreshCw size={16} className={isLoading ? "animate-spin text-fuchsia-500" : ""} />
                </button>
             </div>
         </div>
 
-        {/* U1 Style Constraints Bar */}
-        <div className="relative z-10 w-full flex flex-col lg:flex-row items-center gap-6 justify-between bg-[#0a0c0f] p-4 rounded-lg border border-[#1e222b]">
-            <div className="flex flex-col gap-2 w-full lg:w-1/3">
-                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
-                    <Settings2 size={12} className="text-fuchsia-500"/>
-                    Algorithmic Start Scan
-                </span>
-                <select 
-                   value={startScan}
-                   onChange={(e) => setStartScan(e.target.value)}
-                   disabled={isDatesLoading || availableDates.length === 0}
-                   className="w-full bg-[#13161c] border border-[#1e222b] text-white p-2 rounded text-xs font-mono disabled:opacity-50 outline-none focus:border-fuchsia-500"
-                >
-                    {availableDates.map(d => <option key={`start-${d}`} value={d}>{d}</option>)}
-                    {availableDates.length === 0 && <option value="">No Active Scans</option>}
-                </select>
-                
-                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1 left-2">Algorithmic End Scan</span>
-                <select 
-                   value={endScan}
-                   onChange={(e) => setEndScan(e.target.value)}
-                   disabled={isDatesLoading || availableDates.length === 0}
-                   className="w-full bg-[#13161c] border border-[#1e222b] text-white p-2 rounded text-xs font-mono disabled:opacity-50 outline-none focus:border-fuchsia-500"
-                >
-                    {availableDates.map(d => <option key={`end-${d}`} value={d}>{d}</option>)}
-                    {availableDates.length === 0 && <option value="">No Active Scans</option>}
-                </select>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto h-full justify-center">
-                <div className="flex flex-col items-center bg-[#13161c] p-3 rounded-lg border border-[#1e222b]">
-                    <span className="text-[10px] text-cyan-500 uppercase font-bold tracking-widest mb-1">T4 Pts</span>
-                    <input 
-                        type="number" 
-                        value={t4Pts}
-                        onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)}
-                        className="w-16 bg-transparent text-white font-mono text-center font-bold outline-none border-b border-transparent focus:border-cyan-500 transition-colors"
-                    />
-                </div>
-                <div className="flex flex-col items-center bg-[#13161c] p-3 rounded-lg border border-[#1e222b]">
-                    <span className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest mb-1">T5 Pts</span>
-                    <input 
-                        type="number" 
-                        value={t5Pts}
-                        onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)}
-                        className="w-16 bg-transparent text-white font-mono text-center font-bold outline-none border-b border-transparent focus:border-indigo-500 transition-colors"
-                    />
-                </div>
-                <div className="flex flex-col items-center bg-[#13161c] p-3 rounded-lg border border-[#1e222b]">
-                    <span className="text-[10px] text-rose-500 uppercase font-bold tracking-widest mb-1">Deads Pts</span>
-                    <input 
-                        type="number" 
-                        value={deadsPts}
-                        onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)}
-                        className="w-16 bg-transparent text-white font-mono text-center font-bold outline-none border-b border-transparent focus:border-rose-500 transition-colors"
-                    />
-                </div>
-            </div>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex items-center justify-center w-full max-w-7xl">
-            <RefreshCw className="animate-spin text-fuchsia-500 w-8 h-8" />
-        </div>
-      ) : rankings.length === 0 ? (
-        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500 w-full max-w-7xl">
-            <Activity className="w-12 h-12 mb-4 opacity-50 text-fuchsia-500" />
-            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_lethality')}</h3>
-            <p className="text-sm text-center">Cannot calculate algorithms. Target constraints may be too narrow or point weights may be 0.</p>
-        </div>
-      ) : (
-        <div className="w-full max-w-7xl gap-6 flex flex-col">
-            {/* The MVP Highlight Podium */}
-            {podium[0] && (
-            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 relative overflow-hidden shadow-xl">
-                 <div className="absolute top-0 right-0 w-48 h-48 bg-fuchsia-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-                 <h2 className="text-gray-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-6"><Trophy size={14} className="text-fuchsia-500" /> {t('top_vanguard')}</h2>
-                 
-                 <div className="flex flex-col md:flex-row items-center gap-8 relative z-10 w-full justify-between">
-                     <div className="flex items-center gap-6 text-left">
-                         <div className="w-24 h-24 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center">
-                              <Medal className="text-fuchsia-500 w-12 h-12 drop-shadow-[0_0_10px_rgba(217,70,239,0.6)]" />
-                         </div>
-                         <div>
-                             <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest mb-2 inline-block ${getTierColors(podium[0].tier)}`}>Tier {podium[0].tier} Output</span>
-                             <h2 className="text-3xl font-black text-white uppercase tracking-widest leading-none mb-2">{podium[0].name}</h2>
-                             <p className="text-gray-500 text-sm font-mono tracking-widest">[{podium[0].alliance}] <span className="text-fuchsia-400/80">{formatBillion(podium[0].power)}</span></p>
-                         </div>
-                     </div>
-                     <div className="w-full md:w-auto bg-[#13161c] p-6 rounded-xl border border-[#1e222b] flex flex-col items-center md:items-end shadow-inner">
-                          <span className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-2 flex items-center gap-1"><Zap size={14} className="text-fuchsia-500"/> {t('calculated_dkp')}</span>
-                          <span className="text-5xl font-black text-white font-mono drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{formatNum(podium[0].dkpScore)}</span>
-                     </div>
-                 </div>
-            </div>
-            )}
-
-            {/* Leaderboard Table */}
-            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl">
-              <div className="bg-[#0a0c0f] px-6 py-4 border-b border-[#1e222b] flex items-center justify-between">
-                 <h2 className="text-white font-bold uppercase tracking-widest flex items-center gap-2">
-                   <Target size={18} className="text-fuchsia-500" />
-                   {t('official_commendations')}
-                 </h2>
-                 <span className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">
-                    Indexed Output: {grid.length + podium.length}
-                 </span>
-              </div>
-              
-              <div className="overflow-x-auto">
+        {/* Global DKP Aggregation Table */}
+        <div className="mt-8 border border-[#1e222b] rounded-lg overflow-hidden bg-[#0a0c0f]">
+            <div className="overflow-x-auto">
                  <table className="w-full whitespace-nowrap">
                     <thead className="bg-[#13161c]">
                        <tr>
-                          <th className="px-4 py-3 w-16 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Rank</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Grade</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Governor</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">DKP Score</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Deads Delta</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">T4 Delta</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">T5 Delta</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Kingdom</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total Power</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Power +/-</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total T4 Kills</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total T5 Kills</th>
+                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total Deads</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total KP</th>
+                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total DKP</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-[#1e222b]">
-                       {rankings.map((gov, idx) => (
-                           <tr key={gov.id} className="hover:bg-white/5 transition-colors group">
-                               <td className="px-4 py-3 text-center">
-                                  {idx === 0 ? <Medal size={20} className="text-amber-400 mx-auto drop-shadow-md" /> :
-                                   idx === 1 ? <Medal size={20} className="text-slate-300 mx-auto drop-shadow-md" /> :
-                                   idx === 2 ? <Medal size={20} className="text-amber-700 mx-auto drop-shadow-md" /> :
-                                  <div className="w-6 h-6 rounded bg-[#1e222b] text-gray-400 font-mono text-xs font-bold flex items-center justify-center mx-auto">
-                                      {idx + 1}
-                                  </div>}
-                               </td>
-                               <td className="px-4 py-3">
-                                  <span className={`text-[10px] px-2 py-0.5 rounded font-black font-mono tracking-widest inline-block w-8 text-center ${getTierColors(gov.tier)}`}>
-                                      {gov.tier}
-                                  </span>
-                               </td>
-                               <td className="px-4 py-3">
-                                  <div className="font-bold text-white group-hover:text-fuchsia-400 transition-colors uppercase tracking-widest">{gov.name}</div>
-                                  <div className="text-[10px] text-gray-500 font-mono">[{gov.alliance}] ID: {gov.id}</div>
-                               </td>
-                               <td className="px-4 py-3 text-right">
-                                  <div className="font-bold text-fuchsia-500 font-mono text-lg">{formatNum(gov.dkpScore)}</div>
-                               </td>
-                               <td className="px-4 py-3 text-right">
-                                  {gov.dDelta > 0 ? (
-                                      <div className="font-bold text-rose-500 font-mono">{formatNum(gov.dDelta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(gov.dDelta * deadsPts)} DKP)</span></div>
-                                  ) : (
-                                      <div className="font-bold text-gray-600 font-mono">0</div>
-                                  )}
-                               </td>
-                               <td className="px-4 py-3 text-right">
-                                  {gov.t4Delta > 0 ? (
-                                      <div className="font-bold text-cyan-500 font-mono">+{formatNum(gov.t4Delta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.t4Delta * t4Pts))} DKP)</span></div>
-                                  ) : (
-                                      <div className="font-bold text-gray-600 font-mono">0</div>
-                                  )}
-                               </td>
-                               <td className="px-4 py-3 text-right">
-                                  {gov.t5Delta > 0 ? (
-                                      <div className="font-bold text-indigo-400 font-mono">+{formatNum(gov.t5Delta)} <span className="text-[10px] text-gray-500 uppercase tracking-widest">(+{formatNum(Math.floor(gov.t5Delta * t5Pts))} DKP)</span></div>
-                                  ) : (
-                                      <div className="font-bold text-gray-600 font-mono">0</div>
-                                  )}
-                               </td>
+                       {kingdomData.length === 0 ? (
+                           <tr>
+                              <td colSpan={8} className="px-4 py-8 text-center text-xs font-bold uppercase tracking-widest text-gray-500 italic">
+                                  No Data - Change constraints to recalculate results
+                              </td>
+                           </tr>
+                       ) : kingdomData.map((kdRow) => (
+                           <tr key={`kdRow-${kdRow.kingdom}`} className="hover:bg-white/5 transition-colors">
+                               <td className="px-4 py-4 text-left font-black text-white tracking-widest">{kdRow.kingdom}</td>
+                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.totalPower)}</td>
+                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.powerDelta)}</td>
+                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.t4Kills)}</td>
+                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.t5Kills)}</td>
+                               <td className="px-4 py-4 text-left font-mono font-bold text-rose-500/80">{formatNum(kdRow.totalDeads)}</td>
+                               <td className="px-4 py-4 text-right font-mono font-bold text-cyan-500/80">{formatNum(kdRow.totalKp)}</td>
+                               <td className="px-4 py-4 text-right font-mono font-bold text-fuchsia-500 text-lg">{formatNum(kdRow.totalDkp)}</td>
                            </tr>
                        ))}
                     </tbody>
                  </table>
-              </div>
             </div>
+            
+            {/* Visual Bar at Bottom matching U1 */}
+            <div className="w-full h-1 bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-50"></div>
         </div>
-      )}
 
+      </div>
     </div>
   );
 }
