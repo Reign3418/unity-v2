@@ -74,7 +74,9 @@
     "mkt_kofi_desc": "Unity runs brutal computational loads globally. If your Kingdom leadership tips us, your entire server is instantly, permanently whitelisted for all restricted features server-wide.",
     "btn_support_us": "Whitelisting via Ko-fi",
     "mkt_feat_4_title": "Global Access Override",
-    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind.",
+    "mkt_feat_5_title": "3D Kingdom Topography",
+    "mkt_feat_5_desc": "Visualize your entire kingdom in interactive 3D scatter plots. Watch millions of data points transform into stunning three-dimensional space, revealing hidden statistical correlations raw spreadsheets obscure."
   },
   "WorldClock": {
     "header": "Global Master Clock",

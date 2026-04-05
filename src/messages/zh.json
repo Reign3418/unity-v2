@@ -74,7 +74,9 @@
     "mkt_kofi_desc": "Unity 全球运行着繁重的计算负载。如果你的王国管理层支持我们，你的整个服务器将永久列入全服务器受限功能的白名单。",
     "btn_support_us": "通过 Ko-fi 获取白名单",
     "mkt_feat_4_title": "Global Access Override",
-    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind.",
+    "mkt_feat_5_title": "3D Kingdom Topography",
+    "mkt_feat_5_desc": "Visualize your entire kingdom in interactive 3D scatter plots. Watch millions of data points transform into stunning three-dimensional space, revealing hidden statistical correlations raw spreadsheets obscure."
   },
   "WorldClock": {
     "header": "全球主时钟",

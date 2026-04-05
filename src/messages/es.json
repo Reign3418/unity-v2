@@ -74,7 +74,9 @@
     "mkt_kofi_desc": "Unity ejecuta cargas computacionales brutales a nivel mundial. Si su liderazgo del Reino nos da una propina, su servidor completo se incluirá instantánea y permanentemente en la lista blanca para todas las funciones restringidas en todo el servidor.",
     "btn_support_us": "Lista Blanca a través de Ko-fi",
     "mkt_feat_4_title": "Global Access Override",
-    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind.",
+    "mkt_feat_5_title": "3D Kingdom Topography",
+    "mkt_feat_5_desc": "Visualize your entire kingdom in interactive 3D scatter plots. Watch millions of data points transform into stunning three-dimensional space, revealing hidden statistical correlations raw spreadsheets obscure."
   },
   "WorldClock": {
     "header": "Reloj Maestro Global",
