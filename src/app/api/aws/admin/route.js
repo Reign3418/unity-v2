@@ -220,6 +220,6 @@ export async function POST(req) {
 
   } catch (error) {
     console.error("[API/AWS/Admin] Danger Zone Failure:", error);
-    return NextResponse.json({ error: "Internal Server Error executing Admin Action." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error executing Admin Action." }, { status: 500 });
   }
 }
