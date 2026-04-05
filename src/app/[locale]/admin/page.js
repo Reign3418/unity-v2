@@ -251,6 +251,21 @@ export default function AdminConsole() {
   // RENDER BLOCKS
   // ----------------------------------------------------
 
+  const handleSyncDiscordProfiles = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "SYNC_DISCORD_PROFILES" }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed context sync.");
+      alert(data.message || "Synced successfully!");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); } finally { setIsLoading(false); }
+  };
+
+  // ----------------------------------------------------
+  // RENDER BLOCKS
+  // ----------------------------------------------------
+
   const renderOverview = () => (
     <div className="space-y-6 animate-fade-in pb-12">
       <div className="bg-[#111318] border border-[#1e222b] rounded-xl p-8 relative overflow-hidden">
@@ -321,8 +336,15 @@ export default function AdminConsole() {
 
   const renderIdentity = () => (
     <div className="space-y-6 animate-fade-in pb-12">
-      <h2 className="text-xl font-bold text-white uppercase tracking-widest border-b border-[#1e222b] pb-4 mb-6 relative">
-        Identity & Access Matrix
+      <h2 className="text-xl font-bold text-white uppercase tracking-widest border-b border-[#1e222b] pb-4 mb-6 relative flex justify-between items-center">
+        <span>Identity & Access Matrix</span>
+        <button 
+          onClick={handleSyncDiscordProfiles}
+          disabled={isLoading}
+          className="text-xs flex items-center gap-2 bg-[#1e222b] hover:bg-cyan-500 hover:text-white text-gray-400 py-1.5 px-3 rounded transition-colors"
+        >
+          {isLoading ? "SYNCING..." : "🔄 SYNC MATRIX"}
+        </button>
         <div className="absolute bottom-[-1px] left-0 w-24 h-[2px] bg-cyan-500"></div>
       </h2>
       

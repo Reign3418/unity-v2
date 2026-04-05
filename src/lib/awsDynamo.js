@@ -3723,3 +3723,78 @@ export async function updateUserPlaytime(discordId, timezone, playStart, playEnd
     }
 }
 
+/**
+ * Searches the Admin MATRIX for any users missing a Discord auth populated Username.
+ * Securely handshakes with Discord's REST API using the System Bot Token to silently 
+ * patch their avatars and usernames directly into DynamoDB.
+ */
+export async function syncDiscordProfiles() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+    if (!botToken) throw new Error('DISCORD_BOT_TOKEN is missing! Please inject this into Vercel/local .env to perform background scans.');
+
+    try {
+        console.log(`[AWS Multi-Thread] Scanning MATRIX for undocumented identities...`);
+        
+        // 1. Fetch all config nodes using parallel scanning logic or standard scanning
+        // We'll reuse the existing getAllUsers() pipeline to get the cached identities
+        const users = await getAllUsers();
+        
+        // 2. Identify undocumented nodes
+        const missingIdentityNodes = users.filter(u => !u.username && u.discordId);
+        if(missingIdentityNodes.length === 0) return { synced: 0, message: "All user identities are already verified." };
+
+        console.log(`[Discord Link] Discovered ${missingIdentityNodes.length} Undocumented Nodes. Initiating Secure Handshake...`);
+        let syncedCount = 0;
+
+        // 3. Throttle requests to respect Discord's rate limits
+        for (const user of missingIdentityNodes) {
+            try {
+                const res = await fetch(`https://discord.com/api/v10/users/${user.discordId}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bot ${botToken}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Construct update
+                    const patchParams = {
+                        TableName: tableName,
+                        Key: {
+                            'PK': { S: `USER#${user.discordId}` },
+                            'SK': { S: 'CONFIG' }
+                        },
+                        UpdateExpression: 'SET #attr.#uname = :u, #attr.#ava = :a',
+                        ExpressionAttributeNames: {
+                            '#attr': 'attributes',
+                            '#uname': 'username',
+                            '#ava': 'avatar'
+                        },
+                        ExpressionAttributeValues: {
+                            ':u': { S: data.global_name || data.username || "Unknown Entity" },
+                            ':a': { S: data.avatar || "null" }
+                        }
+                    };
+
+                    await dbClient.send(new UpdateItemCommand(patchParams));
+                    syncedCount++;
+                    // Delay slightly to prevent 429 Too Many Requests
+                    await new Promise(r => setTimeout(r, 200)); 
+                } else if (res.status === 429) {
+                    console.log(`[Discord Link] Rate Limit Exceeded. Cooling down...`);
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            } catch (err) {
+                console.error(`[Discord Link] Profiling failed for ${user.discordId}:`, err);
+            }
+        }
+
+        return { synced: syncedCount, message: `Successfully synchronized ${syncedCount} identities.` };
+    } catch (e) {
+        console.error("AWS Identity Sync Error:", e);
+        throw e;
+    }
+}

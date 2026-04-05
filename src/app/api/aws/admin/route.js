@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
-  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess
+  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles
 } from "@/lib/awsDynamo";
 
 export async function GET(req) {
@@ -146,6 +146,11 @@ export async function POST(req) {
       };
       await dbClient.send(new PutItemCommand(params));
       return NextResponse.json({ success: true, message: `Direct User ${discordId} Add Complete.` }, { status: 200 });
+    }
+
+    if (action === "SYNC_DISCORD_PROFILES") {
+      const result = await syncDiscordProfiles();
+      return NextResponse.json({ success: true, message: result.message }, { status: 200 });
     }
 
 
