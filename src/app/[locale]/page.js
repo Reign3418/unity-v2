@@ -42,7 +42,7 @@ export default function Home() {
   // UNAUTHENTICATED GHOST SHIP LOGIN
   if (!session) {
     return (
-      <div className="flex flex-col bg-[#05070a] min-h-screen items-center justify-center relative overflow-hidden font-sans">
+      <div className="flex flex-col bg-[#05070a] min-h-screen relative overflow-y-auto overflow-x-hidden font-sans selection:bg-cyan-500/30 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
         
         {/* Absolute Language Switcher (Top Right) */}
         <div className="absolute top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 border border-[#1e222b] bg-[#0a0c10]/80 backdrop-blur-md rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] group hover:border-cyan-500/30 transition-colors">
@@ -106,14 +106,29 @@ export default function Home() {
         </style>
 
         {/* Deep Atmospheric Blobs */}
-        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '6s' }}></div>
-        <div className="absolute bottom-[-10%] left-[-5%] w-[800px] h-[800px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="fixed top-[10%] right-[10%] w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-[140px] pointer-events-none mix-blend-screen animate-pulse z-0" style={{ animationDuration: '6s' }}></div>
+        <div className="fixed bottom-[10%] left-[10%] w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[160px] pointer-events-none mix-blend-screen animate-pulse z-0" style={{ animationDuration: '8s' }}></div>
 
         {/* Ethereal Grid Floor */}
-        <div className="absolute bottom-0 w-full h-1/2 bg-[linear-gradient(to_top,rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(to_right,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:linear-gradient(to_top,black,transparent)] pointer-events-none"></div>
+        <div className="fixed inset-0 w-full h-full bg-[linear-gradient(to_bottom,transparent_90%,rgba(6,182,212,0.02)_100%),linear-gradient(to_right,rgba(6,182,212,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:linear-gradient(to_top,black,transparent)] pointer-events-none z-0"></div>
 
-        {/* Central Glassmorphic Card */}
-        <div className="relative z-10 flex flex-col items-center bg-[#0a0c10]/40 backdrop-blur-2xl border border-white/5 p-12 lg:p-14 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] transform hover:scale-[1.01] transition-all duration-700 w-full max-w-sm sm:max-w-md">
+        {/* =========================================
+            SECTION 1: DISCORD LOGIN HERO
+            ========================================= */}
+        <div className="relative min-h-[90vh] flex flex-col items-center justify-center p-6 w-full z-10 pt-24 pb-32">
+            
+            {/* Context Header */}
+            <div className="text-center mb-12 max-w-2xl px-4 animate-fade-in">
+               <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 uppercase tracking-widest mb-4 drop-shadow-sm">
+                  {t('mkt_hero_title')}
+               </h1>
+               <p className="text-sm md:text-base text-gray-400 font-mono leading-relaxed mt-4 drop-shadow-sm">
+                  {t('mkt_hero_desc')}
+               </p>
+            </div>
+
+            {/* Central Glassmorphic Card (Preserved Identity Block) */}
+            <div className="relative z-10 flex flex-col items-center bg-[#0a0c10]/70 backdrop-blur-3xl border border-white/5 p-10 lg:p-14 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] transform hover:-translate-y-1 transition-all duration-500 w-full max-w-[420px]">
           
           <div 
             className="mb-6 w-36 h-36 sm:w-40 sm:h-40 relative group"
@@ -263,6 +278,125 @@ export default function Home() {
             </div>
           </div>
         )}
+        </div>
+
+        {/* Scroll Indicator (Only visible if they haven't scrolled down) */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce opacity-50 z-20 pointer-events-none hidden md:flex">
+           <span className="text-[10px] text-cyan-500 font-bold tracking-widest uppercase">Discover Architecture</span>
+           <div className="w-[1px] h-8 bg-gradient-to-b from-cyan-500 to-transparent"></div>
+        </div>
+
+        {/* =========================================
+            SECTION 2: MARKETING FEATURE MATRIX
+            ========================================= */}
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-24 space-y-32">
+            
+            {/* Feature 1: OCR */}
+            <div className="flex flex-col md:flex-row items-center gap-12 group">
+              <div className="flex-1 space-y-4">
+                 <div className="w-12 h-12 bg-indigo-500/10 rounded-xl border border-indigo-500/30 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                   <UploadCloud className="text-indigo-400" size={24} />
+                 </div>
+                 <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest">{t('mkt_feat_1_title')}</h2>
+                 <p className="text-gray-400 leading-relaxed font-mono text-sm max-w-lg">{t('mkt_feat_1_desc')}</p>
+              </div>
+              <div className="flex-1 w-full bg-[#0a0c10] border border-[#1e222b] rounded-2xl p-2 shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden transition-colors relative">
+                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent z-0 opacity-50"></div>
+                 <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] flex flex-col items-center justify-center relative overflow-hidden z-10 p-6">
+                    <div className="absolute w-[200%] h-[20px] bg-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.5)] rotate-12 animate-pulse top-1/2 -translate-y-1/2 pointer-events-none"></div>
+                    <span className="font-mono text-xs text-indigo-400 tracking-widest mb-4 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">[ GEMINI VISION ACTIVE ]</span>
+                    <div className="w-full h-8 bg-[#1e222b]/50 rounded mb-2 border border-[#2a3041]/50"></div>
+                    <div className="w-3/4 h-8 bg-[#1e222b]/50 rounded border border-[#2a3041]/50"></div>
+                 </div>
+              </div>
+            </div>
+
+            {/* Feature 2: Algorithms */}
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 group">
+              <div className="flex-1 space-y-4 md:pl-12">
+                 <div className="w-12 h-12 bg-rose-500/10 rounded-xl border border-rose-500/30 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(244,63,94,0.2)]">
+                   <TrendingUp className="text-rose-400" size={24} />
+                 </div>
+                 <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest">{t('mkt_feat_2_title')}</h2>
+                 <p className="text-gray-400 leading-relaxed font-mono text-sm max-w-lg">{t('mkt_feat_2_desc')}</p>
+              </div>
+              <div className="flex-1 w-full bg-[#0a0c10] border border-[#1e222b] rounded-2xl p-2 shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden transition-colors relative">
+                 <div className="absolute inset-0 bg-gradient-to-bl from-rose-500/10 to-transparent z-0 opacity-50"></div>
+                 <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] flex items-center justify-center relative overflow-hidden z-10">
+                    <div className="w-48 h-48 rounded-full border border-rose-500/20 border-dashed absolute animate-[spin_20s_linear_infinite]"></div>
+                    <div className="w-32 h-32 rounded-full border border-sky-500/20 border-dotted absolute animate-[spin_15s_linear_infinite_reverse]"></div>
+                    <span className="font-mono text-xs text-rose-400 tracking-widest bg-[#0a0c10] px-3 py-1 rounded-full border border-[#1e222b] z-20 shadow-[0_0_15px_rgba(244,63,94,0.1)]">ALGORITHMIC TRAJECTORY</span>
+                 </div>
+              </div>
+            </div>
+
+            {/* Feature 3: Discord Integration */}
+            <div className="flex flex-col md:flex-row items-center gap-12 group">
+              <div className="flex-1 space-y-4">
+                 <div className="w-12 h-12 bg-sky-500/10 rounded-xl border border-sky-500/30 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(14,165,233,0.2)]">
+                   <Shield className="text-sky-400" size={24} />
+                 </div>
+                 <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest">{t('mkt_feat_3_title')}</h2>
+                 <p className="text-gray-400 leading-relaxed font-mono text-sm max-w-lg">{t('mkt_feat_3_desc')}</p>
+              </div>
+              <div className="flex-1 w-full bg-[#0a0c10] border border-[#1e222b] rounded-2xl p-2 shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden transition-colors relative">
+                 <div className="absolute inset-0 bg-gradient-to-tr from-sky-500/10 to-transparent z-0 opacity-50"></div>
+                 <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] flex flex-col items-center justify-center relative overflow-hidden z-10 gap-3">
+                    <div className="w-3/4 bg-[#5865F2]/10 border border-[#5865F2]/30 p-3 rounded-lg flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-full bg-[#5865F2]/20 shrink-0"></div>
+                       <div className="space-y-1">
+                          <div className="w-24 h-3 rounded bg-white/20"></div>
+                          <div className="w-40 h-2.5 rounded bg-gray-500/50"></div>
+                       </div>
+                    </div>
+                    <div className="w-3/4 bg-[#1e222b]/30 border border-[#1e222b] p-3 rounded-lg flex items-center gap-3 ml-8">
+                       <div className="w-8 h-8 rounded-full bg-[#161a23] shrink-0 border border-cyan-500/30"></div>
+                       <div className="space-y-1">
+                          <div className="w-32 h-3 rounded bg-cyan-400/50"></div>
+                          <div className="w-24 h-2.5 rounded bg-gray-500/50"></div>
+                       </div>
+                    </div>
+                    <span className="font-mono text-xs text-sky-400 tracking-widest mt-2 uppercase shadow-[0_0_15px_rgba(14,165,233,0.1)]">IDENTITY MATRIX SYNCED</span>
+                 </div>
+              </div>
+            </div>
+
+        </div>
+
+        {/* =========================================
+            SECTION 3: SPONSORSHIP TIER & FOOTER
+            ========================================= */}
+        <div className="relative z-10 w-full bg-[#0a0c10] border-t border-[#1e222b] mt-24 py-16">
+            <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mx-auto flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)] mb-8">
+                    <Zap className="text-emerald-400" size={32} />
+                </div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-widest">{t('mkt_kofi_title')}</h2>
+                <p className="text-gray-400 text-sm font-mono leading-relaxed max-w-2xl mx-auto mb-8">
+                    {t('mkt_kofi_desc')}
+                </p>
+                
+                <a 
+                   href="https://ko-fi.com/ReignsPlace" 
+                   target="_blank" 
+                   rel="noreferrer" 
+                   className="inline-flex items-center gap-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/60 px-8 py-4 rounded-xl transition-all duration-300 font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(16,185,129,0.15)] group"
+                >
+                   <span className="group-hover:-scale-x-100 transition-transform duration-500">☕</span>
+                   {t('btn_support_us')}
+                </a>
+            </div>
+            
+            <div className="max-w-6xl mx-auto mt-24 border-t border-[#1e222b] pt-8 flex flex-col md:flex-row items-center justify-between text-xs font-mono text-gray-500 px-6 pb-8 gap-4 text-center md:text-left">
+                <span>© {new Date().getFullYear()} Reversing Technologies, LLC. By Kingdom 3418.</span>
+                <div className="flex gap-4 uppercase font-bold tracking-widest">
+                    <Link href="/terms" className="hover:text-cyan-400 transition-colors">Terms</Link>
+                    <Link href="/privacy" className="hover:text-cyan-400 transition-colors">Privacy</Link>
+                    <Link href="/contact" className="hover:text-cyan-400 transition-colors">Contact</Link>
+                </div>
+            </div>
+        </div>
+
       </div>
     );
   }
