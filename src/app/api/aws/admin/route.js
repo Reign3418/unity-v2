@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
-  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles
+  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles
 } from "@/lib/awsDynamo";
 
 export async function GET(req) {
@@ -150,6 +150,11 @@ export async function POST(req) {
 
     if (action === "SYNC_DISCORD_PROFILES") {
       const result = await syncDiscordProfiles();
+      return NextResponse.json({ success: true, message: result.message }, { status: 200 });
+    }
+
+    if (action === "SYNC_TENANT_GUILDS") {
+      const result = await syncTenantGuildProfiles();
       return NextResponse.json({ success: true, message: result.message }, { status: 200 });
     }
 

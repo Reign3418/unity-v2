@@ -262,6 +262,17 @@ export default function AdminConsole() {
     } catch (e) { alert(e.message); } finally { setIsLoading(false); }
   };
 
+  const handleSyncTenantGuilds = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "SYNC_TENANT_GUILDS" }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed tenant sync.");
+      alert(data.message || "Synced successfully!");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); } finally { setIsLoading(false); }
+  };
+
   // ----------------------------------------------------
   // RENDER BLOCKS
   // ----------------------------------------------------
@@ -507,10 +518,20 @@ export default function AdminConsole() {
 
   const renderTenants = () => (
     <div className="space-y-6 animate-fade-in pb-12">
-      <h2 className="text-xl font-bold text-white uppercase tracking-widest border-b border-[#1e222b] pb-4 mb-6 relative">
-        Registered Discord Tenants
-        <div className="absolute bottom-[-1px] left-0 w-24 h-[2px] bg-blue-500"></div>
-      </h2>
+      <div className="flex justify-between items-end border-b border-[#1e222b] pb-4 mb-6 relative">
+        <h2 className="text-xl font-bold text-white uppercase tracking-widest">
+          Registered Discord Tenants
+          <div className="absolute bottom-[-1px] left-0 w-24 h-[2px] bg-blue-500"></div>
+        </h2>
+        <button 
+           onClick={handleSyncTenantGuilds}
+           disabled={isLoading}
+           className="bg-[#161920] border border-[#1e222b] hover:border-blue-500/50 text-blue-400 hover:text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+        >
+           <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+           {isLoading ? "SYNCING..." : "SYNC TENANTS"}
+        </button>
+      </div>
 
       <div className="flex gap-4 mb-6 items-center bg-[#0a0c10] border border-[#1e222b] p-4 rounded-lg max-w-3xl">
           <div className="text-xs text-gray-500 font-bold uppercase tracking-widest w-48 shrink-0">Grant Bonus Router Box</div>
@@ -524,10 +545,17 @@ export default function AdminConsole() {
            <div key={tenant.guildId} className="bg-[#0a0c10] border border-[#1e222b] hover:border-blue-500/30 rounded-xl p-6 transition-colors shadow-sm">
               <div className="flex justify-between items-start mb-4">
                  <div className="flex items-center gap-3">
-                   <Server className="text-blue-500" size={24}/>
+                   {tenant.serverIcon && tenant.serverIcon !== "null" ? (
+                      <img src={`https://cdn.discordapp.com/icons/${tenant.guildId}/${tenant.serverIcon}.png`} className="w-8 h-8 rounded-full border border-[#1e222b]" />
+                   ) : (
+                      <Server className="text-blue-500" size={24}/>
+                   )}
                    <div>
-                      <div className="text-white font-bold tracking-widest font-mono text-sm">{tenant.guildId}</div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Bound to: Kingdom {tenant.kingdomId}</div>
+                      <div className="text-white font-bold tracking-widest text-sm flex items-center gap-2">
+                        {tenant.serverName || tenant.guildId}
+                        {tenant.serverName && <a href={`https://discord.com/channels/${tenant.guildId}`} target="_blank" className="text-gray-600 hover:text-blue-400"><ExternalLink size={12}/></a>}
+                      </div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Bound to: Kingdom {tenant.kingdomId} {!tenant.serverName && `• ID: ${tenant.guildId}`}</div>
                    </div>
                  </div>
                  <div className="flex gap-2">

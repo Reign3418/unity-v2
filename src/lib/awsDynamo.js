@@ -3806,3 +3806,79 @@ export async function syncDiscordProfiles() {
         throw e;
     }
 }
+
+/**
+ * Searches the Admin MATRIX for any Tenant Guilds missing standard Discord profile data.
+ * Securely fetches their active Server Names and Icons if the central Bot is authorized in those nodes.
+ */
+export async function syncTenantGuildProfiles() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    const botToken = (process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN)?.replace(/['"]/g, '').trim();
+    
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
+    if (!botToken) throw new Error('DISCORD_TOKEN is missing! Please inject this into Vercel/local .env to perform background scans.');
+
+    try {
+        console.log(`[AWS Multi-Thread] Scanning TENANTS for undocumented guild identities...`);
+        const tenants = await getAllTrackedTenants();
+        
+        // Find tenants that do not have a serverName or serveIcon attached yet
+        const missingTenants = tenants.filter(t => !t.serverName && t.guildId);
+        if(missingTenants.length === 0) return { synced: 0, message: "All tenant guilds are already verified." };
+
+        console.log(`[Discord Link] Discovered ${missingTenants.length} Undocumented Tenants. Initiating Secure Handshake...`);
+        let syncedCount = 0;
+
+        for (const tenant of missingTenants) {
+            try {
+                const res = await fetch(`https://discord.com/api/v10/guilds/${tenant.guildId}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bot ${botToken}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const patchParams = {
+                        TableName: tableName,
+                        Key: {
+                            'PK': { S: `TENANT#${tenant.guildId}` },
+                            'SK': { S: 'CONFIG' }
+                        },
+                        UpdateExpression: 'SET #attr.#sname = :n, #attr.#sicon = :i',
+                        ExpressionAttributeNames: {
+                            '#attr': 'attributes',
+                            '#sname': 'serverName',
+                            '#sicon': 'serverIcon'
+                        },
+                        ExpressionAttributeValues: {
+                            ':n': { S: data.name || "Unknown Server" },
+                            ':i': { S: data.icon || "null" }
+                        }
+                    };
+
+                    try {
+                        await dbClient.send(new UpdateItemCommand(patchParams));
+                        syncedCount++;
+                    } catch (dbErr) {
+                        console.error(`[AWS] Failed to patch ${tenant.guildId} in DB:`, dbErr.message);
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 200)); 
+                } else {
+                    console.log(`[Discord Link] Failed to fetch ${tenant.guildId}: Status ${res.status}`);
+                    if (res.status === 429) {
+                        console.log(`[Discord Link] Rate Limit Exceeded. Cooling down...`);
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                }
+            } catch (err) {
+                console.error(`[Discord Link] Profiling failed for ${tenant.guildId}:`, err);
+            }
+        }
+        
+        return { synced: syncedCount, message: `Successfully synchronized ${syncedCount} tenant guilds.` };
+    } catch (error) {
+        console.error('[AWS Multi-Thread] Tenant Sync Engine Failure:', error);
+        throw error;
+    }
+}
