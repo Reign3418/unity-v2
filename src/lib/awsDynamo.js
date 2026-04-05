@@ -3841,8 +3841,8 @@ export async function syncTenantGuildProfiles() {
                     const patchParams = {
                         TableName: tableName,
                         Key: {
-                            'PK': { S: `TENANT#${tenant.guildId}` },
-                            'SK': { S: 'CONFIG' }
+                            'PK': { S: 'GLOBAL_TENANTS' },
+                            'SK': { S: `TENANT#${tenant.guildId}` }
                         },
                         UpdateExpression: 'SET #attr.#sname = :n, #attr.#sicon = :i',
                         ExpressionAttributeNames: {
