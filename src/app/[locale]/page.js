@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key, Cpu, Database, Activity, Terminal, ChevronDown, Box } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
+import LandingTopography from "@/components/marketing/LandingTopography";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
@@ -332,12 +333,12 @@ export default function Home() {
             </div>
           </div>
         )}
-        </div>
 
-        {/* Scroll Indicator (Only visible if they haven't scrolled down) */}
+        {/* Scroll Indicator (Bouncing Chevron) */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce opacity-70 z-20 pointer-events-none hidden md:flex cursor-pointer transition-opacity">
-           <span className="text-[10px] text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(6,182,212,0.5)]">Discover Architecture</span>
-           <ChevronDown size={28} className="text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
+           <span className="text-[10px] text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(6,182,212,0.5)] bg-[#0a0c10]/80 px-3 py-1 rounded border border-cyan-500/20 backdrop-blur-sm">Scroll Architecture</span>
+           <ChevronDown size={32} className="text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)] mt-1" />
+        </div>
         </div>
 
         {/* =========================================
@@ -450,21 +451,11 @@ export default function Home() {
                  <p className="text-gray-400 leading-relaxed font-mono text-sm max-w-lg">{t('mkt_feat_5_desc')}</p>
               </div>
               <div className="flex-1 w-full bg-[#0a0c10] border border-[#1e222b] rounded-2xl p-2 shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden transition-colors relative">
-                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent z-0 opacity-50"></div>
+                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent z-0 opacity-50 pointer-events-none"></div>
                  <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] relative overflow-hidden z-10 flex items-center justify-center">
-                    {/* X/Y/Z Axis Mockup */}
-                    <div className="absolute bottom-8 left-8 w-3/4 h-[1px] bg-purple-500/30"></div>
-                    <div className="absolute bottom-8 left-8 w-[1px] h-3/4 bg-purple-500/30"></div>
-                    <div className="absolute bottom-8 left-8 w-1/2 h-[1px] bg-purple-500/30 origin-left transform -rotate-45"></div>
+                    <LandingTopography />
                     
-                    {/* Floating Scatter Points */}
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 absolute bottom-16 left-20 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 absolute bottom-24 left-40 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" style={{animationDelay: '1s'}}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-rose-400 absolute top-20 right-24 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.8)]" style={{animationDelay: '0.5s'}}></div>
-                    <div className="w-3 h-3 rounded-full bg-purple-500 absolute top-1/2 left-1/2 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.8)]" style={{animationDelay: '0.2s'}}></div>
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 absolute bottom-32 right-32 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]" style={{animationDelay: '1.5s'}}></div>
-                    
-                    <span className="absolute top-4 right-4 font-mono text-[10px] text-purple-400 tracking-widest uppercase border border-purple-500/30 px-2 py-1 rounded bg-[#0a0c10]">Z-Axis Rendering Enabled</span>
+                    <span className="absolute top-4 right-4 font-mono text-[10px] text-purple-400 tracking-widest uppercase border border-purple-500/30 px-2 py-1 rounded bg-[#0a0c10] pointer-events-none">Z-Axis Rendering Enabled</span>
                  </div>
               </div>
             </div>
