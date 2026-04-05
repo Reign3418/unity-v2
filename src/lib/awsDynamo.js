@@ -4125,3 +4125,103 @@ export async function getKingdomSupporterStatus(kingdomId) {
         return false;
     }
 }
+
+/**
+ * Updates a Kingdom's Supporter status in the Database. Used via Webhooks.
+ */
+export async function setKingdomSupporterStatus(kingdomId, isSupporter) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName || !kingdomId) return false;
+
+    try {
+        const _id = String(kingdomId).replace(/[^\d]/g, '');
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `KINGDOM#${_id}` },
+                'SK': { S: 'CONFIG' }
+            },
+            UpdateExpression: 'SET supporterStatus = :s',
+            ExpressionAttributeValues: {
+                ':s': { BOOL: isSupporter }
+            }
+        };
+        
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error('AWS Set Kingdom Supporter Status Error:', e);
+        return false;
+    }
+}
+
+/**
+ * Creates a global System Notification record in DynamoDB.
+ * @param {string} title - Short alert title
+ * @param {string} message - Detail message
+ * @param {string} type - 'success' | 'warning' | 'info' | 'error'
+ */
+export async function createSystemNotification(title, message, type = 'info') {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        // Use an ISO timestamp as SK so queries pull chronologically
+        const timestamp = new Date().toISOString(); 
+        const params = {
+            TableName: tableName,
+            Item: {
+                'PK': { S: 'SYSTEM_NOTIFICATIONS' },
+                'SK': { S: `DATE#${timestamp}` },
+                'title': { S: title },
+                'message': { S: message },
+                'type': { S: type },
+                'timestamp': { S: timestamp }
+            }
+        };
+        
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error('AWS Create System Notification Error:', e);
+        return false;
+    }
+}
+
+/**
+ * Retrieves the most recent System Notifications.
+ */
+export async function getSystemNotifications(limit = 10) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    try {
+        // Scan backwards (descending) on Sort Key to get newest first
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+            ExpressionAttributeValues: {
+                ':pk': { S: 'SYSTEM_NOTIFICATIONS' },
+                ':skPrefix': { S: 'DATE#' }
+            },
+            ScanIndexForward: false, // Descending (newest times first)
+            Limit: limit
+        };
+
+        const res = await dbClient.send(new QueryCommand(params));
+        
+        if (res.Items) {
+            return res.Items.map(item => ({
+                id: item.SK.S,
+                title: item.title?.S || 'Alert',
+                message: item.message?.S || '',
+                type: item.type?.S || 'info',
+                timestamp: item.timestamp?.S || ''
+            }));
+        }
+        return [];
+    } catch (e) {
+        console.error('AWS Get System Notifications Error:', e);
+        return [];
+    }
+}

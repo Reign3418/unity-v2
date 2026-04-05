@@ -2,8 +2,8 @@
 
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
@@ -11,6 +11,10 @@ export default function Navbar({ onMenuClick }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [pingData, setPingData] = useState({ vercel: 14, aws: 28 });
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [hasUnread, setHasUnread] = useState(false);
+  const notificationRef = useRef(null);
 
   // Simulate slight ping variations for realism when hovering
   useEffect(() => {
@@ -22,6 +26,56 @@ export default function Navbar({ onMenuClick }) {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch Live Notifications Engine
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('/api/aws/notifications?limit=6');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+                setNotifications(data.notifications);
+                if (data.notifications.length > 0) {
+                    const latestId = data.notifications[0].id;
+                    const lastRead = localStorage.getItem('unty_last_notification_id');
+                    if (latestId !== lastRead) {
+                        setHasUnread(true);
+                    }
+                }
+            }
+        }
+      } catch (e) {
+          console.error("Notifications poller failed", e);
+      }
+    };
+    
+    if (session) {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 60000);
+        return () => clearInterval(interval);
+    }
+  }, [session]);
+
+  // Handle Out-side click logic
+  useEffect(() => {
+      const handleClickOutside = (event) => {
+          if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+              setIsNotificationsOpen(false);
+          }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleOpenNotifications = () => {
+      setIsNotificationsOpen(!isNotificationsOpen);
+      setIsSearchOpen(false);
+      if (!isNotificationsOpen && notifications.length > 0) {
+          setHasUnread(false);
+          localStorage.setItem('unty_last_notification_id', notifications[0].id);
+      }
+  };
 
   // Simple route name formatter
   const getPageTitle = () => {
@@ -138,10 +192,75 @@ export default function Navbar({ onMenuClick }) {
             >
               <Search size={18} />
             </button>
-            <button className="p-2 hover:text-white hover:bg-white/5 rounded-full transition-all relative">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0c0f]"></span>
-            </button>
+            
+            <div className="relative" ref={notificationRef}>
+                <button 
+                  onClick={handleOpenNotifications}
+                  className="p-2 hover:text-white hover:bg-white/5 rounded-full transition-all relative"
+                >
+                  <Bell size={18} className={hasUnread ? 'text-white' : ''}/>
+                  {hasUnread && (
+                      <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0c0f]"></span>
+                  )}
+                </button>
+                
+                {/* Notifications Dropdown Tray */}
+                {isNotificationsOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-[#0a0c0f]/95 backdrop-blur-xl border border-[#1e222b] shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden z-50 animate-fade-in origin-top-right">
+                        <div className="flex items-center justify-between p-4 border-b border-[#1e222b] bg-[#0f1115]">
+                            <h3 className="text-sm font-bold text-white tracking-widest uppercase flex items-center gap-2">
+                                <ActivitySquare size={16} className="text-cyan-500"/> System Telemetry
+                            </h3>
+                            <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-md font-mono">{notifications.length} Nodes</span>
+                        </div>
+                        
+                        <div className="max-h-[60vh] overflow-y-auto no-scrollbar">
+                            {notifications.length === 0 ? (
+                                <div className="p-8 text-center flex flex-col items-center justify-center text-gray-500">
+                                    <Bell size={24} className="mb-2 opacity-50" />
+                                    <p className="text-xs uppercase tracking-widest font-mono">No active broadcasts</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {notifications.map((note) => (
+                                        <div key={note.id} className="p-4 border-b border-[#1e222b] hover:bg-[#13161c] transition-colors group flex gap-3 relative overflow-hidden">
+                                            {/* Type indicator bar */}
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                                                note.type === 'success' ? 'bg-green-500' :
+                                                note.type === 'warning' ? 'bg-amber-500' :
+                                                note.type === 'error' ? 'bg-red-500' : 'bg-cyan-500'
+                                            }`}></div>
+                                            
+                                            <div className="mt-1">
+                                                {note.type === 'success' ? <CheckCircle2 size={16} className="text-green-500"/> :
+                                                 note.type === 'warning' ? <ShieldAlert size={16} className="text-amber-500"/> :
+                                                 note.type === 'error' ? <AlertCircle size={16} className="text-red-500"/> : 
+                                                 <TerminalSquare size={16} className="text-cyan-500"/>}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-xs font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors">{note.title}</h4>
+                                                <p className="text-[11px] text-gray-400 leading-relaxed mb-2">{note.message}</p>
+                                                <div className="text-[9px] text-gray-500 font-mono uppercase tracking-wider">
+                                                    {new Date(note.timestamp).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="p-2 border-t border-[#1e222b] bg-[#0f1115]">
+                            <button 
+                                onClick={() => setIsNotificationsOpen(false)}
+                                className="w-full py-2 text-xs text-gray-500 hover:text-white uppercase tracking-widest transition-colors flex items-center justify-center gap-1"
+                            >
+                                Close Uplink <ChevronRight size={14}/>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
           </div>
 
           {/* User Profile */}
