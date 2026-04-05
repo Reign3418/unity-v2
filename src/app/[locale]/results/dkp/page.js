@@ -1,305 +1,364 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useTranslations } from "next-intl";
-import { 
-    Medal, RefreshCw, Activity, Target, Settings2
-} from "lucide-react";
+import { RefreshCw, Plus, X } from "lucide-react";
+
+const formatNum = (num) => {
+  if (!num && num !== 0) return "0";
+  return Number(num).toLocaleString();
+};
 
 export default function DkpResults() {
-  const t = useTranslations('DKP');
   const { data: session } = useSession();
-  
-  // They can select multiple kingdoms now. We'll store an array. 
-  // For simplicity, we initialize with what's in local storage or their tenant allowed.
-  const [targetKds, setTargetKds] = useState([]);
-  
-  // Data State: Array of Kingdom Aggregation Objects
-  const [kingdomData, setKingdomData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDatesLoading, setIsDatesLoading] = useState(false);
 
-  // U1 Constraints
+  // --- Kingdom Selection ---
+  const [kdInput, setKdInput] = useState("");
+  const [selectedKds, setSelectedKds] = useState([]);
+
+  // --- Scan Dates (fetched based on first KD added) ---
   const [availableDates, setAvailableDates] = useState([]);
   const [startScan, setStartScan] = useState("");
   const [endScan, setEndScan] = useState("");
-  
-  const [t4Pts, setT4Pts] = useState(10); // Standardized to match screenshot
+  const [isDatesLoading, setIsDatesLoading] = useState(false);
+
+  // --- Algorithmic Controls ---
+  const [t4Pts, setT4Pts] = useState(10);
   const [t5Pts, setT5Pts] = useState(20);
   const [deadsPts, setDeadsPts] = useState(30);
-  
-  const [govCount, setGovCount] = useState("All"); // All, 1000, 650, 400, 300, 100
+  const [govCount, setGovCount] = useState("All");
 
-  // Grab available dates using the FIRST selected kingdom as a proxy, 
-  // since tracking global dates for multiple KDs simultaneously is complex. Assumes generic KVK overlap.
-  const fetchDates = async (proxyKd) => {
-      setIsDatesLoading(true);
-      try {
-          const res = await fetch(`/api/aws/dkp/dates?kd=${proxyKd}`);
-          const data = await res.json();
-          if (res.ok && data.dates) {
-              setAvailableDates(data.dates);
-              if (data.dates.length >= 2) {
-                  setStartScan(data.dates[0]);
-                  setEndScan(data.dates[data.dates.length - 1]);
-              }
-          }
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setIsDatesLoading(false);
-      }
-  };
+  // --- Results ---
+  const [rows, setRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchRankings = async () => {
-    if (targetKds.length === 0) return;
-    setIsLoading(true);
-    
+  // -------------------------------------------------------
+  // Fetch available scan dates for a given kingdom
+  // -------------------------------------------------------
+  const fetchDates = useCallback(async (kd) => {
+    setIsDatesLoading(true);
     try {
-      const results = [];
-      
-      // Fetch each Kingdom independently & aggregate
-      for (const kd of targetKds) {
-          const url = `/api/aws/dkp?kd=${kd}&start=${encodeURIComponent(startScan)}&end=${encodeURIComponent(endScan)}&t4=${t4Pts}&t5=${t5Pts}&deads=${deadsPts}`;
-          const res = await fetch(url);
-          const data = await res.json();
-          
-          if (res.ok && data.rankings) {
-              let players = [...data.rankings];
-              
-              // Sort by power or DKP? DKP defines rank here
-              players = players.sort((a, b) => b.dkpScore - a.dkpScore);
-              
-              if (govCount !== "All") {
-                  const limit = parseInt(govCount);
-                  players = players.slice(0, limit);
-              }
-              
-              // Aggregate sum
-              const agg = players.reduce((acc, gov) => {
-                  acc.totalPower += (gov.power || 0);
-                  acc.powerDelta += (gov.pDelta || 0);
-                  acc.t4Kills += (gov.t4Kills || 0);
-                  acc.t5Kills += (gov.t5Kills || 0);
-                  acc.totalDeads += (gov.deads || 0); // Using Raw Deads for aggregation
-                  acc.totalKp += (gov.kDelta || 0); // Using Delta for KP calculations
-                  acc.totalDkp += (gov.dkpScore || 0);
-                  return acc;
-              }, {
-                  kingdom: kd,
-                  totalPower: 0,
-                  powerDelta: 0,
-                  t4Kills: 0,
-                  t5Kills: 0,
-                  totalDeads: 0,
-                  totalKp: 0,
-                  totalDkp: 0
-              });
-              
-              results.push(agg);
-          }
+      const res = await fetch(`/api/aws/dkp/dates?kd=${kd}`);
+      const data = await res.json();
+      if (res.ok && data.dates && data.dates.length > 0) {
+        setAvailableDates(data.dates);
+        setStartScan(data.dates[0]);
+        setEndScan(data.dates[data.dates.length - 1]);
       }
-      
-      // Sort kingdoms by Total DKP
-      setKingdomData(results.sort((a,b) => b.totalDkp - a.totalDkp));
-      
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("[DKP] Failed to fetch dates:", err);
     } finally {
-      setIsLoading(false);
+      setIsDatesLoading(false);
     }
-  };
+  }, []);
 
+  // -------------------------------------------------------
+  // On session load, seed from localStorage
+  // -------------------------------------------------------
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const storedKd = localStorage.getItem('unty_active_kd');
-        if (storedKd) {
-            setTargetKds([storedKd]);
-            fetchDates(storedKd);
-        } else if (session?.user?.tenant?.kingdomId) {
-            setTargetKds([session.user.tenant.kingdomId]);
-            fetchDates(session.user.tenant.kingdomId);
-        }
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem("unty_active_kd");
+    if (stored && !selectedKds.includes(stored)) {
+      setSelectedKds([stored]);
+      fetchDates(stored);
     }
   }, [session]);
 
-  useEffect(() => {
-      if (startScan && endScan && targetKds.length > 0) {
-          fetchRankings();
+  // -------------------------------------------------------
+  // Add a kingdom from the input box
+  // -------------------------------------------------------
+  const handleAddKd = (e) => {
+    e.preventDefault();
+    const clean = kdInput.replace(/\D/g, "").trim();
+    if (!clean) return;
+    if (selectedKds.includes(clean)) { setKdInput(""); return; }
+    const isFirst = selectedKds.length === 0;
+    setSelectedKds((prev) => [...prev, clean]);
+    if (isFirst) fetchDates(clean);
+    setKdInput("");
+  };
+
+  const handleRemoveKd = (kd) => {
+    setSelectedKds((prev) => prev.filter((k) => k !== kd));
+    setRows((prev) => prev.filter((r) => r.kingdom !== kd));
+  };
+
+  // -------------------------------------------------------
+  // Fetch DKP data for all selected kingdoms
+  // -------------------------------------------------------
+  const fetchAllKingdoms = useCallback(async () => {
+    if (selectedKds.length === 0 || !startScan || !endScan) return;
+    setIsLoading(true);
+    const newRows = [];
+    try {
+      for (const kd of selectedKds) {
+        const params = new URLSearchParams({
+          kd,
+          start: startScan,
+          end: endScan,
+          t4: t4Pts,
+          t5: t5Pts,
+          deads: deadsPts,
+        });
+        const res = await fetch(`/api/aws/dkp?${params.toString()}`);
+        const data = await res.json();
+        if (!res.ok || !data.rankings) continue;
+
+        let players = [...data.rankings].sort((a, b) => b.dkpScore - a.dkpScore);
+        if (govCount !== "All") {
+          players = players.slice(0, parseInt(govCount));
+        }
+
+        const agg = players.reduce(
+          (acc, gov) => {
+            acc.totalPower += gov.power || 0;
+            acc.powerDelta += typeof gov.pDelta === "number" ? gov.pDelta : 0;
+            acc.t4Kills += gov.t4Kills || 0;
+            acc.t5Kills += gov.t5Kills || 0;
+            acc.totalDeads += gov.deads || 0;
+            acc.totalKp += gov.kDelta || 0;
+            acc.totalDkp += gov.dkpScore || 0;
+            return acc;
+          },
+          { kingdom: kd, totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, totalKp: 0, totalDkp: 0 }
+        );
+
+        newRows.push(agg);
       }
+      setRows(newRows.sort((a, b) => b.totalDkp - a.totalDkp));
+    } catch (err) {
+      console.error("[DKP] Fetch error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedKds, startScan, endScan, t4Pts, t5Pts, deadsPts, govCount]);
+
+  // Auto-fetch when dates or controls change
+  useEffect(() => {
+    if (startScan && endScan && selectedKds.length > 0) {
+      fetchAllKingdoms();
+    }
   }, [startScan, endScan, t4Pts, t5Pts, deadsPts, govCount]);
 
-  const toggleKingdom = (kdStr) => {
-      setTargetKds(prev => {
-          if (prev.includes(kdStr)) {
-              return prev.filter(k => k !== kdStr);
-          } else {
-              const nu = [...prev, kdStr];
-              if (prev.length === 0) fetchDates(kdStr); // Proxy fetch if first
-              return nu;
-          }
-      });
-  };
-
-  const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
-
-  const [kdInput, setKdInput] = useState("");
-
-  const handleAddKd = (e) => {
-      e.preventDefault();
-      if (!kdInput) return;
-      const cleanKd = kdInput.replace(/[^0-9]/g, '');
-      if (cleanKd && !targetKds.includes(cleanKd)) {
-          setTargetKds(prev => [...prev, cleanKd]);
-          if (targetKds.length === 0) fetchDates(cleanKd);
-      }
-      setKdInput("");
-  };
-
-  const removeKd = (kdStr) => {
-      setTargetKds(prev => prev.filter(k => k !== kdStr));
-  };
-
   return (
-    <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4 flex flex-col items-center">
-      
-      {/* Search Input Toolbar */}
-      <div className="w-full max-w-7xl">
-         <form onSubmit={handleAddKd} className="flex flex-wrap items-center gap-3">
-             <input 
-                 type="text" 
-                 value={kdInput}
-                 onChange={(e) => setKdInput(e.target.value)}
-                 placeholder="FILTER KD (OPTIONAL)"
-                 className="bg-[#13161c] border border-[#1e222b] text-gray-400 text-xs font-bold uppercase tracking-widest p-2 px-4 rounded outline-none focus:border-fuchsia-500 w-48"
-             />
-             <button type="submit" className="bg-[#13161c] border border-[#1e222b] hover:border-fuchsia-500/50 hover:bg-fuchsia-500/10 text-fuchsia-400 text-xs font-bold uppercase tracking-widest px-4 py-2 rounded transition-colors flex items-center gap-1">
-                 + Add
-             </button>
+    <div className="w-full space-y-0 animate-fade-in pb-12">
 
-             {targetKds.map(k => (
-                <div key={k} className="flex items-center gap-2 bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded">
-                   KD {k}
-                   <button type="button" onClick={() => removeKd(k)} className="text-fuchsia-400 hover:text-white ml-1">&times;</button>
-                </div>
-             ))}
-         </form>
+      {/* ─── Kingdom Tab Bar (U1 style) ─────────────────────── */}
+      <div className="w-full border-b border-[#1e222b] bg-[#0a0c0f] px-4 py-2 flex items-center gap-2 flex-wrap overflow-x-auto">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 shrink-0 mr-2">
+          DKP Results
+        </span>
+
+        {selectedKds.map((kd) => (
+          <div
+            key={kd}
+            className="flex items-center gap-1.5 bg-[#13161c] border border-[#2d323e] hover:border-fuchsia-500/40 text-fuchsia-300 text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded transition-colors"
+          >
+            Kingdom {kd}
+            <button
+              onClick={() => handleRemoveKd(kd)}
+              className="text-gray-500 hover:text-white transition-colors ml-1"
+            >
+              <X size={10} />
+            </button>
+          </div>
+        ))}
+
+        {/* Inline KD add form */}
+        <form onSubmit={handleAddKd} className="flex items-center gap-1">
+          <input
+            type="text"
+            value={kdInput}
+            onChange={(e) => setKdInput(e.target.value)}
+            placeholder="Add KD #"
+            className="bg-[#13161c] border border-[#1e222b] focus:border-fuchsia-500/50 text-white text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded outline-none w-24 transition-colors"
+          />
+          <button
+            type="submit"
+            className="bg-[#13161c] border border-[#1e222b] hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10 text-fuchsia-400 px-2 py-1 rounded transition-colors"
+          >
+            <Plus size={14} />
+          </button>
+        </form>
+
+        <div className="ml-auto shrink-0 text-[11px] font-mono text-emerald-500 font-bold tracking-widest">
+          Cloud: AWS Connected
+        </div>
       </div>
 
-      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden w-full max-w-7xl">
-        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-8 relative z-10 w-full">
-            
-            {/* Title Details */}
-            <div className="flex flex-col gap-2">
-                 <h1 className="text-2xl font-black text-white tracking-widest uppercase">
-                   All Kingdom DKP Results
-                 </h1>
-                 
-                 <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
-                    <select 
-                       value={startScan}
-                       onChange={(e) => setStartScan(e.target.value)}
-                       disabled={isDatesLoading || availableDates.length === 0}
-                       className="bg-[#13161c] border border-[#1e222b] text-white p-1.5 rounded text-xs font-mono disabled:opacity-50 outline-none"
-                    >
-                        {availableDates.map(d => <option key={`start-${d}`} value={d}>{d}</option>)}
-                    </select>
+      {/* ─── Main Content Panel ──────────────────────────────── */}
+      <div className="px-6 pt-6">
 
-                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest ml-4">End Scan</span>
-                    <select 
-                       value={endScan}
-                       onChange={(e) => setEndScan(e.target.value)}
-                       disabled={isDatesLoading || availableDates.length === 0}
-                       className="bg-[#13161c] border border-[#1e222b] text-white p-1.5 rounded text-xs font-mono disabled:opacity-50 outline-none"
-                    >
-                        {availableDates.map(d => <option key={`end-${d}`} value={d}>{d}</option>)}
-                    </select>
-                 </div>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center bg-[#13161c] p-2 px-3 rounded border border-[#1e222b] gap-2">
-                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">DKP Mode</span>
-                    <select className="bg-transparent text-white text-xs outline-none">
-                        <option>Basic</option>
-                        <option>Advanced (HoH Scan)</option>
-                    </select>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-cyan-500 uppercase font-bold tracking-widest">T4 Pts:</span>
-                    <input type="number" value={t4Pts} onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)} className="w-12 bg-[#13161c] text-white font-mono text-center text-sm font-bold border border-[#1e222b] rounded py-1 outline-none" />
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">T5 Pts:</span>
-                    <input type="number" value={t5Pts} onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)} className="w-12 bg-[#13161c] text-white font-mono text-center text-sm font-bold border border-[#1e222b] rounded py-1 outline-none" />
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-rose-500 uppercase font-bold tracking-widest">Deads Pts:</span>
-                    <input type="number" value={deadsPts} onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)} className="w-12 bg-[#13161c] text-white font-mono text-center text-sm font-bold border border-[#1e222b] rounded py-1 outline-none" />
-                </div>
+        {/* Controls row */}
+        <div className="flex flex-col xl:flex-row xl:items-end gap-6 mb-6">
 
-                <div className="flex items-center bg-[#13161c] p-2 px-3 rounded border border-[#1e222b] gap-2 ml-4">
-                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Governor Count</span>
-                    <select value={govCount} onChange={(e) => setGovCount(e.target.value)} className="bg-transparent text-white text-xs outline-none font-bold">
-                        <option value="All">All Governors</option>
-                        <option value="1000">Top 1000</option>
-                        <option value="650">Top 650</option>
-                        <option value="400">Top 400</option>
-                        <option value="300">Top 300</option>
-                        <option value="100">Top 100</option>
-                    </select>
-                </div>
-                
-                <button onClick={fetchRankings} disabled={isLoading || targetKds.length === 0} className="p-2 ml-2 bg-[#0a0c0f] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded transition-colors disabled:opacity-50">
-                  <RefreshCw size={16} className={isLoading ? "animate-spin text-fuchsia-500" : ""} />
-               </button>
+          {/* Title + Scan Range */}
+          <div className="flex flex-col gap-3">
+            <h1 className="text-xl font-black text-white uppercase tracking-widest">
+              All Kingdom DKP Results
+            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
+                <select
+                  value={startScan}
+                  onChange={(e) => setStartScan(e.target.value)}
+                  disabled={isDatesLoading || availableDates.length === 0}
+                  className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-2 py-1.5 rounded outline-none focus:border-fuchsia-500 disabled:opacity-40 min-w-[200px]"
+                >
+                  {availableDates.length === 0 && <option>— Add a KD first —</option>}
+                  {availableDates.map((d) => (
+                    <option key={`s-${d}`} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">End Scan</span>
+                <select
+                  value={endScan}
+                  onChange={(e) => setEndScan(e.target.value)}
+                  disabled={isDatesLoading || availableDates.length === 0}
+                  className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-2 py-1.5 rounded outline-none focus:border-fuchsia-500 disabled:opacity-40 min-w-[200px]"
+                >
+                  {availableDates.length === 0 && <option>— Add a KD first —</option>}
+                  {availableDates.map((d) => (
+                    <option key={`e-${d}`} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+          </div>
+
+          {/* Right-side controls */}
+          <div className="flex flex-wrap items-end gap-4 xl:ml-auto">
+            {/* DKP Mode */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">DKP Mode</span>
+              <select className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-bold px-3 py-1.5 rounded outline-none">
+                <option>Basic</option>
+                <option>Advanced (HoH Scan)</option>
+              </select>
+            </div>
+
+            {/* T4 Pts */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-cyan-500 uppercase font-black tracking-widest">T4 Pts</span>
+              <input
+                type="number"
+                value={t4Pts}
+                onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)}
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            {/* T5 Pts */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-indigo-400 uppercase font-black tracking-widest">T5 Pts</span>
+              <input
+                type="number"
+                value={t5Pts}
+                onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)}
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-indigo-400"
+              />
+            </div>
+
+            {/* Deads Pts */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-rose-500 uppercase font-black tracking-widest">Deads Pts</span>
+              <input
+                type="number"
+                value={deadsPts}
+                onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)}
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-rose-500"
+              />
+            </div>
+
+            {/* Governor Count */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Governor Count</span>
+              <select
+                value={govCount}
+                onChange={(e) => setGovCount(e.target.value)}
+                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-bold px-3 py-1.5 rounded outline-none"
+              >
+                <option value="All">All Governors</option>
+                <option value="1000">Top 1000</option>
+                <option value="650">Top 650</option>
+                <option value="400">Top 400</option>
+                <option value="300">Top 300</option>
+                <option value="100">Top 100</option>
+              </select>
+            </div>
+
+            {/* Refresh */}
+            <button
+              onClick={fetchAllKingdoms}
+              disabled={isLoading || selectedKds.length === 0}
+              className="flex items-center justify-center w-9 h-9 bg-[#13161c] border border-[#1e222b] hover:border-fuchsia-500/40 rounded transition-colors disabled:opacity-40"
+            >
+              <RefreshCw size={15} className={isLoading ? "animate-spin text-fuchsia-500" : "text-gray-400"} />
+            </button>
+          </div>
         </div>
 
-        {/* Global DKP Aggregation Table */}
-        <div className="mt-8 border border-[#1e222b] rounded-lg overflow-hidden bg-[#0a0c0f]">
-            <div className="overflow-x-auto">
-                 <table className="w-full whitespace-nowrap">
-                    <thead className="bg-[#13161c]">
-                       <tr>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Kingdom</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total Power</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Power +/-</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total T4 Kills</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total T5 Kills</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total Deads</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total KP</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#1e222b]">Total DKP</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#1e222b]">
-                       {kingdomData.length === 0 ? (
-                           <tr>
-                              <td colSpan={8} className="px-4 py-8 text-center text-xs font-bold uppercase tracking-widest text-gray-500 italic">
-                                  No Data - Change constraints to recalculate results
-                              </td>
-                           </tr>
-                       ) : kingdomData.map((kdRow) => (
-                           <tr key={`kdRow-${kdRow.kingdom}`} className="hover:bg-white/5 transition-colors">
-                               <td className="px-4 py-4 text-left font-black text-white tracking-widest">{kdRow.kingdom}</td>
-                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.totalPower)}</td>
-                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.powerDelta)}</td>
-                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.t4Kills)}</td>
-                               <td className="px-4 py-4 text-left font-mono font-bold text-gray-300">{formatNum(kdRow.t5Kills)}</td>
-                               <td className="px-4 py-4 text-left font-mono font-bold text-rose-500/80">{formatNum(kdRow.totalDeads)}</td>
-                               <td className="px-4 py-4 text-right font-mono font-bold text-cyan-500/80">{formatNum(kdRow.totalKp)}</td>
-                               <td className="px-4 py-4 text-right font-mono font-bold text-fuchsia-500 text-lg">{formatNum(kdRow.totalDkp)}</td>
-                           </tr>
-                       ))}
-                    </tbody>
-                 </table>
-            </div>
-            
-            {/* Visual Bar at Bottom matching U1 */}
-            <div className="w-full h-1 bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-50"></div>
+        {/* ─── Data Table ─────────────────────────────────────── */}
+        <div className="border border-[#1e222b] rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full whitespace-nowrap text-[12px]">
+              <thead className="bg-[#0a0c0f] border-b border-[#1e222b]">
+                <tr>
+                  {["Kingdom","Total Power","Power +/-","Total T4 Kills","Total T5 Kills","Total Deads","Total KP","Total DKP"].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1e222b] bg-[#0d1014]">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center">
+                      <RefreshCw size={24} className="animate-spin text-fuchsia-500 mx-auto mb-3" />
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                        Calculating DKP…
+                      </p>
+                    </td>
+                  </tr>
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center text-[11px] font-bold uppercase tracking-widest text-gray-600">
+                      {selectedKds.length === 0
+                        ? "Add kingdoms above to load DKP results"
+                        : "No Data — Upload missing file to see results"}
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((row) => (
+                    <tr key={row.kingdom} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3 font-black text-white tracking-widest">{row.kingdom}</td>
+                      <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.totalPower)}</td>
+                      <td className={`px-4 py-3 font-mono font-bold ${row.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {row.powerDelta >= 0 ? "+" : ""}{formatNum(row.powerDelta)}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.t4Kills)}</td>
+                      <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.t5Kills)}</td>
+                      <td className="px-4 py-3 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
+                      <td className="px-4 py-3 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
+                      <td className="px-4 py-3 font-mono font-black text-fuchsia-400 text-[13px]">
+                        {formatNum(row.totalDkp)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* U1 bottom gradient bar */}
+          <div className="h-[3px] bg-gradient-to-r from-transparent via-fuchsia-600/60 to-transparent" />
         </div>
 
       </div>
