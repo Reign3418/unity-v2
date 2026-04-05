@@ -384,6 +384,7 @@ export async function getKingdomDeltas(kingdomId) {
                             power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
                             killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
                             commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N) || 0,
+                            deads: parseInt(attrs['Dead']?.N || attrs['deads']?.N) || parseInt(attrs['dead']?.N) || 0,
                         };
                     }
                 }
@@ -405,6 +406,8 @@ export async function getKingdomDeltas(kingdomId) {
             
             // "NEW" arrival identified by `powerDelta = 'NEW'` string for UI processing
             let powerDelta = prevData ? (latestData.power - prevData.power) : 'NEW';
+            let kpDelta = prevData ? (latestData.killPoints - prevData.killPoints) : 0;
+            let deadsDelta = prevData ? (latestData.deads - prevData.deads) : 0;
             let cmdBase = prevData ? prevData.commanderPower : 0;
             
             roster.push({
@@ -413,9 +416,12 @@ export async function getKingdomDeltas(kingdomId) {
                 alliance: latestData.alliance,
                 power: latestData.power,
                 killPoints: latestData.killPoints,
+                deads: latestData.deads,
                 commanderPower: latestData.commanderPower,
                 cmdBase: cmdBase,
-                powerDelta: powerDelta
+                powerDelta: powerDelta,
+                kpDelta: kpDelta,
+                deadsDelta: deadsDelta
             });
         }
         
@@ -428,9 +434,12 @@ export async function getKingdomDeltas(kingdomId) {
                     alliance: prevData.alliance,
                     power: 0, // 0 latest power triggers "Missing" flag in Tracker UI
                     killPoints: prevData.killPoints,
+                    deads: prevData.deads,
                     commanderPower: 0,
                     cmdBase: prevData.commanderPower,
-                    powerDelta: 'MISSING'
+                    powerDelta: 'MISSING',
+                    kpDelta: 0,
+                    deadsDelta: 0
                 });
             }
         }
