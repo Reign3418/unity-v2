@@ -4126,34 +4126,6 @@ export async function getKingdomSupporterStatus(kingdomId) {
     }
 }
 
-/**
- * Updates a Kingdom's Supporter status in the Database. Used via Webhooks.
- */
-export async function setKingdomSupporterStatus(kingdomId, isSupporter) {
-    const tableName = process.env.AWS_TABLE_NAME;
-    if (!tableName || !kingdomId) return false;
-
-    try {
-        const _id = String(kingdomId).replace(/[^\d]/g, '');
-        const params = {
-            TableName: tableName,
-            Key: {
-                'PK': { S: `KINGDOM#${_id}` },
-                'SK': { S: 'CONFIG' }
-            },
-            UpdateExpression: 'SET supporterStatus = :s',
-            ExpressionAttributeValues: {
-                ':s': { BOOL: isSupporter }
-            }
-        };
-        
-        await dbClient.send(new UpdateItemCommand(params));
-        return true;
-    } catch (e) {
-        console.error('AWS Set Kingdom Supporter Status Error:', e);
-        return false;
-    }
-}
 
 /**
  * Creates a global System Notification record in DynamoDB.
