@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink
+  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink, Search
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
