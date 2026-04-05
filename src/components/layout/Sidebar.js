@@ -125,12 +125,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         
         {/* Support Engine */}
         <div className="flex flex-col gap-4">
-          <a href="https://www.buymeacoffee.com/ReignsPlace" target="_blank" rel="noreferrer" className="flex justify-center hover:-translate-y-0.5 transition-transform drop-shadow-[0_4px_14px_rgba(54,194,196,0.15)]">
-            <img 
-              src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=ReignsPlace&button_colour=36c2c4&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" 
-              alt="Buy me a coffee" 
-              className="h-[42px] object-contain rounded-[5px]" 
-            />
+          <a href="https://ko-fi.com/ReignsPlace" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/60 px-4 py-3 rounded-lg transition-all duration-300 font-bold text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(16,185,129,0.1)] group">
+            <Coffee size={16} className="group-hover:-rotate-12 group-hover:scale-110 transition-transform duration-300" />
+            <span>Support on Ko-fi</span>
           </a>
 
           {session ? (
