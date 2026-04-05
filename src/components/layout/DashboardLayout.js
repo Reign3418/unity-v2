@@ -61,7 +61,14 @@ export default function DashboardLayout({ children }) {
   let blockPrimaryReason = "";
   let blockSubText = "";
 
-  if (session && !session.user.isSuperAdmin && gatesCache && !pathname.includes('/admin')) {
+  if (session && session.user?.accessToken === "FREE_MODE") {
+      // Hard block Freemode from all modules except the root dashboard splash
+      if (!pathname.endsWith('/dashboard')) {
+          isBlocked = true;
+          blockPrimaryReason = "FREEMODE_RESTRICTION";
+          blockSubText = "This matrix is locked in Freemode. Please authenticate via Discord or request a Guest Passcode to execute analytical scans.";
+      }
+  } else if (session && !session.user.isSuperAdmin && gatesCache && !pathname.includes('/admin')) {
       // Find if the current route has a registered lock
       const activeGate = gatesCache.find(g => pathname === g.path || pathname.startsWith(g.path + '/'));
       

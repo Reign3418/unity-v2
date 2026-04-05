@@ -68,80 +68,81 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
   callbacks: {
     async jwt({ token, user, account, profile }) {
-      if (account?.provider === 'credentials' && user) {
+      if (account?.provider === 'credentials' || account?.provider === 'guest' || account?.provider === 'freemode') {
           // ==========================================
           // EMERGENCY OFFLINE LOGIN BYPASS (DISCORD DOWN)
           // ==========================================
-          token.id = user.id;
-          token.username = user.name;
-          token.avatar = user.image;
-          token.accessToken = "OFFLINE_MODE";
-          
-          token.isMember = true;
-          token.isLeader = true;
-          token.isSuperAdmin = true;
-          token.isSupporter = true;
-          
-          token.tenant = {
-              guildId: "emergency_admin",
-              kingdomId: "3418",
-              leadershipRoleId: "master",
-              allowedKingdoms: ["3418", "4025", "3155", "3738"] // Grant blanket upload powers to active servers
-          };
-          token.governorConfig = {};
-          token.ownedGuilds = [];
-          return token;
-      }
+          if (user?.id === "reign3418") {
+              token.id = user.id;
+              token.username = user.name;
+              token.avatar = user.image;
+              token.accessToken = "OFFLINE_MODE";
+              
+              token.isMember = true;
+              token.isLeader = true;
+              token.isSuperAdmin = true;
+              token.isSupporter = true;
+              
+              token.tenant = {
+                  guildId: "emergency_admin",
+                  kingdomId: "3418",
+                  leadershipRoleId: "master",
+                  allowedKingdoms: ["3418", "4025", "3155", "3738"]
+              };
+              token.governorConfig = {};
+              token.ownedGuilds = [];
+              return token;
+          }
 
-      // ==========================================
-      // WEB GUEST LOGIN BYPASS
-      // ==========================================
-      if (account?.provider === 'guest' && user) {
-          token.id = user.id;
-          token.username = user.name;
-          token.avatar = user.image;
-          token.accessToken = "GUEST_MODE";
-          
-          token.isMember = true;
-          // E.g. Role "Data Analyst" inherently grants leader privileges without Admin
-          token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin" || user.guestData?.role === "Data Analyst";
-          token.isSuperAdmin = user.guestData?.role === "Admin"; // Legacy fallback only, removed from new generation
-          token.isSupporter = true; // Temporary explicit whitelist inheritance for guests who tipped
-          
-          token.tenant = {
-              guildId: "guest",
-              kingdomId: user.guestData?.kingdomId || "3155",
-              leadershipRoleId: "guest",
-              allowedKingdoms: [user.guestData?.kingdomId || "3155"]
-          };
-          token.governorConfig = {};
-          token.ownedGuilds = [];
-          return token;
-      }
+          // ==========================================
+          // WEB GUEST LOGIN BYPASS
+          // ==========================================
+          if (user?.id?.startsWith("GUEST_")) {
+              token.id = user.id;
+              token.username = user.name;
+              token.avatar = user.image;
+              token.accessToken = "GUEST_MODE";
+              
+              token.isMember = true;
+              token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin" || user.guestData?.role === "Data Analyst";
+              token.isSuperAdmin = user.guestData?.role === "Admin";
+              token.isSupporter = true;
+              
+              token.tenant = {
+                  guildId: "guest",
+                  kingdomId: user.guestData?.kingdomId || "3155",
+                  leadershipRoleId: "guest",
+                  allowedKingdoms: [user.guestData?.kingdomId || "3155"]
+              };
+              token.governorConfig = {};
+              token.ownedGuilds = [];
+              return token;
+          }
 
-      // ==========================================
-      // UNRESTRICTED FREEMODE LOGIN BYPASS
-      // ==========================================
-      if (account?.provider === 'freemode' && user) {
-          token.id = user.id;
-          token.username = user.name;
-          token.avatar = user.image;
-          token.accessToken = "FREE_MODE";
-          
-          token.isMember = true;
-          token.isLeader = false;
-          token.isSuperAdmin = false;
-          token.isSupporter = false;
-          
-          token.tenant = {
-              guildId: "freemode",
-              kingdomId: null, // Lock freemode users to a default state with no data access
-              leadershipRoleId: "freemode",
-              allowedKingdoms: []
-          };
-          token.governorConfig = {};
-          token.ownedGuilds = [];
-          return token;
+          // ==========================================
+          // UNRESTRICTED FREEMODE LOGIN BYPASS
+          // ==========================================
+          if (user?.id === "freemode") {
+              token.id = user.id;
+              token.username = user.name;
+              token.avatar = user.image;
+              token.accessToken = "FREE_MODE";
+              
+              token.isMember = true;
+              token.isLeader = false;
+              token.isSuperAdmin = false;
+              token.isSupporter = false;
+              
+              token.tenant = {
+                  guildId: "freemode",
+                  kingdomId: null, // Lock freemode users to a default state with no data access
+                  leadershipRoleId: "freemode",
+                  allowedKingdoms: []
+              };
+              token.governorConfig = {};
+              token.ownedGuilds = [];
+              return token;
+          }
       }
 
       if (account && profile) {
