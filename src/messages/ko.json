@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Discord ID를 게임 내 총독과 동기화하고 농장 계정을 자동으로 통합하며 어떤 Discord 텍스트 채널에서든 라이브 DKP 순위표를 직접 쿼리하십시오.",
     "mkt_kofi_title": "VIP 후원자 지위 달성",
     "mkt_kofi_desc": "Unity는 전 세계적으로 무거운 계산 부하를 실행합니다. 왕국 리더십이 팁을 제공하면 전체 서버가 모든 제한된 기능에 대해 즉시 영구적으로 화이트리스트에 추가됩니다.",
-    "btn_support_us": "Ko-fi를 통한 화이트리스트"
+    "btn_support_us": "Ko-fi를 통한 화이트리스트",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "글로벌 시간 시계",

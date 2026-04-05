@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "قم بمزامنة معرفات Discord مع حكام اللعبة ، ووحد حسابات المزارع تلقائياً ، واستعلم عن لوحات صدارة DKP المباشرة مباشرة من أي قناة نصية في Discord.",
     "mkt_kofi_title": "تحقيق حالة الداعم VIP",
     "mkt_kofi_desc": "يقوم Unity بتشغيل أحمال حسابية وحشية على مستوى العالم. إذا قام قادة مملكتك بدعمنا ماليًا، فسيتم إدراج خادمك بالكامل بشكل فوري ودائم في القائمة البيضاء لجميع الميزات المقيدة على مستوى الخادم.",
-    "btn_support_us": "القائمة البيضاء عبر Ko-fi"
+    "btn_support_us": "القائمة البيضاء عبر Ko-fi",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "الساعة العالمية الرئيسية",

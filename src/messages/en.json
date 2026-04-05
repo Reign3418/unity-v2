@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Sync Discord IDs to in-game Governors, unify Farm accounts automatically, and query live DKP leaderboards directly from any Discord text channel.",
     "mkt_kofi_title": "Achieve VIP Supporter Status",
     "mkt_kofi_desc": "Unity runs brutal computational loads globally. If your Kingdom leadership tips us, your entire server is instantly, permanently whitelisted for all restricted features server-wide.",
-    "btn_support_us": "Whitelisting via Ko-fi"
+    "btn_support_us": "Whitelisting via Ko-fi",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "Global Master Clock",

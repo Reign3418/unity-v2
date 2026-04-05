@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Synchronisez les identifiants Discord avec les Gouverneurs du jeu, unifiez automatiquement les comptes de Ferme et interrogez les classements DKP en direct directement depuis n'importe quel canal texte Discord.",
     "mkt_kofi_title": "Atteindre le Statut de Supporter VIP",
     "mkt_kofi_desc": "Unity exécute des charges de calcul brutales à l'échelle mondiale. Si la direction de votre royaume nous soutient, l'intégralité de votre serveur est instantanément et définitivement placée sur la liste blanche.",
-    "btn_support_us": "Liste Blanche via Ko-fi"
+    "btn_support_us": "Liste Blanche via Ko-fi",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "Horloge Maîtresse Mondiale",

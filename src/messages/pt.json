@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Sincronize IDs do Discord, unifique as contas de Fazenda automaticamente e consulte as tabelas de classificação de DKP diretamente de qualquer canal de texto do Discord.",
     "mkt_kofi_title": "Alcance o Status de Apoiador VIP",
     "mkt_kofi_desc": "A Unity executa cargas computacionais brutais globalmente. Se a liderança do seu reino der uma gorjeta, o seu servidor será adicionado à lista de permissões permanente.",
-    "btn_support_us": "Lista de Permissões via Ko-fi"
+    "btn_support_us": "Lista de Permissões via Ko-fi",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "Relógio Mestre Global",

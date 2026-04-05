@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Синхронизируйте идентификаторы Discord с игровыми Правителями, автоматически объединяйте счета Ферм и запрашивайте живые списки лидеров DKP прямо из любого текстового канала Discord.",
     "mkt_kofi_title": "Получить Статус VIP Сподвижника",
     "mkt_kofi_desc": "Unity выполняет колоссальные вычислительные нагрузки по всему миру. Если руководство вашего Королевства поддержит нас, весь ваш сервер будет навсегда внесен в белый список.",
-    "btn_support_us": "Белый Список через Ko-fi"
+    "btn_support_us": "Белый Список через Ko-fi",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "Мировые Часы",

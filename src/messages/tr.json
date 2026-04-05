@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Discord kimliklerini oyun içi Valilerle senkronize edin, Çiftlik hesaplarını otomatik olarak birleştirin ve DKP lider tablolarını herhangi bir Discord metin kanalından canlı olarak sorgulayın.",
     "mkt_kofi_title": "VIP Destekçi Statüsüne Ulaşın",
     "mkt_kofi_desc": "Unity, dünya çapında ağır hesaplama yükleri çalıştırır. Krallık liderliğiniz bize bahşiş verirse, tüm sunucunuz kalıcı olarak beyaz listeye alınır.",
-    "btn_support_us": "Ko-fi aracılığıyla Beyaz Liste"
+    "btn_support_us": "Ko-fi aracılığıyla Beyaz Liste",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "Dünya Ana Saati",

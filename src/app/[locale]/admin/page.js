@@ -29,8 +29,8 @@ export default function AdminConsole() {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Forms
-  const [passForm, setPassForm] = useState({ kingdomId: "", role: "Member", poc: "", expireDays: "7" });
-  const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "Member" });
+  const [passForm, setPassForm] = useState({ kingdomId: "", role: "User", poc: "", expireDays: "7" });
+  const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "User" });
   const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
   const [userForm, setUserForm] = useState({ discordId: "", kingdomId: "" });
   const [supporterForm, setSupporterForm] = useState({ kingdomId: "" });
@@ -662,12 +662,14 @@ export default function AdminConsole() {
                  <input type="number" placeholder="Target Kingdom (e.g. 3418)" className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none transition-colors" value={passForm.kingdomId} onChange={e => setPassForm({...passForm, kingdomId: e.target.value})} />
                  <div className="flex gap-4">
                      <select className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
-                        <option value="Member">R3/Member</option>
-                        <option value="Leader">R4/Leader</option>
+                        <option value="User">User (Standard Node)</option>
+                        <option value="Data Analyst">Data Analyst (Elevated View)</option>
                      </select>
                      <select className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
+                        <option value="1">1 Day</option>
                         <option value="7">7 Days</option>
                         <option value="30">30 Days</option>
+                        <option value="9999">Permanent (Never Expires)</option>
                      </select>
                  </div>
                  <button onClick={handleGeneratePasscode} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded p-3 text-xs font-bold uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]">Execute Generation</button>
@@ -682,8 +684,8 @@ export default function AdminConsole() {
                  <div className="flex gap-4">
                      <input type="number" placeholder="Kingdom" className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.kingdomId} onChange={e => setManualUserForm({...manualUserForm, kingdomId: e.target.value})} />
                      <select className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.role} onChange={e => setManualUserForm({...manualUserForm, role: e.target.value})}>
-                        <option value="Member">Member</option>
-                        <option value="Leader">Leader</option>
+                        <option value="User">User (Standard Node)</option>
+                        <option value="Data Analyst">Data Analyst (Elevated View)</option>
                      </select>
                  </div>
                  <button onClick={handleAddManualUser} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded p-3 text-xs font-bold uppercase tracking-widest transition-all">Bypass Pipeline</button>
@@ -699,7 +701,10 @@ export default function AdminConsole() {
                <div key={p.passcode} className="bg-[#161920] border border-[#1e222b] hover:border-emerald-500/50 rounded-lg p-4 relative group transition-colors">
                   <div className="text-emerald-400 font-mono font-bold tracking-widest text-lg mb-1">{p.passcode}</div>
                   <div className="text-[10px] text-gray-400 uppercase tracking-widest">{p.playerName} • KD {p.kingdomId} • {p.role}</div>
-                  <div className="text-[10px] text-emerald-600 font-bold mt-2"><Clock size={10} className="inline mr-1"/> Expires: {new Date(p.expiresAt).toLocaleDateString()}</div>
+                  <div className="text-[10px] text-emerald-600 font-bold mt-2">
+                      <Clock size={10} className="inline mr-1"/> 
+                      {new Date(p.expiresAt).getFullYear() > 2100 ? 'Permanent' : `Expires: ${new Date(p.expiresAt).toLocaleDateString()}`}
+                  </div>
                   <button onClick={() => handleRevokePasscode(p.passcode)} className="absolute top-4 right-4 text-gray-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
                </div>
             ))}

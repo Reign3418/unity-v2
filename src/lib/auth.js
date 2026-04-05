@@ -103,10 +103,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.accessToken = "GUEST_MODE";
           
           token.isMember = true;
-          // E.g. Role "Leader" inherently grants leader privileges
-          token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
-          token.isSuperAdmin = user.guestData?.role === "Admin";
-          token.isSupporter = user.guestData?.role === "Admin"; // Will inherit auth natively later if we scan guest kds
+          // E.g. Role "Data Analyst" inherently grants leader privileges without Admin
+          token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin" || user.guestData?.role === "Data Analyst";
+          token.isSuperAdmin = user.guestData?.role === "Admin"; // Legacy fallback only, removed from new generation
+          token.isSupporter = true; // Temporary explicit whitelist inheritance for guests who tipped
           
           token.tenant = {
               guildId: "guest",

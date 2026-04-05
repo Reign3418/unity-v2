@@ -361,6 +361,31 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Feature 4: Web Passcodes for Restricted Regions */}
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 group">
+              <div className="flex-1 space-y-4 md:pl-12">
+                 <div className="w-12 h-12 bg-amber-500/10 rounded-xl border border-amber-500/30 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                   <Key className="text-amber-400" size={24} />
+                 </div>
+                 <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest">{t('mkt_feat_4_title')}</h2>
+                 <p className="text-gray-400 leading-relaxed font-mono text-sm max-w-lg">{t('mkt_feat_4_desc')}</p>
+              </div>
+              <div className="flex-1 w-full bg-[#0a0c10] border border-[#1e222b] rounded-2xl p-2 shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden transition-colors relative">
+                 <div className="absolute inset-0 bg-gradient-to-bl from-amber-500/10 to-transparent z-0 opacity-50"></div>
+                 <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] flex items-center justify-center relative overflow-hidden z-10">
+                    <div className="flex flex-col gap-4 w-3/4 mx-auto blur-[1px]">
+                       <div className="h-10 border border-amber-500/30 bg-amber-500/5 rounded-lg flex items-center justify-center font-mono text-amber-500 tracking-widest">
+                          [ GUEST PASS ALGORITHM ]
+                       </div>
+                       <div className="h-10 border border-[#1e222b] bg-[#161920] rounded-lg"></div>
+                    </div>
+                    <div className="absolute z-20 w-48 h-48 border border-amber-500/30 rounded-full animate-[spin_10s_linear_infinite] flex items-center justify-center">
+                       <Shield size={64} className="text-amber-500/20" />
+                    </div>
+                 </div>
+              </div>
+            </div>
+
         </div>
 
         {/* =========================================

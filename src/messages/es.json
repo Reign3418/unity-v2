@@ -72,7 +72,9 @@
     "mkt_feat_3_desc": "Sincronice las ID de Discord con los Gobernadores del juego, unifique las cuentas de Granja automáticamente y consulte las tablas de clasificación de DKP en vivo directamente desde cualquier canal de texto de Discord.",
     "mkt_kofi_title": "Alcanza el Estatus de Partidario VIP",
     "mkt_kofi_desc": "Unity ejecuta cargas computacionales brutales a nivel mundial. Si su liderazgo del Reino nos da una propina, su servidor completo se incluirá instantánea y permanentemente en la lista blanca para todas las funciones restringidas en todo el servidor.",
-    "btn_support_us": "Lista Blanca a través de Ko-fi"
+    "btn_support_us": "Lista Blanca a través de Ko-fi",
+    "mkt_feat_4_title": "Global Access Override",
+    "mkt_feat_4_desc": "Discord banned in your country? No problem. We provide active Kingdom Supporters with direct native web passcodes that completely bypass Discord, ensuring no player is left behind."
   },
   "WorldClock": {
     "header": "Reloj Maestro Global",
