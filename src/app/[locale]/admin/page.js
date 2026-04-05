@@ -337,10 +337,15 @@ export default function AdminConsole() {
                   <div key={user.discordId} className="bg-[#0a0c0f] border border-[#1e222b] hover:border-cyan-500/30 rounded-lg p-4 flex flex-col gap-3 transition-colors relative overflow-hidden">
                     <div className="flex justify-between items-start">
                        <div className="flex items-center gap-3">
-                         <img src={`https://cdn.discordapp.com/avatars/${user.discordId}/${session?.user?.avatar || ""}.png`} className="w-8 h-8 rounded-full bg-[#1e222b]" onError={(e)=>{e.target.src="https://cdn.discordapp.com/embed/avatars/0.png"}} alt=""/>
+                         <div className="w-8 h-8 rounded-full bg-[#161920] text-cyan-500 flex items-center justify-center font-bold border border-[#1e222b] shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                           {(user.notes || user.username || "A").charAt(0).toUpperCase()}
+                         </div>
                          <div>
-                           <div className="text-white font-bold text-sm tracking-widest">{user.discordId}</div>
-                           <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-1">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")}</div>
+                           <div className="text-white font-bold text-sm tracking-widest">{user.notes || user.username || `Agent ${user.discordId.substring(0, 6)}`}</div>
+                           <div className="flex items-center gap-2 mt-1">
+                             <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">{user.role || (user.isManualGuest ? "Guest Access" : "Admin Level")}</span>
+                             <span className="text-[10px] text-gray-700 font-mono tracking-widest">UID: {user.discordId}</span>
+                           </div>
                          </div>
                        </div>
                        <div className="flex gap-2">
@@ -363,9 +368,8 @@ export default function AdminConsole() {
                     </div>
                     <div className="text-[10px] text-gray-500 uppercase flex gap-4 mt-1">
                        <span>{user.governorIds?.length || 0} Linked Profiles</span>
-                       <span className="cursor-pointer hover:text-cyan-400" onClick={() => handleEditUserNotes(user.discordId, user.notes)}>{user.notes ? "📝 Edit Note" : "📝 Add Note"}</span>
+                       <span className="cursor-pointer hover:text-indigo-400 transition-colors font-bold" onClick={() => handleEditUserNotes(user.discordId, user.notes)}>📝 Edit Alias / Notes</span>
                     </div>
-                    {user.notes && <div className="text-xs text-gray-400 italic bg-[#111318] p-2 rounded">"{user.notes}"</div>}
                   </div>
                 ))}
              </div>
@@ -378,16 +382,17 @@ export default function AdminConsole() {
              </h3>
              <div className="space-y-3 h-[600px] overflow-y-auto pr-2 scrollbar-none">
                 {users.filter(u => u.role === "User").map(user => (
-                  <div key={user.discordId} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 flex flex-col gap-2 relative">
+                  <div key={user.discordId} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 flex flex-col gap-2 relative group hover:border-[#2d323e] transition-colors">
                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                        <div className="flex items-center gap-3">
-                           <img src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar || ""}.png`} className="w-8 h-8 rounded-full bg-[#1e222b]" onError={(e)=>{e.target.src="https://cdn.discordapp.com/embed/avatars/0.png"}} alt=""/>
+                           <div className="w-8 h-8 rounded-full bg-[#161920] text-gray-400 flex items-center justify-center font-bold border border-[#1e222b] group-hover:border-gray-500 transition-colors">
+                              {(user.notes || user.username || "U").charAt(0).toUpperCase()}
+                           </div>
                            <div className="flex flex-col">
-                              <div className="text-gray-300 font-bold text-sm font-mono flex items-center gap-2">
-                                  {user.username || user.discordId}
-                                  <a href={`https://discord.com/users/${user.discordId}`} target="_blank" rel="noreferrer" className="text-gray-600 hover:text-white transition-colors" title="View Discord Profile"><ExternalLink size={12}/></a>
+                              <div className="text-gray-300 font-bold text-sm flex items-center gap-2">
+                                  {user.notes || user.username || `Agent ${user.discordId.substring(0, 6)}`}
                               </div>
-                              <span className="text-[10px] text-gray-600 uppercase tracking-widest">ID: {user.discordId}</span>
+                              <span className="text-[10px] text-gray-600 font-mono tracking-widest">UID: {user.discordId}</span>
                            </div>
                         </div>
                        <div className="flex gap-2 items-center">
@@ -407,13 +412,12 @@ export default function AdminConsole() {
                              <option value="System Admin" className="bg-[#0a0c10] text-rose-500">SYSTEM ADMIN</option>
                            </select>
 
-                           <button onClick={() => handleEditUserNotes(user.discordId, user.notes)} className="text-gray-500 hover:text-cyan-400 transition-colors" title="Edit Tracking Note"><TextSelect size={14}/></button>
+                           <button onClick={() => handleEditUserNotes(user.discordId, user.notes)} className="text-gray-500 hover:text-cyan-400 transition-colors" title="Set Alias / Note"><TextSelect size={14}/></button>
                            <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`transition-colors ${user.globalAiAccess?'text-cyan-500':'text-rose-500'}`}><Bot size={14}/></button>
                            <button onClick={() => handleDeleteUserAccess(user.discordId)} className="text-gray-500 hover:text-rose-500 transition-colors" title="Revoke Network Access"><Trash2 size={14} /></button>
                        </div>
                     </div>
                     <div className="text-[10px] text-gray-600 uppercase tracking-widest">{user.governorIds?.length || 0} Profiles Linked</div>
-                    {user.notes && <div className="text-[10px] text-gray-500 italic mt-1 bg-[#1e222b] p-1.5 rounded truncate">"{user.notes}"</div>}
                   </div>
                 ))}
              </div>
