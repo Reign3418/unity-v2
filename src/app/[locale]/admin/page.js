@@ -30,6 +30,7 @@ export default function AdminConsole() {
   const [passForm, setPassForm] = useState({ kingdomId: "", role: "Member", poc: "", expireDays: "7" });
   const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "Member" });
   const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
+  const [userForm, setUserForm] = useState({ discordId: "", kingdomId: "" });
   const [localKeys, setLocalKeys] = useState({ awsKey: "", awsSecret: "", geminiKey: "" });
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("ALL");
@@ -218,6 +219,25 @@ export default function AdminConsole() {
     } catch (e) { alert(e.message); }
   };
 
+  const handleAddUserBonusKingdom = async () => {
+    if (!userForm.discordId || !userForm.kingdomId) return alert("User Discord ID and Override Kingdom ID required.");
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ADD_USER_KINGDOM_ACCESS", payload: { discordId: userForm.discordId, newKingdomId: userForm.kingdomId } }) });
+      if (!res.ok) throw new Error("Failed to add user kingdom override.");
+      userForm.kingdomId = "";
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleRemoveUserBonusKingdom = async (discordId, removeKingdomId) => {
+    if (!confirm(`Revoke auxiliary override access to Kingdom ${removeKingdomId} for User ${discordId}?`)) return;
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "REMOVE_USER_KINGDOM_ACCESS", payload: { discordId, removeKingdomId } }) });
+      if (!res.ok) throw new Error("Failed to remove user kingdom override.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
+  };
+
   const handleAddBonusKingdom = async () => {
     if (!tenantForm.guildId || !tenantForm.kingdomId) return alert("Server ID and Kingdom required.");
     try {
@@ -399,6 +419,21 @@ export default function AdminConsole() {
                        <span className="cursor-pointer hover:text-cyan-400" onClick={() => handleEditUserNotes(user.discordId, user.notes)}>{user.notes ? "📝 Edit Note" : "📝 Add Note"}</span>
                     </div>
                     {user.notes && <div className="text-xs text-gray-400 italic bg-[#111318] p-2 rounded">"{user.notes}"</div>}
+                    <div className="flex flex-col md:flex-row gap-2 mt-2 border-t border-[#1e222b] pt-2">
+                        <span className="text-gray-500 text-[10px] uppercase font-bold tracking-widest whitespace-nowrap mt-1">Override Clearances:</span>
+                        <div className="flex gap-1 flex-wrap items-center">
+                            {user.allowedKingdoms?.length > 0 ? user.allowedKingdoms.map(kd => (
+                              <span key={kd} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 group/kd">
+                                {kd}
+                                <button onClick={() => handleRemoveUserBonusKingdom(user.discordId, kd)} className="text-emerald-400 hover:text-rose-500 transition-colors ml-1" title={`Remove Kingdom ${kd}`}><XCircle size={10}/></button>
+                              </span>
+                            )) : <span className="text-gray-600 text-[10px] italic mr-2 text-center w-full md:w-auto">No aux access.</span>}
+                            <div className="flex bg-[#161920] border border-[#1e222b] rounded shadow-inner ml-auto w-full md:w-auto">
+                                <input type="number" placeholder="KD ID" className="w-16 bg-transparent text-[10px] text-white p-1 outline-none text-center" value={userForm.discordId === user.discordId ? userForm.kingdomId : ""} onFocus={() => setUserForm({ discordId: user.discordId, kingdomId: userForm.kingdomId })} onChange={(e) => setUserForm({ discordId: user.discordId, kingdomId: e.target.value })} />
+                                <button onClick={handleAddUserBonusKingdom} disabled={userForm.discordId !== user.discordId || !userForm.kingdomId} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-r text-[10px] font-bold transition-all disabled:opacity-50"><Plus size={12}/></button>
+                            </div>
+                        </div>
+                    </div>
                   </div>
                 ))}
              </div>
@@ -447,6 +482,21 @@ export default function AdminConsole() {
                     </div>
                     <div className="text-[10px] text-gray-600 uppercase tracking-widest">{user.governorIds?.length || 0} Profiles Linked</div>
                     {user.notes && <div className="text-[10px] text-gray-500 italic mt-1 bg-[#1e222b] p-1.5 rounded truncate">"{user.notes}"</div>}
+                    <div className="flex flex-col md:flex-row gap-2 mt-2 border-t border-[#1e222b] pt-2">
+                        <span className="text-gray-500 text-[10px] uppercase font-bold tracking-widest whitespace-nowrap mt-1">Override Clearances:</span>
+                        <div className="flex gap-1 flex-wrap items-center">
+                            {user.allowedKingdoms?.length > 0 ? user.allowedKingdoms.map(kd => (
+                              <span key={kd} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 group/kd">
+                                {kd}
+                                <button onClick={() => handleRemoveUserBonusKingdom(user.discordId, kd)} className="text-emerald-400 hover:text-rose-500 transition-colors ml-1" title={`Remove Kingdom ${kd}`}><XCircle size={10}/></button>
+                              </span>
+                            )) : <span className="text-gray-600 text-[10px] italic mr-2 text-center w-full md:w-auto">No aux access.</span>}
+                            <div className="flex bg-[#161920] border border-[#1e222b] rounded shadow-inner ml-auto w-full md:w-auto">
+                                <input type="number" placeholder="KD ID" className="w-16 bg-transparent text-[10px] text-white p-1 outline-none text-center" value={userForm.discordId === user.discordId ? userForm.kingdomId : ""} onFocus={() => setUserForm({ discordId: user.discordId, kingdomId: userForm.kingdomId })} onChange={(e) => setUserForm({ discordId: user.discordId, kingdomId: e.target.value })} />
+                                <button onClick={handleAddUserBonusKingdom} disabled={userForm.discordId !== user.discordId || !userForm.kingdomId} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-r text-[10px] font-bold transition-all disabled:opacity-50"><Plus size={12}/></button>
+                            </div>
+                        </div>
+                    </div>
                   </div>
                 ))}
              </div>

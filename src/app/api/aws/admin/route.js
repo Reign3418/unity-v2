@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
-  getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, 
+  getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, addUserAllowedKingdom, removeUserAllowedKingdom, 
   rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles
 } from "@/lib/awsDynamo";
 
@@ -176,6 +176,24 @@ export async function POST(req) {
         return NextResponse.json({ success: true, message: `Access permanently revoked for ${discordId}.` }, { status: 200 });
       }
       return NextResponse.json({ error: "Failed to delete User clearance." }, { status: 500 });
+    }
+
+    if (action === "ADD_USER_KINGDOM_ACCESS") {
+      const { discordId, newKingdomId } = payload;
+      const success = await addUserAllowedKingdom(discordId, newKingdomId);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Bonus Kingdom Override Added to User.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "User not found or AWS write failed." }, { status: 500 });
+    }
+
+    if (action === "REMOVE_USER_KINGDOM_ACCESS") {
+      const { discordId, removeKingdomId } = payload;
+      const success = await removeUserAllowedKingdom(discordId, removeKingdomId);
+      if (success) {
+        return NextResponse.json({ success: true, message: `Kingdom Override Revoked for User.` }, { status: 200 });
+      }
+      return NextResponse.json({ error: "User not found or AWS write failed." }, { status: 500 });
     }
 
     if (action === "ADD_TENANT_KINGDOM") {
