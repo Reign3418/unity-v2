@@ -330,38 +330,49 @@ export async function getKingdomDeltas(kingdomId, customStart = null, customEnd 
            let summaryObj = {};
            try { summaryObj = JSON.parse(attrs.summary?.S || "{}"); } catch(e){}
            return {
-               sk: i.SK.S, // "SCAN#2026_03_24_..."
-               scanDate: attrs.scanDate?.S,
-               scanType: summaryObj.scanType || 'Full' // Legacy defaults to Full
+               sk: i.SK.S, // e.g. "SCAN#2026_03_24_23_17_00"
+               scanDate: attrs.scanDate?.S, // full ISO e.g. "2026-03-24T23:17:00.000Z"
+               scanType: summaryObj.scanType || 'Full'
            };
         }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
-        
-        // Target a 24-hour baseline for accurate growth tracking, ignoring micro-scans
-        const latestParsed = new Date(dates[0].scanDate);
-        const targetTime = latestParsed.getTime() - (24 * 60 * 60 * 1000);
-        const latestType = dates[0].scanType;
-        
-        let bestMatchIndex = -1;
-        let smallestDiff = Infinity;
 
-        for (let i = 1; i < dates.length; i++) {
-            if (dates[i].scanType !== latestType) continue; // CRITICAL: Structurally similar pairing
-            
-            const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
-            if (timeDiff < smallestDiff) {
-                smallestDiff = timeDiff;
-                bestMatchIndex = i;
+        let latestDateKey, previousDateKey;
+
+        if (customStart && customEnd) {
+            // User selected exact start/end scans — match by scanDate ISO string
+            const endMatch = dates.find(d => d.scanDate === customEnd);
+            const startMatch = dates.find(d => d.scanDate === customStart);
+
+            if (!endMatch || !startMatch) {
+                console.log(`[AWS Engine] Custom scan dates not found. Falling back to 24h window.`);
+                // Fall through to default logic below
+                latestDateKey = null;
+                previousDateKey = null;
+            } else {
+                latestDateKey = endMatch.sk.replace('SCAN#', '');
+                previousDateKey = startMatch.sk.replace('SCAN#', '');
+                console.log(`[AWS Engine] Using custom range: ${previousDateKey} → ${latestDateKey}`);
             }
         }
-        
-        if (bestMatchIndex === -1) {
-            console.log(`[AWS Engine] No comparable chronolog found for ${latestType} schema payload.`);
-            return await getKingdomRoster(kingdomId);
-        }
 
-        // Extract the exact dateKey string stripped from the DATES# SK ("SCAN#<dateKey>")
-        const latestDateKey = dates[0].sk.replace('SCAN#', '').replace('DATE#', '');
-        const previousDateKey = dates[bestMatchIndex].sk.replace('SCAN#', '').replace('DATE#', '');
+        if (!latestDateKey || !previousDateKey) {
+            // Default: latest vs closest to 24h prior
+            const latestType = dates[0].scanType;
+            const targetTime = new Date(dates[0].scanDate).getTime() - (24 * 60 * 60 * 1000);
+            let bestMatchIndex = -1;
+            let smallestDiff = Infinity;
+            for (let i = 1; i < dates.length; i++) {
+                if (dates[i].scanType !== latestType) continue;
+                const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
+                if (timeDiff < smallestDiff) { smallestDiff = timeDiff; bestMatchIndex = i; }
+            }
+            if (bestMatchIndex === -1) {
+                console.log(`[AWS Engine] No comparable chronolog found.`);
+                return await getKingdomRoster(kingdomId);
+            }
+            latestDateKey = dates[0].sk.replace('SCAN#', '').replace('DATE#', '');
+            previousDateKey = dates[bestMatchIndex].sk.replace('SCAN#', '').replace('DATE#', '');
+        }
         
         const getSnapshot = async (dateStr) => {
             const params = {
@@ -383,7 +394,7 @@ export async function getKingdomDeltas(kingdomId, customStart = null, customEnd 
                             alliance: attrs['Alliance Tag']?.S || 'None',
                             power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
                             killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                            deads: parseInt(attrs['Dead']?.N || attrs['deads']?.N) || parseInt(attrs['dead']?.N) || 0,
+                            deads: parseInt(attrs['Deads']?.N || attrs['Dead']?.N || attrs['deads']?.N || attrs['dead']?.N) || 0,
                             t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['T4 Kills']?.N) || 0,
                             t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['T5 Kills']?.N) || 0,
                             commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N) || 0,
