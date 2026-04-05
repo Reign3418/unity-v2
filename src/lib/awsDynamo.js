@@ -1583,7 +1583,9 @@ export async function getAllTenants() {
                     allowedKingdoms: allowedKingdoms,
                     globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
                     createdDate: attrs.createdDate?.S,
-                    notes: attrs.notes?.S || ""
+                    notes: attrs.notes?.S || "",
+                    serverName: attrs.serverName?.S || null,
+                    serverIcon: attrs.serverIcon?.S || null
                 });
             }
         }
