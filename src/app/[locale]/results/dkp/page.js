@@ -82,7 +82,7 @@ export default function DkpResults() {
                   acc.powerDelta += (gov.pDelta || 0);
                   acc.t4Kills += (gov.t4Kills || 0);
                   acc.t5Kills += (gov.t5Kills || 0);
-                  acc.totalDeads += (gov.dDelta || 0); // Using Delta for Deads calculation
+                  acc.totalDeads += (gov.deads || 0); // Using Raw Deads for aggregation
                   acc.totalKp += (gov.kDelta || 0); // Using Delta for KP calculations
                   acc.totalDkp += (gov.dkpScore || 0);
                   return acc;
