@@ -38,7 +38,7 @@ export default function AdminConsole() {
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("ALL");
   const [isBroadcasting, setIsBroadcasting] = useState(false);
-
+  const [logSearchTerm, setLogSearchTerm] = useState("");
   useEffect(() => {
     try {
       const prefs = JSON.parse(localStorage.getItem('unty_prefs') || "{}");
@@ -823,12 +823,22 @@ export default function AdminConsole() {
       </div>
 
       <div className="border border-[#1e222b] bg-[#0a0c10] rounded-xl overflow-hidden shadow-lg border-t-2 border-t-purple-500">
-         <div className="px-6 py-4 border-b border-[#1e222b] bg-[#111318]">
+         <div className="px-6 py-4 border-b border-[#1e222b] bg-[#111318] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-purple-400 font-bold text-sm uppercase tracking-wider">Database Ingestion Logs</h3>
+            <div className="relative max-w-sm w-full">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input 
+                   type="text"
+                   placeholder="Search ID, Tag, KD, Uploader..."
+                   value={logSearchTerm}
+                   onChange={(e) => setLogSearchTerm(e.target.value)}
+                   className="w-full bg-[#161920] border border-[#1e222b] rounded-lg pl-9 pr-3 py-2 text-sm text-gray-300 focus:border-purple-500 outline-none transition-colors"
+                />
+            </div>
          </div>
-         <div className="overflow-x-auto max-h-[400px] scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+         <div className="overflow-x-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
             <table className="w-full text-left text-sm text-gray-400">
-               <thead className="text-[10px] uppercase bg-[#0a0c0f] border-b border-[#1e222b] text-gray-500 sticky top-0">
+               <thead className="text-[10px] uppercase bg-[#0a0c0f] border-b border-[#1e222b] text-gray-500 sticky top-0 z-10">
                   <tr>
                      <th className="px-6 py-3">Timestamp</th>
                      <th className="px-6 py-3">Tag</th>
@@ -838,17 +848,37 @@ export default function AdminConsole() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-[#1e222b]">
-                  {uploadLogs.map((log, idx) => (
+                  {uploadLogs.filter(log => {
+                     const term = logSearchTerm.toLowerCase();
+                     return (log.importTag || "LEGACY").toLowerCase().includes(term) ||
+                            String(log.kingdomId).includes(term) ||
+                            (log.sourceFile || "").toLowerCase().includes(term) ||
+                            (log.uploaderName || "").toLowerCase().includes(term);
+                  }).map((log, idx) => (
                     <tr key={idx} className="hover:bg-[#161920]">
-                       <td className="px-6 py-3 font-mono text-purple-400 text-xs">{new Date(log.scanDate).toLocaleString()}</td>
-                       <td className="px-6 py-3"><span className="bg-[#1e222b] text-xs px-2 py-1 rounded tracking-widest font-mono">{log.importTag || "LEGACY"}</span></td>
-                       <td className="px-6 py-3 text-white text-xs font-bold">KD {log.kingdomId} <span className="text-gray-500 font-normal ml-2 font-mono truncate hidden lg:inline">{log.sourceFile}</span></td>
-                       <td className="px-6 py-3 text-xs">{log.rowCount} Nodes</td>
-                       <td className="px-6 py-3 text-xs truncate max-w-[150px]">{log.uploaderName}</td>
+                       <td className="px-6 py-3 font-mono text-purple-400 text-xs whitespace-nowrap">{new Date(log.scanDate).toLocaleString()}</td>
+                       <td className="px-6 py-3"><span className="bg-[#1e222b] text-xs px-2 py-1 rounded tracking-widest font-mono whitespace-nowrap">{log.importTag || "LEGACY"}</span></td>
+                       <td className="px-6 py-3 text-white text-xs font-bold leading-relaxed">
+                           <span className="bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20 mr-2 uppercase">KD {log.kingdomId}</span>
+                           <div className="text-gray-500 font-normal font-mono break-all mt-1">{log.sourceFile}</div>
+                       </td>
+                       <td className="px-6 py-3 text-xs whitespace-nowrap">{log.rowCount} Nodes</td>
+                       <td className="px-6 py-3 text-xs font-mono text-gray-300">{log.uploaderName}</td>
                     </tr>
                   ))}
                </tbody>
             </table>
+            {uploadLogs.length > 0 && uploadLogs.filter(log => {
+                     const term = logSearchTerm.toLowerCase();
+                     return (log.importTag || "LEGACY").toLowerCase().includes(term) ||
+                            String(log.kingdomId).includes(term) ||
+                            (log.sourceFile || "").toLowerCase().includes(term) ||
+                            (log.uploaderName || "").toLowerCase().includes(term);
+                  }).length === 0 && (
+               <div className="p-8 text-center text-gray-500 font-mono text-xs uppercase tracking-widest">
+                  No Database Artifacts Match Query
+               </div>
+            )}
          </div>
       </div>
     </div>
