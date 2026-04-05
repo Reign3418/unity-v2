@@ -144,26 +144,47 @@ export default function DkpResults() {
 
   const formatNum = (num) => num ? Number(num).toLocaleString() : "0";
 
+  const [kdInput, setKdInput] = useState("");
+
+  const handleAddKd = (e) => {
+      e.preventDefault();
+      if (!kdInput) return;
+      const cleanKd = kdInput.replace(/[^0-9]/g, '');
+      if (cleanKd && !targetKds.includes(cleanKd)) {
+          setTargetKds(prev => [...prev, cleanKd]);
+          if (targetKds.length === 0) fetchDates(cleanKd);
+      }
+      setKdInput("");
+  };
+
+  const removeKd = (kdStr) => {
+      setTargetKds(prev => prev.filter(k => k !== kdStr));
+  };
+
   return (
     <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4 flex flex-col items-center">
       
-      {/* Target Selector Toolbar (Macro Nav) */}
-      <div className="w-full max-w-7xl overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
-         <div className="flex items-center gap-2 min-w-max">
-             {session?.user?.tenant?.allowedKingdoms?.map(k => (
-                <button
-                   key={k}
-                   onClick={() => toggleKingdom(k)}
-                   className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
-                       targetKds.includes(k) 
-                       ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 shadow-[inset_4px_0_0_0_rgba(217,70,239,1)]' 
-                       : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
-                   }`}
-                >
-                   Kingdom {k}
-                </button>
+      {/* Search Input Toolbar */}
+      <div className="w-full max-w-7xl">
+         <form onSubmit={handleAddKd} className="flex flex-wrap items-center gap-3">
+             <input 
+                 type="text" 
+                 value={kdInput}
+                 onChange={(e) => setKdInput(e.target.value)}
+                 placeholder="FILTER KD (OPTIONAL)"
+                 className="bg-[#13161c] border border-[#1e222b] text-gray-400 text-xs font-bold uppercase tracking-widest p-2 px-4 rounded outline-none focus:border-fuchsia-500 w-48"
+             />
+             <button type="submit" className="bg-[#13161c] border border-[#1e222b] hover:border-fuchsia-500/50 hover:bg-fuchsia-500/10 text-fuchsia-400 text-xs font-bold uppercase tracking-widest px-4 py-2 rounded transition-colors flex items-center gap-1">
+                 + Add
+             </button>
+
+             {targetKds.map(k => (
+                <div key={k} className="flex items-center gap-2 bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded">
+                   KD {k}
+                   <button type="button" onClick={() => removeKd(k)} className="text-fuchsia-400 hover:text-white ml-1">&times;</button>
+                </div>
              ))}
-         </div>
+         </form>
       </div>
 
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden w-full max-w-7xl">
