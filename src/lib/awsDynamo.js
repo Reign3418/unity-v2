@@ -2017,6 +2017,7 @@ export async function getAllUsers() {
                                 globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
                                 username: attrs.username?.S || null,
                                 avatar: attrs.avatar?.S || null,
+                                allowedKingdoms: attrs.allowedKingdoms?.L ? attrs.allowedKingdoms.L.map(k => k.S) : [],
                                 notes: attrs.notes?.S || ""
                             });
                         }
@@ -3882,5 +3883,87 @@ export async function syncTenantGuildProfiles() {
     } catch (error) {
         console.error('[AWS Multi-Thread] Tenant Sync Engine Failure:', error);
         throw error;
+    }
+}
+
+/**
+ * Injects auxillary Kingdom access onto an Identity Nodes physical registry.
+ */
+export async function addUserAllowedKingdom(discordId, customKingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is missing');
+
+    const getParams = {
+        TableName: tableName,
+        Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'CONFIG' } }
+    };
+
+    try {
+        const result = await dbClient.send(new GetItemCommand(getParams));
+        if (!result.Item) return false;
+
+        const attrs = result.Item.attributes?.M || {};
+        const allowedList = attrs.allowedKingdoms?.L || [];
+        
+        let kingdoms = allowedList.map(obj => obj.S);
+        const kid = String(customKingdomId);
+        
+        if (!kingdoms.includes(kid)) {
+            kingdoms.push(kid);
+        }
+
+        const updateParams = {
+            TableName: tableName,
+            Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'CONFIG' } },
+            UpdateExpression: 'SET attributes.allowedKingdoms = :allowed',
+            ExpressionAttributeValues: {
+                ':allowed': { L: kingdoms.map(k => ({ S: k })) }
+            }
+        };
+
+        await dbClient.send(new UpdateItemCommand(updateParams));
+        return true;
+    } catch (e) {
+        console.error('AWS Add User Kingdom Error:', e);
+        return false;
+    }
+}
+
+/**
+ * Strips manual auxillary Kingdom access from an Identity Network profile.
+ */
+export async function removeUserAllowedKingdom(discordId, targetKingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is missing');
+
+    const getParams = {
+        TableName: tableName,
+        Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'CONFIG' } }
+    };
+
+    try {
+        const result = await dbClient.send(new GetItemCommand(getParams));
+        if (!result.Item) return false;
+
+        const attrs = result.Item.attributes?.M || {};
+        const allowedList = attrs.allowedKingdoms?.L || [];
+        
+        let kingdoms = allowedList.map(obj => obj.S);
+        kingdoms = kingdoms.filter(k => k !== String(targetKingdomId));
+
+        const updateParams = {
+            TableName: tableName,
+            Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'CONFIG' } },
+            UpdateExpression: 'SET attributes.allowedKingdoms = :allowed',
+            ExpressionAttributeValues: {
+                ':allowed': { L: kingdoms.map(k => ({ S: k })) }
+            }
+        };
+
+        await dbClient.send(new UpdateItemCommand(updateParams));
+        return true;
+    } catch (e) {
+        console.error('AWS Remove User Kingdom Error:', e);
+        return false;
     }
 }
