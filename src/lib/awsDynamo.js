@@ -3820,7 +3820,7 @@ export async function syncTenantGuildProfiles() {
 
     try {
         console.log(`[AWS Multi-Thread] Scanning TENANTS for undocumented guild identities...`);
-        const tenants = await getAllTrackedTenants();
+        const tenants = await getAllTenants();
         
         // Find tenants that do not have a serverName or serveIcon attached yet
         const missingTenants = tenants.filter(t => !t.serverName && t.guildId);
