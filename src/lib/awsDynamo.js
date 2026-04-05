@@ -3730,7 +3730,7 @@ export async function updateUserPlaytime(discordId, timezone, playStart, playEnd
  */
 export async function syncDiscordProfiles() {
     const tableName = process.env.AWS_TABLE_NAME;
-    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const botToken = process.env.DISCORD_BOT_TOKEN?.replace(/['"]/g, '').trim();
     
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
     if (!botToken) throw new Error('DISCORD_BOT_TOKEN is missing! Please inject this into Vercel/local .env to perform background scans.');
@@ -3779,13 +3779,21 @@ export async function syncDiscordProfiles() {
                         }
                     };
 
-                    await dbClient.send(new UpdateItemCommand(patchParams));
-                    syncedCount++;
+                    try {
+                        await dbClient.send(new UpdateItemCommand(patchParams));
+                        syncedCount++;
+                    } catch (dbErr) {
+                        console.error(`[AWS] Failed to patch ${user.discordId} in DB:`, dbErr.message);
+                    }
+                    
                     // Delay slightly to prevent 429 Too Many Requests
                     await new Promise(r => setTimeout(r, 200)); 
-                } else if (res.status === 429) {
-                    console.log(`[Discord Link] Rate Limit Exceeded. Cooling down...`);
-                    await new Promise(r => setTimeout(r, 1000));
+                } else {
+                    console.log(`[Discord Link] Failed to fetch ${user.discordId}: Status ${res.status}`);
+                    if (res.status === 429) {
+                        console.log(`[Discord Link] Rate Limit Exceeded. Cooling down...`);
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
                 }
             } catch (err) {
                 console.error(`[Discord Link] Profiling failed for ${user.discordId}:`, err);
