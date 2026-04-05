@@ -49,6 +49,15 @@ export default function DashboardLayout({ children }) {
 
   // Strip all shell rendering if we are in an isolated desktop applet
   if (isExperimentalApplet) {
+      if (session && session.accessToken === "FREE_MODE") {
+         return (
+             <div className="flex flex-col bg-[#0a0c0f] min-h-screen text-slate-300 items-center justify-center font-sans p-6 text-center">
+                 <ShieldAlert className="text-red-500 w-12 h-12 mb-4" />
+                 <div className="text-red-500 font-bold uppercase tracking-widest text-lg">Freemode Restriction</div>
+                 <div className="text-gray-500 text-sm mt-2 max-w-sm">Experimental API modules consume high computational resources and cannot be executed in Freemode.</div>
+             </div>
+         );
+      }
       return (
         <div className="flex bg-[#0a0c0f] min-h-screen text-slate-300 overflow-hidden font-sans">
             {children}
@@ -61,14 +70,14 @@ export default function DashboardLayout({ children }) {
   let blockPrimaryReason = "";
   let blockSubText = "";
 
-  if (session && session.user?.accessToken === "FREE_MODE") {
+  if (session && session.accessToken === "FREE_MODE") {
       // Hard block Freemode from all modules except the root dashboard splash
       if (!pathname.endsWith('/dashboard')) {
           isBlocked = true;
           blockPrimaryReason = "FREEMODE_RESTRICTION";
           blockSubText = "This matrix is locked in Freemode. Please authenticate via Discord or request a Guest Passcode to execute analytical scans.";
       }
-  } else if (session && !session.user.isSuperAdmin && gatesCache && !pathname.includes('/admin')) {
+  } else if (session && !session.user?.isSuperAdmin && gatesCache && !pathname.includes('/admin')) {
       // Find if the current route has a registered lock
       const activeGate = gatesCache.find(g => pathname === g.path || pathname.startsWith(g.path + '/'));
       
