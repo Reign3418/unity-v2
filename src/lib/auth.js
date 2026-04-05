@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -80,6 +80,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.isMember = true;
           token.isLeader = true;
           token.isSuperAdmin = true;
+          token.isSupporter = true;
           
           token.tenant = {
               guildId: "emergency_admin",
@@ -105,6 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // E.g. Role "Leader" inherently grants leader privileges
           token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
           token.isSuperAdmin = user.guestData?.role === "Admin";
+          token.isSupporter = user.guestData?.role === "Admin"; // Will inherit auth natively later if we scan guest kds
           
           token.tenant = {
               guildId: "guest",
@@ -129,6 +131,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.isMember = true;
           token.isLeader = false;
           token.isSuperAdmin = false;
+          token.isSupporter = false;
           
           token.tenant = {
               guildId: "freemode",
@@ -313,6 +316,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.tenant = activeTenant;
           token.governorConfig = userConfig;
           token.ownedGuilds = ownedGuilds;
+          
+          let isSupporter = false;
+          if (computedSuperAdmin) {
+              isSupporter = true;
+          } else if (activeTenant && activeTenant.allowedKingdoms) {
+              for (const k of activeTenant.allowedKingdoms) {
+                  const check = await getKingdomSupporterStatus(k);
+                  if (check) {
+                      isSupporter = true;
+                      break;
+                  }
+              }
+          }
+          token.isSupporter = isSupporter;
+          
         } catch (error) {
           console.error("[NextAuth] Error resolving Discord RBAC capabilities:", error);
         }
@@ -327,6 +345,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isMember = token.isMember;
         session.user.isLeader = token.isLeader;
         session.user.isSuperAdmin = token.isSuperAdmin;
+        session.user.isSupporter = token.isSupporter || false;
         session.user.tenant = token.tenant;
         session.user.allowedKingdoms = token.tenant?.allowedKingdoms || [];
         session.user.governorConfig = token.governorConfig;

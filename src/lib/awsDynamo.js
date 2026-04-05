@@ -3967,3 +3967,161 @@ export async function removeUserAllowedKingdom(discordId, targetKingdomId) {
         return false;
     }
 }
+
+/**
+ * ==============================================================
+ * FEATURE GATES & SUPPORTER ACCESS SYSTEM
+ * ==============================================================
+ */
+
+/**
+ * Fetches the Global Feature Gate Configuration Matrix.
+ * Returns an array of configurations mapping Next.js routes to access rules.
+ */
+export async function getFeatureGates() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: 'GLOBAL_CONFIG' },
+                'SK': { S: 'CONFIG#FEATURE_GATES' }
+            }
+        };
+        const res = await dbClient.send(new GetItemCommand(params));
+        if (res.Item && res.Item.gates && res.Item.gates.S) {
+            return JSON.parse(res.Item.gates.S);
+        }
+        return []; // Default empty matrix if no gates are set
+    } catch (e) {
+        console.error('AWS Get Feature Gates Error:', e);
+        return [];
+    }
+}
+
+/**
+ * Upserts a specific Feature Gate into the Global Configuration Matrix.
+ */
+export async function updateFeatureGate(routeUrl, requiresSupporter, minimumRole) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    try {
+        // Fetch current gates to map over it
+        const currentGates = await getFeatureGates();
+        
+        // Find if this path already exists in the matrix
+        const existingIdx = currentGates.findIndex(g => g.path === routeUrl);
+        
+        if (existingIdx >= 0) {
+            currentGates[existingIdx] = { path: routeUrl, requiresSupporter, minimumRole };
+        } else {
+            currentGates.push({ path: routeUrl, requiresSupporter, minimumRole });
+        }
+
+        const updateParams = {
+            TableName: tableName,
+            Item: {
+                'PK': { S: 'GLOBAL_CONFIG' },
+                'SK': { S: 'CONFIG#FEATURE_GATES' },
+                'gates': { S: JSON.stringify(currentGates) }
+            }
+        };
+
+        await dbClient.send(new PutItemCommand(updateParams));
+        return true;
+    } catch (e) {
+        console.error('AWS Update Feature Gate Error:', e);
+        return false;
+    }
+}
+
+/**
+ * Flags a specific Kingdom Node as an Active Unity Supporter.
+ */
+export async function setKingdomSupporterStatus(kingdomId, isSupporter) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    try {
+        const _id = String(kingdomId).replace(/[^\d]/g, '');
+
+        const updateParams = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `KINGDOM#${_id}` },
+                'SK': { S: 'CONFIG' }
+            },
+            UpdateExpression: 'SET supporterStatus = :val',
+            ExpressionAttributeValues: {
+                ':val': { BOOL: isSupporter === true || isSupporter === 'true' }
+            }
+        };
+
+        await dbClient.send(new UpdateItemCommand(updateParams));
+        return true;
+    } catch (e) {
+        console.error('AWS Set Kingdom Supporter Status Error:', e);
+        return false;
+    }
+}
+
+/**
+ * Fetches all Kingdom IDs that are currently flagged as Active Supporters.
+ * Uses a Table Scan focusing strictly on KINGDOM configuration headers.
+ */
+export async function getSupporterKingdoms() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    try {
+        const params = {
+            TableName: tableName,
+            FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk AND supporterStatus = :ss',
+            ExpressionAttributeValues: {
+                ':prefix': { S: 'KINGDOM#' },
+                ':sk': { S: 'CONFIG' },
+                ':ss': { BOOL: true }
+            }
+        };
+        const res = await dbClient.send(new ScanCommand(params));
+        
+        return res.Items ? res.Items.map(item => {
+            return item.PK.S.replace('KINGDOM#', '');
+        }) : [];
+    } catch (e) {
+        console.error('AWS Get Supporter Kingdoms Error:', e);
+        return [];
+    }
+}
+
+/**
+ * Fast lookup specifically for NextAuth session validation 
+ * to determine if a specific Kingdom ID is a Supporter.
+ */
+export async function getKingdomSupporterStatus(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName || !kingdomId) return false;
+
+    try {
+        const _id = String(kingdomId).replace(/[^\d]/g, '');
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `KINGDOM#${_id}` },
+                'SK': { S: 'CONFIG' }
+            }
+        };
+        const res = await dbClient.send(new GetItemCommand(params));
+        
+        if (res.Item && res.Item.supporterStatus && res.Item.supporterStatus.BOOL) {
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error('AWS Get Kingdom Supporter Status Error:', e);
+        return false;
+    }
+}

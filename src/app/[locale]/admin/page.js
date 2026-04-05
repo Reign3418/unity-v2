@@ -22,6 +22,8 @@ export default function AdminConsole() {
   const [uploadLogs, setUploadLogs] = useState(globalMatrixCache?.uploadLogs || []);
   const [passcodes, setPasscodes] = useState(globalMatrixCache?.passcodes || []);
   const [pendingUsers, setPendingUsers] = useState(globalMatrixCache?.pendingUsers || []);
+  const [supporterKingdoms, setSupporterKingdoms] = useState(globalMatrixCache?.supporterKingdoms || []);
+  const [featureGates, setFeatureGates] = useState(globalMatrixCache?.featureGates || []);
   
   // UX State
   const [activeTab, setActiveTab] = useState("overview");
@@ -31,6 +33,7 @@ export default function AdminConsole() {
   const [manualUserForm, setManualUserForm] = useState({ discordId: "", poc: "", kingdomId: "", role: "Member" });
   const [tenantForm, setTenantForm] = useState({ guildId: "", kingdomId: "" });
   const [userForm, setUserForm] = useState({ discordId: "", kingdomId: "" });
+  const [supporterForm, setSupporterForm] = useState({ kingdomId: "" });
   const [localKeys, setLocalKeys] = useState({ awsKey: "", awsSecret: "", geminiKey: "" });
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState("ALL");
@@ -74,6 +77,8 @@ export default function AdminConsole() {
       setTenants(data.tenants || []);
       setPasscodes(data.passcodes || []);
       setPendingUsers(data.pendingUsers || []);
+      setSupporterKingdoms(data.supporterKingdoms || []);
+      setFeatureGates(data.featureGates || []);
       setUploadLogs(logsData.uploads || []);
       
       globalMatrixCache = { ...data, uploadLogs: logsData.uploads };
@@ -265,6 +270,22 @@ export default function AdminConsole() {
       if (!res.ok) throw new Error("Failed to terminate.");
       if (globalMatrixCache) globalMatrixCache.tenants = globalMatrixCache.tenants.filter(t => t.guildId !== guildId);
     } catch (e) { alert(e.message); fetchAdminMatrix(); }
+  };
+
+  const handleToggleSupporterStatus = async (kingdomId, status) => {
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "TOGGLE_SUPPORTER_STATUS", payload: { kingdomId, status } }) });
+      if (!res.ok) throw new Error("Failed to toggle Supporter status.");
+      fetchAdminMatrix(); // Rehydrate state
+    } catch (e) { alert(e.message); }
+  };
+
+  const handleToggleFeatureGate = async (path, requiresSupporter, minimumRole) => {
+    try {
+      const res = await fetch("/api/aws/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "UPDATE_FEATURE_GATE", payload: { path, requiresSupporter, minimumRole } }) });
+      if (!res.ok) throw new Error("Failed to update Feature Gate.");
+      fetchAdminMatrix();
+    } catch (e) { alert(e.message); }
   };
 
   // ----------------------------------------------------
@@ -500,6 +521,127 @@ export default function AdminConsole() {
                   </div>
                 ))}
              </div>
+         </div>
+      </div>
+    </div>
+  );
+
+  const ROUTE_TOPOGRAPHY = [
+    { path: "/analysis/global", label: "Global Hegemonic Vectors" },
+    { path: "/analysis/kingdom", label: "Kingdom Analysis" },
+    { path: "/calculators", label: "Math & Math Models" },
+    { path: "/creator/lab/battle-predictor", label: "Battle Predictor (OCR)" },
+    { path: "/creator/lab/hall-of-legends", label: "Hall of Legends" },
+    { path: "/creator/lab/radar", label: "Scan Radar" },
+    { path: "/creator/lab/spending-signature", label: "Spending Signatures" },
+    { path: "/creator/lab/timeline-replay", label: "Timeline Replay" },
+    { path: "/rankings/pre-kvk", label: "Pre-KvK Rankings" },
+    { path: "/tools/hunter", label: "Target Hunter" },
+    { path: "/tools/tracker", label: "Live Tracker" },
+    { path: "/vault", label: "Data Vault" },
+    { path: "/whiteboard", label: "Tactical Whiteboard" },
+  ];
+
+  const renderFeatureGates = () => (
+    <div className="space-y-8 animate-fade-in pb-12 w-full">
+      <h2 className="text-xl font-bold text-white uppercase tracking-widest border-b border-[#1e222b] pb-4 mb-6 relative">
+        Master Feature Topography
+        <div className="absolute bottom-[-1px] left-0 w-24 h-[2px] bg-cyan-500"></div>
+      </h2>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full items-start">
+         <div className="space-y-6 w-full">
+             <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-6 w-full shadow-lg">
+               <h3 className="text-emerald-500 font-bold text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+                 <Lock size={14} /> Supporter Infrastructure 
+               </h3>
+               <p className="text-[11px] text-gray-400 mb-6 font-sans leading-relaxed tracking-wide">
+                 Route clearance is natively verified via JWT block logic. By typing a Kingdom ID below, you grant all linked user sessions from that node automatic bypass authorization for any tool flagged as 'Supporter Only'.
+               </p>
+
+               <div className="flex gap-2">
+                  <input
+                      type="text"
+                      className="flex-1 bg-[#161920] border border-[#1e222b] text-emerald-500 text-sm rounded px-3 py-2 outline-none focus:border-emerald-500 font-mono transition-colors"
+                      placeholder="Enter Kingdom ID (e.g. 3418)"
+                      value={supporterForm.kingdomId}
+                      onChange={(e) => setSupporterForm({...supporterForm, kingdomId: e.target.value.replace(/\D/g, '')})}
+                  />
+                  <button 
+                     onClick={() => {
+                        if (supporterForm.kingdomId) {
+                           handleToggleSupporterStatus(supporterForm.kingdomId, true);
+                           setSupporterForm({kingdomId: ""});
+                        }
+                     }}
+                     className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 px-6 py-2 font-bold flex items-center gap-2 text-xs uppercase tracking-widest rounded transition-all focus:ring-2 focus:ring-emerald-500/50"
+                  >
+                     <Plus size={14} /> WHITELIST
+                  </button>
+               </div>
+
+               <div className="mt-8 flex flex-wrap gap-2 pt-6 border-t border-[#1e222b]">
+                 {supporterKingdoms.map(kd => (
+                    <div key={kd} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs py-1.5 px-3 rounded-full font-mono shadow-[0_0_10px_rgba(16,185,129,0.1)] transition-transform hover:scale-105">
+                       ★ Kingdom {kd}
+                       <button onClick={() => handleToggleSupporterStatus(kd, false)} className="ml-1 text-emerald-400/50 hover:text-red-400 transition-colors">
+                          <XCircle size={14} />
+                       </button>
+                    </div>
+                 ))}
+                 {supporterKingdoms.length === 0 && <span className="text-gray-600 text-[10px] uppercase tracking-widest font-mono">No Active Supporters Mapped</span>}
+               </div>
+             </div>
+         </div>
+
+         <div className="space-y-4 w-full">
+            <h3 className="text-cyan-500 font-bold text-[10px] uppercase tracking-widest border-b border-[#1e222b] pb-2">Application Topology Firewalls</h3>
+            <div className="space-y-2 max-h-[700px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent">
+               {ROUTE_TOPOGRAPHY.map(route => {
+                  const gate = featureGates.find(g => g.path === route.path) || {};
+                  const isPaywalled = gate.requiresSupporter || false;
+                  return (
+                    <div key={route.path} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0a0c0f] border border-[#1e222b] hover:border-cyan-500/30 p-4 rounded-lg group transition-colors shadow-sm">
+                       <div className="flex-1">
+                          <div className="text-white font-bold text-sm tracking-wide group-hover:text-cyan-400 transition-colors flex items-center gap-2">
+                             {route.label}
+                             {isPaywalled && <span className="inline-flex items-center justify-center bg-emerald-500/20 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest border border-emerald-500/30">SUPPORTER ONLY</span>}
+                          </div>
+                          <div className="text-gray-500 font-mono text-[10px] mt-1 pr-4 truncate">{route.path}</div>
+                       </div>
+                       
+                       <div className="flex items-center gap-4 border-t sm:border-t-0 sm:border-l border-[#1e222b] pt-3 sm:pt-0 sm:pl-4 w-full sm:w-auto mt-2 sm:mt-0">
+                          <div className="flex flex-col items-center">
+                             <label className="text-gray-600 font-bold text-[8px] uppercase tracking-widest mb-1.5 w-full text-center">Supporter Gate</label>
+                             <div className="relative inline-block w-10 mt-1 align-middle select-none transition duration-200 ease-in whitespace-nowrap">
+                                <input 
+                                   type="checkbox" 
+                                   checked={isPaywalled}
+                                   onChange={(e) => handleToggleFeatureGate(route.path, e.target.checked, gate.minimumRole || "User")}
+                                   className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-[#1e222b] border-2 border-[#0a0c0f] appearance-none cursor-pointer focus:outline-none transition-transform duration-200 checked:bg-emerald-500 checked:translate-x-5" 
+                                />
+                                <label className={`toggle-label block overflow-hidden h-5 rounded-full bg-[#161920] cursor-pointer ${isPaywalled ? 'border border-emerald-500/50' : 'border border-[#1e222b]'}`}></label>
+                             </div>
+                          </div>
+
+                          <div className="flex flex-col">
+                             <label className="text-gray-600 font-bold text-[8px] uppercase tracking-widest mb-1.5">Minimum Clearance</label>
+                             <select
+                               className="bg-transparent border border-indigo-500/30 text-indigo-400 text-[10px] uppercase font-bold tracking-widest rounded px-2 py-1 outline-none focus:border-indigo-500 transition-colors cursor-pointer min-w-[110px]"
+                               value={gate.minimumRole || "User"}
+                               onChange={(e) => handleToggleFeatureGate(route.path, isPaywalled, e.target.value)}
+                             >
+                                <option value="User" className="bg-[#0f1115]">User</option>
+                                <option value="Leader" className="bg-[#0f1115]">Leader</option>
+                                <option value="Data Analyst" className="bg-[#0f1115]">Data Analyst</option>
+                                <option value="Admin" className="bg-[#0f1115]">Super Admin</option>
+                             </select>
+                          </div>
+                       </div>
+                    </div>
+                  );
+               })}
+            </div>
          </div>
       </div>
     </div>
@@ -795,6 +937,9 @@ export default function AdminConsole() {
              <div className="pt-6 pb-2 px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">Access Management</div>
              <TabButton icon={<Users size={18}/>} label="Identity Matrix" active={activeTab === 'identity'} onClick={() => setActiveTab('identity')} />
              <TabButton icon={<Key size={18}/>} label="Web Passcodes" active={activeTab === 'passcodes'} onClick={() => setActiveTab('passcodes')} />
+
+             <div className="pt-6 pb-2 px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">Feature Gateways</div>
+             <TabButton icon={<Lock size={18}/>} label="Topography & Supporters" active={activeTab === 'gates'} onClick={() => setActiveTab('gates')} />
              
              <div className="pt-6 pb-2 px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">Scale Integrations</div>
              <TabButton icon={<Server size={18}/>} label="Tenant Guilds" active={activeTab === 'tenants'} onClick={() => setActiveTab('tenants')} />
@@ -829,6 +974,7 @@ export default function AdminConsole() {
              {activeTab === 'overview' && renderOverview()}
              {activeTab === 'identity' && renderIdentity()}
              {activeTab === 'passcodes' && renderPasscodes()}
+             {activeTab === 'gates' && renderFeatureGates()}
              {activeTab === 'tenants' && renderTenants()}
              {activeTab === 'cloud' && renderCloud()}
              {activeTab === 'broadcast' && renderBroadcast()}
