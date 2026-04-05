@@ -661,11 +661,11 @@ export default function AdminConsole() {
                  <input type="text" placeholder="POC Nickname" className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none transition-colors" value={passForm.poc} onChange={e => setPassForm({...passForm, poc: e.target.value})} />
                  <input type="number" placeholder="Target Kingdom (e.g. 3418)" className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none transition-colors" value={passForm.kingdomId} onChange={e => setPassForm({...passForm, kingdomId: e.target.value})} />
                  <div className="flex gap-4">
-                     <select className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
+                     <select className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
                         <option value="User">User (Standard Node)</option>
                         <option value="Data Analyst">Data Analyst (Elevated View)</option>
                      </select>
-                     <select className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
+                     <select className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
                         <option value="1">1 Day</option>
                         <option value="7">7 Days</option>
                         <option value="30">30 Days</option>
@@ -682,8 +682,8 @@ export default function AdminConsole() {
                  <input type="text" placeholder="Discord ID" className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none transition-colors" value={manualUserForm.discordId} onChange={e => setManualUserForm({...manualUserForm, discordId: e.target.value})} />
                  <input type="text" placeholder="Alias / POC" className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none transition-colors" value={manualUserForm.poc} onChange={e => setManualUserForm({...manualUserForm, poc: e.target.value})} />
                  <div className="flex gap-4">
-                     <input type="number" placeholder="Kingdom" className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.kingdomId} onChange={e => setManualUserForm({...manualUserForm, kingdomId: e.target.value})} />
-                     <select className="flex-1 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.role} onChange={e => setManualUserForm({...manualUserForm, role: e.target.value})}>
+                     <input type="number" placeholder="Kingdom" className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.kingdomId} onChange={e => setManualUserForm({...manualUserForm, kingdomId: e.target.value})} />
+                     <select className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.role} onChange={e => setManualUserForm({...manualUserForm, role: e.target.value})}>
                         <option value="User">User (Standard Node)</option>
                         <option value="Data Analyst">Data Analyst (Elevated View)</option>
                      </select>
