@@ -454,8 +454,6 @@ export default function Home() {
                  <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent z-0 opacity-50 pointer-events-none"></div>
                  <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] relative overflow-hidden z-10 flex items-center justify-center">
                     <LandingTopography />
-                    
-                    <span className="absolute top-4 right-4 font-mono text-[10px] text-purple-400 tracking-widest uppercase border border-purple-500/30 px-2 py-1 rounded bg-[#0a0c10] pointer-events-none">Z-Axis Rendering Enabled</span>
                  </div>
               </div>
             </div>
