@@ -9,7 +9,7 @@ export default function PreKvkRankings() {
   const t = useTranslations('PreKVK');
   const { data: session } = useSession();
   const [globalStats, setGlobalStats] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [topNFilter, setTopNFilter] = useState('300'); // Default to Top 300
   const [sortConfig, setSortConfig] = useState({ key: 'power', direction: 'desc' });
@@ -19,9 +19,15 @@ export default function PreKvkRankings() {
   const [domainInput, setDomainInput] = useState('');
 
   const fetchGlobalStats = async () => {
+    if (targetKds.length === 0) {
+        setGlobalStats([]);
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
-      const url = targetKds.length > 0 ? `/api/aws/global?kds=${targetKds.join(',')}` : `/api/aws/global`;
+      const url = `/api/aws/global?kds=${targetKds.join(',')}`;
       const res = await fetch(url);
       const data = await res.json();
       
@@ -219,8 +225,8 @@ export default function PreKvkRankings() {
       ) : processedData.length === 0 ? (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
             <BarChart2 className="w-12 h-12 mb-4 opacity-50 text-rose-500" />
-            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">No Global Data</h3>
-            <p className="text-sm">Cannot calculate algorithms. Ensure the tracking pipeline is indexing multiple kingdoms.</p>
+            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">Awaiting Target Scope</h3>
+            <p className="text-sm">Please input Kingdom IDs into the target scope above to begin querying pre-kvk algorithms.</p>
         </div>
       ) : (
         <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl mt-6">
