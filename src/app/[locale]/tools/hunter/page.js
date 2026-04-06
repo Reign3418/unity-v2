@@ -88,13 +88,16 @@ export default function PlayerHunter() {
                   const kHistorySet = new Set();
                   const aHistorySet = new Set();
                   
-                  kHistorySet.add(lastSeenKingdom); 
-                  aHistorySet.add(name);
-
-                  timelineData.forEach(t => {
+                  // Iterate oldest → newest (reverse of the sorted-desc timelineData)
+                  // so the Sets reflect chronological order: first kingdom on left, current on right
+                  [...timelineData].reverse().forEach(t => {
                     if (t.kingdom) kHistorySet.add(t.kingdom);
                     if (t.name) aHistorySet.add(t.name);
                   });
+
+                  // Add the current/latest values last so they appear rightmost
+                  kHistorySet.add(lastSeenKingdom);
+                  aHistorySet.add(name);
                   
                   return {
                      query,
