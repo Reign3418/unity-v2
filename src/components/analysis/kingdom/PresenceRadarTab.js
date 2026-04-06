@@ -79,7 +79,14 @@ export default function PresenceRadarTab({ targetKd }) {
                                                         <div className="w-8 h-8 rounded-full bg-[#1e222b] flex items-center justify-center border border-[#2d323e]">
                                                             <Globe className="text-indigo-400 w-4 h-4" />
                                                         </div>
-                                                        <span className="text-white font-bold font-mono text-xs">{user.discordId}</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-white font-bold text-xs">
+                                                                {user.discordDisplayName || user.discordUsername || `ID: ${user.discordId}`}
+                                                            </span>
+                                                            {(user.discordDisplayName || user.discordUsername) && (
+                                                                <span className="text-gray-600 font-mono text-[9px]">{user.discordId}</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">

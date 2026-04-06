@@ -3693,6 +3693,8 @@ export async function getAllUsersInKingdom(kingdomId) {
 
             return {
                 discordId: discordId,
+                discordUsername: attrs.discordUsername?.S || null,
+                discordDisplayName: attrs.discordDisplayName?.S || null,
                 governorIds: govIds,
                 timezone: attrs.timezone?.S || null,
                 playtimeStart: attrs.playtimeStart?.S || null,
