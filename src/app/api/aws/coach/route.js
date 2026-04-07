@@ -22,8 +22,8 @@ export async function POST(req) {
             return NextResponse.json({ error: "Server Configuration Error: Vision Key Missing." }, { status: 500 });
         }
 
-        const prompt = `You are an expert, highly motivating performance coach for the mobile game Rise of Kingdoms. 
-A governor named "${stats.name}" has reached out to you for advice on how to improve.
+        const prompt = `You are an expert, highly motivating performance and life coach for the mobile game Rise of Kingdoms. 
+A governor named "${stats.name}" has reached out to you for help on how they are doing and how they can improve.
 
 They are currently playing in a Kingdom that is **${stats.kingdomState === 'War' ? 'AT WAR' : 'AT PEACE'}**.
 These metrics cover the snapshot period from **${stats.startDate} to ${stats.endDate}**.
@@ -37,19 +37,23 @@ Here is their actual growth over this specific time period (deltas):
 - Kill Points: ${stats.kpDiff}
 - Dead Troops: ${stats.deadsDiff}
 - Resources Gathered: ${stats.gatheredDiff}
-- Assists: ${stats.assistDiff}
-- Assigned Archetype: ${stats.archetype}
 - AI Grade: ${stats.grade} (Score: ${parseFloat(stats.finalScore).toFixed(1)}/100)
 
-Provide a highly actionable, motivating 3 bullet-point coaching plan.
+${stats.peerAvg ? `For context, I have averaged out the performance of ${stats.peerAvg.count} other governors who are currently around the exact same overall power level (+/- 20%):
+- Peer Average Power Growth: ${stats.peerAvg.powerDiff}
+- Peer Average KP Gained: ${stats.peerAvg.kpDiff}
+- Peer Average Deads: ${stats.peerAvg.deadsDiff}
+- Peer Average Tech Growth: ${stats.peerAvg.techPowerDiff}
+- Peer Average Gathered: ${stats.peerAvg.gatheredDiff}` : ''}
+
+Provide a highly actionable and motivating coaching response.
 RULES:
-1. DO NOT exceed 3 bullet points.
+1. Speak to them conversationally, like a mentor sitting down with them for a 1-on-1 review. DO NOT use rigid bullet points if a paragraph flows better. Be human.
 2. Be an encouraging life coach. You want them to succeed. Use a supportive but expert tone. DO NOT be a drill sergeant.
-3. Reference their specific numbers (e.g., "I see you pushed 5M tech power, awesome job! Now let's focus on...").
+3. ${stats.peerAvg ? `Compare them to their peers! If they gathered way less than their peers, tell them they are falling behind economically. If their tech is higher, praise them for outpacing the pack.` : `Focus on their raw numbers and how they can optimize their specific bottleneck.`}
 4. **IF AT WAR:** Call them out if they have high Troop Power growth but zero Kill Points or Deads (they are training troops but not fighting).
-5. **IF AT PEACE:** DO NOT penalize them or mention lack of Kill Points or Dead Troops. Focus entirely on their economic growth (Tech, Building, Troops, Gathering). Praise strong power growth or tell them to increase gathering/tech if it's low.
-6. Return ONLY the text. Format the bullet points with bold keywords, and end with a short encouraging sign-off.
-7. Be concise. Max 100-150 words total.`;
+5. **IF AT PEACE:** DO NOT penalize them or mention lack of Kill Points or Dead Troops. Focus entirely on their economic growth (Tech, Building, Troops, Gathering).
+6. Keep this relatively concise. 2-3 short, punchy paragraphs. Max 150-200 words.`;
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
         

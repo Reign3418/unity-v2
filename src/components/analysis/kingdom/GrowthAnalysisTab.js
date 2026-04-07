@@ -230,12 +230,37 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
 
     const handleCoachClick = async (p) => {
         setCoachModal({ isOpen: true, data: p, isLoading: true, advice: "" });
+
+        // Calculate Peer Averages (+/- 20% power band)
+        const powerBand = (p.powerEnd || 0) * 0.20;
+        const minPwr = (p.powerEnd || 0) - powerBand;
+        const maxPwr = (p.powerEnd || 0) + powerBand;
+        
+        // Exclude the player themselves
+        const peers = growthData.filter(g => g.id !== p.id && g.powerEnd >= minPwr && g.powerEnd <= maxPwr);
+
+        let peerAvg = null;
+        if (peers.length > 0) {
+            peerAvg = {
+                count: peers.length,
+                powerDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.powerDiff || 0), 0) / peers.length),
+                kpDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.kpDiff || 0), 0) / peers.length),
+                deadsDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.deadsDiff || 0), 0) / peers.length),
+                techPowerDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.techPowerDiff || 0), 0) / peers.length),
+                cmdPowerDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.cmdPowerDiff || 0), 0) / peers.length),
+                bldPowerDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.bldPowerDiff || 0), 0) / peers.length),
+                troopPowerDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.troopPowerDiff || 0), 0) / peers.length),
+                gatheredDiff: Math.round(peers.reduce((acc, curr) => acc + (curr.gatheredDiff || 0), 0) / peers.length)
+            };
+        }
+
         try {
             const payload = {
                 ...p,
                 kingdomState,
                 startDate,
-                endDate
+                endDate,
+                peerAvg
             };
             const res = await fetch('/api/aws/coach', {
                 method: 'POST',
