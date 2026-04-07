@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2 } from "lucide-react";
+import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users } from "lucide-react";
 import KingdomAnalysisTab from "@/components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "@/components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "@/components/analysis/kingdom/ScatterPlotTab";
@@ -16,6 +16,7 @@ import ResultsTab from "@/components/analysis/kingdom/ResultsTab";
 import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
 import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
 import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
+import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -31,6 +32,7 @@ const TABS = [
   { name: "Fixed MGE", icon: Trophy },
   { name: "Roster Linker", icon: Link2 },
   { name: "Configuration", icon: Cpu },
+  { name: "Roster View", icon: Users },
   { name: "Results", icon: Archive }
 ];
 
@@ -212,6 +214,13 @@ export default function KingdomAnalysis() {
                   <ResultsTab 
                       targetKd={targetKd}
                       trends={trends}
+                  />
+              );
+          case 'Roster View':
+              return (
+                  <RosterViewTab
+                      rosterData={rosterData}
+                      isLoading={isLoadingRoster}
                   />
               );
           case 'Roster Linker':
