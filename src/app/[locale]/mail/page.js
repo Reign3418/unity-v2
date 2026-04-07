@@ -92,11 +92,14 @@ export default function MailGenerator() {
       }
   };
 
-  const handleDeploy = async () => {
+  const handleCopy = () => {
+    if (!customText) return;
     navigator.clipboard.writeText(customText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
 
+  const handleDeploy = async () => {
     if (!scheduleEvent && !pushToDiscord) return;
 
     setIsDeploying(true);
@@ -114,7 +117,7 @@ export default function MailGenerator() {
         });
         const data = await res.json();
         if (!data.success) {
-            alert("Database Sync Failed: " + data.error);
+            alert("Deploy Failed: " + (data.error || "Unknown error"));
         }
     } catch (e) {
         console.error("Deploy Error", e);
@@ -180,19 +183,36 @@ export default function MailGenerator() {
                 </div>
             </div>
             
-            <div>
+            <div className="flex items-center gap-3">
+                 {/* Always-available clipboard copy */}
                  <button 
-                   onClick={handleDeploy}
-                   disabled={isDeploying || (scheduleEvent && (!scheduleData.date || !scheduleData.time))}
-                   className={`flex items-center gap-2 px-8 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                   onClick={handleCopy}
+                   disabled={!customText}
+                   className={`flex items-center gap-2 px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                      copied 
                      ? 'bg-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.6)] scale-105' 
                      : 'bg-white text-black hover:bg-gray-200 shadow-xl'
-                   } disabled:opacity-50`}
+                   } disabled:opacity-30 disabled:cursor-not-allowed`}
                  >
-                   {isDeploying ? <RefreshCw size={16} className="animate-spin" /> : (copied ? <Check size={16} /> : <Copy size={16} />)} 
-                   {isDeploying ? 'Deploying...' : (copied ? 'Deployed!' : 'Deploy & Copy to Clipboard')}
+                   {copied ? <Check size={16} /> : <Copy size={16} />}
+                   {copied ? 'Copied!' : 'Copy to Clipboard'}
                  </button>
+
+                 {/* Deploy button — only shown when Discord or Cron toggle is on */}
+                 {(pushToDiscord || scheduleEvent) && (
+                   <button 
+                     onClick={handleDeploy}
+                     disabled={isDeploying || !customText || (scheduleEvent && (!scheduleData.date || !scheduleData.time))}
+                     className={`flex items-center gap-2 px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                       isDeploying
+                       ? 'bg-amber-500/20 text-amber-400 cursor-wait border border-amber-500/30'
+                       : 'bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                     } disabled:opacity-50 disabled:cursor-not-allowed`}
+                   >
+                     {isDeploying ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                     {isDeploying ? 'Deploying...' : (pushToDiscord && scheduleEvent ? 'Deploy Discord + Schedule' : pushToDiscord ? 'Send to Discord' : 'Schedule Event')}
+                   </button>
+                 )}
             </div>
         </div>
       </div>
