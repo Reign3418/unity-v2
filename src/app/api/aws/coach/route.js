@@ -54,7 +54,7 @@ RULES:
 4. **IF AT WAR:** Call them out if they have high Troop Power growth but zero Kill Points or Deads (they are training troops but not fighting).
 5. **IF AT PEACE:** DO NOT penalize them or mention lack of Kill Points or Dead Troops. Focus entirely on their economic growth (Tech, Building, Troops, Gathering).
 6. **BE EXTREMELY BRIEF.** Maximum 2 short sentences per thought. Get straight to the point. Keep the entire response under 75 words.
-7. ${stats.locale === 'ar' ? '**CRUCIAL: YOU MUST REPLY ENTIRELY IN ARABIC.**' : '**CRUCIAL: YOU MUST REPLY ENTIRELY IN ENGLISH.**'}
+7. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
 `;
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
