@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair } from "lucide-react";
+import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2 } from "lucide-react";
 
 export default function GrowthAnalysisTab({ targetKd, trends }) {
     const [startDate, setStartDate] = useState("");
@@ -12,6 +12,9 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [allianceFilter, setAllianceFilter] = useState("");
     const [gradeFilter, setGradeFilter] = useState("ALL");
+
+    // Coach State
+    const [coachModal, setCoachModal] = useState({ isOpen: false, data: null, isLoading: false, advice: "" });
 
     // Bulletproof Date Extractor
     const extractDate = (dateStr) => {
@@ -223,6 +226,26 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
         window.open(`/${locale}/mail`, '_blank');
     };
 
+    const handleCoachClick = async (p) => {
+        setCoachModal({ isOpen: true, data: p, isLoading: true, advice: "" });
+        try {
+            const res = await fetch('/api/aws/coach', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(p)
+            });
+            const data = await res.json();
+            if (data.success) {
+                setCoachModal(prev => ({ ...prev, isLoading: false, advice: data.advice }));
+            } else {
+                setCoachModal(prev => ({ ...prev, isLoading: false, advice: "ERROR: Failed to connect to AI Coach Engine." }));
+            }
+        } catch (err) {
+            console.error("Coach API error:", err);
+            setCoachModal(prev => ({ ...prev, isLoading: false, advice: "ERROR: Network unreachable." }));
+        }
+    };
+
     return (
         <div className="w-full space-y-6 animate-fade-in relative">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
@@ -378,6 +401,7 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">KP Δ</th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Deads Δ</th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Gathered Δ</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest text-center">AI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -433,6 +457,15 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                                             <div className="font-bold font-mono text-sm text-yellow-500">+{formatShortNum(p.gatheredDiff)}</div>
                                             <div className="text-[10px] text-gray-500 font-mono">Asst: {formatShortNum(p.assistDiff)}</div>
                                         </td>
+                                        <td className="p-3 text-center">
+                                            <button 
+                                                onClick={() => handleCoachClick(p)}
+                                                className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white border border-indigo-500/30 transition-all flex items-center justify-center group relative overflow-hidden"
+                                                title="AI Coach Recommendations"
+                                            >
+                                                <Bot className="w-4 h-4 group-hover:scale-110 transition-transform relative z-10" />
+                                            </button>
+                                        </td>
                                     </tr>
                                 )
                             })}
@@ -447,6 +480,55 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                     </table>
                 </div>
             </div>
+
+            {/* AI Coach Modal */}
+            {coachModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm shadow-[inset_0_0_100px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-[#0f1115] border-2 border-indigo-500/50 rounded-2xl w-full max-w-lg overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)]">
+                        {/* Header */}
+                        <div className="bg-indigo-950/40 p-4 border-b border-indigo-500/30 flex justify-between items-center relative">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/50">
+                                    <Bot className="text-indigo-400 w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-black tracking-widest uppercase text-sm">V2 AI-Engine Coach</h3>
+                                    <p className="text-indigo-300/70 text-[10px] font-mono uppercase tracking-wider">Analyzing: {coachModal.data?.name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setCoachModal({ isOpen: false, data: null, isLoading: false, advice: "" })} className="text-gray-400 hover:text-white p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 relative min-h-[200px] flex flex-col justify-center">
+                            {coachModal.isLoading ? (
+                                <div className="flex flex-col items-center justify-center text-indigo-400">
+                                    <Loader2 className="w-8 h-8 flex-shrink-0 animate-spin mb-4" />
+                                    <p className="font-mono text-xs uppercase tracking-widest animate-pulse">Consulting Tactical Database...</p>
+                                </div>
+                            ) : (
+                                <div className="text-gray-300 font-sans text-sm leading-relaxed whitespace-pre-line prose prose-invert prose-indigo">
+                                    {/* Using a simple custom parser to render bold asterisks as HTML */}
+                                    <div dangerouslySetInnerHTML={{ __html: coachModal.advice.replace(/\*\*(.*?)\*\*/g, '<span class="text-white font-bold">$1</span>') }} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-[#0a0c0f] p-4 border-t border-[#1e222b] flex justify-end">
+                             <button 
+                                onClick={() => setCoachModal({ isOpen: false, data: null, isLoading: false, advice: "" })}
+                                className="px-6 py-2 bg-[#13161c] hover:bg-[#1e222b] text-gray-300 border border-[#2d323e] rounded-lg text-xs font-bold uppercase tracking-widest transition-colors"
+                             >
+                                 Dismiss
+                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
