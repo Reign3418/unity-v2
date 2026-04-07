@@ -14,7 +14,9 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
     const [gradeFilter, setGradeFilter] = useState("ALL");
 
     // Coach State
+    // Coach State
     const [coachModal, setCoachModal] = useState({ isOpen: false, data: null, isLoading: false, advice: "" });
+    const [kingdomState, setKingdomState] = useState("Peace");
 
     // Bulletproof Date Extractor
     const extractDate = (dateStr) => {
@@ -229,10 +231,16 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
     const handleCoachClick = async (p) => {
         setCoachModal({ isOpen: true, data: p, isLoading: true, advice: "" });
         try {
+            const payload = {
+                ...p,
+                kingdomState,
+                startDate,
+                endDate
+            };
             const res = await fetch('/api/aws/coach', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(p)
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (data.success) {
@@ -257,7 +265,18 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                     <p className="text-gray-400 mt-2 text-sm font-mono relative z-20">AI-driven analysis of player growth, activity, and combat trajectory.</p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                    <button 
+                        onClick={() => setKingdomState(s => s === "Peace" ? "War" : "Peace")}
+                        className={`px-4 flex items-center justify-center rounded-lg border text-xs font-black uppercase tracking-widest transition-colors ${
+                            kingdomState === "Peace" 
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20" 
+                                : "bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
+                        }`}
+                        title="Toggles whether AI should care about kill points and deads"
+                    >
+                        {kingdomState === "Peace" ? "🕊️ At Peace" : "⚔️ At War"}
+                    </button>
                     <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-1 flex shadow-xl">
                         <select 
                             value={startDate} 
