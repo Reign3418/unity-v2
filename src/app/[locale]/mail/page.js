@@ -102,13 +102,17 @@ export default function MailGenerator() {
   const handleDeploy = async () => {
     if (!scheduleEvent && !pushToDiscord) return;
 
+    // Pull the active kingdom from localStorage as a client-side fallback
+    const activeKingdomId = typeof window !== 'undefined' ? localStorage.getItem('unty_active_kd') : null;
+
     setIsDeploying(true);
     try {
         const payload = {
             mailText: customText,
             mailType: "custom",
             pushToDiscord,
-            scheduleData: scheduleEvent ? scheduleData : null
+            scheduleData: scheduleEvent ? scheduleData : null,
+            kingdomId: activeKingdomId || null
         };
         const res = await fetch('/api/command-center', {
             method: 'POST',
@@ -279,7 +283,7 @@ export default function MailGenerator() {
               </div>
             </div>
             
-            <div className="p-6 flex-1 bg-[url('/img/game-bg-pattern.png')] bg-opacity-10 bg-[#0f1115] relative overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
+            <div className="p-6 flex-1 bg-[#0f1115] relative overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
                
                <div className="max-w-[450px] mx-auto bg-[#1a1714] border-2 border-[#3b2d1e] rounded-md shadow-[0_0_30px_rgba(0,0,0,0.8)] mt-4">
                    {/* Fake In-Game Mail Header */}

@@ -9,13 +9,15 @@ export async function POST(req) {
     }
 
     try {
-        const userConfig = await getUserConfig(session.user.id);
-        if (!userConfig || !userConfig.kingdomId) {
-            return NextResponse.json({ error: "Kingdom Not Found" }, { status: 400 });
-        }
-
         const body = await req.json();
-        const { mailText, mailType, scheduleData, pushToDiscord } = body;
+        const { mailText, mailType, scheduleData, pushToDiscord, kingdomId: bodyKingdomId } = body;
+
+        const userConfig = await getUserConfig(session.user.id);
+        // Use kingdom from request body as fallback (set from localStorage on the client)
+        const kingdomId = userConfig?.kingdomId || bodyKingdomId;
+        if (!kingdomId) {
+            return NextResponse.json({ error: "Kingdom Not Found — select a kingdom in the header first." }, { status: 400 });
+        }
 
         // 1. If scheduling is enabled, deploy the EVENT to DynamoDB
         if (scheduleData && scheduleData.date && scheduleData.time) {
@@ -28,7 +30,7 @@ export async function POST(req) {
             }
 
             testDate.setHours(testDate.getHours() - tzOffset);
-            await createKingdomEvent(userConfig.kingdomId, {
+            await createKingdomEvent(kingdomId, {
                 name: `[${mailType.toUpperCase()}] Kingdom Directive`,
                 type: mailType === 'kvk' ? 'KvK' : 'Competitive',
                 desc: mailText,
@@ -41,7 +43,7 @@ export async function POST(req) {
             // The Discord Bot sweeper will pick this up in < 60 seconds
             await queuePresencePing(
                 session.user.id, 
-                userConfig.kingdomId, 
+                kingdomId, 
                 "🚨 KINGDOM BROADCAST DISPATCHED", 
                 mailText
             );
