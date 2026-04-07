@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2 } from "lucide-react";
+import { useLocale } from "next-intl";
 
 export default function GrowthAnalysisTab({ targetKd, trends }) {
+    const locale = useLocale();
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isCompiling, setIsCompiling] = useState(false);
@@ -260,7 +262,8 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                 kingdomState,
                 startDate,
                 endDate,
-                peerAvg
+                peerAvg,
+                locale
             };
             const res = await fetch('/api/aws/coach', {
                 method: 'POST',

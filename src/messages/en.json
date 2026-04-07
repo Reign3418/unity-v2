@@ -380,7 +380,9 @@
     "tab_in_dev_desc": "The component is currently undergoing V2 framework migration.",
     "r4_clearance": "R4 Clearance Required",
     "r4_desc": "Your current role does not have permission to view this utility.",
-    "Presence Radar": "Presence Radar"
+    "Presence Radar": "Presence Radar",
+    "War Room": "War Room",
+    "Roster View": "Roster View"
   },
   "DKP": {
     "title": "DKP Results",
