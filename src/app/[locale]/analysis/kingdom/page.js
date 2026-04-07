@@ -26,7 +26,7 @@ const TABS = [
   { name: "Presence Radar", icon: Clock },
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
-  { name: "War Room", label: "War Room", icon: Map },
+  { name: "War Room", icon: Map },
   { name: "Team Builder", icon: Link },
   { name: "Alliance Merge", icon: GitMerge },
   { name: "Fixed MGE", icon: Trophy },

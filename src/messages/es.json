@@ -362,7 +362,7 @@
         "zeroed": "🚨 ZEROED / SWARMED"
     },
     "Tabs": {
-        "Overview": "Resumen",
+        "Overview": "Visión general",
         "Growth Analysis": "Análisis de Crecimiento",
         "Kingdom Analysis": "Análisis de Reino",
         "Alliance Duel": "Duelo de Alianzas",
@@ -371,16 +371,18 @@
         "Team Builder": "Creador de Equipos",
         "Alliance Merge": "Fusión de Alianzas",
         "Fixed MGE": "MGE Fijo",
-        "Roster Linker": "Enlace de Plantillas",
+        "Roster Linker": "Enlace de Lista",
         "Configuration": "Configuración",
         "Results": "Resultados",
         "workbench_title": "Mesa de Trabajo del Reino",
         "workbench_subtitle": "Herramientas Interactivas",
-        "tab_in_dev": "Pestaña en Desarrollo",
-        "tab_in_dev_desc": "El componente está migrando.",
-        "r4_clearance": "Se requiere R4",
-        "r4_desc": "Sin permisos.",
-        "Presence Radar": "Presence Radar"
+        "tab_in_dev": "Pestaña En Desarrollo",
+        "tab_in_dev_desc": "El componente se encuentra actualmente migrando a V2.",
+        "r4_clearance": "Autorización R4 Requerida",
+        "r4_desc": "Su rol actual no tiene permiso.",
+        "Presence Radar": "Radar de Presencia",
+        "War Room": "Sala de Guerra",
+        "Roster View": "Vista de Lista"
     },
     "DKP": {
         "title": "Resultados DKP",
