@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -150,6 +150,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.username = profile.username;
         token.avatar = profile.avatar;
         token.accessToken = account.access_token;
+
+        // Backfill Discord identity fields into DynamoDB — fire-and-forget, non-blocking
+        pingUserActivity(
+          profile.id,
+          profile.username,
+          profile.global_name || profile.username
+        ).catch(() => {});
 
         try {
           const guildsResponse = await fetch(`https://discord.com/api/users/@me/guilds`, {

@@ -3757,6 +3757,48 @@ export async function updateUserPlaytime(discordId, timezone, playStart, playEnd
 }
 
 /**
+ * Silently stamps the user's last active timestamp and optionally backfills Discord identity fields.
+ * Fire-and-forget — safe to call without awaiting.
+ */
+export async function pingUserActivity(discordId, discordUsername = null, discordDisplayName = null) {
+    if (!discordId) return;
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return;
+
+    const updateParts = ['#attrs.#last = :time'];
+    const exprNames = { '#attrs': 'attributes', '#last': 'lastActiveTimestamp' };
+    const exprValues = { ':time': { S: new Date().toISOString() } };
+
+    if (discordUsername) {
+        updateParts.push('#attrs.#uname = :uname');
+        exprNames['#uname'] = 'discordUsername';
+        exprValues[':uname'] = { S: discordUsername };
+    }
+    if (discordDisplayName) {
+        updateParts.push('#attrs.#dname = :dname');
+        exprNames['#dname'] = 'discordDisplayName';
+        exprValues[':dname'] = { S: discordDisplayName };
+    }
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            'PK': { S: `USER#${discordId}` },
+            'SK': { S: 'CONFIG' }
+        },
+        UpdateExpression: `SET ${updateParts.join(', ')}`,
+        ExpressionAttributeNames: exprNames,
+        ExpressionAttributeValues: exprValues
+    };
+
+    try {
+        await dbClient.send(new UpdateItemCommand(params));
+    } catch (err) {
+        console.warn(`[Telemetry] Failed to ping activity for ${discordId}`, err);
+    }
+}
+
+/**
  * Searches the Admin MATRIX for any users missing a Discord auth populated Username.
  * Securely handshakes with Discord's REST API using the System Bot Token to silently 
  * patch their avatars and usernames directly into DynamoDB.

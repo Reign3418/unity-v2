@@ -160,15 +160,21 @@ function AllianceAnalysis({ rosterData }) {
         const map = {};
         for (const gov of rosterData) {
             const tag = gov.alliance && gov.alliance !== "None" ? gov.alliance : "No Tag";
-            if (!map[tag]) map[tag] = { alliance: tag, count: 0, power: 0, dead: 0, t4Kills: 0, t5Kills: 0, killPoints: 0 };
-            map[tag].count      += 1;
-            map[tag].power      += gov.power      || 0;
-            map[tag].dead       += gov.dead       || 0;
-            map[tag].t4Kills    += gov.t4Kills    || 0;
-            map[tag].t5Kills    += gov.t5Kills    || 0;
-            map[tag].killPoints += gov.killPoints || 0;
+            if (!map[tag]) map[tag] = { alliance: tag, count: 0, power: 0, dead: 0, t4Kills: 0, t5Kills: 0, killPoints: 0, troopPower: 0, commanderPower: 0 };
+            map[tag].count          += 1;
+            map[tag].power          += gov.power          || 0;
+            map[tag].dead           += gov.dead           || 0;
+            map[tag].t4Kills        += gov.t4Kills        || 0;
+            map[tag].t5Kills        += gov.t5Kills        || 0;
+            map[tag].killPoints     += gov.killPoints     || 0;
+            map[tag].troopPower     += gov.troopPower     || 0;
+            map[tag].commanderPower += gov.commanderPower || 0;
         }
-        return Object.values(map).sort((a, b) =>
+        return Object.values(map).map(row => ({
+            ...row,
+            avgTroopPower:     row.count > 0 ? Math.round(row.troopPower     / row.count) : 0,
+            avgCommanderPower: row.count > 0 ? Math.round(row.commanderPower / row.count) : 0,
+        })).sort((a, b) =>
             sortDir === "desc" ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]
         );
     }, [rosterData, sortKey, sortDir]);
@@ -187,12 +193,14 @@ function AllianceAnalysis({ rosterData }) {
     );
 
     const COLS = [
-        { key: "count",      label: "Members" },
-        { key: "power",      label: "Total Power" },
-        { key: "dead",       label: "Total Deads" },
-        { key: "t4Kills",    label: "T4 Kills" },
-        { key: "t5Kills",    label: "T5 Kills" },
-        { key: "killPoints", label: "Kill Points" },
+        { key: "count",             label: "Members" },
+        { key: "power",             label: "Total Power" },
+        { key: "dead",              label: "Total Deads" },
+        { key: "t4Kills",           label: "T4 Kills" },
+        { key: "t5Kills",           label: "T5 Kills" },
+        { key: "killPoints",        label: "Kill Points" },
+        { key: "avgTroopPower",     label: "Avg Troop Pwr" },
+        { key: "avgCommanderPower", label: "Avg Cmdr Pwr" },
     ];
 
     return (
@@ -229,6 +237,8 @@ function AllianceAnalysis({ rosterData }) {
                             <td className="px-4 py-2.5 text-right font-mono text-amber-400 text-xs">{fmt(row.t4Kills)}</td>
                             <td className="px-4 py-2.5 text-right font-mono text-fuchsia-400 text-xs">{fmt(row.t5Kills)}</td>
                             <td className="px-4 py-2.5 text-right font-mono text-emerald-400 text-xs">{fmt(row.killPoints)}</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-sky-400 text-xs">{fmt(row.avgTroopPower)}</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-violet-400 text-xs">{fmt(row.avgCommanderPower)}</td>
                         </tr>
                     ))}
                 </tbody>
