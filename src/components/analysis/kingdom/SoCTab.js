@@ -4,12 +4,12 @@ import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, User
 import { addDays, format, isValid, parseISO } from 'date-fns';
 
 const CAMP_TEMPLATES = [
-    { id: 1, name: 'Water Camp', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 font-bold', kds: '' },
-    { id: 2, name: 'Earth Camp', color: 'bg-green-500/10 text-green-400 border-green-500/30 font-bold', kds: '' },
-    { id: 3, name: 'Ice Camp', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-bold', kds: '' },
-    { id: 4, name: 'Shadow Camp', color: 'bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold', kds: '' },
-    { id: 5, name: 'Light Camp', color: 'bg-gray-100/10 text-gray-200 border-gray-100/30 font-bold', kds: '' },
-    { id: 6, name: 'Fire Camp', color: 'bg-red-500/10 text-red-400 border-red-500/30 font-bold', kds: '' }
+    { id: 1, name: 'Brittany', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 font-bold', kds: '' },
+    { id: 2, name: 'Bourbon', color: 'bg-green-500/10 text-green-400 border-green-500/30 font-bold', kds: '' },
+    { id: 3, name: 'La Marche', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-bold', kds: '' },
+    { id: 4, name: 'Picardy', color: 'bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold', kds: '' },
+    { id: 5, name: 'Auvergne', color: 'bg-gray-100/10 text-gray-200 border-gray-100/30 font-bold', kds: '' },
+    { id: 6, name: 'Poitou', color: 'bg-red-500/10 text-red-400 border-red-500/30 font-bold', kds: '' }
 ];
 
 export default function SoCTab({ targetKd }) {
@@ -52,7 +52,12 @@ export default function SoCTab({ targetKd }) {
                     }
                     
                     if (data.config.socCamps && data.config.socCamps.length > 0) {
-                        setCamps(data.config.socCamps);
+                        // Merge saved KDs but assert authentic camp names and colors
+                        const hydratedCamps = CAMP_TEMPLATES.map(template => {
+                            const saved = data.config.socCamps.find(c => c.id === template.id);
+                            return saved ? { ...template, kds: saved.kds } : template;
+                        });
+                        setCamps(hydratedCamps);
                     }
                 }
             })
