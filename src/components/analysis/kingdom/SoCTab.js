@@ -49,13 +49,42 @@ export default function SoCTab({ targetKd }) {
           .then(data => {
             if (data && data.dates && data.dates.length > 0) {
               setAvailableDates(data.dates);
-              setStartScan(data.dates[0]);
               setEndScan(data.dates[data.dates.length - 1]);
             }
           })
           .catch(err => console.error("Failed to fetch DKP dates:", err))
           .finally(() => setIsDatesLoading(false));
     }, [targetKd]);
+
+    // Auto-Lock Start Scan to Marauders Date
+    useEffect(() => {
+        if (!regDate || availableDates.length === 0 || !selectedMap) return;
+        
+        const mapEvents = MAP_TIMELINES[selectedMap] || [];
+        const maraudersEvent = mapEvents.find(e => e.title.toLowerCase() === 'marauders');
+        if (!maraudersEvent) return;
+
+        const baseDate = parseISO(regDate);
+        if (!isValid(baseDate)) return;
+        
+        const maraudersDate = addDays(baseDate, maraudersEvent.offsetDays);
+        
+        let closestScan = availableDates[0];
+        let smallestDiff = Infinity;
+        
+        for (const scan of availableDates) {
+            const scanDate = parseISO(scan);
+            if (isValid(scanDate)) {
+                const diff = Math.abs(scanDate.getTime() - maraudersDate.getTime());
+                if (diff < smallestDiff) {
+                    smallestDiff = diff;
+                    closestScan = scan;
+                }
+            }
+        }
+        
+        setStartScan(closestScan);
+    }, [regDate, availableDates, selectedMap]);
 
     // Hydrate from AWS DynamoDB
     useEffect(() => {
@@ -364,12 +393,15 @@ export default function SoCTab({ targetKd }) {
 
                     <div className="flex items-end gap-3 flex-wrap">
                         <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-fuchsia-400" /> Start Scan (Locked)
+                            </span>
                             <select
                                 value={startScan}
                                 onChange={(e) => setStartScan(e.target.value)}
-                                disabled={isDatesLoading || availableDates.length === 0}
-                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                                disabled={true}
+                                title="Start Scan is automatically clamped to the nearest Marauders offset."
+                                className="bg-[#13161c] border border-fuchsia-500/30 text-fuchsia-400 text-[11px] font-mono font-bold px-3 py-1.5 rounded outline-none disabled:opacity-80 min-w-[180px] cursor-not-allowed shadow-[inset_0_0_10px_rgba(217,70,239,0.05)]"
                             >
                                 {availableDates.length === 0 && <option>— Validating Network —</option>}
                                 {availableDates.map((d) => (
