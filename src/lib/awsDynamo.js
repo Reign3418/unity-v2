@@ -4271,6 +4271,48 @@ export async function getSystemNotifications(limit = 10) {
 }
 
 
-export async function getKingdomDkpMatrix(kingdomId) { const tableName = process.env.AWS_TABLE_NAME; if (!tableName) return null; try { const params = { TableName: tableName, KeyConditionExpression: 'PK = :pk AND SK = :sk', ExpressionAttributeValues: { ':pk': { S: 'SYSTEM#CONFIG' }, ':sk': { S: DKP_MATRIX# } } }; const result = await dbClient.send(new QueryCommand(params)); if (result.Items && result.Items.length > 0) { return JSON.parse(result.Items[0].attributes?.M?.data?.S || '{}'); } return null; } catch (e) { return null; } }
+export async function getKingdomDkpMatrix(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return null;
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk AND SK = :sk',
+            ExpressionAttributeValues: {
+                ':pk': { S: 'SYSTEM#CONFIG' },
+                ':sk': { S: `DKP_MATRIX#${kingdomId}` }
+            }
+        };
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            return JSON.parse(result.Items[0].attributes?.M?.data?.S || '{}');
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
 
-export async function setKingdomDkpMatrix(kingdomId, configData) { const tableName = process.env.AWS_TABLE_NAME; if (!tableName) return false; try { const params = { TableName: tableName, Item: { PK: { S: 'SYSTEM#CONFIG' }, SK: { S: DKP_MATRIX# }, attributes: { M: { data: { S: JSON.stringify(configData) }, updatedAt: { S: new Date().toISOString() } } } } }; await dbClient.send(new PutItemCommand(params)); return true; } catch (e) { return false; } }
+export async function setKingdomDkpMatrix(kingdomId, configData) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    try {
+        const params = {
+            TableName: tableName,
+            Item: {
+                PK: { S: 'SYSTEM#CONFIG' },
+                SK: { S: `DKP_MATRIX#${kingdomId}` },
+                attributes: {
+                    M: {
+                        data: { S: JSON.stringify(configData) },
+                        updatedAt: { S: new Date().toISOString() }
+                    }
+                }
+            }
+        };
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
