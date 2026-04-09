@@ -17,6 +17,7 @@ import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
 import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
 import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
+import SoCTab from "@/components/analysis/kingdom/SoCTab";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -27,6 +28,7 @@ const TABS = [
   { name: "Alliance Duel", icon: Crosshair },
   { name: "Scatter Plot", icon: Map },
   { name: "War Room", icon: Map },
+  { name: "SOC Hub", icon: Target },
   { name: "Team Builder", icon: Link },
   { name: "Alliance Merge", icon: GitMerge },
   { name: "Fixed MGE", icon: Trophy },
@@ -178,8 +180,12 @@ export default function KingdomAnalysis() {
                   <ScatterPlotTab 
                       rosterData={rosterData}
                       targetKd={targetKd}
-                      trends={trends}
+                      isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
+              );
+          case 'SOC Hub':
+              return (
+                  <SoCTab targetKd={targetKd} />
               );
           case 'Team Builder':
               return (

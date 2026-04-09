@@ -20,6 +20,7 @@ const data = {
             "Results": "Results",
             "workbench_title": "Kingdom Workbench",
             "workbench_subtitle": "Interactive Legacy Tools",
+            "SOC Hub": "SOC Hub",
             "tab_in_dev": "Tab In Development",
             "tab_in_dev_desc": "The component is currently undergoing V2 framework migration.",
             "r4_clearance": "R4 Clearance Required",
