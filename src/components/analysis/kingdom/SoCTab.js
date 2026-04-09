@@ -350,6 +350,119 @@ export default function SoCTab({ targetKd }) {
                 </div>
             </div>
 
+            {/* Camp Matchmaking DKP Aggregator */}
+            <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent left-0" />
+                
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6">
+                    <div>
+                        <h3 className="text-xl font-black flex items-center gap-2 mb-1 uppercase tracking-widest">
+                            Camp Leaderboard
+                        </h3>
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Total DKP aggregated across all detected kingdoms mapping to the 6 Coalitions.</p>
+                    </div>
+
+                    <div className="flex items-end gap-3 flex-wrap">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
+                            <select
+                                value={startScan}
+                                onChange={(e) => setStartScan(e.target.value)}
+                                disabled={isDatesLoading || availableDates.length === 0}
+                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                            >
+                                {availableDates.length === 0 && <option>— Validating Network —</option>}
+                                {availableDates.map((d) => (
+                                    <option key={`s-${d}`} value={d}>{d}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">End Scan</span>
+                            <select
+                                value={endScan}
+                                onChange={(e) => setEndScan(e.target.value)}
+                                disabled={isDatesLoading || availableDates.length === 0}
+                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                            >
+                                {availableDates.length === 0 && <option>— Validating Network —</option>}
+                                {availableDates.map((d) => (
+                                    <option key={`e-${d}`} value={d}>{d}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <button
+                            onClick={fetchCampDkp}
+                            disabled={isDkpLoading}
+                            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-cyan-500/50 px-4 py-1.5 rounded font-bold uppercase tracking-widest text-[11px] transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw size={14} className={isDkpLoading ? "animate-spin text-cyan-400" : ""} />
+                            Compute Data
+                        </button>
+                    </div>
+                </div>
+
+                <div className="border border-[#1e222b] rounded-lg overflow-hidden bg-[#0a0c0f]">
+                    <div className="overflow-x-auto">
+                        <table className="w-full whitespace-nowrap text-[12px]">
+                            <thead className="bg-black/40 border-b border-[#1e222b]">
+                                <tr>
+                                    {["Camp", "Total Power", "Power +/-", "Total T4 Kills", "Total T5 Kills", "Total Deads", "Total KP", "Camp DKP"].map((h) => (
+                                        <th key={h} className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]">
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#1e222b]">
+                                {isDkpLoading ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-4 py-12 text-center">
+                                            <RefreshCw size={24} className="animate-spin text-cyan-400 mx-auto mb-3" />
+                                            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                                                Interrogating AWS Network For All Kingdoms...
+                                            </p>
+                                        </td>
+                                    </tr>
+                                ) : campDkpRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-4 py-12 text-center text-[11px] font-bold uppercase tracking-widest text-slate-600">
+                                            Click "Compute Data" to aggregate the Kingdom Coalitions.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    campDkpRows.map((row) => (
+                                        <tr key={row.campName} className="hover:bg-white/[0.02] transition-colors">
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`font-black uppercase tracking-widest text-[13px] ${row.color.split(' ')[1]}`}>
+                                                        {row.campName}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-600 font-mono tracking-widest">{row.kds}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.totalPower)}</td>
+                                            <td className={`px-4 py-4 font-mono font-bold ${row.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                {row.powerDelta >= 0 ? "+" : ""}{formatNum(row.powerDelta)}
+                                            </td>
+                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t4Kills)}</td>
+                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t5Kills)}</td>
+                                            <td className="px-4 py-4 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
+                                            <td className="px-4 py-4 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
+                                            <td className="px-4 py-4 font-mono font-black text-white text-[15px] drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                                                {formatNum(row.totalDkp)}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                 
                 {/* Tactical Timeline Explorer */}
@@ -474,118 +587,6 @@ export default function SoCTab({ targetKd }) {
 
             </div>
 
-            {/* Camp Matchmaking DKP Aggregator */}
-            <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
-                <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent left-0" />
-                
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6">
-                    <div>
-                        <h3 className="text-xl font-black flex items-center gap-2 mb-1 uppercase tracking-widest">
-                            Camp Leaderboard
-                        </h3>
-                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Total DKP aggregated across all detected kingdoms mapping to the 6 Coalitions.</p>
-                    </div>
-
-                    <div className="flex items-end gap-3 flex-wrap">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
-                            <select
-                                value={startScan}
-                                onChange={(e) => setStartScan(e.target.value)}
-                                disabled={isDatesLoading || availableDates.length === 0}
-                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
-                            >
-                                {availableDates.length === 0 && <option>— Validating Network —</option>}
-                                {availableDates.map((d) => (
-                                    <option key={`s-${d}`} value={d}>{d}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">End Scan</span>
-                            <select
-                                value={endScan}
-                                onChange={(e) => setEndScan(e.target.value)}
-                                disabled={isDatesLoading || availableDates.length === 0}
-                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
-                            >
-                                {availableDates.length === 0 && <option>— Validating Network —</option>}
-                                {availableDates.map((d) => (
-                                    <option key={`e-${d}`} value={d}>{d}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <button
-                            onClick={fetchCampDkp}
-                            disabled={isDkpLoading}
-                            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-cyan-500/50 px-4 py-1.5 rounded font-bold uppercase tracking-widest text-[11px] transition-colors disabled:opacity-50"
-                        >
-                            <RefreshCw size={14} className={isDkpLoading ? "animate-spin text-cyan-400" : ""} />
-                            Compute Data
-                        </button>
-                    </div>
-                </div>
-
-                <div className="border border-[#1e222b] rounded-lg overflow-hidden bg-[#0a0c0f]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full whitespace-nowrap text-[12px]">
-                            <thead className="bg-black/40 border-b border-[#1e222b]">
-                                <tr>
-                                    {["Camp", "Total Power", "Power +/-", "Total T4 Kills", "Total T5 Kills", "Total Deads", "Total KP", "Camp DKP"].map((h) => (
-                                        <th key={h} className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]">
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#1e222b]">
-                                {isDkpLoading ? (
-                                    <tr>
-                                        <td colSpan={8} className="px-4 py-12 text-center">
-                                            <RefreshCw size={24} className="animate-spin text-cyan-400 mx-auto mb-3" />
-                                            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                                                Interrogating AWS Network For All Kingdoms...
-                                            </p>
-                                        </td>
-                                    </tr>
-                                ) : campDkpRows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={8} className="px-4 py-12 text-center text-[11px] font-bold uppercase tracking-widest text-slate-600">
-                                            Click "Compute Data" to aggregate the Kingdom Coalitions.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    campDkpRows.map((row) => (
-                                        <tr key={row.campName} className="hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className={`font-black uppercase tracking-widest text-[13px] ${row.color.split(' ')[1]}`}>
-                                                        {row.campName}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-600 font-mono tracking-widest">{row.kds}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.totalPower)}</td>
-                                            <td className={`px-4 py-4 font-mono font-bold ${row.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                                {row.powerDelta >= 0 ? "+" : ""}{formatNum(row.powerDelta)}
-                                            </td>
-                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t4Kills)}</td>
-                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t5Kills)}</td>
-                                            <td className="px-4 py-4 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
-                                            <td className="px-4 py-4 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
-                                            <td className="px-4 py-4 font-mono font-black text-white text-[15px] drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                                                {formatNum(row.totalDkp)}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }
