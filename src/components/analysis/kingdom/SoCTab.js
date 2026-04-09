@@ -256,9 +256,9 @@ export default function SoCTab({ targetKd }) {
                     const kdAgg = data.rankings.reduce((acc, gov) => {
                         acc.totalPower += gov.power || 0;
                         acc.powerDelta += typeof gov.pDelta === "number" ? gov.pDelta : 0;
-                        acc.t4Kills += gov.t4Kills || 0;
-                        acc.t5Kills += gov.t5Kills || 0;
-                        acc.totalDeads += gov.deads || 0;
+                        acc.t4Kills += typeof gov.t4Delta === "number" ? gov.t4Delta : 0;
+                        acc.t5Kills += typeof gov.t5Delta === "number" ? gov.t5Delta : 0;
+                        acc.totalDeads += typeof gov.dDelta === "number" ? gov.dDelta : 0;
                         acc.totalKp += gov.kDelta || 0;
                         acc.totalDkp += gov.dkpScore || 0;
                         return acc;
@@ -441,7 +441,7 @@ export default function SoCTab({ targetKd }) {
                         <table className="w-full whitespace-nowrap text-[12px]">
                             <thead className="bg-black/40 border-b border-[#1e222b]">
                                 <tr>
-                                    {["Camp", "Total Power", "Power +/-", "Total T4 Kills", "Total T5 Kills", "Total Deads", "Total KP", "Camp DKP"].map((h) => (
+                                    {["Camp", "Total Power", "Power +/-", "T4 Kills +/-", "T5 Kills +/-", "Deads +/-", "Total KP +/-", "Camp DKP"].map((h) => (
                                         <th key={h} className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]">
                                             {h}
                                         </th>
