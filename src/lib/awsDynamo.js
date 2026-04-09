@@ -650,10 +650,14 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
 
         // Apply date range filter using scanDate
         if (startIso) dates = dates.filter(d => parseScanDate(d.scanDate) >= new Date(startIso));
-        if (endIso) dates = dates.filter(d => parseScanDate(d.scanDate) <= new Date(endIso + 'T23:59:59Z'));
+        if (endIso) {
+            const parsedEnd = endIso.includes('T') ? new Date(endIso) : new Date(endIso + 'T23:59:59Z');
+            dates = dates.filter(d => parseScanDate(d.scanDate) <= parsedEnd);
+        }
 
         console.log(`[BehavioralMatrix] KD ${kingdomId}: ${dates.length} scans in range [${startIso} → ${endIso}]`);
-        if (dates.length < 2) return [];
+        if (dates.length === 0) return [];
+        if (dates.length === 1) dates = [dates[0], dates[0]]; // Duplicate for identical 0-delta mapping
 
         console.log(`[BehavioralMatrix] Selected Start Key: ${dates[0].dateKey} | Selected End Key: ${dates[dates.length - 1].dateKey}`);
 
