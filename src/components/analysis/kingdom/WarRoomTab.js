@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush, Image as ImageIcon, Pipette } from "lucide-react";
+import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush, Image as ImageIcon, Pipette, MapPin } from "lucide-react";
 import io from 'socket.io-client';
 
 const RAILWAY_WS = 'https://unity-app-production.up.railway.app';
@@ -14,6 +14,12 @@ export default function WarRoomTab({ targetKd }) {
   const [brushSize, setBrushSize] = useState(3);
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  
+  const [pins, setPins] = useState([]);
+  const [pinX, setPinX] = useState('');
+  const [pinY, setPinY] = useState('');
+  const [pinLabel, setPinLabel] = useState('');
+  const [imageBounds, setImageBounds] = useState(null);
   
   const bgImageRef = useRef(null);
   const currentPath = useRef([]);
@@ -36,8 +42,12 @@ export default function WarRoomTab({ targetKd }) {
           const scale = Math.min(rect.width / img.width, rect.height / img.height);
           const x = (rect.width / 2) - (img.width / 2) * scale;
           const y = (rect.height / 2) - (img.height / 2) * scale;
+          const w = img.width * scale;
+          const h = img.height * scale;
           
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+          setImageBounds({ x, y, w, h });
+          
+          ctx.drawImage(img, x, y, w, h);
       };
       img.src = base64;
   };
@@ -48,6 +58,8 @@ export default function WarRoomTab({ targetKd }) {
       const rect = canvas.getBoundingClientRect();
       contextRef.current.fillStyle = '#0f1115';
       contextRef.current.fillRect(0, 0, rect.width, rect.height);
+      setPins([]);
+      setImageBounds(null);
       
       if (bgImageRef.current) {
           drawBackgroundLocally(bgImageRef.current);
@@ -78,6 +90,17 @@ export default function WarRoomTab({ targetKd }) {
 
     socketIo.on('peer_background', (base64) => {
         drawBackgroundLocally(base64);
+    });
+
+    socketIo.on('peer_pin', (pin) => {
+        setPins(prev => {
+            if (prev.find(p => p.id === pin.id)) return prev;
+            return [...prev, pin];
+        });
+    });
+
+    socketIo.on('peer_remove_pin', (pinId) => {
+        setPins(prev => prev.filter(p => p.id !== pinId));
     });
 
     socketIo.on('peer_clear', () => {
@@ -229,6 +252,17 @@ export default function WarRoomTab({ targetKd }) {
       if (socket) socket.emit('clear_board', WAR_ROOM_ID);
   };
 
+  const handleDropPin = () => {
+      const x = parseInt(pinX); 
+      const y = parseInt(pinY);
+      if (isNaN(x) || isNaN(y) || x < 0 || x > 1200 || y < 0 || y > 1200) return;
+      
+      const newPin = { id: Date.now().toString(), x, y, label: pinLabel || `Target (${x},${y})`, color };
+      setPins(prev => [...prev, newPin]);
+      if (socket) socket.emit('add_pin', { roomId: WAR_ROOM_ID, pin: newPin });
+      setPinX(''); setPinY(''); setPinLabel('');
+  };
+
   return (
     <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
       {/* Header Panel */}
@@ -306,6 +340,17 @@ export default function WarRoomTab({ targetKd }) {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Add Map Pin Tool */}
+                    <div className="flex items-center bg-[#13161c] border border-[#1e222b] rounded-lg overflow-hidden hidden xl:flex">
+                        <div className="px-2 py-1.5 flex items-center gap-1.5 bg-[#0f1115] border-r border-[#1e222b]">
+                           <MapPin size={12} className="text-cyan-500" />
+                        </div>
+                        <input type="text" placeholder="X" value={pinX} onChange={e => setPinX(e.target.value)} className="w-12 bg-transparent text-white text-xs font-mono text-center outline-none border-r border-[#1e222b] py-1" />
+                        <input type="text" placeholder="Y" value={pinY} onChange={e => setPinY(e.target.value)} className="w-12 bg-transparent text-white text-xs font-mono text-center outline-none border-r border-[#1e222b] py-1" />
+                        <input type="text" placeholder="Label" value={pinLabel} onChange={e => setPinLabel(e.target.value)} className="w-24 bg-transparent text-white text-xs px-2 outline-none border-r border-[#1e222b] py-1" />
+                        <button onClick={handleDropPin} className="px-3 py-1 bg-[#1e222b] hover:bg-cyan-500 hover:text-white text-xs font-bold transition-colors">SET</button>
+                    </div>
+
                     <label className="flex items-center gap-2 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all bg-[#1e222b] text-gray-300 hover:bg-emerald-500 hover:text-white cursor-pointer group">
                        <ImageIcon size={14} className="text-gray-400 group-hover:text-white" /> 
                        Upload Map 
@@ -324,13 +369,33 @@ export default function WarRoomTab({ targetKd }) {
              
              <canvas
                 ref={canvasRef}
-                className="w-full h-full block touch-none"
+                className="w-full h-full block touch-none z-10 relative"
                 style={{ width: '100%', height: '100%' }}
                 onPointerDown={startDrawing}
                 onPointerMove={draw}
                 onPointerUp={stopDrawing}
                 onPointerOut={stopDrawing}
              />
+             
+             {imageBounds && pins.map(pin => {
+                 const px = imageBounds.x + (pin.x / 1200) * imageBounds.w;
+                 const py = imageBounds.y + imageBounds.h - ((pin.y / 1200) * imageBounds.h);
+                 return (
+                    <div key={pin.id} 
+                         className="absolute w-4 h-4 rounded-full border-2 border-white cursor-help group shadow-[0_0_10px_rgba(0,0,0,0.5)] transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all hover:scale-150 z-20"
+                         style={{ left: `${px}px`, top: `${py}px`, backgroundColor: pin.color || '#EF4444' }}
+                         onDoubleClick={() => {
+                             if (socket) socket.emit('remove_pin', { roomId: WAR_ROOM_ID, pinId: pin.id });
+                             setPins(prev => prev.filter(p => p.id !== pin.id));
+                         }}
+                    >
+                        <div className="w-1 h-1 bg-white rounded-full"></div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black/80 text-white text-[10px] font-bold uppercase tracking-widest whitespace-nowrap rounded border border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                            {pin.label}
+                        </div>
+                    </div>
+                 )
+             })}
           </div>
       </div>
 
