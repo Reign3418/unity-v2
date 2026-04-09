@@ -333,10 +333,10 @@ export default function SoCTab({ targetKd }) {
             <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
                 <div>
                     <h2 className="text-3xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-600 uppercase tracking-tight">
-                        SOC Hub
+                        KvK Operations Hub
                     </h2>
                     <p className="text-slate-400 mt-1 max-w-xl text-sm">
-                        Global Tactical Workstation. Matchmaking, Phase Timelines, and Stratagems are synchronized across your Kingdom's cloud. Save your progress so leadership sees the exact same map alignment.
+                        Global Tactical Workstation. Matchmaking, Phase Timelines, and Stratagems are synchronized across your Kingdom's cloud. Operations dynamically adapt to your selected campaign format.
                     </p>
                 </div>
 

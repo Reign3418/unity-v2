@@ -77,6 +77,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <SectionTitle>{t('sec_analysis')}</SectionTitle>
           <NavItem href="/vault" icon={Building2} label={t('nav_vault')} hidden={!isLeader} />
           <NavItem href="/analysis/kingdom" icon={BarChart2} label={t('nav_kingdom_analysis')} />
+          <NavItem href="/analysis/kvk" icon={Target} label="KvK Hub" />
           <NavItem href="/analysis/global" icon={TrendingUp} label={t('nav_global_analysis')} />
           <NavItem href="/rankings/pre-kvk" icon={Trophy} label={t('nav_pre_kvk')} />
           <NavItem href="/results/dkp" icon={Medal} label={t('nav_dkp')} />
