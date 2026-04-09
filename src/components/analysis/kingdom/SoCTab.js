@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MAP_TIMELINES } from '../../../constants/soc_timelines';
-import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users } from 'lucide-react';
+import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera } from 'lucide-react';
 import { addDays, format, isValid, parseISO } from 'date-fns';
 
 const CAMP_TEMPLATES = [
@@ -15,6 +15,8 @@ const CAMP_TEMPLATES = [
 export default function SoCTab({ targetKd }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+    const fileInputRef = useRef(null);
     
     // AWS Full Global State Payload
     const [globalConfig, setGlobalConfig] = useState({});
@@ -107,6 +109,42 @@ export default function SoCTab({ targetKd }) {
         setCamps(camps.map(c => c.id === id ? { ...c, kds: newKds } : c));
     };
 
+    const handleImageUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsScanning(true);
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+             const base64Data = reader.result.split(',')[1];
+             try {
+                const res = await fetch('/api/aws/admin/vision/soc-camps', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ base64: base64Data, mimeType: file.type })
+                });
+                const data = await res.json();
+                if (data.success && data.camps) {
+                    setCamps(prevCamps => prevCamps.map(camp => {
+                        if (data.camps[camp.name]) {
+                            return { ...camp, kds: data.camps[camp.name] };
+                        }
+                        return camp;
+                    }));
+                } else {
+                    alert("Failure: " + (data.error || "Could not extract data from the image."));
+                }
+             } catch(err) {
+                 alert("Network fault scanning image.");
+             } finally {
+                 setIsScanning(false);
+                 // Reset input so they can upload the identical file again if needed
+                 if (fileInputRef.current) fileInputRef.current.value = "";
+             }
+        };
+        reader.readAsDataURL(file);
+    };
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center p-24 text-slate-400">
@@ -164,6 +202,23 @@ export default function SoCTab({ targetKd }) {
                         <Users className="w-5 h-5 text-emerald-400" />
                         Global Coalition Matchmaker
                     </h3>
+                    <div className="flex items-center">
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            ref={fileInputRef} 
+                            style={{ display: 'none' }} 
+                            onChange={handleImageUpload} 
+                        />
+                        <button 
+                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                            disabled={isScanning}
+                            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                            {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                            {isScanning ? "Scanning Image..." : "Parse from Screenshot"}
+                        </button>
+                    </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {camps.map(camp => (
