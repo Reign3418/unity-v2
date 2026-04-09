@@ -134,6 +134,19 @@ export default function ResultsTab({ targetKd, trends }) {
                 rawKvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
                 targetDkp = 0; 
                 targetDeads = 0;
+            } else if (config.dkpSystem === "bracketed") {
+                const pM = powerStart / 1000000;
+                let mult = config.b6Mult || 5.0;
+                
+                if (pM <= (config.b1Max || 24)) mult = (config.b1Mult || 1.5);
+                else if (pM <= (config.b2Max || 35)) mult = (config.b2Mult || 2.0);
+                else if (pM <= (config.b3Max || 45)) mult = (config.b3Mult || 2.5);
+                else if (pM <= (config.b4Max || 55)) mult = (config.b4Mult || 3.0);
+                else if (pM <= (config.b5Max || 70)) mult = (config.b5Mult || 4.0);
+
+                rawKvkKP = (t4Diff * (config.advT4Points || 10)) + (t5Diff * (config.advT5Points || 20));
+                targetDkp = powerStart * mult;
+                targetDeads = powerStart * (config.bracketDeadsMultiplier || 0.02);
             } else {
                 rawKvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
                 const t4MixRatio = 1 - (config.t5MixRatio || 0);
@@ -365,12 +378,15 @@ export default function ResultsTab({ targetKd, trends }) {
                     </button>
                     
                      <button 
-                          onClick={() => {
-                              const newSys = config.dkpSystem === "basic" ? "advanced" : "basic";
-                              const newConf = { ...config, dkpSystem: newSys };
-                              setConfig(newConf);
-                              localStorage.setItem("unity_dkp_config_v2", JSON.stringify(newConf));
-                          }}
+                         onClick={() => {
+                             let newSys = "basic";
+                             if (config.dkpSystem === "basic") newSys = "advanced";
+                             else if (config.dkpSystem === "advanced") newSys = "bracketed";
+                             
+                             const newConf = { ...config, dkpSystem: newSys };
+                             setConfig(newConf);
+                             localStorage.setItem("unity_dkp_config_v2", JSON.stringify(newConf));
+                         }}
                           className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/30 text-purple-400 text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 cursor-pointer shadow-xl"
                      >
                           <Cpu size={14} /> Mode: {config.dkpSystem}
@@ -413,7 +429,7 @@ export default function ResultsTab({ targetKd, trends }) {
                       </select>
                  </div>
 
-                 {config.dkpSystem === "advanced" && (
+                 {config.dkpSystem !== "basic" && (
                      <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 shadow-xl flex items-center justify-between">
                          <div>
                              <span className="block text-[10px] uppercase tracking-widest text-emerald-500 font-bold">KP Multiplier</span>
@@ -438,7 +454,15 @@ export default function ResultsTab({ targetKd, trends }) {
                     <div className="flex flex-col items-center justify-center py-32">
                         <RefreshCw className="w-12 h-12 text-emerald-500 animate-spin opacity-80 mb-4" />
                         <h3 className="text-white font-black tracking-widest uppercase">Processing Matrices</h3>
-                        <p className="text-gray-500 text-sm mt-2">Computing DKP arrays against {config.dkpSystem} configuration...</p>
+                        {config.dkpSystem === "bracketed" && (
+                            <>
+                                <h3 className="text-xl font-black text-rose-400 capitalize tracking-widest break-words leading-tight flex items-center justify-center gap-2">
+                                    <ShieldAlert className="w-5 h-5" />
+                                    Bracketed Engine Active
+                                </h3>
+                                <p className="text-gray-500 text-sm mt-2">Target profiles dynamically scalarizing against baseline power brackets.</p>
+                            </>
+                        )}
                     </div>
                 ) : filteredData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32">
@@ -464,11 +488,11 @@ export default function ResultsTab({ targetKd, trends }) {
                                     <th className="p-3 font-bold text-amber-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t5Diff")}>T5 Kills <SortIcon columnKey="t5Diff"/></th>
                                     <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("t4t5Combined")}>T4*T5 Combined <SortIcon columnKey="t4t5Combined"/></th>
                                     <th className="p-3 font-bold text-rose-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("deadsDiff")}>KvK Deads <SortIcon columnKey="deadsDiff"/></th>
-                                    {(enableSiphon && config.dkpSystem === 'advanced') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverDeads")}>Farm Deads <SortIcon columnKey="rolloverDeads"/></th>}
+                                    {(enableSiphon && config.dkpSystem !== 'basic') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverDeads")}>Farm Deads <SortIcon columnKey="rolloverDeads"/></th>}
                                     <th className="p-3 font-bold text-emerald-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("gatheredDiff")}>RSS Gathered <SortIcon columnKey="gatheredDiff"/></th>
                                     <th className="p-3 font-bold text-cyan-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kvkKP")}>KvK KP <SortIcon columnKey="kvkKP"/></th>
-                                    {(enableSiphon && config.dkpSystem === 'advanced') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverKp")}>Farm KP <SortIcon columnKey="rolloverKp"/></th>}
-                                    {config.dkpSystem === 'advanced' && (
+                                    {(enableSiphon && config.dkpSystem !== 'basic') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverKp")}>Farm KP <SortIcon columnKey="rolloverKp"/></th>}
+                                    {config.dkpSystem !== 'basic' && (
                                         <>
                                             <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("targetDkp")}>Target DKP <SortIcon columnKey="targetDkp"/></th>
                                             <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kpPercent")}>KP % Complete <SortIcon columnKey="kpPercent"/></th>
@@ -525,13 +549,13 @@ export default function ResultsTab({ targetKd, trends }) {
                                         <td className="p-3 text-right font-mono text-gray-300">{(gov.t4t5Combined || 0).toLocaleString()}</td>
                                          
                                          <td className="p-3 text-right font-mono text-rose-500">{(gov.deadsDiff || 0).toLocaleString()}</td>
-                                         {(enableSiphon && config.dkpSystem === 'advanced') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverDeads || 0).toLocaleString()}</td>}
+                                         {(enableSiphon && config.dkpSystem !== 'basic') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverDeads || 0).toLocaleString()}</td>}
                                          <td className="p-3 text-right font-mono text-emerald-500/80">{(gov.gatheredDiff || 0).toLocaleString()}</td>
                                          
                                          <td className="p-3 text-right font-mono text-cyan-400">{(Math.round(gov.kvkKP) || 0).toLocaleString()}</td>
-                                         {(enableSiphon && config.dkpSystem === 'advanced') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverKp || 0).toLocaleString()}</td>}
+                                         {(enableSiphon && config.dkpSystem !== 'basic') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverKp || 0).toLocaleString()}</td>}
                                         
-                                        {config.dkpSystem === 'advanced' && (
+                                        {config.dkpSystem !== 'basic' && (
                                             <>
                                                 <td className="p-3 text-right font-mono text-gray-400">{(Math.round(gov.targetDkp) || 0).toLocaleString()}</td>
                                                 <td className="p-3 text-right font-mono">

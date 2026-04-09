@@ -19,7 +19,15 @@ export default function ConfigurationTab({ targetKd }) {
         advT4Points: 10,
         advT5Points: 20,
         farmDeadsBaseline: 500000,
-        farmKpBaseline: 5000000
+        farmKpBaseline: 5000000,
+        // Bracketed System
+        b1Max: 24, b1Mult: 1.5,
+        b2Max: 35, b2Mult: 2.0,
+        b3Max: 45, b3Mult: 2.5,
+        b4Max: 55, b4Mult: 3.0,
+        b5Max: 70, b5Mult: 4.0,
+        b6Mult: 5.0, // 71+
+        bracketDeadsMultiplier: 0.02
     };
 
     // 1. Core State
@@ -129,6 +137,7 @@ export default function ConfigurationTab({ targetKd }) {
                     >
                         <option value="advanced">Advanced DKP System (Target & Percentages)</option>
                         <option value="basic">Basic DKP System (Flat Multipliers)</option>
+                        <option value="bracketed">Bracketed Targets (Dynamic Multipliers)</option>
                     </select>
                 </div>
 
@@ -148,6 +157,96 @@ export default function ConfigurationTab({ targetKd }) {
                             <label className="block text-sm font-semibold text-secondary mb-2">Deads Points Multiplier</label>
                             <input type="number" value={config.basicDeadsPoints} onChange={(e) => updateField('basicDeadsPoints', Number(e.target.value))}
                                 className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                ) : config.dkpSystem === "bracketed" ? (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 relative z-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-[#151921] p-5 rounded-xl border border-rose-900/40">
+                                <label className="block text-sm font-semibold text-rose-400 mb-2">Base Deads Multiplier</label>
+                                <input type="number" value={config.bracketDeadsMultiplier} onChange={(e) => updateField('bracketDeadsMultiplier', Number(e.target.value))}
+                                    className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-rose-500" step="0.01" />
+                            </div>
+                        </div>
+                        
+                        <div className="border border-[#1e222b] rounded-xl overflow-hidden">
+                            <div className="bg-[#1a1df2]/10 p-3 border-b border-[#1e222b]">
+                                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest text-center">Power Bracket Multipliers</h4>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-0 bg-[#0a0c0f]">
+                                {/* Bracket 1 */}
+                                <div className="p-4 border-r border-b border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-gray-500">&lt;=</span>
+                                        <input type="number" value={config.b1Max} onChange={(e) => updateField('b1Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                        <span className="text-xs text-gray-500">M Power</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
+                                        <input type="number" value={config.b1Mult} onChange={(e) => updateField('b1Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
+                                        <span className="text-xs text-gray-400 font-bold">x</span>
+                                    </div>
+                                </div>
+                                {/* Bracket 2 */}
+                                <div className="p-4 border-r border-b border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span className="text-xs text-gray-500">{config.b1Max + 1} - </span>
+                                        <input type="number" value={config.b2Max} onChange={(e) => updateField('b2Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                        <span className="text-xs text-gray-500">M</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
+                                        <input type="number" value={config.b2Mult} onChange={(e) => updateField('b2Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
+                                        <span className="text-xs text-gray-400 font-bold">x</span>
+                                    </div>
+                                </div>
+                                {/* Bracket 3 */}
+                                <div className="p-4 border-r border-b border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span className="text-xs text-gray-500">{config.b2Max + 1} - </span>
+                                        <input type="number" value={config.b3Max} onChange={(e) => updateField('b3Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                        <span className="text-xs text-gray-500">M</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
+                                        <input type="number" value={config.b3Mult} onChange={(e) => updateField('b3Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
+                                        <span className="text-xs text-gray-400 font-bold">x</span>
+                                    </div>
+                                </div>
+                                {/* Bracket 4 */}
+                                <div className="p-4 border-r border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span className="text-xs text-gray-500">{config.b3Max + 1} - </span>
+                                        <input type="number" value={config.b4Max} onChange={(e) => updateField('b4Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                        <span className="text-xs text-gray-500">M</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
+                                        <input type="number" value={config.b4Mult} onChange={(e) => updateField('b4Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
+                                        <span className="text-xs text-gray-400 font-bold">x</span>
+                                    </div>
+                                </div>
+                                {/* Bracket 5 */}
+                                <div className="p-4 border-r border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span className="text-xs text-gray-500">{config.b4Max + 1} - </span>
+                                        <input type="number" value={config.b5Max} onChange={(e) => updateField('b5Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                        <span className="text-xs text-gray-500">M</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
+                                        <input type="number" value={config.b5Mult} onChange={(e) => updateField('b5Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
+                                        <span className="text-xs text-gray-400 font-bold">x</span>
+                                    </div>
+                                </div>
+                                {/* Bracket 6 (Max) */}
+                                <div className="p-4 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-gray-500 font-bold">{config.b5Max + 1}+ M Power</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
+                                        <input type="number" value={config.b6Mult} onChange={(e) => updateField('b6Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
+                                        <span className="text-xs text-gray-400 font-bold">x</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (
