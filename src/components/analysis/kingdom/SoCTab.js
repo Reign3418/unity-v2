@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MAP_TIMELINES } from '../../../constants/soc_timelines';
-import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw } from 'lucide-react';
-import { addDays, format, isValid, parseISO } from 'date-fns';
+import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock } from 'lucide-react';
+import { addDays, addHours, format, isValid, parseISO } from 'date-fns';
 
 const formatNum = (num) => {
   if (!num && num !== 0) return "0";
@@ -298,6 +298,35 @@ export default function SoCTab({ targetKd }) {
     const baseDate = parseISO(regDate);
     const hasValidDate = isValid(baseDate);
 
+    // Dynamic Spawner Data
+    const ruinsSchedule = [];
+    const altarSchedule = [];
+
+    if (hasValidDate && selectedMap === "Siege of Orleans") {
+        const ruinsFirst = addDays(baseDate, 18.615); // Exactly 12 hours after Turf Wars starts
+        const altarFirst = addDays(baseDate, 31.615); // Exactly 12 hours after Sacrificial Offering
+        const now = new Date();
+
+        // Generate 15 instances endlessly
+        for (let i = 0; i < 15; i++) {
+            const rd = addHours(ruinsFirst, i * 40);
+            ruinsSchedule.push({
+                idx: i + 1,
+                date: rd,
+                isPast: rd < now,
+                isActive: rd >= now && rd < addHours(now, 40)
+            });
+
+            const ad = addHours(altarFirst, i * 86);
+            altarSchedule.push({
+                idx: i + 1,
+                date: ad,
+                isPast: ad < now,
+                isActive: ad >= now && ad < addHours(now, 86)
+            });
+        }
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
             {/* Header Section */}
@@ -558,6 +587,91 @@ export default function SoCTab({ targetKd }) {
                             </div>
                         )}
                     </div>
+
+                    {/* Cyclical Event Spawners */}
+                    {hasValidDate && selectedMap === "Siege of Orleans" && ruinsSchedule.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-500">
+                            {/* Ancient Ruins */}
+                            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden relative max-h-[400px] flex flex-col shadow-lg">
+                                <div className="absolute top-0 w-full h-1 bg-emerald-500/50" />
+                                <div className="p-4 bg-emerald-500/5 flex items-center justify-between border-b border-[#1e222b]">
+                                    <h4 className="font-bold text-emerald-400 flex items-center gap-2">
+                                        <Clock className="w-4 h-4" />
+                                        Ancient Ruins
+                                    </h4>
+                                    <span className="text-[10px] uppercase font-black tracking-widest text-[#6b7280]">40h Cycle</span>
+                                </div>
+                                <div className="overflow-y-auto w-full scrollbar-thin scrollbar-thumb-slate-800 flex-1">
+                                    <table className="w-full text-xs box-border">
+                                        <thead className="sticky top-0 bg-[#0a0c0f] border-b border-[#1e222b] z-10 shadow-sm">
+                                            <tr>
+                                                <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Spawn Time</th>
+                                                <th className="py-2.5 px-4 text-right font-bold text-slate-500 uppercase tracking-widest text-[9px]">Active</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#1e222b]">
+                                            {ruinsSchedule.map(ruin => (
+                                                <tr key={ruin.idx} className={`transition-colors ${ruin.isPast ? 'opacity-40' : ruin.isActive ? 'bg-emerald-500/10' : 'hover:bg-white/[0.02]'}`}>
+                                                    <td className={`py-3 px-4 font-mono whitespace-nowrap text-[11px] ${ruin.isActive ? 'text-emerald-300 font-bold' : 'text-slate-300'}`}>
+                                                        {format(ruin.date, "E, d.M. HH:mm")}
+                                                    </td>
+                                                    <td className="py-3 px-4 text-right font-black uppercase tracking-widest text-[10px]">
+                                                        {ruin.isPast ? (
+                                                            <span className="text-slate-600">FALSE</span>
+                                                        ) : ruin.isActive ? (
+                                                            <span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">ACTIVE</span>
+                                                        ) : (
+                                                            <span className="text-slate-400">FALSE</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            {/* Altar of Darkness */}
+                            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden relative max-h-[400px] flex flex-col shadow-lg">
+                                <div className="absolute top-0 w-full h-1 bg-blue-500/50" />
+                                <div className="p-4 bg-blue-500/5 flex items-center justify-between border-b border-[#1e222b]">
+                                    <h4 className="font-bold text-blue-400 flex items-center gap-2">
+                                        <Clock className="w-4 h-4" />
+                                        Altar of Darkness
+                                    </h4>
+                                    <span className="text-[10px] uppercase font-black tracking-widest text-[#6b7280]">86h Cycle</span>
+                                </div>
+                                <div className="overflow-y-auto w-full scrollbar-thin scrollbar-thumb-slate-800 flex-1">
+                                    <table className="w-full text-xs box-border">
+                                        <thead className="sticky top-0 bg-[#0a0c0f] border-b border-[#1e222b] z-10 shadow-sm">
+                                            <tr>
+                                                <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Spawn Time</th>
+                                                <th className="py-2.5 px-4 text-right font-bold text-slate-500 uppercase tracking-widest text-[9px]">Active</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#1e222b]">
+                                            {altarSchedule.map(altar => (
+                                                <tr key={altar.idx} className={`transition-colors ${altar.isPast ? 'opacity-40' : altar.isActive ? 'bg-blue-500/10' : 'hover:bg-white/[0.02]'}`}>
+                                                    <td className={`py-3 px-4 font-mono whitespace-nowrap text-[11px] ${altar.isActive ? 'text-blue-300 font-bold' : 'text-slate-300'}`}>
+                                                        {format(altar.date, "E, d.M. HH:mm")}
+                                                    </td>
+                                                    <td className="py-3 px-4 text-right font-black uppercase tracking-widest text-[10px]">
+                                                        {altar.isPast ? (
+                                                            <span className="text-slate-600">FALSE</span>
+                                                        ) : altar.isActive ? (
+                                                            <span className="text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">ACTIVE</span>
+                                                        ) : (
+                                                            <span className="text-slate-400">FALSE</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stratagems Panel */}
