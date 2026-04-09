@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { Cpu, Save, RefreshCw, Settings, ShieldAlert } from "lucide-react";
 
 export default function ConfigurationTab({ targetKd }) {
-    // 1. Core State
-    const [config, setConfig] = useState({
+    const BASELINE_CONFIG = {
         dkpSystem: "advanced",
         // Basic System
         basicT4Points: 10,
@@ -21,18 +20,21 @@ export default function ConfigurationTab({ targetKd }) {
         advT5Points: 20,
         farmDeadsBaseline: 500000,
         farmKpBaseline: 5000000
-    });
+    };
+
+    // 1. Core State
+    const [config, setConfig] = useState(BASELINE_CONFIG);
     
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     // 2. Hydrate from Storage & Network
     useEffect(() => {
-        let defaultConf = { ...config };
+        let defaultConf = { ...BASELINE_CONFIG };
         const saved = localStorage.getItem("unity_dkp_config_v2");
         if (saved) {
             try {
-                defaultConf = JSON.parse(saved);
+                defaultConf = { ...BASELINE_CONFIG, ...JSON.parse(saved) };
                 setConfig(defaultConf);
             } catch (e) {}
         }
@@ -42,8 +44,9 @@ export default function ConfigurationTab({ targetKd }) {
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.config && Object.keys(data.config).length > 0) {
-                        setConfig(data.config);
-                        localStorage.setItem("unity_dkp_config_v2", JSON.stringify(data.config));
+                        const mergedConfig = { ...BASELINE_CONFIG, ...data.config };
+                        setConfig(mergedConfig);
+                        localStorage.setItem("unity_dkp_config_v2", JSON.stringify(mergedConfig));
                     }
                 })
                 .catch(err => console.error("Failed to load DKP config from DB", err))
