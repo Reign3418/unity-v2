@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Cpu, Save, RefreshCw, Settings, ShieldAlert } from "lucide-react";
 
-export default function ConfigurationTab() {
+export default function ConfigurationTab({ targetKd }) {
     // 1. Core State
     const [config, setConfig] = useState({
         dkpSystem: "advanced",
@@ -26,25 +26,50 @@ export default function ConfigurationTab() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // 2. Hydrate from Storage
+    // 2. Hydrate from Storage & Network
     useEffect(() => {
+        let defaultConf = { ...config };
         const saved = localStorage.getItem("unity_dkp_config_v2");
         if (saved) {
             try {
-                setConfig(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to load DKP config", e);
-            }
+                defaultConf = JSON.parse(saved);
+                setConfig(defaultConf);
+            } catch (e) {}
         }
-        setIsLoaded(true);
-    }, []);
+        
+        if (targetKd) {
+            fetch(`/api/aws/admin/dkp-config?kd=${targetKd}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.config && Object.keys(data.config).length > 0) {
+                        setConfig(data.config);
+                        localStorage.setItem("unity_dkp_config_v2", JSON.stringify(data.config));
+                    }
+                })
+                .catch(err => console.error("Failed to load DKP config from DB", err))
+                .finally(() => setIsLoaded(true));
+        } else {
+            setIsLoaded(true);
+        }
+    }, [targetKd]);
 
     // 3. Save Function
-    const saveConfig = () => {
+    const saveConfig = async () => {
         setIsSaving(true);
         localStorage.setItem("unity_dkp_config_v2", JSON.stringify(config));
         
-        // Simulate network save latency for UX
+        if (targetKd) {
+            try {
+                await fetch(`/api/aws/admin/dkp-config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kd: targetKd, configData: config })
+                });
+            } catch(e) {
+                console.error("Failed to sync matrix to cloud", e);
+            }
+        }
+        
         setTimeout(() => {
             setIsSaving(false);
             alert("✅ DKP Multiplier Matrix Cached Successfully!");

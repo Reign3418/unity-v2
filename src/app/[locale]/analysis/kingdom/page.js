@@ -207,7 +207,7 @@ export default function KingdomAnalysis() {
               );
           case 'Configuration':
               return (
-                  <ConfigurationTab />
+                  <ConfigurationTab targetKd={targetKd} />
               );
           case 'Results':
               return (
