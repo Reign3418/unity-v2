@@ -176,10 +176,10 @@ export default function ConfigurationTab({ targetKd }) {
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-0 bg-[#0a0c0f]">
                                 {/* Bracket 1 */}
                                 <div className="p-4 border-r border-b border-[#1e222b] flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center gap-1 h-6 whitespace-nowrap">
                                         <span className="text-xs font-bold text-gray-500">&lt;=</span>
-                                        <input type="number" value={config.b1Max} onChange={(e) => updateField('b1Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
-                                        <span className="text-xs text-gray-500">M Power</span>
+                                        <input type="number" value={config.b1Max} onChange={(e) => updateField('b1Max', Number(e.target.value))} className="w-10 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1" />
+                                        <span className="text-xs text-gray-500">M</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
                                         <input type="number" value={config.b1Mult} onChange={(e) => updateField('b1Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
@@ -188,9 +188,9 @@ export default function ConfigurationTab({ targetKd }) {
                                 </div>
                                 {/* Bracket 2 */}
                                 <div className="p-4 border-r border-b border-[#1e222b] flex flex-col gap-2">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span className="text-xs text-gray-500">{config.b1Max + 1} - </span>
-                                        <input type="number" value={config.b2Max} onChange={(e) => updateField('b2Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                    <div className="flex items-center justify-center gap-1 h-6 whitespace-nowrap">
+                                        <span className="text-xs text-gray-500">{config.b1Max + 1} -</span>
+                                        <input type="number" value={config.b2Max} onChange={(e) => updateField('b2Max', Number(e.target.value))} className="w-10 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1" />
                                         <span className="text-xs text-gray-500">M</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
@@ -200,9 +200,9 @@ export default function ConfigurationTab({ targetKd }) {
                                 </div>
                                 {/* Bracket 3 */}
                                 <div className="p-4 border-r border-b border-[#1e222b] flex flex-col gap-2">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span className="text-xs text-gray-500">{config.b2Max + 1} - </span>
-                                        <input type="number" value={config.b3Max} onChange={(e) => updateField('b3Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                    <div className="flex items-center justify-center gap-1 h-6 whitespace-nowrap">
+                                        <span className="text-xs text-gray-500">{config.b2Max + 1} -</span>
+                                        <input type="number" value={config.b3Max} onChange={(e) => updateField('b3Max', Number(e.target.value))} className="w-10 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1" />
                                         <span className="text-xs text-gray-500">M</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
@@ -211,10 +211,10 @@ export default function ConfigurationTab({ targetKd }) {
                                     </div>
                                 </div>
                                 {/* Bracket 4 */}
-                                <div className="p-4 border-r border-[#1e222b] flex flex-col gap-2">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span className="text-xs text-gray-500">{config.b3Max + 1} - </span>
-                                        <input type="number" value={config.b4Max} onChange={(e) => updateField('b4Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                <div className="p-4 border-r lg:border-b-0 border-b border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-1 h-6 whitespace-nowrap">
+                                        <span className="text-xs text-gray-500">{config.b3Max + 1} -</span>
+                                        <input type="number" value={config.b4Max} onChange={(e) => updateField('b4Max', Number(e.target.value))} className="w-10 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1" />
                                         <span className="text-xs text-gray-500">M</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
@@ -223,10 +223,10 @@ export default function ConfigurationTab({ targetKd }) {
                                     </div>
                                 </div>
                                 {/* Bracket 5 */}
-                                <div className="p-4 border-r border-[#1e222b] flex flex-col gap-2">
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span className="text-xs text-gray-500">{config.b4Max + 1} - </span>
-                                        <input type="number" value={config.b5Max} onChange={(e) => updateField('b5Max', Number(e.target.value))} className="w-16 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1 py-0.5" />
+                                <div className="p-4 border-r lg:border-b-0 border-b border-[#1e222b] flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-1 h-6 whitespace-nowrap">
+                                        <span className="text-xs text-gray-500">{config.b4Max + 1} -</span>
+                                        <input type="number" value={config.b5Max} onChange={(e) => updateField('b5Max', Number(e.target.value))} className="w-10 bg-transparent text-white font-bold border-b border-gray-700 outline-none focus:border-indigo-500 text-center text-sm px-1" />
                                         <span className="text-xs text-gray-500">M</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
@@ -236,8 +236,8 @@ export default function ConfigurationTab({ targetKd }) {
                                 </div>
                                 {/* Bracket 6 (Max) */}
                                 <div className="p-4 flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-500 font-bold">{config.b5Max + 1}+ M Power</span>
+                                    <div className="flex items-center justify-center gap-1 h-6 whitespace-nowrap">
+                                        <span className="text-xs text-gray-500 font-bold">{config.b5Max + 1}+ M</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-[#151921] p-2 rounded-lg border border-[#2a2f3a]">
                                         <input type="number" value={config.b6Mult} onChange={(e) => updateField('b6Mult', Number(e.target.value))} step="0.1" className="w-full bg-transparent text-indigo-400 font-bold outline-none text-center" />
