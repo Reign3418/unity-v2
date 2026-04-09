@@ -159,8 +159,6 @@ export default function ConfigurationTab({ targetKd }) {
                                 className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-white rounded-lg p-3 outline-none focus:border-purple-500" step="1" />
                         </div>
                     </div>
-                        </div>
-                    </div>
                 ) : config.dkpSystem === "bracketed" ? (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 relative z-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
