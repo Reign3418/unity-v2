@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MAP_TIMELINES } from '../../../constants/soc_timelines';
-import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera } from 'lucide-react';
+import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw } from 'lucide-react';
 import { addDays, format, isValid, parseISO } from 'date-fns';
+
+const formatNum = (num) => {
+  if (!num && num !== 0) return "0";
+  return Number(num).toLocaleString();
+};
 
 const CAMP_TEMPLATES = [
     { id: 1, name: 'Brittany', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 font-bold', kds: '' },
@@ -26,6 +31,31 @@ export default function SoCTab({ targetKd }) {
     const [regDate, setRegDate] = useState("");
     const [stratagems, setStratagems] = useState([]);
     const [camps, setCamps] = useState(CAMP_TEMPLATES);
+
+    // --- Camp DKP States ---
+    const [availableDates, setAvailableDates] = useState([]);
+    const [startScan, setStartScan] = useState("");
+    const [endScan, setEndScan] = useState("");
+    const [isDatesLoading, setIsDatesLoading] = useState(false);
+    const [campDkpRows, setCampDkpRows] = useState([]);
+    const [isDkpLoading, setIsDkpLoading] = useState(false);
+
+    // Fetch dates on mount
+    useEffect(() => {
+        if (!targetKd) return;
+        setIsDatesLoading(true);
+        fetch(`/api/aws/dkp/dates?kd=${targetKd}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.dates && data.dates.length > 0) {
+              setAvailableDates(data.dates);
+              setStartScan(data.dates[0]);
+              setEndScan(data.dates[data.dates.length - 1]);
+            }
+          })
+          .catch(err => console.error("Failed to fetch DKP dates:", err))
+          .finally(() => setIsDatesLoading(false));
+    }, [targetKd]);
 
     // Hydrate from AWS DynamoDB
     useEffect(() => {
@@ -144,6 +174,87 @@ export default function SoCTab({ targetKd }) {
         };
         reader.readAsDataURL(file);
     };
+
+    const fetchCampDkp = useCallback(async () => {
+        if (!startScan || !endScan) return;
+        setIsDkpLoading(true);
+        
+        // Use global multipliers, default to Basic
+        const t4Pts = globalConfig.advT4Points || 10;
+        const t5Pts = globalConfig.advT5Points || 20;
+        const deadsPts = globalConfig.deadsPoints || 30; // standard DKP uses 30 for deads default in missing global
+
+        const newRows = [];
+
+        try {
+            for (const camp of camps) {
+                // Parse Kingdom numbers, ignoring # and spacing
+                const kdsArray = camp.kds.split(',').map(k => k.replace(/\D/g, '').trim()).filter(k => k.length > 0);
+                
+                if (kdsArray.length === 0) continue;
+
+                // Aggregate logic for the entire Camp
+                let campAgg = {
+                    campName: camp.name,
+                    color: camp.color,
+                    kds: camp.kds,
+                    totalPower: 0,
+                    powerDelta: 0,
+                    t4Kills: 0,
+                    t5Kills: 0,
+                    totalDeads: 0,
+                    totalKp: 0,
+                    totalDkp: 0
+                };
+
+                // Sweep AWS across all matched remote Kingdoms
+                for (const kd of kdsArray) {
+                    const params = new URLSearchParams({
+                      kd,
+                      start: startScan,
+                      end: endScan,
+                      t4: t4Pts,
+                      t5: t5Pts,
+                      deads: deadsPts,
+                    });
+                    
+                    const res = await fetch(`/api/aws/dkp?${params.toString()}`);
+                    const data = await res.json();
+                    
+                    if (!res.ok || !data.rankings) continue;
+
+                    // Sum this kingdom's players into the Camp Totals
+                    const kdAgg = data.rankings.reduce((acc, gov) => {
+                        acc.totalPower += gov.power || 0;
+                        acc.powerDelta += typeof gov.pDelta === "number" ? gov.pDelta : 0;
+                        acc.t4Kills += gov.t4Kills || 0;
+                        acc.t5Kills += gov.t5Kills || 0;
+                        acc.totalDeads += gov.deads || 0;
+                        acc.totalKp += gov.kDelta || 0;
+                        acc.totalDkp += gov.dkpScore || 0;
+                        return acc;
+                    }, { totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, totalKp: 0, totalDkp: 0 });
+
+                    campAgg.totalPower += kdAgg.totalPower;
+                    campAgg.powerDelta += kdAgg.powerDelta;
+                    campAgg.t4Kills += kdAgg.t4Kills;
+                    campAgg.t5Kills += kdAgg.t5Kills;
+                    campAgg.totalDeads += kdAgg.totalDeads;
+                    campAgg.totalKp += kdAgg.totalKp;
+                    campAgg.totalDkp += kdAgg.totalDkp;
+                }
+                
+                newRows.push(campAgg);
+            }
+            
+            setCampDkpRows(newRows.sort((a, b) => b.totalDkp - a.totalDkp));
+        } catch(e) {
+            console.error("Failed to sequence Camp DKP Leaderboards", e);
+        } finally {
+            setIsDkpLoading(false);
+        }
+
+    }, [camps, startScan, endScan, globalConfig]);
 
     if (isLoading) {
         return (
@@ -361,6 +472,119 @@ export default function SoCTab({ targetKd }) {
                     </div>
                 </div>
 
+            </div>
+
+            {/* Camp Matchmaking DKP Aggregator */}
+            <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent left-0" />
+                
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 mb-6">
+                    <div>
+                        <h3 className="text-xl font-black flex items-center gap-2 mb-1 uppercase tracking-widest">
+                            Camp Leaderboard
+                        </h3>
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Total DKP aggregated across all detected kingdoms mapping to the 6 Coalitions.</p>
+                    </div>
+
+                    <div className="flex items-end gap-3 flex-wrap">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Start Scan</span>
+                            <select
+                                value={startScan}
+                                onChange={(e) => setStartScan(e.target.value)}
+                                disabled={isDatesLoading || availableDates.length === 0}
+                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                            >
+                                {availableDates.length === 0 && <option>— Validating Network —</option>}
+                                {availableDates.map((d) => (
+                                    <option key={`s-${d}`} value={d}>{d}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">End Scan</span>
+                            <select
+                                value={endScan}
+                                onChange={(e) => setEndScan(e.target.value)}
+                                disabled={isDatesLoading || availableDates.length === 0}
+                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                            >
+                                {availableDates.length === 0 && <option>— Validating Network —</option>}
+                                {availableDates.map((d) => (
+                                    <option key={`e-${d}`} value={d}>{d}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <button
+                            onClick={fetchCampDkp}
+                            disabled={isDkpLoading}
+                            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-cyan-500/50 px-4 py-1.5 rounded font-bold uppercase tracking-widest text-[11px] transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw size={14} className={isDkpLoading ? "animate-spin text-cyan-400" : ""} />
+                            Compute Data
+                        </button>
+                    </div>
+                </div>
+
+                <div className="border border-[#1e222b] rounded-lg overflow-hidden bg-[#0a0c0f]">
+                    <div className="overflow-x-auto">
+                        <table className="w-full whitespace-nowrap text-[12px]">
+                            <thead className="bg-black/40 border-b border-[#1e222b]">
+                                <tr>
+                                    {["Camp", "Total Power", "Power +/-", "Total T4 Kills", "Total T5 Kills", "Total Deads", "Total KP", "Camp DKP"].map((h) => (
+                                        <th key={h} className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]">
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#1e222b]">
+                                {isDkpLoading ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-4 py-12 text-center">
+                                            <RefreshCw size={24} className="animate-spin text-cyan-400 mx-auto mb-3" />
+                                            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                                                Interrogating AWS Network For All Kingdoms...
+                                            </p>
+                                        </td>
+                                    </tr>
+                                ) : campDkpRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-4 py-12 text-center text-[11px] font-bold uppercase tracking-widest text-slate-600">
+                                            Click "Compute Data" to aggregate the Kingdom Coalitions.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    campDkpRows.map((row) => (
+                                        <tr key={row.campName} className="hover:bg-white/[0.02] transition-colors">
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`font-black uppercase tracking-widest text-[13px] ${row.color.split(' ')[1]}`}>
+                                                        {row.campName}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-600 font-mono tracking-widest">{row.kds}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.totalPower)}</td>
+                                            <td className={`px-4 py-4 font-mono font-bold ${row.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                {row.powerDelta >= 0 ? "+" : ""}{formatNum(row.powerDelta)}
+                                            </td>
+                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t4Kills)}</td>
+                                            <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t5Kills)}</td>
+                                            <td className="px-4 py-4 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
+                                            <td className="px-4 py-4 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
+                                            <td className="px-4 py-4 font-mono font-black text-white text-[15px] drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                                                {formatNum(row.totalDkp)}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     );
