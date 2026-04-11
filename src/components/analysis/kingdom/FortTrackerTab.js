@@ -19,10 +19,21 @@ export default function FortTrackerTab({ targetKd, rosterData }) {
         if (rosterData && rosterData.length > 0) {
             rosterData.forEach(g => {
                 dict[g.id] = g.name;
+                dict[String(g.id)] = g.name; // guarantee string keys
             });
         }
+        
+        // Also map anyone we find inside the CSV itself just in case they aren't in the active roster
+        if (rawForts && rawForts.length > 0) {
+            rawForts.forEach(r => {
+                if (r.governor_id && r.governor_name) {
+                    dict[String(r.governor_id).trim()] = r.governor_name.replace(/[^a-zA-Z0-9 ]/g, ''); // strip weird csv chars
+                }
+            });
+        }
+        
         return dict;
-    }, [rosterData]);
+    }, [rosterData, rawForts]);
 
     const getGovName = (id, fallback) => govDictionary[id] || fallback || id;
 
@@ -135,7 +146,8 @@ export default function FortTrackerTab({ targetKd, rosterData }) {
             // Participants Network
             if (row.governors) {
                 row.governors.split(';').forEach(p => {
-                    if (p && p !== rawId) governorStats[activeId].participants.add(p);
+                    const cleanP = String(p).trim();
+                    if (cleanP && cleanP !== String(rawId).trim()) governorStats[activeId].participants.add(cleanP);
                 });
             }
         });
