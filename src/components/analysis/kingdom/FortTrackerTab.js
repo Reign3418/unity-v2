@@ -11,6 +11,7 @@ export default function FortTrackerTab({ targetKd, rosterData }) {
     
     const [sortConfig, setSortConfig] = useState({ key: 'total', direction: 'descending' });
     const [expandedGovId, setExpandedGovId] = useState(null);
+    const [timeFilter, setTimeFilter] = useState('all');
 
     // Build Gov Dictionary for Names
     const govDictionary = useMemo(() => {
@@ -66,11 +67,27 @@ export default function FortTrackerTab({ targetKd, rosterData }) {
     const aggregatedData = useMemo(() => {
         if (!rawForts || rawForts.length === 0) return [];
         
+        let maxTime = 0;
+        if (timeFilter !== 'all') {
+            rawForts.forEach(r => {
+                const t = parseInt(r.hit_time) || 0;
+                if (t > maxTime) maxTime = t;
+            });
+        }
+        
+        const filterCutoffMap = { '10': 10 * 86400, '30': 30 * 86400 };
+        const cutoffTime = maxTime - (filterCutoffMap[timeFilter] || 0);
+
         const getActiveId = (id) => links[id] || id; // Resolve Farm -> Main
         let governorStats = {};
 
         rawForts.forEach(row => {
             if (!row.id) return;
+            
+            // Hit time filtering
+            const hitTime = parseInt(row.hit_time) || 0;
+            if (timeFilter !== 'all' && hitTime < cutoffTime) return;
+
             const rawId = row.governor_id;
             if (!rawId) return;
 
@@ -158,7 +175,7 @@ export default function FortTrackerTab({ targetKd, rosterData }) {
         });
 
         return mapped;
-    }, [rawForts, links, govDictionary, sortConfig]);
+    }, [rawForts, links, govDictionary, sortConfig, timeFilter]);
 
     const handleSort = (key) => {
         let direction = 'descending';
@@ -238,14 +255,21 @@ export default function FortTrackerTab({ targetKd, rosterData }) {
                             <h2 className="text-xl font-black text-white tracking-widest uppercase flex items-center gap-2">
                                 <Target className="text-rose-500" /> Fort Extraction Hub
                             </h2>
-                            <p className="text-xs text-gray-500 font-mono mt-1 uppercase tracking-widest">Processed {rawForts.length.toLocaleString()} raw inputs across {aggregatedData.length} Governor Networks</p>
+                            <p className="text-xs text-gray-500 font-mono mt-1 uppercase tracking-widest">Processed inputs across {aggregatedData.length} Governor Networks{timeFilter !== 'all' ? ` (Last ${timeFilter} Days)` : ''}</p>
                         </div>
-                        <button 
-                            onClick={() => setRawForts([])}
-                            className="bg-rose-500/10 text-rose-500 border border-rose-500/30 px-4 py-2 rounded font-bold uppercase tracking-widest text-xs hover:bg-rose-500 hover:text-white transition-all flex items-center gap-2 block"
-                        >
-                            <Trash2 size={14} className="hidden" /> Flush Memory
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center bg-[#0a0c0f] rounded-lg p-1 border border-[#1e222b]">
+                                <button onClick={() => setTimeFilter('10')} className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded transition-all ${timeFilter === '10' ? 'bg-cyan-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>Last 10 Days</button>
+                                <button onClick={() => setTimeFilter('30')} className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded transition-all ${timeFilter === '30' ? 'bg-cyan-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>Last 30 Days</button>
+                                <button onClick={() => setTimeFilter('all')} className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded transition-all ${timeFilter === 'all' ? 'bg-amber-500/20 text-amber-500 shadow-lg border border-amber-500/30' : 'text-gray-500 hover:text-gray-300'}`}>All Time</button>
+                            </div>
+                            <button 
+                                onClick={() => setRawForts([])}
+                                className="bg-rose-500/10 text-rose-500 border border-rose-500/30 px-4 py-2 rounded font-bold uppercase tracking-widest text-xs hover:bg-rose-500 hover:text-white transition-all flex items-center gap-2 block"
+                            >
+                                <Trash2 size={14} className="hidden" /> Flush Memory
+                            </button>
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent max-h-[700px]">
