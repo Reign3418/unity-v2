@@ -40,10 +40,10 @@ export default function ResultsTab({ targetKd, trends }) {
 
     useEffect(() => {
         if (trends && trends.length > 0 && !startDate && !endDate) {
-            const rawEnd = extractDate(trends[trends.length - 1].scanDate);
+            const rawEnd = trends[trends.length - 1].scanDate;
             setEndDate(rawEnd);
             localStorage.setItem("unity_dkp_end", rawEnd);
-            const rawStart = extractDate(trends[0].scanDate);
+            const rawStart = trends[0].scanDate;
             setStartDate(rawStart);
             localStorage.setItem("unity_dkp_start", rawStart);
         }
@@ -352,7 +352,7 @@ export default function ResultsTab({ targetKd, trends }) {
                             <option value="">Start Scan</option>
                             {[...trends].reverse().map(t => {
                                 const d = extractDate(t.scanDate);
-                                return <option key={`start-${d}`} value={d} className="bg-[#0f1115] text-white py-2">{d}</option>
+                                return <option key={`start-${t.scanDate}`} value={t.scanDate} className="bg-[#0f1115] text-white py-2">{d}</option>
                             })}
                         </select>
                         <span className="text-gray-600 px-2 font-black">-</span>
@@ -364,7 +364,7 @@ export default function ResultsTab({ targetKd, trends }) {
                             <option value="">End Scan</option>
                             {[...trends].reverse().map(t => {
                                 const d = extractDate(t.scanDate);
-                                return <option key={`end-${d}`} value={d} className="bg-[#0f1115] text-white py-2">{d}</option>
+                                return <option key={`end-${t.scanDate}`} value={t.scanDate} className="bg-[#0f1115] text-white py-2">{d}</option>
                             })}
                         </select>
                     </div>

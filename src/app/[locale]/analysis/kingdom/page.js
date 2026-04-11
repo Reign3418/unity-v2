@@ -17,6 +17,7 @@ import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
 import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
 import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
+import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -33,6 +34,7 @@ const TABS = [
   { name: "Roster Linker", icon: Link2 },
   { name: "Configuration", icon: Cpu },
   { name: "Roster View", icon: Users },
+  { name: "Fort Tracker", icon: Target },
   { name: "Results", icon: Archive }
 ];
 
@@ -237,6 +239,13 @@ export default function KingdomAnalysis() {
                   <AccountLinkerTab
                       rosterData={rosterData}
                       targetKd={targetKd}
+                  />
+              );
+          case 'Fort Tracker':
+              return (
+                  <FortTrackerTab 
+                      targetKd={targetKd}
+                      rosterData={rosterData}
                   />
               );
           default:
