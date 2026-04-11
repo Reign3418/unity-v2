@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { UploadCloud, FileSpreadsheet, Activity, Target, Users, ShieldAlert, Crosshair, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
+import { UploadCloud, FileSpreadsheet, Activity, Target, Users, ShieldAlert, Crosshair, TrendingUp, AlertCircle, RefreshCw, Trash2 } from "lucide-react";
 import Papa from "papaparse";
 
 export default function FortTrackerTab({ targetKd, rosterData }) {
