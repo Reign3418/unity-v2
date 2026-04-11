@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity } from "lucide-react";
+import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslations } from 'next-intl';
 
 export default function OverviewTab({ targetKd, trends }) {
@@ -14,6 +14,7 @@ export default function OverviewTab({ targetKd, trends }) {
     
     const [rosterData, setRosterData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [sortConfig, setSortConfig] = useState({ key: 'powerDelta', direction: 'descending' });
 
     // Initialize Dates
     useEffect(() => {
@@ -72,8 +73,42 @@ export default function OverviewTab({ targetKd, trends }) {
         });
     }, [rosterData, searchTerm, selectedAlliance]);
 
+    const handleSort = (key) => {
+        let direction = 'descending';
+        if (sortConfig.key === key && sortConfig.direction === 'descending') {
+            direction = 'ascending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedData = useMemo(() => {
+        let sortableItems = [...filteredData];
+        if (sortConfig.key !== null) {
+            sortableItems.sort((a, b) => {
+                let aVal = a[sortConfig.key] !== undefined && a[sortConfig.key] !== null ? a[sortConfig.key] : "";
+                let bVal = b[sortConfig.key] !== undefined && b[sortConfig.key] !== null ? b[sortConfig.key] : "";
+                
+                if (aVal === 'MISSING' || aVal === 'NEW') aVal = -Infinity;
+                if (bVal === 'MISSING' || bVal === 'NEW') bVal = -Infinity;
+                
+                if (!isNaN(Number(aVal)) && !isNaN(Number(bVal)) && aVal !== "" && bVal !== "") {
+                    aVal = Number(aVal);
+                    bVal = Number(bVal);
+                } else if (typeof aVal === 'string' && typeof bVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+
+                if (aVal < bVal) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'ascending' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredData, sortConfig]);
+
     const handleExportCSV = () => {
-        if (filteredData.length === 0) return;
+        if (sortedData.length === 0) return;
 
         const headers = [
             "Rank", "Governor ID", "Governor Name", "Alliance Tag", "Town Hall", "Status",
@@ -87,7 +122,7 @@ export default function OverviewTab({ targetKd, trends }) {
             "Deads (Start)", "Deads (End)", "Deads (Δ)"
         ];
 
-        const rows = filteredData.map((gov, idx) => [
+        const rows = sortedData.map((gov, idx) => [
             idx + 1,
             gov.id,
             `"${(gov.name || '').replace(/"/g, '""')}"`,
@@ -134,6 +169,27 @@ export default function OverviewTab({ targetKd, trends }) {
             </div>
         );
     }
+
+    const SortableHeader = ({ sortKey, title, className }) => {
+        const isActive = sortConfig.key === sortKey;
+        return (
+            <th 
+                className={`py-3 px-4 tracking-widest uppercase cursor-pointer select-none group hover:bg-white/[0.05] transition-colors ${className || 'font-bold text-gray-500'}`}
+                onClick={() => handleSort(sortKey)}
+            >
+                <div className={`flex items-center gap-1 ${className?.includes('text-right') ? 'justify-end' : ''}`}>
+                    {title}
+                    {isActive ? (
+                        sortConfig.direction === 'ascending' 
+                            ? <ArrowUp size={12} className="text-white" /> 
+                            : <ArrowDown size={12} className="text-white" />
+                    ) : (
+                        <ArrowDown size={12} className="opacity-0 group-hover:opacity-30 transition-opacity text-white" />
+                    )}
+                </div>
+            </th>
+        );
+    };
 
     return (
         <div className="animate-fade-in space-y-6">
@@ -236,7 +292,7 @@ export default function OverviewTab({ targetKd, trends }) {
                         <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('empty_title')}</h3>
                         <p className="text-sm">{t('empty_desc')}</p>
                     </div>
-                ) : filteredData.length === 0 ? (
+                ) : sortedData.length === 0 ? (
                     <div className="py-24 flex flex-col items-center justify-center text-gray-500">
                         <Search className="w-12 h-12 mb-4 opacity-50" />
                         <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{t('no_match_title')}</h3>
@@ -248,47 +304,47 @@ export default function OverviewTab({ targetKd, trends }) {
                             <thead className="sticky top-0 bg-[#0a0c0f] z-20 shadow-md border-b border-[#1e222b]">
                                 <tr>
                                     <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_rank')}</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_id')}</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase font-sans">{t('col_name')}</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_alliance')}</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center">{t('col_th')}</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-center border-r border-[#1e222b]">{t('col_status')}</th>
+                                    <SortableHeader sortKey="id" title={t('col_id')} />
+                                    <SortableHeader sortKey="name" title={t('col_name')} className="font-sans" />
+                                    <SortableHeader sortKey="alliance" title={t('col_alliance')} />
+                                    <SortableHeader sortKey="townHall" title={t('col_th')} className="text-center" />
+                                    <SortableHeader sortKey="status" title={t('col_status')} className="text-center border-r border-[#1e222b]" />
                                     
-                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">{t('col_power_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-cyan-500/50 tracking-widest uppercase text-right">{t('col_power_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_power_delta')}</th>
+                                    <SortableHeader sortKey="powerStart" title={t('col_power_start')} className="text-cyan-500/50 text-right" />
+                                    <SortableHeader sortKey="powerEnd" title={t('col_power_end')} className="text-cyan-500/50 text-right" />
+                                    <SortableHeader sortKey="powerDelta" title={t('col_power_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
                                     
-                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">{t('col_troops_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-teal-500/50 tracking-widest uppercase text-right">{t('col_troops_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_troops_delta')}</th>
+                                    <SortableHeader sortKey="troopStart" title={t('col_troops_start')} className="text-teal-500/50 text-right" />
+                                    <SortableHeader sortKey="troopEnd" title={t('col_troops_end')} className="text-teal-500/50 text-right" />
+                                    <SortableHeader sortKey="troopDelta" title={t('col_troops_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
 
-                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">{t('col_cmd_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-indigo-500/50 tracking-widest uppercase text-right">{t('col_cmd_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_cmd_delta')}</th>
+                                    <SortableHeader sortKey="cmdStart" title={t('col_cmd_start')} className="text-indigo-500/50 text-right" />
+                                    <SortableHeader sortKey="cmdEnd" title={t('col_cmd_end')} className="text-indigo-500/50 text-right" />
+                                    <SortableHeader sortKey="cmdDelta" title={t('col_cmd_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
                                     
-                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">{t('col_tech_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-purple-500/50 tracking-widest uppercase text-right">{t('col_tech_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_tech_delta')}</th>
+                                    <SortableHeader sortKey="techStart" title={t('col_tech_start')} className="text-purple-500/50 text-right" />
+                                    <SortableHeader sortKey="techEnd" title={t('col_tech_end')} className="text-purple-500/50 text-right" />
+                                    <SortableHeader sortKey="techDelta" title={t('col_tech_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
                                     
-                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">{t('col_bldgs_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-amber-500/50 tracking-widest uppercase text-right">{t('col_bldgs_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_bldgs_delta')}</th>
+                                    <SortableHeader sortKey="buildStart" title={t('col_bldgs_start')} className="text-amber-500/50 text-right" />
+                                    <SortableHeader sortKey="buildEnd" title={t('col_bldgs_end')} className="text-amber-500/50 text-right" />
+                                    <SortableHeader sortKey="buildDelta" title={t('col_bldgs_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
 
-                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">{t('col_kp_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-rose-500/50 tracking-widest uppercase text-right">{t('col_kp_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_kp_delta')}</th>
+                                    <SortableHeader sortKey="kpStart" title={t('col_kp_start')} className="text-rose-500/50 text-right" />
+                                    <SortableHeader sortKey="kpEnd" title={t('col_kp_end')} className="text-rose-500/50 text-right" />
+                                    <SortableHeader sortKey="kpDelta" title={t('col_kp_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
                                     
-                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">{t('col_deads_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-red-600/50 tracking-widest uppercase text-right">{t('col_deads_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right border-r border-[#1e222b]">{t('col_deads_delta')}</th>
+                                    <SortableHeader sortKey="deadStart" title={t('col_deads_start')} className="text-red-600/50 text-right" />
+                                    <SortableHeader sortKey="deadEnd" title={t('col_deads_end')} className="text-red-600/50 text-right" />
+                                    <SortableHeader sortKey="deadDelta" title={t('col_deads_delta')} className="font-black text-white text-right border-r border-[#1e222b]" />
                                     
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">{t('col_rss_start')}</th>
-                                    <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase text-right">{t('col_rss_end')}</th>
-                                    <th className="py-3 px-4 font-black text-white tracking-widest uppercase text-right">{t('col_rss_delta')}</th>
+                                    <SortableHeader sortKey="gatheredStart" title={t('col_rss_start')} className="text-gray-500 text-right" />
+                                    <SortableHeader sortKey="gatheredEnd" title={t('col_rss_end')} className="text-gray-500 text-right" />
+                                    <SortableHeader sortKey="gatheredDelta" title={t('col_rss_delta')} className="font-black text-white text-right" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]/50">
-                                {filteredData.map((gov, idx) => (
+                                {sortedData.map((gov, idx) => (
                                     <tr key={idx} className="hover:bg-cyan-500/10 transition-colors group h-[40px]">
                                         <td className="py-2 px-4 text-gray-500 border-l-[3px] border-transparent group-hover:border-cyan-500">#{idx + 1}</td>
                                         <td className="py-2 px-4 text-gray-400">{gov.id}</td>
