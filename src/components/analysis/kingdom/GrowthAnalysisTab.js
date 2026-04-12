@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2 } from "lucide-react";
+import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2, Gift } from "lucide-react";
 import { useLocale } from "next-intl";
 
 export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate }) {
@@ -14,9 +14,12 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
     const [gradeFilter, setGradeFilter] = useState("ALL");
 
     // Coach State
-    // Coach State
     const [coachModal, setCoachModal] = useState({ isOpen: false, data: null, isLoading: false, advice: "" });
     const [kingdomState, setKingdomState] = useState("Peace");
+    
+    // Lotto State
+    const [lottoWinner, setLottoWinner] = useState(null);
+    const [isRolling, setIsRolling] = useState(false);
 
 
     useEffect(() => {
@@ -266,6 +269,19 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
         }
     };
 
+    const handleLottoRoll = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        setIsRolling(true);
+        setLottoWinner(null);
+        
+        // Fake a rolling animation for suspense
+        setTimeout(() => {
+            const randomIndex = Math.floor(Math.random() * filteredData.length);
+            setLottoWinner(filteredData[randomIndex]);
+            setIsRolling(false);
+        }, 1200);
+    };
+
     return (
         <div className="w-full space-y-6 animate-fade-in relative">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
@@ -336,6 +352,14 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                         <button onClick={() => generateReport('gathering')} className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">
                             <Sparkles className="w-4 h-4" />
                             Gathering Report
+                        </button>
+                        <button 
+                            onClick={handleLottoRoll} 
+                            disabled={isRolling || filteredData.length === 0}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors border ${isRolling ? 'bg-gray-500/10 text-gray-400 border-gray-500/30 cursor-not-allowed' : 'bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border-pink-500/30 shadow-[0_0_10px_rgba(236,72,153,0.15)] hover:shadow-[0_0_15px_rgba(236,72,153,0.3)]'}`}
+                        >
+                            {isRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+                            {isRolling ? 'Rolling...' : 'Random Lotto'}
                         </button>
                     </div>
                 </div>
@@ -531,6 +555,46 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                              >
                                  Dismiss
                              </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Random Lotto Winner Modal */}
+            {lottoWinner && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-[#0f1115] border border-pink-500/50 rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-[0_0_40px_rgba(236,72,153,0.2)] animate-slide-up">
+                        <div className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-6 flex flex-col items-center border-b border-pink-500/20 relative">
+                            <button onClick={() => setLottoWinner(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-black/20 p-1.5 rounded-full transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                            <Gift className="w-16 h-16 text-pink-400 mb-4 animate-bounce" />
+                            <h3 className="text-white font-black tracking-widest uppercase text-xl text-center">Lotto Winner Selected!</h3>
+                            <p className="text-pink-300 text-xs font-mono uppercase tracking-widest mt-1">From a pool of {filteredData.length} Candidates</p>
+                        </div>
+                        <div className="p-8 flex flex-col items-center">
+                            <div className="text-4xl font-black text-white text-center tracking-tight mb-2">
+                                {lottoWinner.name || "Unknown Governor"}
+                            </div>
+                            <div className="bg-pink-500/10 text-pink-400 font-mono tracking-widest px-3 py-1 rounded border border-pink-500/20 text-sm mb-6">
+                                ID: {lottoWinner.id}
+                            </div>
+                            <div className="flex items-center justify-center gap-6 w-full px-4 text-center">
+                                <div>
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Alliance</div>
+                                    <div className="text-white font-mono">{lottoWinner.alliance}</div>
+                                </div>
+                                <div className="h-8 w-px bg-[#1e222b]"></div>
+                                <div>
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Grade</div>
+                                    <div className="text-white font-black text-lg">{lottoWinner.grade}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-[#1e222b] bg-[#13161c]">
+                            <button onClick={() => setLottoWinner(null)} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-black uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg">
+                                Complete Roll
+                            </button>
                         </div>
                     </div>
                 </div>
