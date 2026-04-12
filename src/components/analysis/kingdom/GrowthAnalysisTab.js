@@ -286,6 +286,7 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                         title="Toggles whether AI should care about kill points and deads"
                     >
                         {kingdomState === "Peace" ? "🕊️ At Peace" : "⚔️ At War"}
+                    </button>
                 </div>
             </div>
 
