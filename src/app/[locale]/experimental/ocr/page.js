@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, RefreshCcw, Download, Copy, AlertTriangle, ChevronRight, X } from 'lucide-react';
+import { Camera, RefreshCcw, Download, Copy, AlertTriangle, ChevronRight, X, Upload } from 'lucide-react';
 
 export default function ExperimentalApplet() {
     const [image, setImage] = useState(null);
@@ -27,6 +27,16 @@ export default function ExperimentalApplet() {
         window.addEventListener('paste', handlePaste);
         return () => window.removeEventListener('paste', handlePaste);
     }, [isLoading]);
+
+    const handleFileUpload = (e) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const fileBlob = e.target.files[0];
+        if (fileBlob.type.indexOf('image') !== -1) {
+            processAndCompressImage(fileBlob);
+        }
+        // Reset the input so the same file could theoretically be uploaded again if needed
+        e.target.value = null; 
+    };
 
     const processAndCompressImage = (fileBlob) => {
         const reader = new FileReader();
@@ -189,17 +199,34 @@ export default function ExperimentalApplet() {
                     <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-dashed border-slate-700/50 rounded-xl bg-slate-900/20 text-center p-6 transition-colors hover:border-slate-500/50 hover:bg-slate-800/30">
                         <Camera size={48} className="text-slate-600 mb-4" />
                         <h3 className="text-lg font-bold text-white mb-2">Scanner Offline</h3>
-                        <p className="text-sm text-slate-400 mb-6">
+                        
+                        {/* Desktop Instructions */}
+                        <p className="text-sm text-slate-400 mb-6 hidden md:block">
                             Press <kbd className="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 mx-1 font-mono text-cyan-400">Ctrl + V</kbd> to paste an image instantly, <br/>
                             OR capture a window natively:
                         </p>
-                        <button 
-                            onClick={handleNativeScreenCapture}
-                            className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-mono text-[10px] uppercase tracking-widest px-6 py-3 rounded-lg shadow-[0_0_15px_rgba(192,38,211,0.4)] transition-all flex items-center gap-2"
-                        >
-                            <Camera size={16} />
-                            <span>Take Picture of Window</span>
-                        </button>
+
+                        {/* Mobile Instructions */}
+                        <p className="text-sm text-slate-400 mb-6 block md:hidden">
+                            Tap below to upload a screenshot directly from your Camera Roll:
+                        </p>
+
+                        <div className="flex flex-col md:flex-row items-center gap-4">
+                            <label className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-mono text-[10px] uppercase tracking-widest px-6 py-3 rounded-lg shadow-[0_0_15px_rgba(192,38,211,0.4)] transition-all flex items-center gap-2 cursor-pointer">
+                                <Upload size={16} />
+                                <span className="md:hidden">Upload Photo</span>
+                                <span className="hidden md:inline">Upload Image File</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                            </label>
+
+                            <button 
+                                onClick={handleNativeScreenCapture}
+                                className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-mono text-[10px] uppercase tracking-widest px-6 py-3 rounded-lg transition-all hidden md:flex items-center gap-2"
+                            >
+                                <Camera size={16} />
+                                <span>Take Picture of Window</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -266,13 +293,20 @@ export default function ExperimentalApplet() {
 
                         {/* Export Toolbar */}
                         <div className="bg-[#15181e] border border-t-0 border-slate-800 rounded-b-lg p-3 flex items-center justify-between shrink-0">
-                            <button 
-                                onClick={handleNativeScreenCapture} 
-                                className="flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group"
-                            >
-                                <Camera size={14} className="group-hover:scale-110 transition-transform" />
-                                <span>Snap Next Scroll Chunk</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <label className="flex items-center gap-2 bg-fuchsia-600/20 hover:bg-fuchsia-500/30 border border-fuchsia-500/30 text-fuchsia-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group cursor-pointer">
+                                    <Upload size={14} className="group-hover:scale-110 transition-transform" />
+                                    <span>Upload Next</span>
+                                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                </label>
+                                <button 
+                                    onClick={handleNativeScreenCapture} 
+                                    className="hidden md:flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group"
+                                >
+                                    <Camera size={14} className="group-hover:scale-110 transition-transform" />
+                                    <span>Snap Next Screen</span>
+                                </button>
+                            </div>
 
                             <div className="flex items-center gap-2">
                                 <button onClick={copyToClipboard} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-mono text-[10px] uppercase tracking-widest px-4 py-2 rounded transition-colors group">
