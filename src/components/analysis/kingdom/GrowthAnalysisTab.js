@@ -65,8 +65,10 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
         const maxTroop = Math.max(1, getPercentile(validRoster, p => p.troopPowerDiff));
         const maxGathered = Math.max(1, getPercentile(validRoster, p => p.gatheredDiff));
 
-        // Growth Configuration (Legacy Weights)
-        const WEIGHTS = { TECH: 25, BLD: 25, TROOP: 25, KP: 12, DEADS: 8, GATHERED: 5 };
+        // Growth Configuration (Dynamic based on Peace/War State)
+        const WEIGHTS = kingdomState === "Peace" 
+            ? { TECH: 32, BLD: 30, TROOP: 28, KP: 0, DEADS: 0, GATHERED: 10 } // Strict Growth Meta
+            : { TECH: 25, BLD: 25, TROOP: 25, KP: 12, DEADS: 8, GATHERED: 5 }; // Balanced KvK Meta
         const CAP = 1.25; // 125% Maximum structural overflow limit
 
         const determineGrade = (score) => {
@@ -111,7 +113,7 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
             };
         }).sort((a, b) => b.finalScore - a.finalScore); // Default Stack Ranking
 
-    }, [behavioralRoster]);
+    }, [behavioralRoster, kingdomState]);
 
     const filteredData = useMemo(() => {
         return growthData.filter(g => {
