@@ -44,6 +44,8 @@ export default function KingdomAnalysis() {
   
   const [targetKd, setTargetKd] = useState("");
   const [trends, setTrends] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [rosterData, setRosterData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRoster, setIsLoadingRoster] = useState(true);
@@ -114,6 +116,20 @@ export default function KingdomAnalysis() {
     }
   }, [session]);
 
+  const extractDate = (dateStr) => {
+      if (!dateStr) return "";
+      return dateStr.split('T')[0].split(' ')[0].split('_')[0];
+  };
+
+  useEffect(() => {
+      if (trends && trends.length > 0) {
+          const rawEnd = extractDate(trends[trends.length - 1].scanDate);
+          setEndDate(rawEnd);
+          const rawStart = extractDate(trends[0].scanDate);
+          setStartDate(rawStart);
+      }
+  }, [trends]);
+
   const renderActiveTab = () => {
       switch (activeTab) {
           case 'Kingdom Analysis':
@@ -122,6 +138,8 @@ export default function KingdomAnalysis() {
                       trends={trends} 
                       rosterData={rosterData} 
                       targetKd={targetKd} 
+                      startDate={startDate}
+                      endDate={endDate}
                   />
               );
           case 'Overview':
@@ -129,6 +147,8 @@ export default function KingdomAnalysis() {
                   <OverviewTab 
                       targetKd={targetKd}
                       trends={trends}
+                      startDate={startDate}
+                      endDate={endDate}
                   />
               );
           case 'War Room':
@@ -157,6 +177,8 @@ export default function KingdomAnalysis() {
                   <GrowthAnalysisTab 
                       targetKd={targetKd}
                       trends={trends}
+                      startDate={startDate}
+                      endDate={endDate}
                   />
               );
           case 'Alliance Duel':
@@ -164,6 +186,8 @@ export default function KingdomAnalysis() {
                   <AllianceDuelTab 
                       targetKd={targetKd}
                       trends={trends}
+                      startDate={startDate}
+                      endDate={endDate}
                   />
               );
           case 'Scatter Plot':
@@ -276,7 +300,35 @@ export default function KingdomAnalysis() {
                </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center flex-wrap justify-end gap-4">
+               {/* Global Date Picker Array */}
+               {trends.length > 0 && (
+                   <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shadow-lg shrink-0">
+                       <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">START</span>
+                            <input 
+                                type="date" 
+                                value={startDate} 
+                                onChange={e => setStartDate(e.target.value)}
+                                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
+                                style={{ colorScheme: 'dark' }}
+                            />
+                       </div>
+                       <span className="text-gray-600 text-lg mx-1">/</span>
+                       <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">END</span>
+                            <input 
+                                type="date" 
+                                value={endDate} 
+                                onChange={e => setEndDate(e.target.value)}
+                                min={startDate}
+                                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
+                                style={{ colorScheme: 'dark' }}
+                            />
+                       </div>
+                   </div>
+               )}
+
                <select 
                  value={targetKd}
                  onChange={(e) => {

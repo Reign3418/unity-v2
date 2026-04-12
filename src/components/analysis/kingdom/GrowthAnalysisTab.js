@@ -4,10 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2 } from "lucide-react";
 import { useLocale } from "next-intl";
 
-export default function GrowthAnalysisTab({ targetKd, trends }) {
+export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate }) {
     const locale = useLocale();
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
 
@@ -20,23 +18,7 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
     const [coachModal, setCoachModal] = useState({ isOpen: false, data: null, isLoading: false, advice: "" });
     const [kingdomState, setKingdomState] = useState("Peace");
 
-    // Bulletproof Date Extractor
-    const extractDate = (dateStr) => {
-        if (!dateStr) return "";
-        return dateStr.split('T')[0].split(' ')[0].split('_')[0];
-    };
 
-    // Auto-Set Dates 
-    useEffect(() => {
-        if (trends && trends.length > 0 && !startDate && !endDate) {
-            const rawEnd = extractDate(trends[trends.length - 1].scanDate);
-            setEndDate(rawEnd);
-            const rawStart = extractDate(trends[0].scanDate);
-            setStartDate(rawStart);
-        }
-    }, [trends]);
-
-    // Async Fetcher (Same Pipeline as ScatterPlot)
     useEffect(() => {
         const fetchBehavioralData = async () => {
             if (!targetKd || !startDate || !endDate) return;
@@ -304,32 +286,6 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                         title="Toggles whether AI should care about kill points and deads"
                     >
                         {kingdomState === "Peace" ? "🕊️ At Peace" : "⚔️ At War"}
-                    </button>
-                    <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-1 flex shadow-xl">
-                        <select 
-                            value={startDate} 
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="bg-transparent text-xs font-bold font-mono text-gray-300 outline-none px-2 cursor-pointer uppercase tracking-wider"
-                        >
-                            <option value="">Start Scan</option>
-                            {[...trends].reverse().map(t => {
-                                const d = extractDate(t.scanDate);
-                                return <option key={`start-${d}`} value={d} className="bg-[#0f1115] text-white py-2">{d}</option>
-                            })}
-                        </select>
-                        <span className="text-gray-600 px-2 font-black">-</span>
-                        <select 
-                            value={endDate} 
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="bg-transparent text-xs font-bold font-mono text-gray-300 outline-none px-2 cursor-pointer uppercase tracking-wider"
-                        >
-                            <option value="">End Scan</option>
-                            {[...trends].reverse().map(t => {
-                                const d = extractDate(t.scanDate);
-                                return <option key={`end-${d}`} value={d} className="bg-[#0f1115] text-white py-2">{d}</option>
-                            })}
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -490,7 +446,7 @@ export default function GrowthAnalysisTab({ targetKd, trends }) {
                                             <div className={`font-bold font-mono text-sm ${p.powerDiff >= 0 ? 'text-emerald-400' : 'text-red-500'}`}>
                                                 {p.powerDiff > 0 ? '+' : ''}{formatShortNum(p.powerDiff)}
                                             </div>
-                                            <div className="text-[10px] text-gray-500 font-mono">Troop: {formatShortNum(p.troopPowerDiff)}</div>
+                                            <div className="text-[10px] text-gray-500 font-mono">Trp: {formatShortNum(p.troopPowerDiff)} | Bld: {formatShortNum(p.bldPowerDiff)}</div>
                                         </td>
                                         <td className="p-3">
                                             <div className="font-bold font-mono text-sm text-emerald-400">+{formatShortNum(p.kpDiff)}</div>

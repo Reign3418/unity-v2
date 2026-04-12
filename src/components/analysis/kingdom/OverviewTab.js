@@ -4,29 +4,16 @@ import { useState, useMemo, useEffect } from "react";
 import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslations } from 'next-intl';
 
-export default function OverviewTab({ targetKd, trends }) {
+export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
     const t = useTranslations('OverviewTab');
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedAlliance, setSelectedAlliance] = useState("ALL");
-    
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
     
     const [rosterData, setRosterData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'powerDelta', direction: 'descending' });
 
-    // Initialize Dates
-    useEffect(() => {
-        if (trends && trends.length > 0) {
-            // Default End = Latest, Start = Previous
-            if (!endDate) setEndDate(trends[trends.length - 1].scanDate.split('T')[0]);
-            if (!startDate) {
-                if (trends.length >= 2) setStartDate(trends[trends.length - 2].scanDate.split('T')[0]);
-                else setStartDate(trends[0].scanDate.split('T')[0]);
-            }
-        }
-    }, [trends, endDate, startDate]);
+
 
     // Fetch Overview Deltas
     useEffect(() => {
@@ -218,38 +205,7 @@ export default function OverviewTab({ targetKd, trends }) {
                         </button>
                     </div>
                 </div>
-
-                <div className="flex flex-col lg:flex-row items-center gap-4 w-full bg-[#13161c] border border-[#1e222b] p-4 rounded-xl relative z-10 shadow-inner">
-                    
-                    {/* Date Pickers */}
-                    <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shrink-0">
-                        <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_start')}</span>
-                             <input 
-                                 type="date" 
-                                 value={startDate} 
-                                 onChange={e => setStartDate(e.target.value)}
-                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                 style={{ colorScheme: 'dark' }}
-                             />
-                        </div>
-                        <span className="text-gray-600 text-lg mx-1">/</span>
-                        <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_end')}</span>
-                             <input 
-                                 type="date" 
-                                 value={endDate} 
-                                 onChange={e => setEndDate(e.target.value)}
-                                 min={startDate}
-                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                 style={{ colorScheme: 'dark' }}
-                             />
-                        </div>
-                    </div>
-
-                    <div className="h-8 w-px bg-[#1e222b] hidden lg:block mx-1"></div>
-
-                    {/* Filters */}
+                <div className="flex flex-col lg:flex-row items-center gap-4 w-full bg-[#13161c] border border-[#1e222b] p-4 rounded-xl relative z-10 shadow-inner">                    {/* Filters */}
                     <div className="flex items-center gap-3 flex-1 w-full bg-[#0a0c0f] border border-[#1e222b] focus-within:border-cyan-500 transition-colors rounded-lg px-4 py-2.5">
                         <Search className="text-gray-500" size={18} />
                         <input 

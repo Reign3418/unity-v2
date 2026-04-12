@@ -10,18 +10,10 @@ import { useTranslations } from 'next-intl';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#64748b'];
 
-export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
+export default function KingdomAnalysisTab({ trends, rosterData, targetKd, startDate, endDate }) {
   const t = useTranslations('KingdomAnalysis');
   const [activeAlliance, setActiveAlliance] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
 
-  useEffect(() => {
-      if (trends && trends.length > 0) {
-          if (!endDate) setEndDate(trends[trends.length - 1].scanDate.split('T')[0]);
-          if (!startDate) setStartDate(trends[0].scanDate.split('T')[0]);
-      }
-  }, [trends, endDate, startDate]);
 
   // Derived Data for Alliance Pie Chart
   let alliancePieData = [];
@@ -193,31 +185,6 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd }) {
                         <h2 className="text-white font-bold uppercase tracking-widest text-sm">
                             {activeAlliance ? t('trajectory_title_alliance', { alliance: activeAlliance }) : t('trajectory_title_all')}
                         </h2>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shrink-0 shadow-lg">
-                        <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_start')}</span>
-                             <input 
-                                 type="date" 
-                                 value={startDate} 
-                                 onChange={e => setStartDate(e.target.value)}
-                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                 style={{ colorScheme: 'dark' }}
-                             />
-                        </div>
-                        <span className="text-gray-600 text-lg mx-1">/</span>
-                        <div className="flex items-center gap-2">
-                             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('label_end')}</span>
-                             <input 
-                                 type="date" 
-                                 value={endDate} 
-                                 onChange={e => setEndDate(e.target.value)}
-                                 min={startDate}
-                                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                 style={{ colorScheme: 'dark' }}
-                             />
-                        </div>
                     </div>
                 </div>
 
