@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users } from "lucide-react";
+import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users, Search, Menu, PanelLeft } from "lucide-react";
 import KingdomAnalysisTab from "@/components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "@/components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "@/components/analysis/kingdom/ScatterPlotTab";
@@ -18,6 +18,8 @@ import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
 import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
+import WorkbenchSidebar from "@/components/analysis/kingdom/WorkbenchSidebar";
+import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -49,9 +51,40 @@ export default function KingdomAnalysis() {
   const [rosterData, setRosterData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRoster, setIsLoadingRoster] = useState(true);
-  
+
+  // ── Navigation UI State ────────────────────────────────────────────────
   // Tab Routing State
-  const [activeTab, setActiveTab] = useState("Kingdom Analysis"); // Defaulting to Kingdom Analysis to maintain immediate compatibility until Overview is built.
+  const [activeTab, setActiveTab] = useState("Kingdom Analysis");
+  // Layout Mode: 'sidebar' = new grouped sidebar | 'classic' = legacy horizontal tabs (kill switch)
+  const [layoutMode, setLayoutMode] = useState('sidebar');
+  // Command Palette (Ctrl+K / Search button)
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  // Mobile sidebar drawer
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  // Persist layout mode preference
+  useEffect(() => {
+    const stored = localStorage.getItem('unty_layout_mode');
+    if (stored === 'classic' || stored === 'sidebar') setLayoutMode(stored);
+  }, []);
+
+  const toggleLayoutMode = () => {
+    const next = layoutMode === 'sidebar' ? 'classic' : 'sidebar';
+    setLayoutMode(next);
+    localStorage.setItem('unty_layout_mode', next);
+  };
+
+  // Global Ctrl+K listener
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Dynamic Array mapping to wipe restricted components from the view entirely for standard users
   const availableTabs = useMemo(() => {
@@ -285,111 +318,173 @@ export default function KingdomAnalysis() {
       }
   };
 
+  // ── Shared header JSX (used in both layout modes) ─────────────────────
+  const renderHeader = (showMobileMenuBtn = false) => (
+    <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
+        <div className="flex items-center gap-3">
+          {/* Mobile hamburger — only in sidebar mode */}
+          {showMobileMenuBtn && (
+            <button
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="md:hidden p-2 bg-[#1e222b] border border-[#2d323e] rounded-lg text-gray-400 hover:text-white transition-colors"
+              aria-label="Open navigation"
+            >
+              <Menu size={18} />
+            </button>
+          )}
+          <div className="bg-[#1e222b] p-2.5 rounded-xl border border-[#2d323e]">
+            <BarChart2 className="text-cyan-500" size={26} />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-white tracking-widest uppercase">{tTabs('workbench_title')}</h1>
+            <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-0.5">{tTabs('workbench_subtitle')}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center flex-wrap justify-end gap-2 md:gap-3">
+          {/* Date Range */}
+          {trends.length > 0 && (
+            <div className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-3 py-2 border-l-4 border-l-cyan-500 shadow-lg shrink-0">
+              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">START</span>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer" style={{ colorScheme: 'dark' }} />
+              <span className="text-gray-600 mx-1">/</span>
+              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">END</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate}
+                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer" style={{ colorScheme: 'dark' }} />
+            </div>
+          )}
+
+          {/* Kingdom Selector */}
+          <select value={targetKd}
+            onChange={(e) => {
+              const newKd = e.target.value;
+              setTargetKd(newKd);
+              if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
+              fetchTrends(newKd);
+              fetchRoster(newKd);
+            }}
+            className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-3 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg text-sm"
+          >
+            {session?.user?.allowedKingdoms?.map(kd => (
+              <option key={kd} value={kd} className="bg-[#0f1115] text-white">Kingdom {kd}</option>
+            ))}
+            {!session?.user?.allowedKingdoms?.includes(targetKd) && targetKd && (
+              <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
+            )}
+          </select>
+
+          {/* Search / Command Palette */}
+          <button
+            onClick={() => setIsPaletteOpen(true)}
+            title="Search tools (Ctrl+K)"
+            className="p-2.5 bg-[#0a0c0f] hover:bg-[#1e222b] text-gray-400 hover:text-cyan-400 border border-[#1e222b] rounded-lg transition-colors shadow-lg"
+          >
+            <Search size={17} />
+          </button>
+
+          {/* Refresh */}
+          <button onClick={() => { fetchTrends(); fetchRoster(); }}
+            disabled={isLoading || isLoadingRoster}
+            className="p-2.5 bg-[#0a0c0f] hover:bg-[#1e222b] text-gray-400 hover:text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg"
+          >
+            <RefreshCw size={17} className={(isLoading || isLoadingRoster) ? 'animate-spin text-cyan-500' : ''} />
+          </button>
+
+          {/* ── KILL SWITCH: Layout Mode Toggle ── */}
+          <button
+            onClick={toggleLayoutMode}
+            title={layoutMode === 'sidebar' ? 'Switch to classic tab view' : 'Switch to sidebar view'}
+            className={`p-2.5 border rounded-lg transition-colors shadow-lg text-xs font-bold ${
+              layoutMode === 'sidebar'
+                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
+                : 'bg-[#0a0c0f] border-[#1e222b] text-gray-500 hover:text-white hover:bg-[#1e222b]'
+            }`}
+          >
+            <PanelLeft size={17} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── SIDEBAR LAYOUT ──────────────────────────────────────────────────────
+  if (layoutMode === 'sidebar') {
+    return (
+      <div className="w-full flex gap-0 animate-fade-in mt-4 relative" style={{ minHeight: '80vh' }}>
+        {/* Command Palette (global overlay) */}
+        {isPaletteOpen && (
+          <CommandPalette
+            availableTabs={availableTabs}
+            onSelect={(name) => setActiveTab(name)}
+            onClose={() => setIsPaletteOpen(false)}
+          />
+        )}
+
+        {/* Sidebar (desktop inline + mobile drawer) */}
+        <WorkbenchSidebar
+          availableTabs={availableTabs}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isMobileOpen={isMobileDrawerOpen}
+          setIsMobileOpen={setIsMobileDrawerOpen}
+        />
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0 space-y-4 pb-12 px-3 md:px-5">
+          {renderHeader(true)}
+          <div className="min-h-[500px]">
+            {renderActiveTab()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── CLASSIC LAYOUT (Kill Switch Active) ────────────────────────────────
   return (
     <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
-      
-      {/* Header Panel */}
-      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
-            <div className="flex items-center gap-4">
-               <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
-                 <BarChart2 className="text-cyan-500" size={32} />
-               </div>
-               <div>
-                 <h1 className="text-3xl font-black text-white tracking-widest uppercase">{tTabs('workbench_title')}</h1>
-                 <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{tTabs('workbench_subtitle')}</p>
-               </div>
-            </div>
-            
-            <div className="flex items-center flex-wrap justify-end gap-4">
-               {/* Global Date Picker Array */}
-               {trends.length > 0 && (
-                   <div className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-4 py-2 border-l-4 border-l-cyan-500 shadow-lg shrink-0">
-                       <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">START</span>
-                            <input 
-                                type="date" 
-                                value={startDate} 
-                                onChange={e => setStartDate(e.target.value)}
-                                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                style={{ colorScheme: 'dark' }}
-                            />
-                       </div>
-                       <span className="text-gray-600 text-lg mx-1">/</span>
-                       <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">END</span>
-                            <input 
-                                type="date" 
-                                value={endDate} 
-                                onChange={e => setEndDate(e.target.value)}
-                                min={startDate}
-                                className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer"
-                                style={{ colorScheme: 'dark' }}
-                            />
-                       </div>
-                   </div>
-               )}
+      {/* Command Palette (global overlay) */}
+      {isPaletteOpen && (
+        <CommandPalette
+          availableTabs={availableTabs}
+          onSelect={(name) => setActiveTab(name)}
+          onClose={() => setIsPaletteOpen(false)}
+        />
+      )}
 
-               <select 
-                 value={targetKd}
-                 onChange={(e) => {
-                     const newKd = e.target.value;
-                     setTargetKd(newKd);
-                     if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
-                     fetchTrends(newKd);
-                     fetchRoster(newKd);
-                 }}
-                 className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-4 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg"
-               >
-                 {session?.user?.allowedKingdoms?.map(kd => (
-                    <option key={kd} value={kd} className="bg-[#0f1115] text-white">Kingdom {kd}</option>
-                 ))}
-                 {!session?.user?.allowedKingdoms?.includes(targetKd) && targetKd && (
-                    <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
-                 )}
-               </select>
+      {renderHeader(false)}
 
-               <button 
-                 onClick={() => { fetchTrends(); fetchRoster(); }}
-                 disabled={isLoading || isLoadingRoster}
-                 className="p-2.5 bg-[#0a0c0f] hover:bg-[#1e222b] text-gray-400 hover:text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg"
-               >
-                  <RefreshCw size={20} className={(isLoading || isLoadingRoster) ? "animate-spin text-cyan-500" : ""} />
-               </button>
-            </div>
-         </div>
-      </div>
-
-      {/* Legacy Horizontal Sub-Navigation Tab Array */}
+      {/* Legacy Horizontal Sub-Navigation Tab Array — untouched */}
       <div className="w-full overflow-x-auto pb-4 pt-2 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent">
         <div className="flex items-center gap-3 min-w-max px-2">
           {availableTabs.map(tab => {
-             const Icon = tab.icon;
-             const isActive = activeTab === tab.name;
-             return (
-                <button
-                  key={tab.name}
-                  onClick={() => setActiveTab(tab.name)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
-                    isActive 
-                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)] shadow-lg' 
-                      : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
-                  }`}
-                >
-                  <Icon size={16} className={isActive ? 'text-cyan-400' : 'text-gray-600'} />
-                  {tab.label || tTabs(tab.name) || tab.name}
-                </button>
-             );
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.name;
+            return (
+              <button
+                key={tab.name}
+                onClick={() => setActiveTab(tab.name)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                  isActive
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)] shadow-lg'
+                    : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
+                }`}
+              >
+                <Icon size={16} className={isActive ? 'text-cyan-400' : 'text-gray-600'} />
+                {tab.label || tTabs(tab.name) || tab.name}
+              </button>
+            );
           })}
         </div>
       </div>
 
       {/* Render Active Virtual Tab Component */}
       <div className="min-h-[500px]">
-         {renderActiveTab()}
+        {renderActiveTab()}
       </div>
-
     </div>
   );
 }
