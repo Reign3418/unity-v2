@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 import { getAllUsersInKingdom } from "@/lib/awsDynamo";
 import { unstable_cache } from "next/cache";
 
-const getCachedKingdomUsers = unstable_cache(
-    async (kd) => getAllUsersInKingdom(kd),
-    ['kingdom-presence-data'],
-    { revalidate: 60 * 5, tags: ['presence'] } // Cache for 5 minutes instead of querying AWS continuously
-);
+const getCachedKingdomUsers = async (kd) => {
+    return unstable_cache(
+        async () => getAllUsersInKingdom(kd),
+        ['kingdom-presence-data', String(kd)], // Dynamically hash the Kingdom to prevent stale lock!
+        { revalidate: 45, tags: ['presence'] } // Refresh every 45s for accurate "Active" radar sweeping
+    )();
+};
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req) {
     const session = await auth();
