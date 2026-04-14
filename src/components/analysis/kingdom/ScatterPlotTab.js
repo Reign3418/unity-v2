@@ -7,10 +7,8 @@ import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, 
 import { PCA } from 'ml-pca';
 import { useTranslations } from 'next-intl';
 
-export default function ScatterPlotTab({ targetKd, trends }) {
+export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
     const t = useTranslations('ScatterPlot');
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
     const [isPcaCompiling, setIsPcaCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -29,15 +27,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
         return dateStr.split('T')[0].split(' ')[0].split('_')[0];
     };
 
-    // Initialize Auto-Dates from Trends Feed
-    useEffect(() => {
-        if (trends && trends.length > 0 && !startDate && !endDate) {
-            const rawEnd = extractDate(trends[trends.length - 1].scanDate);
-            setEndDate(rawEnd);
-            const rawStart = extractDate(trends[0].scanDate);
-            setStartDate(rawStart);
-        }
-    }, [trends]);
+    // Dates are structurally hoisted to the global view.
 
     // Asynchronous Behavioral Fetcher
     useEffect(() => {
@@ -346,34 +336,7 @@ export default function ScatterPlotTab({ targetKd, trends }) {
 
                     {/* Timeline Controls */}
                     <div className="flex flex-wrap items-center gap-4 bg-[#0a0c0f] border border-[#1e222b] p-3 rounded-xl shadow-inner">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-500 font-black uppercase tracking-wider">Scan Range:</span>
-                            <select 
-                                value={startDate} 
-                                onChange={(e) => setStartDate(e.target.value)} 
-                                className="bg-[#13161c] text-white text-xs border border-[#2d323e] rounded p-1.5 focus:border-cyan-500 outline-none"
-                            >
-                                {trends && trends.map(t => {
-                                    const rawDate = extractDate(t.scanDate);
-                                    const parsedDate = new Date(rawDate);
-                                    const displayDate = !isNaN(parsedDate) ? parsedDate.toLocaleDateString() : rawDate;
-                                    return <option key={`start-${t.scanDate}`} value={rawDate}>{displayDate}</option>
-                                })}
-                            </select>
-                            <span className="text-gray-600">-</span>
-                            <select 
-                                value={endDate} 
-                                onChange={(e) => setEndDate(e.target.value)} 
-                                className="bg-[#13161c] text-white text-xs border border-[#2d323e] rounded p-1.5 focus:border-cyan-500 outline-none"
-                            >
-                                {trends && trends.map(t => {
-                                    const rawDate = extractDate(t.scanDate);
-                                    const parsedDate = new Date(rawDate);
-                                    const displayDate = !isNaN(parsedDate) ? parsedDate.toLocaleDateString() : rawDate;
-                                    return <option key={`end-${t.scanDate}`} value={rawDate}>{displayDate}</option>
-                                })}
-                            </select>
-                        </div>
+                        {/* Date selectors are now managed globally in the Main Navigation */}
                         
                          {/* Search Node Feature */}
                          <div className="h-4 w-px bg-[#1e222b] mx-2 hidden sm:block"></div>

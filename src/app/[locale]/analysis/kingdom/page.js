@@ -204,6 +204,8 @@ export default function KingdomAnalysis() {
                   <ScatterPlotTab 
                       rosterData={rosterData}
                       targetKd={targetKd}
+                      startDate={startDate}
+                      endDate={endDate}
                       isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
               );
