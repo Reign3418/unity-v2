@@ -11,9 +11,6 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1014.0",
     "@aws-sdk/client-sts": "^3.1014.0",
-    "@heroicons/react": "^2.2.0",
-    "@remixicon/react": "^4.9.0",
-    "@tremor/react": "^3.18.7",
     "@vercel/analytics": "^2.0.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
