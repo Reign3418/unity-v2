@@ -114,7 +114,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   leadershipRoleId: "guest",
                   allowedKingdoms: [user.guestData?.kingdomId || "3155"]
               };
-              token.governorConfig = {};
+              // Fetch saved user config (timezone, playtimeStart, playtimeEnd) if it exists.
+              // Guests can save timezone via Settings — this ensures it hydrates on every login.
+              try {
+                  const guestConfig = await getUserConfig(token.id);
+                  token.governorConfig = guestConfig || {};
+              } catch {
+                  token.governorConfig = {};
+              }
               token.ownedGuilds = [];
               return token;
           }

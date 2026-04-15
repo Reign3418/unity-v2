@@ -1367,7 +1367,11 @@ export async function getUserConfig(discordId) {
                 isManualGuest: attrs.isManualGuest?.BOOL || false,
                 role: attrs.role?.S,
                 allowedKingdoms: allowedKingdoms,
-                globalAiAccess: attrs.globalAiAccess?.BOOL ?? true
+                globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
+                // Presence & Uptime fields — written by settings page + Discord /uptime command
+                timezone: attrs.timezone?.S || null,
+                playtimeStart: attrs.playtimeStart?.S || null,
+                playtimeEnd: attrs.playtimeEnd?.S || null,
             };
         }
         return null; // Not registered
