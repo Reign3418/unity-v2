@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { 
-  Globe2, RefreshCw, BarChart, ShieldAlert, Zap, Plus, X, Users, Save, List, Trash2
+  Globe2, RefreshCw, BarChart, ShieldAlert, Zap, Plus, X, Users, Save, List, Trash2, Swords, Shield, TrendingUp, AlertTriangle
 } from "lucide-react";
 import { 
   BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
@@ -19,13 +19,13 @@ export default function GlobalAnalysis() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Tab Routing
-  const [activeTab, setActiveTab] = useState('CAMP_BUILDER'); // 'CAMP_BUILDER' | 'DELTA'
+  const [activeTab, setActiveTab] = useState('CAMP_BUILDER'); // 'CAMP_BUILDER' | 'DELTA' | 'KVK'
 
   // Top N Filtering
   const [topNFilter, setTopNFilter] = useState('All');
   
   // Camp Builder State
-  const [activeEntities, setActiveEntities] = useState([]); // Mixed array of 'KD 3155' and { id: 'c-1', name: 'Camp A', kds: ['KD 3155'] }
+  const [activeEntities, setActiveEntities] = useState([]);
   const [newDomainInput, setNewDomainInput] = useState('');
   
   // Multi-select for Grouping
@@ -44,6 +44,16 @@ export default function GlobalAnalysis() {
   // Target Scope Routing (Delta)
   const [targetKds, setTargetKds] = useState([]);
   const [deltaTargetInput, setDeltaTargetInput] = useState('');
+
+  // KvK Scenario State
+  const [kvkAlliance, setKvkAlliance]         = useState([]);
+  const [kvkEnemy, setKvkEnemy]               = useState([]);
+  const [kvkAllianceInput, setKvkAllianceInput] = useState('');
+  const [kvkEnemyInput, setKvkEnemyInput]     = useState('');
+  const [kvkTimeframe, setKvkTimeframe]       = useState('7');
+  const [kvkIsScanning, setKvkIsScanning]     = useState(false);
+  const [kvkResult, setKvkResult]             = useState(null);
+  const [kvkError, setKvkError]               = useState('');
 
   const fetchGlobalStats = async () => {
     setIsLoading(true);
@@ -553,8 +563,18 @@ export default function GlobalAnalysis() {
            >
              <BarChart size={14} /> {t('delta_analytics')}
            </button>
-        </div>
 
+           <button
+             onClick={() => setActiveTab('KVK')}
+             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+               activeTab === 'KVK'
+                 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 shadow-[inset_4px_0_0_0_rgba(244,63,94,1)] shadow-lg'
+                 : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
+             }`}
+           >
+             <Swords size={14} /> KvK Scenario
+           </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -755,6 +775,278 @@ export default function GlobalAnalysis() {
                    </div>
                ))}
             </div>
+
+        </div>
+      ) : activeTab === 'KVK' ? (
+        /* ── KVK SCENARIO TAB ───────────────────────────────────────────────── */
+        <div className="space-y-6">
+
+          {/* Setup Panel */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* Alliance Side */}
+            <div className="bg-[#0f1115] border border-indigo-500/30 rounded-xl p-6 space-y-4 shadow-[0_0_30px_rgba(99,102,241,0.08)]">
+              <div className="flex items-center justify-between">
+                <h3 className="text-indigo-400 font-black uppercase tracking-widest text-sm flex items-center gap-2">
+                  <Shield size={16} /> Alliance
+                </h3>
+                <span className="text-[10px] text-indigo-400/60 font-mono">{kvkAlliance.length} / 4 kingdoms</span>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                let kd = kvkAllianceInput.trim().toUpperCase().replace('KD ', '');
+                if (kd && !kvkAlliance.includes(kd) && kvkAlliance.length < 4) {
+                  setKvkAlliance([...kvkAlliance, kd]);
+                  setKvkAllianceInput('');
+                }
+              }} className="flex gap-2">
+                <input
+                  type="text"
+                  value={kvkAllianceInput}
+                  onChange={(e) => setKvkAllianceInput(e.target.value)}
+                  placeholder="Enter KD #"
+                  className="flex-1 bg-[#13161c] border border-[#1e222b] focus:border-indigo-500 text-white text-sm font-bold uppercase p-2.5 rounded-lg outline-none placeholder-gray-600"
+                />
+                <button type="submit" className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white border border-indigo-500/30 px-3 py-2 rounded-lg transition-colors">
+                  <Plus size={18} />
+                </button>
+              </form>
+              <div className="flex flex-col gap-2">
+                {kvkAlliance.length === 0 && (
+                  <div className="text-gray-600 text-xs font-bold uppercase tracking-widest text-center py-4 border border-dashed border-[#1e222b] rounded-lg">No kingdoms added</div>
+                )}
+                {kvkAlliance.map(kd => (
+                  <div key={kd} className="flex items-center justify-between bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg">
+                    <span className="text-indigo-300 font-mono font-bold text-sm">KD {kd}</span>
+                    <button onClick={() => setKvkAlliance(kvkAlliance.filter(k => k !== kd))} className="text-indigo-400/50 hover:text-red-400 transition-colors"><X size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Enemy Side */}
+            <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-6 space-y-4 shadow-[0_0_30px_rgba(244,63,94,0.08)]">
+              <div className="flex items-center justify-between">
+                <h3 className="text-rose-400 font-black uppercase tracking-widest text-sm flex items-center gap-2">
+                  <Swords size={16} /> Enemy
+                </h3>
+                <span className="text-[10px] text-rose-400/60 font-mono">{kvkEnemy.length} / 4 kingdoms</span>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                let kd = kvkEnemyInput.trim().toUpperCase().replace('KD ', '');
+                if (kd && !kvkEnemy.includes(kd) && kvkEnemy.length < 4) {
+                  setKvkEnemy([...kvkEnemy, kd]);
+                  setKvkEnemyInput('');
+                }
+              }} className="flex gap-2">
+                <input
+                  type="text"
+                  value={kvkEnemyInput}
+                  onChange={(e) => setKvkEnemyInput(e.target.value)}
+                  placeholder="Enter KD #"
+                  className="flex-1 bg-[#13161c] border border-[#1e222b] focus:border-rose-500 text-white text-sm font-bold uppercase p-2.5 rounded-lg outline-none placeholder-gray-600"
+                />
+                <button type="submit" className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 px-3 py-2 rounded-lg transition-colors">
+                  <Plus size={18} />
+                </button>
+              </form>
+              <div className="flex flex-col gap-2">
+                {kvkEnemy.length === 0 && (
+                  <div className="text-gray-600 text-xs font-bold uppercase tracking-widest text-center py-4 border border-dashed border-[#1e222b] rounded-lg">No kingdoms added</div>
+                )}
+                {kvkEnemy.map(kd => (
+                  <div key={kd} className="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg">
+                    <span className="text-rose-300 font-mono font-bold text-sm">KD {kd}</span>
+                    <button onClick={() => setKvkEnemy(kvkEnemy.filter(k => k !== kd))} className="text-rose-400/50 hover:text-red-400 transition-colors"><X size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Launch Controls */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 bg-[#13161c] border border-[#1e222b] rounded-lg px-3 py-2">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Data Window</span>
+              <select
+                value={kvkTimeframe}
+                onChange={(e) => setKvkTimeframe(e.target.value)}
+                className="bg-transparent text-indigo-400 font-mono text-sm font-bold outline-none cursor-pointer"
+              >
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+                <option value="30">30 Days</option>
+              </select>
+            </div>
+
+            <button
+              onClick={async () => {
+                if (kvkAlliance.length === 0 || kvkEnemy.length === 0) return;
+                setKvkError('');
+                setKvkResult(null);
+                setKvkIsScanning(true);
+                try {
+                  let geminiKey = '';
+                  if (typeof window !== 'undefined') {
+                    try { geminiKey = JSON.parse(localStorage.getItem('unty_prefs') || '{}').geminiKey || ''; } catch(e) {}
+                  }
+                  const res = await fetch('/api/aws/kvk-scenario', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(geminiKey ? { 'x-gemini-key': geminiKey } : {})
+                    },
+                    body: JSON.stringify({ alliance: kvkAlliance, enemy: kvkEnemy, timeframeDays: kvkTimeframe })
+                  });
+                  const data = await res.json();
+                  if (res.ok && data.success) setKvkResult(data);
+                  else setKvkError(data.error || 'Scenario analysis failed.');
+                } catch(e) {
+                  setKvkError('Network error contacting the KvK Scenario engine.');
+                } finally {
+                  setKvkIsScanning(false);
+                }
+              }}
+              disabled={kvkIsScanning || kvkAlliance.length === 0 || kvkEnemy.length === 0}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-all ${
+                kvkIsScanning || kvkAlliance.length === 0 || kvkEnemy.length === 0
+                  ? 'bg-rose-500/20 text-rose-500/50 cursor-not-allowed'
+                  : 'bg-rose-500 hover:bg-rose-400 text-white shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:shadow-[0_0_30px_rgba(244,63,94,0.55)]'
+              }`}
+            >
+              {kvkIsScanning ? <RefreshCw size={16} className="animate-spin" /> : <Swords size={16} />}
+              {kvkIsScanning ? 'Compiling War Assessment...' : 'Generate War Assessment'}
+            </button>
+
+            {kvkError && (
+              <span className="text-rose-500 text-sm font-bold flex items-center gap-2 bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20">
+                <AlertTriangle size={14} /> {kvkError}
+              </span>
+            )}
+          </div>
+
+          {/* Results */}
+          {kvkResult && (() => {
+            const { allianceProfile: ap, enemyProfile: ep, warAssessment: wa } = kvkResult;
+            const fmt = (n) => n >= 1e9 ? (n/1e9).toFixed(2)+'B' : n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
+            return (
+              <div className="space-y-6">
+
+                {/* Side-by-side Combat Profile */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {[['ALLIANCE', ap, 'indigo'], ['ENEMY', ep, 'rose']].map(([label, profile, color]) => (
+                    <div key={label} className={`bg-[#0f1115] border border-${color}-500/30 rounded-2xl p-6 space-y-4`}>
+                      <div className={`text-${color}-400 font-black uppercase tracking-widest text-base flex items-center gap-2`}>
+                        {label === 'ALLIANCE' ? <Shield size={18}/> : <Swords size={18}/>} {label}
+                        <span className="text-xs text-gray-500 font-normal normal-case tracking-normal">({profile.kingdoms.join(', ')})</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          ['Combined Power',    fmt(profile.combinedPower),       'text-white'],
+                          ['Troop Power',       fmt(profile.combinedTroopPower),  'text-cyan-400'],
+                          ['Combat Invest %',   `${profile.combatInvestmentRatio}%`, profile.combatInvestmentRatio > 25 ? 'text-green-400' : 'text-amber-400'],
+                          ['T5 Eligible',       profile.t5EligibleDepth + ' govs', 'text-violet-400'],
+                          ['Commander Power',   fmt(profile.combinedCommanderPower), 'text-indigo-400'],
+                          ['Sleeping Dead Wt',  fmt(profile.totalSleepingDeadWeight), 'text-gray-500'],
+                        ].map(([label2, val, cls]) => (
+                          <div key={label2} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-3">
+                            <div className="text-gray-500 text-[9px] uppercase font-bold tracking-widest mb-1">{label2}</div>
+                            <div className={`font-mono font-black text-lg ${cls}`}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* AI War Assessment */}
+                <div className="bg-[#0f1115] border border-rose-500/20 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(244,63,94,0.1)]">
+                  <div className="bg-[#0a0c0f] px-6 py-4 border-b border-rose-500/20 flex items-center gap-2">
+                    <Swords size={18} className="text-rose-400" />
+                    <h3 className="text-white font-black uppercase tracking-widest text-sm">AI War Assessment</h3>
+                  </div>
+                  <div className="p-6 space-y-6">
+
+                    {/* Overall Verdict */}
+                    {wa.overallVerdict && (
+                      <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-rose-500/50 pl-4">{wa.overallVerdict}</p>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {wa.t5Analysis?.assessment && (
+                        <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl p-4">
+                          <div className="text-violet-400 text-[10px] uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
+                            <TrendingUp size={12}/> T5 Depth Analysis
+                          </div>
+                          <div className="flex items-center gap-4 mb-2">
+                            <div className="text-center">
+                              <div className="text-violet-300 font-mono font-black text-2xl">{wa.t5Analysis.allianceEligible}</div>
+                              <div className="text-gray-500 text-[9px] uppercase font-bold">Alliance</div>
+                            </div>
+                            <div className="text-gray-600 font-black text-xl">vs</div>
+                            <div className="text-center">
+                              <div className="text-rose-400 font-mono font-black text-2xl">{wa.t5Analysis.enemyEligible}</div>
+                              <div className="text-gray-500 text-[9px] uppercase font-bold">Enemy</div>
+                            </div>
+                          </div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.t5Analysis.assessment}</p>
+                        </div>
+                      )}
+                      {wa.combatInvestmentAnalysis && (
+                        <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-4">
+                          <div className="text-cyan-400 text-[10px] uppercase font-black tracking-widest mb-2">Combat Investment</div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.combatInvestmentAnalysis}</p>
+                        </div>
+                      )}
+                      {wa.commanderDepthAnalysis && (
+                        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4">
+                          <div className="text-indigo-400 text-[10px] uppercase font-black tracking-widest mb-2">Commander Depth</div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.commanderDepthAnalysis}</p>
+                        </div>
+                      )}
+                      {wa.sleepingDeadWeightRisk && (
+                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+                          <div className="text-amber-400 text-[10px] uppercase font-black tracking-widest mb-2">Sleeping Dead Weight Risk</div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.sleepingDeadWeightRisk}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Strategy */}
+                    {wa.allianceStrategy && (
+                      <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4">
+                        <div className="text-green-400 text-[10px] uppercase font-black tracking-widest mb-3 flex items-center gap-1.5">
+                          <Shield size={12}/> Alliance Strategy
+                        </div>
+                        <p className="text-gray-300 text-sm leading-relaxed">{wa.allianceStrategy}</p>
+                      </div>
+                    )}
+
+                    {/* Risk Flags */}
+                    {wa.allianceRiskFlags?.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-rose-400 text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5">
+                          <AlertTriangle size={12}/> Risk Flags
+                        </div>
+                        {wa.allianceRiskFlags.map((flag, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                            <span className="text-rose-500 mt-0.5 shrink-0">▸</span> {flag}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Confidence Note */}
+                    {wa.confidenceNote && (
+                      <p className="text-gray-600 text-[10px] italic border-t border-[#1e222b] pt-4">{wa.confidenceNote}</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
 
         </div>
       ) : (
