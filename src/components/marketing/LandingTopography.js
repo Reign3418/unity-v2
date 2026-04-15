@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+const Plot = dynamic(() => import('../analysis/kingdom/PlotlyWrapper'), { ssr: false });
 
 export default function LandingTopography() {
   const [mounted, setMounted] = useState(false);
