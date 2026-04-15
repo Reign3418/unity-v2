@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import dynamic from "next/dynamic";
-const Plot = dynamic(() => import("./PlotlyWrapper"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
+import ReactECharts from 'echarts-for-react';
+import 'echarts-gl';
 import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send } from "lucide-react";
 import { PCA } from 'ml-pca';
 import { useTranslations } from 'next-intl';
@@ -397,115 +397,98 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
 
                 <div className="flex-1 w-full relative z-10 min-h-[600px]">
                     {(() => {
-                        let dynamicData = [];
-                        let dynamicLayout = {};
+                        let option = {};
 
                         if (viewType === '3d') {
-                            dynamicData = Object.keys(chartData).map(key => ({
-                                name: key.toUpperCase(),
-                                x: chartData[key].map(d => d.x),
-                                y: chartData[key].map(d => d.y),
-                                z: chartData[key].map(d => d.z),
-                                text: chartData[key].map(d => `${d.name} [${d.alliance}]<br>ID: ${d.id}<br>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`),
-                                mode: 'markers',
-                                type: 'scatter3d',
-                                marker: {
-                                    size: chartData[key].map(d => {
-                                        const q = searchQuery.toLowerCase();
-                                        const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                        return match ? 13 : 5;
-                                    }),
-                                    color: chartData[key].map(d => {
-                                        const q = searchQuery.toLowerCase();
-                                        const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                        return match ? '#38bdf8' : CLUSTER_COLORS[key];
-                                    }),
-                                    opacity: chartData[key].map(d => {
-                                        const q = searchQuery.toLowerCase();
-                                        const match = q.length > 0 && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                        return (q.length > 0 && !match) ? 0.15 : 1;
-                                    }),
-                                    symbol: 'circle',
-                                    line: {
-                                        color: chartData[key].map(d => {
-                                            const q = searchQuery.toLowerCase();
-                                            const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
-                                            return match ? '#ffffff' : CLUSTER_COLORS[key];
-                                        }),
-                                        width: 1
-                                    }
-                                },
-                                hoverinfo: 'text'
-                            }));
+                            const series = Object.keys(chartData).map(key => {
+                                const clusterColor = CLUSTER_COLORS[key];
+                                const data = chartData[key].map(d => {
+                                    const q = searchQuery.toLowerCase();
+                                    const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                    return {
+                                        value: [d.x, d.y, d.z],
+                                        name: d.name,
+                                        itemStyle: {
+                                            color: match ? '#38bdf8' : clusterColor,
+                                            opacity: (q.length > 0 && !match) ? 0.15 : 0.8,
+                                            shadowBlur: match ? 20 : 10,
+                                            shadowColor: match ? '#38bdf8' : clusterColor,
+                                        },
+                                        symbolSize: match ? 13 : 5,
+                                        tooltipStr: `${d.name} [${d.alliance}]<br/>ID: ${d.id}<br/>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`
+                                    };
+                                });
 
-                            dynamicLayout = {
-                                autosize: true,
-                                margin: { l: 0, r: 0, b: 0, t: 0 },
-                                paper_bgcolor: 'rgba(0,0,0,0)',
-                                plot_bgcolor: 'rgba(0,0,0,0)',
-                                showlegend: true,
-                                legend: {
-                                    font: { color: '#9ca3af', family: 'monospace', size: 10 },
-                                    bgcolor: 'rgba(15,17,21,0.8)',
-                                    bordercolor: '#2d323e',
-                                    borderwidth: 1,
-                                    yanchor: 'top',
-                                    y: 0.99,
-                                    xanchor: 'left',
-                                    x: 0.01
+                                return {
+                                    type: 'scatter3D',
+                                    name: key.toUpperCase(),
+                                    data: data,
+                                };
+                            });
+
+                            option = {
+                                backgroundColor: 'transparent',
+                                tooltip: {
+                                    formatter: function (params) {
+                                        return params.data.tooltipStr;
+                                    },
+                                    backgroundColor: 'rgba(15,17,21,0.9)',
+                                    borderColor: '#2d323e',
+                                    textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 }
                                 },
-                                scene: {
-                                    xaxis: { title: 'Volatility (PC1)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
-                                    yaxis: { title: 'Efficiency (PC2)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
-                                    zaxis: { title: 'Power Shift (PC3)', titlefont: { color: '#6b7280' }, tickfont: { color: '#6b7280' }, color: '#9ca3af', gridcolor: '#1e222b', zerolinecolor: '#ffffff', zerolinewidth: 2, backgroundcolor: 'rgba(0,0,0,0)' },
-                                    bgcolor: 'rgba(0,0,0,0)',
-                                    camera: { eye: { x: 1.6, y: -1.6, z: 1.2 } }
-                                }
+                                legend: {
+                                    show: true,
+                                    textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 10 },
+                                    left: 10,
+                                    top: 10,
+                                    orient: 'vertical'
+                                },
+                                grid3D: {
+                                    viewControl: {
+                                        autoRotate: true,
+                                        autoRotateSpeed: 5,
+                                        distance: 200,
+                                        alpha: 20,
+                                        beta: 40
+                                    },
+                                    axisLine: { lineStyle: { color: '#1e222b' } },
+                                    splitLine: { lineStyle: { color: '#1e222b' } },
+                                    axisPointer: { show: false },
+                                    environment: 'transparent'
+                                },
+                                xAxis3D: { type: 'value', name: 'Volatility (PC1)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
+                                yAxis3D: { type: 'value', name: 'Efficiency (PC2)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
+                                zAxis3D: { type: 'value', name: 'Power Shift (PC3)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
+                                series: series
                             };
                         }
 
                         if (viewType === 'donut') {
-                            const pieValues = [];
-                            const pieLabels = [];
-                            const pieColors = [];
-                            Object.keys(chartData).forEach(cat => {
-                                const count = chartData[cat].length;
-                                if (count > 0) {
-                                    pieLabels.push(`${cat.toUpperCase()}`);
-                                    pieValues.push(count);
-                                    pieColors.push(CLUSTER_COLORS[cat]);
-                                }
-                            });
-                            dynamicData = [{
-                                values: pieValues,
-                                labels: pieLabels,
-                                marker: { colors: pieColors },
-                                type: 'pie',
-                                hole: 0.75,
-                                textinfo: "label+percent",
-                                textposition: "outside",
-                                hoverinfo: 'label+value',
-                                textfont: { color: '#ffffff', size: 14, family: 'monospace' },
-                                rotation: 90
-                            }];
-                            dynamicLayout = {
-                                autosize: true,
-                                margin: { l: 40, r: 40, b: 40, t: 40 },
-                                paper_bgcolor: 'rgba(0,0,0,0)',
-                                plot_bgcolor: 'rgba(0,0,0,0)',
-                                showlegend: true,
-                                legend: { font: { color: '#9ca3af', family: 'monospace', size: 12 }, bgcolor: 'transparent', yanchor: 'middle', y: 0.5, xanchor: 'left', x: 1 }
+                            const pieData = Object.keys(chartData).map(cat => ({
+                                name: cat.toUpperCase(),
+                                value: chartData[cat].length,
+                                itemStyle: { color: CLUSTER_COLORS[cat] }
+                            })).filter(d => d.value > 0);
+                            
+                            option = {
+                                backgroundColor: 'transparent',
+                                tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: 'rgba(15,17,21,0.9)', borderColor: '#2d323e', textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 } },
+                                legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 } },
+                                series: [{
+                                    type: 'pie',
+                                    radius: ['50%', '75%'],
+                                    avoidLabelOverlap: false,
+                                    label: { show: true, position: 'outside', formatter: '{b}\n{d}%', color: '#ffffff', fontFamily: 'monospace' },
+                                    data: pieData
+                                }]
                             };
                         }
 
-
-
                         return (
-                            <Plot
-                                data={dynamicData}
-                                layout={dynamicLayout}
+                            <ReactECharts
+                                option={option}
                                 style={{ width: '100%', height: '100%', minHeight: '600px' }}
-                                config={{ displayModeBar: true, displaylogo: false }}
+                                opts={{ renderer: 'canvas' }}
                             />
                         );
                     })()}
