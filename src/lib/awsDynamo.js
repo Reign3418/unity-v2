@@ -9,6 +9,55 @@ const dbClient = new DynamoDBClient({
     }
 });
 
+// ── T5 Calibration Anchor ──────────────────────────────────────────────────
+// Source: Governor 218877479 (ᴳˣ乄Bryän, KD 4021) — captured at the exact
+// moment he started his first T5 build on 2026-04-15.
+// These values represent the MINIMUM structural prerequisites for T5 unlock:
+//   • City Hall 25 (absolute game requirement — no bypass possible)
+//   • Tech tree researched to T5 military branch (techPower floor)
+//   • Building investment to support T5 unlock (buildingPower floor)
+//
+// Logic:
+//   techPower ≥ T5_TECH_FLOOR AND buildingPower ≥ T5_BUILDING_FLOOR
+//     → T5_ELIGIBLE: prerequisites structurally met (may or may not be trained)
+//   EITHER below floor
+//     → T5_IMPOSSIBLE: true negative — cannot have T5 regardless of any other metric
+//
+// To update: re-run the T5 anchor pull script against a verified new-T5 player.
+// ──────────────────────────────────────────────────────────────────────────
+export const T5_TECH_FLOOR     = 22_467_131;
+export const T5_BUILDING_FLOOR = 14_780_832;
+
+/**
+ * Returns the T5 calibration thresholds from DynamoDB (live),
+ * falling back to the hardcoded constants if the record is missing.
+ */
+export async function getT5Thresholds() {
+    try {
+        const tableName = process.env.AWS_TABLE_NAME;
+        if (!tableName) return { techFloor: T5_TECH_FLOOR, buildingFloor: T5_BUILDING_FLOOR };
+        const result = await dbClient.send(new GetItemCommand({
+            TableName: tableName,
+            Key: { PK: { S: 'SYSTEM#CONFIG' }, SK: { S: 'T5_CALIBRATION' } }
+        }));
+        if (result.Item?.attributes?.M) {
+            const m = result.Item.attributes.M;
+            return {
+                techFloor:    parseInt(m.techThreshold?.N)    || T5_TECH_FLOOR,
+                buildingFloor: parseInt(m.buildingThreshold?.N) || T5_BUILDING_FLOOR,
+                anchorGovernorId:   m.anchorGovernorId?.S,
+                anchorGovernorName: m.anchorGovernorName?.S,
+                capturedAt:         m.capturedAt?.S,
+            };
+        }
+    } catch(e) {
+        console.error('[T5 Threshold] Falling back to hardcoded constants:', e.message);
+    }
+    return { techFloor: T5_TECH_FLOOR, buildingFloor: T5_BUILDING_FLOOR };
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+
 /**
  * Fetches a Global Configuration key from DynamoDB
  */
@@ -1207,16 +1256,52 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
         }));
 
         const leadershipIntel = {
-            stabilityScore: leadershipStabilityScore,      // 0-100%, 100 = zero leadership churn
-            activityRate: leadershipActivityRate,           // 0-100%, 100 = all top 20 are actively growing
-            powerConcentration: leadershipConcentration,    // % of power held by top 10
-            sleepingLeaderPower: sleepingLeaderPower,       // Raw power of inactive top-20 leaders
-            survivingLeaderCount: survivingLeaders,          // # of original top-20 still present
-            top10Snapshot: leaderSnapshot                   // Named list of current top 10 leaders
+            stabilityScore:      leadershipStabilityScore,
+            activityRate:        leadershipActivityRate,
+            powerConcentration:  leadershipConcentration,
+            sleepingLeaderPower: sleepingLeaderPower,
+            survivingLeaderCount: survivingLeaders,
+            top10Snapshot:       leaderSnapshot
         };
         // ──────────────────────────────────────────────────────────────────────
 
-        return { roster, leadershipIntel, highActivityDays };
+        // ── T5 Depth Analysis ─────────────────────────────────────────────────
+        // Classify every governor in the top 300 against the T5 calibration anchor.
+        // "Eligible"  = both tech and building floors met → unlock prerequisites complete
+        // "Impossible" = fails EITHER floor → true negative, cannot have T5
+        // "InWindow"  = eligible AND troop power growing post-threshold (likely training T5)
+        let t5Eligible  = 0;
+        let t5Impossible = 0;
+        let t5InWindow  = 0;
+
+        for (const [id, govData] of latestByPower.slice(0, 300)) {
+            const techOk     = (govData.techPower     || 0) >= T5_TECH_FLOOR;
+            const buildingOk = (govData.buildingPower || 0) >= T5_BUILDING_FLOOR;
+
+            if (techOk && buildingOk) {
+                t5Eligible++;
+                // "In Window": eligible AND troop power above a meaningful fighting threshold
+                // (indicates they are likely fielding T5, not just unlocked but untrained)
+                const prevGov = prevSnap[id];
+                const troopGrowth = prevGov ? (govData.troopPower - prevGov.troopPower) : 0;
+                if (troopGrowth > 0) t5InWindow++;
+            } else {
+                t5Impossible++;
+            }
+        }
+
+        const t5Depth = {
+            eligible:   t5Eligible,                          // Has structural prerequisites
+            impossible: t5Impossible,                        // Definitively cannot have T5
+            inWindow:   t5InWindow,                          // Eligible + actively growing troops
+            eligiblePct: latestByPower.slice(0,300).length > 0
+                ? Math.round((t5Eligible / Math.min(latestByPower.length, 300)) * 100)
+                : 0,                                         // % of top 300 that are T5-eligible
+            thresholds: { techFloor: T5_TECH_FLOOR, buildingFloor: T5_BUILDING_FLOOR }
+        };
+        // ──────────────────────────────────────────────────────────────────────
+
+        return { roster, leadershipIntel, highActivityDays, t5Depth };
     } catch (e) {
         console.error("AWS Temporal Matchmaker Error", e);
         return { roster: [], leadershipIntel: null };
