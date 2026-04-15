@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
+const Plot = dynamic(() => import("./PlotlyWrapper"), { ssr: false, loading: () => <div className="text-purple-500 font-mono text-sm animate-pulse text-center pt-32">Initializing 3D WebGL Canvas...</div> });
 import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send } from "lucide-react";
 import { PCA } from 'ml-pca';
 import { useTranslations } from 'next-intl';
