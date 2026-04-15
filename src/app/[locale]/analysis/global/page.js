@@ -9,7 +9,6 @@ import {
   BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { useTranslations } from "next-intl";
-import { Card, Metric, Text, ProgressBar, Callout, Badge, Grid, Col, Flex } from "@tremor/react";
 
 export default function GlobalAnalysis() {
   const t = useTranslations('GlobalAnalysis');
@@ -934,129 +933,102 @@ export default function GlobalAnalysis() {
             return (
               <div className="space-y-6">
 
-                {/* Side-by-side Combat Profile with Tremor */}
-                <Grid numItems={1} numItemsLg={2} className="gap-6">
+                {/* Side-by-side Combat Profile */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {[['ALLIANCE', ap, 'indigo'], ['ENEMY', ep, 'rose']].map(([label, profile, color]) => (
-                    <Card key={label} decoration="top" decorationColor={color} className="bg-[#0f1115] border-[#1e222b]">
-                      <Flex alignItems="center" justifyContent="between" className="mb-4">
-                        <Text className={`text-${color}-400 font-black uppercase tracking-widest flex items-center gap-2`}>
-                          {label === 'ALLIANCE' ? <Shield size={18}/> : <Swords size={18}/>} {label}
-                        </Text>
-                        <Text className="text-xs text-gray-500 font-normal">({profile.kingdoms.join(', ')})</Text>
-                      </Flex>
-                      <Grid numItems={2} className="gap-4">
-                        <Card className="bg-[#0a0c0f] border-[#1e222b] p-4">
-                          <Text className="text-gray-500 text-[9px] uppercase font-bold tracking-widest mb-1">Combined Power</Text>
-                          <Metric className="text-white font-mono">{fmt(profile.combinedPower)}</Metric>
-                        </Card>
-                        <Card className="bg-[#0a0c0f] border-[#1e222b] p-4">
-                          <Text className="text-gray-500 text-[9px] uppercase font-bold tracking-widest mb-1">Troop Power</Text>
-                          <Metric className="text-cyan-400 font-mono">{fmt(profile.combinedTroopPower)}</Metric>
-                        </Card>
-                        
-                        <Card className="col-span-2 bg-[#0a0c0f] border-[#1e222b] p-4">
-                          <Flex justifyContent="between" className="mb-2">
-                             <Text className="text-gray-500 text-[9px] uppercase font-bold tracking-widest">Combat Invest %</Text>
-                             <Badge color={profile.combatInvestmentRatio > 25 ? 'emerald' : 'amber'} size="sm" className="font-mono">
-                               {profile.combatInvestmentRatio}%
-                             </Badge>
-                          </Flex>
-                          <ProgressBar value={profile.combatInvestmentRatio} color={profile.combatInvestmentRatio > 25 ? 'emerald' : 'amber'} className="mt-2" />
-                        </Card>
-
-                        <Card className="bg-[#0a0c0f] border-[#1e222b] p-4">
-                          <Text className="text-gray-500 text-[9px] uppercase font-bold tracking-widest mb-1">T5 Eligible</Text>
-                          <Metric className="text-violet-400 font-mono">{profile.t5EligibleDepth}</Metric>
-                        </Card>
-                        <Card className="bg-[#0a0c0f] border-[#1e222b] p-4">
-                          <Text className="text-gray-500 text-[9px] uppercase font-bold tracking-widest mb-1">Commander Power</Text>
-                          <Metric className="text-indigo-400 font-mono">{fmt(profile.combinedCommanderPower)}</Metric>
-                        </Card>
-                        <Card className="col-span-2 bg-[#0a0c0f] border-[#1e222b] p-4">
-                          <Flex justifyContent="between" className="mb-2">
-                            <Text className="text-gray-500 text-[9px] uppercase font-bold tracking-widest flex items-center gap-1">
-                               Sleeping Dead Weight 
-                            </Text>
-                            <Badge color="zinc" size="sm" className="font-mono">{fmt(profile.totalSleepingDeadWeight)}</Badge>
-                          </Flex>
-                          <ProgressBar 
-                              value={profile.combinedPower > 0 ? (profile.totalSleepingDeadWeight / profile.combinedPower) * 100 : 0} 
-                              color="zinc" className="mt-2" 
-                          />
-                        </Card>
-                      </Grid>
-                    </Card>
+                    <div key={label} className={`bg-[#0f1115] border border-${color}-500/30 rounded-2xl p-6 space-y-4`}>
+                      <div className={`text-${color}-400 font-black uppercase tracking-widest text-base flex items-center gap-2`}>
+                        {label === 'ALLIANCE' ? <Shield size={18}/> : <Swords size={18}/>} {label}
+                        <span className="text-xs text-gray-500 font-normal normal-case tracking-normal">({profile.kingdoms.join(', ')})</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          ['Combined Power',    fmt(profile.combinedPower),       'text-white'],
+                          ['Troop Power',       fmt(profile.combinedTroopPower),  'text-cyan-400'],
+                          ['Combat Invest %',   `${profile.combatInvestmentRatio}%`, profile.combatInvestmentRatio > 25 ? 'text-green-400' : 'text-amber-400'],
+                          ['T5 Eligible',       profile.t5EligibleDepth + ' govs', 'text-violet-400'],
+                          ['Commander Power',   fmt(profile.combinedCommanderPower), 'text-indigo-400'],
+                          ['Sleeping Dead Wt',  fmt(profile.totalSleepingDeadWeight), 'text-gray-500'],
+                        ].map(([label2, val, cls]) => (
+                          <div key={label2} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-3">
+                            <div className="text-gray-500 text-[9px] uppercase font-bold tracking-widest mb-1">{label2}</div>
+                            <div className={`font-mono font-black text-lg ${cls}`}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </Grid>
+                </div>
 
-                {/* AI War Assessment with Tremor */}
-                <Card className="bg-[#0f1115] border border-rose-500/20 shadow-[0_0_40px_rgba(244,63,94,0.1)] p-0 overflow-hidden">
+                {/* AI War Assessment */}
+                <div className="bg-[#0f1115] border border-rose-500/20 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(244,63,94,0.1)]">
                   <div className="bg-[#0a0c0f] px-6 py-4 border-b border-rose-500/20 flex items-center gap-2">
                     <Swords size={18} className="text-rose-400" />
                     <h3 className="text-white font-black uppercase tracking-widest text-sm">AI War Assessment</h3>
                   </div>
                   <div className="p-6 space-y-6">
 
+                    {/* Overall Verdict */}
                     {wa.overallVerdict && (
-                      <Callout title="Tactical Verdict" icon={Swords} color="rose" className="bg-rose-500/5 text-gray-300">
-                        {wa.overallVerdict}
-                      </Callout>
+                      <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-rose-500/50 pl-4">{wa.overallVerdict}</p>
                     )}
 
-                    <Grid numItems={1} numItemsMd={2} className="gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {wa.t5Analysis?.assessment && (
-                        <Card className="bg-violet-500/5 border-violet-500/20 p-4">
-                          <Text className="text-violet-400 text-[10px] uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
+                        <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl p-4">
+                          <div className="text-violet-400 text-[10px] uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
                             <TrendingUp size={12}/> T5 Depth Analysis
-                          </Text>
-                          <Flex alignItems="center" justifyContent="center" className="gap-6 mb-4">
+                          </div>
+                          <div className="flex items-center gap-4 mb-2">
                             <div className="text-center">
-                              <Metric className="text-violet-300 font-mono font-black">{wa.t5Analysis.allianceEligible}</Metric>
-                              <Text className="text-gray-500 text-[9px] uppercase font-bold">Alliance</Text>
+                              <div className="text-violet-300 font-mono font-black text-2xl">{wa.t5Analysis.allianceEligible}</div>
+                              <div className="text-gray-500 text-[9px] uppercase font-bold">Alliance</div>
                             </div>
-                            <Text className="text-gray-600 font-black text-xl">vs</Text>
+                            <div className="text-gray-600 font-black text-xl">vs</div>
                             <div className="text-center">
-                              <Metric className="text-rose-400 font-mono font-black">{wa.t5Analysis.enemyEligible}</Metric>
-                              <Text className="text-gray-500 text-[9px] uppercase font-bold">Enemy</Text>
+                              <div className="text-rose-400 font-mono font-black text-2xl">{wa.t5Analysis.enemyEligible}</div>
+                              <div className="text-gray-500 text-[9px] uppercase font-bold">Enemy</div>
                             </div>
-                          </Flex>
-                          <Text className="text-gray-400 text-xs">{wa.t5Analysis.assessment}</Text>
-                        </Card>
+                          </div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.t5Analysis.assessment}</p>
+                        </div>
                       )}
-                      
                       {wa.combatInvestmentAnalysis && (
-                        <Card className="bg-cyan-500/5 border-cyan-500/20 p-4">
-                          <Text className="text-cyan-400 text-[10px] uppercase font-black tracking-widest mb-2">Combat Investment</Text>
-                          <Text className="text-gray-400 text-xs">{wa.combatInvestmentAnalysis}</Text>
-                        </Card>
+                        <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-4">
+                          <div className="text-cyan-400 text-[10px] uppercase font-black tracking-widest mb-2">Combat Investment</div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.combatInvestmentAnalysis}</p>
+                        </div>
                       )}
-                      
                       {wa.commanderDepthAnalysis && (
-                        <Card className="bg-indigo-500/5 border-indigo-500/20 p-4">
-                          <Text className="text-indigo-400 text-[10px] uppercase font-black tracking-widest mb-2">Commander Depth</Text>
-                          <Text className="text-gray-400 text-xs">{wa.commanderDepthAnalysis}</Text>
-                        </Card>
+                        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4">
+                          <div className="text-indigo-400 text-[10px] uppercase font-black tracking-widest mb-2">Commander Depth</div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.commanderDepthAnalysis}</p>
+                        </div>
                       )}
-                      
                       {wa.sleepingDeadWeightRisk && (
-                        <Card className="bg-amber-500/5 border-amber-500/20 p-4">
-                          <Text className="text-amber-400 text-[10px] uppercase font-black tracking-widest mb-2">Sleeping Dead Weight Risk</Text>
-                          <Text className="text-gray-400 text-xs">{wa.sleepingDeadWeightRisk}</Text>
-                        </Card>
+                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+                          <div className="text-amber-400 text-[10px] uppercase font-black tracking-widest mb-2">Sleeping Dead Weight Risk</div>
+                          <p className="text-gray-400 text-xs leading-relaxed">{wa.sleepingDeadWeightRisk}</p>
+                        </div>
                       )}
-                    </Grid>
+                    </div>
 
+                    {/* Strategy */}
                     {wa.allianceStrategy && (
-                      <Callout title="Alliance Strategy" icon={Shield} color="emerald" className="bg-emerald-500/5 text-gray-300">
-                        {wa.allianceStrategy}
-                      </Callout>
+                      <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4">
+                        <div className="text-green-400 text-[10px] uppercase font-black tracking-widest mb-3 flex items-center gap-1.5">
+                          <Shield size={12}/> Alliance Strategy
+                        </div>
+                        <p className="text-gray-300 text-sm leading-relaxed">{wa.allianceStrategy}</p>
+                      </div>
                     )}
 
+                    {/* Risk Flags */}
                     {wa.allianceRiskFlags?.length > 0 && (
                       <div className="space-y-2">
-                        <Text className="text-rose-400 text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5">
+                        <div className="text-rose-400 text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5">
                           <AlertTriangle size={12}/> Risk Flags
-                        </Text>
+                        </div>
                         {wa.allianceRiskFlags.map((flag, i) => (
                           <div key={i} className="flex items-start gap-2 text-xs text-gray-400">
                             <span className="text-rose-500 mt-0.5 shrink-0">▸</span> {flag}
@@ -1065,13 +1037,12 @@ export default function GlobalAnalysis() {
                       </div>
                     )}
 
+                    {/* Confidence Note */}
                     {wa.confidenceNote && (
-                      <Text className="text-gray-600 text-[10px] italic border-t border-[#1e222b] pt-4">
-                        {wa.confidenceNote}
-                      </Text>
+                      <p className="text-gray-600 text-[10px] italic border-t border-[#1e222b] pt-4">{wa.confidenceNote}</p>
                     )}
                   </div>
-                </Card>
+                </div>
 
               </div>
             );
