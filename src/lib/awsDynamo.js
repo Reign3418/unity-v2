@@ -1022,7 +1022,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
             return await getKingdomRoster(kingdomId);
         }
 
-        const dates = dateResult.Items.map(i => {
+        const allScans = dateResult.Items.map(i => {
            const attrs = i.attributes?.M || {};
            let summaryObj = {};
            try { summaryObj = JSON.parse(attrs.summary?.S || "{}"); } catch(e){}
@@ -1033,6 +1033,40 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
            };
         }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
 
+        // ── Daily Canonical Anchor Rule ────────────────────────────────────────
+        // Group all scans by UTC calendar date. Per day, select the scan closest
+        // to 00:00 UTC as the canonical representative for that day.
+        // This prevents migration-day event scans (e.g., 14:00, 18:00) from
+        // becoming a baseline that corrupts 7-day deltas.
+        const byDay = {};
+        for (const scan of allScans) {
+            if (!scan.scanDate) continue;
+            const d = new Date(scan.scanDate);
+            const dayKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+            if (!byDay[dayKey]) byDay[dayKey] = [];
+            byDay[dayKey].push(scan);
+        }
+
+        // For each day, pick the scan closest to 00:00 UTC (midnight anchor)
+        const canonicalScans = Object.entries(byDay).map(([dayKey, scans]) => {
+            const midnight = new Date(`${dayKey}T00:00:00.000Z`).getTime();
+            return scans.reduce((best, scan) => {
+                const diff = Math.abs(new Date(scan.scanDate).getTime() - midnight);
+                const bestDiff = Math.abs(new Date(best.scanDate).getTime() - midnight);
+                return diff < bestDiff ? scan : best;
+            });
+        }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
+
+        // Track days with multiple scans — these are active surveillance days
+        // (migration event monitoring, multiple kingdoms watching same target)
+        // Pass to AI as context, not used for delta calculation.
+        const highActivityDays = Object.entries(byDay)
+            .filter(([, scans]) => scans.length > 1)
+            .map(([dayKey, scans]) => ({ date: dayKey, scanCount: scans.length }));
+        // ──────────────────────────────────────────────────────────────────────
+
+        const dates = canonicalScans; // Use canonical anchors for all delta logic below
+
         const latestParsed = new Date(dates[0].scanDate);
         const targetTime = latestParsed.getTime() - (timeframeHours * 60 * 60 * 1000);
         const latestType = dates[0].scanType;
@@ -1040,10 +1074,9 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
         let bestMatchIndex = -1;
         let smallestDiff = Infinity;
 
-        // Find the scan that is closest to `targetTime`
+        // Find the canonical scan closest to targetTime
         for (let i = 1; i < dates.length; i++) {
-            if (dates[i].scanType !== latestType) continue; 
-            
+            if (dates[i].scanType !== latestType) continue;
             const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
             if (timeDiff < smallestDiff) {
                 smallestDiff = timeDiff;
@@ -1183,7 +1216,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
         };
         // ──────────────────────────────────────────────────────────────────────
 
-        return { roster, leadershipIntel };
+        return { roster, leadershipIntel, highActivityDays };
     } catch (e) {
         console.error("AWS Temporal Matchmaker Error", e);
         return { roster: [], leadershipIntel: null };

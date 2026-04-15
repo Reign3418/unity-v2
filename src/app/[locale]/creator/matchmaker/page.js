@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Target, Activity, Zap, TrendingUp, Trophy, AlertTriangle, Crosshair, Clock, Shield, Users } from "lucide-react";
+import { Target, Activity, Zap, TrendingUp, Trophy, AlertTriangle, Crosshair, Clock, Shield, Users, Layers, TrendingDown, Minus } from "lucide-react";
 
 const Tooltip = ({ children, tip }) => {
     const [pos, setPos] = useState(null);
@@ -38,18 +38,23 @@ const Tooltip = ({ children, tip }) => {
 
 
 export default function Matchmaker() {
-    const [targetKds, setTargetKds] = useState("");
-    const [timeframe, setTimeframe] = useState("30");
-    const [isScanning, setIsScanning] = useState(false);
+    const [targetKds, setTargetKds]     = useState("");
+    const [timeframe, setTimeframe]     = useState("7");
+    const [dualAnalysis, setDualAnalysis] = useState(false);
+    const [isScanning, setIsScanning]   = useState(false);
     const [matchResult, setMatchResult] = useState(null);
-    const [rawStats, setRawStats] = useState(null);
-    const [errorMsg, setErrorMsg] = useState("");
+    const [rawStats, setRawStats]       = useState(null);
+    const [rawStats5, setRawStats5]     = useState(null);
+    const [isDual, setIsDual]           = useState(false);
+    const [errorMsg, setErrorMsg]       = useState("");
 
     const handleExecute = async (e) => {
         e.preventDefault();
         setErrorMsg("");
         setMatchResult(null);
         setRawStats(null);
+        setRawStats5(null);
+        setIsDual(false);
 
         const kingdoms = targetKds
             .split(',')
@@ -74,17 +79,19 @@ export default function Matchmaker() {
 
             const res = await fetch("/api/aws/matchmaker", {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
                 },
-                body: JSON.stringify({ kingdoms, timeframeDays: timeframe })
+                body: JSON.stringify({ kingdoms, timeframeDays: timeframe, dualAnalysis })
             });
             const data = await res.json();
 
             if (res.ok && data.success) {
                 setMatchResult(data.aiReport);
                 setRawStats(data.rawStats);
+                setRawStats5(data.rawStats5 || null);
+                setIsDual(data.dualAnalysis || false);
             } else {
                 setErrorMsg(data.error || "AI Engine failed to process matrix.");
             }
@@ -133,7 +140,7 @@ export default function Matchmaker() {
                             </label>
                             <select 
                                 value={timeframe}
-                                onChange={(e) => setTimeframe(e.target.value)}
+                                onChange={(e) => { setTimeframe(e.target.value); if (e.target.value === '1') setDualAnalysis(false); }}
                                 className="w-full bg-[#0a0c0f] border border-[#1e222b] focus:border-fuchsia-500 text-white p-4 rounded-xl font-mono text-lg transition-all outline-none appearance-none"
                                 disabled={isScanning}
                             >
@@ -144,6 +151,41 @@ export default function Matchmaker() {
                             </select>
                         </div>
                     </div>
+
+                    {/* 24h disclaimer */}
+                    {timeframe === '1' && (
+                        <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3">
+                            <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+                            <p className="text-amber-400/80 text-xs leading-relaxed">
+                                <span className="font-bold text-amber-400">24-Hour Mode:</span> Expect high variance during migration events or active KvK days. Migration In/Out metrics will spike from natural player movement — not leadership failure. Use this scope for real-time monitoring only, not migration decisions.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Dual Analysis toggle — disabled for 24h */}
+                    {timeframe !== '1' && (
+                        <div className="flex items-center gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setDualAnalysis(d => !d)}
+                                disabled={isScanning}
+                                className={`flex items-center gap-3 px-5 py-3 rounded-xl border font-bold text-sm uppercase tracking-widest transition-all ${
+                                    dualAnalysis
+                                        ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                                        : 'bg-[#0a0c0f] border-[#1e222b] text-gray-500 hover:border-indigo-500/30 hover:text-gray-400'
+                                }`}
+                            >
+                                <Layers size={16} />
+                                Dual Analysis
+                                {dualAnalysis && <span className="text-[10px] bg-indigo-500/30 px-2 py-0.5 rounded font-mono">7d + 5d</span>}
+                            </button>
+                            {dualAnalysis && (
+                                <p className="text-indigo-400/70 text-xs leading-relaxed max-w-xs">
+                                    Runs both 7-day and 5-day windows. AI reports momentum trajectory per kingdom: <span className="font-bold">ACCELERATING · STABLE · DECELERATING</span>
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex items-center gap-4">
                         <button 
@@ -156,7 +198,7 @@ export default function Matchmaker() {
                             }`}
                         >
                             {isScanning ? <Activity className="animate-spin" size={18} /> : <Zap size={18} />}
-                            {isScanning ? 'Compiling AWS Matrices & AI Models...' : 'Execute Matchmaker Scan'}
+                            {isScanning ? (dualAnalysis ? 'Running Dual Matrix Analysis...' : 'Compiling AWS Matrices & AI Models...') : 'Execute Matchmaker Scan'}
                         </button>
                         
                         {errorMsg && (
@@ -308,6 +350,54 @@ export default function Matchmaker() {
                             );
                         })}
                     </div>
+
+                    {/* ── Trajectory Analysis Panel (Dual Mode only) ── */}
+                    {isDual && matchResult?.trajectoryAnalysis && matchResult.trajectoryAnalysis.length > 0 && (
+                        <div className="bg-[#0f1115] border border-indigo-500/30 rounded-2xl shadow-xl overflow-hidden">
+                            <div className="bg-[#0a0c0f] px-6 py-4 border-b border-indigo-500/20 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Layers size={18} className="text-indigo-400" />
+                                    <h3 className="text-white font-bold uppercase tracking-widest text-sm">Dual Analysis — Momentum Trajectory</h3>
+                                </div>
+                                {matchResult.momentumVerdict && (
+                                    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${
+                                        matchResult.momentumVerdict === 'ACCELERATING' ? 'text-green-400 bg-green-500/10 border-green-500/30' :
+                                        matchResult.momentumVerdict === 'DECELERATING' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' :
+                                        'text-cyan-400 bg-cyan-500/10 border-cyan-500/30'
+                                    }`}>
+                                        {matchResult.momentumVerdict === 'ACCELERATING' && <TrendingUp size={12} />}
+                                        {matchResult.momentumVerdict === 'DECELERATING' && <TrendingDown size={12} />}
+                                        {matchResult.momentumVerdict === 'STABLE'       && <Minus size={12} />}
+                                        Field: {matchResult.momentumVerdict}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {matchResult.trajectoryAnalysis.map((ta, idx) => (
+                                    <div key={idx} className={`rounded-xl border p-4 ${
+                                        ta.trajectory === 'ACCELERATING' ? 'bg-green-500/5 border-green-500/20' :
+                                        ta.trajectory === 'DECELERATING' ? 'bg-rose-500/5 border-rose-500/20' :
+                                        'bg-cyan-500/5 border-cyan-500/20'
+                                    }`}>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-white font-mono font-black text-lg">KD {ta.kd}</span>
+                                            <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${
+                                                ta.trajectory === 'ACCELERATING' ? 'text-green-400 bg-green-500/20' :
+                                                ta.trajectory === 'DECELERATING' ? 'text-rose-400 bg-rose-500/20' :
+                                                'text-cyan-400 bg-cyan-500/20'
+                                            }`}>
+                                                {ta.trajectory === 'ACCELERATING' && <TrendingUp size={10} />}
+                                                {ta.trajectory === 'DECELERATING' && <TrendingDown size={10} />}
+                                                {ta.trajectory === 'STABLE'       && <Minus size={10} />}
+                                                {ta.trajectory}
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-400 text-xs leading-relaxed">{ta.trajectoryNote}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* AI Verdict - Full Width Below */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
