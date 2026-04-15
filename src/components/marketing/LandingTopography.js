@@ -1,91 +1,82 @@
 'use client';
-import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-
-const Plot = dynamic(() => import('../analysis/kingdom/PlotlyWrapper'), { ssr: false });
+import ReactECharts from 'echarts-for-react';
+import 'echarts-gl';
 
 export default function LandingTopography() {
   const [mounted, setMounted] = useState(false);
+  const [chartOptions, setChartOptions] = useState({});
   
   useEffect(() => {
+    // Generate organic-looking clusters purely for the marketing visual
+    const generateCluster = (numPoints, centerX, centerY, centerZ, spread, color) => {
+      const points = [];
+      for (let i = 0; i < numPoints; i++) {
+        // Simple normal distribution approximation
+        const rx = (Math.random() + Math.random() + Math.random() - 1.5) * spread;
+        const ry = (Math.random() + Math.random() + Math.random() - 1.5) * spread;
+        const rz = (Math.random() + Math.random() + Math.random() - 1.5) * spread;
+        
+        points.push({
+          value: [centerX + rx, centerY + ry, Math.max(0, centerZ + rz)],
+          itemStyle: { 
+            color: color,
+            shadowBlur: 15,
+            shadowColor: color,
+            opacity: 0.8
+          }
+        });
+      }
+      return points;
+    };
+
+    const heroes = generateCluster(60, 80, 20, 80, 20, '#ec4899'); // Pink
+    const warriors = generateCluster(100, 45, 45, 30, 25, '#0ea5e9'); // Sky 
+    const farmers = generateCluster(150, 15, 80, 10, 30, '#10b981'); // Emerald
+
+    const option = {
+      backgroundColor: 'transparent',
+      grid3D: {
+        viewControl: {
+          autoRotate: true,
+          autoRotateSpeed: 10, // Visually pleasing slow spin
+          autoRotateAfterStill: 2, // Resume rotation 2 seconds after user stops dragging
+          distance: 250,
+          alpha: 20,
+          beta: 40
+        },
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+        axisPointer: { show: false },
+        environment: 'transparent', // No dark box
+      },
+      xAxis3D: { type: 'value', min: 0, max: 100, splitLine: { show: false }, axisLabel: { show: false }, axisTick: { show: false } },
+      yAxis3D: { type: 'value', min: 0, max: 100, splitLine: { show: false }, axisLabel: { show: false }, axisTick: { show: false } },
+      zAxis3D: { type: 'value', min: 0, max: 100, splitLine: { show: false }, axisLabel: { show: false }, axisTick: { show: false } },
+      series: [
+        { type: 'scatter3D', symbolSize: 6, data: heroes, name: 'Heroes' },
+        { type: 'scatter3D', symbolSize: 5, data: warriors, name: 'Warriors' },
+        { type: 'scatter3D', symbolSize: 3, data: farmers, name: 'Farmers' }
+      ]
+    };
+
+    setChartOptions(option);
     setMounted(true);
   }, []);
 
-  if (!mounted) return <div className="w-full h-full flex items-center justify-center text-purple-500 animate-pulse font-mono text-xs">Initializing 3D Render Engine...</div>;
-
-  // Generate some realistic-looking mock cluster data for the marketing visual
-  const N = 100;
-  const trace1 = {
-    x: Array.from({length: N}, () => Math.random() * 50 + 20),
-    y: Array.from({length: N}, () => Math.random() * 50 + 20),
-    z: Array.from({length: N}, () => Math.random() * 20),
-    mode: 'markers',
-    marker: {
-      size: 4,
-      color: '#0ea5e9', // Sky 500
-      opacity: 0.8,
-    },
-    type: 'scatter3d',
-    name: 'Warriors'
-  };
-
-  const trace2 = {
-    x: Array.from({length: N/2}, () => Math.random() * 30 + 60),
-    y: Array.from({length: N/2}, () => Math.random() * 30 + 10),
-    z: Array.from({length: N/2}, () => Math.random() * 50 + 30),
-    mode: 'markers',
-    marker: {
-      size: 5,
-      color: '#ec4899', // Pink 500
-      opacity: 0.9,
-    },
-    type: 'scatter3d',
-    name: 'Heroes'
-  };
-
-  const trace3 = {
-    x: Array.from({length: N*1.5}, () => Math.random() * 20 + 5),
-    y: Array.from({length: N*1.5}, () => Math.random() * 40 + 50),
-    z: Array.from({length: N*1.5}, () => Math.random() * 10 + 5),
-    mode: 'markers',
-    marker: {
-      size: 3,
-      color: '#10b981', // Emerald 500
-      opacity: 0.5,
-    },
-    type: 'scatter3d',
-    name: 'Farmers'
-  };
+  if (!mounted) {
+     return <div className="w-full h-full flex items-center justify-center text-purple-500 animate-pulse font-mono text-xs">Initializing Apache ECharts WebGL Engine...</div>;
+  }
 
   return (
     <div className="w-full h-full relative cursor-move">
-      <Plot
-        data={[trace1, trace2, trace3]}
-        layout={{
-          autosize: true,
-          margin: { l: 0, r: 0, b: 0, t: 0, pad: 0 },
-          paper_bgcolor: 'rgba(0,0,0,0)',
-          plot_bgcolor: 'rgba(0,0,0,0)',
-          scene: {
-            xaxis: { visible: false, showgrid: false, zeroline: false },
-            yaxis: { visible: false, showgrid: false, zeroline: false },
-            zaxis: { visible: false, showgrid: false, zeroline: false },
-            camera: {
-              eye: { x: 1.5, y: 1.5, z: 0.5 }
-            }
-          },
-          showlegend: false,
-          hovermode: false
-        }}
-        config={{
-          displayModeBar: false,
-          responsive: true
-        }}
+      <ReactECharts
+        option={chartOptions}
         style={{ width: '100%', height: '100%' }}
+        opts={{ renderer: 'canvas' }} // ECharts 3D only supports canvas renderer
       />
       <div className="absolute top-4 right-4 pointer-events-none">
-        <span className="font-mono text-[10px] text-purple-400 tracking-widest uppercase border border-purple-500/30 px-2 py-1 rounded bg-[#0a0c10]/80 backdrop-blur-sm">
-           Interactive: Drag to Rotate
+        <span className="font-mono text-[10px] text-purple-400 tracking-widest uppercase border border-purple-500/30 px-2 py-1 rounded bg-[#0a0c10]/80 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+           Auto-Rotating Canvas
         </span>
       </div>
     </div>
