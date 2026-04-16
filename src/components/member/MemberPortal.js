@@ -88,14 +88,14 @@ export default function MemberPortal({ session }) {
 
   const governorConfig = session?.user?.governorConfig || {};
   const govId = governorConfig?.governorId || governorConfig?.governorIds?.[0];
-  const kingdomId = session?.user?.tenant?.kingdomId;
+  const kingdomId = session?.user?.tenant?.kingdomId || governorConfig?.kingdomId;
   const uptimeDisplay = formatUptimeDisplay(governorConfig);
 
   // Fetch personal stats if governor ID is linked
   useEffect(() => {
     if (!govId || !kingdomId) return;
     setLoadingStats(true);
-    fetch(`/api/aws/history?govId=${govId}&kd=${kingdomId}`)
+    fetch(`/api/aws/history?id=${govId}&kd=${kingdomId}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => setGovStats(d || null))
       .catch(() => setGovStats(null))
@@ -122,7 +122,8 @@ export default function MemberPortal({ session }) {
     return String(n);
   };
 
-  const latestScan = govStats?.history?.[govStats.history.length - 1];
+  // Most recent scan is last in chronological array (oldest→newest sort from API)
+  const latestScan = govStats?.timeline?.[govStats.timeline.length - 1];
   const displayName = session?.user?.username || session?.user?.name || 'Governor';
 
   return (
