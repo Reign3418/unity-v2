@@ -151,10 +151,10 @@ export default function MemberPortal({ session }) {
           <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Your Stats</h2>
           {govId && (
             <button
-              onClick={() => router.push(`/${locale}/stats?govId=${govId}`)}
+              onClick={() => router.push(`/${locale}/stats`)}
               className="flex items-center gap-1 text-[10px] font-bold text-cyan-500 hover:text-cyan-300 transition-colors uppercase tracking-wider"
             >
-              Full Timeline <ChevronRight size={12} />
+              My Stats Card <ChevronRight size={12} />
             </button>
           )}
         </div>
