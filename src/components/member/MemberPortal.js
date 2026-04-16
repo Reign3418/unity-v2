@@ -107,7 +107,8 @@ export default function MemberPortal({ session }) {
   useEffect(() => {
     if (!kingdomId) return;
     setLoadingEvents(true);
-    fetch(`/api/events?kd=${kingdomId}&limit=3`)
+    // Events API resolves kingdom from session server-side — no params needed
+    fetch(`/api/events`)
       .then(r => r.ok ? r.json() : null)
       .then(d => setEvents(d?.events || []))
       .catch(() => setEvents([]))

@@ -147,11 +147,23 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
             const graded = computeGrowthData(roster, 'Peace');
             setKingdomTotal(graded.length);
 
-            // 4. Find member
-            const found = graded.find(g => String(g.id) === String(govId));
+            // 4. Find member — try ID match first, then fall back to display name
+            //    (governorConfig.governorId can be stored as string or number,
+            //     and the scan may use a different ID format than what Settings saved)
+            const sessionName = session?.user?.username || session?.user?.name || '';
+            let found = graded.find(g => String(g.id) === String(govId));
+            if (!found && sessionName) {
+                // Try partial name match — scan names often include kingdom tag, player may have set
+                // their linked name slightly differently. Case-insensitive includes in both directions.
+                const nameLower = sessionName.toLowerCase();
+                found = graded.find(g =>
+                    g.name?.toLowerCase().includes(nameLower) ||
+                    nameLower.includes(g.name?.toLowerCase())
+                );
+            }
             if (!found) { setPhase('no-data'); return; }
 
-            const rank = graded.findIndex(g => String(g.id) === String(govId)) + 1;
+            const rank = graded.findIndex(g => String(g.id) === String(found.id)) + 1;
             setMyEntry(found);
             setKingdomRank(rank);
 
