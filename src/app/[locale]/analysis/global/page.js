@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { 
-  Globe2, RefreshCw, BarChart, ShieldAlert, Zap, Plus, X, Users, Save, List, Trash2, Swords, Shield, TrendingUp, AlertTriangle
+  Globe2, RefreshCw, BarChart, ShieldAlert, Zap, Plus, X, Users, Save, List, Trash2, Swords, Shield, TrendingUp, AlertTriangle, Target
 } from "lucide-react";
+import Link from "next/link";
 import { 
   BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -574,6 +575,14 @@ export default function GlobalAnalysis() {
            >
              <Swords size={14} /> KvK Scenario
            </button>
+
+           {/* Recruiting Center — standalone page */}
+           <Link
+             href="./recruiting"
+             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30"
+           >
+             <Target size={14} /> Recruiting Center
+           </Link>
         </div>
       </div>
 
