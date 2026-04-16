@@ -14,7 +14,7 @@ function buildKdStats(kd, rosterResult, timeframeDays) {
 
     const coreRoster = roster
         .sort((a, b) => (b.power || b.missingBasePower || 0) - (a.power || a.missingBasePower || 0))
-        .slice(0, 300);
+        .slice(0, 400);
 
     let totalPowerDelta = 0, totalTechPower = 0, totalBuildingPower = 0;
     let totalCommanderPower = 0, totalTroopPower = 0, sumBasePower = 0;
@@ -81,12 +81,12 @@ ${contextNote}
 CRITICAL INSTRUCTIONS:
 1. EXAMINE THE 'behavioralMatrix'. Large 'migrantsOutExodusPower' over the timeframe strongly indicates a leadership failure, coup, or mass exodus. Punish this severely.
 2. Large 'migrantsInRecruitedPower' indicates highly successful recruitment engines. Reward this.
-3. High 'sleepingDeadWeightPower' means many of their top 300 players have literally 0 activity over the timeframe. Heavily penalize kingdoms floating dead weight.
+3. High 'sleepingDeadWeightPower' means many of their top 400 players have literally 0 activity over the timeframe. Heavily penalize kingdoms floating dead weight.
 4. PLACE HIGH VALUE on 'powerDeltaOverall'. High 'totalTechPower', 'totalCommanderPower', and 'totalTroopPower' confirm systemic strength — troop power is VERY expensive and is a strong spending signal.
 5. ANALYZE 'leadershipIntel' with extreme scrutiny:
    - 'stabilityScore' (0-100%): How many of the OLD Top 20 are still in the current Top 20. Low score = coup d'état or mass defection at the top. Below 60% is a RED FLAG.
    - 'activityRate' (0-100%): What % of current Top 20 leaders are actually growing. Below 70% means leadership is checked out — a catastrophic signal for migration.
-   - 'powerConcentration' (0-100%): % of the top 300 power held by the top 10. Very high (>40%) = whale-dependent; moderate (15-30%) = distributed healthy kingdom.
+   - 'powerConcentration' (0-100%): % of the top 400 power held by the top 10. Very high (>40%) = whale-dependent; moderate (15-30%) = distributed healthy kingdom.
    - 'sleepingLeaderPower': Raw power of inactive top-20 leaders. Massive sleeping leader power = dead leadership class.
    - 'top10Snapshot': Named list of leaders. Look for 'isNew: true' entries — new faces in top leadership = instability signal.
 6. If 'highActivityDays' is non-empty, those dates had multiple scans recorded — indicating active event monitoring. Do NOT penalize migration metrics that spike on these dates; treat them as expected event-day volatility.
