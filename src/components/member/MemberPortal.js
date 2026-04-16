@@ -7,7 +7,7 @@ import {
   Sword, Clock, Calendar, TrendingUp, Shield,
   Link2, Settings, ChevronRight, Zap, Users
 } from 'lucide-react';
-import MemberGrowthPanel from '@/components/member/MemberGrowthPanel';
+import MemberCoachingBrief from '@/components/member/MemberCoachingBrief';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility: format UTC uptime window from stored local values
@@ -177,13 +177,13 @@ export default function MemberPortal({ session }) {
             </button>
           </div>
         ) : loadingStats ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[...Array(3)].map((_, i) => (
               <div key={i} className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-5 animate-pulse h-24" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className={`grid gap-3 ${latestScan?.t5Kills > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
             <StatCard
               label="Total Power"
               value={fmt(latestScan?.power)}
@@ -205,18 +205,28 @@ export default function MemberPortal({ session }) {
               color="emerald"
               icon={Shield}
             />
-            <StatCard
-              label="T5 Kills"
-              value={fmt(latestScan?.t5Kills)}
-              sub="Last scan"
-              color="amber"
-              icon={Zap}
-            />
+            {/* T5 card only renders when kingdom data shows T5 activity */}
+            {latestScan?.t5Kills > 0 && (
+              <StatCard
+                label="T5 Kills"
+                value={fmt(latestScan?.t5Kills)}
+                sub="Last scan"
+                color="amber"
+                icon={Zap}
+              />
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Section 2: Presence & Uptime ───────────────────────────────────── */}
+      {/* ── Section 2: J.A.R.V.I.S. Coaching Brief ───────────────────── */}
+      <MemberCoachingBrief
+        govId={govId}
+        kingdomId={kingdomId}
+        session={session}
+      />
+
+      {/* ── Section 3: Presence & Uptime ─────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Your Schedule</h2>
@@ -271,16 +281,7 @@ export default function MemberPortal({ session }) {
         </div>
       </div>
 
-      {/* ── Section 3: Growth Intelligence ──────────────────────────────── */}
-      {kingdomId && (
-        <MemberGrowthPanel
-          govId={govId}
-          kingdomId={kingdomId}
-          session={session}
-        />
-      )}
-
-      {/* ── Section 4: Upcoming Events ─────────────────────────────────────── */}
+      {/* ── Section 4: Upcoming Events ─────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Kingdom Events</h2>
