@@ -1,17 +1,9 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import RecruitingCenter from "@/components/analysis/global/RecruitingCenter";
+'use client';
 
-export const metadata = {
-    title: "Recruiting Center | Unity",
-    description: "Find diamonds in the rough — identify candidate players from target kingdoms who match your top performers' behavioral fingerprint using vector similarity analysis.",
-};
+import { useSession } from 'next-auth/react';
+import RecruitingCenter from '@/components/analysis/global/RecruitingCenter';
 
-export default async function RecruitingCenterPage() {
-    const session = await auth();
-    if (!session?.user?.isMember) {
-        redirect("/");
-    }
-
+export default function RecruitingCenterPage() {
+    const { data: session } = useSession();
     return <RecruitingCenter session={session} />;
 }
