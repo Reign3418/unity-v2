@@ -578,7 +578,7 @@ export default function GlobalAnalysis() {
 
            {/* Recruiting Center — standalone page */}
            <Link
-             href="./recruiting"
+             href="/analysis/global/recruiting"
              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30"
            >
              <Target size={14} /> Recruiting Center
