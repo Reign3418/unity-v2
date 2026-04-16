@@ -133,7 +133,12 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
             const trends = tData?.trends || [];
             if (trends.length < 2) { setPhase('no-data'); return; }
 
-            const sDate = extractDate(trends[0].scanDate);
+            // ── Rolling 5-scan window ────────────────────────────────
+            // Using all-time history drops members who weren't in the
+            // very first kingdom scan. Last 5 scans guarantees recent
+            // coverage and matches what Growth Analysis actually shows.
+            const recentScans = trends.slice(-5); // last 5 scans (or fewer if not enough data)
+            const sDate = extractDate(recentScans[0].scanDate);
             const eDate = extractDate(trends[trends.length - 1].scanDate);
             setDateRange(`${sDate} → ${eDate}`);
 
