@@ -79,6 +79,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.accessToken = "OFFLINE_MODE";
               
               token.isMember = true;
+              token.isAnalyst = true;
               token.isLeader = true;
               token.isSuperAdmin = true;
               token.isSupporter = true;
@@ -104,7 +105,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.accessToken = "GUEST_MODE";
               
               token.isMember = true;
-              token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin" || user.guestData?.role === "Data Analyst";
+              token.isAnalyst = user.guestData?.role === "Data Analyst" || user.guestData?.role === "analyst" || user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
+              token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
               token.isSuperAdmin = user.guestData?.role === "Admin";
               token.isSupporter = true;
               
@@ -136,6 +138,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.accessToken = "FREE_MODE";
               
               token.isMember = true;
+              token.isAnalyst = false;
               token.isLeader = false;
               token.isSuperAdmin = false;
               token.isSupporter = false;
@@ -259,11 +262,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Inherit Database Master Roles 
           const dbRole = (userConfig?.role || '').toLowerCase();
           
+          // ── Role Flags: computed after dbRole resolution ──────────────────
+          let isAnalyst = false;
+
           if (dbRole === 'admin') {
               computedSuperAdmin = true;
               isLeader = true;
+              isAnalyst = true;
               isMember = true;
-              
+
               if (!activeTenant || activeTenant.guildId !== "master") {
                   const allKds = await getAllTrackedKingdoms();
                   activeTenant = {
@@ -273,12 +280,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                       allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
                   };
               }
-          } else if (dbRole === 'data analyst') {
+          } else if (dbRole === 'data analyst' || dbRole === 'analyst') {
+              // Data Analyst: full intelligence access (DKP, Recruiting, Scatter) — no operational command tools
               computedSuperAdmin = false;
-              isLeader = true;
+              isLeader = false;   // Analyst is NOT a full leader — sidebar will filter accordingly
+              isAnalyst = true;
               isMember = true;
-              
-              if (!activeTenant || activeTenant.guildId !== "analyst") {
+
+              if (!activeTenant) {
                   const allKds = await getAllTrackedKingdoms();
                   activeTenant = {
                       guildId: "analyst",
@@ -289,8 +298,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               }
           } else if (dbRole === 'leader') {
               isLeader = true;
+              isAnalyst = true;   // Leaders inherit analyst access
               isMember = true;
           }
+
+          // Additive hierarchy: SuperAdmin and Leader always imply Analyst
+          if (computedSuperAdmin || isLeader) isAnalyst = true;
 
           // Card-Based Key Initialization
           let cardKingdoms = [];
@@ -326,6 +339,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           token.isMember = isMember;
+          token.isAnalyst = isAnalyst;
           token.isLeader = isLeader;
           token.isSuperAdmin = computedSuperAdmin;
           token.tenant = activeTenant;
@@ -358,6 +372,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.username = token.username;
         session.user.avatar = token.avatar;
         session.user.isMember = token.isMember;
+        session.user.isAnalyst = token.isAnalyst || false;
         session.user.isLeader = token.isLeader;
         session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.isSupporter = token.isSupporter || false;

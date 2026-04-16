@@ -20,6 +20,7 @@ import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
 import WorkbenchSidebar from "@/components/analysis/kingdom/WorkbenchSidebar";
 import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
+import MemberPortal from "@/components/member/MemberPortal";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -86,14 +87,21 @@ export default function KingdomAnalysis() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Dynamic Array mapping to wipe restricted components from the view entirely for standard users
+  // ── Role tier resolution (additive hierarchy) ─────────────────────────
+  const isAnalyst    = session?.user?.isAnalyst    || false;
+  const isLeader     = session?.user?.isLeader     || false;
+  const isSuperAdmin = session?.user?.isSuperAdmin || false;
+
+  // ── Tab permission matrix ──────────────────────────────────────────────
+  // minRole: 'analyst' = analyst+leader+admin | 'leader' = leader+admin only
+  const LEADER_ONLY = new Set(['War Room', 'Team Builder', 'Alliance Merge', 'Fixed MGE', 'Roster Linker', 'Fort Tracker']);
+
   const availableTabs = useMemo(() => {
-     const isLeader = session?.user?.isLeader || session?.user?.isSuperAdmin;
-     return TABS.filter(t => {
-         if (!isLeader && (t.name === "Scatter Plot" || t.name === "Roster Linker")) return false;
-         return true;
-     });
-  }, [session]);
+    return TABS.filter(t => {
+      if (LEADER_ONLY.has(t.name)) return isLeader || isSuperAdmin;  // Leader+ only
+      return isAnalyst || isLeader || isSuperAdmin;                   // Analyst+ (all intelligence tabs)
+    });
+  }, [isAnalyst, isLeader, isSuperAdmin]);
 
   const fetchTrends = async (forceKd = null) => {
     const kd = forceKd || targetKd;
@@ -191,15 +199,6 @@ export default function KingdomAnalysis() {
                   />
               );
           case 'Presence Radar':
-              if (!session?.user?.isLeader && !session?.user?.isSuperAdmin) {
-                  return (
-                      <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
-                          <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
-                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('r4_clearance')}</h3>
-                          <p className="text-sm text-gray-400">{tTabs('r4_desc')}</p>
-                      </div>
-                  );
-              }
               return (
                   <PresenceRadarTab 
                       targetKd={targetKd}
@@ -224,22 +223,13 @@ export default function KingdomAnalysis() {
                   />
               );
           case 'Scatter Plot':
-              if (!session?.user?.isLeader && !session?.user?.isSuperAdmin) {
-                  return (
-                      <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
-                          <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
-                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('r4_clearance')}</h3>
-                          <p className="text-sm text-gray-400">{tTabs('r4_desc')}</p>
-                      </div>
-                  );
-              }
               return (
                   <ScatterPlotTab 
                       rosterData={rosterData}
                       targetKd={targetKd}
                       startDate={startDate}
                       endDate={endDate}
-                      isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
+                      isLeader={isLeader || isSuperAdmin}
                   />
               );
           case 'Team Builder':
@@ -285,15 +275,6 @@ export default function KingdomAnalysis() {
                   />
               );
           case 'Roster Linker':
-              if (!session?.user?.isLeader && !session?.user?.isSuperAdmin) {
-                  return (
-                      <div className="bg-[#0f1115] border border-rose-500/30 rounded-xl p-12 flex flex-col items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
-                          <ShieldAlert className="w-12 h-12 mb-4 opacity-80" />
-                          <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-widest">{tTabs('r4_clearance')}</h3>
-                          <p className="text-sm text-gray-400">{tTabs('r4_desc')}</p>
-                      </div>
-                  );
-              }
               return (
                   <AccountLinkerTab
                       rosterData={rosterData}
@@ -409,6 +390,11 @@ export default function KingdomAnalysis() {
       </div>
     </div>
   );
+
+  // ── MEMBER PORTAL: Base members see personal dashboard only ──────────────
+  if (!isAnalyst && !isLeader && !isSuperAdmin) {
+    return <MemberPortal session={session} />;
+  }
 
   // ── SIDEBAR LAYOUT ──────────────────────────────────────────────────────
   if (layoutMode === 'sidebar') {
