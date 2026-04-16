@@ -2293,6 +2293,9 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     }
     
     const dateKey = scanDate.replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
+
+    // TTL — 12 months from scan date (Unix epoch seconds). DynamoDB auto-deletes expired records.
+    const ttlEpoch = Math.floor((new Date(scanDate).getTime() + 365 * 24 * 60 * 60 * 1000) / 1000);
     
     // First, sort the entire roster array descending by Power so we can slice Top N metrics immediately
     const sortedRoster = [...rosterArray].sort((a, b) => {
@@ -2368,9 +2371,11 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                     'sourceFile': { S: String(uploaderData?.sourceFile || "Legacy_Upload") },
                     'importTag': { S: String(uploaderData?.importTag || "UNDOCUMENTED") }
                 }
-            }
+            },
+            'expiresAt': { N: String(ttlEpoch) }  // TTL — DynamoDB auto-deletes after 12 months
         }
     };
+
     
     try {
         await dbClient.send(new PutItemCommand(dateParams));
@@ -2454,7 +2459,8 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                                 'deadsDelta': formatN(player.deadsDelta),
                                 'gatheredDelta': formatN(player.gatheredDelta),
                             }
-                        }
+                        },
+                        'expiresAt': { N: String(ttlEpoch) }  // TTL — DynamoDB auto-deletes after 12 months
                     }
                 }
             },
