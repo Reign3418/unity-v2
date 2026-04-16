@@ -7,6 +7,7 @@ import {
   Sword, Clock, Calendar, TrendingUp, Shield,
   Link2, Settings, ChevronRight, Zap, Users
 } from 'lucide-react';
+import MemberGrowthPanel from '@/components/member/MemberGrowthPanel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility: format UTC uptime window from stored local values
@@ -270,7 +271,16 @@ export default function MemberPortal({ session }) {
         </div>
       </div>
 
-      {/* ── Section 3: Upcoming Events ─────────────────────────────────────── */}
+      {/* ── Section 3: Growth Intelligence ──────────────────────────────── */}
+      {kingdomId && (
+        <MemberGrowthPanel
+          govId={govId}
+          kingdomId={kingdomId}
+          session={session}
+        />
+      )}
+
+      {/* ── Section 4: Upcoming Events ─────────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Kingdom Events</h2>
