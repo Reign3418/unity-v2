@@ -841,6 +841,9 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
                 deadsRaw: endData.dead,
                 powerRaw: endData.power,
                 powerEnd: endData.power,
+                techPowerEnd: endData.techPower,
+                bldPowerEnd: endData.bldPower,
+                troopPowerEnd: endData.troopPower,
                 townHall: endData.townHall
             });
         }

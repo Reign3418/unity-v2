@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Download, Search, Shield, Target, Activity, CheckCircle2, ChevronUp, TrendingUp, X } from "lucide-react";
+import { ArrowRight, Download, Search, Shield, Target, Activity, CheckCircle2, ChevronUp, TrendingUp, X, ArrowUpDown } from "lucide-react";
 import { useLocale } from "next-intl";
 
 const T5_TECH_FLOOR = 22467131;
@@ -12,6 +12,15 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [sortConfig, setSortConfig] = useState({ key: 'pushScore', direction: 'desc' });
+
+    const handleSort = (key) => {
+        let direction = 'desc';
+        if (sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = 'asc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     // Fetch Behavioral Matrix data
     useEffect(() => {
@@ -73,16 +82,39 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
                 bldPct,
                 pushScore: techDiff + bldDiff // Used for sorting those actively pushing
             };
-        }).sort((a, b) => b.pushScore - a.pushScore || b.powerEnd - a.powerEnd); // Active pushers first, then by power
+        });
 
     }, [behavioralRoster]);
 
     const filteredData = useMemo(() => {
-        return t5Data.filter(g => {
+        const filtered = t5Data.filter(g => {
             if (searchQuery && !g.name.toLowerCase().includes(searchQuery.toLowerCase()) && !g.id.toString().includes(searchQuery)) return false;
             return true;
         });
-    }, [t5Data, searchQuery]);
+
+        // Dynamic Sorting
+        return filtered.sort((a, b) => {
+            let aVal = a[sortConfig.key];
+            let bVal = b[sortConfig.key];
+
+            // Special fallback for string names
+            if (sortConfig.key === 'name') {
+                return sortConfig.direction === 'asc' 
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal);
+            }
+
+            // Tiebreaker is always powerEnd for numeric values
+            if (aVal === bVal) {
+                return b.powerEnd - a.powerEnd;
+            }
+
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+    }, [t5Data, searchQuery, sortConfig]);
 
     // Aggregates for top cards
     const totalCH25 = t5Data.length;
@@ -212,12 +244,24 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 bg-[#0d1117] border-b border-[#1e222b] z-10 shadow-md">
                             <tr>
-                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%]">Governor</th>
-                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-right w-[10%]">Total Power</th>
-                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70 w-[20%]">Tech Power Progress</th>
-                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-amber-500/70 w-[20%]">Building Power Progress</th>
-                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-right w-[15%]">Troop Power & Growth</th>
-                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-center w-[15%]">Status</th>
+                                <th onClick={() => handleSort('name')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group">
+                                    <div className="flex items-center gap-1">Governor <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortConfig.key === 'name' ? 'opacity-100 text-cyan-400' : ''}`}/></div>
+                                </th>
+                                <th onClick={() => handleSort('powerEnd')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[10%] cursor-pointer hover:text-white transition-colors group">
+                                    <div className="flex items-center justify-end gap-1">Total Power <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortConfig.key === 'powerEnd' ? 'opacity-100 text-cyan-400' : ''}`}/></div>
+                                </th>
+                                <th onClick={() => handleSort('currentTech')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/70 w-[20%] cursor-pointer hover:text-cyan-400 transition-colors group">
+                                    <div className="flex items-center gap-1">Tech Power Progress <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortConfig.key === 'currentTech' ? 'opacity-100 text-cyan-400' : ''}`}/></div>
+                                </th>
+                                <th onClick={() => handleSort('currentBld')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-amber-500/70 w-[20%] cursor-pointer hover:text-amber-400 transition-colors group">
+                                    <div className="flex items-center gap-1">Building Power Progress <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortConfig.key === 'currentBld' ? 'opacity-100 text-amber-400' : ''}`}/></div>
+                                </th>
+                                <th onClick={() => handleSort('currentTroop')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group">
+                                    <div className="flex items-center justify-end gap-1">Troop Power & Growth <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortConfig.key === 'currentTroop' ? 'opacity-100 text-cyan-400' : ''}`}/></div>
+                                </th>
+                                <th onClick={() => handleSort('pushScore')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-center w-[15%] cursor-pointer hover:text-white transition-colors group">
+                                    <div className="flex items-center gap-1 justify-center">Status <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortConfig.key === 'pushScore' ? 'opacity-100 text-cyan-400' : ''}`}/></div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#1e222b]/50">
