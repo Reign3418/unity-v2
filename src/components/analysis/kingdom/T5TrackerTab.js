@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ArrowRight, Download, Search, Shield, Target, Activity, CheckCircle2, ChevronUp, TrendingUp, X, ArrowUpDown } from "lucide-react";
 import { useLocale } from "next-intl";
 
-const T5_TECH_FLOOR = 22467131;
+const T5_TECH_FLOOR = 22300000;
 const T5_BUILDING_FLOOR = 14780832;
 
 export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
@@ -294,7 +294,7 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
                                                     {p.techDiff > 0 && (
                                                         <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded flex items-center"><ChevronUp size={10}/>{formatShortNum(p.techDiff)}</span>
                                                     )}
-                                                    <span className="text-[10px] font-mono text-gray-600">/ 22.4M</span>
+                                                    <span className="text-[10px] font-mono text-gray-600">/ 22.3M</span>
                                                 </div>
                                             </div>
                                             <div className="h-1.5 w-full bg-[#1e222b] rounded-full overflow-hidden">
