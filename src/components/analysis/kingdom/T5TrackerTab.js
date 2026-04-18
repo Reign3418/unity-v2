@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Download, Search, Shield, Target, Activity, CheckCircle2, ChevronUp, TrendingUp } from "lucide-react";
+import { ArrowRight, Download, Search, Shield, Target, Activity, CheckCircle2, ChevronUp, TrendingUp, X } from "lucide-react";
 import { useLocale } from "next-intl";
 
 const T5_TECH_FLOOR = 22467131;
