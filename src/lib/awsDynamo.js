@@ -1189,11 +1189,26 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
             let powerDelta = prevData ? (latestData.power - prevData.power) : 'NEW';
             let kpDelta = prevData ? (latestData.killPoints - prevData.killPoints) : 'NEW';
 
+            // ── Component-Level Deltas ─────────────────────────────────────────
+            // Required by the Spending Signature Lab and any other consumer that
+            // needs to classify governors by dominant growth vector.
+            // If the governor is brand-new this scan, deltas are treated as 0
+            // (we can't know what they spent before they arrived).
+            const techPowerDelta       = prevData ? (latestData.techPower       - prevData.techPower)       : 0;
+            const troopPowerDelta      = prevData ? (latestData.troopPower      - prevData.troopPower)      : 0;
+            const commanderPowerDelta  = prevData ? (latestData.commanderPower  - prevData.commanderPower)  : 0;
+            const buildingPowerDelta   = prevData ? (latestData.buildingPower   - prevData.buildingPower)   : 0;
+            // ── ────────────────────────────────────────────────────────────────
+
             roster.push({
                 ...latestData,
                 id,
                 powerDelta,
-                kpDelta
+                kpDelta,
+                techPowerDelta,
+                troopPowerDelta,
+                commanderPowerDelta,
+                buildingPowerDelta,
             });
         }
 

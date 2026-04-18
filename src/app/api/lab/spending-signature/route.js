@@ -24,24 +24,32 @@ export async function GET(req) {
 
         // Classify each governor by their dominant growth vector
         const classified = roster.map(p => {
-            const tech = p.techPowerDelta || 0;
-            const troop = p.troopPowerDelta || 0;
-            const cmdr = p.commanderPowerDelta || 0;
-            const build = p.buildingPowerDelta || 0;
-            const total = tech + troop + cmdr + build || 1;
+            // Clamp negative deltas to 0 — if a stat dropped (e.g. dead troops reducing
+            // troop power) we don't want it to distort the spending mix calculation.
+            const tech  = Math.max(0, p.techPowerDelta      || 0);
+            const troop = Math.max(0, p.troopPowerDelta     || 0);
+            const cmdr  = Math.max(0, p.commanderPowerDelta || 0);
+            const build = Math.max(0, p.buildingPowerDelta  || 0);
+            const total = tech + troop + cmdr + build;
 
-            const techPct = tech / total;
-            const troopPct = troop / total;
-            const cmdrPct = cmdr / total;
-            const buildPct = build / total;
+            // If all deltas are zero, this player didn't spend anything meaningful —
+            // skip classification, they'll fall through as Balanced.
+            const techPct  = total > 0 ? tech  / total : 0;
+            const troopPct = total > 0 ? troop / total : 0;
+            const cmdrPct  = total > 0 ? cmdr  / total : 0;
+            const buildPct = total > 0 ? build / total : 0;
 
+            // Dominance threshold: 33% — if one vector is responsible for at least a third
+            // of ALL component growth, it\'s the dominant spend category.
+            // Previously 0.4 (40%), which was too conservative and left real spenders as Balanced.
             let archetype = "Balanced";
             const max = Math.max(techPct, troopPct, cmdrPct, buildPct);
-            if (max < 0.4) archetype = "Balanced";
-            else if (max === techPct) archetype = "Researcher";
-            else if (max === troopPct) archetype = "Fighter";
-            else if (max === cmdrPct) archetype = "Gem Spender";
-            else if (max === buildPct) archetype = "Builder";
+            if (max >= 0.33) {
+                if      (max === techPct)  archetype = "Researcher";
+                else if (max === troopPct) archetype = "Fighter";
+                else if (max === cmdrPct)  archetype = "Gem Spender";
+                else if (max === buildPct) archetype = "Builder";
+            }
 
             // Whale detection: top 10% of power growth in the roster
             const isWhale = false; // calculated after sort
