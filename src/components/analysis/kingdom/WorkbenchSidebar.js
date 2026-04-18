@@ -25,6 +25,7 @@ const ICON_MAP = {
   'Results':          Archive,
   'Configuration':    Cpu,
   'Fort Tracker':     Target,
+  'T5 Push Radar':    Target,
 };
 
 // Mission-category groupings — order matters
@@ -34,7 +35,7 @@ const CATEGORIES = [
     colorClass: 'text-cyan-400',
     borderClass: 'border-cyan-500/30',
     bgActiveClass: 'bg-cyan-500/10 border-cyan-500/30',
-    tabs: ['Overview', 'Kingdom Analysis', 'Growth Analysis', 'Scatter Plot'],
+    tabs: ['Overview', 'Kingdom Analysis', 'Growth Analysis', 'Scatter Plot', 'T5 Push Radar'],
   },
   {
     name: 'Planning',

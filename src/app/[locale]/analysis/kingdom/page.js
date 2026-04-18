@@ -18,6 +18,7 @@ import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
 import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
+import T5TrackerTab from "@/components/analysis/kingdom/T5TrackerTab";
 import WorkbenchSidebar from "@/components/analysis/kingdom/WorkbenchSidebar";
 import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
 import MemberPortal from "@/components/member/MemberPortal";
@@ -38,6 +39,7 @@ const TABS = [
   { name: "Configuration", icon: Cpu },
   { name: "Roster View", icon: Users },
   { name: "Fort Tracker", icon: Target },
+  { name: "T5 Push Radar", icon: Target },
   { name: "Results", icon: Archive }
 ];
 
@@ -207,6 +209,15 @@ export default function KingdomAnalysis() {
           case 'Growth Analysis':
               return (
                   <GrowthAnalysisTab 
+                      targetKd={targetKd}
+                      trends={trends}
+                      startDate={startDate}
+                      endDate={endDate}
+                  />
+              );
+          case 'T5 Push Radar':
+              return (
+                  <T5TrackerTab 
                       targetKd={targetKd}
                       trends={trends}
                       startDate={startDate}
