@@ -322,7 +322,7 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
                                     </td>
 
                                     <td className="px-4 py-3 text-right">
-                                        <div className="font-mono text-sm text-rose-400/80">{formatShortNum(p.currentTroop)}</div>
+                                        <div className="font-mono text-sm text-gray-300">{formatShortNum(p.currentTroop)}</div>
                                         {p.troopDiff > 0 && (
                                             <div className="text-[10px] font-bold text-emerald-400 flex items-center justify-end gap-0.5"><ChevronUp size={10}/>{formatShortNum(p.troopDiff)}</div>
                                         )}
