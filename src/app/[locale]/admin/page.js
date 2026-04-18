@@ -349,6 +349,41 @@ export default function AdminConsole() {
         </div>
       </div>
       
+      {/* GLOBAL TELEMETRY STATS */}
+      <div className="mt-8 mb-8 border border-[#1e222b] bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-1 bg-gradient-to-b from-fuchsia-500 to-indigo-500 h-full"></div>
+        <h3 className="text-gray-400 font-bold mb-6 flex items-center gap-2 text-sm uppercase tracking-wider"><Database size={18} className="text-fuchsia-500"/> Global Master Telemetry</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+           <div className="group border-l border-[#1e222b] pl-6 hover:border-fuchsia-500/50 transition-colors">
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-fuchsia-400 transition-colors mb-1">Tracked Governors</div>
+              <div className="flex items-baseline gap-2">
+                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">139,064</span>
+                 <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Active</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-2">Distinct `GOV_PROFILE` matrix links</div>
+           </div>
+
+           <div className="group border-l border-[#1e222b] pl-6 hover:border-indigo-500/50 transition-colors">
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-indigo-400 transition-colors mb-1">Scan Snapshots</div>
+              <div className="flex items-baseline gap-2">
+                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">1.17M</span>
+                 <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest">Growth</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-2">Total longitudinal history plots</div>
+           </div>
+
+           <div className="group border-l border-[#1e222b] pl-6 hover:border-amber-500/50 transition-colors">
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-amber-400 transition-colors mb-1">Affiliated Kingdoms</div>
+              <div className="flex items-baseline gap-2">
+                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">163</span>
+                 <span className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">Realms</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-2">Unique `KD#` event horizons mapped</div>
+           </div>
+        </div>
+      </div>
+
       <div className="mt-8 border border-indigo-500/20 bg-[#0a0c10] rounded-lg p-6">
          <h3 className="text-indigo-400 font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-wider"><Users size={18}/> Web User Approval Queue</h3>
          <div className="space-y-2">
