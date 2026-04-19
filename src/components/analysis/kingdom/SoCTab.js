@@ -34,13 +34,14 @@ export default function SoCTab({ targetKd }) {
 
     // --- Camp DKP States ---
     const [availableDates, setAvailableDates] = useState([]);
-    const [startScan, setStartScan] = useState("");
-    const [endScan, setEndScan] = useState("");
+    const [baselineScan, setBaselineScan] = useState("");   // Locked → Marauders date — power baseline only
+    const [dkpStartScan, setDkpStartScan] = useState("");   // Pass 4 open — DKP tracking begins here
+    const [latestScan, setLatestScan] = useState("");       // Most recent scan — DKP tracking ends here
     const [isDatesLoading, setIsDatesLoading] = useState(false);
     const [campDkpRows, setCampDkpRows] = useState([]);
     const [isDkpLoading, setIsDkpLoading] = useState(false);
 
-    // Fetch dates on mount
+    // Fetch available scan dates and default latest + DKP start
     useEffect(() => {
         if (!targetKd) return;
         setIsDatesLoading(true);
@@ -49,41 +50,50 @@ export default function SoCTab({ targetKd }) {
           .then(data => {
             if (data && data.dates && data.dates.length > 0) {
               setAvailableDates(data.dates);
-              setEndScan(data.dates[data.dates.length - 1]);
+              setLatestScan(data.dates[data.dates.length - 1]);
+              // DKP start defaults to midpoint until reg date is known
+              if (data.dates.length > 1) {
+                setDkpStartScan(data.dates[Math.floor(data.dates.length / 2)]);
+              }
             }
           })
           .catch(err => console.error("Failed to fetch DKP dates:", err))
           .finally(() => setIsDatesLoading(false));
     }, [targetKd]);
 
-    // Auto-Lock Start Scan to Marauders Date
+    // Auto-lock Baseline to nearest scan at Marauders offset (KvK start power)
+    // Auto-snap DKP Start to nearest scan at Pass 4 open (Hand in Hand, day 23.115)
     useEffect(() => {
         if (!regDate || availableDates.length === 0 || !selectedMap) return;
-        
-        const mapEvents = MAP_TIMELINES[selectedMap] || [];
-        const maraudersEvent = mapEvents.find(e => e.title.toLowerCase() === 'marauders');
-        if (!maraudersEvent) return;
 
-        const baseDate = parseISO(regDate);
+        const mapEvents = MAP_TIMELINES[selectedMap] || [];
+        const baseDate  = parseISO(regDate);
         if (!isValid(baseDate)) return;
-        
-        const maraudersDate = addDays(baseDate, maraudersEvent.offsetDays);
-        
-        let closestScan = availableDates[0];
-        let smallestDiff = Infinity;
-        
-        for (const scan of availableDates) {
-            const scanDate = parseISO(scan);
-            if (isValid(scanDate)) {
-                const diff = Math.abs(scanDate.getTime() - maraudersDate.getTime());
-                if (diff < smallestDiff) {
-                    smallestDiff = diff;
-                    closestScan = scan;
+
+        const snapToNearest = (targetDate) => {
+            let closest = availableDates[0];
+            let minDiff = Infinity;
+            for (const scan of availableDates) {
+                const scanDate = parseISO(scan);
+                if (isValid(scanDate)) {
+                    const diff = Math.abs(scanDate.getTime() - targetDate.getTime());
+                    if (diff < minDiff) { minDiff = diff; closest = scan; }
                 }
             }
+            return closest;
+        };
+
+        // 1️⃣ Baseline → Marauders (day 10)
+        const maraudersEvent = mapEvents.find(e => e.title.toLowerCase() === 'marauders');
+        if (maraudersEvent) {
+            setBaselineScan(snapToNearest(addDays(baseDate, maraudersEvent.offsetDays)));
         }
-        
-        setStartScan(closestScan);
+
+        // 2️⃣ DKP Start → Pass 4 open (Hand in Hand, day 23.115)
+        const pass4Event = mapEvents.find(e => e.title.toLowerCase().includes('hand in hand'));
+        if (pass4Event) {
+            setDkpStartScan(snapToNearest(addDays(baseDate, pass4Event.offsetDays)));
+        }
     }, [regDate, availableDates, selectedMap]);
 
     // Hydrate from AWS DynamoDB
@@ -205,7 +215,7 @@ export default function SoCTab({ targetKd }) {
     };
 
     const fetchCampDkp = useCallback(async () => {
-        if (!startScan || !endScan) return;
+        if (!dkpStartScan || !latestScan) return;
         setIsDkpLoading(true);
         
         // Use global multipliers, default to Basic
@@ -240,8 +250,8 @@ export default function SoCTab({ targetKd }) {
                 for (const kd of kdsArray) {
                     const params = new URLSearchParams({
                       kd,
-                      start: startScan,
-                      end: endScan,
+                      start: dkpStartScan,
+                      end: latestScan,
                       t4: t4Pts,
                       t5: t5Pts,
                       deads: deadsPts,
@@ -283,7 +293,7 @@ export default function SoCTab({ targetKd }) {
             setIsDkpLoading(false);
         }
 
-    }, [camps, startScan, endScan, globalConfig]);
+    }, [camps, dkpStartScan, latestScan, globalConfig]);
 
     if (isLoading) {
         return (
@@ -421,47 +431,82 @@ export default function SoCTab({ targetKd }) {
                     </div>
 
                     <div className="flex items-end gap-3 flex-wrap">
+
+                        {/* 1️⃣ Baseline — locked to Marauders, power reference only */}
                         <div className="flex flex-col gap-1">
                             <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
-                                <MapPin className="w-3 h-3 text-fuchsia-400" /> Start Scan (Locked)
+                                <MapPin className="w-3 h-3 text-fuchsia-400" /> Baseline <span className="text-fuchsia-400/60 normal-case font-normal">(KvK Start Power 🔒)</span>
                             </span>
                             <select
-                                value={startScan}
-                                onChange={(e) => setStartScan(e.target.value)}
+                                value={baselineScan}
                                 disabled={true}
-                                title="Start Scan is automatically clamped to the nearest Marauders offset."
+                                title="Auto-locked to nearest scan at Marauders start. Records KvK starting power only — not used for DKP tracking."
                                 className="bg-[#13161c] border border-fuchsia-500/30 text-fuchsia-400 text-[11px] font-mono font-bold px-3 py-1.5 rounded outline-none disabled:opacity-80 min-w-[180px] cursor-not-allowed shadow-[inset_0_0_10px_rgba(217,70,239,0.05)]"
                             >
                                 {availableDates.length === 0 && <option>— Validating Network —</option>}
                                 {availableDates.map((d) => (
-                                    <option key={`s-${d}`} value={d}>{d}</option>
+                                    <option key={`b-${d}`} value={d}>{d}</option>
                                 ))}
                             </select>
+                            <span className="text-[9px] text-fuchsia-400/40 font-bold tracking-wide">Power snapshot only · not in DKP window</span>
                         </div>
 
+                        {/* Arrow separator */}
+                        <div className="flex flex-col items-center justify-end pb-6 text-slate-700 font-black text-lg select-none">→</div>
+
+                        {/* 2️⃣ DKP Start — Pass 4 open, auto-snapped but adjustable */}
                         <div className="flex flex-col gap-1">
-                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">End Scan</span>
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-amber-400" /> DKP Start <span className="text-amber-400/60 normal-case font-normal">(Pass 4 Open)</span>
+                            </span>
                             <select
-                                value={endScan}
-                                onChange={(e) => setEndScan(e.target.value)}
+                                value={dkpStartScan}
+                                onChange={(e) => setDkpStartScan(e.target.value)}
                                 disabled={isDatesLoading || availableDates.length === 0}
-                                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                                title="Auto-snapped to nearest scan at Pass 4 open (Hand in Hand). Kills, deaths, and KP are tracked FROM this date."
+                                className="bg-[#13161c] border border-amber-500/40 text-amber-300 text-[11px] font-mono font-bold px-3 py-1.5 rounded outline-none focus:border-amber-500 disabled:opacity-40 min-w-[180px] shadow-[inset_0_0_10px_rgba(251,191,36,0.04)]"
                             >
                                 {availableDates.length === 0 && <option>— Validating Network —</option>}
                                 {availableDates.map((d) => (
-                                    <option key={`e-${d}`} value={d}>{d}</option>
+                                    <option key={`p-${d}`} value={d}>{d}</option>
                                 ))}
                             </select>
+                            <span className="text-[9px] text-amber-400/40 font-bold tracking-wide">DKP tracking begins here</span>
                         </div>
 
+                        {/* Arrow separator */}
+                        <div className="flex flex-col items-center justify-end pb-6 text-slate-700 font-black text-lg select-none">→</div>
+
+                        {/* 3️⃣ Latest Scan — current live state, end of DKP window */}
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-cyan-400" /> Latest Scan <span className="text-cyan-400/60 normal-case font-normal">(Current State)</span>
+                            </span>
+                            <select
+                                value={latestScan}
+                                onChange={(e) => setLatestScan(e.target.value)}
+                                disabled={isDatesLoading || availableDates.length === 0}
+                                className="bg-[#13161c] border border-cyan-500/40 text-cyan-300 text-[11px] font-mono px-3 py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-40 min-w-[180px]"
+                            >
+                                {availableDates.length === 0 && <option>— Validating Network —</option>}
+                                {availableDates.map((d) => (
+                                    <option key={`l-${d}`} value={d}>{d}</option>
+                                ))}
+                            </select>
+                            <span className="text-[9px] text-cyan-400/40 font-bold tracking-wide">DKP tracking ends here</span>
+                        </div>
+
+                        {/* Compute button */}
+                        <div className="flex flex-col items-center justify-end pb-6">
                         <button
                             onClick={fetchCampDkp}
-                            disabled={isDkpLoading}
+                            disabled={isDkpLoading || !dkpStartScan || !latestScan}
                             className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-cyan-500/50 px-4 py-1.5 rounded font-bold uppercase tracking-widest text-[11px] transition-colors disabled:opacity-50"
                         >
                             <RefreshCw size={14} className={isDkpLoading ? "animate-spin text-cyan-400" : ""} />
                             Compute Data
                         </button>
+                        </div>
                     </div>
                 </div>
 
