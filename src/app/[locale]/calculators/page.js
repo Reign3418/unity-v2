@@ -28,6 +28,40 @@ export default function CalculatorsPage() {
   const [apStatus, setApStatus] = useState("");
   const apInputRef = useRef(null);
 
+  // AP Strategy — defaults from kingdom mail recommendation
+  const [apStrategy, setApStrategy] = useState({
+    marauders: 20,
+    forts: 15,
+    barbarian: 65,
+  });
+
+  // When one slider changes, clamp and redistribute so they always sum to 100
+  const handleStrategyChange = (key, rawVal) => {
+    const val = Math.min(100, Math.max(0, parseInt(rawVal) || 0));
+    setApStrategy(prev => {
+      const others = Object.keys(prev).filter(k => k !== key);
+      const remaining = 100 - val;
+      const otherSum = others.reduce((s, k) => s + prev[k], 0);
+      const updated = { ...prev, [key]: val };
+      if (otherSum === 0) {
+        // Distribute evenly
+        const share = Math.floor(remaining / others.length);
+        others.forEach((k, i) => {
+          updated[k] = i === others.length - 1 ? remaining - share * (others.length - 1) : share;
+        });
+      } else {
+        // Scale proportionally
+        others.forEach(k => {
+          updated[k] = Math.round((prev[k] / otherSum) * remaining);
+        });
+        // Fix rounding drift to guarantee 100
+        const drift = 100 - Object.values(updated).reduce((s, v) => s + v, 0);
+        if (drift !== 0) updated[others[others.length - 1]] += drift;
+      }
+      return updated;
+    });
+  };
+
   const [isResourceScanning, setIsResourceScanning] = useState(false);
   const [resourceStatus, setResourceStatus] = useState("");
   const resourceInputRef = useRef(null);
@@ -958,13 +992,81 @@ export default function CalculatorsPage() {
                 </div>
             </div>
           </div>
-          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-cyan-500 rounded-xl p-6 shadow-xl sticky top-6 self-start">
-            <h2 className="text-cyan-400 font-black text-xl mb-6 uppercase tracking-widest text-center">Total Reserves</h2>
-            <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-6 text-center shadow-[inset_0_0_30px_rgba(6,182,212,0.05)] border-l-4 border-l-cyan-500 mb-6">
-              <div className="text-4xl font-black text-white font-mono">
-                {((apData['50']||0)*50 + (apData['100']||0)*100 + (apData['500']||0)*500 + (apData['1000']||0)*1000).toLocaleString()} <span className="text-cyan-500 text-2xl">AP</span>
-              </div>
-            </div>
+          <div className="bg-[#13161c] border-x border-b border-t-2 border-t-cyan-500 rounded-xl p-6 shadow-xl sticky top-6 self-start space-y-5">
+            <h2 className="text-cyan-400 font-black text-xl mb-2 uppercase tracking-widest text-center">Total Reserves</h2>
+
+            {/* Total AP readout */}
+            {(() => {
+              const totalAP = (apData['50']||0)*50 + (apData['100']||0)*100 + (apData['500']||0)*500 + (apData['1000']||0)*1000;
+              const maraudersAP  = Math.round(totalAP * apStrategy.marauders / 100);
+              const fortsAP      = Math.round(totalAP * apStrategy.forts / 100);
+              const barbarianAP  = totalAP - maraudersAP - fortsAP; // remainder avoids rounding gaps
+
+              const strategyItems = [
+                { key: 'marauders', label: 'Marauders',          ap: maraudersAP, color: 'rose',   icon: '⚔️' },
+                { key: 'forts',     label: 'Forts',              ap: fortsAP,     color: 'amber',  icon: '🏰' },
+                { key: 'barbarian', label: 'Barbarian Chaining', ap: barbarianAP, color: 'cyan',   icon: '🔗' },
+              ];
+
+              const colorMap = {
+                rose:  { bar: 'bg-rose-500',  text: 'text-rose-400',  border: 'border-rose-500/40',  ring: 'focus:border-rose-500'  },
+                amber: { bar: 'bg-amber-500', text: 'text-amber-400', border: 'border-amber-500/40', ring: 'focus:border-amber-500' },
+                cyan:  { bar: 'bg-cyan-500',  text: 'text-cyan-400',  border: 'border-cyan-500/40',  ring: 'focus:border-cyan-500'  },
+              };
+
+              return (
+                <>
+                  <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-5 text-center shadow-[inset_0_0_30px_rgba(6,182,212,0.05)] border-l-4 border-l-cyan-500">
+                    <div className="text-4xl font-black text-white font-mono">
+                      {totalAP.toLocaleString()} <span className="text-cyan-500 text-2xl">AP</span>
+                    </div>
+                  </div>
+
+                  {/* Strategy breakdown — auto-fires when totalAP > 0 */}
+                  {totalAP > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-center">AP Strategy Allocation</p>
+                      {strategyItems.map(({ key, label, ap, color, icon }) => {
+                        const c = colorMap[color];
+                        const pct = apStrategy[key];
+                        return (
+                          <div key={key} className={`bg-[#0a0c0f] border ${c.border} rounded-lg p-4`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                                <span>{icon}</span> {label}
+                              </span>
+                              {/* Editable percentage input */}
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={pct}
+                                  onChange={(e) => handleStrategyChange(key, e.target.value)}
+                                  className={`w-14 text-center bg-[#13161c] border border-[#1e222b] ${c.ring} ${c.text} font-mono font-black rounded py-1 text-sm outline-none`}
+                                />
+                                <span className={`text-xs font-bold ${c.text}`}>%</span>
+                              </div>
+                            </div>
+                            {/* Progress bar */}
+                            <div className="w-full bg-[#1e222b] rounded-full h-1.5 mb-2">
+                              <div className={`${c.bar} h-1.5 rounded-full transition-all duration-300`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className={`font-mono font-black text-lg ${c.text} text-right`}>
+                              {ap.toLocaleString()} <span className="text-xs text-gray-500">AP</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {/* % total guard */}
+                      <p className="text-[9px] text-gray-600 text-center uppercase tracking-widest">
+                        {apStrategy.marauders + apStrategy.forts + apStrategy.barbarian}% allocated · adjusts automatically
+                      </p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
