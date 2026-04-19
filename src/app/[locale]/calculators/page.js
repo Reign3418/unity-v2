@@ -1064,10 +1064,9 @@ export default function CalculatorsPage() {
                       </p>
                     </div>
                   )}
-
-                  {/* ── Tactical Vial Brief ─────────────────────────────── */}
+                         {/* ── Your AP Battle Plan ──────────────────────────── */}
                   {totalAP > 0 && (() => {
-                    // Greedy allocation — largest vials first, shared pool consumed in task order
+                    // Greedy allocation — largest bottles first, shared pool consumed in task order
                     const pool = { 1000: apData['1000']||0, 500: apData['500']||0, 100: apData['100']||0, 50: apData['50']||0 };
                     const tiers = [1000, 500, 100, 50];
 
@@ -1080,48 +1079,84 @@ export default function CalculatorsPage() {
                         pool[t] -= use;
                         rem -= use * t;
                       }
-                      const actual = targetAP - rem;
-                      return { used, actual, leftover: rem };
+                      return { used, actual: targetAP - rem };
                     };
 
-                    const results = [
-                      { ...allocate(maraudersAP), label: 'Marauders',          icon: '⚔️', color: 'rose-400'  },
-                      { ...allocate(fortsAP),     label: 'Forts',              icon: '🏰', color: 'amber-400' },
-                      { ...allocate(barbarianAP), label: 'Barbarian Chaining', icon: '🔗', color: 'cyan-400'  },
+                    const tierLabel = { 1000: 'Giant', 500: 'Large', 100: 'Medium', 50: 'Small' };
+                    const tierColor = { 1000: 'bg-purple-500/20 text-purple-300 border-purple-500/30', 500: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', 100: 'bg-blue-500/20 text-blue-300 border-blue-500/30', 50: 'bg-gray-500/20 text-gray-300 border-gray-500/30' };
+
+                    const steps = [
+                      { ...allocate(maraudersAP), label: 'Marauders',          icon: '⚔️', accent: 'border-rose-500/50',  num: 'bg-rose-500'  },
+                      { ...allocate(fortsAP),     label: 'Forts',              icon: '🏰', accent: 'border-amber-500/50', num: 'bg-amber-500' },
+                      { ...allocate(barbarianAP), label: 'Barbarian Chaining', icon: '🔗', accent: 'border-cyan-500/50',  num: 'bg-cyan-500'  },
                     ];
 
-                    const fmtUsed = (used) =>
-                      tiers
-                        .filter(t => used[t] > 0)
-                        .map(t => `${used[t].toLocaleString()} × ${t >= 1000 ? '1K' : t} AP`)
-                        .join(' + ') || 'None';
-
                     return (
-                      <div className="bg-[#0a0c0f] border border-indigo-500/30 rounded-lg p-4 space-y-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-2">
-                          <span className="text-indigo-400">⚡</span> J.A.R.V.I.S. Vial Brief
-                        </p>
-                        {results.map(({ label, icon, color, used, actual, leftover }) => (
-                          <div key={label} className="border-t border-[#1e222b] pt-3 first:border-0 first:pt-0">
-                            <p className={`text-[10px] font-black uppercase tracking-widest text-${color} mb-1.5 flex items-center gap-1`}>
-                              <span>{icon}</span> {label}
-                            </p>
-                            <p className="text-xs text-white font-mono leading-relaxed">
-                              {fmtUsed(used)}
-                            </p>
-                            <p className="text-[10px] text-gray-500 mt-1 font-mono">
-                              = {actual.toLocaleString()} AP
-                              {leftover > 0 && <span className="text-amber-500/70"> ({leftover} AP unachievable — vial minimum)</span>}
-                            </p>
+                      <div className="bg-[#0a0c0f] border border-indigo-500/30 rounded-lg p-4 space-y-4">
+                        {/* Header */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-indigo-400">⚡</span>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Your AP Battle Plan</p>
+                        </div>
+                        <p className="text-[10px] text-gray-500 -mt-2">Open these bottles in order. Use ALL of each step before moving to the next.</p>
+
+                        {steps.map(({ label, icon, accent, num, used, actual }, idx) => {
+                          const bottles = tiers.filter(t => used[t] > 0);
+                          const totalBottles = tiers.reduce((s, t) => s + (used[t] || 0), 0);
+                          return (
+                            <div key={label} className={`border ${accent} rounded-lg p-3 space-y-2.5`}>
+                              {/* Step header */}
+                              <div className="flex items-center gap-2">
+                                <span className={`${num} text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0`}>{idx + 1}</span>
+                                <span className="text-white font-black text-sm">{icon} {label}</span>
+                              </div>
+
+                              {/* Bottle pills */}
+                              {bottles.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 pl-7">
+                                  {bottles.map(t => (
+                                    <div key={t} className={`border rounded px-2 py-1 ${tierColor[t]} text-[11px] font-bold flex items-center gap-1`}>
+                                      <span className="text-white font-black">{used[t]}</span>
+                                      <span className="opacity-70">×</span>
+                                      <span>{tierLabel[t]}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-gray-500 text-xs pl-7 italic">No bottles needed (AP already covered)</p>
+                              )}
+
+                              {/* Summary line */}
+                              <div className="flex items-center justify-between pl-7">
+                                <p className="text-[10px] text-gray-500">
+                                  {totalBottles} {totalBottles === 1 ? 'bottle' : 'bottles'} total
+                                </p>
+                                <p className="text-[11px] text-gray-400 font-mono font-bold">
+                                  ~{actual.toLocaleString()} AP
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Bottle size legend */}
+                        <details className="cursor-pointer">
+                          <summary className="text-[9px] text-gray-600 uppercase tracking-widest select-none hover:text-gray-400 transition-colors">
+                            What do Giant / Large / Medium / Small mean? ▸
+                          </summary>
+                          <div className="mt-2 grid grid-cols-2 gap-1">
+                            {[['Giant','1,000 AP'],['Large','500 AP'],['Medium','100 AP'],['Small','50 AP']].map(([name, val]) => (
+                              <div key={name} className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                                <span className="text-gray-300 font-bold">{name}</span>
+                                <span className="text-gray-600">= {val} bottle</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                        <p className="text-[9px] text-gray-600 uppercase tracking-widest pt-1 border-t border-[#1e222b]">
-                          Vials consumed in task priority order
-                        </p>
+                        </details>
                       </div>
                     );
                   })()}
-                </>
+                 </>
               );
             })()}
           </div>
