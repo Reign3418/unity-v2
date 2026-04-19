@@ -381,7 +381,11 @@
     "tab_in_dev": "Pestaña en Desarrollo",
     "tab_in_dev_desc": "El componente está migrando.",
     "r4_clearance": "Se requiere R4",
-    "r4_desc": "Sin permisos."
+    "r4_desc": "Sin permisos.",
+    "Fort Tracker": "Rastreador de Fuertes",
+    "Presence Radar": "Radar de Presencia",
+    "T5 Push Radar": "Radar de Empuje T5",
+    "SOC Hub": "Centro SOC"
   },
   "DKP": {
     "title": "Resultados DKP",

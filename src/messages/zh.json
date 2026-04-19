@@ -381,7 +381,11 @@
     "tab_in_dev": "开发中",
     "tab_in_dev_desc": "正在向新框架迁移中。",
     "r4_clearance": "需要 R4 权限",
-    "r4_desc": "您的角色无查看权限。"
+    "r4_desc": "您的角色无查看权限。",
+    "Fort Tracker": "堡垒追踪器",
+    "Presence Radar": "存在雷达",
+    "T5 Push Radar": "T5推进雷达",
+    "SOC Hub": "文明状态中心"
   },
   "DKP": {
     "title": "DKP 结算",

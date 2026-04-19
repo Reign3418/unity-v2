@@ -382,7 +382,10 @@
     "tab_in_dev": "Tab In Development",
     "tab_in_dev_desc": "The component is currently undergoing V2 framework migration.",
     "r4_clearance": "R4 Clearance Required",
-    "r4_desc": "Your current role does not have permission to view this utility."
+    "r4_desc": "Your current role does not have permission to view this utility.",
+    "Fort Tracker": "Theo doi Phao dai",
+    "Presence Radar": "Radar Hien dien",
+    "T5 Push Radar": "Radar Tan cong T5"
   },
   "DKP": {
     "title": "DKP Results",
