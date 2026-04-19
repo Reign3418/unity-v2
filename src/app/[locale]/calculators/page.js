@@ -2,10 +2,12 @@
 
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2, Shield, Upload, X, Check, Loader2, ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity, Eye, Users, CheckCircle2, Image as ImageIcon, FileText, Sparkles, Filter, Play } from "lucide-react";
 
 export default function CalculatorsPage() {
   const { data: session } = useSession();
+  const t = useTranslations('Calculators');
   const [activeTab, setActiveTab] = useState("speedups");
 
   // State hooks for all calculators
@@ -746,20 +748,20 @@ export default function CalculatorsPage() {
         <div className="flex items-center gap-4 relative z-10 w-full mb-2">
           <BookOpen className="text-indigo-500" size={32} />
           <div>
-            <h1 className="text-3xl font-black text-white tracking-widest uppercase">Unified Calculators</h1>
-            <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">Inventory Projection Systems</p>
+            <h1 className="text-3xl font-black text-white tracking-widest uppercase">{t('page_title')}</h1>
+            <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('page_subtitle')}</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-xl overflow-x-auto px-2 no-scrollbar">
-        <TabButton id="speedups" icon={Timer} label="Speedups" color="indigo" />
-        <TabButton id="resources" icon={Wheat} label="Resources" color="amber" />
-        <TabButton id="ap" icon={Zap} label="Action Points" color="cyan" />
-        <TabButton id="forge" icon={Shield} label="Equipment Forge" color="blue" />
-        <TabButton id="realestate" icon={Map} label="Realestate Predictor" color="teal" />
-        <TabButton id="deadeye" icon={Eye} label="Deadeye" color="fuchsia" />
+        <TabButton id="speedups" icon={Timer} label={t('tab_speedups')} color="indigo" />
+        <TabButton id="resources" icon={Wheat} label={t('tab_resources')} color="amber" />
+        <TabButton id="ap" icon={Zap} label={t('tab_ap')} color="cyan" />
+        <TabButton id="forge" icon={Shield} label={t('tab_forge')} color="blue" />
+        <TabButton id="realestate" icon={Map} label={t('tab_realestate')} color="teal" />
+        <TabButton id="deadeye" icon={Eye} label={t('tab_deadeye')} color="fuchsia" />
       </div>
 
       {/* Content Area */}
@@ -935,13 +937,17 @@ export default function CalculatorsPage() {
             <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
                 <div className="flex items-center gap-3">
                   <Zap className="text-cyan-500" size={20} />
-                  <h2 className="text-white font-bold mb-0 uppercase tracking-widest text-sm">Action Points OCR Scanner</h2>
+                  <h2 className="text-white font-bold mb-0 uppercase tracking-widest text-sm">{t('ap_title')}</h2>
                 </div>
             </div>
             <div className="p-6 flex flex-col">
-                <p className="text-gray-500 text-xs mb-6 leading-relaxed font-bold uppercase tracking-widest">
-                    Drop a screenshot of your <span className="text-cyan-400 border border-cyan-400/30 bg-cyan-500/10 px-1 rounded">Action Points</span> inventory to automatically sum your reserves using AI.
-                </p>
+                    {t('ap_desc').replace('{highlight}', '').split('').length > 0 && (
+                      <p className="text-gray-500 text-xs mb-6 leading-relaxed font-bold uppercase tracking-widest">
+                        {t('ap_desc').split(t('ap_highlight'))[0]}
+                        <span className="text-cyan-400 border border-cyan-400/30 bg-cyan-500/10 px-1 rounded">{t('ap_highlight')}</span>
+                        {t('ap_desc').split(t('ap_highlight'))[1]}
+                      </p>
+                    )}
 
                 <div 
                     onDragOver={(e) => e.preventDefault()} 
@@ -952,14 +958,14 @@ export default function CalculatorsPage() {
                     {isApScanning ? (
                         <>
                            <RefreshCw size={32} className="text-cyan-500 animate-spin mb-3" />
-                           <h3 className="text-cyan-400 font-black tracking-widest uppercase text-xs mb-1">Scanning Image...</h3>
+                           <h3 className="text-cyan-400 font-black tracking-widest uppercase text-xs mb-1">{t('ap_scanning')}</h3>
                            <p className="text-cyan-500/50 text-[10px] uppercase font-bold tracking-wider">{apStatus}</p>
                         </>
                     ) : (
                         <>
                            <ImageIcon size={32} className="text-gray-600 mb-3" />
-                           <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">Drag Action Points Screenshot</h3>
-                           <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-2">or click to browse</p>
+                           <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">{t('ap_drop_title')}</h3>
+                           <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-2">{t('ap_drop_sub')}</p>
                            {apStatus && <p className="text-cyan-400 text-[10px] uppercase font-bold tracking-wider">{apStatus}</p>}
                         </>
                     )}
@@ -969,7 +975,7 @@ export default function CalculatorsPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pb-6">
                   {['50', '100', '500', '1000'].map(tier => (
                     <div key={tier} className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg flex flex-col items-center gap-2 group hover:border-cyan-500/40 transition-colors">
-                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{tier} AP Vials</div>
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{t("ap_vial_" + tier)}</div>
                       <input
                         type="number"
                         min="0"
@@ -987,13 +993,13 @@ export default function CalculatorsPage() {
                       onClick={() => setApData({ "50": 0, "100": 0, "500": 0, "1000": 0 })}
                       className="w-full py-3 bg-[#1e222b] hover:bg-gray-800 text-rose-500 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                     >
-                      <Trash2 size={14} /> Clear Form Math
+                      <Trash2 size={14} /> {t('ap_clear')}
                     </button>
                 </div>
             </div>
           </div>
           <div className="bg-[#13161c] border-x border-b border-t-2 border-t-cyan-500 rounded-xl p-6 shadow-xl sticky top-6 self-start space-y-5">
-            <h2 className="text-cyan-400 font-black text-xl mb-2 uppercase tracking-widest text-center">Total Reserves</h2>
+            <h2 className="text-cyan-400 font-black text-xl mb-2 uppercase tracking-widest text-center">{t('ap_total')}</h2>
 
             {/* Total AP readout */}
             {(() => {
@@ -1025,7 +1031,7 @@ export default function CalculatorsPage() {
                   {/* Strategy breakdown — auto-fires when totalAP > 0 */}
                   {totalAP > 0 && (
                     <div className="space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-center">AP Strategy Allocation</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 text-center">{t('ap_strategy')}</p>
                       {strategyItems.map(({ key, label, ap, color, icon }) => {
                         const c = colorMap[color];
                         const pct = apStrategy[key];
@@ -1060,7 +1066,7 @@ export default function CalculatorsPage() {
                       })}
                       {/* % total guard */}
                       <p className="text-[9px] text-gray-600 text-center uppercase tracking-widest">
-                        {apStrategy.marauders + apStrategy.forts + apStrategy.barbarian}% allocated · adjusts automatically
+                        {apStrategy.marauders + apStrategy.forts + apStrategy.barbarian}% {t('ap_pct_note')}
                       </p>
                     </div>
                   )}
@@ -1082,7 +1088,7 @@ export default function CalculatorsPage() {
                       return { used, actual: targetAP - rem };
                     };
 
-                    const tierLabel = { 1000: 'Giant', 500: 'Large', 100: 'Medium', 50: 'Small' };
+                    const tierLabel = { 1000: t('bp_giant'), 500: t('bp_large'), 100: t('bp_medium'), 50: t('bp_small') };
                     const tierColor = { 1000: 'bg-purple-500/20 text-purple-300 border-purple-500/30', 500: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', 100: 'bg-blue-500/20 text-blue-300 border-blue-500/30', 50: 'bg-gray-500/20 text-gray-300 border-gray-500/30' };
 
                     const steps = [
@@ -1096,9 +1102,9 @@ export default function CalculatorsPage() {
                         {/* Header */}
                         <div className="flex items-center gap-2">
                           <span className="text-indigo-400">⚡</span>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Your AP Battle Plan</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">{t('bp_title')}</p>
                         </div>
-                        <p className="text-[10px] text-gray-500 -mt-2">Open these bottles in order. Use ALL of each step before moving to the next.</p>
+                        <p className="text-[10px] text-gray-500 -mt-2">{t('bp_subtitle')}</p>
 
                         {steps.map(({ label, icon, accent, num, used, actual }, idx) => {
                           const bottles = tiers.filter(t => used[t] > 0);
@@ -1129,7 +1135,7 @@ export default function CalculatorsPage() {
                               {/* Summary line */}
                               <div className="flex items-center justify-between pl-7">
                                 <p className="text-[10px] text-gray-500">
-                                  {totalBottles} {totalBottles === 1 ? 'bottle' : 'bottles'} total
+                                  {totalBottles} {totalBottles === 1 ? t('bp_bottle') : t('bp_bottles')} total
                                 </p>
                                 <p className="text-[11px] text-gray-400 font-mono font-bold">
                                   ~{actual.toLocaleString()} AP
@@ -1142,13 +1148,13 @@ export default function CalculatorsPage() {
                         {/* Bottle size legend */}
                         <details className="cursor-pointer">
                           <summary className="text-[9px] text-gray-600 uppercase tracking-widest select-none hover:text-gray-400 transition-colors">
-                            What do Giant / Large / Medium / Small mean? ▸
+                            {t('bp_legend')} ▸
                           </summary>
                           <div className="mt-2 grid grid-cols-2 gap-1">
                             {[['Giant','1,000 AP'],['Large','500 AP'],['Medium','100 AP'],['Small','50 AP']].map(([name, val]) => (
                               <div key={name} className="flex items-center gap-1.5 text-[10px] text-gray-400">
                                 <span className="text-gray-300 font-bold">{name}</span>
-                                <span className="text-gray-600">= {val} bottle</span>
+                                <span className="text-gray-600">= {val} {t('bp_legend_suffix')}</span>
                               </div>
                             ))}
                           </div>
