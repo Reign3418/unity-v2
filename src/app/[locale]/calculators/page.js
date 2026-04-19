@@ -1064,6 +1064,63 @@ export default function CalculatorsPage() {
                       </p>
                     </div>
                   )}
+
+                  {/* ── Tactical Vial Brief ─────────────────────────────── */}
+                  {totalAP > 0 && (() => {
+                    // Greedy allocation — largest vials first, shared pool consumed in task order
+                    const pool = { 1000: apData['1000']||0, 500: apData['500']||0, 100: apData['100']||0, 50: apData['50']||0 };
+                    const tiers = [1000, 500, 100, 50];
+
+                    const allocate = (targetAP) => {
+                      const used = {};
+                      let rem = targetAP;
+                      for (const t of tiers) {
+                        const use = Math.min(pool[t], Math.floor(rem / t));
+                        used[t] = use;
+                        pool[t] -= use;
+                        rem -= use * t;
+                      }
+                      const actual = targetAP - rem;
+                      return { used, actual, leftover: rem };
+                    };
+
+                    const results = [
+                      { ...allocate(maraudersAP), label: 'Marauders',          icon: '⚔️', color: 'rose-400'  },
+                      { ...allocate(fortsAP),     label: 'Forts',              icon: '🏰', color: 'amber-400' },
+                      { ...allocate(barbarianAP), label: 'Barbarian Chaining', icon: '🔗', color: 'cyan-400'  },
+                    ];
+
+                    const fmtUsed = (used) =>
+                      tiers
+                        .filter(t => used[t] > 0)
+                        .map(t => `${used[t].toLocaleString()} × ${t >= 1000 ? '1K' : t} AP`)
+                        .join(' + ') || 'None';
+
+                    return (
+                      <div className="bg-[#0a0c0f] border border-indigo-500/30 rounded-lg p-4 space-y-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-2">
+                          <span className="text-indigo-400">⚡</span> J.A.R.V.I.S. Vial Brief
+                        </p>
+                        {results.map(({ label, icon, color, used, actual, leftover }) => (
+                          <div key={label} className="border-t border-[#1e222b] pt-3 first:border-0 first:pt-0">
+                            <p className={`text-[10px] font-black uppercase tracking-widest text-${color} mb-1.5 flex items-center gap-1`}>
+                              <span>{icon}</span> {label}
+                            </p>
+                            <p className="text-xs text-white font-mono leading-relaxed">
+                              {fmtUsed(used)}
+                            </p>
+                            <p className="text-[10px] text-gray-500 mt-1 font-mono">
+                              = {actual.toLocaleString()} AP
+                              {leftover > 0 && <span className="text-amber-500/70"> ({leftover} AP unachievable — vial minimum)</span>}
+                            </p>
+                          </div>
+                        ))}
+                        <p className="text-[9px] text-gray-600 uppercase tracking-widest pt-1 border-t border-[#1e222b]">
+                          Vials consumed in task priority order
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </>
               );
             })()}
