@@ -644,7 +644,7 @@ export default function CalculatorsPage() {
           glideBlock || null,
       ].filter(line => line !== null).join('\n');
 
-      localStorage.setItem('unty_mail_roster', JSON.stringify({ customText: mailText }));
+      localStorage.setItem('unty_mail_roster', JSON.stringify([{ customText: mailText }]));
       router.push('/mail');
   };
 
