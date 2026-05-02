@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2, Shield, Upload, X, Check, Loader2, ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity, Eye, Users, CheckCircle2, Image as ImageIcon, FileText, Sparkles, Filter, Play } from "lucide-react";
 
 // Module-level constant — no re-creation on each render
@@ -17,6 +18,7 @@ const FLAG_RESOURCES = [
 export default function CalculatorsPage() {
   const { data: session } = useSession();
   const t = useTranslations('Calculators');
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("speedups");
 
   // State hooks for all calculators
@@ -591,6 +593,59 @@ export default function CalculatorsPage() {
   const clearFlagData = () => {
       setFlagData({ credits: { cost: 0, stock: 0, income: 0 }, food: { cost: 0, stock: 0, income: 0 }, wood: { cost: 0, stock: 0, income: 0 }, stone: { cost: 0, stock: 0, income: 0 }, gold: { cost: 0, stock: 0, income: 0 } });
       setFlagStatus('');
+  };
+
+  const sendFlagToMail = () => {
+      const { rows, maxMinutes, bottleneck } = getFlagReadiness();
+      const hasAnyCost = rows.some(r => r.cost > 0);
+      if (!hasAnyCost) return;
+      const allReady = rows.filter(r => r.cost > 0).every(r => r.ready);
+      const statusLine = allReady ? 'Ready Now!' : formatFlagTime(maxMinutes);
+      const bottleneckMeta = FLAG_RESOURCES.find(r => r.key === bottleneck);
+
+      const costsBlock = rows
+          .filter(r => r.cost > 0)
+          .map(r => `${FLAG_RESOURCES.find(x => x.key === r.key)?.label.replace('Alliance ', '')}: ${formatFlagNum(r.cost)}`)
+          .join('\n');
+
+      const deficitsBlock = rows
+          .filter(r => r.cost > 0)
+          .map(r => {
+              const label = FLAG_RESOURCES.find(x => x.key === r.key)?.label.replace('Alliance ', '');
+              return r.deficit > 0 ? `${label}: ${formatFlagNum(r.deficit)} ⚠` : `${label}: 0`;
+          })
+          .join('\n');
+
+      const glideBlock = rows
+          .filter(r => r.income > 0)
+          .map(r => {
+              const label = FLAG_RESOURCES.find(x => x.key === r.key)?.label.replace('Alliance ', '');
+              return `${label}: 24h (+${formatFlagNum(r.income * 24)}) | 3d (+${formatFlagNum(r.income * 72)})`;
+          })
+          .join('\n');
+
+      const bottleneckLine = bottleneckMeta && !allReady
+          ? `Bottleneck: <color=#ff6600>${bottleneckMeta.label.replace('Alliance ', '')}</color>`
+          : '';
+
+      const mailText = [
+          '<b>Alliance Flag Readiness Report</b>',
+          '',
+          `Status: <b>${statusLine}</b>`,
+          bottleneckLine,
+          '',
+          '<b>Current Target Costs:</b>',
+          costsBlock,
+          '',
+          '<b>Current Deficits:</b>',
+          deficitsBlock,
+          glideBlock ? '' : null,
+          glideBlock ? '<b>Income Glide Path:</b>' : null,
+          glideBlock || null,
+      ].filter(line => line !== null).join('\n');
+
+      localStorage.setItem('unty_mail_roster', JSON.stringify({ customText: mailText }));
+      router.push('/mail');
   };
 
   // Flag readiness calculations
@@ -1483,6 +1538,13 @@ export default function CalculatorsPage() {
                 className="flex-1 border border-[#1e222b] bg-[#0f1115] hover:bg-[#1a1e26] text-gray-400 hover:text-white py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-colors"
               >
                 Clear All Values
+              </button>
+              <button
+                onClick={sendFlagToMail}
+                disabled={!rows.some(r => r.cost > 0)}
+                className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
+              >
+                📨 Send to Mail Generator
               </button>
             </div>
 
