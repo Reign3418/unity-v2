@@ -5,6 +5,15 @@ import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2, Shield, Upload, X, Check, Loader2, ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity, Eye, Users, CheckCircle2, Image as ImageIcon, FileText, Sparkles, Filter, Play } from "lucide-react";
 
+// Module-level constant — no re-creation on each render
+const FLAG_RESOURCES = [
+  { key: 'credits', label: 'Alliance Credits', emoji: '🪙', color: 'text-yellow-300' },
+  { key: 'food',    label: 'Alliance Food',    emoji: '🌽', color: 'text-lime-400'   },
+  { key: 'wood',    label: 'Alliance Wood',    emoji: '🪵', color: 'text-amber-600'  },
+  { key: 'stone',   label: 'Alliance Stone',   emoji: '🪨', color: 'text-slate-300'  },
+  { key: 'gold',    label: 'Alliance Gold',    emoji: '💛', color: 'text-yellow-400' },
+];
+
 export default function CalculatorsPage() {
   const { data: session } = useSession();
   const t = useTranslations('Calculators');
@@ -549,12 +558,13 @@ export default function CalculatorsPage() {
               const parsed = await res.json();
               const { stock = {}, income = {}, flagCost = {} } = parsed;
 
+              // Math.abs() guards against Gemini returning negative values from the activity log
               setFlagData(prev => ({
-                  credits: { cost: flagCost.credits ?? prev.credits.cost, stock: stock.credits ?? prev.credits.stock, income: income.credits ?? prev.credits.income },
-                  food:    { cost: flagCost.food    ?? prev.food.cost,    stock: stock.food    ?? prev.food.stock,    income: income.food    ?? prev.food.income },
-                  wood:    { cost: flagCost.wood    ?? prev.wood.cost,    stock: stock.wood    ?? prev.wood.stock,    income: income.wood    ?? prev.wood.income },
-                  stone:   { cost: flagCost.stone   ?? prev.stone.cost,   stock: stock.stone   ?? prev.stone.stock,   income: income.stone   ?? prev.stone.income },
-                  gold:    { cost: flagCost.gold    ?? prev.gold.cost,    stock: stock.gold    ?? prev.gold.stock,    income: income.gold    ?? prev.gold.income },
+                  credits: { cost: Math.abs(flagCost.credits ?? prev.credits.cost), stock: Math.abs(stock.credits ?? prev.credits.stock), income: Math.abs(income.credits ?? prev.credits.income) },
+                  food:    { cost: Math.abs(flagCost.food    ?? prev.food.cost),    stock: Math.abs(stock.food    ?? prev.food.stock),    income: Math.abs(income.food    ?? prev.food.income)    },
+                  wood:    { cost: Math.abs(flagCost.wood    ?? prev.wood.cost),    stock: Math.abs(stock.wood    ?? prev.wood.stock),    income: Math.abs(income.wood    ?? prev.wood.income)    },
+                  stone:   { cost: Math.abs(flagCost.stone   ?? prev.stone.cost),   stock: Math.abs(stock.stone   ?? prev.stone.stock),   income: Math.abs(income.stone   ?? prev.stone.income)   },
+                  gold:    { cost: Math.abs(flagCost.gold    ?? prev.gold.cost),    stock: Math.abs(stock.gold    ?? prev.gold.stock),    income: Math.abs(income.gold    ?? prev.gold.income)    },
               }));
 
               setFlagStatus('Scan Complete!');
@@ -575,7 +585,7 @@ export default function CalculatorsPage() {
   };
 
   const updateFlagField = (resource, field, val) => {
-      setFlagData(prev => ({ ...prev, [resource]: { ...prev[resource], [field]: parseInt(val) || 0 } }));
+      setFlagData(prev => ({ ...prev, [resource]: { ...prev[resource], [field]: Math.max(0, parseInt(val) || 0) } }));
   };
 
   const clearFlagData = () => {
@@ -1290,17 +1300,9 @@ export default function CalculatorsPage() {
 
       {/* ALLIANCE FLAG CALCULATOR */}
       {activeTab === "flag" && (() => {
-        const FLAG_RESOURCES = [
-          { key: 'credits', label: 'Alliance Credits', emoji: '🪙', color: 'text-yellow-300' },
-          { key: 'food',    label: 'Alliance Food',    emoji: '🌽', color: 'text-lime-400' },
-          { key: 'wood',    label: 'Alliance Wood',    emoji: '🪵', color: 'text-amber-600' },
-          { key: 'stone',   label: 'Alliance Stone',   emoji: '🪨', color: 'text-slate-300' },
-          { key: 'gold',    label: 'Alliance Gold',    emoji: '💛', color: 'text-yellow-400' },
-        ];
         const { rows, maxMinutes, bottleneck } = getFlagReadiness();
         const hasAnyCost = rows.some(r => r.cost > 0);
         const allReady = hasAnyCost && rows.filter(r => r.cost > 0).every(r => r.ready);
-
         return (
           <div className="space-y-6 animate-fade-in">
 
