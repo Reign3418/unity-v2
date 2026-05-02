@@ -97,6 +97,18 @@ export default function CalculatorsPage() {
   const deadeyeInputRef = useRef(null);
   const [deadeyeCopied, setDeadeyeCopied] = useState(false);
 
+  // === Alliance Flag Calculator States ===
+  const flagInputRef = useRef(null);
+  const [isFlagScanning, setIsFlagScanning] = useState(false);
+  const [flagStatus, setFlagStatus] = useState('');
+  const [flagData, setFlagData] = useState({
+    credits: { cost: 0, stock: 0, income: 0 },
+    food:    { cost: 0, stock: 0, income: 0 },
+    wood:    { cost: 0, stock: 0, income: 0 },
+    stone:   { cost: 0, stock: 0, income: 0 },
+    gold:    { cost: 0, stock: 0, income: 0 },
+  });
+
   // === Real Estate Engine Math ===
   const handleRsMouseMove = (e) => {
     if (!rsImgRef.current) return;
@@ -500,6 +512,112 @@ export default function CalculatorsPage() {
       }
   };
 
+  // === Alliance Flag Calculator OCR Engine ===
+  const processFlagFile = async (file) => {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+          setFlagStatus('Error: Invalid file format (PNG/JPEG).');
+          return;
+      }
+      try {
+          setIsFlagScanning(true);
+          setFlagStatus('Scanning storehouse with Gemini Vision...');
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = async () => {
+              const base64 = reader.result.split(',')[1];
+              let customGeminiKey = '';
+              try {
+                  const prefs = JSON.parse(localStorage.getItem('unty_prefs') || '{}');
+                  customGeminiKey = prefs.geminiKey || '';
+              } catch (e) {}
+
+              const res = await fetch('/api/aws/admin/vision/flag', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      ...(customGeminiKey ? { 'x-gemini-key': customGeminiKey } : {})
+                  },
+                  body: JSON.stringify({ base64, mimeType: file.type })
+              });
+
+              if (!res.ok) {
+                  const errJson = await res.json();
+                  throw new Error(errJson.error || 'Vision OCR Server Error');
+              }
+
+              const parsed = await res.json();
+              const { stock = {}, income = {}, flagCost = {} } = parsed;
+
+              setFlagData(prev => ({
+                  credits: { cost: flagCost.credits ?? prev.credits.cost, stock: stock.credits ?? prev.credits.stock, income: income.credits ?? prev.credits.income },
+                  food:    { cost: flagCost.food    ?? prev.food.cost,    stock: stock.food    ?? prev.food.stock,    income: income.food    ?? prev.food.income },
+                  wood:    { cost: flagCost.wood    ?? prev.wood.cost,    stock: stock.wood    ?? prev.wood.stock,    income: income.wood    ?? prev.wood.income },
+                  stone:   { cost: flagCost.stone   ?? prev.stone.cost,   stock: stock.stone   ?? prev.stone.stock,   income: income.stone   ?? prev.stone.income },
+                  gold:    { cost: flagCost.gold    ?? prev.gold.cost,    stock: stock.gold    ?? prev.gold.stock,    income: income.gold    ?? prev.gold.income },
+              }));
+
+              setFlagStatus('Scan Complete!');
+              if (flagInputRef.current) flagInputRef.current.value = '';
+              setTimeout(() => setFlagStatus(''), 6000);
+          };
+      } catch (e) {
+          console.error('Flag OCR Exception', e);
+          setFlagStatus('OCR Failure: ' + (e.message || 'Could not read storehouse.'));
+      } finally {
+          setIsFlagScanning(false);
+      }
+  };
+
+  const handleFlagDrop = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) processFlagFile(e.dataTransfer.files[0]);
+  };
+
+  const updateFlagField = (resource, field, val) => {
+      setFlagData(prev => ({ ...prev, [resource]: { ...prev[resource], [field]: parseInt(val) || 0 } }));
+  };
+
+  const clearFlagData = () => {
+      setFlagData({ credits: { cost: 0, stock: 0, income: 0 }, food: { cost: 0, stock: 0, income: 0 }, wood: { cost: 0, stock: 0, income: 0 }, stone: { cost: 0, stock: 0, income: 0 }, gold: { cost: 0, stock: 0, income: 0 } });
+      setFlagStatus('');
+  };
+
+  // Flag readiness calculations
+  const getFlagReadiness = () => {
+      const RESOURCES = ['credits', 'food', 'wood', 'stone', 'gold'];
+      let maxMinutes = 0;
+      let bottleneck = null;
+      const rows = RESOURCES.map(key => {
+          const { cost, stock, income } = flagData[key];
+          if (cost === 0) return { key, cost, stock, income, deficit: 0, pct: 100, minutes: 0, ready: true };
+          const deficit = Math.max(0, cost - stock);
+          const pct = Math.min(100, cost > 0 ? Math.round((stock / cost) * 100) : 100);
+          const minutes = deficit > 0 && income > 0 ? Math.ceil((deficit / income) * 60) : deficit > 0 ? Infinity : 0;
+          if (minutes > maxMinutes) { maxMinutes = minutes; bottleneck = key; }
+          return { key, cost, stock, income, deficit, pct, minutes, ready: deficit === 0 };
+      });
+      return { rows, maxMinutes, bottleneck };
+  };
+
+  const formatFlagTime = (minutes) => {
+      if (!isFinite(minutes) || minutes === 0) return 'Ready';
+      if (minutes === Infinity) return '∞ (No Income)';
+      if (minutes < 60) return `${minutes}m`;
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      if (h < 24) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+      const d = Math.floor(h / 24);
+      const rh = h % 24;
+      return rh > 0 ? `${d}d ${rh}h` : `${d}d`;
+  };
+
+  const formatFlagNum = (n) => {
+      if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+      return Number(n).toLocaleString();
+  };
+
   const processResourceFile = async (file) => {
       if (!file) return;
       if (!file.type.startsWith('image/')) {
@@ -759,6 +877,7 @@ export default function CalculatorsPage() {
         <TabButton id="speedups" icon={Timer} label={t('tab_speedups')} color="indigo" />
         <TabButton id="resources" icon={Wheat} label={t('tab_resources')} color="amber" />
         <TabButton id="ap" icon={Zap} label={t('tab_ap')} color="cyan" />
+        <TabButton id="flag" icon={Shield} label="Alliance Flag" color="rose" />
         <TabButton id="forge" icon={Shield} label={t('tab_forge')} color="blue" />
         <TabButton id="realestate" icon={Map} label={t('tab_realestate')} color="teal" />
         <TabButton id="deadeye" icon={Eye} label={t('tab_deadeye')} color="fuchsia" />
@@ -1168,6 +1287,206 @@ export default function CalculatorsPage() {
           </div>
         </div>
       )}
+
+      {/* ALLIANCE FLAG CALCULATOR */}
+      {activeTab === "flag" && (() => {
+        const FLAG_RESOURCES = [
+          { key: 'credits', label: 'Alliance Credits', emoji: '🪙', color: 'text-yellow-300' },
+          { key: 'food',    label: 'Alliance Food',    emoji: '🌽', color: 'text-lime-400' },
+          { key: 'wood',    label: 'Alliance Wood',    emoji: '🪵', color: 'text-amber-600' },
+          { key: 'stone',   label: 'Alliance Stone',   emoji: '🪨', color: 'text-slate-300' },
+          { key: 'gold',    label: 'Alliance Gold',    emoji: '💛', color: 'text-yellow-400' },
+        ];
+        const { rows, maxMinutes, bottleneck } = getFlagReadiness();
+        const hasAnyCost = rows.some(r => r.cost > 0);
+        const allReady = hasAnyCost && rows.filter(r => r.cost > 0).every(r => r.ready);
+
+        return (
+          <div className="space-y-6 animate-fade-in">
+
+            {/* Header */}
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
+              <div className="flex items-center gap-3 relative z-10">
+                <span className="text-2xl">🚩</span>
+                <div>
+                  <h2 className="text-white font-black text-xl uppercase tracking-widest">Alliance Flag Calculator</h2>
+                  <p className="text-rose-400/70 text-xs font-bold uppercase tracking-widest mt-0.5">Calculate the exact bottleneck holding up your next alliance flag based on your current reserves and passive hourly income.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Screenshot Drop Zone */}
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6">
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleFlagDrop}
+                onClick={() => flagInputRef.current?.click()}
+                className="border-2 border-dashed border-[#2d323e] hover:border-rose-500/50 bg-[#0a0c0f] rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer"
+              >
+                {isFlagScanning ? (
+                  <>
+                    <RefreshCw size={32} className="text-rose-500 animate-spin mb-3" />
+                    <h3 className="text-rose-400 font-black tracking-widest uppercase text-xs mb-1">Scanning Storehouse...</h3>
+                    <p className="text-rose-500/50 text-[10px] uppercase font-bold tracking-wider">{flagStatus}</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-4xl mb-3">📷</span>
+                    <h3 className="text-white font-black tracking-widest uppercase text-xs mb-1">Drop Alliance Storehouse Screenshot Here</h3>
+                    <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Or click to browse</p>
+                    {flagStatus && (
+                      <p className={`text-[10px] uppercase font-bold tracking-wider ${flagStatus.includes('Complete') ? 'text-emerald-400' : flagStatus.includes('Error') || flagStatus.includes('Failure') ? 'text-rose-400' : 'text-rose-400/60'}`}>
+                        {flagStatus.includes('Complete') ? '✅ ' : ''}{flagStatus}
+                      </p>
+                    )}
+                    <p className="text-[9px] text-rose-400/40 mt-2 font-bold tracking-wider">*Requires Gemini API Key in Settings</p>
+                  </>
+                )}
+                <input type="file" ref={flagInputRef} accept="image/*" onChange={(e) => { if (e.target.files?.length) processFlagFile(e.target.files[0]); }} hidden />
+              </div>
+            </div>
+
+            {/* Resource Table */}
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#0a0c0f] border-b border-[#1e222b]">
+                    <tr>
+                      <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Resource</th>
+                      <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Flag Cost</th>
+                      <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Current Stock</th>
+                      <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Hourly Income</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1e222b]">
+                    {FLAG_RESOURCES.map(({ key, label, emoji, color }) => (
+                      <tr key={key} className="hover:bg-white/[0.015] transition-colors">
+                        <td className="px-5 py-3">
+                          <span className={`font-black text-sm flex items-center gap-2 ${color}`}>
+                            <span>{emoji}</span> {label}
+                          </span>
+                        </td>
+                        {['cost', 'stock', 'income'].map(field => (
+                          <td key={field} className="px-5 py-2">
+                            <input
+                              type="number" min="0"
+                              value={flagData[key][field] || ''}
+                              placeholder="0"
+                              onChange={(e) => updateFlagField(key, field, e.target.value)}
+                              className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded py-1.5 px-3 text-sm focus:border-rose-500/50 outline-none"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Flag Readiness Panel */}
+            {hasAnyCost && (
+              <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 space-y-5">
+                {/* Big time display */}
+                <div className="text-center pb-4 border-b border-[#1e222b]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">FLAG READINESS</p>
+                  <p className={`text-5xl font-black ${allReady ? 'text-emerald-400' : 'text-white'}`}>
+                    {allReady ? 'Ready Now! 🚩' : formatFlagTime(maxMinutes)}
+                  </p>
+                  {bottleneck && !allReady && (
+                    <p className="text-rose-400 font-bold text-sm mt-2">
+                      {FLAG_RESOURCES.find(r => r.key === bottleneck)?.emoji} {FLAG_RESOURCES.find(r => r.key === bottleneck)?.label.replace('Alliance ', '')} is your bottleneck.
+                    </p>
+                  )}
+                </div>
+
+                {/* Per-resource bars */}
+                <div className="space-y-4">
+                  {rows.filter(r => r.cost > 0).map(r => {
+                    const meta = FLAG_RESOURCES.find(x => x.key === r.key);
+                    const isBot = r.key === bottleneck && !r.ready;
+                    return (
+                      <div key={r.key}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-sm font-black flex items-center gap-1.5 ${isBot ? 'text-rose-400' : 'text-white'}`}>
+                            {meta?.emoji} {meta?.label.replace('Alliance ', '')}
+                            {isBot && <span className="text-[10px] bg-rose-500/20 border border-rose-500/30 text-rose-400 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">⚠ Bottleneck</span>}
+                          </span>
+                          <span className="text-xs font-mono text-gray-400">{r.pct}%</span>
+                        </div>
+                        <div className="w-full bg-[#0a0c0f] rounded-full h-2 border border-[#1e222b] overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${r.ready ? 'bg-emerald-500' : isBot ? 'bg-rose-500' : 'bg-amber-500'}`}
+                            style={{ width: `${r.pct}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-0.5">
+                          <span className="text-[10px] text-gray-600 font-mono">Deficit: {r.deficit > 0 ? formatFlagNum(r.deficit) : '0'}</span>
+                          <span className={`text-[10px] font-bold ${r.ready ? 'text-emerald-400' : 'text-gray-500'}`}>
+                            Time: {r.ready ? 'Ready' : formatFlagTime(r.minutes)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Glide Path */}
+                {rows.some(r => r.income > 0) && (
+                  <div className="border-t border-[#1e222b] pt-5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3 text-center">GLIDE PATH (PASSIVE INCOME)</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-[#1e222b]">
+                            <th className="pb-2 text-left text-[10px] font-black uppercase tracking-widest text-gray-600">Resource</th>
+                            <th className="pb-2 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">24h (1d)</th>
+                            <th className="pb-2 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">72h (3d)</th>
+                            <th className="pb-2 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">168h (1wk)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#1e222b]">
+                          {rows.filter(r => r.income > 0).map(r => {
+                            const meta = FLAG_RESOURCES.find(x => x.key === r.key);
+                            return (
+                              <tr key={r.key} className="hover:bg-white/[0.015]">
+                                <td className={`py-2 font-bold flex items-center gap-1.5 ${meta?.color}`}>
+                                  {meta?.emoji} {meta?.label.replace('Alliance ', '')}
+                                </td>
+                                <td className="py-2 text-right font-mono text-emerald-400">+{formatFlagNum(r.income * 24)}</td>
+                                <td className="py-2 text-right font-mono text-emerald-400">+{formatFlagNum(r.income * 72)}</td>
+                                <td className="py-2 text-right font-mono text-emerald-400">+{formatFlagNum(r.income * 168)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!hasAnyCost && (
+              <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 text-center text-gray-600 font-bold text-sm uppercase tracking-widest">
+                Enter flag costs to test for bottlenecks.
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-4">
+              <button
+                onClick={clearFlagData}
+                className="flex-1 border border-[#1e222b] bg-[#0f1115] hover:bg-[#1a1e26] text-gray-400 hover:text-white py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-colors"
+              >
+                Clear All Values
+              </button>
+            </div>
+
+          </div>
+        );
+      })()}
 
       {/* EQUIPMENT FORGE */}
       {activeTab === "forge" && (
