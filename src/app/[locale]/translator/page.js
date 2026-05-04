@@ -1,6 +1,12 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
+const TARGET_LANGUAGES = [
+  'English', 'Russian', 'Arabic', 'Chinese (Simplified)', 'Chinese (Traditional)',
+  'Turkish', 'German', 'French', 'Spanish', 'Portuguese', 'Korean', 'Japanese',
+  'Italian', 'Dutch', 'Polish', 'Thai', 'Vietnamese', 'Indonesian', 'Hindi', 'Greek',
+];
+
 const LANG_FLAGS = {
   arabic: '🇸🇦', russian: '🇷🇺', chinese: '🇨🇳', 'chinese simplified': '🇨🇳',
   'chinese traditional': '🇹🇼', turkish: '🇹🇷', german: '🇩🇪', french: '🇫🇷',
@@ -16,17 +22,17 @@ function getFlag(lang) {
   return '🌐';
 }
 
-function MessageCard({ msg }) {
+function MessageCard({ msg, targetLanguage }) {
   const [expanded, setExpanded] = useState(false);
-  const isEn = msg.language?.toLowerCase().includes('english');
+  const isTarget = msg.language?.toLowerCase().includes(targetLanguage.toLowerCase().split(' ')[0]);
   return (
     <div
-      onClick={() => !isEn && setExpanded(x => !x)}
+      onClick={() => !isTarget && setExpanded(x => !x)}
       style={{
         background: '#0f1115', borderRadius: '8px', padding: '10px 12px',
-        border: `1px solid ${isEn ? '#1e222b' : '#1a3329'}`,
-        borderLeft: `3px solid ${isEn ? '#374151' : '#10b981'}`,
-        cursor: isEn ? 'default' : 'pointer', marginBottom: '8px'
+        border: `1px solid ${isTarget ? '#1e222b' : '#1a3329'}`,
+        borderLeft: `3px solid ${isTarget ? '#374151' : '#10b981'}`,
+        cursor: isTarget ? 'default' : 'pointer', marginBottom: '8px'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
@@ -35,13 +41,13 @@ function MessageCard({ msg }) {
           {msg.player && <span style={{ fontSize: '10px', fontWeight: 900, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{msg.player}</span>}
         </div>
         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-          <span style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, background: isEn ? '#1e222b' : '#0596691a', color: isEn ? '#4b5563' : '#10b981', border: `1px solid ${isEn ? '#1e222b' : '#10b98133'}` }}>{msg.language || '?'}</span>
+          <span style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, background: isTarget ? '#1e222b' : '#0596691a', color: isTarget ? '#4b5563' : '#10b981', border: `1px solid ${isTarget ? '#1e222b' : '#10b98133'}` }}>{msg.language || '?'}</span>
           <span style={{ fontSize: '9px', color: '#374151', fontWeight: 700 }}>{msg.ts}</span>
         </div>
       </div>
-      <p style={{ fontSize: '12px', color: isEn ? '#9ca3af' : '#e5e7eb', margin: 0, lineHeight: 1.5, fontWeight: isEn ? 400 : 600 }}>{msg.translation}</p>
-      {!isEn && expanded && <p style={{ fontSize: '11px', color: '#4b5563', margin: '6px 0 0', fontStyle: 'italic', borderTop: '1px solid #1e222b', paddingTop: '6px' }}>Original: {msg.original}</p>}
-      {!isEn && !expanded && <p style={{ fontSize: '9px', color: '#374151', margin: '4px 0 0', fontWeight: 700 }}>tap to see original</p>}
+      <p style={{ fontSize: '12px', color: isTarget ? '#9ca3af' : '#e5e7eb', margin: 0, lineHeight: 1.5, fontWeight: isTarget ? 400 : 600 }}>{msg.translation}</p>
+      {!isTarget && expanded && <p style={{ fontSize: '11px', color: '#4b5563', margin: '6px 0 0', fontStyle: 'italic', borderTop: '1px solid #1e222b', paddingTop: '6px' }}>Original: {msg.original}</p>}
+      {!isTarget && !expanded && <p style={{ fontSize: '9px', color: '#374151', margin: '4px 0 0', fontWeight: 700 }}>tap to see original</p>}
     </div>
   );
 }
@@ -51,6 +57,7 @@ export default function TranslatorPage() {
   const [status, setStatus] = useState('idle');
   const [messages, setMessages] = useState([]);
   const [captureInterval, setCaptureInterval] = useState(3);
+  const [targetLanguage, setTargetLanguage] = useState('English');
   const [lastCapture, setLastCapture] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [supported, setSupported] = useState(true);
@@ -62,8 +69,10 @@ export default function TranslatorPage() {
   const seenRef = useRef(new Set());
   const geminiKeyRef = useRef('');
   const intervalRef = useRef(captureInterval);
+  const targetLangRef = useRef(targetLanguage);
 
   useEffect(() => { intervalRef.current = captureInterval; }, [captureInterval]);
+  useEffect(() => { targetLangRef.current = targetLanguage; }, [targetLanguage]);
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) setSupported(false);
@@ -85,7 +94,7 @@ export default function TranslatorPage() {
       const res = await fetch('/api/tools/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(geminiKeyRef.current ? { 'x-gemini-key': geminiKeyRef.current } : {}) },
-        body: JSON.stringify({ base64, mimeType: 'image/jpeg' })
+        body: JSON.stringify({ base64, mimeType: 'image/jpeg', targetLanguage: targetLangRef.current })
       });
       const data = await res.json();
       if (!res.ok) { setErrorMsg(data.error || 'Translation error'); return; }
@@ -196,6 +205,18 @@ export default function TranslatorPage() {
         <button onClick={() => { setMessages([]); seenRef.current.clear(); }} style={{ background: '#13161c', border: '1px solid #1e222b', color: '#6b7280', borderRadius: '8px', padding: '10px 12px', cursor: 'pointer', fontSize: '14px' }} title="Clear">🗑</button>
       </div>
 
+      {/* Target language selector */}
+      <div style={{ background: '#0a0c0f', borderBottom: '1px solid #1e222b', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <span style={{ fontSize: '10px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>Translate to →</span>
+        <select
+          value={targetLanguage}
+          onChange={e => { setTargetLanguage(e.target.value); setMessages([]); seenRef.current.clear(); }}
+          style={{ flex: 1, background: '#13161c', border: '1px solid #1e222b', color: 'white', borderRadius: '8px', padding: '7px 10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+        >
+          {TARGET_LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
+        </select>
+      </div>
+
       {/* Status bar */}
       {(lastCapture || errorMsg) && (
         <div style={{ ...S.statusBar, background: errorMsg ? '#7f1d1d15' : '#05966915', borderBottom: `1px solid ${errorMsg ? '#ef444422' : '#10b98122'}` }}>
@@ -225,7 +246,7 @@ export default function TranslatorPage() {
             </div>
           </div>
         ) : (
-          messages.map(msg => <MessageCard key={msg.id} msg={msg} />)
+          messages.map(msg => <MessageCard key={msg.id} msg={msg} targetLanguage={targetLanguage} />)
         )}
       </div>
     </div>

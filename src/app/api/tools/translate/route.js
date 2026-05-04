@@ -4,7 +4,7 @@ import { getGlobalConfig } from "@/lib/awsDynamo";
 export async function POST(req) {
     try {
         const body = await req.json();
-        const { base64, mimeType } = body;
+        const { base64, mimeType, targetLanguage = 'English' } = body;
         if (!base64 || !mimeType) return NextResponse.json({ error: "Missing image data." }, { status: 400 });
 
         const customKey = req.headers.get('x-gemini-key');
@@ -18,8 +18,8 @@ export async function POST(req) {
 Extract EVERY visible chat message. For each message:
 1. Extract the player name (if visible, otherwise use null)
 2. Identify the source language (e.g. "Arabic", "Russian", "Chinese", "Turkish", "English", etc.)
-3. Translate the message to English
-4. If the message is already in English, still include it with translation equal to the original text
+3. Translate the message to ${targetLanguage}
+4. If the message is already in ${targetLanguage}, still include it with translation equal to the original text
 
 Only extract actual player chat messages. Ignore UI buttons, icons, and navigation elements.
 If no chat messages are visible, return an empty messages array.
@@ -27,7 +27,7 @@ If no chat messages are visible, return an empty messages array.
 Return ONLY valid JSON:
 {
   "messages": [
-    { "player": "PlayerName or null", "language": "Arabic", "original": "original text", "translation": "English translation" }
+    { "player": "PlayerName or null", "language": "Arabic", "original": "original text", "translation": "${targetLanguage} translation here" }
   ]
 }`;
 
