@@ -118,6 +118,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               </div>
               <span className="text-[10px] font-mono bg-fuchsia-500/20 px-2 py-0.5 rounded text-fuchsia-200 uppercase tracking-widest border border-fuchsia-500/30">Applet</span>
           </button>
+          <button 
+            onClick={() => window.open('/en/translator', 'Unity Translator', 'width=420,height=720,toolbar=0,menubar=0,location=0,resizable=1')}
+            className={`w-[calc(100%-2rem)] mx-4 flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200 group relative border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-emerald-300 mt-2`}
+          >
+              <div className="flex items-center gap-3">
+                  <span className="text-[18px]">🌐</span>
+                  <span className="text-sm font-medium">Chat Translator</span>
+              </div>
+              <span className="text-[10px] font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-200 uppercase tracking-widest border border-emerald-500/30">Applet</span>
+          </button>
         </div>
       </div>
 
