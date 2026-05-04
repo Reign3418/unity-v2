@@ -242,6 +242,36 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">{t('gemini_key')}</label>
+              
+              {/* How-to panel */}
+              <div className="mb-4 bg-[#0a0c0f] border border-emerald-500/20 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">🔑 Get Your Free AI Key</p>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Free Tier Available</span>
+                </div>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Unity uses Google Gemini AI for OCR, translation, and analysis. Adding your own key uses your personal free quota instead of the shared server key — saving costs for everyone.
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <span className="text-[10px] font-black text-white bg-emerald-500/20 border border-emerald-500/30 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <p className="text-xs text-gray-300">Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-cyan-400 font-bold hover:text-cyan-300 underline underline-offset-2">aistudio.google.com/apikey</a> — sign in with any Google account</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-[10px] font-black text-white bg-emerald-500/20 border border-emerald-500/30 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <p className="text-xs text-gray-300">Click <span className="text-white font-bold">"Create API Key"</span> → copy the key that starts with <span className="font-mono text-emerald-400">AIzaSy...</span></p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-[10px] font-black text-white bg-emerald-500/20 border border-emerald-500/30 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <p className="text-xs text-gray-300">Paste it in the field below and click <span className="text-white font-bold">Save Changes</span></p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-[#1e222b] mt-3">
+                  <span className="text-[10px] text-amber-400 font-bold">💡 Free tier:</span>
+                  <span className="text-[10px] text-gray-400">1,500 requests/day — covers ~25 min of Chat Translator or ~50 OCR scans at no cost.</span>
+                </div>
+              </div>
+
               <input 
                 type="password"
                 placeholder="AIzaSy..."
