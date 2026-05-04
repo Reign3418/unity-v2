@@ -61,6 +61,7 @@ export default function TranslatorPage() {
   const [lastCapture, setLastCapture] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [supported, setSupported] = useState(true);
+  const [hasPersonalKey, setHasPersonalKey] = useState(false);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -76,7 +77,11 @@ export default function TranslatorPage() {
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) setSupported(false);
-    try { const p = JSON.parse(localStorage.getItem('unty_prefs') || '{}'); geminiKeyRef.current = p.geminiKey || ''; } catch (e) {}
+    try {
+      const p = JSON.parse(localStorage.getItem('unty_prefs') || '{}');
+      geminiKeyRef.current = p.geminiKey || '';
+      setHasPersonalKey(!!p.geminiKey);
+    } catch (e) {}
     document.title = '🌐 Unity Translator';
   }, []);
 
@@ -217,7 +222,17 @@ export default function TranslatorPage() {
         </select>
       </div>
 
-      {/* Status bar */}
+      {/* API Key status banner */}
+      <div style={{ background: hasPersonalKey ? '#052e1a' : '#1c1200', borderBottom: `1px solid ${hasPersonalKey ? '#10b98133' : '#f59e0b33'}`, padding: '6px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        {hasPersonalKey ? (
+          <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>🔑 Using your personal Gemini key — costs hit your quota</span>
+        ) : (
+          <>
+            <span style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 700 }}>⚠ Using server key — ~$0.60/hr. Add your own key to use free quota.</span>
+            <a href="/settings" target="_blank" style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 900, textDecoration: 'underline', whiteSpace: 'nowrap', marginLeft: '8px' }}>Settings →</a>
+          </>
+        )}
+      </div>
       {(lastCapture || errorMsg) && (
         <div style={{ ...S.statusBar, background: errorMsg ? '#7f1d1d15' : '#05966915', borderBottom: `1px solid ${errorMsg ? '#ef444422' : '#10b98122'}` }}>
           {errorMsg
