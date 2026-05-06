@@ -665,57 +665,6 @@ export default function SoCTab({ targetKd }) {
                         )}
                     </div>
 
-                    {/* Cyclical Event Spawners */}
-                    {/* ── Tides of War Schedule ─────────────────────────────────────── */}
-                    {hasValidDate && selectedMap === "Tides of War" && tidesSchedule.length > 0 && (
-                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg animate-in fade-in zoom-in-95 duration-500">
-                            <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-cyan-500/50 via-purple-500/50 to-rose-500/50" />
-                            <div className="p-4 bg-cyan-500/5 flex items-center justify-between border-b border-[#1e222b]">
-                                <h4 className="font-bold text-cyan-400 flex items-center gap-2">
-                                    <Clock className="w-4 h-4" />
-                                    Tides of War — Rotation Schedule
-                                </h4>
-                                <span className="text-[10px] uppercase font-black tracking-widest text-[#6b7280]">4-Day Cycle</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                    <thead className="sticky top-0 bg-[#0a0c0f] border-b border-[#1e222b] z-10">
-                                        <tr>
-                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">#</th>
-                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Tide</th>
-                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Type</th>
-                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Start</th>
-                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">End</th>
-                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Milestone</th>
-                                            <th className="py-2.5 px-4 text-right font-bold text-slate-500 uppercase tracking-widest text-[9px]">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#1e222b]">
-                                        {tidesSchedule.map(tide => {
-                                            const typeColor = tide.type === 'pvp' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : tide.type === 'pve' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30';
-                                            return (
-                                                <tr key={tide.idx} className={`transition-colors ${ tide.isPast ? 'opacity-35' : tide.isActive ? 'bg-cyan-500/8' : 'hover:bg-white/[0.02]' }`}>
-                                                    <td className="py-3 px-4 text-slate-600 font-mono text-[10px]">{tide.idx}</td>
-                                                    <td className={`py-3 px-4 font-bold text-[11px] whitespace-nowrap ${ tide.isActive ? 'text-cyan-300' : 'text-slate-300' }`}>{tide.title}</td>
-                                                    <td className="py-3 px-4">
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${typeColor}`}>{tide.type}</span>
-                                                    </td>
-                                                    <td className="py-3 px-4 font-mono text-slate-400 text-[10px] whitespace-nowrap">{format(tide.start, 'E d MMM')}</td>
-                                                    <td className="py-3 px-4 font-mono text-slate-500 text-[10px] whitespace-nowrap">{format(tide.end,   'E d MMM')}</td>
-                                                    <td className="py-3 px-4 text-[10px] text-amber-400/80 font-bold">{tide.note || '—'}</td>
-                                                    <td className="py-3 px-4 text-right font-black uppercase tracking-widest text-[10px]">
-                                                        {tide.isPast   ? <span className="text-slate-600">DONE</span>
-                                                         : tide.isActive ? <span className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">ACTIVE</span>
-                                                         : <span className="text-slate-500">UPCOMING</span>}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
 
                     {/* ── Siege of Orleans Cyclical Spawners ────────────────────── */}
                     {hasValidDate && selectedMap === "Siege of Orleans" && ruinsSchedule.length > 0 && (
@@ -802,6 +751,71 @@ export default function SoCTab({ targetKd }) {
                         </div>
                     )}
                 </div>
+
+                {/* ── Right column: Tides of War rotation (ToW) or Stratagems (SoO) ── */}
+                {selectedMap === "Tides of War" && hasValidDate && tidesSchedule.length > 0 && (
+                    <div className="xl:col-span-5 space-y-4">
+                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden h-full flex flex-col shadow-lg">
+                            <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-cyan-500/50 via-purple-500/50 to-rose-500/50" />
+                            <div className="p-4 bg-cyan-500/5 flex items-center justify-between border-b border-[#1e222b]">
+                                <h4 className="font-bold text-cyan-400 flex items-center gap-2">
+                                    <Clock className="w-4 h-4" />
+                                    Tides Rotation Schedule
+                                </h4>
+                                <span className="text-[10px] uppercase font-black tracking-widest text-[#6b7280]">4-Day Cycle</span>
+                            </div>
+                            <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-800">
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-[#0a0c0f] border-b border-[#1e222b] z-10">
+                                        <tr>
+                                            <th className="py-2.5 px-3 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Tide</th>
+                                            <th className="py-2.5 px-3 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Type</th>
+                                            <th className="py-2.5 px-3 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Start → End</th>
+                                            <th className="py-2.5 px-3 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Milestone</th>
+                                            <th className="py-2.5 px-3 text-right font-bold text-slate-500 uppercase tracking-widest text-[9px]">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#1e222b]">
+                                        {tidesSchedule.map(tide => {
+                                            const typeColor = tide.type === 'pvp'
+                                                ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
+                                                : tide.type === 'pve'
+                                                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                                                : 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+                                            return (
+                                                <tr key={tide.idx} className={`transition-colors ${
+                                                    tide.isPast ? 'opacity-35'
+                                                    : tide.isActive ? 'bg-cyan-500/5 border-l-2 border-cyan-500'
+                                                    : 'hover:bg-white/[0.02]'
+                                                }`}>
+                                                    <td className={`py-3 px-3 font-bold text-[11px] whitespace-nowrap ${ tide.isActive ? 'text-cyan-300' : 'text-slate-300' }`}>
+                                                        {tide.title}
+                                                    </td>
+                                                    <td className="py-2.5 px-3">
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${typeColor}`}>{tide.type}</span>
+                                                    </td>
+                                                    <td className="py-3 px-3 font-mono text-[10px] whitespace-nowrap">
+                                                        <span className="text-slate-400">{format(tide.start, 'd MMM')}</span>
+                                                        <span className="text-slate-600 mx-1">→</span>
+                                                        <span className="text-slate-500">{format(tide.end, 'd MMM')}</span>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-[10px] text-amber-400/80 font-bold">{tide.note || '—'}</td>
+                                                    <td className="py-3 px-3 text-right font-black uppercase tracking-widest text-[10px]">
+                                                        {tide.isPast
+                                                            ? <span className="text-slate-600">DONE</span>
+                                                            : tide.isActive
+                                                            ? <span className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">ACTIVE</span>
+                                                            : <span className="text-slate-500">—</span>}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Stratagems Panel — Siege of Orleans only */}
                 {selectedMap === "Siege of Orleans" && <div className="xl:col-span-5 space-y-4">
