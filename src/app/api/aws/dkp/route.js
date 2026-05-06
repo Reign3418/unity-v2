@@ -30,13 +30,18 @@ export async function GET(req) {
        return NextResponse.json({ rankings: [] }, { status: 200 });
     }
 
+    // If the user picked the same snapshot for both start and end, deltas are
+    // physically zero — guard against pre-stored scan-time deltas bleeding through
+    // from the getKingdomRoster fallback path.
+    const sameWindow = !!(startScan && endScan && startScan === endScan);
+
     // Mathematical Formatting for DKP Scoring Engine
     const rankings = roster.map(gov => {
-        let pDelta = typeof gov.powerDelta === 'number' ? gov.powerDelta : 0;
-        let kDelta = typeof gov.kpDelta === 'number' ? gov.kpDelta : 0;
-        let dDelta = typeof gov.deadsDelta === 'number' ? gov.deadsDelta : 0;
-        let t4Delta = typeof gov.t4Delta === 'number' ? gov.t4Delta : 0;
-        let t5Delta = typeof gov.t5Delta === 'number' ? gov.t5Delta : 0;
+        let pDelta = sameWindow ? 0 : (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0);
+        let kDelta = sameWindow ? 0 : (typeof gov.kpDelta    === 'number' ? gov.kpDelta    : 0);
+        let dDelta = sameWindow ? 0 : (typeof gov.deadsDelta === 'number' ? gov.deadsDelta : 0);
+        let t4Delta = sameWindow ? 0 : (typeof gov.t4Delta   === 'number' ? gov.t4Delta    : 0);
+        let t5Delta = sameWindow ? 0 : (typeof gov.t5Delta   === 'number' ? gov.t5Delta    : 0);
         
         if (kDelta < 0) kDelta = 0;
         if (dDelta < 0) dDelta = 0;
