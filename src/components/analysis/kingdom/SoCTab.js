@@ -792,8 +792,8 @@ export default function SoCTab({ targetKd }) {
                     )}
                 </div>
 
-                {/* Stratagems Panel */}
-                <div className="xl:col-span-5 space-y-4">
+                {/* Stratagems Panel — Siege of Orleans only */}
+                {selectedMap === "Siege of Orleans" && <div className="xl:col-span-5 space-y-4">
                     <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6 h-full flex flex-col">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold flex items-center gap-2">
@@ -847,7 +847,7 @@ export default function SoCTab({ targetKd }) {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>}
 
             </div>
 
