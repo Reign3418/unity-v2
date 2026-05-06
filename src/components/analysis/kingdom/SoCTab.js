@@ -378,7 +378,7 @@ export default function SoCTab({ targetKd }) {
             setIsDkpLoading(false);
         }
 
-    }, [camps, dkpStartScan, latestScan, globalConfig]);
+    }, [camps, dkpStartScan, latestScan, globalConfig, governorCap]);
 
     if (isLoading) {
         return (
