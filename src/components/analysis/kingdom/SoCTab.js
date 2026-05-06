@@ -205,12 +205,14 @@ export default function SoCTab({ targetKd }) {
         setIsScanning(true);
         const reader = new FileReader();
         reader.onloadend = async () => {
-             const base64Data = reader.result.split(',')[1];
-             try {
+            const base64Data = reader.result.split(',')[1];
+            // Pass the currently active camp names so the prompt is format-aware
+            const campNames = camps.map(c => c.name);
+            try {
                 const res = await fetch('/api/aws/admin/vision/soc-camps', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ base64: base64Data, mimeType: file.type })
+                    body: JSON.stringify({ base64: base64Data, mimeType: file.type, campNames })
                 });
                 const data = await res.json();
                 if (data.success && data.camps) {
@@ -221,12 +223,12 @@ export default function SoCTab({ targetKd }) {
                         return camp;
                     }));
                 } else {
-                    alert("Failure: " + (data.error || "Could not extract data from the image."));
+                    alert('Scan failed: ' + (data.error || 'Could not extract data from the image.'));
                 }
-             } catch(err) {
-                 alert("Network fault scanning image.");
-             } finally {
-                 setIsScanning(false);
+            } catch(err) {
+                alert('Network fault scanning image.');
+            } finally {
+                setIsScanning(false);
                  // Reset input so they can upload the identical file again if needed
                  if (fileInputRef.current) fileInputRef.current.value = "";
              }
