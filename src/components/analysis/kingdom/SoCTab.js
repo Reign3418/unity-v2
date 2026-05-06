@@ -50,6 +50,7 @@ export default function SoCTab({ targetKd }) {
     const [isDatesLoading, setIsDatesLoading] = useState(false);
     const [campDkpRows, setCampDkpRows] = useState([]);
     const [isDkpLoading, setIsDkpLoading] = useState(false);
+    const [governorCap, setGovernorCap]   = useState(0); // 0 = unlimited
 
     // AI Tactical Brief
     const [isBriefing, setIsBriefing]   = useState(false);
@@ -342,8 +343,12 @@ export default function SoCTab({ targetKd }) {
                     
                     if (!res.ok || !data.rankings) continue;
 
+                    // Apply governor cap: sort by power desc, slice to N before aggregating
+                    const sorted = [...data.rankings].sort((a, b) => (b.power || 0) - (a.power || 0));
+                    const capped = governorCap > 0 ? sorted.slice(0, governorCap) : sorted;
+
                     // Sum this kingdom's players into the Camp Totals
-                    const kdAgg = data.rankings.reduce((acc, gov) => {
+                    const kdAgg = capped.reduce((acc, gov) => {
                         acc.totalPower += gov.power || 0;
                         acc.powerDelta += typeof gov.pDelta === "number" ? gov.pDelta : 0;
                         acc.t4Kills += typeof gov.t4Delta === "number" ? gov.t4Delta : 0;
@@ -706,16 +711,32 @@ export default function SoCTab({ targetKd }) {
                             <span className="text-[9px] text-cyan-400/40 font-bold tracking-wide">DKP tracking ends here</span>
                         </div>
 
-                        {/* Compute button */}
-                        <div className="flex flex-col items-center justify-end pb-6">
-                        <button
-                            onClick={fetchCampDkp}
-                            disabled={isDkpLoading || !dkpStartScan || !latestScan}
-                            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-cyan-500/50 px-4 py-1.5 rounded font-bold uppercase tracking-widest text-[11px] transition-colors disabled:opacity-50"
-                        >
-                            <RefreshCw size={14} className={isDkpLoading ? "animate-spin text-cyan-400" : ""} />
-                            Compute Data
-                        </button>
+                        {/* Compute button + governor cap selector */}
+                        <div className="flex flex-col items-center justify-end gap-2 pb-6">
+                            <div className="flex items-center gap-1.5 bg-[#0f1115] border border-slate-700 rounded px-2 py-1">
+                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider whitespace-nowrap">Top</span>
+                                <select
+                                    value={governorCap}
+                                    onChange={(e) => setGovernorCap(Number(e.target.value))}
+                                    className="bg-transparent text-slate-300 text-[10px] font-mono border-0 focus:ring-0 cursor-pointer outline-none"
+                                    title="Cap the number of governors counted per kingdom (sorted by power)"
+                                >
+                                    <option value={0}>All</option>
+                                    <option value={300}>300</option>
+                                    <option value={400}>400</option>
+                                    <option value={650}>650</option>
+                                    <option value={1000}>1000</option>
+                                </select>
+                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Gov</span>
+                            </div>
+                            <button
+                                onClick={fetchCampDkp}
+                                disabled={isDkpLoading || !dkpStartScan || !latestScan}
+                                className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-cyan-500/50 px-4 py-1.5 rounded font-bold uppercase tracking-widest text-[11px] transition-colors disabled:opacity-50"
+                            >
+                                <RefreshCw size={14} className={isDkpLoading ? "animate-spin text-cyan-400" : ""} />
+                                Compute Data
+                            </button>
                         </div>
                     </div>
                 </div>
