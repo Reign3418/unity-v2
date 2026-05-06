@@ -755,7 +755,7 @@ export default function SoCTab({ targetKd }) {
                 {/* ── Right column: Tides of War rotation (ToW) or Stratagems (SoO) ── */}
                 {selectedMap === "Tides of War" && hasValidDate && tidesSchedule.length > 0 && (
                     <div className="xl:col-span-5 space-y-4">
-                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden h-full flex flex-col shadow-lg">
+                        <div className="relative bg-[#0f1115] border border-[#1e222b] rounded-2xl overflow-hidden h-full flex flex-col shadow-lg">
                             <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-cyan-500/50 via-purple-500/50 to-rose-500/50" />
                             <div className="p-4 bg-cyan-500/5 flex items-center justify-between border-b border-[#1e222b]">
                                 <h4 className="font-bold text-cyan-400 flex items-center gap-2">
