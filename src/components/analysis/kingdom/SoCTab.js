@@ -51,6 +51,11 @@ export default function SoCTab({ targetKd }) {
     const [campDkpRows, setCampDkpRows] = useState([]);
     const [isDkpLoading, setIsDkpLoading] = useState(false);
 
+    // AI Tactical Brief
+    const [isBriefing, setIsBriefing]   = useState(false);
+    const [aiBrief, setAiBrief]         = useState(null);
+    const [briefError, setBriefError]   = useState(null);
+
     // Fetch available scan dates and default latest + DKP start
     useEffect(() => {
         if (!targetKd) return;
@@ -165,22 +170,75 @@ export default function SoCTab({ targetKd }) {
             socStratagems: stratagems,
             socCamps: camps
         };
-        
         setGlobalConfig(updatedConfig);
-        
         try {
             await fetch(`/api/aws/admin/dkp-config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ kd: targetKd, configData: updatedConfig })
             });
-            alert("✅ Tactical Plan Synced to Kingdom Cloud!");
+            alert('✅ Tactical Plan Synced to Kingdom Cloud!');
         } catch(e) {
-            console.error("Failed to sync to AWS", e);
-            alert("❌ Network Error while saving.");
+            console.error('Failed to sync to AWS', e);
+            alert('❌ Network Error while saving.');
         }
         setIsSaving(false);
     };
+
+    const runAiBrief = async () => {
+        setIsBriefing(true);
+        setAiBrief(null);
+        setBriefError(null);
+        try {
+            // Find the current active phase from the timeline
+            const timelineEvents = MAP_TIMELINES[selectedMap] || [];
+            const baseDate = regDate ? parseISO(regDate) : null;
+            let currentPhase = null;
+            if (baseDate && isValid(baseDate)) {
+                const now = new Date();
+                const active = timelineEvents.filter(ev => {
+                    const start = addDays(baseDate, ev.offsetDays);
+                    const end   = addDays(baseDate, ev.offsetDays + (ev.durationDays || 1));
+                    return start <= now && end > now;
+                });
+                if (active.length > 0) {
+                    const ev = active[active.length - 1];
+                    currentPhase = {
+                        title: ev.title,
+                        description: ev.description,
+                        date: format(addDays(baseDate, ev.offsetDays), 'MMM do, yyyy'),
+                    };
+                }
+            }
+
+            const prefs = JSON.parse(localStorage.getItem('unty_prefs') || '{}');
+            const headers = { 'Content-Type': 'application/json' };
+            if (prefs.geminiKey) headers['x-gemini-key'] = prefs.geminiKey;
+
+            const res = await fetch('/api/aws/admin/soc-brief', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    mapName: selectedMap,
+                    regDate,
+                    currentPhase,
+                    camps: camps.map(c => ({ name: c.name, kds: c.kds })),
+                    campDkpRows,
+                }),
+            });
+            const data = await res.json();
+            if (data.success && data.brief) {
+                setAiBrief(data.brief);
+            } else {
+                setBriefError(data.error || 'AI core failed to respond.');
+            }
+        } catch(err) {
+            setBriefError('Network fault — brief request failed.');
+        } finally {
+            setIsBriefing(false);
+        }
+    };
+
 
     const handleStratagemChange = (id, field, value) => {
         setStratagems(stratagems.map(s => s.id === id ? { ...s, [field]: value } : s));
@@ -386,6 +444,15 @@ export default function SoCTab({ targetKd }) {
                         {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {isSaving ? "Syncing..." : "Sync to Cloud"}
                     </button>
+                    <button
+                        onClick={runAiBrief}
+                        disabled={isBriefing || camps.every(c => !c.kds)}
+                        className="bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-300 px-6 py-2 rounded-xl font-bold uppercase tracking-widest text-sm disabled:opacity-40 flex items-center gap-2 transition-all border border-cyan-500/40 hover:border-cyan-400/70 shadow-[0_0_15px_rgba(34,211,238,0.15)] hover:shadow-[0_0_25px_rgba(34,211,238,0.3)]"
+                        title={camps.every(c => !c.kds) ? 'Add kingdoms to coalitions first' : 'Generate AI tactical briefing'}
+                    >
+                        {isBriefing ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-base leading-none">⚡</span>}
+                        {isBriefing ? 'Analyzing...' : 'AI Tactical Brief'}
+                    </button>
                     
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0f1115] rounded-xl border border-slate-800">
                         <Map className="w-4 h-4 text-slate-400" />
@@ -406,6 +473,116 @@ export default function SoCTab({ targetKd }) {
                 </div>
             </div>
 
+            {/* ── J.A.R.V.I.S. AI Tactical Brief Panel ─────────────────────── */}
+            {(aiBrief || briefError || isBriefing) && (
+                <div className="relative bg-[#060810] border border-cyan-500/30 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.08)] animate-in fade-in slide-in-from-top-2 duration-500">
+                    {/* Header bar */}
+                    <div className="absolute top-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent" />
+                    <div className="flex items-center justify-between px-6 py-3 border-b border-cyan-500/20 bg-cyan-500/5">
+                        <div className="flex items-center gap-3">
+                            <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.25em]">⚡ J.A.R.V.I.S. — CLASSIFIED TACTICAL BRIEF</span>
+                            {aiBrief?.classifiedLevel && (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-rose-400/80 border border-rose-500/30 px-2 py-0.5 rounded bg-rose-500/5">{aiBrief.classifiedLevel}</span>
+                            )}
+                        </div>
+                        <button onClick={() => { setAiBrief(null); setBriefError(null); }} className="text-slate-500 hover:text-slate-300 transition-colors text-lg leading-none">✕</button>
+                    </div>
+
+                    <div className="p-6">
+                        {isBriefing && (
+                            <div className="flex items-center gap-3 text-cyan-400/70">
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span className="text-sm font-mono tracking-wider">Analyzing coalition intelligence... standby.</span>
+                            </div>
+                        )}
+                        {briefError && (
+                            <p className="text-rose-400 text-sm font-mono">⚠ {briefError}</p>
+                        )}
+                        {aiBrief && !isBriefing && (
+                            <div className="space-y-5">
+                                {/* Situation Assessment */}
+                                {aiBrief.situationAssessment && (
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-cyan-500/70 mb-1">Situation Assessment</p>
+                                        <p className="text-slate-200 text-sm leading-relaxed border-l-2 border-cyan-500/40 pl-3">{aiBrief.situationAssessment}</p>
+                                    </div>
+                                )}
+
+                                {/* Threat Matrix */}
+                                {aiBrief.threatMatrix?.length > 0 && (
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-500/70 mb-2">Threat Matrix</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {aiBrief.threatMatrix.map((t, i) => {
+                                                const lvlColor = t.threatLevel === 'CRITICAL' ? 'border-rose-500/50 bg-rose-500/5'
+                                                    : t.threatLevel === 'HIGH' ? 'border-orange-500/50 bg-orange-500/5'
+                                                    : t.threatLevel === 'MODERATE' ? 'border-amber-500/50 bg-amber-500/5'
+                                                    : 'border-slate-600 bg-slate-800/30';
+                                                const lvlText = t.threatLevel === 'CRITICAL' ? 'text-rose-400'
+                                                    : t.threatLevel === 'HIGH' ? 'text-orange-400'
+                                                    : t.threatLevel === 'MODERATE' ? 'text-amber-400'
+                                                    : 'text-slate-400';
+                                                return (
+                                                    <div key={i} className={`rounded-lg border p-3 ${lvlColor}`}>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="font-black text-slate-200 text-sm">{t.coalition}</span>
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${lvlText}`}>{t.threatLevel}</span>
+                                                        </div>
+                                                        <p className="text-slate-400 text-xs leading-relaxed mb-1">{t.assessment}</p>
+                                                        {t.exploitableWeakness && (
+                                                            <p className="text-emerald-400/80 text-[11px] italic">🎯 {t.exploitableWeakness}</p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Your Position */}
+                                {aiBrief.yourPosition && (
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-500/70 mb-1">Your Position</p>
+                                        <p className="text-slate-300 text-sm leading-relaxed border-l-2 border-amber-500/40 pl-3">{aiBrief.yourPosition}</p>
+                                    </div>
+                                )}
+
+                                {/* Win Conditions */}
+                                {aiBrief.winConditions?.length > 0 && (
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70 mb-2">Win Conditions — Execute Now</p>
+                                        <ol className="space-y-1.5">
+                                            {aiBrief.winConditions.map((w, i) => (
+                                                <li key={i} className="flex gap-2 text-sm">
+                                                    <span className="text-emerald-400 font-black shrink-0">{i + 1}.</span>
+                                                    <span className="text-slate-300 leading-relaxed">{w}</span>
+                                                </li>
+                                            ))}
+                                        </ol>
+                                    </div>
+                                )}
+
+                                {/* Critical Intel + Verdict */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {aiBrief.criticalIntel && (
+                                        <div className="bg-rose-500/5 border border-rose-500/30 rounded-lg p-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-400/80 mb-1">⚡ Critical Intel</p>
+                                            <p className="text-slate-300 text-xs leading-relaxed">{aiBrief.criticalIntel}</p>
+                                        </div>
+                                    )}
+                                    {aiBrief.commanderVerdict && (
+                                        <div className="bg-cyan-500/5 border border-cyan-500/30 rounded-lg p-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400/80 mb-1">Commander Verdict</p>
+                                            <p className="text-slate-200 text-xs leading-relaxed font-semibold italic">&ldquo;{aiBrief.commanderVerdict}&rdquo;</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Coalition Camp Matchmaker Map */}
             <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6">
                 <div className="flex justify-between items-center mb-6">
@@ -414,6 +591,7 @@ export default function SoCTab({ targetKd }) {
                         Global Coalition Matchmaker
                     </h3>
                     <div className="flex items-center">
+
                         <input 
                             type="file" 
                             accept="image/*" 
