@@ -9,13 +9,23 @@ const formatNum = (num) => {
 };
 
 const CAMP_TEMPLATES = [
-    { id: 1, name: 'Brittany', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 font-bold', kds: '' },
-    { id: 2, name: 'Bourbon', color: 'bg-green-500/10 text-green-400 border-green-500/30 font-bold', kds: '' },
-    { id: 3, name: 'La Marche', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-bold', kds: '' },
-    { id: 4, name: 'Picardy', color: 'bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold', kds: '' },
-    { id: 5, name: 'Auvergne', color: 'bg-gray-100/10 text-gray-200 border-gray-100/30 font-bold', kds: '' },
-    { id: 6, name: 'Poitou', color: 'bg-red-500/10 text-red-400 border-red-500/30 font-bold', kds: '' }
+    { id: 1, name: 'Brittany',  color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 font-bold',   kds: '' },
+    { id: 2, name: 'Bourbon',   color: 'bg-green-500/10 text-green-400 border-green-500/30 font-bold', kds: '' },
+    { id: 3, name: 'La Marche', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-bold',    kds: '' },
+    { id: 4, name: 'Picardy',   color: 'bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold', kds: '' },
+    { id: 5, name: 'Auvergne',  color: 'bg-gray-100/10 text-gray-200 border-gray-100/30 font-bold',    kds: '' },
+    { id: 6, name: 'Poitou',    color: 'bg-red-500/10 text-red-400 border-red-500/30 font-bold',       kds: '' },
 ];
+
+const TOW_CAMP_TEMPLATES = [
+    { id: 1, name: 'Fire',  color: 'bg-red-500/10 text-red-400 border-red-500/30 font-bold',       kds: '' },
+    { id: 2, name: 'Earth', color: 'bg-amber-700/10 text-amber-500 border-amber-700/30 font-bold', kds: '' },
+    { id: 3, name: 'Water', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 font-bold',    kds: '' },
+    { id: 4, name: 'Wind',  color: 'bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold', kds: '' },
+];
+
+const getCampTemplates = (mapName) =>
+    mapName === 'Tides of War' ? TOW_CAMP_TEMPLATES : CAMP_TEMPLATES;
 
 export default function SoCTab({ targetKd }) {
     const [isLoading, setIsLoading] = useState(true);
@@ -98,43 +108,49 @@ export default function SoCTab({ targetKd }) {
 
     // Hydrate from AWS DynamoDB
     useEffect(() => {
-        if (!targetKd) {
-            setIsLoading(false);
-            return;
-        }
-        
+        if (!targetKd) { setIsLoading(false); return; }
         fetch(`/api/aws/admin/dkp-config?kd=${targetKd}`)
             .then(res => res.json())
             .then(data => {
                 if (data && data.config && Object.keys(data.config).length > 0) {
                     setGlobalConfig(data.config);
-                    
-                    // Populate explicit local states if they exist in DB
-                    if (data.config.socMap) setSelectedMap(data.config.socMap);
+                    const loadedMap = data.config.socMap || 'Siege of Orleans';
+                    if (data.config.socMap) setSelectedMap(loadedMap);
                     if (data.config.socRegDate) setRegDate(data.config.socRegDate);
-                    
                     if (data.config.socStratagems && data.config.socStratagems.length > 0) {
                         setStratagems(data.config.socStratagems);
                     } else {
                         setStratagems([
-                            { id: 1, title: 'Early Expansion', content: 'Secure Tier 1 passes immediately upon opening.' },
-                            { id: 2, title: 'Ruin Control', content: 'Rotate garrisons every 4 hours during Ancient Ruins.' }
+                            { id: 1, title: 'Early Expansion',  content: 'Secure Tier 1 passes immediately upon opening.' },
+                            { id: 2, title: 'Ruin Control',     content: 'Rotate garrisons every 4 hours during Ancient Ruins.' }
                         ]);
                     }
-                    
                     if (data.config.socCamps && data.config.socCamps.length > 0) {
-                        // Merge saved KDs but assert authentic camp names and colors
-                        const hydratedCamps = CAMP_TEMPLATES.map(template => {
+                        // Use the correct template for whichever map was saved
+                        const templates = getCampTemplates(loadedMap);
+                        const hydratedCamps = templates.map(template => {
                             const saved = data.config.socCamps.find(c => c.id === template.id);
                             return saved ? { ...template, kds: saved.kds } : template;
                         });
                         setCamps(hydratedCamps);
+                    } else {
+                        setCamps(getCampTemplates(loadedMap));
                     }
                 }
             })
-            .catch(err => console.error("Failed to load SOC Config from AWS:", err))
+            .catch(err => console.error('Failed to load SOC Config from AWS:', err))
             .finally(() => setIsLoading(false));
     }, [targetKd]);
+
+    // Switch camps when user changes the map dropdown — preserve any typed KDs if staying same format
+    const prevMapRef = React.useRef(selectedMap);
+    useEffect(() => {
+        if (prevMapRef.current === selectedMap) return; // skip on initial mount
+        prevMapRef.current = selectedMap;
+        setCamps(getCampTemplates(selectedMap)); // reset to fresh templates for the new map
+        setCampDkpRows([]);                      // clear stale DKP data
+    }, [selectedMap]);
+
 
     const saveTacticalPlan = async () => {
         setIsSaving(true);
