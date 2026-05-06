@@ -48,7 +48,7 @@ export async function POST(req) {
 
         // ── Build prompt ──────────────────────────────────────────────────────
         const prompt = `You are J.A.R.V.I.S., the embedded AI tactical analyst for Unity — a Rise of Kingdoms KvK command platform.
-Your operator is a Kingdom Leader running the "${mapName}" Season of Conquest. They need a hard-edged, actionable intelligence briefing RIGHT NOW.
+Your operator is a Kingdom Leader running the "${mapName}" Season of Conquest.
 
 SITUATION:
 ${phaseText}
@@ -56,32 +56,21 @@ ${phaseText}
 COALITION MATCHUP DATA:
 ${coalitionLines}
 
-YOUR MISSION:
-Deliver a CLASSIFIED TACTICAL BRIEF for leadership. Be direct, be specific, be militarily precise. No fluff.
+Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Just the JSON.
 
-Structure your response as a raw JSON object (NO markdown, NO code fences):
 {
   "classifiedLevel": "EYES ONLY — KvK COMMAND",
-  "situationAssessment": "2-3 sentence hard read on the current battlefield state. Who is winning and why. Use the actual coalition names.",
+  "situationAssessment": "2-3 sentences. Who is winning and why. Use coalition names.",
   "threatMatrix": [
-    {
-      "coalition": "NAME",
-      "threatLevel": "CRITICAL | HIGH | MODERATE | LOW",
-      "assessment": "1-2 sentences on their strength, kill count, KP standing, and whether they are a primary threat.",
-      "exploitableWeakness": "One specific tactical weakness or gap visible in their data."
-    }
+    { "coalition": "NAME", "threatLevel": "CRITICAL|HIGH|MODERATE|LOW", "assessment": "1 sentence.", "exploitableWeakness": "1 sentence." }
   ],
-  "yourPosition": "Brutal honest assessment of the home coalition's standing (use the coalition with the most kingdoms or highest power as 'home' if ambiguous). Are you ahead, behind, or trading blows?",
-  "winConditions": [
-    "Specific, actionable directive #1 — what leadership must do NOW to gain or hold the advantage.",
-    "Specific, actionable directive #2 — mid-term objective.",
-    "Specific, actionable directive #3 — focus area or threat to neutralize."
-  ],
-  "criticalIntel": "The single most important observation from the data that leadership cannot ignore. Make this punch hard.",
-  "commanderVerdict": "One final sentence. The bottom line up front. What is the outcome of this KvK if nothing changes?"
+  "yourPosition": "1-2 sentences on the strongest coalition's standing vs the field.",
+  "winConditions": ["Directive 1.", "Directive 2.", "Directive 3."],
+  "criticalIntel": "1 sentence. The most important thing leadership cannot ignore.",
+  "commanderVerdict": "1 sentence. Bottom line up front."
 }
 
-TONE: You are a battle-hardened AI analyst, not a friendly chatbot. Give them the truth.`;
+Be direct. Be militarily precise. Every field must be a short, punchy string or array of strings.`;
 
         // ── Call Gemini ───────────────────────────────────────────────────────
         const geminiRes = await fetch(
@@ -91,7 +80,7 @@ TONE: You are a battle-hardened AI analyst, not a friendly chatbot. Give them th
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
                 })
             }
         );
