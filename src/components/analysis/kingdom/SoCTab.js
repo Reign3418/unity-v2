@@ -106,35 +106,41 @@ export default function SoCTab({ targetKd }) {
         }
     }, [regDate, availableDates, selectedMap]);
 
-    // Hydrate from AWS DynamoDB
+    // ── Hydration: localStorage first (instant), AWS overrides on top ──────────
     useEffect(() => {
         if (!targetKd) { setIsLoading(false); return; }
+
+        // 1. Pre-fill from localStorage immediately (no network wait)
+        const lsKey = `unty_kvk_hub_${targetKd}`;
+        try {
+            const cached = JSON.parse(localStorage.getItem(lsKey) || 'null');
+            if (cached) {
+                if (cached.selectedMap) setSelectedMap(cached.selectedMap);
+                if (cached.regDate)     setRegDate(cached.regDate);
+                if (cached.camps?.length)      setCamps(cached.camps);
+                if (cached.stratagems?.length) setStratagems(cached.stratagems);
+            }
+        } catch(e) { /* ignore corrupt cache */ }
+
+        // 2. AWS fetch — overrides localStorage if cloud has data (authoritative)
         fetch(`/api/aws/admin/dkp-config?kd=${targetKd}`)
             .then(res => res.json())
             .then(data => {
                 if (data && data.config && Object.keys(data.config).length > 0) {
                     setGlobalConfig(data.config);
                     const loadedMap = data.config.socMap || 'Siege of Orleans';
-                    if (data.config.socMap) setSelectedMap(loadedMap);
+                    if (data.config.socMap)    setSelectedMap(loadedMap);
                     if (data.config.socRegDate) setRegDate(data.config.socRegDate);
-                    if (data.config.socStratagems && data.config.socStratagems.length > 0) {
+                    if (data.config.socStratagems?.length > 0) {
                         setStratagems(data.config.socStratagems);
-                    } else {
-                        setStratagems([
-                            { id: 1, title: 'Early Expansion',  content: 'Secure Tier 1 passes immediately upon opening.' },
-                            { id: 2, title: 'Ruin Control',     content: 'Rotate garrisons every 4 hours during Ancient Ruins.' }
-                        ]);
                     }
-                    if (data.config.socCamps && data.config.socCamps.length > 0) {
-                        // Use the correct template for whichever map was saved
-                        const templates = getCampTemplates(loadedMap);
-                        const hydratedCamps = templates.map(template => {
-                            const saved = data.config.socCamps.find(c => c.id === template.id);
-                            return saved ? { ...template, kds: saved.kds } : template;
+                    if (data.config.socCamps?.length > 0) {
+                        const templates    = getCampTemplates(loadedMap);
+                        const hydratedCamps = templates.map(t => {
+                            const saved = data.config.socCamps.find(c => c.id === t.id);
+                            return saved ? { ...t, kds: saved.kds } : t;
                         });
                         setCamps(hydratedCamps);
-                    } else {
-                        setCamps(getCampTemplates(loadedMap));
                     }
                 }
             })
@@ -142,14 +148,12 @@ export default function SoCTab({ targetKd }) {
             .finally(() => setIsLoading(false));
     }, [targetKd]);
 
-    // Switch camps when user changes the map dropdown — preserve any typed KDs if staying same format
-    const prevMapRef = React.useRef(selectedMap);
+    // ── Auto-save to localStorage on every state change ──────────────────────
     useEffect(() => {
-        if (prevMapRef.current === selectedMap) return; // skip on initial mount
-        prevMapRef.current = selectedMap;
-        setCamps(getCampTemplates(selectedMap)); // reset to fresh templates for the new map
-        setCampDkpRows([]);                      // clear stale DKP data
-    }, [selectedMap]);
+        if (!targetKd) return;
+        const lsKey = `unty_kvk_hub_${targetKd}`;
+        localStorage.setItem(lsKey, JSON.stringify({ selectedMap, regDate, camps, stratagems }));
+    }, [selectedMap, regDate, camps, stratagems, targetKd]);
 
 
     const saveTacticalPlan = async () => {
@@ -386,7 +390,12 @@ export default function SoCTab({ targetKd }) {
                         <select 
                             className="bg-transparent text-slate-300 border-0 focus:ring-0 text-xs font-bold cursor-pointer"
                             value={selectedMap}
-                            onChange={(e) => setSelectedMap(e.target.value)}
+                            onChange={(e) => {
+                                const newMap = e.target.value;
+                                setSelectedMap(newMap);
+                                setCamps(getCampTemplates(newMap)); // explicit user action → reset camps
+                                setCampDkpRows([]);
+                            }}
                         >
                             <option value="Siege of Orleans">Siege of Orleans</option>
                             <option value="Tides of War">Tides of War (Season of Conquest)</option>
