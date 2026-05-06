@@ -91,7 +91,7 @@ TONE: You are a battle-hardened AI analyst, not a friendly chatbot. Give them th
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.3, responseMimeType: 'application/json', maxOutputTokens: 2048 }
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
                 })
             }
         );
@@ -104,12 +104,22 @@ TONE: You are a battle-hardened AI analyst, not a friendly chatbot. Give them th
         const geminiData = await geminiRes.json();
         const rawText    = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 
+        // Strip any markdown fences and extract the JSON object
         let cleaned = rawText.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
         const fi = cleaned.indexOf('{');
         const li = cleaned.lastIndexOf('}');
         if (fi !== -1 && li >= fi) cleaned = cleaned.substring(fi, li + 1);
 
-        const brief = JSON.parse(cleaned);
+        let brief;
+        try {
+            brief = JSON.parse(cleaned);
+        } catch (parseErr) {
+            console.error('[SoC Brief] JSON parse failed. Raw Gemini output:', rawText.substring(0, 500));
+            return NextResponse.json({
+                error: `AI returned malformed JSON: ${parseErr.message}. Try again.`
+            }, { status: 502 });
+        }
+
         return NextResponse.json({ success: true, brief });
 
     } catch (err) {
