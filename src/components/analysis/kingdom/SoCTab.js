@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MAP_TIMELINES } from '../../../constants/soc_timelines';
+import { MAP_TIMELINES, TIDES_SCHEDULE } from '../../../constants/soc_timelines';
 import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock } from 'lucide-react';
 import { addDays, addHours, format, isValid, parseISO } from 'date-fns';
 
@@ -83,13 +83,13 @@ export default function SoCTab({ targetKd }) {
             return closest;
         };
 
-        // 1️⃣ Baseline → Marauders (day 10)
-        const maraudersEvent = mapEvents.find(e => e.title.toLowerCase() === 'marauders');
+        // 1️⃣ Baseline → Marauder(s) — matches both 'Marauders' (SoO) and 'Marauder' (ToW)
+        const maraudersEvent = mapEvents.find(e => e.title.toLowerCase().startsWith('marauder'));
         if (maraudersEvent) {
             setBaselineScan(snapToNearest(addDays(baseDate, maraudersEvent.offsetDays)));
         }
 
-        // 2️⃣ DKP Start → Pass 4 open (Hand in Hand, day 23.115)
+        // 2️⃣ DKP Start → Pass 4 open (Hand in Hand — same name in both formats)
         const pass4Event = mapEvents.find(e => e.title.toLowerCase().includes('hand in hand'));
         if (pass4Event) {
             setDkpStartScan(snapToNearest(addDays(baseDate, pass4Event.offsetDays)));
@@ -313,28 +313,33 @@ export default function SoCTab({ targetKd }) {
     const altarSchedule = [];
 
     if (hasValidDate && selectedMap === "Siege of Orleans") {
-        const ruinsFirst = addDays(baseDate, 18.615); // Exactly 12 hours after Turf Wars starts
-        const altarFirst = addDays(baseDate, 31.615); // Exactly 12 hours after Sacrificial Offering
+        const ruinsFirst = addDays(baseDate, 18.615);
+        const altarFirst = addDays(baseDate, 31.615);
         const now = new Date();
-
-        // Generate 15 instances endlessly
         for (let i = 0; i < 15; i++) {
             const rd = addHours(ruinsFirst, i * 40);
-            ruinsSchedule.push({
-                idx: i + 1,
-                date: rd,
-                isPast: rd < now,
-                isActive: rd >= now && rd < addHours(now, 40)
-            });
-
+            ruinsSchedule.push({ idx: i + 1, date: rd, isPast: rd < now, isActive: rd >= now && rd < addHours(now, 40) });
             const ad = addHours(altarFirst, i * 86);
-            altarSchedule.push({
-                idx: i + 1,
-                date: ad,
-                isPast: ad < now,
-                isActive: ad >= now && ad < addHours(now, 86)
-            });
+            altarSchedule.push({ idx: i + 1, date: ad, isPast: ad < now, isActive: ad >= now && ad < addHours(now, 86) });
         }
+    }
+
+    // Tides of War — compute live tide schedule from reg date
+    const tidesSchedule = [];
+    if (hasValidDate && selectedMap === "Tides of War") {
+        const now = new Date();
+        TIDES_SCHEDULE.forEach((tide, i) => {
+            const start = addDays(baseDate, tide.offsetDays);
+            const end   = addDays(baseDate, tide.offsetDays + tide.durationDays);
+            tidesSchedule.push({
+                ...tide,
+                idx: i + 1,
+                start,
+                end,
+                isPast:   end   < now,
+                isActive: start <= now && end > now,
+            });
+        });
     }
 
     return (
@@ -368,7 +373,7 @@ export default function SoCTab({ targetKd }) {
                             onChange={(e) => setSelectedMap(e.target.value)}
                         >
                             <option value="Siege of Orleans">Siege of Orleans</option>
-                            <option value="King of the Nile" disabled>King of the Nile (WIP)</option>
+                            <option value="Tides of War">Tides of War (Season of Conquest)</option>
                         </select>
                     </div>
                 </div>
@@ -634,6 +639,58 @@ export default function SoCTab({ targetKd }) {
                     </div>
 
                     {/* Cyclical Event Spawners */}
+                    {/* ── Tides of War Schedule ─────────────────────────────────────── */}
+                    {hasValidDate && selectedMap === "Tides of War" && tidesSchedule.length > 0 && (
+                        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-lg animate-in fade-in zoom-in-95 duration-500">
+                            <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-cyan-500/50 via-purple-500/50 to-rose-500/50" />
+                            <div className="p-4 bg-cyan-500/5 flex items-center justify-between border-b border-[#1e222b]">
+                                <h4 className="font-bold text-cyan-400 flex items-center gap-2">
+                                    <Clock className="w-4 h-4" />
+                                    Tides of War — Rotation Schedule
+                                </h4>
+                                <span className="text-[10px] uppercase font-black tracking-widest text-[#6b7280]">4-Day Cycle</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-[#0a0c0f] border-b border-[#1e222b] z-10">
+                                        <tr>
+                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">#</th>
+                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Tide</th>
+                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Type</th>
+                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Start</th>
+                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">End</th>
+                                            <th className="py-2.5 px-4 text-left font-bold text-slate-500 uppercase tracking-widest text-[9px]">Milestone</th>
+                                            <th className="py-2.5 px-4 text-right font-bold text-slate-500 uppercase tracking-widest text-[9px]">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#1e222b]">
+                                        {tidesSchedule.map(tide => {
+                                            const typeColor = tide.type === 'pvp' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : tide.type === 'pve' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+                                            return (
+                                                <tr key={tide.idx} className={`transition-colors ${ tide.isPast ? 'opacity-35' : tide.isActive ? 'bg-cyan-500/8' : 'hover:bg-white/[0.02]' }`}>
+                                                    <td className="py-3 px-4 text-slate-600 font-mono text-[10px]">{tide.idx}</td>
+                                                    <td className={`py-3 px-4 font-bold text-[11px] whitespace-nowrap ${ tide.isActive ? 'text-cyan-300' : 'text-slate-300' }`}>{tide.title}</td>
+                                                    <td className="py-3 px-4">
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${typeColor}`}>{tide.type}</span>
+                                                    </td>
+                                                    <td className="py-3 px-4 font-mono text-slate-400 text-[10px] whitespace-nowrap">{format(tide.start, 'E d MMM')}</td>
+                                                    <td className="py-3 px-4 font-mono text-slate-500 text-[10px] whitespace-nowrap">{format(tide.end,   'E d MMM')}</td>
+                                                    <td className="py-3 px-4 text-[10px] text-amber-400/80 font-bold">{tide.note || '—'}</td>
+                                                    <td className="py-3 px-4 text-right font-black uppercase tracking-widest text-[10px]">
+                                                        {tide.isPast   ? <span className="text-slate-600">DONE</span>
+                                                         : tide.isActive ? <span className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">ACTIVE</span>
+                                                         : <span className="text-slate-500">UPCOMING</span>}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Siege of Orleans Cyclical Spawners ────────────────────── */}
                     {hasValidDate && selectedMap === "Siege of Orleans" && ruinsSchedule.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-500">
                             {/* Ancient Ruins */}

@@ -22,5 +22,61 @@ export const MAP_TIMELINES = {
         { title: "Wolves and Lambs (II)", durationDays: 2, offsetDays: 38.115, description: "Circle Opens. Your troops killed or severely wounded 1,000,000 units of other camps." },
         { title: "Indomitable Contender", durationDays: 2, offsetDays: 40.115, description: "Your coalition controls 1 Circle. (Skill Slot 4 unlatches)" },
         { title: "Siege the Land", durationDays: 0.003, offsetDays: 42.115, description: "A total of 200 crusader flags were built between all coalitions." }
+    ],
+
+    "Tides of War": [
+        // ── Pre-KvK ──────────────────────────────────────────────────────────────
+        { title: "Selection of KvK Format", durationDays: 3,     offsetDays: 0,      description: "Kings select Season of Conquest format and seed." },
+        { title: "Matchmaking Phase",        durationDays: 6,     offsetDays: 3,      description: "System locks kingdoms into matchmaking arrays." },
+        { title: "Preparation Phase",        durationDays: 2,     offsetDays: 9,      description: "Eve of the crusade. Final troop prep and AP stockpiling." },
+        { title: "Marauder",                 durationDays: 2,     offsetDays: 11,     description: "Kill Marauders to earn Coalition Points and AP pots. Power baseline recorded here." },
+        { title: "Troop Training",           durationDays: 2,     offsetDays: 13,     description: "Train troops to contribute to your Kingdom's Coalition Points." },
+        { title: "Fort Hunt",                durationDays: 2,     offsetDays: 15,     description: "Destroy Marauder Fortresses for Coalition Points." },
+        // ── Lost Kingdom Opens (Day ~11 from reg) ────────────────────────────────
+        { title: "First Steps",              durationDays: 0.042, offsetDays: 11.042, description: "Lost Kingdom opens. Build a total of 20 alliance fortresses. (Kau Karuak Easy)" },
+        { title: "Eye for an Eye",           durationDays: 2,     offsetDays: 11.083, description: "Your coalition must control 1 Crusader Camp." },
+        { title: "Turf Wars",                durationDays: 2,     offsetDays: 13.083, description: "Your camp controls its own Crusader Fortress. Ancient Ruins unlock." },
+        { title: "Retribution",              durationDays: 1,     offsetDays: 15.083, description: "Your troops defeated 3 Dark Stalkers." },
+        { title: "Revenge",                  durationDays: 2,     offsetDays: 16.083, description: "Your coalition recruited via the Coalition Recruiter." },
+        { title: "Hand in Hand",             durationDays: 1,     offsetDays: 18.083, description: "Pass 4 unlocks (Pass 4 opens ~12h after chapter ends). Complete 10 quests from epic commanders. DKP tracking begins." },
+        { title: "Storm Clouds",             durationDays: 2,     offsetDays: 19.083, description: "Your coalition controlled 1 Hieron at chapter end. Tide of Unity (PvP)." },
+        { title: "Pilgrimage",               durationDays: 2,     offsetDays: 21.083, description: "Your coalition controlled 1 Sanctuary at chapter end." },
+        { title: "Siege the Land",           durationDays: 2,     offsetDays: 23.083, description: "Your coalition controlled 1 Lvl 12 Fort at chapter end." },
+        { title: "Strife and Conflict",      durationDays: 2,     offsetDays: 25.083, description: "Pass 5 unlocks. Your coalition destroyed 100 Lvl 12+ Barbarian Forts. Tide of Steel (PvP)." },
+        { title: "Pushing Forward",          durationDays: 2,     offsetDays: 27.083, description: "Pass 6 unlocks. Your coalition controlled 1 Lvl 5 pass at chapter end." },
+        { title: "Access Granted",           durationDays: 2,     offsetDays: 29.083, description: "Pass 6 (Lvl 6) unlocks. Altar of Darkness opens (~12h after chapter ends)." },
+        { title: "Sacrificial Offering",     durationDays: 1,     offsetDays: 31.083, description: "Your troops defeated 3 Dark Stalkers. Circle unlocks." },
+        { title: "Indomitable Contender",    durationDays: 2,     offsetDays: 32.083, description: "Your coalition controlled 1 Circle at chapter end. Lvl 13 Fort unlocks." },
+        { title: "Drums of War",             durationDays: 2,     offsetDays: 34.083, description: "Your coalition destroyed 100 Lvl 13+ Barbarian Forts. Coalition Recruiter active." },
+        { title: "Hall of Unity",            durationDays: 1,     offsetDays: 36.083, description: "Complete 10 quests assigned by legendary commanders. Lvl 14 Fort unlocks." },
+        { title: "Brink of Annihilation",    durationDays: 2,     offsetDays: 37.083, description: "Pass 7 unlocks. Your coalition destroyed 100 Lvl 14+ Barbarian Forts." },
+        { title: "Arrows Nocked",            durationDays: 2,     offsetDays: 39.083, description: "Your coalition controlled 1 Lvl 7 pass at chapter end." },
+        { title: "Wolves & Lambs",           durationDays: 1,     offsetDays: 41.083, description: "Pass 8 unlocks (~12h after chapter). Your troops killed or severely wounded 1,000,000 enemy troops. (Kau Karuak Hard)" },
+        { title: "Siege",                    durationDays: 2,     offsetDays: 42.083, description: "Great Ziggurat unlocks (~12h after chapter). Your coalition controlled 1 Lvl 8 pass." },
+        { title: "Holy Site Heroes",         durationDays: 3,     offsetDays: 44.083, description: "Pass 9 unlocks (~12h after chapter). Your coalition controlled the Great Ziggurat at chapter end." },
+        { title: "Stormy Seas",              durationDays: 1,     offsetDays: 47.083, description: "Your troops killed or severely wounded 2,000,000 enemy troops. (Kau Karuak Nightmare)" },
+        { title: "The Final Door",           durationDays: 2,     offsetDays: 48.083, description: "Your coalition controlled 1 Lvl 9 pass at chapter end." },
+        { title: "The Way Ahead",            durationDays: 3,     offsetDays: 50.083, description: "Lvl 15 Fort unlocks. Your coalition controlled 3 Sanctuaries at chapter end." },
+        { title: "Unending Victory",         durationDays: 2,     offsetDays: 53.083, description: "Your coalition destroyed 100 Lvl 15+ Barbarian Forts." },
+        { title: "Ebullient",                durationDays: 2,     offsetDays: 55.083, description: "Final chapter. Your coalition controlled 5 Hierons at chapter end." }
     ]
 };
+
+// Tides of War — Rotating Tide Schedule
+// Each tide is 4 days. Starts when LK opens (offsetDays 11 from reg date).
+// type: 'pvp' | 'pve' | 'farming'
+export const TIDES_SCHEDULE = [
+    { title: "Tide of Peace",   type: "pve",     offsetDays: 11, durationDays: 4,  note: "" },
+    { title: "Tide of Spring",  type: "farming", offsetDays: 15, durationDays: 4,  note: "" },
+    { title: "Tide of Unity",   type: "pvp",     offsetDays: 19, durationDays: 4,  note: "Pass 4 opens" },
+    { title: "Tide of Steel",   type: "pvp",     offsetDays: 23, durationDays: 4,  note: "" },
+    { title: "Tide of Spring",  type: "farming", offsetDays: 27, durationDays: 4,  note: "" },
+    { title: "Tide of Steel",   type: "pvp",     offsetDays: 31, durationDays: 4,  note: "Altar of Darkness" },
+    { title: "Tide of Peace",   type: "pve",     offsetDays: 35, durationDays: 4,  note: "" },
+    { title: "Tide of Change",  type: "pvp",     offsetDays: 39, durationDays: 4,  note: "Pass 7" },
+    { title: "Tide of Steel",   type: "pvp",     offsetDays: 43, durationDays: 4,  note: "Great Ziggurat" },
+    { title: "Tide of Change",  type: "pvp",     offsetDays: 47, durationDays: 4,  note: "Pass 9" },
+    { title: "Tide of Spring",  type: "farming", offsetDays: 51, durationDays: 4,  note: "" },
+    { title: "Tide of Peace",   type: "pve",     offsetDays: 55, durationDays: 4,  note: "" },
+    { title: "Tide of Spring",  type: "farming", offsetDays: 59, durationDays: 4,  note: "" },
+];
