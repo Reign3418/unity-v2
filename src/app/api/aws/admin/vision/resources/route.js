@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+export const maxDuration = 300;
+
 import { getGlobalConfig } from "@/lib/awsDynamo";
+
 
 export async function POST(req) {
     try {

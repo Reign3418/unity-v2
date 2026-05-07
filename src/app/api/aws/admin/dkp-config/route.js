@@ -1,5 +1,8 @@
 import { getKingdomDkpMatrix, setKingdomDkpMatrix } from '@/lib/awsDynamo';
+export const maxDuration = 300;
+
 import { NextResponse } from 'next/server';
+
 
 export async function GET(req) {
     const { searchParams } = new URL(req.url);

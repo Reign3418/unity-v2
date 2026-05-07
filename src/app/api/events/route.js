@@ -1,6 +1,10 @@
 import { getKingdomEvents, getUserConfig, createKingdomEvent } from "@/lib/awsDynamo";
+export const maxDuration = 300;
+
 import { auth } from "@/lib/auth";
+
 import { NextResponse } from "next/server";
+
 
 export async function GET() {
     const session = await auth();

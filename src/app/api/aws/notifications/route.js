@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+export const maxDuration = 300;
+
 import { getSystemNotifications } from '@/lib/awsDynamo';
+
 import { auth } from '@/lib/auth';
+
 
 export async function GET(req) {
     try {

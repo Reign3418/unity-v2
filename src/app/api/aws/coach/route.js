@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { getGlobalConfig } from "@/lib/awsDynamo";
 
-export const maxDuration = 30; // Max execution time
 
 export async function POST(req) {
     try {

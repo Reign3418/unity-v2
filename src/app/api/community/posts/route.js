@@ -1,6 +1,10 @@
 import { auth } from "@/lib/auth";
+export const maxDuration = 300;
+
 import { createCommunityPost, getCommunityPosts } from "@/lib/awsDynamo";
+
 import { NextResponse } from "next/server";
+
 
 /**
  * GET /api/community/posts

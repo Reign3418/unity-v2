@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { getOverviewDeltas } from "@/lib/awsDynamo";
 
 export const dynamic = 'force-dynamic';

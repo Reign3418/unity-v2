@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { getAdvancedKingdomDeltas, getT5Thresholds } from "@/lib/awsDynamo";
 
-export const maxDuration = 60;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VECTOR ENGINE — All computation on existing roster data, zero new DB writes

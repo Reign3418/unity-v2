@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { DynamoDBClient, ScanCommand, QueryCommand, UpdateItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { auth } from "@/lib/auth";
 
+export const maxDuration = 300;
+
 export async function GET(req) {
     try {
         const session = await auth();

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { getGlobalConfig, getAdvancedKingdomDeltas } from "@/lib/awsDynamo";
 import { logEvent } from "@/lib/eventLogger";
 
-export const maxDuration = 60; // Vercel: extend function timeout to 60s for multi-kingdom AWS queries
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Aggregate raw roster deltas into the stat block the AI receives

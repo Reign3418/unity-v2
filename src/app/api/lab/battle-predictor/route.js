@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getAdvancedKingdomDeltas, getGlobalConfig } from "@/lib/awsDynamo";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const T5_POWER_THRESHOLD = 40_000_000;
 

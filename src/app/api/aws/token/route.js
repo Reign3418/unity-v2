@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { STSClient, GetFederationTokenCommand } from '@aws-sdk/client-sts';
 import { createPendingUser, getGlobalConfig, getTenantConfig, getUserConfig } from '@/lib/awsDynamo';
 

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { getGlobalConfig, getAdvancedKingdomDeltas, T5_TECH_FLOOR, T5_BUILDING_FLOOR } from "@/lib/awsDynamo";
 import { logEvent } from "@/lib/eventLogger";
 
-export const maxDuration = 60;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Aggregate a side's kingdom data into a combined combat profile

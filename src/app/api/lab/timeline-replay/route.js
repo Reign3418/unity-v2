@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
 import { getKingdomRoster } from "@/lib/awsDynamo";
 
-export const maxDuration = 45;
+export const maxDuration = 300;
 
 const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-2" });
 

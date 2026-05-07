@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+export const maxDuration = 300;
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);

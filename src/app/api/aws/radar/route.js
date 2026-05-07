@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+export const maxDuration = 300;
+
 import fs from 'fs';
+
 import path from 'path';
+
 
 export async function GET(request) {
     try {

@@ -1,6 +1,10 @@
 import { auth } from "@/lib/auth";
+export const maxDuration = 300;
+
 import { NextResponse } from "next/server";
+
 import { getUserConfig, createKingdomEvent, queuePresencePing } from "@/lib/awsDynamo";
+
 
 export async function POST(req) {
     const session = await auth();

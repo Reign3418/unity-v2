@@ -1,6 +1,8 @@
 import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { auth } from "@/lib/auth";
 
+export const maxDuration = 300;
+
 export const dynamic = 'force-dynamic';
 
 const dbClient = new DynamoDBClient({

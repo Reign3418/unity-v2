@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+export const maxDuration = 300;
+
 import { getGlobalConfig } from "@/lib/awsDynamo";
+
 
 // Default camp definitions per map format — used when client doesn't send campNames
 const DEFAULT_CAMPS = {

@@ -1,7 +1,12 @@
 import { auth } from "@/lib/auth";
+export const maxDuration = 300;
+
 import { NextResponse } from "next/server";
+
 import { getAllUsersInKingdom } from "@/lib/awsDynamo";
+
 import { unstable_cache } from "next/cache";
+
 
 const getCachedKingdomUsers = async (kd) => {
     return unstable_cache(

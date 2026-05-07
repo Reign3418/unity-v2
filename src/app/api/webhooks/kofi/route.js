@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+export const maxDuration = 300;
+
 import { setKingdomSupporterStatus, createSystemNotification } from '@/lib/awsDynamo';
+
 
 export async function POST(req) {
     try {

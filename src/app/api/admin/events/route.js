@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+export const maxDuration = 300;
+
 import { auth } from "@/lib/auth";
+
 import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
+
 
 const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-2' });
 

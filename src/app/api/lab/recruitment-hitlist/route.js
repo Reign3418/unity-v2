@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getBehavioralMatrix } from "@/lib/awsDynamo";
 
-export const maxDuration = 45;
+export const maxDuration = 300;
 
 export async function GET(req) {
     try {

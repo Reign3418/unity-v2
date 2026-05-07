@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+
+export const maxDuration = 300;
 import { getUserCamps, saveUserCamps } from "@/lib/awsDynamo";
 
 export async function GET(req) {

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+export const maxDuration = 300;
+
 import { getFeatureGates } from "@/lib/awsDynamo";
+
 
 // Store a tiny memory cache so DashboardLayout mounting globally across active active sessions
 // doesn't DDoS the DynamoDB read limitations.
