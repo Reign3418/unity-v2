@@ -62,7 +62,7 @@ Return ONLY a valid JSON object with this exact structure:
     "gold": 0,
     "crystal": 0
   }
-}\`;
+}`;
 
 
         const response = await fetch(apiUrl, {
