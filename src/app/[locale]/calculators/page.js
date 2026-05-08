@@ -759,6 +759,27 @@ export default function CalculatorsPage() {
       return { affordable, bottleneck: bottleneckResource };
   };
 
+  const getAffordableFlags = () => {
+      if (isFlagSocMode) {
+          return getSocAffordability().affordable;
+      }
+      
+      const RESOURCES = ['credits', 'food', 'wood', 'stone', 'gold', 'crystal'];
+      let minAffordable = Infinity;
+      let hasAnyCost = false;
+      
+      for (const key of RESOURCES) {
+          const { cost, stock } = flagData[key];
+          if (cost > 0) {
+              hasAnyCost = true;
+              const affordableForRes = Math.floor(stock / cost);
+              if (affordableForRes < minAffordable) minAffordable = affordableForRes;
+          }
+      }
+      
+      return hasAnyCost && minAffordable !== Infinity ? minAffordable : 0;
+  };
+
   const handleSocFlagCountChange = (val) => {
       const count = Math.max(0, parseInt(val) || 0);
       setCurrentFlagCount(count);
@@ -1601,6 +1622,11 @@ export default function CalculatorsPage() {
                   {bottleneck && !allReady && (
                     <p className="text-rose-400 font-bold text-sm mt-2">
                       {FLAG_RESOURCES.find(r => r.key === bottleneck)?.emoji} {FLAG_RESOURCES.find(r => r.key === bottleneck)?.label.replace('Alliance ', '')} is your bottleneck.
+                    </p>
+                  )}
+                  {allReady && (
+                    <p className="text-emerald-400/80 font-bold text-sm mt-2">
+                      You can build {getAffordableFlags()} flag{getAffordableFlags() !== 1 ? 's' : ''} right now.
                     </p>
                   )}
                 </div>

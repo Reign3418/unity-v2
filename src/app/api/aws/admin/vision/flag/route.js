@@ -28,7 +28,8 @@ Your task is to extract three types of data:
 
 1. CURRENT STOCK for each alliance resource (the first number shown — not the capacity maximum).
 2. HOURLY INCOME for each resource (shown as "+X,XXX/h" or "+X.XM/h" etc.).
-3. FLAG COST from the activity log at the bottom — look for an entry that says a player "built Alliance Flag" and extract the resource costs. These appear as NEGATIVE numbers in the log (like -141,000 Credits) but you must return them as POSITIVE integers (absolute values). If no flag activity entry is visible, return 0 for all flag costs.
+3. FLAG COST from the activity log at the bottom — look for an entry that says a player "built Alliance Flag" and extract the resource costs. These appear as NEGATIVE numbers in the log (like -141,000) but you must return them as POSITIVE integers (absolute values). If no flag activity entry is visible, return 0 for all flag costs.
+CRITICAL DISTINCTION: In the activity log, the yellow coin icon with the small blue shield in the bottom right corner is ALLIANCE GOLD. Do NOT mistake it for Alliance Credits. Alliance Credits is a star coin with no blue shield. Flags typically cost Food, Wood, Stone, Gold, and Crystal. If you see the gold coin with a blue shield, put that value into "gold", not "credits".
 
 Resources to extract: Alliance Credits, Alliance Food, Alliance Wood, Alliance Stone, Alliance Gold, Alliance Crystal.
 
