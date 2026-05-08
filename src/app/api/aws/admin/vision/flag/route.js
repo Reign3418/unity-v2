@@ -30,7 +30,7 @@ Your task is to extract three types of data:
 2. HOURLY INCOME for each resource (shown as "+X,XXX/h" or "+X.XM/h" etc.).
 3. FLAG COST from the activity log at the bottom — look for an entry that says a player "built Alliance Flag" and extract the resource costs. These appear as NEGATIVE numbers in the log (like -141,000 Credits) but you must return them as POSITIVE integers (absolute values). If no flag activity entry is visible, return 0 for all flag costs.
 
-Resources to extract: Alliance Credits, Alliance Food, Alliance Wood, Alliance Stone, Alliance Gold.
+Resources to extract: Alliance Credits, Alliance Food, Alliance Wood, Alliance Stone, Alliance Gold, Alliance Crystal.
 
 Numbers may be shown in shorthand like "4.1M" (= 4100000), "95.3K" (= 95300), "1.01M" (= 1010000). Convert all to raw integers.
 
@@ -43,23 +43,26 @@ Return ONLY a valid JSON object with this exact structure:
     "food": 0,
     "wood": 0,
     "stone": 0,
-    "gold": 0
+    "gold": 0,
+    "crystal": 0
   },
   "income": {
     "credits": 0,
     "food": 0,
     "wood": 0,
     "stone": 0,
-    "gold": 0
+    "gold": 0,
+    "crystal": 0
   },
   "flagCost": {
     "credits": 0,
     "food": 0,
     "wood": 0,
     "stone": 0,
-    "gold": 0
+    "gold": 0,
+    "crystal": 0
   }
-}`;
+}\`;
 
 
         const response = await fetch(apiUrl, {

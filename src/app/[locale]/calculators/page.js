@@ -13,6 +13,7 @@ const FLAG_RESOURCES = [
   { key: 'wood',    label: 'Alliance Wood',    emoji: '🪵', color: 'text-amber-600'  },
   { key: 'stone',   label: 'Alliance Stone',   emoji: '🪨', color: 'text-slate-300'  },
   { key: 'gold',    label: 'Alliance Gold',    emoji: '💛', color: 'text-yellow-400' },
+  { key: 'crystal', label: 'Alliance Crystal', emoji: '💎', color: 'text-cyan-400'   },
 ];
 
 export default function CalculatorsPage() {
@@ -112,12 +113,16 @@ export default function CalculatorsPage() {
   const flagInputRef = useRef(null);
   const [isFlagScanning, setIsFlagScanning] = useState(false);
   const [flagStatus, setFlagStatus] = useState('');
+  const [isFlagSocMode, setIsFlagSocMode] = useState(false);
+  const [currentFlagCount, setCurrentFlagCount] = useState(0);
+
   const [flagData, setFlagData] = useState({
     credits: { cost: 0, stock: 0, income: 0 },
     food:    { cost: 0, stock: 0, income: 0 },
     wood:    { cost: 0, stock: 0, income: 0 },
     stone:   { cost: 0, stock: 0, income: 0 },
     gold:    { cost: 0, stock: 0, income: 0 },
+    crystal: { cost: 0, stock: 0, income: 0 },
   });
 
   // === Real Estate Engine Math ===
@@ -567,6 +572,7 @@ export default function CalculatorsPage() {
                   wood:    { cost: Math.abs(flagCost.wood    ?? prev.wood.cost),    stock: Math.abs(stock.wood    ?? prev.wood.stock),    income: Math.abs(income.wood    ?? prev.wood.income)    },
                   stone:   { cost: Math.abs(flagCost.stone   ?? prev.stone.cost),   stock: Math.abs(stock.stone   ?? prev.stone.stock),   income: Math.abs(income.stone   ?? prev.stone.income)   },
                   gold:    { cost: Math.abs(flagCost.gold    ?? prev.gold.cost),    stock: Math.abs(stock.gold    ?? prev.gold.stock),    income: Math.abs(income.gold    ?? prev.gold.income)    },
+                  crystal: { cost: Math.abs(flagCost.crystal ?? prev.crystal?.cost ?? 0), stock: Math.abs(stock.crystal ?? prev.crystal?.stock ?? 0), income: Math.abs(income.crystal ?? prev.crystal?.income ?? 0) },
               }));
 
               setFlagStatus('Scan Complete!');
@@ -591,8 +597,9 @@ export default function CalculatorsPage() {
   };
 
   const clearFlagData = () => {
-      setFlagData({ credits: { cost: 0, stock: 0, income: 0 }, food: { cost: 0, stock: 0, income: 0 }, wood: { cost: 0, stock: 0, income: 0 }, stone: { cost: 0, stock: 0, income: 0 }, gold: { cost: 0, stock: 0, income: 0 } });
+      setFlagData({ credits: { cost: 0, stock: 0, income: 0 }, food: { cost: 0, stock: 0, income: 0 }, wood: { cost: 0, stock: 0, income: 0 }, stone: { cost: 0, stock: 0, income: 0 }, gold: { cost: 0, stock: 0, income: 0 }, crystal: { cost: 0, stock: 0, income: 0 } });
       setFlagStatus('');
+      setCurrentFlagCount(0);
   };
 
   const sendFlagToMail = () => {
@@ -650,7 +657,7 @@ export default function CalculatorsPage() {
 
   // Flag readiness calculations
   const getFlagReadiness = () => {
-      const RESOURCES = ['credits', 'food', 'wood', 'stone', 'gold'];
+      const RESOURCES = ['credits', 'food', 'wood', 'stone', 'gold', 'crystal'];
       let maxMinutes = 0;
       let bottleneck = null;
       const rows = RESOURCES.map(key => {
@@ -663,6 +670,120 @@ export default function CalculatorsPage() {
           return { key, cost, stock, income, deficit, pct, minutes, ready: deficit === 0 };
       });
       return { rows, maxMinutes, bottleneck };
+  };
+
+  const getSocFlagCost = (n) => {
+      if (n < 1) return { food: 0, wood: 0, stone: 0, gold: 0, crystal: 0, credits: 0 };
+      
+      const lookup = [
+          { min: 1, max: 20, food: 75000 },
+          { min: 21, max: 40, food: 93750 },
+          { min: 41, max: 60, food: 112500 },
+          { min: 61, max: 80, food: 131250 },
+          { min: 81, max: 100, food: 150000 },
+          { min: 101, max: 120, food: 163750 },
+          { min: 121, max: 140, food: 187500 },
+          { min: 141, max: 160, food: 206250 },
+          { min: 161, max: 180, food: 225000 },
+          { min: 181, max: 200, food: 243750 },
+          { min: 201, max: 220, food: 262500 },
+          { min: 221, max: 240, food: 281250 },
+          { min: 241, max: 260, food: 300000 },
+          { min: 261, max: 280, food: 318750 },
+          { min: 281, max: 300, food: 337500 },
+      ];
+      
+      let base = lookup[lookup.length - 1];
+      for (let l of lookup) {
+          if (n >= l.min && n <= l.max) {
+              base = l; break;
+          }
+      }
+      
+      let crystalCost = 0;
+      if (n >= 21) {
+          crystalCost = 7500 + Math.floor((n - 21) / 10) * 3750;
+      }
+      
+      return {
+          food: base.food,
+          wood: base.food,
+          stone: Math.floor(base.food * 0.75),
+          gold: Math.floor(base.food * 0.5),
+          crystal: crystalCost,
+          credits: 0
+      };
+  };
+
+  const getSocAffordability = () => {
+      let flagsBuilt = parseInt(currentFlagCount) || 0;
+      let nextFlag = flagsBuilt + 1;
+      let affordable = 0;
+      
+      let curStock = {
+          food: flagData.food.stock,
+          wood: flagData.wood.stock,
+          stone: flagData.stone.stock,
+          gold: flagData.gold.stock,
+          crystal: flagData.crystal.stock,
+      };
+      
+      let bottleneckResource = null;
+      
+      while(true) {
+          let cost = getSocFlagCost(nextFlag);
+          if (
+              curStock.food >= cost.food &&
+              curStock.wood >= cost.wood &&
+              curStock.stone >= cost.stone &&
+              curStock.gold >= cost.gold &&
+              curStock.crystal >= cost.crystal
+          ) {
+              affordable++;
+              curStock.food -= cost.food;
+              curStock.wood -= cost.wood;
+              curStock.stone -= cost.stone;
+              curStock.gold -= cost.gold;
+              curStock.crystal -= cost.crystal;
+              nextFlag++;
+          } else {
+              if (curStock.crystal < cost.crystal) bottleneckResource = 'crystal';
+              else if (curStock.gold < cost.gold) bottleneckResource = 'gold';
+              else if (curStock.stone < cost.stone) bottleneckResource = 'stone';
+              else if (curStock.wood < cost.wood) bottleneckResource = 'wood';
+              else if (curStock.food < cost.food) bottleneckResource = 'food';
+              break;
+          }
+      }
+      
+      return { affordable, bottleneck: bottleneckResource };
+  };
+
+  const handleSocFlagCountChange = (val) => {
+      const count = Math.max(0, parseInt(val) || 0);
+      setCurrentFlagCount(count);
+      
+      if (isFlagSocMode) {
+          const nextCost = getSocFlagCost(count + 1);
+          setFlagData(prev => ({
+              ...prev,
+              credits: { ...prev.credits, cost: nextCost.credits },
+              food:    { ...prev.food, cost: nextCost.food },
+              wood:    { ...prev.wood, cost: nextCost.wood },
+              stone:   { ...prev.stone, cost: nextCost.stone },
+              gold:    { ...prev.gold, cost: nextCost.gold },
+              crystal: { ...prev.crystal, cost: nextCost.crystal },
+          }));
+      }
+  };
+
+  const toggleSocMode = () => {
+      const newMode = !isFlagSocMode;
+      setIsFlagSocMode(newMode);
+      if (newMode) {
+          // Immediately apply current flag count costs
+          handleSocFlagCountChange(currentFlagCount);
+      }
   };
 
   const formatFlagTime = (minutes) => {
@@ -1364,11 +1485,37 @@ export default function CalculatorsPage() {
             {/* Header */}
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
-              <div className="flex items-center gap-3 relative z-10">
-                <span className="text-2xl">🚩</span>
-                <div>
-                  <h2 className="text-white font-black text-xl uppercase tracking-widest">Alliance Flag Calculator</h2>
-                  <p className="text-rose-400/70 text-xs font-bold uppercase tracking-widest mt-0.5">Calculate the exact bottleneck holding up your next alliance flag based on your current reserves and passive hourly income.</p>
+              <div className="flex items-start justify-between relative z-10">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🚩</span>
+                  <div>
+                    <h2 className="text-white font-black text-xl uppercase tracking-widest">Alliance Flag Calculator</h2>
+                    <p className="text-rose-400/70 text-xs font-bold uppercase tracking-widest mt-0.5">Calculate the exact bottleneck holding up your next alliance flag based on your current reserves and passive hourly income.</p>
+                  </div>
+                </div>
+                
+                {/* SOC Mode Toggle */}
+                <div className="flex flex-col items-end gap-2 bg-[#13161c]/80 border border-rose-500/30 p-3 rounded-xl">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <span className={`text-xs font-black uppercase tracking-widest ${isFlagSocMode ? 'text-rose-400' : 'text-gray-500'}`}>SOC KvK Cost Engine</span>
+                    <div className="relative">
+                      <input type="checkbox" className="sr-only" checked={isFlagSocMode} onChange={toggleSocMode} />
+                      <div className={`block w-10 h-6 rounded-full transition-colors ${isFlagSocMode ? 'bg-rose-500' : 'bg-[#1e222b]'}`}></div>
+                      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isFlagSocMode ? 'transform translate-x-4' : ''}`}></div>
+                    </div>
+                  </label>
+                  {isFlagSocMode && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Current Flags Built:</span>
+                      <input 
+                        type="number" min="0" 
+                        value={currentFlagCount || ''} 
+                        onChange={(e) => handleSocFlagCountChange(e.target.value)}
+                        placeholder="0"
+                        className="bg-[#0a0c0f] border border-[#1e222b] text-white text-xs font-mono px-2 py-1 rounded w-16 outline-none focus:border-rose-500"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
