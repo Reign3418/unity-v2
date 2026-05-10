@@ -217,9 +217,11 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
 
     const formatShortNum = (num) => {
         if (!num) return '0';
-        if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        const absNum = Math.abs(num);
+        const sign = num < 0 ? '-' : '';
+        if (absNum >= 1000000000) return sign + (absNum / 1000000000).toFixed(2) + 'B';
+        if (absNum >= 1000000) return sign + (absNum / 1000000).toFixed(1) + 'M';
+        if (absNum >= 1000) return sign + (absNum / 1000).toFixed(1) + 'K';
         return num.toFixed(0);
     };
 
