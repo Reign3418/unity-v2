@@ -12,6 +12,7 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
     
     // DKP View State
     const [viewMode, setViewMode] = useState("growth");
+    const [enableSiphon, setEnableSiphon] = useState(false);
     const [familyLinks, setFamilyLinks] = useState({});
     const [config, setConfig] = useState({
         dkpSystem: "advanced",
@@ -138,26 +139,28 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
         const govMap = {};
         baseCalculations.forEach(g => govMap[g.id] = g);
 
-        Object.entries(familyLinks).forEach(([farmId, mainId]) => {
-            const farm = govMap[farmId];
-            const main = govMap[mainId];
-            
-            if (farm && main) {
-                // Siphon Deads
-                if (farm.rawDeadsDiff > farmDeadsBaseline) {
-                    const excessDeads = farm.rawDeadsDiff - farmDeadsBaseline;
-                    farm.rawDeadsDiff = farmDeadsBaseline;
-                    main.rolloverDeads += excessDeads;
-                }
+        if (enableSiphon) {
+            Object.entries(familyLinks).forEach(([farmId, mainId]) => {
+                const farm = govMap[farmId];
+                const main = govMap[mainId];
                 
-                // Siphon KP
-                if (farm.rawKvkKP > farmKpBaseline) {
-                    const excessKp = farm.rawKvkKP - farmKpBaseline;
-                    farm.rawKvkKP = farmKpBaseline;
-                    main.rolloverKp += excessKp;
+                if (farm && main) {
+                    // Siphon Deads
+                    if (farm.rawDeadsDiff > farmDeadsBaseline) {
+                        const excessDeads = farm.rawDeadsDiff - farmDeadsBaseline;
+                        farm.rawDeadsDiff = farmDeadsBaseline;
+                        main.rolloverDeads += excessDeads;
+                    }
+                    
+                    // Siphon KP
+                    if (farm.rawKvkKP > farmKpBaseline) {
+                        const excessKp = farm.rawKvkKP - farmKpBaseline;
+                        farm.rawKvkKP = farmKpBaseline;
+                        main.rolloverKp += excessKp;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Pass 3: Final Aggregations
         return baseCalculations.map(g => {
@@ -376,20 +379,35 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
                             <div className="h-full w-1/2 bg-red-500/50"></div>
                         </div>
 
-                        {/* Flip Switch */}
-                        <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-1 mx-auto w-fit z-10 shadow-inner">
-                            <button 
-                                onClick={() => setViewMode("growth")} 
-                                className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "growth" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md" : "text-gray-500 hover:text-white"}`}
-                            >
-                                Growth Matrix
-                            </button>
-                            <button 
-                                onClick={() => setViewMode("dkp")} 
-                                className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "dkp" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-md" : "text-gray-500 hover:text-white"}`}
-                            >
-                                DKP Matrix
-                            </button>
+                        {/* Control Panel */}
+                        <div className="flex flex-col gap-2 items-center z-10 w-full mb-1">
+                            {/* Flip Switch */}
+                            <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-1 mx-auto w-fit shadow-inner">
+                                <button 
+                                    onClick={() => setViewMode("growth")} 
+                                    className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "growth" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md" : "text-gray-500 hover:text-white"}`}
+                                >
+                                    Growth Matrix
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode("dkp")} 
+                                    className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "dkp" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-md" : "text-gray-500 hover:text-white"}`}
+                                >
+                                    DKP Matrix
+                                </button>
+                            </div>
+
+                            {/* Siphon Toggle */}
+                            <label className="flex items-center gap-2 cursor-pointer mt-1 group">
+                                <div className="relative">
+                                    <input type="checkbox" className="sr-only" checked={enableSiphon} onChange={(e) => setEnableSiphon(e.target.checked)} />
+                                    <div className={`block w-8 h-4 rounded-full transition-colors ${enableSiphon ? 'bg-orange-500/50 border border-orange-500/50' : 'bg-[#1e222b] border border-[#2d323e]'}`}></div>
+                                    <div className={`absolute left-0.5 top-0.5 w-3 h-3 rounded-full transition-transform ${enableSiphon ? 'translate-x-4 bg-orange-400' : 'bg-gray-500'}`}></div>
+                                </div>
+                                <span className={`text-[9px] font-bold uppercase tracking-widest transition-colors ${enableSiphon ? 'text-orange-400' : 'text-gray-500 group-hover:text-gray-400'}`}>
+                                    Farm Siphon {enableSiphon ? 'Enabled' : 'Disabled'}
+                                </span>
+                            </label>
                         </div>
 
                         <h3 className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 mt-2 flex items-center justify-center gap-2">
