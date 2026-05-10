@@ -409,6 +409,7 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
                             <>
                                 {renderCompactBar('Total DKP Score', statsDetail.A.totalDkp, statsDetail.B.totalDkp)}
                                 {config.dkpSystem !== 'basic' && renderCompactBar('Target DKP', statsDetail.A.targetDkp, statsDetail.B.targetDkp)}
+                                {config.dkpSystem !== 'basic' && renderCompactBar('Target Completion', Number((statsDetail.A.targetDkp ? (statsDetail.A.totalDkp / statsDetail.A.targetDkp * 100) : 0).toFixed(1)), Number((statsDetail.B.targetDkp ? (statsDetail.B.totalDkp / statsDetail.B.targetDkp * 100) : 0).toFixed(1)), false, false, '%')}
                                 {renderCompactBar('T4 Kills Gained', statsDetail.A.t4Kills, statsDetail.B.t4Kills)}
                                 {renderCompactBar('T5 Kills Gained', statsDetail.A.t5Kills, statsDetail.B.t5Kills)}
                                 {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth, true, true)}
