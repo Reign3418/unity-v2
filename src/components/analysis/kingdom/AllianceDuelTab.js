@@ -3,12 +3,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { ShieldAlert, Activity, Swords, RefreshCw } from "lucide-react";
 
-export default function AllianceDuelTab({ targetKd, trends }) {
+export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }) {
     const [allianceA, setAllianceA] = useState("");
     const [allianceB, setAllianceB] = useState("");
     
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralData, setBehavioralData] = useState([]);
     
@@ -58,17 +56,7 @@ export default function AllianceDuelTab({ targetKd, trends }) {
         fetchLinks();
     }, [targetKd]);
 
-    const extractDate = (dateStr) => {
-        if (!dateStr) return "";
-        return dateStr.split('T')[0].split(' ')[0].split('_')[0];
-    };
 
-    useEffect(() => {
-        if (trends && trends.length > 0 && !startDate && !endDate) {
-            setEndDate(extractDate(trends[trends.length - 1].scanDate));
-            setStartDate(extractDate(trends[0].scanDate));
-        }
-    }, [trends]);
 
     useEffect(() => {
         const fetchBehavioralData = async () => {
