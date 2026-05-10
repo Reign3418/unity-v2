@@ -397,17 +397,36 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
                                 </button>
                             </div>
 
-                            {/* Siphon Toggle */}
-                            <label className="flex items-center gap-2 cursor-pointer mt-1 group">
-                                <div className="relative">
-                                    <input type="checkbox" className="sr-only" checked={enableSiphon} onChange={(e) => setEnableSiphon(e.target.checked)} />
-                                    <div className={`block w-8 h-4 rounded-full transition-colors ${enableSiphon ? 'bg-orange-500/50 border border-orange-500/50' : 'bg-[#1e222b] border border-[#2d323e]'}`}></div>
-                                    <div className={`absolute left-0.5 top-0.5 w-3 h-3 rounded-full transition-transform ${enableSiphon ? 'translate-x-4 bg-orange-400' : 'bg-gray-500'}`}></div>
+                            {/* Toggles Row */}
+                            <div className="flex gap-4 items-center mt-1">
+                                {/* Ruleset Toggle */}
+                                <div className="flex items-center gap-2 group">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 group-hover:text-gray-400 transition-colors">
+                                        Ruleset
+                                    </span>
+                                    <select 
+                                        value={config.dkpSystem || 'advanced'}
+                                        onChange={(e) => setConfig({...config, dkpSystem: e.target.value})}
+                                        className="bg-[#1e222b] border border-[#2d323e] text-[9px] font-bold uppercase tracking-widest text-gray-300 rounded px-2 py-0.5 outline-none focus:border-purple-500/50 cursor-pointer"
+                                    >
+                                        <option value="basic">Basic (Raw Points)</option>
+                                        <option value="bracketed">Bracketed (Tiered)</option>
+                                        <option value="advanced">Advanced (Proportional)</option>
+                                    </select>
                                 </div>
-                                <span className={`text-[9px] font-bold uppercase tracking-widest transition-colors ${enableSiphon ? 'text-orange-400' : 'text-gray-500 group-hover:text-gray-400'}`}>
-                                    Farm Siphon {enableSiphon ? 'Enabled' : 'Disabled'}
-                                </span>
-                            </label>
+
+                                {/* Siphon Toggle */}
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className="relative">
+                                        <input type="checkbox" className="sr-only" checked={enableSiphon} onChange={(e) => setEnableSiphon(e.target.checked)} />
+                                        <div className={`block w-8 h-4 rounded-full transition-colors ${enableSiphon ? 'bg-orange-500/50 border border-orange-500/50' : 'bg-[#1e222b] border border-[#2d323e]'}`}></div>
+                                        <div className={`absolute left-0.5 top-0.5 w-3 h-3 rounded-full transition-transform ${enableSiphon ? 'translate-x-4 bg-orange-400' : 'bg-gray-500'}`}></div>
+                                    </div>
+                                    <span className={`text-[9px] font-bold uppercase tracking-widest transition-colors ${enableSiphon ? 'text-orange-400' : 'text-gray-500 group-hover:text-gray-400'}`}>
+                                        Farm Siphon {enableSiphon ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                </label>
+                            </div>
                         </div>
 
                         <h3 className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 mt-2 flex items-center justify-center gap-2">
