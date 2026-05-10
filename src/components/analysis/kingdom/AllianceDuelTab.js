@@ -11,6 +11,52 @@ export default function AllianceDuelTab({ targetKd, trends }) {
     const [endDate, setEndDate] = useState("");
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralData, setBehavioralData] = useState([]);
+    
+    // DKP View State
+    const [viewMode, setViewMode] = useState("growth");
+    const [familyLinks, setFamilyLinks] = useState({});
+    const [config, setConfig] = useState({
+        dkpSystem: "advanced",
+        basicT4Points: 10,
+        basicT5Points: 20,
+        basicDeadsPoints: 30,
+        deadsMultiplier: 0.02,
+        deadsWeight: 50,
+        kpPowerDivisor: 3,
+        t5MixRatio: 0.7,
+        kpMultiplier: 1.25,
+        advT4Points: 10,
+        advT5Points: 20
+    });
+
+    useEffect(() => {
+        const saved = localStorage.getItem("unity_dkp_config_v2");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (!parsed.dkpSystem) parsed.dkpSystem = "advanced";
+                setConfig(parsed);
+            } catch (e) {
+                console.error("Failed to load DKP config", e);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const fetchLinks = async () => {
+            if (!targetKd) return;
+            try {
+                const res = await fetch(`/api/aws/admin/links?kd=${targetKd}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFamilyLinks(data || {});
+                }
+            } catch (err) {
+                console.error("Failed to load family links", err);
+            }
+        };
+        fetchLinks();
+    }, [targetKd]);
 
     const extractDate = (dateStr) => {
         if (!dateStr) return "";
@@ -47,12 +93,111 @@ export default function AllianceDuelTab({ targetKd, trends }) {
         return [...new Set(behavioralData.map(g => g.alliance))].filter(a => a && a !== 'Unknown').sort();
     }, [behavioralData]);
 
+    const processedBehavioralData = useMemo(() => {
+        if (!behavioralData || behavioralData.length === 0) return [];
+        
+        const isBasic = config.dkpSystem === 'basic';
+        const farmDeadsBaseline = config.farmDeadsBaseline || 500000;
+        const farmKpBaseline = config.farmKpBaseline || 0;
+        
+        // Pass 1: Raw Output
+        const baseCalculations = behavioralData.filter(g => g.powerEnd > 0).map(p => {
+            const parsedDiff = (typeof p.powerDiff === 'number') ? p.powerDiff : 0;
+            const powerStart = Math.max(0, (p.powerEnd || 0) - parsedDiff);
+            const deadsDiff = Math.max(0, p.deadsDiff || 0);
+            const t4Diff = Math.max(0, p.t4Diff || 0);
+            const t5Diff = Math.max(0, p.t5Diff || 0);
+
+            let rawKvkKP = 0;
+            let targetDkp = 0;
+
+            if (isBasic) {
+                rawKvkKP = (t4Diff * (config.basicT4Points || 0)) + (t5Diff * (config.basicT5Points || 0));
+                targetDkp = 0; 
+            } else if (config.dkpSystem === "bracketed") {
+                const pM = powerStart / 1000000;
+                let mult = config.b6Mult || 5.0;
+                
+                if (pM <= (config.b1Max || 24)) mult = (config.b1Mult || 1.5);
+                else if (pM <= (config.b2Max || 35)) mult = (config.b2Mult || 2.0);
+                else if (pM <= (config.b3Max || 45)) mult = (config.b3Mult || 2.5);
+                else if (pM <= (config.b4Max || 55)) mult = (config.b4Mult || 3.0);
+                else if (pM <= (config.b5Max || 70)) mult = (config.b5Mult || 4.0);
+
+                rawKvkKP = (t4Diff * (config.advT4Points || 10)) + (t5Diff * (config.advT5Points || 20));
+                targetDkp = powerStart * mult;
+            } else {
+                rawKvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
+                const t4MixRatio = 1 - (config.t5MixRatio || 0);
+                const kpTargetMultiplier = ((((config.t5MixRatio || 0) * (config.advT5Points || 0)) + (t4MixRatio * (config.advT4Points || 0))) * (config.kpMultiplier || 0)) / (config.kpPowerDivisor || 1);
+                
+                targetDkp = powerStart * kpTargetMultiplier;
+            }
+
+            return {
+                ...p,
+                targetDkp,
+                rawKvkKP,
+                rawDeadsDiff: deadsDiff,
+                t4Diff,
+                t5Diff,
+                rolloverDeads: 0,
+                rolloverKp: 0
+            };
+        });
+
+        // Pass 2: The Overflow Siphon
+        const govMap = {};
+        baseCalculations.forEach(g => govMap[g.id] = g);
+
+        Object.entries(familyLinks).forEach(([farmId, mainId]) => {
+            const farm = govMap[farmId];
+            const main = govMap[mainId];
+            
+            if (farm && main) {
+                // Siphon Deads
+                if (farm.rawDeadsDiff > farmDeadsBaseline) {
+                    const excessDeads = farm.rawDeadsDiff - farmDeadsBaseline;
+                    farm.rawDeadsDiff = farmDeadsBaseline;
+                    main.rolloverDeads += excessDeads;
+                }
+                
+                // Siphon KP
+                if (farm.rawKvkKP > farmKpBaseline) {
+                    const excessKp = farm.rawKvkKP - farmKpBaseline;
+                    farm.rawKvkKP = farmKpBaseline;
+                    main.rolloverKp += excessKp;
+                }
+            }
+        });
+
+        // Pass 3: Final Aggregations
+        return baseCalculations.map(g => {
+            const totalEffectiveDeads = g.rawDeadsDiff + g.rolloverDeads;
+            const totalEffectiveKp = g.rawKvkKP + g.rolloverKp;
+            
+            let finalDkp = 0;
+
+            if (isBasic) {
+                finalDkp = totalEffectiveKp + (totalEffectiveDeads * (config.basicDeadsPoints || 0));
+            } else {
+                finalDkp = totalEffectiveKp;
+            }
+
+            return {
+                ...g,
+                finalDkp,
+                targetDkp: g.targetDkp || 0
+            };
+        });
+    }, [behavioralData, config, familyLinks]);
+
     const statsDetail = useMemo(() => {
-        if (!behavioralData) return { A: null, B: null };
+        if (!processedBehavioralData) return { A: null, B: null };
 
         const calculateStats = (tag) => {
             if (!tag) return null;
-            const rows = behavioralData.filter(g => g.alliance === tag);
+            const rows = processedBehavioralData.filter(g => g.alliance === tag);
             if (rows.length === 0) return null;
 
             return {
@@ -67,7 +212,12 @@ export default function AllianceDuelTab({ targetKd, trends }) {
                 
                 latestPower: rows.reduce((sum, r) => sum + (r.powerEnd || 0), 0),
                 latestTech: rows.reduce((sum, r) => sum + (r.techEnd || 0), 0),
-                latestBuilding: rows.reduce((sum, r) => sum + (r.bldEnd || 0), 0)
+                latestBuilding: rows.reduce((sum, r) => sum + (r.bldEnd || 0), 0),
+
+                totalDkp: rows.reduce((sum, r) => sum + (r.finalDkp || 0), 0),
+                targetDkp: rows.reduce((sum, r) => sum + (r.targetDkp || 0), 0),
+                t4Kills: rows.reduce((sum, r) => sum + (r.t4Diff || 0), 0),
+                t5Kills: rows.reduce((sum, r) => sum + (r.t5Diff || 0), 0),
             };
         };
 
@@ -75,7 +225,7 @@ export default function AllianceDuelTab({ targetKd, trends }) {
             A: calculateStats(allianceA),
             B: calculateStats(allianceB)
         };
-    }, [behavioralData, allianceA, allianceB]);
+    }, [processedBehavioralData, allianceA, allianceB]);
 
     const formatShortNum = (num) => {
         if (!num) return '0';
@@ -218,21 +368,51 @@ export default function AllianceDuelTab({ targetKd, trends }) {
                     </div>
 
                     {/* Head to Head Sliders */}
-                    <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl flex flex-col justify-center space-y-4 relative overflow-hidden">
+                    <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl flex flex-col justify-start space-y-4 relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1 flex">
                             <div className="h-full w-1/2 bg-blue-500/50"></div>
                             <div className="h-full w-1/2 bg-red-500/50"></div>
                         </div>
-                        <h3 className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
-                            <Activity className="w-4 h-4" /> Growth Dominance Matrix
+
+                        {/* Flip Switch */}
+                        <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-1 mx-auto w-fit z-10 shadow-inner">
+                            <button 
+                                onClick={() => setViewMode("growth")} 
+                                className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "growth" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md" : "text-gray-500 hover:text-white"}`}
+                            >
+                                Growth Matrix
+                            </button>
+                            <button 
+                                onClick={() => setViewMode("dkp")} 
+                                className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "dkp" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-md" : "text-gray-500 hover:text-white"}`}
+                            >
+                                DKP Matrix
+                            </button>
+                        </div>
+
+                        <h3 className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 mt-2 flex items-center justify-center gap-2">
+                            <Activity className="w-4 h-4" /> {viewMode === 'growth' ? 'Growth Dominance' : 'DKP Dominance'} Matrix
                         </h3>
                         
-                        {renderCompactBar('Power Growth', statsDetail.A.powerGrowth, statsDetail.B.powerGrowth)}
-                        {renderCompactBar('Kill Points Gained', statsDetail.A.kpGrowth, statsDetail.B.kpGrowth)}
-                        {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth)}
-                        {renderCompactBar('Tech Growth', statsDetail.A.techGrowth, statsDetail.B.techGrowth)}
-                        {renderCompactBar('Building Growth', statsDetail.A.buildingGrowth, statsDetail.B.buildingGrowth)}
-                        {renderCompactBar('Combat Ready Roster', statsDetail.A.members, statsDetail.B.members, false)}
+                        {viewMode === 'growth' ? (
+                            <>
+                                {renderCompactBar('Power Growth', statsDetail.A.powerGrowth, statsDetail.B.powerGrowth)}
+                                {renderCompactBar('Kill Points Gained', statsDetail.A.kpGrowth, statsDetail.B.kpGrowth)}
+                                {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth)}
+                                {renderCompactBar('Tech Growth', statsDetail.A.techGrowth, statsDetail.B.techGrowth)}
+                                {renderCompactBar('Building Growth', statsDetail.A.buildingGrowth, statsDetail.B.buildingGrowth)}
+                                {renderCompactBar('Combat Ready Roster', statsDetail.A.members, statsDetail.B.members, false)}
+                            </>
+                        ) : (
+                            <>
+                                {renderCompactBar('Total DKP Score', statsDetail.A.totalDkp, statsDetail.B.totalDkp)}
+                                {config.dkpSystem !== 'basic' && renderCompactBar('Target DKP', statsDetail.A.targetDkp, statsDetail.B.targetDkp)}
+                                {renderCompactBar('T4 Kills Gained', statsDetail.A.t4Kills, statsDetail.B.t4Kills)}
+                                {renderCompactBar('T5 Kills Gained', statsDetail.A.t5Kills, statsDetail.B.t5Kills)}
+                                {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth)}
+                                {renderCompactBar('Combat Ready Roster', statsDetail.A.members, statsDetail.B.members, false)}
+                            </>
+                        )}
                     </div>
 
                     {/* Combatant B Card */}
