@@ -225,17 +225,29 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
         return num.toFixed(0);
     };
 
-    const renderCompactBar = (label, valA, valB, format = true) => {
+    const renderCompactBar = (label, valA, valB, format = true, inverse = false) => {
         const total = Math.abs(valA) + Math.abs(valB);
-        const perA = total === 0 ? 50 : (Math.abs(valA) / total) * 100;
-        const perB = total === 0 ? 50 : (Math.abs(valB) / total) * 100;
+        let perA = total === 0 ? 50 : (Math.abs(valA) / total) * 100;
+        let perB = total === 0 ? 50 : (Math.abs(valB) / total) * 100;
         
+        const bothNegative = valA < 0 && valB < 0;
+        if (inverse || bothNegative) {
+            const temp = perA;
+            perA = perB;
+            perB = temp;
+        }
+
         const displayA = format ? formatShortNum(valA) : valA;
         const displayB = format ? formatShortNum(valB) : valB;
 
         let titleColor = "text-gray-400";
-        if (valA > valB) titleColor = "text-blue-400";
-        if (valB > valA) titleColor = "text-red-400";
+        if (inverse) {
+            if (valA < valB) titleColor = "text-blue-400";
+            if (valB < valA) titleColor = "text-red-400";
+        } else {
+            if (valA > valB) titleColor = "text-blue-400";
+            if (valB > valA) titleColor = "text-red-400";
+        }
 
         return (
             <div className="bg-[#13161c] border border-[#1e222b] rounded-xl p-4 flex flex-col relative overflow-hidden group hover:border-[#2d323e] transition-colors">
@@ -388,7 +400,7 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
                             <>
                                 {renderCompactBar('Power Growth', statsDetail.A.powerGrowth, statsDetail.B.powerGrowth)}
                                 {renderCompactBar('Kill Points Gained', statsDetail.A.kpGrowth, statsDetail.B.kpGrowth)}
-                                {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth)}
+                                {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth, true, true)}
                                 {renderCompactBar('Tech Growth', statsDetail.A.techGrowth, statsDetail.B.techGrowth)}
                                 {renderCompactBar('Building Growth', statsDetail.A.buildingGrowth, statsDetail.B.buildingGrowth)}
                                 {renderCompactBar('Combat Ready Roster', statsDetail.A.members, statsDetail.B.members, false)}
@@ -399,7 +411,7 @@ export default function AllianceDuelTab({ targetKd, trends, startDate, endDate }
                                 {config.dkpSystem !== 'basic' && renderCompactBar('Target DKP', statsDetail.A.targetDkp, statsDetail.B.targetDkp)}
                                 {renderCompactBar('T4 Kills Gained', statsDetail.A.t4Kills, statsDetail.B.t4Kills)}
                                 {renderCompactBar('T5 Kills Gained', statsDetail.A.t5Kills, statsDetail.B.t5Kills)}
-                                {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth)}
+                                {renderCompactBar('Casualties (Deads)', statsDetail.A.deadsGrowth, statsDetail.B.deadsGrowth, true, true)}
                                 {renderCompactBar('Combat Ready Roster', statsDetail.A.members, statsDetail.B.members, false)}
                             </>
                         )}
