@@ -19,7 +19,6 @@ import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
 import T5TrackerTab from "@/components/analysis/kingdom/T5TrackerTab";
-import KingdomHealthTab from "@/components/analysis/kingdom/KingdomHealthTab";
 import WorkbenchSidebar from "@/components/analysis/kingdom/WorkbenchSidebar";
 import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
 import MemberPortal from "@/components/member/MemberPortal";
@@ -27,7 +26,6 @@ import { useTranslations } from "next-intl";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
-  { name: "Kingdom Health", icon: Activity },
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Growth Analysis", icon: TrendingUp },
   { name: "Presence Radar", icon: Clock },
@@ -192,14 +190,6 @@ export default function KingdomAnalysis() {
                   <OverviewTab 
                       targetKd={targetKd}
                       trends={trends}
-                      startDate={startDate}
-                      endDate={endDate}
-                  />
-              );
-          case 'Kingdom Health':
-              return (
-                  <KingdomHealthTab 
-                      targetKd={targetKd}
                       startDate={startDate}
                       endDate={endDate}
                   />

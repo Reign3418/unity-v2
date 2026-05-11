@@ -13,118 +13,152 @@ export async function GET(req) {
         }
 
         const { searchParams } = new URL(req.url);
-        const kingdomId = searchParams.get('kd');
+        const kdsParam = searchParams.get('kds');
         const start = searchParams.get('start'); 
         const end = searchParams.get('end');
         const depth = parseInt(searchParams.get('depth') || '300', 10);
 
-        if (!kingdomId) {
-            return NextResponse.json({ error: "Missing 'kd' parameter." }, { status: 400 });
+        if (!kdsParam) {
+            return NextResponse.json({ error: "Missing 'kds' parameter." }, { status: 400 });
         }
 
-        if (!session.user.isSuperAdmin && !session.user.allowedKingdoms?.includes(kingdomId)) {
-            return NextResponse.json({ error: "Access Denied." }, { status: 403 });
-        }
+        const kingdoms = kdsParam.split(',').map(k => k.trim()).filter(Boolean);
 
-        const rosterData = await getOverviewDeltas(kingdomId, start, end);
-        
-        if (!rosterData || rosterData.length === 0) {
-             return NextResponse.json({ error: "No data available for this kingdom in the given range." }, { status: 404 });
-        }
+        // Fetch all kingdom deltas concurrently
+        const results = await Promise.all(kingdoms.map(async (kd) => {
+            const rosterData = await getOverviewDeltas(kd, start, end);
+            if (!rosterData || rosterData.length === 0) return { kd, error: "No data available" };
+            
+            const sortedRoster = rosterData.sort((a, b) => b.powerEnd - a.powerEnd).slice(0, depth);
+            
+            const allianceMap = {};
+            let totalPowerGained = 0;
+            let totalDeadsGained = 0;
+            let totalKPGained = 0;
+            let totalTroopPowerGained = 0;
+            let totalCmdPowerGained = 0;
+            let totalTechPowerGained = 0;
+            let totalBuildPowerGained = 0;
+            
+            const whaleThreshold = 2000000;
+            const whales = [];
+            const allianceSwitchers = [];
 
-        // Apply depth sorting by latest power and slice
-        const sortedRoster = rosterData.sort((a, b) => b.powerEnd - a.powerEnd).slice(0, depth);
+            for (const gov of sortedRoster) {
+                const pDelta = gov.powerDelta === 'NEW' ? gov.powerEnd : gov.powerDelta;
+                const troopDelta = gov.troopDelta || 0;
+                const cmdDelta = gov.cmdDelta || 0;
+                const techDelta = gov.techDelta || 0;
+                const buildDelta = gov.buildDelta || 0;
+                const kpDelta = gov.kpDelta || 0;
+                const deadsDelta = gov.deadsDelta || 0;
 
-        // Aggregate Alliance metrics
-        const allianceMap = {};
-        let totalPowerGained = 0;
-        let totalDeadsGained = 0;
-        let totalKPGained = 0;
-        let totalTroopPowerGained = 0;
-        let totalCmdPowerGained = 0;
-        
-        const whaleThreshold = 2000000; // +2M power in the window
-        const whales = [];
-        const allianceSwitchers = [];
+                totalPowerGained += pDelta;
+                totalTroopPowerGained += troopDelta;
+                totalCmdPowerGained += cmdDelta;
+                totalTechPowerGained += techDelta;
+                totalBuildPowerGained += buildDelta;
+                totalKPGained += kpDelta;
+                totalDeadsGained += deadsDelta;
 
-        for (const gov of sortedRoster) {
-            const pDelta = gov.powerDelta === 'NEW' ? gov.powerEnd : gov.powerDelta;
-            const troopDelta = gov.troopDelta || 0;
-            const cmdDelta = gov.cmdDelta || 0;
-            const kpDelta = gov.kpDelta || 0;
-            const deadsDelta = gov.deadsDelta || 0;
+                if (pDelta >= whaleThreshold) {
+                    whales.push({ id: gov.id, name: gov.name, alliance: gov.alliance, powerDelta: pDelta });
+                }
 
-            totalPowerGained += pDelta;
-            totalTroopPowerGained += troopDelta;
-            totalCmdPowerGained += cmdDelta;
-            totalKPGained += kpDelta;
-            totalDeadsGained += deadsDelta;
+                if (gov.allianceStart && gov.alliance !== gov.allianceStart) {
+                    allianceSwitchers.push({ 
+                        id: gov.id, 
+                        name: gov.name, 
+                        from: gov.allianceStart, 
+                        to: gov.alliance,
+                        power: gov.powerEnd
+                    });
+                }
 
-            if (pDelta >= whaleThreshold) {
-                whales.push({ id: gov.id, name: gov.name, alliance: gov.alliance, powerDelta: pDelta });
+                const activeTag = gov.alliance && gov.alliance !== 'None' ? gov.alliance : 'No Tag';
+                if (!allianceMap[activeTag]) {
+                    allianceMap[activeTag] = { 
+                        tag: activeTag, 
+                        govCount: 0, 
+                        powerStart: 0, 
+                        powerEnd: 0,
+                        powerDelta: 0,
+                        troopDelta: 0,
+                        cmdDelta: 0,
+                        techDelta: 0,
+                        buildDelta: 0,
+                        kpDelta: 0,
+                        deadsDelta: 0
+                    };
+                }
+                allianceMap[activeTag].govCount += 1;
+                allianceMap[activeTag].powerStart += (gov.powerStart || 0);
+                allianceMap[activeTag].powerEnd += gov.powerEnd;
+                allianceMap[activeTag].powerDelta += pDelta;
+                allianceMap[activeTag].troopDelta += troopDelta;
+                allianceMap[activeTag].cmdDelta += cmdDelta;
+                allianceMap[activeTag].techDelta += techDelta;
+                allianceMap[activeTag].buildDelta += buildDelta;
+                allianceMap[activeTag].kpDelta += kpDelta;
+                allianceMap[activeTag].deadsDelta += deadsDelta;
             }
 
-            if (gov.allianceStart && gov.alliance !== gov.allianceStart) {
-                allianceSwitchers.push({ 
-                    id: gov.id, 
-                    name: gov.name, 
-                    from: gov.allianceStart, 
-                    to: gov.alliance,
-                    power: gov.powerEnd
-                });
-            }
+            return {
+                kd,
+                rosterSize: sortedRoster.length,
+                metrics: {
+                    totalPowerGained,
+                    totalTroopPowerGained,
+                    totalCmdPowerGained,
+                    totalTechPowerGained,
+                    totalBuildPowerGained,
+                    totalKPGained,
+                    totalDeadsGained,
+                    whalesCount: whales.length,
+                    switchersCount: allianceSwitchers.length
+                },
+                alliances: Object.values(allianceMap).filter(a => a.tag !== 'No Tag'),
+                switchers: allianceSwitchers.slice(0, 15),
+                whales: whales.sort((a,b) => b.powerDelta - a.powerDelta).slice(0, 15)
+            };
+        }));
 
-            const activeTag = gov.alliance && gov.alliance !== 'None' ? gov.alliance : 'No Tag';
-            if (!allianceMap[activeTag]) {
-                allianceMap[activeTag] = { 
-                    tag: activeTag, 
-                    govCount: 0, 
-                    totalPowerStart: 0, 
-                    totalPowerEnd: 0,
-                    powerDelta: 0,
-                    deadsDelta: 0
-                };
-            }
-            allianceMap[activeTag].govCount += 1;
-            allianceMap[activeTag].totalPowerStart += (gov.powerStart || 0);
-            allianceMap[activeTag].totalPowerEnd += gov.powerEnd;
-            allianceMap[activeTag].powerDelta += pDelta;
-            allianceMap[activeTag].deadsDelta += deadsDelta;
+        const successfulKds = results.filter(r => !r.error);
+        if (successfulKds.length === 0) {
+            return NextResponse.json({ error: "No data available for the requested kingdoms." }, { status: 404 });
         }
 
-        const topAlliances = Object.values(allianceMap)
-            .filter(a => a.tag !== 'No Tag')
-            .sort((a, b) => b.totalPowerEnd - a.totalPowerEnd)
-            .slice(0, 5);
+        // Build AI Prompt for multi-kingdom comparison
+        const kingdomSummaries = successfulKds.map(k => `
+KINGDOM ${k.kd} (Top ${depth} Govs):
+- Power Gained: ${k.metrics.totalPowerGained.toLocaleString()}
+- Troop Power Gained: ${k.metrics.totalTroopPowerGained.toLocaleString()}
+- Cmdr Power Gained: ${k.metrics.totalCmdPowerGained.toLocaleString()}
+- Kill Points Gained: ${k.metrics.totalKPGained.toLocaleString()}
+- Dead Troops: ${k.metrics.totalDeadsGained.toLocaleString()}
+- Alliance Switchers: ${k.metrics.switchersCount}
+- Whales Surging (>2M): ${k.metrics.whalesCount}
+        `).join('\n');
 
-        // Format data for AI
-        const aiPrompt = `You are an intelligence analyst evaluating the early-game stability of Kingdom ${kingdomId}.
-Your goal is to perform an "Early Kingdom Polygraph Test" across a tight date range.
-Analyze the following metrics to determine if the kingdom is peacefully building for KvK, actively skirmishing, or engaged in a toxic civil war.
+        const aiPrompt = `You are J.A.R.V.I.S., an intelligence analyst. Perform an "Early Kingdom Polygraph Test" on the following kingdoms across a tight date range.
+Analyze the metrics to determine if each kingdom is peacefully building for KvK, actively skirmishing, or engaged in a toxic civil war. Look for correlations between high deads and alliance switching (churn).
 
-METRICS (Top ${depth} Governors):
-- Total Power Gained: ${totalPowerGained.toLocaleString()}
-- Total Troop Power Gained: ${totalTroopPowerGained.toLocaleString()}
-- Total Commander Power Gained: ${totalCmdPowerGained.toLocaleString()}
-- Total Kill Points Gained: ${totalKPGained.toLocaleString()}
-- Total Dead Troops: ${totalDeadsGained.toLocaleString()}
+${kingdomSummaries}
 
-ALLIANCE DYNAMICS (Top 5):
-${topAlliances.map(a => `- [${a.tag}] Govs: ${a.govCount} | Power Delta: ${a.powerDelta.toLocaleString()} | Deads: ${a.deadsDelta.toLocaleString()}`).join('\n')}
-
-MIGRATION / ALLIANCE CHURN:
-- Total Alliance Switchers (Top ${depth}): ${allianceSwitchers.length}
-- Notable Whales (>2M power growth): ${whales.length}
-
-Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Just the JSON.
-
+Provide a comparative assessment, then give each kingdom a specific grade. Return ONLY raw JSON matching this schema:
 {
-  "grade": "A|B|C|D|F",
-  "civilWarProbability": "0-100%",
-  "posture": "Peaceful Farming / Active Skirmishing / Total Civil War / Whale Surges",
-  "assessment": "2-3 sentences explaining your grade and diagnosis based on the power vs deads ratio and alliance growth.",
-  "stabilityIndex": "1 sentence on roster churn and alliance switching.",
-  "economicIntel": "1 sentence analyzing troop power vs commander power growth."
+  "comparativeAssessment": "1-2 paragraphs comparing the trajectories and stability of these kingdoms.",
+  "kingdoms": [
+    {
+      "kd": "1234",
+      "grade": "A|B|C|D|F",
+      "civilWarProbability": 0-100,
+      "posture": "Peaceful Farming | Active Skirmishing | Total Civil War | Whale Surges",
+      "diagnosis": "2-3 sentences explaining the grade based on power vs deads ratio.",
+      "stabilityIndex": "1 sentence on roster churn and migration.",
+      "economicIntel": "1 sentence analyzing troop power vs commander power growth."
+    }
+  ]
 }`;
 
         const customKey = req.headers.get('x-gemini-key');
@@ -140,7 +174,11 @@ Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Just
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: aiPrompt }] }],
-                            generationConfig: { temperature: 0.1, maxOutputTokens: 1024 }
+                            generationConfig: { 
+                                temperature: 0.1, 
+                                maxOutputTokens: 2048,
+                                responseMimeType: "application/json"
+                            }
                         })
                     }
                 );
@@ -148,32 +186,18 @@ Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Just
                 if (geminiRes.ok) {
                     const geminiData = await geminiRes.json();
                     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-                    let cleaned = rawText.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
-                    const fi = cleaned.indexOf('{');
-                    const li = cleaned.lastIndexOf('}');
-                    if (fi !== -1 && li >= fi) cleaned = cleaned.substring(fi, li + 1);
-                    aiBrief = JSON.parse(cleaned);
+                    aiBrief = JSON.parse(rawText);
+                } else {
+                    console.error("[Health Report API] Gemini Fetch Failed:", await geminiRes.text());
                 }
             } catch (aiErr) {
-                console.error("[Kingdom Health API] Gemini Parse Error:", aiErr);
+                console.error("[Health Report API] Gemini Parse Error:", aiErr);
             }
         }
 
         return NextResponse.json({ 
             success: true, 
-            rosterSize: sortedRoster.length,
-            metrics: {
-                totalPowerGained,
-                totalTroopPowerGained,
-                totalCmdPowerGained,
-                totalKPGained,
-                totalDeadsGained,
-                whalesCount: whales.length,
-                switchersCount: allianceSwitchers.length
-            },
-            topAlliances,
-            switchers: allianceSwitchers.slice(0, 10), // top 10 examples
-            whales: whales.sort((a,b) => b.powerDelta - a.powerDelta).slice(0, 10),
+            kingdoms: successfulKds,
             ai: aiBrief
         }, { status: 200 });
 

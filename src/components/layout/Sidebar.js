@@ -83,6 +83,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <NavItem href="/results/dkp" icon={Medal} label={t('nav_dkp')} />
           <NavItem href="/tools/tracker" icon={Timer} label={t('nav_activity_tracker')} />
           <NavItem href="/tools/hunter" icon={Crosshair} label={t('nav_player_hunter')} />
+          <NavItem href="/tools/polygraph" icon={Activity} label="EK Polygraph" />
 
           <SectionTitle>{t('sec_community')}</SectionTitle>
           <NavItem href="/changelog" icon={BookOpen} label={t('nav_changelog')} />
