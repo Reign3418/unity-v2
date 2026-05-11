@@ -15,6 +15,8 @@ export default function PublicDkpTargets() {
     const [dkpSystem, setDkpSystem] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    const [sortConfig, setSortConfig] = useState({ key: 'powerStart', direction: 'desc' });
+
     useEffect(() => {
         if (!kd || !baseline) {
             setError("Invalid Link: Missing Kingdom ID or Baseline Scan.");
@@ -44,17 +46,53 @@ export default function PublicDkpTargets() {
         fetchTargets();
     }, [kd, baseline]);
 
-    const filteredTargets = useMemo(() => {
-        if (!searchQuery) return targets;
-        const q = searchQuery.toLowerCase();
-        return targets.filter(t => 
-            (t.name && t.name.toLowerCase().includes(q)) ||
-            (t.id && t.id.toString().includes(q)) ||
-            (t.alliance && t.alliance.toLowerCase().includes(q))
-        );
-    }, [targets, searchQuery]);
+    const requestSort = (key) => {
+        let direction = 'desc';
+        if (sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = 'asc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedTargets = useMemo(() => {
+        let sortableItems = [...targets];
+        
+        // Search Filter
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            sortableItems = sortableItems.filter(t => 
+                (t.name && t.name.toLowerCase().includes(q)) ||
+                (t.id && t.id.toString().includes(q)) ||
+                (t.alliance && t.alliance.toLowerCase().includes(q))
+            );
+        }
+
+        // Sorting
+        sortableItems.sort((a, b) => {
+            let aValue = a[sortConfig.key];
+            let bValue = b[sortConfig.key];
+            
+            if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+            if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+
+            if (aValue < bValue) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+        
+        return sortableItems;
+    }, [targets, searchQuery, sortConfig]);
 
     const formatNum = (num) => Number(num).toLocaleString();
+
+    const SortIcon = ({ columnKey }) => {
+        if (sortConfig.key !== columnKey) return <span className="opacity-0 group-hover:opacity-50 ml-1">↕</span>;
+        return <span className="text-cyan-400 ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+    };
 
     if (isLoading) {
         return (
@@ -134,20 +172,26 @@ export default function PublicDkpTargets() {
                         <table className="w-full whitespace-nowrap text-left border-collapse">
                             <thead className="bg-[#0f1115] sticky top-0 z-10 shadow-md">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b]">Governor</th>
-                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b]">Starting Power</th>
-                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] text-right">Target DKP</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] cursor-pointer hover:bg-white/[0.02] transition-colors group" onClick={() => requestSort('name')}>
+                                        Governor <SortIcon columnKey="name" />
+                                    </th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] cursor-pointer hover:bg-white/[0.02] transition-colors group" onClick={() => requestSort('powerStart')}>
+                                        Starting Power <SortIcon columnKey="powerStart" />
+                                    </th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] text-right cursor-pointer hover:bg-white/[0.02] transition-colors group" onClick={() => requestSort('targetDkp')}>
+                                        <div className="flex justify-end items-center">Target DKP <SortIcon columnKey="targetDkp" /></div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1e222b]">
-                                {filteredTargets.length === 0 ? (
+                                {sortedTargets.length === 0 ? (
                                     <tr>
                                         <td colSpan={3} className="px-6 py-12 text-center text-slate-600 font-mono uppercase tracking-widest">
                                             {searchQuery ? "No matching governors found." : "Roster is empty."}
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredTargets.map((gov) => (
+                                    sortedTargets.map((gov) => (
                                         <tr key={gov.id} className="hover:bg-white/[0.02] transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">

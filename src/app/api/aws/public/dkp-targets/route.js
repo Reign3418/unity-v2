@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
-import { getOverviewDeltas, getKingdomDkpMatrix } from "@/lib/awsDynamo";
+import { getKingdomDkpMatrix } from "@/lib/awsDynamo";
+import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
+
+const dbClient = new DynamoDBClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+    }
+});
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -25,8 +34,36 @@ export async function GET(req) {
         const globalBrackets = config.brackets || [];
 
         // 2. Fetch the Baseline Roster
-        // We pass the same date for start and end because we only care about the starting power (the baseline snapshot)
-        const roster = await getOverviewDeltas(kingdomId, baseline, baseline);
+        const tableName = process.env.AWS_TABLE_NAME;
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: {
+                ':pk': { S: `SCAN#${kingdomId}#${baseline}` }
+            }
+        };
+
+        const roster = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+            
+            const result = await dbClient.send(new QueryCommand(params));
+            
+            if (result.Items) {
+                for (const item of result.Items) {
+                    const attrs = item.attributes?.M || {};
+                    roster.push({
+                        id: attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', ''),
+                        name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
+                        alliance: attrs['Alliance Tag']?.S || 'None',
+                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
+                    });
+                }
+            }
+            lastEvaluatedKey = result.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
 
         if (!roster || roster.length === 0) {
             return NextResponse.json({ error: "No baseline roster found for this date." }, { status: 404 });
