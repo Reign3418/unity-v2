@@ -655,6 +655,30 @@ export default function CalculatorsPage() {
       router.push('/mail');
   };
 
+  const sendFillTimeToMail = () => {
+      const validResources = FLAG_RESOURCES.filter(r => flagData[r.key]?.income > 0 && flagData[r.key]?.capacity > 0);
+      if (validResources.length === 0) return;
+
+      const fillTimeBlock = validResources.map(r => {
+          const { stock, income, capacity } = flagData[r.key];
+          const space = Math.max(0, capacity - stock);
+          const isFull = space <= 0;
+          const fillMinutes = isFull ? 0 : Math.ceil((space / income) * 60);
+          const fillLabel = isFull ? 'Full ✅' : formatFlagTime(fillMinutes);
+          
+          return `${r.label.replace('Alliance ', '')}: ${fillLabel}`;
+      }).join('\n');
+
+      const mailText = [
+          '<b>Storehouse Fill Time Report</b>',
+          '',
+          fillTimeBlock,
+      ].join('\n');
+
+      localStorage.setItem('unty_mail_roster', JSON.stringify([{ customText: mailText }]));
+      router.push('/mail');
+  };
+
   // Flag readiness calculations
   const getFlagReadiness = () => {
       const RESOURCES = ['credits', 'food', 'wood', 'stone', 'gold', 'crystal'];
@@ -1700,7 +1724,15 @@ export default function CalculatorsPage() {
                 {/* Storehouse Fill Time */}
                 {FLAG_RESOURCES.some(r => flagData[r.key]?.income > 0 && flagData[r.key]?.capacity > 0) && (
                   <div className="border-t border-[#1e222b] pt-5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3 text-center">⏱ STOREHOUSE FILL TIME</p>
+                    <div className="flex justify-between items-center mb-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">⏱ STOREHOUSE FILL TIME</p>
+                      <button 
+                        onClick={sendFillTimeToMail}
+                        className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                      >
+                        📨 Send to Mail
+                      </button>
+                    </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
