@@ -663,7 +663,22 @@ export default function SoCTab({ targetKd }) {
                                     <option key={`b-${d}`} value={d}>{d}</option>
                                 ))}
                             </select>
-                            <span className="text-[9px] text-fuchsia-400/40 font-bold tracking-wide">Power snapshot only · not in DKP window</span>
+                            <div className="flex items-center justify-between mt-1">
+                                <span className="text-[9px] text-fuchsia-400/40 font-bold tracking-wide">Power snapshot only · not in DKP window</span>
+                                {baselineScan && (
+                                    <button 
+                                        onClick={() => {
+                                            const url = `${window.location.origin}/en/shared/dkp?kd=${targetKd}&baseline=${baselineScan}`;
+                                            navigator.clipboard.writeText(url);
+                                            alert("Public link copied to clipboard: " + url);
+                                        }}
+                                        className="text-[9px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-widest flex items-center gap-1 transition-colors bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20"
+                                        title="Copy a public, read-only link for governors to check their DKP targets."
+                                    >
+                                        Copy Public Link
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {/* Arrow separator */}
