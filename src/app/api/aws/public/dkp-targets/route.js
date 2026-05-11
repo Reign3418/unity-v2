@@ -35,11 +35,13 @@ export async function GET(req) {
 
         // 2. Fetch the Baseline Roster
         const tableName = process.env.AWS_TABLE_NAME;
+        const sanitizedBaseline = String(baseline).replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
+
         const params = {
             TableName: tableName,
             KeyConditionExpression: 'PK = :pk',
             ExpressionAttributeValues: {
-                ':pk': { S: `SCAN#${kingdomId}#${baseline}` }
+                ':pk': { S: `SCAN#${kingdomId}#${sanitizedBaseline}` }
             }
         };
 
