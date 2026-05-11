@@ -3,8 +3,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity, ArrowUp, ArrowDown } from "lucide-react";
 import { useTranslations } from 'next-intl';
+import { useSession } from "next-auth/react";
+import GovernorNotesModal from "./GovernorNotesModal";
 
 export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
+    const { data: session } = useSession();
+    const isR4 = session?.user?.isLeader || session?.user?.isSuperAdmin;
+    
     const t = useTranslations('OverviewTab');
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedAlliance, setSelectedAlliance] = useState("ALL");
@@ -12,6 +17,8 @@ export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
     const [rosterData, setRosterData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'powerDelta', direction: 'descending' });
+    
+    const [notesModalGov, setNotesModalGov] = useState(null);
 
 
 
@@ -260,6 +267,7 @@ export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
                             <thead className="sticky top-0 bg-[#0a0c0f] z-20 shadow-md border-b border-[#1e222b]">
                                 <tr>
                                     <th className="py-3 px-4 font-bold text-gray-500 tracking-widest uppercase">{t('col_rank')}</th>
+                                    {isR4 && <th className="py-3 px-2 font-bold text-rose-500 tracking-widest uppercase text-center"><ShieldAlert size={14}/></th>}
                                     <SortableHeader sortKey="id" title={t('col_id')} />
                                     <SortableHeader sortKey="name" title={t('col_name')} className="font-sans" />
                                     <SortableHeader sortKey="alliance" title={t('col_alliance')} />
@@ -303,6 +311,17 @@ export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
                                 {sortedData.map((gov, idx) => (
                                     <tr key={idx} className="hover:bg-cyan-500/10 transition-colors group h-[40px]">
                                         <td className="py-2 px-4 text-gray-500 border-l-[3px] border-transparent group-hover:border-cyan-500">#{idx + 1}</td>
+                                        {isR4 && (
+                                            <td className="py-2 px-2 text-center">
+                                                <button 
+                                                    onClick={() => setNotesModalGov({ id: gov.id, name: gov.name })}
+                                                    className="text-gray-600 hover:text-rose-400 transition-colors"
+                                                    title="Open Governor Dossier"
+                                                >
+                                                    <ShieldAlert size={14} />
+                                                </button>
+                                            </td>
+                                        )}
                                         <td className="py-2 px-4 text-gray-400">{gov.id}</td>
                                         <td className="py-2 px-4 text-sm text-white font-bold font-sans tracking-wide max-w-[200px] truncate" title={gov.name}>{gov.name}</td>
                                         <td className="py-2 px-4">
@@ -363,6 +382,13 @@ export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
                     </div>
                 )}
             </div>
+            {/* Governor Notes Modal */}
+            <GovernorNotesModal 
+                isOpen={!!notesModalGov} 
+                onClose={() => setNotesModalGov(null)} 
+                govId={notesModalGov?.id} 
+                govName={notesModalGov?.name} 
+            />
         </div>
     );
 }

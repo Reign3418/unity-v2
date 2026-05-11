@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Users, ShieldCheck, ChevronUp, ChevronDown, Search } from "lucide-react";
+import { Users, ShieldCheck, ChevronUp, ChevronDown, Search, ShieldAlert } from "lucide-react";
+import { useSession } from "next-auth/react";
+import GovernorNotesModal from "./GovernorNotesModal";
 
 const fmt = (n) => {
     if (!n && n !== 0) return "-";
@@ -13,6 +15,10 @@ const fmt = (n) => {
 
 // ─── Governor Profiles Sub-Tab ────────────────────────────────────────────────
 function GovernorProfiles({ rosterData }) {
+    const { data: session } = useSession();
+    const isR4 = session?.user?.isLeader || session?.user?.isSuperAdmin;
+    const [notesModalGov, setNotesModalGov] = useState(null);
+
     const [search, setSearch]     = useState("");
     const [sortKey, setSortKey]   = useState("power");
     const [sortDir, setSortDir]   = useState("desc");
@@ -99,6 +105,7 @@ function GovernorProfiles({ rosterData }) {
                     <thead>
                         <tr className="bg-[#0a0c0f] border-b border-[#1e222b]">
                             <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 w-8">#</th>
+                            {isR4 && <th className="px-2 py-3 text-[10px] font-bold uppercase tracking-widest text-rose-500 w-8 text-center"><ShieldAlert size={14}/></th>}
                             <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">Governor</th>
                             <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">Alliance</th>
                             {COLS.map(c => (
@@ -128,6 +135,17 @@ function GovernorProfiles({ rosterData }) {
                                 className={`border-b border-[#1e222b]/50 hover:bg-[#15181e] transition-colors ${idx < 3 ? 'bg-[#12151b]' : ''}`}
                             >
                                 <td className="px-4 py-2.5 text-gray-600 font-mono text-xs">{idx + 1}</td>
+                                {isR4 && (
+                                    <td className="px-2 py-2.5 text-center">
+                                        <button 
+                                            onClick={() => setNotesModalGov({ id: gov.id, name: gov.name })}
+                                            className="text-gray-600 hover:text-rose-400 transition-colors"
+                                            title="Open Governor Dossier"
+                                        >
+                                            <ShieldAlert size={14} />
+                                        </button>
+                                    </td>
+                                )}
                                 <td className="px-4 py-2.5">
                                     <div className="font-bold text-white text-xs leading-tight">{gov.name}</div>
                                     <div className="text-gray-600 font-mono text-[10px]">{gov.id}</div>
@@ -147,6 +165,13 @@ function GovernorProfiles({ rosterData }) {
                     </tbody>
                 </table>
             </div>
+            
+            <GovernorNotesModal 
+                isOpen={!!notesModalGov} 
+                onClose={() => setNotesModalGov(null)} 
+                govId={notesModalGov?.id} 
+                govName={notesModalGov?.name} 
+            />
         </div>
     );
 }

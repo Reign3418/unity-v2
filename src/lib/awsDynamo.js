@@ -4466,3 +4466,99 @@ export async function setKingdomDkpMatrix(kingdomId, configData) {
         return false;
     }
 }
+
+/**
+ * Governor Notes
+ */
+export async function getGovernorNotes(govId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return null;
+
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk AND SK = :sk',
+            ExpressionAttributeValues: {
+                ':pk': { S: `GOV_NOTE#${govId}` },
+                ':sk': { S: 'METADATA' }
+            }
+        };
+        
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            return {
+                tags: attrs.tags?.L?.map(t => t.S) || [],
+                notes: attrs.notes?.L?.map(n => {
+                    const m = n.M || {};
+                    return {
+                        id: m.id?.S || '',
+                        text: m.text?.S || '',
+                        authorName: m.authorName?.S || '',
+                        authorId: m.authorId?.S || '',
+                        timestamp: m.timestamp?.N ? parseInt(m.timestamp.N) : 0
+                    };
+                }) || []
+            };
+        }
+        return { tags: [], notes: [] };
+    } catch (e) {
+        console.error(`[AWS] Failed to fetch notes for governor ${govId}:`, e);
+        return { tags: [], notes: [] };
+    }
+}
+
+export async function addGovernorNote(govId, payload) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        // Fetch existing first
+        const currentData = await getGovernorNotes(govId);
+        
+        let updatedTags = [...currentData.tags];
+        if (payload.tag && !updatedTags.includes(payload.tag)) {
+            updatedTags.push(payload.tag);
+        }
+
+        let updatedNotes = [...currentData.notes];
+        if (payload.noteText) {
+            updatedNotes.push({
+                id: Math.random().toString(36).substring(2, 15),
+                text: payload.noteText,
+                authorName: payload.authorName,
+                authorId: payload.authorId,
+                timestamp: Date.now()
+            });
+        }
+
+        // Save back
+        const params = {
+            TableName: tableName,
+            Item: {
+                PK: { S: `GOV_NOTE#${govId}` },
+                SK: { S: 'METADATA' },
+                attributes: {
+                    M: {
+                        tags: { L: updatedTags.map(t => ({ S: t })) },
+                        notes: { L: updatedNotes.map(n => ({
+                            M: {
+                                id: { S: n.id },
+                                text: { S: n.text },
+                                authorName: { S: n.authorName },
+                                authorId: { S: n.authorId },
+                                timestamp: { N: n.timestamp.toString() }
+                            }
+                        }))}
+                    }
+                }
+            }
+        };
+
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error(`[AWS] Failed to add note for governor ${govId}:`, e);
+        return false;
+    }
+}
