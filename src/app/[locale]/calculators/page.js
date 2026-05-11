@@ -666,8 +666,8 @@ export default function CalculatorsPage() {
           const fillMinutes = isFull ? 0 : Math.ceil((space / income) * 60);
           const fillLabel = isFull ? 'Full ✅' : formatFlagTime(fillMinutes);
           
-          return `${r.label.replace('Alliance ', '')}: ${fillLabel}`;
-      }).join('\n');
+          return `<b>${r.label.replace('Alliance ', '')}:</b> ${fillLabel}\nStock: ${formatFlagNum(stock)} / ${formatFlagNum(capacity)} (+${formatFlagNum(income)}/hr)`;
+      }).join('\n\n');
 
       const mailText = [
           '<b>Storehouse Fill Time Report</b>',
