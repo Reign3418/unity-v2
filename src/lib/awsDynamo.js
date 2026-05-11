@@ -603,6 +603,7 @@ export async function getOverviewDeltas(kingdomId, startIso, endIso) {
                 id,
                 name: endData.name,
                 alliance: endData.alliance,
+                allianceStart: startData.alliance || 'None',
                 townHall: endData.townHall || startData.townHall || 25,
                 status: startData.power ? 'Active' : 'New',
                 powerStart: startData.power || 0,
