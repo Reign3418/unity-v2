@@ -117,12 +117,12 @@ export default function CalculatorsPage() {
   const [currentFlagCount, setCurrentFlagCount] = useState(0);
 
   const [flagData, setFlagData] = useState({
-    credits: { cost: 0, stock: 0, income: 0 },
-    food:    { cost: 0, stock: 0, income: 0 },
-    wood:    { cost: 0, stock: 0, income: 0 },
-    stone:   { cost: 0, stock: 0, income: 0 },
-    gold:    { cost: 0, stock: 0, income: 0 },
-    crystal: { cost: 0, stock: 0, income: 0 },
+    credits: { cost: 0, stock: 0, income: 0, capacity: 0 },
+    food:    { cost: 0, stock: 0, income: 0, capacity: 0 },
+    wood:    { cost: 0, stock: 0, income: 0, capacity: 0 },
+    stone:   { cost: 0, stock: 0, income: 0, capacity: 0 },
+    gold:    { cost: 0, stock: 0, income: 0, capacity: 0 },
+    crystal: { cost: 0, stock: 0, income: 0, capacity: 0 },
   });
 
   // === Real Estate Engine Math ===
@@ -563,16 +563,16 @@ export default function CalculatorsPage() {
               }
 
               const parsed = await res.json();
-              const { stock = {}, income = {}, flagCost = {} } = parsed;
+              const { stock = {}, income = {}, flagCost = {}, capacity = {} } = parsed;
 
               // Math.abs() guards against Gemini returning negative values from the activity log
               setFlagData(prev => ({
-                  credits: { cost: Math.abs(flagCost.credits ?? prev.credits.cost), stock: Math.abs(stock.credits ?? prev.credits.stock), income: Math.abs(income.credits ?? prev.credits.income) },
-                  food:    { cost: Math.abs(flagCost.food    ?? prev.food.cost),    stock: Math.abs(stock.food    ?? prev.food.stock),    income: Math.abs(income.food    ?? prev.food.income)    },
-                  wood:    { cost: Math.abs(flagCost.wood    ?? prev.wood.cost),    stock: Math.abs(stock.wood    ?? prev.wood.stock),    income: Math.abs(income.wood    ?? prev.wood.income)    },
-                  stone:   { cost: Math.abs(flagCost.stone   ?? prev.stone.cost),   stock: Math.abs(stock.stone   ?? prev.stone.stock),   income: Math.abs(income.stone   ?? prev.stone.income)   },
-                  gold:    { cost: Math.abs(flagCost.gold    ?? prev.gold.cost),    stock: Math.abs(stock.gold    ?? prev.gold.stock),    income: Math.abs(income.gold    ?? prev.gold.income)    },
-                  crystal: { cost: Math.abs(flagCost.crystal ?? prev.crystal?.cost ?? 0), stock: Math.abs(stock.crystal ?? prev.crystal?.stock ?? 0), income: Math.abs(income.crystal ?? prev.crystal?.income ?? 0) },
+                  credits: { cost: Math.abs(flagCost.credits ?? prev.credits.cost), stock: Math.abs(stock.credits ?? prev.credits.stock), income: Math.abs(income.credits ?? prev.credits.income), capacity: Math.abs(capacity.credits ?? prev.credits.capacity ?? 0) },
+                  food:    { cost: Math.abs(flagCost.food    ?? prev.food.cost),    stock: Math.abs(stock.food    ?? prev.food.stock),    income: Math.abs(income.food    ?? prev.food.income),    capacity: Math.abs(capacity.food    ?? prev.food.capacity    ?? 0) },
+                  wood:    { cost: Math.abs(flagCost.wood    ?? prev.wood.cost),    stock: Math.abs(stock.wood    ?? prev.wood.stock),    income: Math.abs(income.wood    ?? prev.wood.income),    capacity: Math.abs(capacity.wood    ?? prev.wood.capacity    ?? 0) },
+                  stone:   { cost: Math.abs(flagCost.stone   ?? prev.stone.cost),   stock: Math.abs(stock.stone   ?? prev.stone.stock),   income: Math.abs(income.stone   ?? prev.stone.income),   capacity: Math.abs(capacity.stone   ?? prev.stone.capacity   ?? 0) },
+                  gold:    { cost: Math.abs(flagCost.gold    ?? prev.gold.cost),    stock: Math.abs(stock.gold    ?? prev.gold.stock),    income: Math.abs(income.gold    ?? prev.gold.income),    capacity: Math.abs(capacity.gold    ?? prev.gold.capacity    ?? 0) },
+                  crystal: { cost: Math.abs(flagCost.crystal ?? prev.crystal?.cost ?? 0), stock: Math.abs(stock.crystal ?? prev.crystal?.stock ?? 0), income: Math.abs(income.crystal ?? prev.crystal?.income ?? 0), capacity: Math.abs(capacity.crystal ?? prev.crystal?.capacity ?? 0) },
               }));
 
               setFlagStatus('Scan Complete!');
@@ -597,7 +597,7 @@ export default function CalculatorsPage() {
   };
 
   const clearFlagData = () => {
-      setFlagData({ credits: { cost: 0, stock: 0, income: 0 }, food: { cost: 0, stock: 0, income: 0 }, wood: { cost: 0, stock: 0, income: 0 }, stone: { cost: 0, stock: 0, income: 0 }, gold: { cost: 0, stock: 0, income: 0 }, crystal: { cost: 0, stock: 0, income: 0 } });
+      setFlagData({ credits: { cost: 0, stock: 0, income: 0, capacity: 0 }, food: { cost: 0, stock: 0, income: 0, capacity: 0 }, wood: { cost: 0, stock: 0, income: 0, capacity: 0 }, stone: { cost: 0, stock: 0, income: 0, capacity: 0 }, gold: { cost: 0, stock: 0, income: 0, capacity: 0 }, crystal: { cost: 0, stock: 0, income: 0, capacity: 0 } });
       setFlagStatus('');
       setCurrentFlagCount(0);
   };
@@ -1581,6 +1581,7 @@ export default function CalculatorsPage() {
                       <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Resource</th>
                       <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Flag Cost</th>
                       <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Current Stock</th>
+                      <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Max Capacity</th>
                       <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Hourly Income</th>
                     </tr>
                   </thead>
@@ -1592,7 +1593,7 @@ export default function CalculatorsPage() {
                             <span>{emoji}</span> {label}
                           </span>
                         </td>
-                        {['cost', 'stock', 'income'].map(field => (
+                        {['cost', 'stock', 'capacity', 'income'].map(field => (
                           <td key={field} className="px-5 py-2">
                             <input
                               type="number" min="0"
@@ -1687,6 +1688,54 @@ export default function CalculatorsPage() {
                                 <td className="py-2 text-right font-mono text-emerald-400">+{formatFlagNum(r.income * 24)}</td>
                                 <td className="py-2 text-right font-mono text-emerald-400">+{formatFlagNum(r.income * 72)}</td>
                                 <td className="py-2 text-right font-mono text-emerald-400">+{formatFlagNum(r.income * 168)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Storehouse Fill Time */}
+                {FLAG_RESOURCES.some(r => flagData[r.key]?.income > 0 && flagData[r.key]?.capacity > 0) && (
+                  <div className="border-t border-[#1e222b] pt-5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3 text-center">⏱ STOREHOUSE FILL TIME</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-[#1e222b]">
+                            <th className="pb-2 text-left text-[10px] font-black uppercase tracking-widest text-gray-600">Resource</th>
+                            <th className="pb-2 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">Stock / Cap</th>
+                            <th className="pb-2 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">+/hr</th>
+                            <th className="pb-2 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">Time to Full</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#1e222b]">
+                          {FLAG_RESOURCES.filter(r => flagData[r.key]?.income > 0 && flagData[r.key]?.capacity > 0).map(r => {
+                            const { stock, income, capacity } = flagData[r.key];
+                            const space = Math.max(0, capacity - stock);
+                            const isFull = space <= 0;
+                            const fillMinutes = isFull ? 0 : income > 0 ? Math.ceil((space / income) * 60) : Infinity;
+                            const fillLabel = isFull ? 'Full ✅' : income === 0 ? '∞ No Income' : formatFlagTime(fillMinutes);
+                            const pct = capacity > 0 ? Math.min(100, Math.round((stock / capacity) * 100)) : 0;
+                            return (
+                              <tr key={r.key} className="hover:bg-white/[0.015]">
+                                <td className={`py-2.5 font-bold flex items-center gap-1.5 ${r.color}`}>
+                                  {r.emoji} {r.label.replace('Alliance ', '')}
+                                </td>
+                                <td className="py-2.5 text-right">
+                                  <span className="font-mono text-gray-300">{formatFlagNum(stock)}</span>
+                                  <span className="text-gray-600"> / </span>
+                                  <span className="font-mono text-gray-500">{formatFlagNum(capacity)}</span>
+                                  <div className="w-full bg-[#0a0c0f] rounded-full h-1 mt-1 border border-[#1e222b] overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all duration-500 ${isFull ? 'bg-emerald-500' : pct > 80 ? 'bg-amber-500' : 'bg-sky-500'}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                </td>
+                                <td className="py-2.5 text-right font-mono text-emerald-400">+{formatFlagNum(income)}</td>
+                                <td className={`py-2.5 text-right font-black font-mono ${isFull ? 'text-emerald-400' : fillMinutes === Infinity ? 'text-gray-600' : fillMinutes < 60 ? 'text-rose-400' : fillMinutes < 1440 ? 'text-amber-400' : 'text-sky-400'}`}>
+                                  {fillLabel}
+                                </td>
                               </tr>
                             );
                           })}
