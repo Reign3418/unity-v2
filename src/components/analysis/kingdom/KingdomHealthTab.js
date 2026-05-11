@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Activity, AlertTriangle, Shield, Swords, Users, Zap, Map } from "lucide-react";
+import { Activity, AlertTriangle, Shield, Swords, Users, Zap, Map, ArrowUp } from "lucide-react";
 
 export default function KingdomHealthTab({ targetKd, startDate, endDate }) {
     const [depth, setDepth] = useState(300);
