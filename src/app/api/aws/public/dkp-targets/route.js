@@ -73,27 +73,41 @@ export async function GET(req) {
 
         // 3. Compute Target DKP per Governor
         const targets = roster.map(gov => {
-            const powerStart = gov.power || 0; // In getOverviewDeltas, gov.power is the power at the end date, which is baseline
+            const powerStart = gov.power || 0;
             
             let targetDkp = 0;
+            let targetDeads = 0;
 
             if (dkpSystem === "basic") {
-                targetDkp = 0; // Basic system usually implies no targets, just raw scoring.
+                targetDkp = 0;
+                targetDeads = 0;
             } 
             else if (dkpSystem === "bracketed") {
-                let mult = 0;
-                for (const b of globalBrackets) {
-                    if (powerStart >= b.min && powerStart <= b.max) {
-                        mult = b.multiplier;
-                        break;
-                    }
-                }
+                const pM = powerStart / 1000000;
+                let mult = config.b6Mult || 5.0;
+                
+                if (pM <= (config.b1Max || 24)) mult = (config.b1Mult || 1.5);
+                else if (pM <= (config.b2Max || 35)) mult = (config.b2Mult || 2.0);
+                else if (pM <= (config.b3Max || 45)) mult = (config.b3Mult || 2.5);
+                else if (pM <= (config.b4Max || 55)) mult = (config.b4Mult || 3.0);
+                else if (pM <= (config.b5Max || 70)) mult = (config.b5Mult || 4.0);
+
                 targetDkp = powerStart * mult;
+                targetDeads = powerStart * (config.bracketDeadsMultiplier || 0.02);
             } 
             else if (dkpSystem === "advanced") {
-                const t4MixRatio = (1 - (config.t5MixRatio || 0));
-                const kpTargetMultiplier = ((((config.t5MixRatio || 0) * (config.advT5Points || 0)) + (t4MixRatio * (config.advT4Points || 0))) * (config.kpMultiplier || 0)) / (config.kpPowerDivisor || 1);
+                const t5MixRatio = parseFloat(config.t5MixRatio) || 0.7;
+                const advT5Points = parseFloat(config.advT5Points) || 20;
+                const advT4Points = parseFloat(config.advT4Points) || 10;
+                const kpMultiplier = parseFloat(config.kpMultiplier) || 1.25;
+                const kpPowerDivisor = parseFloat(config.kpPowerDivisor) || 3;
+                const deadsMultiplier = parseFloat(config.deadsMultiplier) || 0.02;
+
+                const t4MixRatio = 1 - t5MixRatio;
+                const kpTargetMultiplier = (((t5MixRatio * advT5Points) + (t4MixRatio * advT4Points)) * kpMultiplier) / kpPowerDivisor;
+                
                 targetDkp = powerStart * kpTargetMultiplier;
+                targetDeads = powerStart * deadsMultiplier;
             }
 
             return {
@@ -101,7 +115,8 @@ export async function GET(req) {
                 name: gov.name,
                 alliance: gov.alliance || '',
                 powerStart: powerStart,
-                targetDkp: Math.round(targetDkp)
+                targetDkp: Math.round(targetDkp),
+                targetDeads: Math.round(targetDeads)
             };
         });
 

@@ -178,6 +178,9 @@ export default function PublicDkpTargets() {
                                     <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] cursor-pointer hover:bg-white/[0.02] transition-colors group" onClick={() => requestSort('powerStart')}>
                                         Starting Power <SortIcon columnKey="powerStart" />
                                     </th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] text-right cursor-pointer hover:bg-white/[0.02] transition-colors group" onClick={() => requestSort('targetDeads')}>
+                                        <div className="flex justify-end items-center text-rose-500/70">Target Deads <SortIcon columnKey="targetDeads" /></div>
+                                    </th>
                                     <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest border-b border-[#1e222b] text-right cursor-pointer hover:bg-white/[0.02] transition-colors group" onClick={() => requestSort('targetDkp')}>
                                         <div className="flex justify-end items-center">Target DKP <SortIcon columnKey="targetDkp" /></div>
                                     </th>
@@ -186,7 +189,7 @@ export default function PublicDkpTargets() {
                             <tbody className="divide-y divide-[#1e222b]">
                                 {sortedTargets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={3} className="px-6 py-12 text-center text-slate-600 font-mono uppercase tracking-widest">
+                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-600 font-mono uppercase tracking-widest">
                                             {searchQuery ? "No matching governors found." : "Roster is empty."}
                                         </td>
                                     </tr>
@@ -208,6 +211,11 @@ export default function PublicDkpTargets() {
                                             </td>
                                             <td className="px-6 py-4 font-mono text-slate-400 text-sm">
                                                 {formatNum(gov.powerStart)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="font-mono font-black text-sm text-rose-400/80">
+                                                    {formatNum(gov.targetDeads)}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <span className="font-mono font-black text-lg text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
