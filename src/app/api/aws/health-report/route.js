@@ -1,88 +1,83 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig } from '@/lib/awsDynamo';
-import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
-
-const localClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-2' });
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 /**
- * Lightweight leadership snapshot — reads start + end snapshots only.
- * Avoids the full multi-interval scan of getBehavioralMatrix to save resources.
+ * Behavioral Signature Matrix — pure computation over the already-fetched roster.
+ * No extra DynamoDB queries. Identifies influence by BEHAVIOR, not by power rank.
+ *
+ * Signatures:
+ *   Operators  — high KP delta, near-zero power delta → coordinating/fighting, not farming
+ *   Veterans   — massive accumulated power, low activity this window → long-tenured, may be organizing
+ *   Anchors    — active all window, same alliance, not a migrant → core stable member
+ *   Gravity Centers — computed from followSignals (passed in)
  */
-async function getLeadershipSnapshot(kingdomId, startKey, endKey) {
-    const tableName = process.env.AWS_TABLE_NAME;
-    if (!tableName) return null;
+function computeBehavioralSignatures(roster, followSignals) {
+    const active = roster.filter(g => g.status !== 'Missing' && g.powerDelta !== 'MISSING');
 
-    const fetchSnapshot = async (dateKey) => {
-        const snap = {};
-        let lastKey = null;
-        do {
-            const params = {
-                TableName: tableName,
-                KeyConditionExpression: 'PK = :pk',
-                ExpressionAttributeValues: { ':pk': { S: `SCAN#${kingdomId}#${dateKey}` } }
-            };
-            if (lastKey) params.ExclusiveStartKey = lastKey;
-            const res = await localClient.send(new QueryCommand(params));
-            for (const item of (res.Items || [])) {
-                const attrs = item.attributes?.M || {};
-                const id = attrs['Governor ID']?.S || item.SK?.S?.replace('GOV#', '') || '';
-                if (!id) continue;
-                snap[id] = {
-                    id,
-                    name: attrs['Governor Name']?.S || 'Unknown',
-                    alliance: attrs['Alliance Tag']?.S || 'None',
-                    power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
-                    killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                };
-            }
-            lastKey = res.LastEvaluatedKey;
-        } while (lastKey);
-        return snap;
-    };
-
-    try {
-        const [prevSnap, latestSnap] = await Promise.all([fetchSnapshot(startKey), fetchSnapshot(endKey)]);
-
-        const latestByPower = Object.entries(latestSnap).sort((a, b) => b[1].power - a[1].power);
-        const prevByPower = Object.entries(prevSnap).sort((a, b) => b[1].power - a[1].power);
-
-        const latestTop20Ids = new Set(latestByPower.slice(0, 20).map(([id]) => id));
-        const prevTop20Ids = new Set(prevByPower.slice(0, 20).map(([id]) => id));
-
-        let survivingLeaders = 0;
-        for (const id of prevTop20Ids) { if (latestTop20Ids.has(id)) survivingLeaders++; }
-        const stabilityScore = prevTop20Ids.size > 0 ? Math.round((survivingLeaders / prevTop20Ids.size) * 100) : 0;
-
-        let activeLeaders = 0;
-        for (const [id, d] of latestByPower.slice(0, 20)) {
-            const prev = prevSnap[id];
-            if (!prev || d.power > prev.power || d.killPoints > prev.killPoints) activeLeaders++;
-        }
-        const activityRate = Math.round((activeLeaders / 20) * 100);
-
-        const top10Power = latestByPower.slice(0, 10).reduce((s, [, d]) => s + d.power, 0);
-        const top300Power = latestByPower.slice(0, 300).reduce((s, [, d]) => s + d.power, 0);
-        const powerConcentration = top300Power > 0 ? Math.round((top10Power / top300Power) * 100) : 0;
-
-        const top10Snapshot = latestByPower.slice(0, 10).map(([id, d]) => ({
-            id,
-            name: d.name,
-            alliance: d.alliance,
-            power: d.power,
-            killPoints: d.killPoints,
-            isNew: !prevTop20Ids.has(id),
-            powerDelta: prevSnap[id] ? (d.power - prevSnap[id].power) : d.power,
+    // ── Operators: high KP delta + near-zero or negative power delta ──
+    // These governors are fighting and coordinating, not spending gems on power.
+    const KP_OPERATOR_THRESHOLD = 50000;
+    const operators = active
+        .filter(g => {
+            const kp = g.kpDelta || 0;
+            const pd = typeof g.powerDelta === 'number' ? g.powerDelta : (g.powerDelta === 'NEW' ? 999999 : 0);
+            return kp >= KP_OPERATOR_THRESHOLD && pd < 2000000; // High KP, modest or no power grind
+        })
+        .sort((a, b) => (b.kpDelta || 0) - (a.kpDelta || 0))
+        .slice(0, 12)
+        .map(g => ({
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            kpDelta: g.kpDelta || 0,
+            powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0,
+            powerEnd: g.powerEnd || 0,
         }));
 
-        return { stabilityScore, activityRate, powerConcentration, top10Snapshot, survivingLeaders };
-    } catch (e) {
-        console.error('[Leadership Snapshot Error]', e);
-        return null;
-    }
+    // ── Veterans: top accumulated power, low power delta this window ──
+    // High total power shows long tenure; low recent delta suggests they're organizing not farming.
+    const veterans = active
+        .filter(g => {
+            const pd = typeof g.powerDelta === 'number' ? g.powerDelta : 999999;
+            return g.powerEnd >= 20000000 && pd < 3000000 && g.powerDelta !== 'NEW';
+        })
+        .sort((a, b) => b.powerEnd - a.powerEnd)
+        .slice(0, 12)
+        .map(g => ({
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            powerEnd: g.powerEnd || 0,
+            powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0,
+            kpDelta: g.kpDelta || 0,
+        }));
+
+    // ── Anchors: stable, non-migrating, same alliance the whole window ──
+    // Necessary condition for leadership; alone is not sufficient.
+    const anchors = active
+        .filter(g => {
+            const sameAlliance = !g.allianceStart || g.allianceStart === 'None' || g.allianceStart === g.alliance;
+            return g.powerDelta !== 'NEW' && sameAlliance;
+        })
+        .sort((a, b) => b.powerEnd - a.powerEnd)
+        .slice(0, 15)
+        .map(g => ({
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            powerEnd: g.powerEnd || 0,
+            kpDelta: g.kpDelta || 0,
+            powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0,
+        }));
+
+    // ── Gravity Centers: alliances pulling in migrants (from followSignals) ──
+    const gravityCenters = followSignals || [];
+
+    return { operators, veterans, anchors, gravityCenters };
 }
 
 export async function GET(req) {
@@ -117,36 +112,6 @@ export async function GET(req) {
         }
 
         const sortedRoster = rosterData.sort((a, b) => b.powerEnd - a.powerEnd).slice(0, depth);
-
-        // ── Identify start/end date keys from the roster for leadership snapshot ──
-        // We derive them from rosterData metadata — use the approach of looking at the dates API
-        // The roster already has powerStart/powerEnd derived from start+end scans.
-        // Build the leadership snapshot by re-deriving date keys from the AWS DATES# record
-        const tableName = process.env.AWS_TABLE_NAME;
-        let leadershipIntel = null;
-        try {
-            const dateResult = await localClient.send(new QueryCommand({
-                TableName: tableName,
-                KeyConditionExpression: 'PK = :pk',
-                ExpressionAttributeValues: { ':pk': { S: `DATES#${kd}` } }
-            }));
-            if (dateResult.Items && dateResult.Items.length >= 2) {
-                const parseScanDate = (s) => new Date(s.replace(' UTC', 'Z').replace(' ', 'T'));
-                let dates = dateResult.Items
-                    .map(i => ({ dateKey: i.SK?.S?.replace('DATE#', '').replace('SCAN#', '') || '', scanDate: i.attributes?.M?.scanDate?.S || '' }))
-                    .filter(d => d.dateKey && d.scanDate)
-                    .sort((a, b) => parseScanDate(a.scanDate) - parseScanDate(b.scanDate));
-                if (start) dates = dates.filter(d => parseScanDate(d.scanDate) >= new Date(start));
-                if (end) {
-                    const parsedEnd = new Date(end + 'T23:59:59Z');
-                    dates = dates.filter(d => parseScanDate(d.scanDate) <= parsedEnd);
-                }
-                if (dates.length < 2) dates = [dates[0] || dates[dates.length-1], dates[dates.length - 1] || dates[0]];
-                if (dates.length >= 2) {
-                    leadershipIntel = await getLeadershipSnapshot(kd, dates[0].dateKey, dates[dates.length - 1].dateKey);
-                }
-            }
-        } catch(e) { console.error('[Leadership Date Resolve Error]', e); }
 
         // ── Aggregate metrics ──
         const allianceMap = {};
@@ -211,16 +176,40 @@ export async function GET(req) {
             .sort((a, b) => b.power - a.power)
             .slice(0, 30);
 
-        // ── Follow Analysis — cross-reference high-power new arrivals vs top10 ──
+        // ── Follow Analysis — cross-reference high-power new arrivals vs top alliances ──
         const followSignals = [];
-        if (leadershipIntel && newArrivals.length > 0) {
-            for (const leader of leadershipIntel.top10Snapshot) {
-                const followers = newArrivals.filter(a => a.alliance === leader.alliance && a.id !== leader.id);
-                if (followers.length > 0) {
-                    followSignals.push({ leader: leader.name, leaderAlliance: leader.alliance, leaderPower: leader.power, followerCount: followers.length, followers: followers.slice(0, 5).map(f => f.name) });
+        if (newArrivals.length > 0) {
+            // Group new arrivals by alliance and flag which have a large existing membership
+            const allianceCounts = {};
+            for (const g of sortedRoster) {
+                if (g.powerDelta !== 'NEW' && g.alliance && g.alliance !== 'None') {
+                    allianceCounts[g.alliance] = (allianceCounts[g.alliance] || 0) + 1;
                 }
             }
+            const arrivalsByAlliance = {};
+            for (const a of newArrivals) {
+                if (!a.alliance || a.alliance === 'None') continue;
+                if (!arrivalsByAlliance[a.alliance]) arrivalsByAlliance[a.alliance] = [];
+                arrivalsByAlliance[a.alliance].push(a);
+            }
+            for (const [tag, arrivals] of Object.entries(arrivalsByAlliance)) {
+                if (arrivals.length > 0) {
+                    const existingCount = allianceCounts[tag] || 0;
+                    followSignals.push({
+                        leaderAlliance: tag,
+                        leader: null, // no longer pinned to power rank
+                        existingMemberCount: existingCount,
+                        followerCount: arrivals.length,
+                        followers: arrivals.slice(0, 5).map(f => f.name),
+                    });
+                }
+            }
+            followSignals.sort((a, b) => b.followerCount - a.followerCount);
         }
+
+        // ── Compute Behavioral Signatures ──
+        const behavioralSigs = computeBehavioralSignatures(sortedRoster, followSignals);
+        const { operators, veterans, anchors } = behavioralSigs;
 
         // ── Build AI Prompt ──
         const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag')
@@ -237,9 +226,14 @@ KINGDOM ${kd} (Top ${depth} Govs | Depth: ${sortedRoster.length}):
 - Departed: ${departed.length}
 - Alliance Switchers: ${allianceSwitchers.length}
 - High-Velocity Spenders (>500k): ${whales.length}
-- Leadership Stability: ${leadershipIntel?.stabilityScore ?? 'N/A'}%
-- Leadership Activity Rate: ${leadershipIntel?.activityRate ?? 'N/A'}%
-- Power Concentration (Top10/Top300): ${leadershipIntel?.powerConcentration ?? 'N/A'}%
+
+BEHAVIORAL SIGNATURES (computed from roster activity — NOT raw power rank):
+- Operators (high KP, low power grind — likely coordinating): ${operators.length} detected
+${operators.slice(0,5).map(g=>`  [${g.alliance}] ${g.name} | KP+${(g.kpDelta/1000).toFixed(0)}k | Power:${g.powerDelta>=0?'+':''}${(g.powerDelta/1000000).toFixed(1)}M`).join('\n')}
+- Veterans (high accumulated power, low activity this window): ${veterans.length} detected
+${veterans.slice(0,5).map(g=>`  [${g.alliance}] ${g.name} | Total:${(g.powerEnd/1000000).toFixed(1)}M | Delta:${(g.powerDelta/1000000).toFixed(1)}M`).join('\n')}
+- Alliance Gravity Centers (attracting new arrivals):
+${followSignals.slice(0,5).map(f=>`  [${f.leaderAlliance}] ${f.followerCount} new arrival(s) — existing membership: ${f.existingMemberCount}`).join('\n')||'  None detected.'}
 
 ALLIANCE MATRIX (sorted by power growth):
 ${allianceList.slice(0, 15).map(a => `[${a.tag}] Govs:${a.govCount} | Power:${a.powerDelta > 0 ? '+' : ''}${(a.powerDelta/1000000).toFixed(2)}M | Troops:${a.troopDelta > 0 ? '+' : ''}${(a.troopDelta/1000000).toFixed(2)}M | KP:${a.kpDelta > 0 ? '+' : ''}${(a.kpDelta/1000).toFixed(0)}k | Deads:${a.deadsDelta}`).join('\n')}
@@ -269,8 +263,8 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
   "stabilityIndex": "1 sentence on roster churn, migration volume, and alliance switching.",
   "economicIntel": "1 sentence analyzing the balance of troop power vs commander vs tech growth.",
   "conflictTheories": ["Deduce which alliances are fighting based on deads + troop drops. Be specific with alliance tags.", "Second theory if applicable."],
-  "followAnalysis": "1-2 sentences: Are people following a powerful governor or alliance? Call out any notable gravity signals from the migration data.",
-  "leadershipAssessment": "1-2 sentences on whether the top 10 leaders are stable, active, and retaining their position or being replaced.",
+  "followAnalysis": "1-2 sentences: Which alliances are attracting new migrants? Is there a gravitational center forming? Call out specific tags.",
+  "leadershipAssessment": "1-2 sentences assessing influence structure based on BEHAVIORAL signals (operators, veterans, gravity centers). Do NOT assume power rank = leadership. Note if combat-active governors suggest an organized command structure vs a fragmented leaderless state.",
   "migrantIntel": "1 sentence on what the arrivals and departures signal about this kingdom's reputation and trajectory.",
   "recommendation": "One clear action sentence: is this kingdom worth migrating to, attacking, or avoiding?"
 }`;
@@ -312,8 +306,8 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
             switchers: allianceSwitchers.slice(0, 20),
             whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 20),
             migration: { newArrivals, departed },
+            behavioralSigs,
             followSignals,
-            leadershipIntel,
         };
 
         return NextResponse.json({ success: true, kingdom: kdResult, ai: aiBrief }, { status: 200 });

@@ -356,34 +356,105 @@ export default function Polygraph() {
           {/* Tab: Leadership */}
           {tab === "leadership" && (
             <div className="p-6 space-y-5">
-              {ai?.leadershipAssessment && <div className="bg-[#0f1115] border border-amber-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider mb-1">{t("ai_leadership_assessment")}</div><p className="text-gray-300 text-sm">{ai.leadershipAssessment}</p></div>}
-              {kdd.leadershipIntel && (
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    {label:t("stability_score"),val:`${kdd.leadershipIntel.stabilityScore}%`,note:t("stability_note"),color:kdd.leadershipIntel.stabilityScore>=70?"text-emerald-400":kdd.leadershipIntel.stabilityScore>=40?"text-amber-400":"text-rose-400"},
-                    {label:t("activity_rate"),val:`${kdd.leadershipIntel.activityRate}%`,note:t("activity_note"),color:kdd.leadershipIntel.activityRate>=70?"text-emerald-400":kdd.leadershipIntel.activityRate>=40?"text-amber-400":"text-rose-400"},
-                    {label:t("power_concentration"),val:`${kdd.leadershipIntel.powerConcentration}%`,note:t("power_concentration_note"),color:"text-fuchsia-400"},
-                  ].map(({label,val,note,color})=>(
-                    <div key={label} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 text-center">
-                      <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">{label}</div>
-                      <div className={`text-2xl font-black font-mono ${color}`}>{val}</div>
-                      <div className="text-[10px] text-gray-600 mt-1">{note}</div>
-                    </div>
-                  ))}
+              {/* Disclaimer */}
+              <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/20 rounded-lg p-4">
+                <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0"/>
+                <p className="text-amber-200/70 text-xs leading-relaxed">
+                  <span className="font-bold text-amber-400">Behavioral Proxies — Not Confirmed Leaders.</span>{" "}
+                  Power rank does not equal leadership. These signatures identify governors whose <em>behavior</em> suggests influence or coordination. Use as a starting point for human intelligence.
+                </p>
+              </div>
+
+              {/* AI Assessment */}
+              {ai?.leadershipAssessment && (
+                <div className="bg-[#0f1115] border border-amber-500/20 rounded-lg p-4">
+                  <div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider mb-1">{t("ai_leadership_assessment")}</div>
+                  <p className="text-gray-300 text-sm">{ai.leadershipAssessment}</p>
                 </div>
               )}
-              {kdd.leadershipIntel?.top10Snapshot?.length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-3">{t("top_10_governors")}</div>
+
+              {/* Three columns of signatures */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                {/* Operators */}
+                <div className="bg-[#0a0c0f] border border-orange-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-orange-400"/>
+                    <div className="text-[10px] uppercase font-bold text-orange-400 tracking-wider">Operators</div>
+                  </div>
+                  <div className="text-[10px] text-gray-600 mb-3">High KP, low power grind — likely coordinating or leading rallies.</div>
                   <div className="space-y-1.5">
-                    {kdd.leadershipIntel.top10Snapshot.map((g,i)=>(
-                      <div key={g.id} className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
-                        <span className="text-gray-600 font-mono w-4 text-right">{i+1}</span>
-                        <span className="text-cyan-400 font-mono">[{g.alliance}]</span>
-                        <span className="text-gray-200 font-medium flex-1">{g.name}</span>
-                        <span className="text-gray-300 font-mono">{fmt(g.power)}</span>
-                        <span className={`font-mono text-xs ${g.powerDelta>0?"text-emerald-400":g.powerDelta<0?"text-rose-400":"text-gray-600"}`}>{g.powerDelta>0?`+${fmt(g.powerDelta)}`:g.powerDelta<0?fmt(g.powerDelta):"—"}</span>
-                        {g.isNew && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-fuchsia-600 text-white">{t("badge_climber")}</span>}
+                    {(kdd.behavioralSigs?.operators || []).length === 0 && <div className="text-gray-700 text-xs italic">None detected</div>}
+                    {(kdd.behavioralSigs?.operators || []).map((g,i)=>(
+                      <div key={g.id} className="text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-orange-400/70 font-mono">[{g.alliance}]</span>
+                          <span className="text-gray-200 font-medium flex-1 truncate">{g.name}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-600 pl-0.5">KP +{fmt(g.kpDelta)} | Pwr {g.powerDelta>=0?"+":""}{fmt(g.powerDelta)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Veterans */}
+                <div className="bg-[#0a0c0f] border border-violet-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-violet-400"/>
+                    <div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider">Veterans</div>
+                  </div>
+                  <div className="text-[10px] text-gray-600 mb-3">High accumulated power, quiet this window — may be organizing, not farming.</div>
+                  <div className="space-y-1.5">
+                    {(kdd.behavioralSigs?.veterans || []).length === 0 && <div className="text-gray-700 text-xs italic">None detected</div>}
+                    {(kdd.behavioralSigs?.veterans || []).map((g,i)=>(
+                      <div key={g.id} className="text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-violet-400/70 font-mono">[{g.alliance}]</span>
+                          <span className="text-gray-200 font-medium flex-1 truncate">{g.name}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-600 pl-0.5">{fmt(g.powerEnd)} total | Δ {g.powerDelta>=0?"+":""}{fmt(g.powerDelta)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Gravity Centers */}
+                <div className="bg-[#0a0c0f] border border-fuchsia-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Crown size={10} className="text-fuchsia-400"/>
+                    <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider">Gravity Centers</div>
+                  </div>
+                  <div className="text-[10px] text-gray-600 mb-3">Alliances attracting new migrants — strongest influence proxy available.</div>
+                  <div className="space-y-2">
+                    {(kdd.followSignals || []).length === 0 && <div className="text-gray-700 text-xs italic">None detected</div>}
+                    {(kdd.followSignals || []).map((f,i)=>(
+                      <div key={i} className="text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-fuchsia-400 font-mono font-bold">[{f.leaderAlliance}]</span>
+                          <span className="text-gray-500">{f.followerCount} arrival{f.followerCount!==1?"s":""}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-600 pl-0.5 truncate">{f.followers.join(", ")}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Anchors — full width */}
+              {(kdd.behavioralSigs?.anchors || []).length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400"/>
+                    <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Anchors — Stable Core Members</div>
+                    <span className="text-gray-600 text-[10px]">(same alliance, no migration — necessary but not sufficient for leadership)</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+                    {kdd.behavioralSigs.anchors.map((g,i)=>(
+                      <div key={g.id} className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
+                        <span className="text-cyan-400/70 font-mono">[{g.alliance}]</span>
+                        <span className="text-gray-300 font-medium flex-1 truncate">{g.name}</span>
+                        <span className="text-gray-600 font-mono">{fmt(g.powerEnd)}</span>
                       </div>
                     ))}
                   </div>
@@ -391,6 +462,7 @@ export default function Polygraph() {
               )}
             </div>
           )}
+
 
           {/* Tab: Spenders */}
           {tab === "spenders" && (
