@@ -40,7 +40,7 @@ export async function GET(req) {
             let totalTechPowerGained = 0;
             let totalBuildPowerGained = 0;
             
-            const whaleThreshold = 2000000;
+            const whaleThreshold = 500000;
             const whales = [];
             const allianceSwitchers = [];
 
@@ -137,11 +137,14 @@ KINGDOM ${k.kd} (Top ${depth} Govs):
 - Kill Points Gained: ${k.metrics.totalKPGained.toLocaleString()}
 - Dead Troops: ${k.metrics.totalDeadsGained.toLocaleString()}
 - Alliance Switchers: ${k.metrics.switchersCount}
-- Whales Surging (>2M): ${k.metrics.whalesCount}
+- Whales Surging (>500k): ${k.metrics.whalesCount}
+
+ALLIANCE MATRIX:
+${k.alliances.map(a => `[${a.tag}] Power: ${a.powerDelta > 0 ? '+' : ''}${(a.powerDelta/1000000).toFixed(2)}M | Troops: ${a.troopDelta > 0 ? '+' : ''}${(a.troopDelta/1000000).toFixed(2)}M | Cmdr: ${a.cmdDelta > 0 ? '+' : ''}${(a.cmdDelta/1000000).toFixed(2)}M | Deads: ${a.deadsDelta}`).join('\n')}
         `).join('\n');
 
         const aiPrompt = `You are J.A.R.V.I.S., an intelligence analyst. Perform an "Early Kingdom Polygraph Test" on the following kingdoms across a tight date range.
-Analyze the metrics to determine if each kingdom is peacefully building for KvK, actively skirmishing, or engaged in a toxic civil war. Look for correlations between high deads and alliance switching (churn).
+Analyze the metrics to determine if each kingdom is peacefully building for KvK, actively skirmishing, or engaged in a toxic civil war. Look for correlations between high deads, alliance switching (churn), and massive troop power drops among specific alliances in the Alliance Matrix.
 
 ${kingdomSummaries}
 
@@ -156,7 +159,8 @@ Provide a comparative assessment, then give each kingdom a specific grade. Retur
       "posture": "Peaceful Farming | Active Skirmishing | Total Civil War | Whale Surges",
       "diagnosis": "2-3 sentences explaining the grade based on power vs deads ratio.",
       "stabilityIndex": "1 sentence on roster churn and migration.",
-      "economicIntel": "1 sentence analyzing troop power vs commander power growth."
+      "economicIntel": "1 sentence analyzing troop power vs commander power growth.",
+      "conflictTheories": ["1 sentence deducing which alliances are fighting each other based on high deads and troop drops in the Alliance Matrix.", "Another theory if applicable."]
     }
   ]
 }`;

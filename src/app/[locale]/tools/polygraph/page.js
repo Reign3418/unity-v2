@@ -11,8 +11,8 @@ export default function MultiKingdomPolygraph() {
     const defaultKd = session?.user?.allowedKingdoms?.[0] || '2648';
     
     const [kingdomInput, setKingdomInput] = useState(defaultKd);
-    const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [timeframe, setTimeframe] = useState("24");
     const [depth, setDepth] = useState(300);
     
     const [healthData, setHealthData] = useState(null);
@@ -30,7 +30,6 @@ export default function MultiKingdomPolygraph() {
                 if (res.ok && data.trends && data.trends.length > 0) {
                     const sorted = data.trends.sort((a,b) => new Date(a.scanDate) - new Date(b.scanDate));
                     const extractDate = (d) => d.split('T')[0].split(' ')[0].split('_')[0];
-                    setStartDate(extractDate(sorted[0].scanDate));
                     setEndDate(extractDate(sorted[sorted.length - 1].scanDate));
                 }
             } catch (e) {
@@ -41,8 +40,8 @@ export default function MultiKingdomPolygraph() {
     }, [defaultKd]);
 
     const runPolygraph = async () => {
-        if (!kingdomInput || !startDate || !endDate) {
-            setError("Please provide kingdoms and a date range.");
+        if (!kingdomInput || !endDate) {
+            setError("Please provide kingdoms and an anchor date.");
             return;
         }
 
@@ -52,9 +51,14 @@ export default function MultiKingdomPolygraph() {
 
         // Sanitize input
         const kds = kingdomInput.split(',').map(k => k.trim()).filter(Boolean).join(',');
+        
+        // Calculate startDate from timeframe
+        const anchorTime = new Date(endDate).getTime();
+        const startTime = anchorTime - (parseInt(timeframe) * 60 * 60 * 1000);
+        const calculatedStartDate = new Date(startTime).toISOString().split('T')[0];
 
         try {
-            const res = await fetch(`/api/aws/health-report?kds=${kds}&start=${startDate}&end=${endDate}&depth=${depth}`);
+            const res = await fetch(`/api/aws/health-report?kds=${kds}&start=${calculatedStartDate}&end=${endDate}&depth=${depth}`);
             const data = await res.json();
             
             if (res.ok && data.success) {
@@ -118,12 +122,29 @@ export default function MultiKingdomPolygraph() {
                         </div>
                         
                         <div className="flex flex-col gap-1">
-                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider px-1">Date Range</label>
-                            <div className="flex items-center bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-2 py-1.5 focus-within:border-fuchsia-500 transition-colors">
-                                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer" style={{ colorScheme: 'dark' }} />
-                                <span className="text-gray-600 mx-1">/</span>
-                                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate} className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer" style={{ colorScheme: 'dark' }} />
-                            </div>
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider px-1">Anchor Scan</label>
+                            <input 
+                                type="date" 
+                                value={endDate} 
+                                onChange={e => setEndDate(e.target.value)} 
+                                className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg text-xs outline-none font-mono cursor-pointer transition-colors" 
+                                style={{ colorScheme: 'dark' }} 
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider px-1">Timeframe</label>
+                            <select 
+                                value={timeframe} 
+                                onChange={(e) => setTimeframe(e.target.value)}
+                                className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg text-xs font-bold outline-none cursor-pointer transition-colors"
+                            >
+                                <option value="24">24 Hours</option>
+                                <option value="48">48 Hours</option>
+                                <option value="72">72 Hours</option>
+                                <option value="96">96 Hours</option>
+                                <option value="120">120 Hours</option>
+                            </select>
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -224,6 +245,50 @@ export default function MultiKingdomPolygraph() {
                                                     <div className="text-[10px] uppercase font-bold text-gray-600 tracking-wider mb-1">Economic Intel</div>
                                                     <p className="text-gray-500 text-xs">{aiKd.economicIntel}</p>
                                                 </div>
+                                            </div>
+                                            
+                                            {aiKd.conflictTheories && aiKd.conflictTheories.length > 0 && (
+                                                <div className="pt-3 border-t border-[#1e222b]/50">
+                                                    <div className="flex items-center gap-1.5 mb-2">
+                                                        <AlertTriangle size={12} className="text-rose-400" />
+                                                        <div className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">Conflict Theories</div>
+                                                    </div>
+                                                    <ul className="space-y-1.5">
+                                                        {aiKd.conflictTheories.map((theory, i) => (
+                                                            <li key={i} className="text-gray-400 text-xs leading-relaxed flex items-start gap-2">
+                                                                <span className="text-rose-500/50 mt-0.5">•</span>
+                                                                {theory}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* High Velocity Spenders */}
+                                    {kd.whales && kd.whales.length > 0 && (
+                                        <div className="px-5 py-4 bg-[#0a0c0f] border-b border-[#1e222b]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Zap size={14} className="text-amber-400" />
+                                                <h3 className="font-bold text-gray-200 text-xs uppercase tracking-widest">High Velocity Spenders</h3>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {kd.whales.map((w, idx) => {
+                                                    const millions = Math.floor(w.powerDelta / 1000000);
+                                                    const badgeText = millions >= 1 ? `${millions}M+` : '500k+';
+                                                    const badgeColor = millions >= 3 ? 'bg-rose-500 text-white border border-rose-400' : millions >= 2 ? 'bg-fuchsia-600 text-white border border-fuchsia-400' : millions >= 1 ? 'bg-amber-500 text-black border border-amber-400' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                                                    
+                                                    return (
+                                                        <div key={idx} className="flex items-center gap-1.5 bg-[#15181e] border border-[#1e222b] rounded-md px-2 py-1 shadow-sm">
+                                                            <span className="text-[11px] font-bold text-cyan-400">[{w.alliance}]</span>
+                                                            <span className="text-xs text-gray-300 font-medium">{w.name}</span>
+                                                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm ${badgeColor}`}>
+                                                                {badgeText}
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
                                         </div>
                                     )}
