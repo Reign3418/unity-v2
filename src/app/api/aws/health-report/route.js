@@ -97,6 +97,7 @@ export async function GET(req) {
         const start = searchParams.get('start');
         const end = searchParams.get('end');
         const depth = parseInt(searchParams.get('depth') || '300', 10);
+        const locale = searchParams.get('locale') || 'en';
 
         if (!kdsParam) {
             return NextResponse.json({ error: "Missing 'kds' parameter." }, { status: 400 });
@@ -255,6 +256,9 @@ ${allianceSwitchers.slice(0, 8).map(s => `${s.name}: [${s.from}] → [${s.to}] |
 ${kingdomSummary}
 
 Assess stability, conflict patterns, and migration signals. Return ONLY raw JSON matching this exact schema:
+
+CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the language code: '${locale}' (e.g. if 'es' use Spanish, if 'ko' use Korean, if 'zh' use Chinese). Maintain the exact JSON keys in English, but translate ALL of the JSON string values into ${locale}.
+
 {
   "grade": "A|B|C|D|F",
   "civilWarProbability": 0-100,

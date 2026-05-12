@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 export default function Polygraph() {
   const { data: session } = useSession();
   const t = useTranslations("Polygraph");
+  const locale = useLocale();
   const defaultKd = session?.user?.allowedKingdoms?.[0] || "2648";
   const [kd, setKd] = useState(defaultKd);
   const [endDate, setEndDate] = useState("");
@@ -56,7 +57,7 @@ export default function Polygraph() {
     const anchor = new Date(endDate + "T23:59:59Z");
     const start = new Date(anchor.getTime() - parseInt(timeframe)*3600000).toISOString().split("T")[0];
     try {
-      const res = await fetch(`/api/aws/health-report?kds=${kd.trim()}&start=${start}&end=${endDate}&depth=${depth}`);
+      const res = await fetch(`/api/aws/health-report?kds=${kd.trim()}&start=${start}&end=${endDate}&depth=${depth}&locale=${locale}`);
       const json = await res.json();
       if (res.ok && json.success) setData(json);
       else setError(json.error || t("err_scan_failed"));
