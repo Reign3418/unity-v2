@@ -19,10 +19,46 @@ export default function MultiKingdomPolygraph() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: 'powerDelta', direction: 'desc' });
+    const [isRestored, setIsRestored] = useState(false);
 
-    // Try to pre-fill dates if recent trends exist
+    // Restore persistent session state on mount
     useEffect(() => {
-        if (!defaultKd) return;
+        if (typeof window !== 'undefined') {
+            const savedKingdom = sessionStorage.getItem('polygraph_kds');
+            const savedEnd = sessionStorage.getItem('polygraph_end');
+            const savedTimeframe = sessionStorage.getItem('polygraph_timeframe');
+            const savedDepth = sessionStorage.getItem('polygraph_depth');
+            const savedData = sessionStorage.getItem('polygraph_data');
+            
+            if (savedKingdom) setKingdomInput(savedKingdom);
+            if (savedEnd) setEndDate(savedEnd);
+            if (savedTimeframe) setTimeframe(savedTimeframe);
+            if (savedDepth) setDepth(parseInt(savedDepth));
+            if (savedData) setHealthData(JSON.parse(savedData));
+        }
+        setIsRestored(true);
+    }, []);
+
+    // Save to session storage when inputs change
+    useEffect(() => {
+        if (isRestored && typeof window !== 'undefined') {
+            sessionStorage.setItem('polygraph_kds', kingdomInput);
+            sessionStorage.setItem('polygraph_end', endDate);
+            sessionStorage.setItem('polygraph_timeframe', timeframe);
+            sessionStorage.setItem('polygraph_depth', depth.toString());
+            if (healthData) {
+                sessionStorage.setItem('polygraph_data', JSON.stringify(healthData));
+            } else {
+                sessionStorage.removeItem('polygraph_data');
+            }
+        }
+    }, [kingdomInput, endDate, timeframe, depth, healthData, isRestored]);
+
+    // Try to pre-fill dates if recent trends exist and no session exists
+    useEffect(() => {
+        if (!defaultKd || !isRestored) return;
+        if (sessionStorage.getItem('polygraph_end')) return; // Do not overwrite restored state
+        
         const fetchRecentTrends = async () => {
             try {
                 const res = await fetch(`/api/aws/trends?kd=${defaultKd}`);
@@ -283,6 +319,11 @@ export default function MultiKingdomPolygraph() {
                                                         <div key={idx} className="flex items-center gap-1.5 bg-[#15181e] border border-[#1e222b] rounded-md px-2 py-1 shadow-sm">
                                                             <span className="text-[11px] font-bold text-cyan-400">[{w.alliance}]</span>
                                                             <span className="text-xs text-gray-300 font-medium">{w.name}</span>
+                                                            {w.isMigrant && (
+                                                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                                                    NEW
+                                                                </span>
+                                                            )}
                                                             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm ${badgeColor}`}>
                                                                 {badgeText}
                                                             </span>

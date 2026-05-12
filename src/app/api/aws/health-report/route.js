@@ -45,7 +45,8 @@ export async function GET(req) {
             const allianceSwitchers = [];
 
             for (const gov of sortedRoster) {
-                const pDelta = gov.powerDelta === 'NEW' ? gov.powerEnd : gov.powerDelta;
+                const isMigrant = gov.powerDelta === 'NEW' || gov.status === 'New';
+                const pDelta = isMigrant ? gov.powerEnd : gov.powerDelta;
                 const troopDelta = gov.troopDelta || 0;
                 const cmdDelta = gov.cmdDelta || 0;
                 const techDelta = gov.techDelta || 0;
@@ -62,7 +63,7 @@ export async function GET(req) {
                 totalDeadsGained += deadsDelta;
 
                 if (pDelta >= whaleThreshold) {
-                    whales.push({ id: gov.id, name: gov.name, alliance: gov.alliance, powerDelta: pDelta });
+                    whales.push({ id: gov.id, name: gov.name, alliance: gov.alliance, powerDelta: pDelta, isMigrant });
                 }
 
                 if (gov.allianceStart && gov.alliance !== gov.allianceStart) {
