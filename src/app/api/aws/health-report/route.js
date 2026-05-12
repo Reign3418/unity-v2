@@ -51,7 +51,7 @@ export async function GET(req) {
                 const techDelta = gov.techDelta || 0;
                 const buildDelta = gov.buildDelta || 0;
                 const kpDelta = gov.kpDelta || 0;
-                const deadsDelta = gov.deadsDelta || 0;
+                const deadsDelta = gov.deadDelta || 0;
 
                 totalPowerGained += pDelta;
                 totalTroopPowerGained += troopDelta;
