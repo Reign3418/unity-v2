@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp } from "lucide-react";
+import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 
@@ -32,6 +32,15 @@ export default function Polygraph() {
   const [tab, setTab] = useState("overview");
   const [sort, setSort] = useState({ key: "powerDelta", dir: "desc" });
   const [restored, setRestored] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareLink = () => {
+    const url = `${window.location.origin}/${locale}/shared/polygraph?kd=${kd}&end=${endDate}&tf=${timeframe}&depth=${depth}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -137,6 +146,11 @@ export default function Polygraph() {
               {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/> : <Zap size={16}/>} {t("btn_scan")}
             </button>
             {data && <button onClick={()=>{setData(null);sessionStorage.removeItem("pg_data");}} className="text-gray-600 hover:text-gray-400 text-xs font-bold py-2 px-3 rounded-lg border border-[#1e222b] transition-colors">{t("btn_clear")}</button>}
+            {data && (
+              <button onClick={shareLink} className={`flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border transition-colors ${copied?"border-emerald-500/40 text-emerald-400 bg-emerald-500/10":"border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10"}`}>
+                {copied ? <><Check size={13}/> Copied!</> : <><Link2 size={13}/> Share</>}
+              </button>
+            )}
           </div>
         </div>
       </div>
