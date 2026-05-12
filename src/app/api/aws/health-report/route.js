@@ -261,7 +261,9 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
 
 {
   "grade": "A|B|C|D|F",
+  "gradeRationale": "1-2 sentences. Specifically explain what data points (power growth, deads, switchers, KP, posture) drove this letter grade. Be direct.",
   "civilWarProbability": 0-100,
+  "civilWarRationale": "1-2 sentences. Specifically explain what signals drove this civil war %. Reference alliance switching counts, deads delta, specific alliance KP/dead imbalances, or internal fractures observed.",
   "posture": "Peaceful Farming | Active Skirmishing | Civil War | Whale Surge | Rapid Expansion",
   "diagnosis": "2-3 sentences on overall kingdom health based on power vs deads ratio and growth pattern.",
   "stabilityIndex": "1 sentence on roster churn, migration volume, and alliance switching.",

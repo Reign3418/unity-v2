@@ -4,6 +4,19 @@ import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, Ch
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 
+function Tooltip({ text, children }) {
+  if (!text) return children;
+  return (
+    <div className="relative group inline-block">
+      {children}
+      <div className="absolute z-50 bottom-full mb-2 right-0 w-72 p-3 bg-[#0a0c0f] border border-[#2d323e] rounded-xl shadow-2xl text-xs text-gray-300 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {text}
+        <div className="absolute bottom-[-5px] right-4 w-2.5 h-2.5 bg-[#0a0c0f] border-r border-b border-[#2d323e] rotate-45" />
+      </div>
+    </div>
+  );
+}
+
 export default function Polygraph() {
   const { data: session } = useSession();
   const t = useTranslations("Polygraph");
@@ -146,11 +159,15 @@ export default function Polygraph() {
             </div>
             {ai && (
               <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-0.5">{t("civil_war_risk")}</div>
-                  <div className={`font-mono font-black text-lg ${parseInt(ai.civilWarProbability)>50?"text-rose-400":"text-emerald-400"}`}>{ai.civilWarProbability}%</div>
-                </div>
-                <div className={`text-4xl font-black px-4 py-2 rounded border ${gc(ai.grade)}`}>{ai.grade}</div>
+                <Tooltip text={ai.civilWarRationale}>
+                  <div className="text-right cursor-help">
+                    <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-0.5 flex items-center justify-end gap-1">{t("civil_war_risk")} <span className="text-gray-700">(?)</span></div>
+                    <div className={`font-mono font-black text-lg ${parseInt(ai.civilWarProbability)>50?"text-rose-400":"text-emerald-400"}`}>{ai.civilWarProbability}%</div>
+                  </div>
+                </Tooltip>
+                <Tooltip text={ai.gradeRationale}>
+                  <div className={`text-4xl font-black px-4 py-2 rounded border cursor-help ${gc(ai.grade)}`}>{ai.grade}</div>
+                </Tooltip>
               </div>
             )}
           </div>
