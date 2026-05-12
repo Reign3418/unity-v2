@@ -9,9 +9,9 @@ function Tooltip({ text, children }) {
   return (
     <div className="relative group inline-block">
       {children}
-      <div className="absolute z-50 bottom-full mb-2 right-0 w-72 p-3 bg-[#0a0c0f] border border-[#2d323e] rounded-xl shadow-2xl text-xs text-gray-300 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute z-50 top-full mt-2 right-0 w-72 p-3 bg-[#0a0c0f] border border-[#2d323e] rounded-xl shadow-2xl text-xs text-gray-300 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute top-[-5px] right-4 w-2.5 h-2.5 bg-[#0a0c0f] border-l border-t border-[#2d323e] rotate-45" />
         {text}
-        <div className="absolute bottom-[-5px] right-4 w-2.5 h-2.5 bg-[#0a0c0f] border-r border-b border-[#2d323e] rotate-45" />
       </div>
     </div>
   );
