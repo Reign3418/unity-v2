@@ -2,9 +2,11 @@
 import { useState, useEffect } from "react";
 import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 export default function Polygraph() {
   const { data: session } = useSession();
+  const t = useTranslations("Polygraph");
   const defaultKd = session?.user?.allowedKingdoms?.[0] || "2648";
   const [kd, setKd] = useState(defaultKd);
   const [endDate, setEndDate] = useState("");
@@ -49,7 +51,7 @@ export default function Polygraph() {
   }, [defaultKd, restored]);
 
   const scan = async () => {
-    if (!kd || !endDate) { setError("Provide kingdom and anchor date."); return; }
+    if (!kd || !endDate) { setError(t("err_provide_input")); return; }
     setLoading(true); setError(null); setData(null);
     const anchor = new Date(endDate + "T23:59:59Z");
     const start = new Date(anchor.getTime() - parseInt(timeframe)*3600000).toISOString().split("T")[0];
@@ -57,8 +59,8 @@ export default function Polygraph() {
       const res = await fetch(`/api/aws/health-report?kds=${kd.trim()}&start=${start}&end=${endDate}&depth=${depth}`);
       const json = await res.json();
       if (res.ok && json.success) setData(json);
-      else setError(json.error || "Scan failed.");
-    } catch(e) { setError("Network error."); }
+      else setError(json.error || t("err_scan_failed"));
+    } catch(e) { setError(t("err_network")); }
     setLoading(false);
   };
 
@@ -80,7 +82,8 @@ export default function Polygraph() {
   const me = kdd?.metrics;
 
   const TABS = ["overview","alliance","migration","leadership","spenders"];
-  const TLABELS = { overview:"Overview", alliance:"Alliance Intel", migration:"Migration", leadership:"Leadership", spenders:"Spenders" };
+  const TLABELS = { overview:t("tab_overview"), alliance:t("tab_alliance_intel"), migration:t("tab_migration"), leadership:t("tab_leadership"), spenders:t("tab_spenders") };
+
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 p-4 md:p-8 animate-fade-in">
 
@@ -91,35 +94,35 @@ export default function Polygraph() {
           <div className="flex items-center gap-3 flex-1">
             <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]"><Activity className="text-fuchsia-500" size={28}/></div>
             <div>
-              <h1 className="text-2xl font-black text-white tracking-widest uppercase">EK Polygraph</h1>
-              <p className="text-fuchsia-400 text-xs font-bold uppercase tracking-[0.2em]">Kingdom Intelligence Brief</p>
+              <h1 className="text-2xl font-black text-white tracking-widest uppercase">{t("title")}</h1>
+              <p className="text-fuchsia-400 text-xs font-bold uppercase tracking-[0.2em]">{t("subtitle")}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3 items-end">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Kingdom</label>
+              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("kingdom_label")}</label>
               <input type="text" value={kd} onChange={e=>setKd(e.target.value)} placeholder="e.g. 2648" className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg font-mono font-bold outline-none w-32 transition-colors"/>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Anchor Scan</label>
+              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("anchor_scan_label")}</label>
               <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg text-xs font-mono outline-none cursor-pointer transition-colors" style={{colorScheme:"dark"}}/>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Timeframe</label>
+              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("timeframe_label")}</label>
               <select value={timeframe} onChange={e=>setTimeframe(e.target.value)} className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg text-xs font-bold outline-none cursor-pointer transition-colors">
-                <option value="24">24 Hours</option><option value="48">48 Hours</option><option value="72">72 Hours</option><option value="96">96 Hours</option><option value="120">120 Hours</option>
+                <option value="24">{t("hours_24")}</option><option value="48">{t("hours_48")}</option><option value="72">{t("hours_72")}</option><option value="96">{t("hours_96")}</option><option value="120">{t("hours_120")}</option>
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Depth</label>
+              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("depth_label")}</label>
               <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-1">
                 {[300,400].map(d=><button key={d} onClick={()=>setDepth(d)} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${depth===d?"bg-fuchsia-500/20 text-fuchsia-400":"text-gray-500 hover:text-gray-300"}`}>{d}</button>)}
               </div>
             </div>
             <button onClick={scan} disabled={loading} className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(192,38,211,0.3)] transition-colors">
-              {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/> : <Zap size={16}/>} Scan
+              {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/> : <Zap size={16}/>} {t("btn_scan")}
             </button>
-            {data && <button onClick={()=>{setData(null);sessionStorage.removeItem("pg_data");}} className="text-gray-600 hover:text-gray-400 text-xs font-bold py-2 px-3 rounded-lg border border-[#1e222b] transition-colors">Clear</button>}
+            {data && <button onClick={()=>{setData(null);sessionStorage.removeItem("pg_data");}} className="text-gray-600 hover:text-gray-400 text-xs font-bold py-2 px-3 rounded-lg border border-[#1e222b] transition-colors">{t("btn_clear")}</button>}
           </div>
         </div>
       </div>
@@ -135,15 +138,15 @@ export default function Polygraph() {
             <div className="flex items-center gap-4">
               <div className="bg-fuchsia-500/20 text-fuchsia-400 font-black text-2xl px-4 py-1 rounded border border-fuchsia-500/30">KD {kdd.kd}</div>
               <div>
-                <div className="text-gray-500 text-[10px] uppercase tracking-widest font-bold">Roster Analyzed</div>
-                <div className="text-gray-200 font-mono font-bold">{kdd.rosterSize} Governors</div>
+                <div className="text-gray-500 text-[10px] uppercase tracking-widest font-bold">{t("roster_analyzed")}</div>
+                <div className="text-gray-200 font-mono font-bold">{t("governors_count", {count: kdd.rosterSize})}</div>
               </div>
               {ai?.posture && <div className="flex items-center gap-1.5 bg-[#1e222b] px-3 py-1 rounded-full border border-[#2d323e]"><CheckCircle2 size={12} className="text-fuchsia-400"/><span className="text-xs font-bold text-gray-300">{ai.posture}</span></div>}
             </div>
             {ai && (
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-0.5">Civil War Risk</div>
+                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-0.5">{t("civil_war_risk")}</div>
                   <div className={`font-mono font-black text-lg ${parseInt(ai.civilWarProbability)>50?"text-rose-400":"text-emerald-400"}`}>{ai.civilWarProbability}%</div>
                 </div>
                 <div className={`text-4xl font-black px-4 py-2 rounded border ${gc(ai.grade)}`}>{ai.grade}</div>
@@ -153,25 +156,26 @@ export default function Polygraph() {
 
           {/* Tabs */}
           <div className="flex border-b border-[#1e222b] bg-[#0a0c0f] overflow-x-auto">
-            {TABS.map(t=>(
-              <button key={t} onClick={()=>setTab(t)} className={`px-5 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border-b-2 ${tab===t?"border-fuchsia-500 text-fuchsia-400":"border-transparent text-gray-500 hover:text-gray-300"}`}>
-                {TLABELS[t]}
+            {TABS.map(tabId=>(
+              <button key={tabId} onClick={()=>setTab(tabId)} className={`px-5 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border-b-2 ${tab===tabId?"border-fuchsia-500 text-fuchsia-400":"border-transparent text-gray-500 hover:text-gray-300"}`}>
+                {TLABELS[tabId]}
               </button>
             ))}
           </div>
+
           {/* Tab: Overview */}
           {tab === "overview" && (
             <div className="p-6 space-y-5">
               {/* Metric Bars */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
-                  {label:"Power",val:me?.totalPowerGained,color:"text-fuchsia-400"},
-                  {label:"Troops",val:me?.totalTroopPowerGained,color:"text-cyan-400"},
-                  {label:"Cmdr",val:me?.totalCmdPowerGained,color:"text-amber-400"},
-                  {label:"Tech",val:me?.totalTechPowerGained,color:"text-violet-400"},
-                  {label:"Deads",val:me?.totalDeadsGained,color:"text-rose-400"},
+                  {label:t("metric_power"),val:me?.totalPowerGained,color:"text-fuchsia-400"},
+                  {label:t("metric_troops"),val:me?.totalTroopPowerGained,color:"text-cyan-400"},
+                  {label:t("metric_cmdr"),val:me?.totalCmdPowerGained,color:"text-amber-400"},
+                  {label:t("metric_tech"),val:me?.totalTechPowerGained,color:"text-violet-400"},
+                  {label:t("metric_deads"),val:me?.totalDeadsGained,color:"text-rose-400"},
                 ].map(({label,val,color})=>(
-                  <div key={label} className={`bg-[#0a0c0f] border rounded-lg p-4 text-center ${label==="Deads"&&val>0?"border-rose-500/30":"border-[#1e222b]"}`}>
+                  <div key={label} className={`bg-[#0a0c0f] border rounded-lg p-4 text-center ${label===t("metric_deads")&&val>0?"border-rose-500/30":"border-[#1e222b]"}`}>
                     <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">{label}</div>
                     <div className={`text-lg font-black font-mono ${color}`}>{val>0?"+":""}{fmt(val||0)}</div>
                   </div>
@@ -179,30 +183,30 @@ export default function Polygraph() {
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-3">
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">KP Gained</div>
+                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">{t("metric_kp_gained")}</div>
                   <div className="text-sm font-bold font-mono text-orange-400">+{fmt(me?.totalKPGained||0)}</div>
                 </div>
                 <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-3">
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Switchers</div>
+                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">{t("metric_switchers")}</div>
                   <div className={`text-sm font-bold font-mono ${me?.switchersCount>5?"text-rose-400":"text-gray-300"}`}>{me?.switchersCount||0}</div>
                 </div>
                 <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-3">
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Spenders</div>
+                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">{t("metric_spenders")}</div>
                   <div className={`text-sm font-bold font-mono ${me?.whalesCount>0?"text-amber-400":"text-gray-500"}`}>{me?.whalesCount||0}</div>
                 </div>
               </div>
               {ai && (
                 <div className="space-y-4">
                   <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-5">
-                    <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-2">J.A.R.V.I.S. Diagnosis</div>
+                    <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-2">{t("ai_diagnosis")}</div>
                     <p className="text-gray-300 text-sm leading-relaxed">{ai.diagnosis}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      {label:"Stability Index",val:ai.stabilityIndex,color:"text-cyan-400"},
-                      {label:"Economic Intel",val:ai.economicIntel,color:"text-amber-400"},
-                      {label:"Migrant Intel",val:ai.migrantIntel,color:"text-violet-400"},
-                      {label:"Recommendation",val:ai.recommendation,color:"text-emerald-400"},
+                      {label:t("ai_stability_index"),val:ai.stabilityIndex,color:"text-cyan-400"},
+                      {label:t("ai_economic_intel"),val:ai.economicIntel,color:"text-amber-400"},
+                      {label:t("ai_migrant_intel"),val:ai.migrantIntel,color:"text-violet-400"},
+                      {label:t("ai_recommendation"),val:ai.recommendation,color:"text-emerald-400"},
                     ].map(({label,val,color})=>val&&(
                       <div key={label} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4">
                         <div className={`text-[10px] uppercase font-bold tracking-wider mb-1 ${color}`}>{label}</div>
@@ -220,15 +224,15 @@ export default function Polygraph() {
             <div className="p-6 space-y-4">
               {ai?.conflictTheories?.length > 0 && (
                 <div className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3"><AlertTriangle size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">Conflict Theories</div></div>
-                  <ul className="space-y-2">{ai.conflictTheories.map((t,i)=><li key={i} className="text-gray-400 text-xs flex items-start gap-2"><span className="text-rose-500/50 mt-0.5">•</span>{t}</li>)}</ul>
+                  <div className="flex items-center gap-2 mb-3"><AlertTriangle size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">{t("ai_conflict_theories")}</div></div>
+                  <ul className="space-y-2">{ai.conflictTheories.map((theory,i)=><li key={i} className="text-gray-400 text-xs flex items-start gap-2"><span className="text-rose-500/50 mt-0.5">•</span>{theory}</li>)}</ul>
                 </div>
               )}
               <div className="overflow-x-auto border border-[#1e222b] rounded-lg">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-[#15181e] text-[10px] uppercase tracking-wider text-gray-500">
                     <tr>
-                      {[["tag","Tag"],["govCount","Govs"],["powerDelta","Power"],["troopDelta","Troops"],["cmdDelta","Cmdr"],["techDelta","Tech"],["kpDelta","KP"],["deadsDelta","Deads"]].map(([k,l])=>(
+                      {[["tag",t("col_tag")],["govCount",t("col_govs")],["powerDelta",t("col_power")],["troopDelta",t("col_troops")],["cmdDelta",t("col_cmdr")],["techDelta",t("col_tech")],["kpDelta",t("col_kp")],["deadsDelta",t("col_deads")]].map(([k,l])=>(
                         <th key={k} className="p-2 font-bold cursor-pointer hover:text-white transition-colors" onClick={()=>doSort(k)}>{l} <span className="text-gray-600 ml-1">{si(k)}</span></th>
                       ))}
                     </tr>
@@ -251,7 +255,7 @@ export default function Polygraph() {
               </div>
               {kdd.switchers?.length>0 && (
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-3">Alliance Switchers ({kdd.switchers.length})</div>
+                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-3">{t("alliance_switchers")} ({kdd.switchers.length})</div>
                   <div className="space-y-1.5">
                     {kdd.switchers.map((s,i)=>(
                       <div key={i} className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
@@ -267,15 +271,16 @@ export default function Polygraph() {
               )}
             </div>
           )}
+
           {/* Tab: Migration */}
           {tab === "migration" && (
             <div className="p-6 space-y-6">
-              {ai?.migrantIntel && <div className="bg-[#0f1115] border border-violet-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider mb-1">Migration Intel</div><p className="text-gray-300 text-sm">{ai.migrantIntel}</p></div>}
+              {ai?.migrantIntel && <div className="bg-[#0f1115] border border-violet-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider mb-1">{t("migration_intel")}</div><p className="text-gray-300 text-sm">{ai.migrantIntel}</p></div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><UserPlus size={14} className="text-emerald-400"/><div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">New Arrivals ({kdd.migration?.newArrivals?.length||0})</div></div>
+                  <div className="flex items-center gap-2 mb-3"><UserPlus size={14} className="text-emerald-400"/><div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{t("new_arrivals")} ({kdd.migration?.newArrivals?.length||0})</div></div>
                   <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {(kdd.migration?.newArrivals||[]).length === 0 && <div className="text-gray-600 text-xs italic">No new arrivals detected in this window.</div>}
+                    {(kdd.migration?.newArrivals||[]).length === 0 && <div className="text-gray-600 text-xs italic">{t("no_new_arrivals")}</div>}
                     {(kdd.migration?.newArrivals||[]).map((a,i)=>(
                       <div key={i} className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
                         <span className="text-[10px] font-bold text-cyan-400">[{a.alliance||"?"}]</span>
@@ -287,9 +292,9 @@ export default function Polygraph() {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><UserMinus size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">Departed ({kdd.migration?.departed?.length||0})</div></div>
+                  <div className="flex items-center gap-2 mb-3"><UserMinus size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">{t("departed")} ({kdd.migration?.departed?.length||0})</div></div>
                   <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {(kdd.migration?.departed||[]).length === 0 && <div className="text-gray-600 text-xs italic">No departures detected in this window.</div>}
+                    {(kdd.migration?.departed||[]).length === 0 && <div className="text-gray-600 text-xs italic">{t("no_departures")}</div>}
                     {(kdd.migration?.departed||[]).map((d,i)=>(
                       <div key={i} className="flex flex-col gap-1 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
                         <div className="flex items-center gap-2">
@@ -305,7 +310,7 @@ export default function Polygraph() {
               </div>
               {kdd.followSignals?.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-3">Follow Signals — People following powerful governors</div>
+                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-3">{t("follow_signals")}</div>
                   <div className="space-y-2">
                     {kdd.followSignals.map((f,i)=>(
                       <div key={i} className="bg-[#0f1115] border border-fuchsia-500/20 rounded-lg p-4">
@@ -315,7 +320,7 @@ export default function Polygraph() {
                           <span className="text-xs text-cyan-400 font-mono">[{f.leaderAlliance}]</span>
                           <span className="text-xs text-gray-500">{fmt(f.leaderPower)} power</span>
                         </div>
-                        <div className="text-xs text-gray-400">{f.followerCount} new arrival(s) joined [{f.leaderAlliance}]: <span className="text-gray-300">{f.followers.join(", ")}</span></div>
+                        <div className="text-xs text-gray-400">{t("new_arrivals_joined", {count: f.followerCount})} [{f.leaderAlliance}]: <span className="text-gray-300">{f.followers.join(", ")}</span></div>
                       </div>
                     ))}
                   </div>
@@ -323,7 +328,7 @@ export default function Polygraph() {
               )}
               {ai?.followAnalysis && (
                 <div className="bg-[#0f1115] border border-fuchsia-500/20 rounded-lg p-4">
-                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-1">AI Follow Analysis</div>
+                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-1">{t("ai_follow_analysis")}</div>
                   <p className="text-gray-300 text-sm">{ai.followAnalysis}</p>
                 </div>
               )}
@@ -333,13 +338,13 @@ export default function Polygraph() {
           {/* Tab: Leadership */}
           {tab === "leadership" && (
             <div className="p-6 space-y-5">
-              {ai?.leadershipAssessment && <div className="bg-[#0f1115] border border-amber-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider mb-1">AI Leadership Assessment</div><p className="text-gray-300 text-sm">{ai.leadershipAssessment}</p></div>}
+              {ai?.leadershipAssessment && <div className="bg-[#0f1115] border border-amber-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider mb-1">{t("ai_leadership_assessment")}</div><p className="text-gray-300 text-sm">{ai.leadershipAssessment}</p></div>}
               {kdd.leadershipIntel && (
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    {label:"Stability Score",val:`${kdd.leadershipIntel.stabilityScore}%`,note:"Top 20 retention",color:kdd.leadershipIntel.stabilityScore>=70?"text-emerald-400":kdd.leadershipIntel.stabilityScore>=40?"text-amber-400":"text-rose-400"},
-                    {label:"Activity Rate",val:`${kdd.leadershipIntel.activityRate}%`,note:"Active leaders",color:kdd.leadershipIntel.activityRate>=70?"text-emerald-400":kdd.leadershipIntel.activityRate>=40?"text-amber-400":"text-rose-400"},
-                    {label:"Power Concentration",val:`${kdd.leadershipIntel.powerConcentration}%`,note:"Top10 vs Top300",color:"text-fuchsia-400"},
+                    {label:t("stability_score"),val:`${kdd.leadershipIntel.stabilityScore}%`,note:t("stability_note"),color:kdd.leadershipIntel.stabilityScore>=70?"text-emerald-400":kdd.leadershipIntel.stabilityScore>=40?"text-amber-400":"text-rose-400"},
+                    {label:t("activity_rate"),val:`${kdd.leadershipIntel.activityRate}%`,note:t("activity_note"),color:kdd.leadershipIntel.activityRate>=70?"text-emerald-400":kdd.leadershipIntel.activityRate>=40?"text-amber-400":"text-rose-400"},
+                    {label:t("power_concentration"),val:`${kdd.leadershipIntel.powerConcentration}%`,note:t("power_concentration_note"),color:"text-fuchsia-400"},
                   ].map(({label,val,note,color})=>(
                     <div key={label} className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 text-center">
                       <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">{label}</div>
@@ -351,7 +356,7 @@ export default function Polygraph() {
               )}
               {kdd.leadershipIntel?.top10Snapshot?.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-3">Top 10 Governors by Power</div>
+                  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-3">{t("top_10_governors")}</div>
                   <div className="space-y-1.5">
                     {kdd.leadershipIntel.top10Snapshot.map((g,i)=>(
                       <div key={g.id} className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
@@ -360,7 +365,7 @@ export default function Polygraph() {
                         <span className="text-gray-200 font-medium flex-1">{g.name}</span>
                         <span className="text-gray-300 font-mono">{fmt(g.power)}</span>
                         <span className={`font-mono text-xs ${g.powerDelta>0?"text-emerald-400":g.powerDelta<0?"text-rose-400":"text-gray-600"}`}>{g.powerDelta>0?`+${fmt(g.powerDelta)}`:g.powerDelta<0?fmt(g.powerDelta):"—"}</span>
-                        {g.isNew && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-fuchsia-600 text-white">CLIMBER</span>}
+                        {g.isNew && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-fuchsia-600 text-white">{t("badge_climber")}</span>}
                       </div>
                     ))}
                   </div>
@@ -372,8 +377,8 @@ export default function Polygraph() {
           {/* Tab: Spenders */}
           {tab === "spenders" && (
             <div className="p-6 space-y-4">
-              <div className="text-xs text-gray-500">Governors who gained <span className="text-amber-400 font-bold">500k+</span> power in the selected window. <span className="text-blue-400">[NEW]</span> = migrated in from another kingdom.</div>
-              {kdd.whales?.length === 0 && <div className="text-gray-600 text-sm italic text-center py-8">No high-velocity spenders detected in this window.</div>}
+              <div className="text-xs text-gray-500" dangerouslySetInnerHTML={{ __html: t.raw("spenders_desc").replace("<highlight>", '<span className="text-amber-400 font-bold">').replace("</highlight>", "</span>").replace("<new>", '<span className="text-blue-400">').replace("</new>", "</span>") }} />
+              {kdd.whales?.length === 0 && <div className="text-gray-600 text-sm italic text-center py-8">{t("no_spenders")}</div>}
               <div className="grid grid-cols-1 gap-1.5">
                 {kdd.whales?.map((w,i)=>(
                   <div key={i} className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2">
@@ -395,8 +400,8 @@ export default function Polygraph() {
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-fuchsia-500"/>
-          <div className="text-gray-400 text-sm font-medium">Running full intelligence sweep on KD {kd}...</div>
-          <div className="text-gray-600 text-xs">Pulling migration data, leadership snapshot & AI analysis</div>
+          <div className="text-gray-400 text-sm font-medium">{t("loading_sweep", {kd: kd})}</div>
+          <div className="text-gray-600 text-xs">{t("loading_sub")}</div>
         </div>
       )}
     </div>
