@@ -16,6 +16,8 @@ export async function GET(req) {
     const t4Pts = parseFloat(searchParams.get('t4') || "0");
     const t5Pts = parseFloat(searchParams.get('t5') || "0");
     const dPts = parseFloat(searchParams.get('deads') || "0");
+    const t4DeadsPts = parseFloat(searchParams.get('t4d') || "15");
+    const t5DeadsPts = parseFloat(searchParams.get('t5d') || "30");
     const mode = searchParams.get('mode') || "basic";
 
     const session = await auth();
@@ -66,7 +68,7 @@ export async function GET(req) {
                 estT4Deads = Math.floor(dDelta * t4Ratio);
                 estT5Deads = Math.floor(dDelta * (1 - t4Ratio));
             }
-            dkpScore = Math.floor((t4Delta * t4Pts) + (t5Delta * t5Pts) + (estT4Deads * 15) + (estT5Deads * 30));
+            dkpScore = Math.floor((t4Delta * t4Pts) + (t5Delta * t5Pts) + (estT4Deads * t4DeadsPts) + (estT5Deads * t5DeadsPts));
         } else if (t4Pts === 0 && t5Pts === 0 && dPts === 0) {
             dkpScore = Math.floor((kDelta * 0.05) + (dDelta * 0.20)); // Legacy Fallback
         } else {

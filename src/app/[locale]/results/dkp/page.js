@@ -23,9 +23,11 @@ export default function DkpResults() {
   const [isDatesLoading, setIsDatesLoading] = useState(false);
 
   // --- Algorithmic Controls ---
-  const [t4Pts, setT4Pts] = useState(10);
-  const [t5Pts, setT5Pts] = useState(20);
+  const [t4Pts, setT4Pts] = useState(1);
+  const [t5Pts, setT5Pts] = useState(5);
   const [deadsPts, setDeadsPts] = useState(30);
+  const [t4DeadsPts, setT4DeadsPts] = useState(15);
+  const [t5DeadsPts, setT5DeadsPts] = useState(30);
   const [govCount, setGovCount] = useState("All");
   const [dkpMode, setDkpMode] = useState("Basic");
 
@@ -139,6 +141,8 @@ export default function DkpResults() {
           t4: t4Pts,
           t5: t5Pts,
           deads: deadsPts,
+          t4d: t4DeadsPts,
+          t5d: t5DeadsPts,
           mode: dkpMode === "Advanced (HoH Scan)" ? "hoh" : "basic"
         });
         const res = await fetch(`/api/aws/dkp?${params.toString()}`);
@@ -171,13 +175,13 @@ export default function DkpResults() {
             agg.t4Deads = data.kingdomHoh.t4Deads;
             agg.t5Deads = data.kingdomHoh.t5Deads;
             agg.totalDeads = data.kingdomHoh.t4Deads + data.kingdomHoh.t5Deads;
-            agg.totalDkp = (agg.t4Kills * 1) + (agg.t5Kills * 5) + (data.kingdomHoh.t4Deads * 15) + (data.kingdomHoh.t5Deads * 30);
+            agg.totalDkp = (agg.t4Kills * t4Pts) + (agg.t5Kills * t5Pts) + (data.kingdomHoh.t4Deads * t4DeadsPts) + (data.kingdomHoh.t5Deads * t5DeadsPts);
             agg.hasExactHoh = true;
           } else {
             agg.t4Deads = 0;
             agg.t5Deads = 0;
             agg.totalDeads = 0;
-            agg.totalDkp = (agg.t4Kills * 1) + (agg.t5Kills * 5);
+            agg.totalDkp = (agg.t4Kills * t4Pts) + (agg.t5Kills * t5Pts);
             agg.hasExactHoh = false;
           }
         }
@@ -190,7 +194,7 @@ export default function DkpResults() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedKds, startScan, endScan, t4Pts, t5Pts, deadsPts, govCount]);
+  }, [selectedKds, startScan, endScan, t4Pts, t5Pts, deadsPts, t4DeadsPts, t5DeadsPts, govCount, dkpMode]);
 
   // Auto-fetch when dates or controls change
   useEffect(() => {
@@ -306,39 +310,58 @@ export default function DkpResults() {
 
             {/* T4 Pts */}
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] text-cyan-500 uppercase font-black tracking-widest">T4 Pts</span>
+              <span className="text-[9px] text-cyan-500 uppercase font-black tracking-widest">{dkpMode === "Advanced (HoH Scan)" ? "T4 Kills Pts" : "T4 Pts"}</span>
               <input
                 type="number"
-                value={dkpMode === "Advanced (HoH Scan)" ? "1" : t4Pts}
-                disabled={dkpMode === "Advanced (HoH Scan)"}
+                value={t4Pts}
                 onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-cyan-500"
               />
             </div>
 
             {/* T5 Pts */}
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] text-indigo-400 uppercase font-black tracking-widest">T5 Pts</span>
+              <span className="text-[9px] text-indigo-400 uppercase font-black tracking-widest">{dkpMode === "Advanced (HoH Scan)" ? "T5 Kills Pts" : "T5 Pts"}</span>
               <input
                 type="number"
-                value={dkpMode === "Advanced (HoH Scan)" ? "5" : t5Pts}
-                disabled={dkpMode === "Advanced (HoH Scan)"}
+                value={t5Pts}
                 onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-indigo-400"
               />
             </div>
 
-            {/* Deads Pts */}
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] text-rose-500 uppercase font-black tracking-widest">Deads Pts</span>
-              <input
-                type="number"
-                value={dkpMode === "Advanced (HoH Scan)" ? "30" : deadsPts}
-                disabled={dkpMode === "Advanced (HoH Scan)"}
-                onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
+            {dkpMode === "Advanced (HoH Scan)" ? (
+              <>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] text-fuchsia-400 uppercase font-black tracking-widest">T4 Deads Pts</span>
+                  <input
+                    type="number"
+                    value={t4DeadsPts}
+                    onChange={(e) => setT4DeadsPts(parseFloat(e.target.value) || 0)}
+                    className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-fuchsia-400"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] text-rose-500 uppercase font-black tracking-widest">T5 Deads Pts</span>
+                  <input
+                    type="number"
+                    value={t5DeadsPts}
+                    onChange={(e) => setT5DeadsPts(parseFloat(e.target.value) || 0)}
+                    className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-rose-500"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-rose-500 uppercase font-black tracking-widest">Deads Pts</span>
+                <input
+                  type="number"
+                  value={deadsPts}
+                  onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)}
+                  className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-rose-500"
+                />
+              </div>
+            )}
 
             {/* Governor Count */}
             <div className="flex flex-col gap-1">
