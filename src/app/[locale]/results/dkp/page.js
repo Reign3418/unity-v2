@@ -366,7 +366,11 @@ export default function DkpResults() {
             <table className="w-full whitespace-nowrap text-[12px]">
               <thead className="bg-[#0a0c0f] border-b border-[#1e222b]">
                 <tr>
-                  {["Kingdom","Total Power","Power +/-","T4 Kills +/-","T5 Kills +/-","T4 Deads","T5 Deads","Total Deads","Total KP +/-","Total DKP"].map((h) => (
+                  {[
+                    "Kingdom", "Total Power", "Power +/-", "T4 Kills +/-", "T5 Kills +/-",
+                    ...(dkpMode === "Advanced (HoH Scan)" ? ["T4 Deads", "T5 Deads"] : []),
+                    "Total Deads", "Total KP +/-", "Total DKP"
+                  ].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]"
@@ -426,8 +430,12 @@ export default function DkpResults() {
                       </td>
                       <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.t4Kills)}</td>
                       <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.t5Kills)}</td>
-                      <td className="px-4 py-3 font-mono text-rose-400">{formatNum(row.t4Deads)}</td>
-                      <td className="px-4 py-3 font-mono text-rose-400">{formatNum(row.t5Deads)}</td>
+                      {dkpMode === "Advanced (HoH Scan)" && (
+                        <>
+                          <td className="px-4 py-3 font-mono text-rose-400">{formatNum(row.t4Deads)}</td>
+                          <td className="px-4 py-3 font-mono text-rose-400">{formatNum(row.t5Deads)}</td>
+                        </>
+                      )}
                       <td className="px-4 py-3 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
                       <td className="px-4 py-3 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
                       <td className="px-4 py-3 font-mono font-black text-fuchsia-400 text-[13px]">
