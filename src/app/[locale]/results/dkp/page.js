@@ -400,10 +400,11 @@ export default function DkpResults() {
                             <button
                               onClick={() => fileInputRefs.current[row.kingdom]?.click()}
                               disabled={isUploadingHoh === row.kingdom}
-                              className={`p-1 rounded transition-colors ${row.hasExactHoh ? 'bg-fuchsia-500/20 text-fuchsia-400 hover:bg-fuchsia-500/40' : 'bg-[#1e222b] text-gray-400 hover:text-white hover:bg-[#2d323e]'} disabled:opacity-50`}
+                              className={`flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase font-bold tracking-wider rounded transition-colors ${row.hasExactHoh ? 'bg-fuchsia-500/20 text-fuchsia-400 hover:bg-fuchsia-500/40 border border-fuchsia-500/30' : 'bg-[#1e222b] text-cyan-400 hover:text-cyan-300 hover:bg-[#2d323e] border border-[#2d323e] hover:border-cyan-500/50'} disabled:opacity-50`}
                               title={row.hasExactHoh ? "HOH Exact Match Verified. Click to re-upload." : "Upload Kingdom HOH Screenshot"}
                             >
                               {isUploadingHoh === row.kingdom ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
+                              {row.hasExactHoh ? "HOH Verified" : "Upload HOH"}
                             </button>
                             <input
                               type="file"
