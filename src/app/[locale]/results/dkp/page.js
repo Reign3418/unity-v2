@@ -252,9 +252,10 @@ export default function DkpResults() {
               <span className="text-[9px] text-cyan-500 uppercase font-black tracking-widest">T4 Pts</span>
               <input
                 type="number"
-                value={t4Pts}
+                value={dkpMode === "Advanced (HoH Scan)" ? "1" : t4Pts}
+                disabled={dkpMode === "Advanced (HoH Scan)"}
                 onChange={(e) => setT4Pts(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-cyan-500"
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -263,9 +264,10 @@ export default function DkpResults() {
               <span className="text-[9px] text-indigo-400 uppercase font-black tracking-widest">T5 Pts</span>
               <input
                 type="number"
-                value={t5Pts}
+                value={dkpMode === "Advanced (HoH Scan)" ? "5" : t5Pts}
+                disabled={dkpMode === "Advanced (HoH Scan)"}
                 onChange={(e) => setT5Pts(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-indigo-400"
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
