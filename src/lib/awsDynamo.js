@@ -4600,3 +4600,61 @@ export async function addGovernorNote(govId, payload) {
         return false;
     }
 }
+
+/**
+ * Kingdom-level HOH Exact Screenshot Data
+ */
+export async function getKingdomHoh(kd, endScan) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName || !kd || !endScan) return null;
+
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk AND SK = :sk',
+            ExpressionAttributeValues: {
+                ':pk': { S: `KD#${kd}` },
+                ':sk': { S: `HOH#${endScan}` }
+            }
+        };
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            return {
+                t4Deads: parseInt(attrs.t4Deads?.N || '0'),
+                t5Deads: parseInt(attrs.t5Deads?.N || '0'),
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error(`[AWS] Failed to fetch Kingdom HOH for KD ${kd}:`, e);
+        return null;
+    }
+}
+
+export async function setKingdomHoh(kd, endScan, t4Deads, t5Deads) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const params = {
+            TableName: tableName,
+            Item: {
+                PK: { S: `KD#${kd}` },
+                SK: { S: `HOH#${endScan}` },
+                attributes: {
+                    M: {
+                        t4Deads: { N: t4Deads.toString() },
+                        t5Deads: { N: t5Deads.toString() },
+                        updatedAt: { S: new Date().toISOString() }
+                    }
+                }
+            }
+        };
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error(`[AWS] Failed to save Kingdom HOH for KD ${kd}:`, e);
+        return false;
+    }
+}

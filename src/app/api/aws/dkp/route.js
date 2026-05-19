@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getKingdomDeltas } from "@/lib/awsDynamo";
+import { getKingdomDeltas, getKingdomHoh } from "@/lib/awsDynamo";
 import { auth } from "@/lib/auth";
 
 export const maxDuration = 300;
@@ -29,9 +29,10 @@ export async function GET(req) {
 
     // Extract chronological differential tracking from the DB using Exact Constraints
     const roster = await getKingdomDeltas(kdParam, startScan, endScan);
+    const kingdomHoh = await getKingdomHoh(kdParam, endScan);
 
     if (roster.length === 0) {
-       return NextResponse.json({ rankings: [] }, { status: 200 });
+       return NextResponse.json({ rankings: [], kingdomHoh: null }, { status: 200 });
     }
 
     // If the user picked the same snapshot for both start and end, deltas are
@@ -92,7 +93,7 @@ export async function GET(req) {
         };
     }).sort((a, b) => b.dkpScore - a.dkpScore);
 
-    return NextResponse.json({ rankings }, { status: 200 });
+    return NextResponse.json({ rankings, kingdomHoh }, { status: 200 });
 
   } catch (error) {
     console.error("[API/AWS/DKP] Fatal Error:", error);

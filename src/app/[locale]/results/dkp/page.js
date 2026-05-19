@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { RefreshCw, Plus, X } from "lucide-react";
+import { RefreshCw, Plus, X, Upload } from "lucide-react";
 
 const formatNum = (num) => {
   if (!num && num !== 0) return "0";
@@ -32,6 +32,8 @@ export default function DkpResults() {
   // --- Results ---
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingHoh, setIsUploadingHoh] = useState(null);
+  const fileInputRefs = useRef({});
 
   // -------------------------------------------------------
   // Fetch available scan dates for a given kingdom
@@ -85,6 +87,43 @@ export default function DkpResults() {
   };
 
   // -------------------------------------------------------
+  // Upload Kingdom HOH Screenshot
+  // -------------------------------------------------------
+  const handleHohUpload = async (kd, e) => {
+    const file = e.target.files?.[0];
+    if (!file || !endScan) return;
+
+    setIsUploadingHoh(kd);
+    try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64Data = reader.result.split(',')[1];
+            const mimeType = file.type;
+
+            const res = await fetch('/api/aws/admin/vision/hoh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ base64: base64Data, mimeType, kd, endScan })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                // Refresh data to pull the new HOH exact numbers
+                fetchAllKingdoms();
+            } else {
+                alert("HOH OCR Failed: " + (data.error || "Unknown error"));
+            }
+            setIsUploadingHoh(null);
+        };
+        reader.readAsDataURL(file);
+    } catch (err) {
+        console.error("HOH Upload error:", err);
+        alert("Upload failed. Check console.");
+        setIsUploadingHoh(null);
+    }
+  };
+
+  // -------------------------------------------------------
   // Fetch DKP data for all selected kingdoms
   // -------------------------------------------------------
   const fetchAllKingdoms = useCallback(async () => {
@@ -111,7 +150,7 @@ export default function DkpResults() {
           players = players.slice(0, parseInt(govCount));
         }
 
-        const agg = players.reduce(
+        let agg = players.reduce(
           (acc, gov) => {
             acc.totalPower += gov.power || 0;
             acc.powerDelta += typeof gov.pDelta === "number" ? gov.pDelta : 0;
@@ -124,6 +163,12 @@ export default function DkpResults() {
           },
           { kingdom: kd, totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, totalKp: 0, totalDkp: 0 }
         );
+
+        if (dkpMode === "Advanced (HoH Scan)" && data.kingdomHoh) {
+            agg.totalDeads = data.kingdomHoh.t4Deads + data.kingdomHoh.t5Deads;
+            agg.totalDkp = (agg.t4Kills * 1) + (agg.t5Kills * 5) + (data.kingdomHoh.t4Deads * 15) + (data.kingdomHoh.t5Deads * 30);
+            agg.hasExactHoh = true;
+        }
 
         newRows.push(agg);
       }
@@ -348,7 +393,28 @@ export default function DkpResults() {
                 ) : (
                   rows.map((row) => (
                     <tr key={row.kingdom} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-3 font-black text-white tracking-widest">{row.kingdom}</td>
+                      <td className="px-4 py-3 font-black text-white tracking-widest flex items-center gap-2">
+                        {row.kingdom}
+                        {dkpMode === "Advanced (HoH Scan)" && (
+                          <>
+                            <button
+                              onClick={() => fileInputRefs.current[row.kingdom]?.click()}
+                              disabled={isUploadingHoh === row.kingdom}
+                              className={`p-1 rounded transition-colors ${row.hasExactHoh ? 'bg-fuchsia-500/20 text-fuchsia-400 hover:bg-fuchsia-500/40' : 'bg-[#1e222b] text-gray-400 hover:text-white hover:bg-[#2d323e]'} disabled:opacity-50`}
+                              title={row.hasExactHoh ? "HOH Exact Match Verified. Click to re-upload." : "Upload Kingdom HOH Screenshot"}
+                            >
+                              {isUploadingHoh === row.kingdom ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
+                            </button>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              ref={(el) => (fileInputRefs.current[row.kingdom] = el)}
+                              onChange={(e) => handleHohUpload(row.kingdom, e)}
+                            />
+                          </>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.totalPower)}</td>
                       <td className={`px-4 py-3 font-mono font-bold ${row.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         {row.powerDelta >= 0 ? "+" : ""}{formatNum(row.powerDelta)}
