@@ -16,6 +16,7 @@ export async function GET(req) {
     const t4Pts = parseFloat(searchParams.get('t4') || "0");
     const t5Pts = parseFloat(searchParams.get('t5') || "0");
     const dPts = parseFloat(searchParams.get('deads') || "0");
+    const mode = searchParams.get('mode') || "basic";
 
     const session = await auth();
     if (!session) {
@@ -53,7 +54,19 @@ export async function GET(req) {
 
         // Base Points logic handling logic. If constraints exist, we override standard flat mapping.
         let dkpScore = 0;
-        if (t4Pts === 0 && t5Pts === 0 && dPts === 0) {
+        if (mode === "hoh") {
+            let estT4Deads = 0, estT5Deads = 0;
+            if (gov.hohT4Deads !== undefined && gov.hohT5Deads !== undefined) {
+                estT4Deads = gov.hohT4Deads;
+                estT5Deads = gov.hohT5Deads;
+            } else {
+                const totalKills = t4Delta + t5Delta;
+                const t4Ratio = totalKills > 0 ? (t4Delta / totalKills) : 1;
+                estT4Deads = dDelta * t4Ratio;
+                estT5Deads = dDelta * (1 - t4Ratio);
+            }
+            dkpScore = Math.floor((t4Delta * t4Pts) + (t5Delta * t5Pts) + (estT4Deads * 15) + (estT5Deads * 30));
+        } else if (t4Pts === 0 && t5Pts === 0 && dPts === 0) {
             dkpScore = Math.floor((kDelta * 0.05) + (dDelta * 0.20)); // Legacy Fallback
         } else {
             dkpScore = Math.floor((t4Delta * t4Pts) + (t5Delta * t5Pts) + (dDelta * dPts));

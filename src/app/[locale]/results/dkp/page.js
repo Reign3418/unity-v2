@@ -27,6 +27,7 @@ export default function DkpResults() {
   const [t5Pts, setT5Pts] = useState(20);
   const [deadsPts, setDeadsPts] = useState(30);
   const [govCount, setGovCount] = useState("All");
+  const [dkpMode, setDkpMode] = useState("Basic");
 
   // --- Results ---
   const [rows, setRows] = useState([]);
@@ -99,6 +100,7 @@ export default function DkpResults() {
           t4: t4Pts,
           t5: t5Pts,
           deads: deadsPts,
+          mode: dkpMode === "Advanced (HoH Scan)" ? "hoh" : "basic"
         });
         const res = await fetch(`/api/aws/dkp?${params.toString()}`);
         const data = await res.json();
@@ -138,7 +140,7 @@ export default function DkpResults() {
     if (startScan && endScan && selectedKds.length > 0) {
       fetchAllKingdoms();
     }
-  }, [startScan, endScan, t4Pts, t5Pts, deadsPts, govCount]);
+  }, [startScan, endScan, t4Pts, t5Pts, deadsPts, govCount, dkpMode]);
 
   return (
     <div className="w-full space-y-0 animate-fade-in pb-12">
@@ -235,9 +237,13 @@ export default function DkpResults() {
             {/* DKP Mode */}
             <div className="flex flex-col gap-1">
               <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">DKP Mode</span>
-              <select className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-bold px-3 py-1.5 rounded outline-none">
-                <option>Basic</option>
-                <option>Advanced (HoH Scan)</option>
+              <select 
+                value={dkpMode}
+                onChange={(e) => setDkpMode(e.target.value)}
+                className="bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-bold px-3 py-1.5 rounded outline-none"
+              >
+                <option value="Basic">Basic</option>
+                <option value="Advanced (HoH Scan)">Advanced (HoH Scan)</option>
               </select>
             </div>
 
@@ -268,9 +274,10 @@ export default function DkpResults() {
               <span className="text-[9px] text-rose-500 uppercase font-black tracking-widest">Deads Pts</span>
               <input
                 type="number"
-                value={deadsPts}
+                value={dkpMode === "Advanced (HoH Scan)" ? "30" : deadsPts}
+                disabled={dkpMode === "Advanced (HoH Scan)"}
                 onChange={(e) => setDeadsPts(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-rose-500"
+                className="w-14 bg-[#13161c] border border-[#1e222b] text-white text-[11px] font-mono font-bold text-center py-1.5 rounded outline-none focus:border-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
