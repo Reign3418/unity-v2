@@ -166,12 +166,20 @@ export default function DkpResults() {
           { kingdom: kd, totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, t4Deads: 0, t5Deads: 0, totalKp: 0, totalDkp: 0 }
         );
 
-        if (dkpMode === "Advanced (HoH Scan)" && data.kingdomHoh) {
+        if (dkpMode === "Advanced (HoH Scan)") {
+          if (data.kingdomHoh) {
             agg.t4Deads = data.kingdomHoh.t4Deads;
             agg.t5Deads = data.kingdomHoh.t5Deads;
             agg.totalDeads = data.kingdomHoh.t4Deads + data.kingdomHoh.t5Deads;
             agg.totalDkp = (agg.t4Kills * 1) + (agg.t5Kills * 5) + (data.kingdomHoh.t4Deads * 15) + (data.kingdomHoh.t5Deads * 30);
             agg.hasExactHoh = true;
+          } else {
+            agg.t4Deads = 0;
+            agg.t5Deads = 0;
+            agg.totalDeads = 0;
+            agg.totalDkp = (agg.t4Kills * 1) + (agg.t5Kills * 5);
+            agg.hasExactHoh = false;
+          }
         }
 
         newRows.push(agg);
