@@ -55,8 +55,8 @@ export async function GET(req) {
 
         // Base Points logic handling logic. If constraints exist, we override standard flat mapping.
         let dkpScore = 0;
+        let estT4Deads = 0, estT5Deads = 0;
         if (mode === "hoh") {
-            let estT4Deads = 0, estT5Deads = 0;
             if (gov.hohT4Deads !== undefined && gov.hohT5Deads !== undefined) {
                 estT4Deads = gov.hohT4Deads;
                 estT5Deads = gov.hohT5Deads;
@@ -88,6 +88,8 @@ export async function GET(req) {
             dDelta,
             t4Delta,
             t5Delta,
+            estT4Deads,
+            estT5Deads,
             dkpScore: isNaN(dkpScore) ? 0 : dkpScore,
             tier
         };

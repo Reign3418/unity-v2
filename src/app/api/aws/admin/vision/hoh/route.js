@@ -26,12 +26,16 @@ export async function POST(req) {
         const apiModel = 'gemini-2.5-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
-        const prompt = `You are parsing a "Hall of Heroes" screenshot from Rise of Kingdoms. 
-Find the EXACT numbers for:
-1. T4 Troops Dead (Tier 4)
-2. T5 Troops Dead (Tier 5)
+        const prompt = `You are parsing a "Hall of Heroes" screenshot from Rise of Kingdoms showing unit deaths. 
+There are multiple rows and columns of units.
+Some units have a GOLD 'V' icon on their portrait (Tier 5).
+Some units have a PURPLE 'IV' icon on their portrait (Tier 4).
 
-Return ONLY a JSON object with two keys: "t4Deads" and "t5Deads".
+You MUST do the following:
+1. Find ALL numbers next to portraits that have the GOLD 'V' (Tier 5) icon and SUM them together to get the total T5 Troops Dead.
+2. Find ALL numbers next to portraits that have the PURPLE 'IV' (Tier 4) icon and SUM them together to get the total T4 Troops Dead.
+
+Return ONLY a JSON object with two keys: "t4Deads" and "t5Deads" representing those total sums.
 Example: {"t4Deads": 1500000, "t5Deads": 500000}
 
 IMPORTANT: Do not return any other text, no markdown formatting, no backticks. Only the raw JSON object.`;

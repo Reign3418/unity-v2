@@ -157,14 +157,18 @@ export default function DkpResults() {
             acc.t4Kills += typeof gov.t4Delta === "number" ? gov.t4Delta : 0;
             acc.t5Kills += typeof gov.t5Delta === "number" ? gov.t5Delta : 0;
             acc.totalDeads += typeof gov.dDelta === "number" ? gov.dDelta : 0;
+            acc.t4Deads += typeof gov.estT4Deads === "number" ? gov.estT4Deads : 0;
+            acc.t5Deads += typeof gov.estT5Deads === "number" ? gov.estT5Deads : 0;
             acc.totalKp += gov.kDelta || 0;
             acc.totalDkp += gov.dkpScore || 0;
             return acc;
           },
-          { kingdom: kd, totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, totalKp: 0, totalDkp: 0 }
+          { kingdom: kd, totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, t4Deads: 0, t5Deads: 0, totalKp: 0, totalDkp: 0 }
         );
 
         if (dkpMode === "Advanced (HoH Scan)" && data.kingdomHoh) {
+            agg.t4Deads = data.kingdomHoh.t4Deads;
+            agg.t5Deads = data.kingdomHoh.t5Deads;
             agg.totalDeads = data.kingdomHoh.t4Deads + data.kingdomHoh.t5Deads;
             agg.totalDkp = (agg.t4Kills * 1) + (agg.t5Kills * 5) + (data.kingdomHoh.t4Deads * 15) + (data.kingdomHoh.t5Deads * 30);
             agg.hasExactHoh = true;
@@ -362,7 +366,7 @@ export default function DkpResults() {
             <table className="w-full whitespace-nowrap text-[12px]">
               <thead className="bg-[#0a0c0f] border-b border-[#1e222b]">
                 <tr>
-                  {["Kingdom","Total Power","Power +/-","T4 Kills +/-","T5 Kills +/-","Deads +/-","Total KP +/-","Total DKP"].map((h) => (
+                  {["Kingdom","Total Power","Power +/-","T4 Kills +/-","T5 Kills +/-","T4 Deads","T5 Deads","Total Deads","Total KP +/-","Total DKP"].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]"
@@ -422,6 +426,8 @@ export default function DkpResults() {
                       </td>
                       <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.t4Kills)}</td>
                       <td className="px-4 py-3 font-mono text-gray-300">{formatNum(row.t5Kills)}</td>
+                      <td className="px-4 py-3 font-mono text-rose-400">{formatNum(row.t4Deads)}</td>
+                      <td className="px-4 py-3 font-mono text-rose-400">{formatNum(row.t5Deads)}</td>
                       <td className="px-4 py-3 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
                       <td className="px-4 py-3 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
                       <td className="px-4 py-3 font-mono font-black text-fuchsia-400 text-[13px]">
