@@ -462,6 +462,41 @@ export async function getKingdomDeltas(kingdomId, customStart = null, customEnd 
 
         const roster = [];
         
+        // 0. Fetch Exact HOH Deads via BatchGetItem
+        const governorIds = Object.keys(latestSnap);
+        const hohData = {};
+        if (governorIds.length > 0) {
+            const batchSize = 100;
+            for (let i = 0; i < governorIds.length; i += batchSize) {
+                const batchIds = governorIds.slice(i, i + batchSize);
+                const batchParams = {
+                    RequestItems: {
+                        [tableName]: {
+                            Keys: batchIds.map(id => ({ PK: { S: `GOV_PROFILE#${id}` }, SK: { S: 'METADATA' } })),
+                            ProjectionExpression: 'PK, attributes.hohT4Deads, attributes.hohT5Deads'
+                        }
+                    }
+                };
+                try {
+                    const batchResult = await dbClient.send(new BatchGetItemCommand(batchParams));
+                    if (batchResult.Responses && batchResult.Responses[tableName]) {
+                        for (const item of batchResult.Responses[tableName]) {
+                            const id = item.PK.S.replace('GOV_PROFILE#', '');
+                            const attrs = item.attributes?.M || {};
+                            if (attrs.hohT4Deads?.N !== undefined && attrs.hohT5Deads?.N !== undefined) {
+                                hohData[id] = {
+                                    t4: parseInt(attrs.hohT4Deads.N),
+                                    t5: parseInt(attrs.hohT5Deads.N)
+                                };
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("[AWS Engine] Failed to fetch HOH Deads batch", err);
+                }
+            }
+        }
+        
         // 1. Map Latest and Diff against Previous
         for (const [id, latestData] of Object.entries(latestSnap)) {
             const prevData = prevSnap[id];
@@ -489,7 +524,9 @@ export async function getKingdomDeltas(kingdomId, customStart = null, customEnd 
                 kpDelta: kpDelta,
                 deadsDelta: deadsDelta,
                 t4Delta: Math.max(0, t4Delta),
-                t5Delta: Math.max(0, t5Delta)
+                t5Delta: Math.max(0, t5Delta),
+                hohT4Deads: hohData[id]?.t4,
+                hohT5Deads: hohData[id]?.t5
             });
         }
         

@@ -114,6 +114,24 @@ export default function PublicDkpResults() {
                 rawKvkKP = (t4Diff * (config.advT4Points || 10)) + (t5Diff * (config.advT5Points || 20));
                 targetDkp = powerStart * mult;
                 targetDeads = powerStart * (config.bracketDeadsMultiplier || 0.02);
+            } else if (config.dkpSystem === "hoh") {
+                let estT4Deads, estT5Deads;
+                
+                if (g.hohT4Deads !== undefined && g.hohT5Deads !== undefined) {
+                    // Use exact parsed HOH Deads if they exist for this governor
+                    estT4Deads = g.hohT4Deads;
+                    estT5Deads = g.hohT5Deads;
+                } else {
+                    // Fallback: estimate ratio based on kills
+                    const totalKills = t4Diff + t5Diff;
+                    const t4Ratio = totalKills > 0 ? (t4Diff / totalKills) : 1; 
+                    estT4Deads = deadsDiff * t4Ratio;
+                    estT5Deads = deadsDiff * (1 - t4Ratio);
+                }
+                
+                rawKvkKP = (t4Diff * 1) + (t5Diff * 5) + (estT4Deads * 15) + (estT5Deads * 30);
+                targetDkp = 0;
+                targetDeads = 0;
             } else {
                 rawKvkKP = (t4Diff * (config.advT4Points || 0)) + (t5Diff * (config.advT5Points || 0));
                 const t4MixRatio = 1 - (config.t5MixRatio || 0);
@@ -178,6 +196,8 @@ export default function PublicDkpResults() {
 
             if (isBasic) {
                 finalDkp = totalEffectiveKp + (totalEffectiveDeads * (config.basicDeadsPoints || 0));
+            } else if (config.dkpSystem === "hoh") {
+                finalDkp = totalEffectiveKp; 
             } else {
                 kpPercent = g.targetDkp > 0 ? (totalEffectiveKp / g.targetDkp) * 100 : 0;
                 deadPercent = g.targetDeads > 0 ? (totalEffectiveDeads / g.targetDeads) * 100 : 0;
@@ -371,7 +391,7 @@ export default function PublicDkpResults() {
                         </select>
                     </div>
 
-                    {config.dkpSystem !== "basic" && (
+                    {config.dkpSystem !== "basic" && config.dkpSystem !== "hoh" && (
                         <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 shadow-xl flex items-center justify-between">
                             <div>
                                 <span className="block text-[10px] uppercase tracking-widest text-emerald-500 font-bold">KP Multiplier</span>
@@ -420,7 +440,7 @@ export default function PublicDkpResults() {
                                         <th className="p-3 font-bold text-emerald-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("gatheredDiff")}>RSS Gathered <SortIcon columnKey="gatheredDiff"/></th>
                                         <th className="p-3 font-bold text-cyan-400/80 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kvkKP")}>KvK KP <SortIcon columnKey="kvkKP"/></th>
                                         {(enableSiphon && config.dkpSystem !== 'basic') && <th className="p-3 font-bold text-amber-500 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("rolloverKp")}>Farm KP <SortIcon columnKey="rolloverKp"/></th>}
-                                        {config.dkpSystem !== 'basic' && (
+                                        {config.dkpSystem !== 'basic' && config.dkpSystem !== 'hoh' && (
                                             <>
                                                 <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("targetDkp")}>Target DKP <SortIcon columnKey="targetDkp"/></th>
                                                 <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("kpPercent")}>KP % Complete <SortIcon columnKey="kpPercent"/></th>
@@ -428,7 +448,7 @@ export default function PublicDkpResults() {
                                                 <th className="p-3 font-bold text-gray-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort("deadPercent")}>Dead % Complete <SortIcon columnKey="deadPercent"/></th>
                                             </>
                                         )}
-                                        <th className="p-3 font-black text-emerald-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort(config.dkpSystem === 'basic' ? "finalDkp" : "quotaPct")}>{config.dkpSystem === 'basic' ? 'Total DKP' : 'Total DKP %'} <SortIcon columnKey={config.dkpSystem === 'basic' ? "finalDkp" : "quotaPct"}/></th>
+                                        <th className="p-3 font-black text-emerald-400 uppercase tracking-widest text-right whitespace-nowrap cursor-pointer hover:bg-[#252a33]" onClick={() => requestSort((config.dkpSystem === 'basic' || config.dkpSystem === 'hoh') ? "finalDkp" : "quotaPct")}>{(config.dkpSystem === 'basic' || config.dkpSystem === 'hoh') ? 'Total DKP' : 'Total DKP %'} <SortIcon columnKey={(config.dkpSystem === 'basic' || config.dkpSystem === 'hoh') ? "finalDkp" : "quotaPct"}/></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#1e222b]">
@@ -482,7 +502,7 @@ export default function PublicDkpResults() {
                                              <td className="p-3 text-right font-mono text-cyan-400">{(Math.round(gov.kvkKP) || 0).toLocaleString()}</td>
                                              {(enableSiphon && config.dkpSystem !== 'basic') && <td className="p-3 text-right font-mono text-amber-500">{(gov.rolloverKp || 0).toLocaleString()}</td>}
                                             
-                                            {config.dkpSystem !== 'basic' && (
+                                            {config.dkpSystem !== 'basic' && config.dkpSystem !== 'hoh' && (
                                                 <>
                                                     <td className="p-3 text-right font-mono text-gray-400">{(Math.round(gov.targetDkp) || 0).toLocaleString()}</td>
                                                     <td className="p-3 text-right font-mono">
@@ -496,7 +516,7 @@ export default function PublicDkpResults() {
                                             )}
 
                                             <td className="p-3 text-right font-mono">
-                                                {config.dkpSystem === 'basic' ? (
+                                                {(config.dkpSystem === 'basic' || config.dkpSystem === 'hoh') ? (
                                                     <span className="text-sm font-black text-emerald-400">{(Math.round(gov.finalDkp) || 0).toLocaleString()}</span>
                                                 ) : (
                                                     <span className={`text-sm font-black ${gov.quotaPct >= 100 ? "text-emerald-500 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]" : "text-amber-500"}`}>{gov.quotaPct}%</span>

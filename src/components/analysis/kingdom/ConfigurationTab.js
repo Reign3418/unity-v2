@@ -27,7 +27,12 @@ export default function ConfigurationTab({ targetKd }) {
         b4Max: 55, b4Mult: 3.0,
         b5Max: 70, b5Mult: 4.0,
         b6Mult: 5.0, // 71+
-        bracketDeadsMultiplier: 0.02
+        bracketDeadsMultiplier: 0.02,
+        // HOH System
+        hohT4Kill: 1,
+        hohT5Kill: 5,
+        hohT4Dead: 15,
+        hohT5Dead: 30
     };
 
     // 1. Core State
@@ -138,10 +143,37 @@ export default function ConfigurationTab({ targetKd }) {
                         <option value="advanced">Advanced DKP System (Target & Percentages)</option>
                         <option value="basic">Basic DKP System (Flat Multipliers)</option>
                         <option value="bracketed">Bracketed Targets (Dynamic Multipliers)</option>
+                        <option value="hoh">HOH DKP System (KvK Event Agreement)</option>
                     </select>
                 </div>
 
-                {config.dkpSystem === "basic" ? (
+                {config.dkpSystem === "hoh" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="bg-[#151921] p-5 rounded-xl border border-purple-500/20">
+                            <label className="block text-sm font-semibold text-purple-400 mb-2">T4 Kill Points</label>
+                            <input type="number" value={config.hohT4Kill || 1} readOnly
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-gray-500 rounded-lg p-3 outline-none cursor-not-allowed" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-purple-500/20">
+                            <label className="block text-sm font-semibold text-purple-400 mb-2">T5 Kill Points</label>
+                            <input type="number" value={config.hohT5Kill || 5} readOnly
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-gray-500 rounded-lg p-3 outline-none cursor-not-allowed" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-emerald-500/20">
+                            <label className="block text-sm font-semibold text-emerald-400 mb-2">T4 Death Points</label>
+                            <input type="number" value={config.hohT4Dead || 15} readOnly
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-gray-500 rounded-lg p-3 outline-none cursor-not-allowed" />
+                        </div>
+                        <div className="bg-[#151921] p-5 rounded-xl border border-emerald-500/20">
+                            <label className="block text-sm font-semibold text-emerald-400 mb-2">T5 Death Points</label>
+                            <input type="number" value={config.hohT5Dead || 30} readOnly
+                                className="w-full bg-[#0a0c0f] border border-[#2a2f3a] text-gray-500 rounded-lg p-3 outline-none cursor-not-allowed" />
+                        </div>
+                        <div className="col-span-full mt-2">
+                            <p className="text-sm text-gray-500 font-mono"><ShieldAlert className="inline w-4 h-4 mb-1" /> Notice: HOH parameters are locked by kingdom agreement and cannot be dynamically modified.</p>
+                        </div>
+                    </div>
+                ) : config.dkpSystem === "basic" ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="bg-[#151921] p-5 rounded-xl border border-[#1e222b]">
                             <label className="block text-sm font-semibold text-secondary mb-2">T4 Points Multiplier</label>
