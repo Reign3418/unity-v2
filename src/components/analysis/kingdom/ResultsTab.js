@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Archive, RefreshCw, Filter, Search, ShieldAlert, Cpu, Download, Activity, Target, Layers } from "lucide-react";
+import { Archive, RefreshCw, Filter, Search, ShieldAlert, Cpu, Download, Activity, Target, Layers, Link2, Check } from "lucide-react";
 
 export default function ResultsTab({ targetKd, trends }) {
     // Pipeline State
@@ -12,6 +12,7 @@ export default function ResultsTab({ targetKd, trends }) {
     const [familyLinks, setFamilyLinks] = useState({});
     const [sortConfig, setSortConfig] = useState({ key: "finalDkp", direction: "desc" });
     const [enableSiphon, setEnableSiphon] = useState(true);
+    const [copied, setCopied] = useState(false);
     
     // Configuration Variables (Hydrated from Storage)
     const [config, setConfig] = useState({
@@ -288,6 +289,15 @@ export default function ResultsTab({ targetKd, trends }) {
         return num.toLocaleString();
     };
 
+    const shareLink = () => {
+        const configStr = btoa(JSON.stringify(config));
+        const url = `${window.location.origin}/en/shared/dkp-results?kd=${targetKd}&start=${startDate}&end=${endDate}&config=${configStr}&siphon=${enableSiphon}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+        });
+    };
+
     // 6. CSV Exporter 
     const exportCSV = () => {
         const headers = ["Governor ID", "Governor Name", "Status", "Starting Power", "Power +/-", "Troop Power", "T1 Kills", "T2 Kills", "T3 Kills", "T4 Kills", "T5 Kills", "T4*T5 Combined", "KvK Deads", "RSS Gathered", "KvK KP", "Target DKP", "KP % Complete", "Target Deads", "Dead % Complete", config.dkpSystem === "basic" ? "Total DKP" : "Total DKP %"];
@@ -375,6 +385,14 @@ export default function ResultsTab({ targetKd, trends }) {
                         className="px-4 py-2 bg-[#0a0c0f] hover:bg-[#1e222b] border border-[#1e222b] text-white text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 transition-colors shadow-xl disabled:opacity-50"
                     >
                         <Download size={14} className="text-emerald-500" /> Export CSV
+                    </button>
+
+                    <button 
+                        onClick={shareLink}
+                        disabled={filteredData.length === 0 || isCompiling}
+                        className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg flex items-center gap-2 transition-colors shadow-xl disabled:opacity-50 ${copied ? "border border-emerald-500/40 text-emerald-400 bg-emerald-500/10" : "bg-[#0a0c0f] hover:bg-[#1e222b] border border-[#1e222b] text-white"}`}
+                    >
+                        {copied ? <><Check size={14} className="text-emerald-500" /> Copied!</> : <><Link2 size={14} className="text-cyan-500" /> Share</>}
                     </button>
                     
                      <button 
