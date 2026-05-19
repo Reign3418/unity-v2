@@ -63,8 +63,8 @@ export async function GET(req) {
             } else {
                 const totalKills = t4Delta + t5Delta;
                 const t4Ratio = totalKills > 0 ? (t4Delta / totalKills) : 1;
-                estT4Deads = dDelta * t4Ratio;
-                estT5Deads = dDelta * (1 - t4Ratio);
+                estT4Deads = Math.floor(dDelta * t4Ratio);
+                estT5Deads = Math.floor(dDelta * (1 - t4Ratio));
             }
             dkpScore = Math.floor((t4Delta * t4Pts) + (t5Delta * t5Pts) + (estT4Deads * 15) + (estT5Deads * 30));
         } else if (t4Pts === 0 && t5Pts === 0 && dPts === 0) {
