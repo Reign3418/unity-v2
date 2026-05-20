@@ -113,7 +113,7 @@ export default function CalculatorsPage() {
   const flagInputRef = useRef(null);
   const [isFlagScanning, setIsFlagScanning] = useState(false);
   const [flagStatus, setFlagStatus] = useState('');
-  const [isFlagSocMode, setIsFlagSocMode] = useState(false);
+  const [flagEngine, setFlagEngine] = useState('manual');
   const [currentFlagCount, setCurrentFlagCount] = useState(0);
 
   const [flagData, setFlagData] = useState({
@@ -739,12 +739,32 @@ export default function CalculatorsPage() {
       };
   };
 
-  const getSocAffordability = () => {
+  const getEkFlagCost = (n) => {
+      if (n < 1) return { food: 0, wood: 0, stone: 0, gold: 0, crystal: 0, credits: 0 };
+      
+      let step;
+      if (n <= 10) step = 1;
+      else if (n <= 20) step = 2;
+      else {
+          step = Math.ceil((n - 20) / 15) + 2;
+      }
+      
+      const credits = 45000 * (Math.floor(step / 2) + 1);
+      const food = 22500 * (step - 1);
+      const wood = food;
+      const stone = step >= 4 ? Math.floor(food * 0.75) : 0;
+      const gold = 0;
+      
+      return { food, wood, stone, gold, crystal: 0, credits };
+  };
+
+  const getEngineAffordability = (engineMode = flagEngine) => {
       let flagsBuilt = parseInt(currentFlagCount) || 0;
       let nextFlag = flagsBuilt + 1;
       let affordable = 0;
       
       let curStock = {
+          credits: flagData.credits.stock,
           food: flagData.food.stock,
           wood: flagData.wood.stock,
           stone: flagData.stone.stock,
@@ -755,8 +775,9 @@ export default function CalculatorsPage() {
       let bottleneckResource = null;
       
       while(true) {
-          let cost = getSocFlagCost(nextFlag);
+          let cost = engineMode === 'soc' ? getSocFlagCost(nextFlag) : getEkFlagCost(nextFlag);
           if (
+              curStock.credits >= cost.credits &&
               curStock.food >= cost.food &&
               curStock.wood >= cost.wood &&
               curStock.stone >= cost.stone &&
@@ -764,6 +785,7 @@ export default function CalculatorsPage() {
               curStock.crystal >= cost.crystal
           ) {
               affordable++;
+              curStock.credits -= cost.credits;
               curStock.food -= cost.food;
               curStock.wood -= cost.wood;
               curStock.stone -= cost.stone;
@@ -776,6 +798,7 @@ export default function CalculatorsPage() {
               else if (curStock.stone < cost.stone) bottleneckResource = 'stone';
               else if (curStock.wood < cost.wood) bottleneckResource = 'wood';
               else if (curStock.food < cost.food) bottleneckResource = 'food';
+              else if (curStock.credits < cost.credits) bottleneckResource = 'credits';
               break;
           }
       }
@@ -784,8 +807,8 @@ export default function CalculatorsPage() {
   };
 
   const getAffordableFlags = () => {
-      if (isFlagSocMode) {
-          return getSocAffordability().affordable;
+      if (flagEngine !== 'manual') {
+          return getEngineAffordability().affordable;
       }
       
       const RESOURCES = ['credits', 'food', 'wood', 'stone', 'gold', 'crystal'];
@@ -804,12 +827,12 @@ export default function CalculatorsPage() {
       return hasAnyCost && minAffordable !== Infinity ? minAffordable : 0;
   };
 
-  const handleSocFlagCountChange = (val) => {
+  const handleEngineFlagCountChange = (val, mode = flagEngine) => {
       const count = Math.max(0, parseInt(val) || 0);
       setCurrentFlagCount(count);
       
-      if (isFlagSocMode) {
-          const nextCost = getSocFlagCost(count + 1);
+      if (mode !== 'manual') {
+          const nextCost = mode === 'soc' ? getSocFlagCost(count + 1) : getEkFlagCost(count + 1);
           setFlagData(prev => ({
               ...prev,
               credits: { ...prev.credits, cost: nextCost.credits },
@@ -822,12 +845,10 @@ export default function CalculatorsPage() {
       }
   };
 
-  const toggleSocMode = () => {
-      const newMode = !isFlagSocMode;
-      setIsFlagSocMode(newMode);
-      if (newMode) {
-          // Immediately apply current flag count costs
-          handleSocFlagCountChange(currentFlagCount);
+  const setFlagEngineMode = (newMode) => {
+      setFlagEngine(newMode);
+      if (newMode !== 'manual') {
+          handleEngineFlagCountChange(currentFlagCount, newMode);
       }
   };
 
@@ -1539,23 +1560,20 @@ export default function CalculatorsPage() {
                   </div>
                 </div>
                 
-                {/* SOC Mode Toggle */}
+                {/* Engine Mode Toggle */}
                 <div className="flex flex-col items-end gap-2 bg-[#13161c]/80 border border-rose-500/30 p-3 rounded-xl">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <span className={`text-xs font-black uppercase tracking-widest ${isFlagSocMode ? 'text-rose-400' : 'text-gray-500'}`}>SOC KvK Cost Engine</span>
-                    <div className="relative">
-                      <input type="checkbox" className="sr-only" checked={isFlagSocMode} onChange={toggleSocMode} />
-                      <div className={`block w-10 h-6 rounded-full transition-colors ${isFlagSocMode ? 'bg-rose-500' : 'bg-[#1e222b]'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isFlagSocMode ? 'transform translate-x-4' : ''}`}></div>
-                    </div>
-                  </label>
-                  {isFlagSocMode && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setFlagEngineMode('manual')} className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded transition-colors ${flagEngine === 'manual' ? 'bg-[#1e222b] text-gray-300' : 'text-gray-600 hover:text-gray-400'}`}>Manual</button>
+                    <button onClick={() => setFlagEngineMode('ek')} className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded transition-colors ${flagEngine === 'ek' ? 'bg-amber-500/20 text-amber-500' : 'text-gray-600 hover:text-gray-400'}`}>EK Engine</button>
+                    <button onClick={() => setFlagEngineMode('soc')} className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded transition-colors ${flagEngine === 'soc' ? 'bg-rose-500/20 text-rose-400' : 'text-gray-600 hover:text-gray-400'}`}>SOC Engine</button>
+                  </div>
+                  {flagEngine !== 'manual' && (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Current Flags Built:</span>
                       <input 
                         type="number" min="0" 
                         value={currentFlagCount || ''} 
-                        onChange={(e) => handleSocFlagCountChange(e.target.value)}
+                        onChange={(e) => handleEngineFlagCountChange(e.target.value)}
                         placeholder="0"
                         className="bg-[#0a0c0f] border border-[#1e222b] text-white text-xs font-mono px-2 py-1 rounded w-16 outline-none focus:border-rose-500"
                       />
