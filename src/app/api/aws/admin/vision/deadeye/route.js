@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 import { getGlobalConfig } from "@/lib/awsDynamo";
-
-
-export async function POST(req) {
+import { auth } from "@/lib/auth";
+import { logEvent } from "@/lib/eventLogger";export async function POST(req) {
     try {
         const body = await req.json();
         const { base64, mimeType } = body;
@@ -55,6 +54,12 @@ Return ONLY a comma-separated list of the actual governor names you see. Do not 
         const result = await response.json();
         const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
+        const session = await auth();
+        logEvent('VISION_DEADEYE_SCAN', {}, {
+            userEmail: session?.user?.email || 'anonymous',
+            userAgent: req.headers.get('user-agent') || ''
+        });
+
         // Clean up quotes or whitespace
         const names = rawText.split(',').map(n => n.trim().replace(/^['"\s]+|['"\s]+$/g, '')).filter(n => n.length > 0);
 

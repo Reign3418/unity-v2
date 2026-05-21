@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 import { getGlobalConfig } from "@/lib/awsDynamo";
+import { auth } from "@/lib/auth";
+import { logEvent } from "@/lib/eventLogger";
 
 
 export async function POST(req) {
@@ -72,6 +74,13 @@ Return ONLY a valid JSON object matching this exact structure using the raw numb
         }
         
         const parsed = JSON.parse(cleaned);
+
+        
+        const session = await auth();
+        logEvent('VISION_RESOURCES_SCAN', {}, {
+            userEmail: session?.user?.email || 'anonymous',
+            userAgent: req.headers.get('user-agent') || ''
+        });
 
         return NextResponse.json(parsed);
 

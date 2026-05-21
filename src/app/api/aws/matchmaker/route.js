@@ -257,8 +257,9 @@ export async function POST(req) {
         });
 
         if (!geminiResponse.ok) {
-            console.error("Gemini Matchmaker Error");
-            return NextResponse.json({ error: "AI Engine refused the payload." }, { status: 502 });
+            const errorText = await geminiResponse.text();
+            console.error("Gemini Matchmaker Error Response:", errorText);
+            return NextResponse.json({ error: "AI Engine refused the payload.", details: errorText }, { status: 502 });
         }
 
         const result  = await geminiResponse.json();

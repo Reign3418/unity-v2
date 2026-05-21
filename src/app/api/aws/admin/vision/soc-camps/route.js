@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 import { getGlobalConfig } from "@/lib/awsDynamo";
-
-
-// Default camp definitions per map format — used when client doesn't send campNames
+import { auth } from "@/lib/auth";
+import { logEvent } from "@/lib/eventLogger";// Default camp definitions per map format — used when client doesn't send campNames
 const DEFAULT_CAMPS = {
     "Siege of Orleans": [
         { name: "Brittany",  hint: "Light Blue crest with triangle/tree"    },
@@ -114,6 +113,12 @@ ${exampleOutput}`;
         } catch(e) {
             console.error("Gemini non-JSON response:", rawText);
         }
+
+        const session = await auth();
+        logEvent('VISION_SOC_CAMPS_SCAN', { mapName }, {
+            userEmail: session?.user?.email || 'anonymous',
+            userAgent: req.headers.get('user-agent') || ''
+        });
 
         return NextResponse.json({ success: true, camps: parsedCamps });
 

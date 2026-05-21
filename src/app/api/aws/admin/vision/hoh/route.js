@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getGlobalConfig, setKingdomHoh } from "@/lib/awsDynamo";
 import { auth } from "@/lib/auth";
+import { logEvent } from "@/lib/eventLogger";
 
 export const maxDuration = 300;
 
@@ -70,7 +71,13 @@ IMPORTANT: Do not return any other text, no markdown formatting, no backticks. O
         if (parsed.t4Deads !== undefined && parsed.t5Deads !== undefined) {
             // Save to DB
             await setKingdomHoh(kd, endScan, parsed.t4Deads, parsed.t5Deads);
-            return NextResponse.json({ success: true, t4Deads: parsed.t4Deads, t5Deads: parsed.t5Deads });
+            
+        logEvent('VISION_HOH_SCAN', {}, {
+            userEmail: session?.user?.email || 'anonymous',
+            userAgent: req.headers.get('user-agent') || ''
+        });
+
+        return NextResponse.json({ success: true, t4Deads: parsed.t4Deads, t5Deads: parsed.t5Deads });
         } else {
             return NextResponse.json({ error: "Failed to locate T4/T5 deads in the image." }, { status: 400 });
         }
