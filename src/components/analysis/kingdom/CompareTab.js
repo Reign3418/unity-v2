@@ -252,9 +252,9 @@ export default function CompareTab({ targetKd, trends, startDate, endDate }) {
                         const isLeader = leaders[metricKey] === gov.id;
                         
                         return (
-                            <div key={gov.id} className="relative flex flex-col md:flex-row items-center justify-end gap-1 px-1">
+                            <div key={gov.id} className="flex items-center justify-end gap-1 px-1">
                                 {isLeader && (
-                                    <Crown size={11} className="text-yellow-500 shrink-0 absolute -left-2 top-1/2 -translate-y-1/2 hidden md:block" title={t("category_leader")} />
+                                    <Crown size={11} className="text-yellow-500 shrink-0" title={t("category_leader")} />
                                 )}
                                 <span className={`text-[11px] font-mono leading-none ${isLeader ? "font-black text-yellow-400" : "text-gray-300"}`}>
                                     {isDelta ? formatDeltaVal(rawVal) : formatCurrentVal(numericVal)}
@@ -285,7 +285,7 @@ export default function CompareTab({ targetKd, trends, startDate, endDate }) {
         <div className="animate-fade-in space-y-6">
             
             {/* Control & Search Bar */}
-            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 relative overflow-hidden">
+            <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl shadow-xl p-6 relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
                 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
