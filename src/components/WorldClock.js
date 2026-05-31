@@ -122,11 +122,13 @@ export default function WorldClock() {
 
       <div className="flex flex-col gap-6 relative z-10">
         
-        {/* Top Row Timezones */}
+        {/* Top Row Timezones: Americas & Western Europe */}
         <div className="flex flex-wrap justify-center gap-4">
           <ClockBox tz="America/Los_Angeles" label="Pacific (PT)" />
           <ClockBox tz="America/Chicago" label="Central (CT)" />
           <ClockBox tz="America/New_York" label="Eastern (ET)" />
+          <ClockBox tz="America/Sao_Paulo" label="Brazil (BRT)" />
+          <ClockBox tz="Europe/London" label="London (GMT/BST)" />
           <ClockBox tz="Europe/Paris" label="Paris (CET)" />
           <ClockBox tz="Europe/Berlin" label="Germany (CET)" />
           <ClockBox tz="Europe/Warsaw" label="Poland (CET)" />
@@ -159,15 +161,20 @@ export default function WorldClock() {
           </div>
         </div>
 
-        {/* Bottom Rows Timezones */}
+        {/* Middle Row Timezones: Middle East & Eastern Europe */}
         <div className="flex flex-wrap justify-center gap-4">
+          <ClockBox tz="Europe/Moscow" label="Moscow (MSK)" />
+          <ClockBox tz="Europe/Istanbul" label="Turkey (TRT)" />
           <ClockBox tz="Asia/Riyadh" label="Riyadh (AST)" />
+          <ClockBox tz="Asia/Dubai" label="Dubai (GST)" />
+        </div>
+
+        {/* Bottom Row Timezones: Asia-Pacific */}
+        <div className="flex flex-wrap justify-center gap-4">
           <ClockBox tz="Asia/Ho_Chi_Minh" label="Vietnam (ICT)" />
           <ClockBox tz="Asia/Bangkok" label="Thailand (ICT)" />
           <ClockBox tz="Asia/Shanghai" label="China (CST)" />
           <ClockBox tz="Asia/Manila" label="Philippines (PHT)" />
-        </div>
-        <div className="flex flex-wrap justify-center gap-4">
           <ClockBox tz="Asia/Seoul" label="Korea (KST)" />
           <ClockBox tz="Asia/Tokyo" label="Japan (JST)" />
           <ClockBox tz="Australia/Sydney" label="Aus Eastern (AET)" />
