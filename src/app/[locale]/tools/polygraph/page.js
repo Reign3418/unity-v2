@@ -325,7 +325,13 @@ export default function Polygraph() {
   const doSort = (key) => setSort(s => ({ key, dir: s.key===key && s.dir==="desc" ? "asc" : "desc" }));
   const si = (k) => sort.key===k ? (sort.dir==="desc" ? "↓" : "↑") : "↕";
 
-  const fmt = (n) => Math.abs(n) >= 1e6 ? `${(n/1e6).toFixed(1)}M` : Math.abs(n) >= 1e3 ? `${(Math.round(n/100)*100/1e3).toFixed(0)}k` : String(n||0);
+  const fmt = (n) => {
+    const abs = Math.abs(n);
+    if (abs >= 1e9) return `${(n/1e9).toFixed(2)}B`;
+    if (abs >= 1e6) return `${(n/1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `${(Math.round(n/100)*100/1e3).toFixed(0)}k`;
+    return String(n||0);
+  };
   const fd = (n) => (n>0?"+":"")+fmt(n);
   const gc = (g) => g==="A"||g==="B" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" : g==="C" ? "text-amber-400 bg-amber-500/10 border-amber-500/30" : "text-rose-400 bg-rose-500/10 border-rose-500/30";
   const mb = (d) => { const m=Math.floor(d/1e6); return m>=3?"bg-rose-600 text-white":m>=2?"bg-fuchsia-600 text-white":m>=1?"bg-amber-500 text-black":"bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"; };
