@@ -74,7 +74,7 @@ IMPORTANT: Do not return any other text, no markdown formatting, no backticks. O
             await setKingdomHoh(kd, endScan, parsed.t4Deads, parsed.t5Deads);
             
         logEvent('VISION_HOH_SCAN', {}, {
-            userEmail: session?.user?.email || 'anonymous',
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });
 

@@ -57,7 +57,7 @@ Return ONLY a comma-separated list of the actual governor names you see. Do not 
         
         const session = await auth();
         logEvent('VISION_DEADEYE_SCAN', {}, {
-            userEmail: session?.user?.email || 'anonymous',
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });
 

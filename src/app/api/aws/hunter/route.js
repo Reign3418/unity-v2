@@ -26,7 +26,7 @@ export async function GET(req) {
 
     // Fire-and-forget event log
     logEvent('HUNTER_SEARCH', { query: queryParam, resultsCount: hunterData?.length || 0 }, {
-        userEmail: session?.user?.email || 'anonymous',
+        userEmail: session?.user?.username || session?.user?.email || 'anonymous',
         userAgent: req.headers.get('user-agent') || '',
     });
 

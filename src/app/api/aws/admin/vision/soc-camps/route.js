@@ -117,7 +117,7 @@ ${exampleOutput}`;
 
         const session = await auth();
         logEvent('VISION_SOC_CAMPS_SCAN', { mapName }, {
-            userEmail: session?.user?.email || 'anonymous',
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });
 

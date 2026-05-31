@@ -102,7 +102,7 @@ RULES:
             locale: stats.locale,
             kingdomState: stats.kingdomState
         }, {
-            userEmail: session?.user?.email,
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent'),
         });
 

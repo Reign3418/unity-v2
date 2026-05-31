@@ -77,7 +77,7 @@ Return ONLY a valid JSON object matching this exact structure using the raw numb
         
         const session = await auth();
         logEvent('VISION_AP_SCAN', {}, {
-            userEmail: session?.user?.email || 'anonymous',
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });
 

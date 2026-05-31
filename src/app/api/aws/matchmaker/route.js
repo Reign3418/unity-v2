@@ -236,7 +236,7 @@ export async function POST(req) {
             dualAnalysis,
             kingdomCount: kdDataArr7.length,
         }, {
-            userEmail: session?.user?.email || 'anonymous',
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || '',
         });
 
