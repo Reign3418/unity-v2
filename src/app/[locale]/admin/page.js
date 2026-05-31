@@ -891,16 +891,17 @@ export default function AdminConsole() {
                </p>
                <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
                  <select 
-                   value={globalModel}
-                   onChange={e => handleUpdateGlobalModel(e.target.value)}
-                   disabled={isUpdatingModel}
-                   className="bg-[#161920] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono outline-none cursor-pointer text-sm flex-1 focus:border-cyan-500/50 transition-colors"
-                 >
-                   <option value="gemini-3.5-flash">gemini-3.5-flash (GA - May 2026 - Recommended)</option>
-                   <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                   <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-                   <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy)</option>
-                 </select>
+                    value={globalModel}
+                    onChange={e => handleUpdateGlobalModel(e.target.value)}
+                    disabled={isUpdatingModel}
+                    className="bg-[#161920] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono outline-none cursor-pointer text-sm flex-1 focus:border-cyan-500/50 transition-colors"
+                  >
+                    <option value="gemini-3.5-flash">gemini-3.5-flash (5 RPM / 20 RPD)</option>
+                    <option value="gemini-2.5-flash">gemini-2.5-flash (5 RPM / 20 RPD)</option>
+                    <option value="gemini-2.5-pro">gemini-2.5-pro (2 RPM / 50 RPD)</option>
+                    <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (20 RPM / 500 RPD - Best for sweeps)</option>
+                    <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy - May return 404)</option>
+                  </select>
                  {isUpdatingModel && (
                    <span className="text-xs text-cyan-400 animate-pulse font-mono uppercase font-bold self-center">
                      🔄 Saving Override...

@@ -292,7 +292,8 @@ export default function SettingsPage() {
                 <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
                 <option value="gemini-2.5-flash">{t('gemini_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
                 <option value="gemini-2.5-pro">{t('gemini_pro')} (Free Tier: 2 RPM / 50 RPD)</option>
-                <option value="gemini-1.5-flash">{t('gemini_legacy')} (Free Tier: 15 RPM / 1,500 RPD - Best for sweeps)</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Free Tier: 20 RPM / 500 RPD - Best for sweeps)</option>
+                <option value="gemini-1.5-flash">{t('gemini_legacy')} (Legacy - May return 404)</option>
               </select>
 
               <div className="mt-4 bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 space-y-2">
