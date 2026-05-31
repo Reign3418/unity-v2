@@ -34,6 +34,20 @@ export default function Polygraph() {
   const [restored, setRestored] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Range Finder states
+  const [mode, setMode] = useState("single"); // "single" | "sweep"
+  const [startKd, setStartKd] = useState("");
+  const [radius, setRadius] = useState(10);
+  const [isSweeping, setIsSweeping] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState({ total: 0, current: 0, currentKd: "", successes: 0 });
+  const [sweepResults, setSweepResults] = useState([]);
+
+  useEffect(() => {
+    if (defaultKd && !startKd) {
+      setStartKd(defaultKd);
+    }
+  }, [defaultKd, startKd]);
+
   const shareLink = () => {
     const url = `${window.location.origin}/${locale}/shared/polygraph?kd=${kd}&end=${endDate}&tf=${timeframe}&depth=${depth}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -87,6 +101,89 @@ export default function Polygraph() {
     setLoading(false);
   };
 
+  const runRangeSweep = async () => {
+    if (!startKd || !endDate) {
+      setError(t("err_provide_input"));
+      return;
+    }
+    const startKdNum = parseInt(startKd, 10);
+    if (isNaN(startKdNum)) {
+      setError("Please enter a valid starting Kingdom ID.");
+      return;
+    }
+    setIsSweeping(true);
+    setError(null);
+    setSweepResults([]);
+    
+    const kdsToScan = [];
+    for (let i = startKdNum - radius; i <= startKdNum + radius; i++) {
+      kdsToScan.push(String(i));
+    }
+    
+    setSweepProgress({
+      total: kdsToScan.length,
+      current: 0,
+      currentKd: kdsToScan[0],
+      successes: 0
+    });
+    
+    const anchor = new Date(endDate + "T23:59:59Z");
+    const startStr = new Date(anchor.getTime() - parseInt(timeframe)*3600000).toISOString().split("T")[0];
+    
+    const BATCH_SIZE = 5;
+    const results = [];
+    
+    for (let i = 0; i < kdsToScan.length; i += BATCH_SIZE) {
+      const batch = kdsToScan.slice(i, i + BATCH_SIZE);
+      
+      await Promise.all(batch.map(async (currKd) => {
+        try {
+          const res = await fetch(`/api/aws/health-report?kds=${currKd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}`);
+          setSweepProgress(prev => ({
+            ...prev,
+            currentKd: currKd,
+            current: Math.min(prev.current + 1, prev.total)
+          }));
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success) {
+              results.push(json);
+              setSweepProgress(prev => ({
+                ...prev,
+                successes: prev.successes + 1
+              }));
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to scan KD ${currKd}:`, e);
+        }
+      }));
+    }
+    
+    const gradeVal = (g) => {
+      if (g === "A") return 5;
+      if (g === "B") return 4;
+      if (g === "C") return 3;
+      if (g === "D") return 2;
+      return 1;
+    };
+    
+    const sortedResults = [...results].sort((a, b) => {
+      const gradeA = gradeVal(a.ai?.grade || "F");
+      const gradeB = gradeVal(b.ai?.grade || "F");
+      if (gradeA !== gradeB) return gradeB - gradeA;
+      
+      const riskA = parseInt(a.ai?.civilWarProbability || "100", 10);
+      const riskB = parseInt(b.ai?.civilWarProbability || "100", 10);
+      if (riskA !== riskB) return riskA - riskB;
+      
+      return (b.kingdom?.metrics?.totalPowerGained || 0) - (a.kingdom?.metrics?.totalPowerGained || 0);
+    });
+    
+    setSweepResults(sortedResults);
+    setIsSweeping(false);
+  };
+
   const sorted = (list) => [...(list||[])].sort((a,b) => {
     const va = a[sort.key]||0, vb = b[sort.key]||0;
     return sort.dir === "asc" ? va-vb : vb-va;
@@ -121,11 +218,43 @@ export default function Polygraph() {
               <p className="text-fuchsia-400 text-xs font-bold uppercase tracking-[0.2em]">{t("subtitle")}</p>
             </div>
           </div>
+          <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-1 mr-2">
+            <button
+              onClick={() => setMode("single")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${mode === "single" ? "bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30" : "text-gray-400 hover:text-gray-200 border border-transparent"}`}
+            >
+              {t("tab_single_scan")}
+            </button>
+            <button
+              onClick={() => setMode("sweep")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${mode === "sweep" ? "bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30" : "text-gray-400 hover:text-gray-200 border border-transparent"}`}
+            >
+              {t("tab_range_finder")}
+            </button>
+          </div>
           <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("kingdom_label")}</label>
-              <input type="text" value={kd} onChange={e=>setKd(e.target.value)} placeholder="e.g. 2648" className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg font-mono font-bold outline-none w-32 transition-colors"/>
-            </div>
+            {mode === "single" ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("kingdom_label")}</label>
+                <input type="text" value={kd} onChange={e=>setKd(e.target.value)} placeholder="e.g. 2648" className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg font-mono font-bold outline-none w-32 transition-colors"/>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("sweep_starting_kd")}</label>
+                  <input type="text" value={startKd} onChange={e=>setStartKd(e.target.value)} placeholder="e.g. 2640" className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg font-mono font-bold outline-none w-32 transition-colors"/>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("sweep_radius")}</label>
+                  <select value={radius} onChange={e=>setRadius(parseInt(e.target.value))} className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg text-xs font-bold outline-none cursor-pointer transition-colors">
+                    <option value="5">±5 KDs</option>
+                    <option value="10">±10 KDs</option>
+                    <option value="15">±15 KDs</option>
+                    <option value="20">±20 KDs</option>
+                  </select>
+                </div>
+              </>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t("anchor_scan_label")}</label>
               <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-fuchsia-500 px-3 py-2 rounded-lg text-xs font-mono outline-none cursor-pointer transition-colors" style={{colorScheme:"dark"}}/>
@@ -142,11 +271,23 @@ export default function Polygraph() {
                 {[300,400].map(d=><button key={d} onClick={()=>setDepth(d)} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${depth===d?"bg-fuchsia-500/20 text-fuchsia-400":"text-gray-500 hover:text-gray-300"}`}>{d}</button>)}
               </div>
             </div>
-            <button onClick={scan} disabled={loading} className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(192,38,211,0.3)] transition-colors">
-              {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/> : <Zap size={16}/>} {t("btn_scan")}
-            </button>
-            {data && <button onClick={()=>{setData(null);sessionStorage.removeItem("pg_data");}} className="text-gray-600 hover:text-gray-400 text-xs font-bold py-2 px-3 rounded-lg border border-[#1e222b] transition-colors">{t("btn_clear")}</button>}
-            {data && (
+            {mode === "single" ? (
+              <button onClick={scan} disabled={loading} className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(192,38,211,0.3)] transition-colors">
+                {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/> : <Zap size={16}/>} {t("btn_scan")}
+              </button>
+            ) : (
+              <button onClick={runRangeSweep} disabled={isSweeping} className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(192,38,211,0.3)] transition-colors">
+                {isSweeping ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/> : <Zap size={16}/>} {t("btn_sweep")}
+              </button>
+            )}
+            {((mode === "single" && data) || (mode === "sweep" && (sweepResults.length > 0 || isSweeping))) && (
+              <button onClick={()=>{
+                setData(null);
+                setSweepResults([]);
+                sessionStorage.removeItem("pg_data");
+              }} className="text-gray-600 hover:text-gray-400 text-xs font-bold py-2 px-3 rounded-lg border border-[#1e222b] transition-colors">{t("btn_clear")}</button>
+            )}
+            {mode === "single" && data && (
               <button onClick={shareLink} className={`flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border transition-colors ${copied?"border-emerald-500/40 text-emerald-400 bg-emerald-500/10":"border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10"}`}>
                 {copied ? <><Check size={13}/> Copied!</> : <><Link2 size={13}/> Share</>}
               </button>
@@ -158,7 +299,7 @@ export default function Polygraph() {
       {error && <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm flex items-center gap-3"><AlertTriangle size={16}/>{error}</div>}
 
       {/* Results */}
-      {!loading && kdd && (
+      {mode === "single" && !loading && kdd && (
         <div className="bg-[#0d1017] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl">
 
           {/* KD Header + Grade */}
@@ -498,6 +639,132 @@ export default function Polygraph() {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* Range Sweep Progress / Loader */}
+      {isSweeping && (
+        <div className="bg-[#0d1017] border border-[#1e222b] rounded-xl p-8 shadow-xl flex flex-col items-center justify-center gap-4 animate-pulse">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-fuchsia-500"/>
+          <div className="text-gray-400 text-sm font-semibold">
+            {t("sweeping_progress", { current: sweepProgress.current, total: sweepProgress.total, kd: sweepProgress.currentKd })}
+          </div>
+          <div className="w-full max-w-md bg-[#0a0c0f] h-2.5 rounded-full overflow-hidden border border-[#1e222b]">
+            <div 
+              className="bg-fuchsia-500 h-full transition-all duration-300" 
+              style={{ width: `${(sweepProgress.current / sweepProgress.total) * 100}%` }}
+            />
+          </div>
+          <div className="text-xs text-gray-500 font-mono">
+            Successes: {sweepProgress.successes} / {sweepProgress.total} checked
+          </div>
+        </div>
+      )}
+
+      {/* Range Sweep Results */}
+      {mode === "sweep" && !isSweeping && sweepResults.length > 0 && (
+        <div className="space-y-6">
+          {/* Recommended Winner Banner */}
+          {sweepResults[0] && (
+            <div className="bg-[#0f1115] border border-emerald-500/20 rounded-xl p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row gap-6 items-center justify-between">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+              <div className="flex flex-col md:flex-row items-center gap-4 relative z-10">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-3xl font-black px-5 py-3 rounded-lg">
+                  KD {sweepResults[0].kingdom.kd}
+                </div>
+                <div>
+                  <h3 className="text-emerald-400 font-black tracking-widest text-sm uppercase flex items-center gap-1.5 justify-center md:justify-start">
+                    <Crown size={14}/> {t("sweep_winner")}
+                  </h3>
+                  <p className="text-gray-300 text-sm mt-1 max-w-xl text-center md:text-left">
+                    {sweepResults[0].ai?.gradeRationale || sweepResults[0].ai?.diagnosis || t("sweep_winner_desc")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center justify-center shrink-0 border-l border-[#1e222b] pl-6 h-full min-w-[120px]">
+                <div className={`text-4xl font-black px-4 py-2 rounded border ${gc(sweepResults[0].ai?.grade)}`}>
+                  {sweepResults[0].ai?.grade || "N/A"}
+                </div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase mt-2">
+                  Risk: {sweepResults[0].ai?.civilWarProbability || 0}%
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Results Grid / Table */}
+          <div className="bg-[#0d1017] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl">
+            <div className="bg-[#15181e] px-6 py-4 border-b border-[#1e222b]">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Scanned Kingdoms ({sweepResults.length})</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#101318] text-[10px] uppercase tracking-wider text-gray-500">
+                  <tr>
+                    <th className="p-4 font-bold">Kingdom</th>
+                    <th className="p-4 font-bold text-center">Grade</th>
+                    <th className="p-4 font-bold text-center">Civil War Risk</th>
+                    <th className="p-4 font-bold">Posture</th>
+                    <th className="p-4 font-bold text-right">Growth (Power)</th>
+                    <th className="p-4 font-bold text-right">Spenders</th>
+                    <th className="p-4 font-bold">Recommendation</th>
+                    <th className="p-4 font-bold text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1e222b] text-xs font-mono">
+                  {sweepResults.map(res => (
+                    <tr key={res.kingdom.kd} className="hover:bg-[#15181e] transition-colors">
+                      <td className="p-4 font-black text-cyan-400">
+                        KD {res.kingdom.kd}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`font-black px-2.5 py-1 rounded border text-sm ${gc(res.ai?.grade)}`}>
+                          {res.ai?.grade || "N/A"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`font-bold ${parseInt(res.ai?.civilWarProbability || "0") > 50 ? "text-rose-400" : "text-emerald-400"}`}>
+                          {res.ai?.civilWarProbability || 0}%
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-300 font-medium">
+                        {res.ai?.posture || "Unknown"}
+                      </td>
+                      <td className="p-4 text-right">
+                        {fd(res.kingdom.metrics?.totalPowerGained || 0)}
+                      </td>
+                      <td className="p-4 text-right">
+                        {res.kingdom.metrics?.whalesCount || 0}
+                      </td>
+                      <td className="p-4 text-gray-400 max-w-xs truncate" title={res.ai?.recommendation}>
+                        {res.ai?.recommendation || "N/A"}
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => {
+                            setKd(res.kingdom.kd);
+                            setData(res);
+                            setMode("single");
+                            setTab("overview");
+                          }}
+                          className="bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/20 text-[10px] font-bold py-1.5 px-3 rounded-md transition-colors"
+                        >
+                          {t("btn_load_polygraph")}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === "sweep" && !isSweeping && sweepResults.length === 0 && (
+        <div className="bg-[#0d1017] border border-[#1e222b] rounded-xl p-12 text-center text-gray-500">
+          <AlertTriangle size={32} className="mx-auto text-gray-600 mb-3"/>
+          <p className="text-sm font-medium">{t("sweep_no_data")}</p>
         </div>
       )}
 

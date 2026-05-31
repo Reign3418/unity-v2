@@ -589,6 +589,19 @@
     "tab_migration": "Migration",
     "timeframe_label": "Timeframe",
     "loading_sub": "Pulling migration data, leadership snapshot & AI analysis",
-    "roster_analyzed": "Roster Analyzed"
+    "roster_analyzed": "Roster Analyzed",
+    "tab_single_scan": "Single Scan",
+    "tab_range_finder": "Range Finder",
+    "btn_sweep": "Find me a new kingdom",
+    "sweep_starting_kd": "Starting Kingdom",
+    "sweep_radius": "Search Radius",
+    "sweeping_progress": "Sweeping range {current}/{total} (Checking KD {kd})...",
+    "sweep_no_data": "No scan data found for any kingdoms in this range.",
+    "sweep_winner": "Recommended Target",
+    "sweep_winner_desc": "J.A.R.V.I.S. identified this as the healthiest target in the selected range.",
+    "btn_load_polygraph": "Load Polygraph",
+    "col_posture": "Posture",
+    "col_recommendation": "Recommendation",
+    "col_risk": "Civil War Risk"
   }
 }
