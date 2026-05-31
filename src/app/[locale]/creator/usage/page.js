@@ -1,8 +1,12 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useSession } from 'next-auth/react';
+import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AIUsageDashboard() {
+    const { data: session, status } = useSession();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -237,6 +241,25 @@ export default function AIUsageDashboard() {
 
     function chartRangeSymbol(range) {
         return range === 'daily' || range === 'weekly';
+    }
+
+    if (status === "loading") {
+        return <div className="p-10 text-cyan-500 font-mono bg-[#0a0c0f] min-h-screen animate-pulse">Initializing Telemetry...</div>;
+    }
+
+    if (!session?.user?.isSuperAdmin) {
+        return (
+            <div className="min-h-screen bg-[#0a0c0f] p-8 flex flex-col items-center justify-center">
+                <AlertTriangle size={64} className="text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />
+                <h1 className="text-3xl font-black text-white tracking-widest uppercase mb-2">Clearance Denied</h1>
+                <p className="text-gray-400 font-mono text-sm max-w-md text-center">
+                    The AI Usage Dashboard is a restricted namespace strictly reserved for Super Admins.
+                </p>
+                <Link href="/" className="mt-8 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg font-bold uppercase tracking-widest text-sm transition-colors">
+                    Return to Dashboard
+                </Link>
+            </div>
+        );
     }
 
     if (loading) return <div className="p-10 text-white font-mono bg-[#0a0c0f] min-h-screen">Loading usage logs...</div>;
