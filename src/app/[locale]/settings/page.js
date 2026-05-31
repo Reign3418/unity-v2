@@ -289,11 +289,34 @@ export default function SettingsPage() {
                 onChange={e => setPrefs(p => ({ ...p, geminiModel: e.target.value }))}
                 className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
-                <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')}</option>
-                <option value="gemini-2.5-flash">{t('gemini_flash_rec')}</option>
-                <option value="gemini-2.5-pro">{t('gemini_pro')}</option>
-                <option value="gemini-1.5-flash">{t('gemini_legacy')}</option>
+                <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
+                <option value="gemini-2.5-flash">{t('gemini_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
+                <option value="gemini-2.5-pro">{t('gemini_pro')} (Free Tier: 2 RPM / 50 RPD)</option>
+                <option value="gemini-1.5-flash">{t('gemini_legacy')} (Free Tier: 15 RPM / 1,500 RPD - Best for sweeps)</option>
               </select>
+
+              <div className="mt-4 bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 space-y-2">
+                <p className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  ⚠️ Free Tier Quotas & Rate Limits
+                </p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Choosing the right model helps avoid API rate limits during range sweeps and intensive OCR analysis:
+                </p>
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  <div className="flex items-center justify-between text-xs border-b border-[#1e222b] pb-2 last:border-0 last:pb-0">
+                    <span className="text-white font-mono font-bold">Gemini 3.5 & 2.5 Flash</span>
+                    <span className="text-gray-400">5 RPM / 20 RPD (Highly restricted)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-[#1e222b] pb-2 last:border-0 last:pb-0">
+                    <span className="text-white font-mono font-bold">Gemini 2.5 Pro</span>
+                    <span className="text-gray-400">2 RPM / 50 RPD</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs last:border-0 last:pb-0">
+                    <span className="text-emerald-400 font-mono font-bold">Gemini 1.5 Flash</span>
+                    <span className="text-emerald-400 font-bold">15 RPM / 1,500 RPD (Best for Sweeps)</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
