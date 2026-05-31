@@ -19,6 +19,7 @@ import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
 import T5TrackerTab from "@/components/analysis/kingdom/T5TrackerTab";
+import CompareTab from "@/components/analysis/kingdom/CompareTab";
 import WorkbenchSidebar from "@/components/analysis/kingdom/WorkbenchSidebar";
 import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
 import MemberPortal from "@/components/member/MemberPortal";
@@ -27,6 +28,7 @@ import KingdomVault from "@/app/[locale]/vault/page";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
+  { name: "Compare", icon: Users },
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Growth Analysis", icon: TrendingUp },
   { name: "Presence Radar", icon: Clock },
@@ -215,6 +217,15 @@ export default function KingdomAnalysis() {
           case 'Overview':
               return (
                   <OverviewTab 
+                      targetKd={targetKd}
+                      trends={trends}
+                      startDate={startDate}
+                      endDate={endDate}
+                  />
+              );
+          case 'Compare':
+              return (
+                  <CompareTab 
                       targetKd={targetKd}
                       trends={trends}
                       startDate={startDate}

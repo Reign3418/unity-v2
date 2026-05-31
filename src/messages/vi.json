@@ -388,7 +388,8 @@
     "Fort Tracker": "Theo doi Phao dai",
     "Presence Radar": "Radar Hien dien",
     "T5 Push Radar": "Radar Tan cong T5",
-    "Kingdom Vault": "Kho Vương Quốc"
+    "Kingdom Vault": "Kho Vương Quốc",
+    "Compare": "Compare"
   },
   "DKP": {
     "title": "DKP Results",
@@ -603,5 +604,38 @@
     "col_posture": "Thái độ",
     "col_recommendation": "Đề xuất",
     "col_risk": "Nguy cơ nội chiến"
+  },
+  "CompareTab": {
+    "title": "Player Comparison Workbench",
+    "subtitle": "Side-by-side behavioral & growth analysis",
+    "search_placeholder": "Find governor by name or ID...",
+    "max_selected": "Maximum of 5 governors can be compared simultaneously.",
+    "no_governors": "No Governors Selected",
+    "select_hint": "Use the search bar above to locate and add up to 5 governors to compare their delta metrics.",
+    "clear_all": "Clear All",
+    "category_leader": "Category Leader",
+    "section_identity": "Identity",
+    "section_growth": "Growth Metrics",
+    "section_combat": "Combat Metrics",
+    "section_charts": "Visual Comparison",
+    "col_metric": "Metric",
+    "col_current": "Ending",
+    "col_delta": "Delta (Δ)",
+    "alliance": "Alliance",
+    "town_hall": "Town Hall",
+    "status": "Status",
+    "power": "Power",
+    "troop_power": "Troop Power",
+    "commander_power": "Commander Power",
+    "tech_power": "Tech Power",
+    "building_power": "Building Power",
+    "kill_points": "Kill Points",
+    "dead_troops": "Dead Troops",
+    "rss_gathered": "Resources Gathered",
+    "chart_power_troops": "Power & Troop Growth Comparison",
+    "chart_combat": "KP & Deads Gained Comparison",
+    "chart_infrastructure": "Tech & Building Growth Comparison",
+    "no_temporal_title": "No Temporal Matrices",
+    "no_temporal_desc": "Cannot compare players without historical scans."
   }
 }

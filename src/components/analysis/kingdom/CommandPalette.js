@@ -10,6 +10,7 @@ import {
 
 const ICON_MAP = {
   'Overview':         LayoutTemplate,
+  'Compare':          Users,
   'Kingdom Analysis': BarChart2,
   'Growth Analysis':  TrendingUp,
   'Scatter Plot':     Map,
@@ -28,6 +29,7 @@ const ICON_MAP = {
 
 const CATEGORY_MAP = {
   'Overview':         { label: 'Intelligence', color: 'text-cyan-400 bg-cyan-500/10' },
+  'Compare':          { label: 'Intelligence', color: 'text-cyan-400 bg-cyan-500/10' },
   'Kingdom Analysis': { label: 'Intelligence', color: 'text-cyan-400 bg-cyan-500/10' },
   'Growth Analysis':  { label: 'Intelligence', color: 'text-cyan-400 bg-cyan-500/10' },
   'Scatter Plot':     { label: 'Intelligence', color: 'text-cyan-400 bg-cyan-500/10' },
