@@ -17,23 +17,37 @@ export async function GET(req) {
             return NextResponse.json({ error: "Table name not configured" }, { status: 500 });
         }
 
-        const now = new Date();
-        const allEvents = [];
+        const { searchParams } = new URL(req.url);
+        const daysParam = searchParams.get('days');
+        const days = Math.min(30, Math.max(1, parseInt(daysParam || '30', 10)));
 
-        // Query the last 7 days
-        for (let i = 0; i < 7; i++) {
+        const now = new Date();
+        const promises = [];
+
+        // Query the dates in parallel
+        for (let i = 0; i < days; i++) {
             const d = new Date(now);
             d.setDate(d.getDate() - i);
             const dateStr = d.toISOString().slice(0, 10);
             
-            const result = await dbClient.send(new QueryCommand({
-                TableName: tableName,
-                KeyConditionExpression: "PK = :pk",
-                ExpressionAttributeValues: {
-                    ":pk": { S: `EVENTS#${dateStr}` }
-                }
-            }));
+            promises.push(
+                dbClient.send(new QueryCommand({
+                    TableName: tableName,
+                    KeyConditionExpression: "PK = :pk",
+                    ExpressionAttributeValues: {
+                        ":pk": { S: `EVENTS#${dateStr}` }
+                    }
+                })).catch(err => {
+                    console.error(`Error querying EVENTS for ${dateStr}:`, err);
+                    return { Items: [] };
+                })
+            );
+        }
 
+        const results = await Promise.all(promises);
+        const allEvents = [];
+
+        results.forEach(result => {
             if (result.Items) {
                 result.Items.forEach(item => {
                     allEvents.push({
@@ -45,7 +59,7 @@ export async function GET(req) {
                     });
                 });
             }
-        }
+        });
 
         // Sort descending by timestamp
         allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
