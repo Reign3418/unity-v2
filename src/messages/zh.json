@@ -32,7 +32,8 @@
     "footer_about": "关于",
     "footer_contact": "联系",
     "footer_privacy": "隐私",
-    "footer_terms": "条款"
+    "footer_terms": "条款",
+    "nav_usage": "AI 使用情况"
   },
   "HomePage": {
     "subtitle_prefix": "因为团队里没有",

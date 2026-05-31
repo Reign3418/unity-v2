@@ -32,7 +32,8 @@
     "footer_about": "О нас",
     "footer_contact": "Контакты",
     "footer_privacy": "Приватность",
-    "footer_terms": "Условия"
+    "footer_terms": "Условия",
+    "nav_usage": "Использование ИИ"
   },
   "HomePage": {
     "subtitle_prefix": "Потому что нет",

@@ -100,6 +100,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   <NavItem href="/creator/sandbox" icon={Database} label={t('nav_sandbox')} />
                   <NavItem href="/creator/lab" icon={FlaskConical} label={t('nav_lab')} />
                   <NavItem href="/creator/matchmaker" icon={Target} label={t('nav_matchmaker')} />
+                  <NavItem href="/creator/usage" icon={Activity} label={t('nav_usage')} />
               </>
           )}
 

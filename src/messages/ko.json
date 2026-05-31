@@ -32,7 +32,8 @@
     "footer_about": "정보",
     "footer_contact": "연락처",
     "footer_privacy": "개인정보보호",
-    "footer_terms": "이용약관"
+    "footer_terms": "이용약관",
+    "nav_usage": "AI 사용량"
   },
   "HomePage": {
     "subtitle_prefix": "팀에는",
