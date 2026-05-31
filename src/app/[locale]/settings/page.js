@@ -26,7 +26,7 @@ export default function SettingsPage() {
   useEffect(() => {
     let basePrefs = { ...prefs };
     
-    const savedPrefs = localStorage.getItem("unity_prefs");
+    const savedPrefs = localStorage.getItem("unity_prefs") || localStorage.getItem("unty_prefs");
     if (savedPrefs) {
       try {
         basePrefs = { ...basePrefs, ...JSON.parse(savedPrefs) };
@@ -48,6 +48,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     // Preferences stored locally for typical client prefs
     localStorage.setItem("unity_prefs", JSON.stringify(prefs));
+    localStorage.setItem("unty_prefs", JSON.stringify(prefs));
     
     // Sync Presence Settings to AWS DynamoDB via Discord Backend
     if (prefs.timezone && prefs.playtimeStart && prefs.playtimeEnd) {

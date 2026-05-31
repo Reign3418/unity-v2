@@ -58,7 +58,8 @@ RULES:
 7. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
 `;
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+        const model = stats.geminiModel || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {
             method: 'POST',
@@ -70,8 +71,24 @@ RULES:
         });
 
         if (!geminiResponse.ok) {
-            console.error("Gemini Coach Error", await geminiResponse.text());
-            return NextResponse.json({ error: "AI Engine refused the payload." }, { status: 502 });
+            const errText = await geminiResponse.text();
+            console.error("[Coach API] Gemini Upstream Error:", errText);
+            
+            let userFriendlyError = "AI Engine refused the payload.";
+            try {
+                const parsedErr = JSON.parse(errText);
+                if (parsedErr?.error?.message) {
+                    if (geminiResponse.status === 429) {
+                        userFriendlyError = "AI Coach Limit Exceeded: Monthly billing spend cap or daily rate limits reached in Google AI Studio.";
+                    } else if (geminiResponse.status === 403) {
+                        userFriendlyError = "AI Coach Auth Error: Invalid API key provided. Check settings.";
+                    } else {
+                        userFriendlyError = `AI Engine Error: ${parsedErr.error.message}`;
+                    }
+                }
+            } catch {}
+            
+            return NextResponse.json({ error: userFriendlyError }, { status: 502 });
         }
         
         const result = await geminiResponse.json();

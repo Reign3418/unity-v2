@@ -215,13 +215,17 @@ export default function MemberGrowthPanel({ govId, kingdomId, session }) {
         } : null;
 
         try {
+            const prefs = JSON.parse(localStorage.getItem('unty_prefs') || localStorage.getItem('unity_prefs') || '{}');
+            const headers = { 'Content-Type': 'application/json' };
+            if (prefs.geminiKey) headers['x-gemini-key'] = prefs.geminiKey;
+
             const res = await fetch('/api/aws/coach', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...myEntry, kingdomState, startDate, endDate, peerAvg, locale }),
+                headers,
+                body: JSON.stringify({ ...myEntry, kingdomState, startDate, endDate, peerAvg, locale, geminiModel: prefs.geminiModel }),
             });
             const data = await res.json();
-            setCoachModal(prev => ({ ...prev, isLoading: false, advice: data.success ? data.advice : 'AI Coach unavailable.' }));
+            setCoachModal(prev => ({ ...prev, isLoading: false, advice: data.success ? data.advice : (data.error || 'AI Coach unavailable.') }));
         } catch {
             setCoachModal(prev => ({ ...prev, isLoading: false, advice: 'Network error reaching AI Coach.' }));
         }

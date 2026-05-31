@@ -244,24 +244,29 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
         }
 
         try {
+            const prefs = JSON.parse(localStorage.getItem('unty_prefs') || localStorage.getItem('unity_prefs') || '{}');
+            const headers = { 'Content-Type': 'application/json' };
+            if (prefs.geminiKey) headers['x-gemini-key'] = prefs.geminiKey;
+
             const payload = {
                 ...p,
                 kingdomState,
                 startDate,
                 endDate,
                 peerAvg,
-                locale
+                locale,
+                geminiModel: prefs.geminiModel
             };
             const res = await fetch('/api/aws/coach', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (data.success) {
                 setCoachModal(prev => ({ ...prev, isLoading: false, advice: data.advice }));
             } else {
-                setCoachModal(prev => ({ ...prev, isLoading: false, advice: "ERROR: Failed to connect to AI Coach Engine." }));
+                setCoachModal(prev => ({ ...prev, isLoading: false, advice: data.error || "ERROR: Failed to connect to AI Coach Engine." }));
             }
         } catch (err) {
             console.error("Coach API error:", err);

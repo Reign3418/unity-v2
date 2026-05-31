@@ -91,6 +91,7 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
     const [displayText, setDisplayText] = useState('');
     const [showCursor, setShowCursor] = useState(false);
     const [dateRange, setDateRange]   = useState('');
+    const [errorText, setErrorText]   = useState('');
     const streamRef                   = useRef(null);
     const fullTextRef                 = useRef('');
 
@@ -194,13 +195,22 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
 
             // 6. Call J.A.R.V.I.S.
             setPhase('coaching');
+            setErrorText('');
+            const prefs = JSON.parse(localStorage.getItem('unty_prefs') || localStorage.getItem('unity_prefs') || '{}');
+            const headers = { 'Content-Type': 'application/json' };
+            if (prefs.geminiKey) headers['x-gemini-key'] = prefs.geminiKey;
+
             const cRes = await fetch('/api/aws/coach', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...found, kingdomState: 'Peace', startDate: sDate, endDate: eDate, peerAvg: avg, locale }),
+                headers,
+                body: JSON.stringify({ ...found, kingdomState: 'Peace', startDate: sDate, endDate: eDate, peerAvg: avg, locale, geminiModel: prefs.geminiModel }),
             });
             const cData = await cRes.json();
-            if (!cData.success || !cData.advice) { setPhase('error'); return; }
+            if (!cData.success || !cData.advice) {
+                setErrorText(cData.error || 'AI core failed to respond.');
+                setPhase('error');
+                return;
+            }
 
             // 7. Stream reveal
             setPhase('streaming');
@@ -208,6 +218,7 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
 
         } catch (err) {
             console.error('[MemberCoachingBrief]', err);
+            setErrorText('Network error reaching AI Coach.');
             setPhase('error');
         }
     };
@@ -294,10 +305,10 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
                     <p className="text-sm font-bold text-gray-400 mb-1">
                         {phase === 'no-data' ? 'Not Found in Latest Scan' : 'J.A.R.V.I.S. Offline'}
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-600 font-mono">
                         {phase === 'no-data'
                             ? 'Your Governor ID wasn\'t detected in the most recent kingdom scan. Ensure your card is linked correctly in Settings.'
-                            : 'Unable to reach the AI coaching engine. Try again in a moment.'}
+                            : errorText || 'Unable to reach the AI coaching engine. Try again in a moment.'}
                     </p>
                 </div>
                 <button
