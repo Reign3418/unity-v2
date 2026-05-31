@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig } from '@/lib/awsDynamo';
+import { logEvent } from '@/lib/eventLogger';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -273,6 +274,17 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
         const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         const customModel = req.headers.get('x-gemini-model');
         const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+        logEvent('VISION_POLYGRAPH_SCAN', {
+            kd,
+            start,
+            end,
+            depth,
+            model: apiModel
+        }, {
+            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
+            userAgent: req.headers.get('user-agent') || '',
+        });
 
         let aiBrief = null;
         if (apiKey) {
