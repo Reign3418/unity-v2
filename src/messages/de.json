@@ -387,7 +387,8 @@
     "r4_desc": "Your current role does not have permission to view this utility.",
     "Fort Tracker": "Fort-Tracker",
     "Presence Radar": "Prasenz-Radar",
-    "T5 Push Radar": "T5-Push-Radar"
+    "T5 Push Radar": "T5-Push-Radar",
+    "Kingdom Vault": "Königreichstresor"
   },
   "DKP": {
     "title": "DKP Results",

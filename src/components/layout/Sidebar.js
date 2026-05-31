@@ -75,7 +75,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <NavItem href="/upload" icon={UploadCloud} label={t('nav_load')} />
 
           <SectionTitle>{t('sec_analysis')}</SectionTitle>
-          <NavItem href="/vault" icon={Building2} label={t('nav_vault')} hidden={!isLeader} />
           <NavItem href="/analysis/kingdom" icon={BarChart2} label={t('nav_kingdom_analysis')} />
           <NavItem href="/analysis/kvk" icon={Target} label="KvK Hub" />
           <NavItem href="/analysis/global" icon={TrendingUp} label={t('nav_global_analysis')} />

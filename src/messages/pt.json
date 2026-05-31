@@ -387,7 +387,8 @@
     "r4_desc": "Your current role does not have permission to view this utility.",
     "Fort Tracker": "Rastreador de Fortes",
     "Presence Radar": "Radar de Presenca",
-    "T5 Push Radar": "Radar de Avanco T5"
+    "T5 Push Radar": "Radar de Avanco T5",
+    "Kingdom Vault": "Cofre do Reino"
   },
   "DKP": {
     "title": "DKP Results",

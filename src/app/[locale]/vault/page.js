@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { useTranslations } from "next-intl";
 
-export default function KingdomVault() {
+export default function KingdomVault({ hideHeader = false, targetKd: propTargetKd }) {
   const t = useTranslations('Vault');
   const { data: session } = useSession();
   
@@ -49,17 +49,19 @@ export default function KingdomVault() {
 
   useEffect(() => {
     if (session) {
-      let activeKd = "3155";
-      try {
-          const stored = localStorage.getItem("unty_active_kd");
-          if (stored) activeKd = stored;
-          else if (session.user?.kingdomId) activeKd = session.user.kingdomId;
-      } catch (e) {}
+      let activeKd = propTargetKd || "3155";
+      if (!propTargetKd) {
+        try {
+            const stored = localStorage.getItem("unty_active_kd");
+            if (stored) activeKd = stored;
+            else if (session.user?.kingdomId) activeKd = session.user.kingdomId;
+        } catch (e) {}
+      }
 
       setTargetKd(activeKd);
       fetchVault(activeKd, isolationMode);
     }
-  }, [session, isolationMode]);
+  }, [session, isolationMode, propTargetKd]);
 
   const formatBillion = (num) => num ? (Number(num) / 1000000000).toFixed(2) + 'B' : "0";
   const formatMillion = (num) => num ? (Number(num) / 1000000).toFixed(1) + 'M' : "0";
@@ -123,43 +125,66 @@ export default function KingdomVault() {
     <div className="w-full mx-auto space-y-6 animate-fade-in pb-12 mt-4">
       
       {/* Header Panel */}
-      <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
-          <div className="flex items-center gap-4">
-             <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
-               <Building2 className="text-amber-500" size={32} />
-             </div>
-             <div>
-               <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-3">
-                 {t('title')}
-               </h1>
-               <p className="text-amber-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
-             </div>
-          </div>
-          
-          {isHighCommand && (
-              <div className="flex items-center gap-3">
-                  <button 
-                      onClick={() => setIsolationMode(!isolationMode)}
-                      className={`p-2.5 border rounded-lg transition-colors shadow-lg flex items-center gap-2 ${isolationMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20' : 'bg-[#13161c] hover:bg-[#1e222b] text-white border-[#1e222b]'}`}
-                      title={isolationMode ? t('personal_view_active') : t('kingdom_view_active')}
-                  >
-                      {isolationMode ? <EyeOff size={18} /> : <Eye size={18} className="text-cyan-500" />}
-                      <span className="text-xs font-bold uppercase hidden sm:inline">{isolationMode ? t('personal_view') : t('kingdom_view')}</span>
-                  </button>
-                  <button 
-                      onClick={() => fetchVault(targetKd, isolationMode)}
-                      disabled={isLoading}
-                      className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg flex items-center gap-2"
-                  >
-                      <RefreshCw size={18} className={isLoading ? "animate-spin text-amber-500" : ""} />
-                      <span className="text-xs font-bold uppercase hidden sm:inline">{t('sync_aws')}</span>
-                  </button>
+      {hideHeader ? (
+         isHighCommand && (
+            <div className="flex justify-end items-center gap-3 mb-4">
+                <button 
+                    onClick={() => setIsolationMode(!isolationMode)}
+                    className={`p-2.5 border rounded-lg transition-colors shadow-lg flex items-center gap-2 text-xs font-bold uppercase ${isolationMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20' : 'bg-[#13161c] hover:bg-[#1e222b] text-white border-[#1e222b]'}`}
+                    title={isolationMode ? t('personal_view_active') : t('kingdom_view_active')}
+                >
+                    {isolationMode ? <EyeOff size={18} /> : <Eye size={18} className="text-cyan-500" />}
+                    <span>{isolationMode ? t('personal_view') : t('kingdom_view')}</span>
+                </button>
+                <button 
+                    onClick={() => fetchVault(targetKd, isolationMode)}
+                    disabled={isLoading}
+                    className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg flex items-center gap-2 text-xs font-bold uppercase"
+                >
+                    <RefreshCw size={18} className={isLoading ? "animate-spin text-amber-500" : ""} />
+                    <span>{t('sync_aws')}</span>
+                </button>
+            </div>
+         )
+      ) : (
+          <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-8 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 w-full">
+              <div className="flex items-center gap-4">
+                 <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
+                   <Building2 className="text-amber-500" size={32} />
+                 </div>
+                 <div>
+                   <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-3">
+                     {t('title')}
+                   </h1>
+                   <p className="text-amber-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
+                 </div>
               </div>
-          )}
-        </div>
-      </div>
+              
+              {isHighCommand && (
+                  <div className="flex items-center gap-3">
+                      <button 
+                          onClick={() => setIsolationMode(!isolationMode)}
+                          className={`p-2.5 border rounded-lg transition-colors shadow-lg flex items-center gap-2 ${isolationMode ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20' : 'bg-[#13161c] hover:bg-[#1e222b] text-white border-[#1e222b]'}`}
+                          title={isolationMode ? t('personal_view_active') : t('kingdom_view_active')}
+                      >
+                          {isolationMode ? <EyeOff size={18} /> : <Eye size={18} className="text-cyan-500" />}
+                          <span className="text-xs font-bold uppercase hidden sm:inline">{isolationMode ? t('personal_view') : t('kingdom_view')}</span>
+                      </button>
+                      <button 
+                          onClick={() => fetchVault(targetKd, isolationMode)}
+                          disabled={isLoading}
+                          className="p-2.5 bg-[#13161c] hover:bg-[#1e222b] text-white border border-[#1e222b] rounded-lg transition-colors shadow-lg flex items-center gap-2"
+                      >
+                          <RefreshCw size={18} className={isLoading ? "animate-spin text-amber-500" : ""} />
+                          <span className="text-xs font-bold uppercase hidden sm:inline">{t('sync_aws')}</span>
+                      </button>
+                  </div>
+              )}
+            </div>
+          </div>
+      )}
 
       {/* Secret OCR Dropzone Module */}
       <div className="bg-[#13161c] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl">

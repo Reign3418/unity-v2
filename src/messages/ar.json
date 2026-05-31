@@ -387,7 +387,8 @@
     "r4_desc": "Your current role does not have permission to view this utility.",
     "Fort Tracker": "متتبع الحصون",
     "Presence Radar": "رادار التواجد",
-    "T5 Push Radar": "رادار دفع T5"
+    "T5 Push Radar": "رادار دفع T5",
+    "Kingdom Vault": "قبو المملكة"
   },
   "DKP": {
     "title": "DKP Results",

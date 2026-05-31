@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, X, Activity,
   BarChart2, TrendingUp, Map, Clock, Crosshair,
   Link, GitMerge, Trophy, Users, Link2, Archive,
-  Cpu, Target, LayoutTemplate, Menu
+  Cpu, Target, LayoutTemplate, Menu, Building2
 } from 'lucide-react';
 
 // Maps every tab name to its lucide icon
@@ -26,6 +26,7 @@ const ICON_MAP = {
   'Configuration':    Cpu,
   'Fort Tracker':     Target,
   'T5 Push Radar':    Target,
+  'Kingdom Vault':    Building2,
 };
 
 // Mission-category groupings — order matters
@@ -56,7 +57,7 @@ const CATEGORIES = [
     colorClass: 'text-amber-400',
     borderClass: 'border-amber-500/30',
     bgActiveClass: 'bg-amber-500/10 border-amber-500/30',
-    tabs: ['Results', 'Configuration', 'Fort Tracker'],
+    tabs: ['Results', 'Configuration', 'Fort Tracker', 'Kingdom Vault'],
   },
 ];
 

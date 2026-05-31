@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users, Search, Menu, PanelLeft } from "lucide-react";
+import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users, Search, Menu, PanelLeft, Building2 } from "lucide-react";
 import KingdomAnalysisTab from "@/components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "@/components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "@/components/analysis/kingdom/ScatterPlotTab";
@@ -23,6 +23,7 @@ import WorkbenchSidebar from "@/components/analysis/kingdom/WorkbenchSidebar";
 import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
 import MemberPortal from "@/components/member/MemberPortal";
 import { useTranslations } from "next-intl";
+import KingdomVault from "@/app/[locale]/vault/page";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -40,7 +41,8 @@ const TABS = [
   { name: "Roster View", icon: Users },
   { name: "Fort Tracker", icon: Target },
   { name: "T5 Push Radar", icon: Target },
-  { name: "Results", icon: Archive }
+  { name: "Results", icon: Archive },
+  { name: "Kingdom Vault", icon: Building2 }
 ];
 
 const snapToNearestDate = (targetDateStr, availableDates) => {
@@ -113,7 +115,7 @@ export default function KingdomAnalysis() {
 
   // ── Tab permission matrix ──────────────────────────────────────────────
   // minRole: 'analyst' = analyst+leader+admin | 'leader' = leader+admin only
-  const LEADER_ONLY = new Set(['War Room', 'Team Builder', 'Alliance Merge', 'Fixed MGE', 'Roster Linker', 'Fort Tracker']);
+  const LEADER_ONLY = new Set(['War Room', 'Team Builder', 'Alliance Merge', 'Fixed MGE', 'Roster Linker', 'Fort Tracker', 'Kingdom Vault']);
 
   const availableTabs = useMemo(() => {
     return TABS.filter(t => {
@@ -322,6 +324,13 @@ export default function KingdomAnalysis() {
                   <FortTrackerTab 
                       targetKd={targetKd}
                       rosterData={rosterData}
+                  />
+              );
+          case 'Kingdom Vault':
+              return (
+                  <KingdomVault 
+                      hideHeader={true}
+                      targetKd={targetKd}
                   />
               );
           default:
