@@ -185,7 +185,7 @@ export default function Polygraph() {
         const res = await fetch(`/api/aws/health-report?kds=${activeKd.kd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=true`);
         if (res.ok) {
           const json = await res.json();
-          if (json.success) {
+          if (json.success && json.ai) {
             setSweepResults(prev => [...prev, json]);
             setSweepProgress(prev => ({
               ...prev,
@@ -196,7 +196,7 @@ export default function Polygraph() {
               ...activeKd.data,
               ai: {
                 grade: "N/A",
-                gradeRationale: "AI analysis was skipped or encountered an error.",
+                gradeRationale: json.error || "AI analysis failed or returned empty (check API keys/rate limits).",
                 civilWarProbability: 0,
                 civilWarRationale: "Unable to calculate risk.",
                 posture: "Unknown",

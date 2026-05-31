@@ -293,19 +293,19 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
         const customModel = req.headers.get('x-gemini-model');
         const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-        logEvent('VISION_POLYGRAPH_SCAN', {
-            kd,
-            start,
-            end,
-            depth,
-            model: apiModel
-        }, {
-            userEmail: session?.user?.username || session?.user?.email || 'anonymous',
-            userAgent: req.headers.get('user-agent') || '',
-        });
-
         let aiBrief = null;
         if (apiKey && aiParam) {
+            logEvent('VISION_POLYGRAPH_SCAN', {
+                kd,
+                start,
+                end,
+                depth,
+                model: apiModel
+            }, {
+                userEmail: session?.user?.username || session?.user?.email || 'anonymous',
+                userAgent: req.headers.get('user-agent') || '',
+            });
+
             try {
                 const geminiRes = await fetch(
                     `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`,
