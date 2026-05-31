@@ -57,6 +57,31 @@ export async function getT5Thresholds() {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
+/**
+ * Unified robust date parser for varying scanDate string formats in the database.
+ * Formats handled:
+ * - "2026-03-21 20:29 UTC" -> "2026-03-21T20:29:00Z"
+ * - "2026-03-21_163120" -> "2026-03-21T16:31:20"
+ * - "2026-03-24T23:17:00.000Z" -> Standard ISO
+ */
+export function parseScanDate(s) {
+    if (!s) return new Date(0);
+    let clean = s.replace(' UTC', 'Z');
+    if (clean.includes('_')) {
+        const parts = clean.split('_');
+        if (parts.length === 2) {
+            const t = parts[1];
+            const formattedTime = t.length === 6 ? `${t.substring(0,2)}:${t.substring(2,4)}:${t.substring(4,6)}` : t;
+            clean = `${parts[0]}T${formattedTime}`;
+        }
+    } else {
+        clean = clean.replace(' ', 'T');
+    }
+    const d = new Date(clean);
+    return isNaN(d.getTime()) ? new Date((s || "").split('T')[0].split(' ')[0].split('_')[0] + 'T00:00:00') : d;
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 
 /**
  * Fetches a Global Configuration key from DynamoDB
@@ -338,11 +363,7 @@ export async function getKingdomTrends(kingdomId) {
                 rowCount: parseInt(attrs.rowCount?.N || 0),
                 summary: summary
             };
-        }).sort((a, b) => {
-            const dateA = new Date((a.scanDate || "").split('T')[0].split('_')[0]);
-            const dateB = new Date((b.scanDate || "").split('T')[0].split('_')[0]);
-            return dateA - dateB;
-        }); // Chronological ascending for Recharts plotting
+        }).sort((a, b) => parseScanDate(a.scanDate) - parseScanDate(b.scanDate)); // Chronological ascending for Recharts plotting
         
         return trends;
     } catch (e) {
@@ -383,7 +404,7 @@ export async function getKingdomDeltas(kingdomId, customStart = null, customEnd 
                scanDate: attrs.scanDate?.S, // full ISO e.g. "2026-03-24T23:17:00.000Z"
                scanType: summaryObj.scanType || 'Full'
            };
-        }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
+        }).sort((a, b) => parseScanDate(b.scanDate) - parseScanDate(a.scanDate));
 
         let latestDateKey, previousDateKey;
 
@@ -407,12 +428,12 @@ export async function getKingdomDeltas(kingdomId, customStart = null, customEnd 
         if (!latestDateKey || !previousDateKey) {
             // Default: latest vs closest to 24h prior
             const latestType = dates[0].scanType;
-            const targetTime = new Date(dates[0].scanDate).getTime() - (24 * 60 * 60 * 1000);
+            const targetTime = parseScanDate(dates[0].scanDate).getTime() - (24 * 60 * 60 * 1000);
             let bestMatchIndex = -1;
             let smallestDiff = Infinity;
             for (let i = 1; i < dates.length; i++) {
                 if (dates[i].scanType !== latestType) continue;
-                const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
+                const timeDiff = Math.abs(parseScanDate(dates[i].scanDate).getTime() - targetTime);
                 if (timeDiff < smallestDiff) { smallestDiff = timeDiff; bestMatchIndex = i; }
             }
             if (bestMatchIndex === -1) {
@@ -575,14 +596,14 @@ export async function getOverviewDeltas(kingdomId, startIso, endIso) {
         const dates = dateResult.Items.map(i => ({
            sk: i.SK.S, 
            scanDate: i.attributes?.M?.scanDate?.S || ''
-        })).sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate)); // ASCENDING
+        })).sort((a, b) => parseScanDate(a.scanDate) - parseScanDate(b.scanDate)); // ASCENDING
         
         let filteredDates = [...dates];
         if (startIso) {
-             filteredDates = filteredDates.filter(d => new Date(d.scanDate) >= new Date(startIso + 'T00:00:00'));
+             filteredDates = filteredDates.filter(d => parseScanDate(d.scanDate) >= new Date(startIso + 'T00:00:00'));
         }
         if (endIso) {
-             filteredDates = filteredDates.filter(d => new Date(d.scanDate) <= new Date(endIso + 'T23:59:59'));
+             filteredDates = filteredDates.filter(d => parseScanDate(d.scanDate) <= new Date(endIso + 'T23:59:59'));
         }
         if (filteredDates.length < 2) {
              filteredDates = [dates[0], dates[dates.length - 1]];
@@ -725,7 +746,6 @@ export async function getBehavioralMatrix(kingdomId, startIso, endIso) {
 
         // DATES# SK = "DATE#DATEKEY" — strip "DATE#" to get the dateKey used in SCAN# PK
         // DATES# attributes.scanDate = "2026-03-21 20:29 UTC" — used for date range filtering
-        const parseScanDate = (s) => new Date(s.replace(' UTC', 'Z').replace(' ', 'T'));
         
         let dates = dateResult.Items
             .map(i => ({
@@ -915,8 +935,6 @@ export async function getMigrationMatrix(kingdomId, startIso, endIso) {
         }));
         if (!dateResult.Items || dateResult.Items.length < 2) return [];
 
-        const parseScanDate = (s) => new Date(s.replace(' UTC', 'Z').replace(' ', 'T'));
-        
         let dates = dateResult.Items
             .map(i => ({
                 dateKey: i.SK?.S?.replace('DATE#', '').replace('SCAN#', '') || '',
@@ -1121,7 +1139,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
                scanDate: attrs.scanDate?.S,
                scanType: summaryObj.scanType || 'Full'
            };
-        }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
+        }).sort((a, b) => parseScanDate(b.scanDate) - parseScanDate(a.scanDate));
 
         // ── Daily Canonical Anchor Rule ────────────────────────────────────────
         // Group all scans by UTC calendar date. Per day, select the scan closest
@@ -1131,7 +1149,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
         const byDay = {};
         for (const scan of allScans) {
             if (!scan.scanDate) continue;
-            const d = new Date(scan.scanDate);
+            const d = parseScanDate(scan.scanDate);
             const dayKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
             if (!byDay[dayKey]) byDay[dayKey] = [];
             byDay[dayKey].push(scan);
@@ -1141,11 +1159,11 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
         const canonicalScans = Object.entries(byDay).map(([dayKey, scans]) => {
             const midnight = new Date(`${dayKey}T00:00:00.000Z`).getTime();
             return scans.reduce((best, scan) => {
-                const diff = Math.abs(new Date(scan.scanDate).getTime() - midnight);
-                const bestDiff = Math.abs(new Date(best.scanDate).getTime() - midnight);
+                const diff = Math.abs(parseScanDate(scan.scanDate).getTime() - midnight);
+                const bestDiff = Math.abs(parseScanDate(best.scanDate).getTime() - midnight);
                 return diff < bestDiff ? scan : best;
             });
-        }).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate));
+        }).sort((a, b) => parseScanDate(b.scanDate) - parseScanDate(a.scanDate));
 
         // Track days with multiple scans — these are active surveillance days
         // (migration event monitoring, multiple kingdoms watching same target)
@@ -1157,7 +1175,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
 
         const dates = canonicalScans; // Use canonical anchors for all delta logic below
 
-        const latestParsed = new Date(dates[0].scanDate);
+        const latestParsed = parseScanDate(dates[0].scanDate);
         const targetTime = latestParsed.getTime() - (timeframeHours * 60 * 60 * 1000);
         const latestType = dates[0].scanType;
 
@@ -1167,7 +1185,7 @@ export async function getAdvancedKingdomDeltas(kingdomId, timeframeHours = 720) 
         // Find the canonical scan closest to targetTime
         for (let i = 1; i < dates.length; i++) {
             if (dates[i].scanType !== latestType) continue;
-            const timeDiff = Math.abs(new Date(dates[i].scanDate).getTime() - targetTime);
+            const timeDiff = Math.abs(parseScanDate(dates[i].scanDate).getTime() - targetTime);
             if (timeDiff < smallestDiff) {
                 smallestDiff = timeDiff;
                 bestMatchIndex = i;

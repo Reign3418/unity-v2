@@ -44,9 +44,33 @@ export default function ResultsTab({ targetKd, trends }) {
             const rawEnd = trends[trends.length - 1].scanDate;
             setEndDate(rawEnd);
             localStorage.setItem("unity_dkp_end", rawEnd);
-            const rawStart = trends[0].scanDate;
-            setStartDate(rawStart);
-            localStorage.setItem("unity_dkp_start", rawStart);
+
+            const latestDateStr = extractDate(rawEnd);
+            if (latestDateStr) {
+                const latestDate = new Date(latestDateStr + 'T00:00:00');
+                const targetTime = latestDate.getTime() - 5 * 24 * 60 * 60 * 1000;
+                
+                let closestScan = trends[0].scanDate;
+                let minDiff = Infinity;
+                
+                for (const t of trends) {
+                    const dateStr = extractDate(t.scanDate);
+                    if (dateStr) {
+                        const time = new Date(dateStr + 'T00:00:00').getTime();
+                        const diff = Math.abs(time - targetTime);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestScan = t.scanDate;
+                        }
+                    }
+                }
+                setStartDate(closestScan);
+                localStorage.setItem("unity_dkp_start", closestScan);
+            } else {
+                const rawStart = trends[0].scanDate;
+                setStartDate(rawStart);
+                localStorage.setItem("unity_dkp_start", rawStart);
+            }
         }
     }, [trends]);
 

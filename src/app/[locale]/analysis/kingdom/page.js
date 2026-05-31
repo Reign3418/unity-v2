@@ -43,6 +43,23 @@ const TABS = [
   { name: "Results", icon: Archive }
 ];
 
+const snapToNearestDate = (targetDateStr, availableDates) => {
+  if (!targetDateStr || !availableDates || availableDates.length === 0) return targetDateStr;
+  const targetTime = new Date(targetDateStr + 'T00:00:00').getTime();
+  let closestDate = availableDates[0];
+  let minDiff = Infinity;
+  
+  for (const dateStr of availableDates) {
+    const time = new Date(dateStr + 'T00:00:00').getTime();
+    const diff = Math.abs(time - targetTime);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestDate = dateStr;
+    }
+  }
+  return closestDate;
+};
+
 export default function KingdomAnalysis() {
   const tTabs = useTranslations('Tabs');
   const { data: session } = useSession();
@@ -166,10 +183,18 @@ export default function KingdomAnalysis() {
 
   useEffect(() => {
       if (trends && trends.length > 0) {
-          const rawEnd = extractDate(trends[trends.length - 1].scanDate);
-          setEndDate(rawEnd);
-          const rawStart = extractDate(trends[0].scanDate);
-          setStartDate(rawStart);
+          const availableDateStrings = trends.map(t => extractDate(t.scanDate)).filter(Boolean);
+          if (availableDateStrings.length > 0) {
+              const latestDateStr = availableDateStrings[availableDateStrings.length - 1];
+              setEndDate(latestDateStr);
+
+              // Default start date to 5 days prior to the latest scan date, snapped to closest scan date
+              const latestDate = new Date(latestDateStr + 'T00:00:00');
+              const fiveDaysPrior = new Date(latestDate.getTime() - 5 * 24 * 60 * 60 * 1000);
+              const fiveDaysPriorStr = fiveDaysPrior.toISOString().split('T')[0];
+              const snappedStart = snapToNearestDate(fiveDaysPriorStr, availableDateStrings);
+              setStartDate(snappedStart);
+          }
       }
   }, [trends]);
 
@@ -340,11 +365,19 @@ export default function KingdomAnalysis() {
           {trends.length > 0 && (
             <div className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-lg px-3 py-2 border-l-4 border-l-cyan-500 shadow-lg shrink-0">
               <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">START</span>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              <input type="date" value={startDate} onChange={e => {
+                const availableDateStrings = trends.map(t => extractDate(t.scanDate)).filter(Boolean);
+                const snapped = snapToNearestDate(e.target.value, availableDateStrings);
+                setStartDate(snapped);
+              }}
                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer" style={{ colorScheme: 'dark' }} />
               <span className="text-gray-600 mx-1">/</span>
               <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">END</span>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate}
+              <input type="date" value={endDate} onChange={e => {
+                const availableDateStrings = trends.map(t => extractDate(t.scanDate)).filter(Boolean);
+                const snapped = snapToNearestDate(e.target.value, availableDateStrings);
+                setEndDate(snapped);
+              }} min={startDate}
                 className="bg-transparent text-white text-xs outline-none font-mono cursor-pointer" style={{ colorScheme: 'dark' }} />
             </div>
           )}
