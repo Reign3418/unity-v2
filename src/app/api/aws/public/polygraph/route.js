@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig } from '@/lib/awsDynamo';
+import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, parseScanDate } from '@/lib/awsDynamo';
 import { logEvent } from '@/lib/eventLogger';
 
 export const maxDuration = 300;
@@ -48,18 +48,36 @@ export async function GET(req) {
         const end = searchParams.get('end');
         const depth = parseInt(searchParams.get('depth') || '300', 10);
         const locale = searchParams.get('locale') || 'en';
+        const aiParam = searchParams.get('ai') !== 'false';
 
         if (!kdsParam) return NextResponse.json({ error: "Missing 'kds' parameter." }, { status: 400 });
 
         const kd = kdsParam.split(',')[0].trim();
 
-        const [rosterData, migrationData] = await Promise.all([
+        const [rosterData, migrationData, trendsData] = await Promise.all([
             getOverviewDeltas(kd, start, end),
             getMigrationMatrix(kd, start, end),
+            getKingdomTrends(kd).catch(() => [])
         ]);
 
         if (!rosterData || rosterData.length === 0) {
             return NextResponse.json({ error: "No data available for the requested kingdom and date range." }, { status: 404 });
+        }
+
+        let resolvedStartDate = start;
+        let resolvedEndDate = end;
+
+        if (trendsData && trendsData.length >= 2) {
+            let filtered = [...trendsData];
+            if (start) filtered = filtered.filter(d => parseScanDate(d.scanDate) >= new Date(start + 'T00:00:00'));
+            if (end) filtered = filtered.filter(d => parseScanDate(d.scanDate) <= new Date(end + 'T23:59:59'));
+            if (filtered.length < 2) {
+                resolvedStartDate = trendsData[0].scanDate;
+                resolvedEndDate = trendsData[trendsData.length - 1].scanDate;
+            } else {
+                resolvedStartDate = filtered[0].scanDate;
+                resolvedEndDate = filtered[filtered.length - 1].scanDate;
+            }
         }
 
         const sortedRoster = rosterData.sort((a, b) => b.powerEnd - a.powerEnd).slice(0, depth);
@@ -191,7 +209,7 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
         });
 
         let aiBrief = null;
-        if (apiKey) {
+        if (apiKey && aiParam) {
             try {
                 const geminiRes = await fetch(
                     `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`,
@@ -206,6 +224,8 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
 
         const kdResult = {
             kd, rosterSize: sortedRoster.length,
+            startDate: resolvedStartDate,
+            endDate: resolvedEndDate,
             metrics: { totalPowerGained, totalTroopPowerGained, totalCmdPowerGained, totalTechPowerGained, totalBuildPowerGained, totalKPGained, totalDeadsGained, whalesCount: whales.length, switchersCount: allianceSwitchers.length },
             alliances: allianceList,
             switchers: allianceSwitchers.slice(0, 20),

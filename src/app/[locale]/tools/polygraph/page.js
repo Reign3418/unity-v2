@@ -41,6 +41,7 @@ export default function Polygraph() {
   const [isSweeping, setIsSweeping] = useState(false);
   const [sweepProgress, setSweepProgress] = useState({ total: 0, current: 0, currentKd: "", successes: 0 });
   const [sweepResults, setSweepResults] = useState([]);
+  const [sweepPhase, setSweepPhase] = useState("discovery"); // "discovery" | "analysis"
 
   useEffect(() => {
     if (defaultKd && !startKd) {
@@ -112,6 +113,7 @@ export default function Polygraph() {
       return;
     }
     setIsSweeping(true);
+    setSweepPhase("discovery");
     setError(null);
     setSweepResults([]);
     
@@ -130,15 +132,16 @@ export default function Polygraph() {
     const anchor = new Date(endDate + "T23:59:59Z");
     const startStr = new Date(anchor.getTime() - parseInt(timeframe)*3600000).toISOString().split("T")[0];
     
-    const BATCH_SIZE = 5;
-    const results = [];
+    // --- Phase 1: Discovery (ai=false) ---
+    const activeKds = [];
+    const BATCH_SIZE = 8;
     
     for (let i = 0; i < kdsToScan.length; i += BATCH_SIZE) {
       const batch = kdsToScan.slice(i, i + BATCH_SIZE);
       
       await Promise.all(batch.map(async (currKd) => {
         try {
-          const res = await fetch(`/api/aws/health-report?kds=${currKd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}`);
+          const res = await fetch(`/api/aws/health-report?kds=${currKd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=false`);
           setSweepProgress(prev => ({
             ...prev,
             currentKd: currKd,
@@ -147,41 +150,153 @@ export default function Polygraph() {
           if (res.ok) {
             const json = await res.json();
             if (json.success) {
-              results.push(json);
-              setSweepProgress(prev => ({
-                ...prev,
-                successes: prev.successes + 1
-              }));
+              activeKds.push({ kd: currKd, data: json });
             }
           }
         } catch (e) {
-          console.error(`Failed to scan KD ${currKd}:`, e);
+          console.error(`Discovery phase failed for KD ${currKd}:`, e);
         }
       }));
     }
     
-    const gradeVal = (g) => {
-      if (g === "A") return 5;
-      if (g === "B") return 4;
-      if (g === "C") return 3;
-      if (g === "D") return 2;
-      return 1;
-    };
+    if (activeKds.length === 0) {
+      setIsSweeping(false);
+      return;
+    }
     
-    const sortedResults = [...results].sort((a, b) => {
-      const gradeA = gradeVal(a.ai?.grade || "F");
-      const gradeB = gradeVal(b.ai?.grade || "F");
-      if (gradeA !== gradeB) return gradeB - gradeA;
-      
-      const riskA = parseInt(a.ai?.civilWarProbability || "100", 10);
-      const riskB = parseInt(b.ai?.civilWarProbability || "100", 10);
-      if (riskA !== riskB) return riskA - riskB;
-      
-      return (b.kingdom?.metrics?.totalPowerGained || 0) - (a.kingdom?.metrics?.totalPowerGained || 0);
+    // --- Phase 2: AI Analysis (ai=true, sequential) ---
+    setSweepPhase("analysis");
+    setSweepProgress({
+      total: activeKds.length,
+      current: 0,
+      currentKd: activeKds[0].kd,
+      successes: 0
     });
     
-    setSweepResults(sortedResults);
+    for (let i = 0; i < activeKds.length; i++) {
+      const activeKd = activeKds[i];
+      setSweepProgress(prev => ({
+        ...prev,
+        currentKd: activeKd.kd,
+        current: i
+      }));
+      
+      try {
+        const res = await fetch(`/api/aws/health-report?kds=${activeKd.kd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=true`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) {
+            setSweepResults(prev => [...prev, json]);
+            setSweepProgress(prev => ({
+              ...prev,
+              successes: prev.successes + 1
+            }));
+          } else {
+            const fallbackResult = {
+              ...activeKd.data,
+              ai: {
+                grade: "N/A",
+                gradeRationale: "AI analysis was skipped or encountered an error.",
+                civilWarProbability: 0,
+                civilWarRationale: "Unable to calculate risk.",
+                posture: "Unknown",
+                diagnosis: "Roster metrics loaded. AI analysis failed.",
+                stabilityIndex: "Roster data exists.",
+                economicIntel: "",
+                conflictTheories: [],
+                followAnalysis: "",
+                leadershipAssessment: "",
+                migrantIntel: "",
+                recommendation: "Review roster stats manually."
+              }
+            };
+            setSweepResults(prev => [...prev, fallbackResult]);
+          }
+        } else {
+          const fallbackResult = {
+            ...activeKd.data,
+            ai: {
+              grade: "N/A",
+              gradeRationale: "AI route failed to respond.",
+              civilWarProbability: 0,
+              civilWarRationale: "Route error.",
+              posture: "Unknown",
+              diagnosis: "Roster metrics loaded.",
+              stabilityIndex: "",
+              economicIntel: "",
+              conflictTheories: [],
+              followAnalysis: "",
+              leadershipAssessment: "",
+              migrantIntel: "",
+              recommendation: "Manual review recommended."
+            }
+          };
+          setSweepResults(prev => [...prev, fallbackResult]);
+        }
+      } catch (e) {
+        console.error(`AI analysis phase failed for KD ${activeKd.kd}:`, e);
+      }
+    }
+    
+    setSweepProgress(prev => ({
+      ...prev,
+      current: prev.total
+    }));
     setIsSweeping(false);
+  };
+
+  const getScanDateRangeText = (res) => {
+    const start = res.kingdom?.startDate;
+    const end = res.kingdom?.endDate;
+    if (!start || !end) return "";
+    
+    const formatDate = (dateStr) => {
+      try {
+        const clean = dateStr.replace("_", "T").split(" ")[0];
+        const d = new Date(clean);
+        if (isNaN(d.getTime())) return dateStr.split(" ")[0] || dateStr;
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        return `${months[d.getMonth()]} ${d.getDate()}`;
+      } catch (e) {
+        return dateStr;
+      }
+    };
+
+    const getDays = (s, e) => {
+      try {
+        const sClean = s.replace("_", "T").split(" ")[0];
+        const eClean = e.replace("_", "T").split(" ")[0];
+        const d1 = new Date(sClean);
+        const d2 = new Date(eClean);
+        const diff = Math.abs(d2 - d1);
+        return Math.round(diff / (1000 * 60 * 60 * 24));
+      } catch (err) {
+        return 0;
+      }
+    };
+
+    const days = getDays(start, end);
+    return `${formatDate(start)} → ${formatDate(end)} (${days}d)`;
+  };
+
+  const getGrowthPerDayText = (res) => {
+    const delta = res.kingdom?.metrics?.totalPowerGained || 0;
+    const start = res.kingdom?.startDate;
+    const end = res.kingdom?.endDate;
+    if (!start || !end) return "";
+    
+    try {
+      const sClean = start.replace("_", "T").split(" ")[0];
+      const eClean = end.replace("_", "T").split(" ")[0];
+      const d1 = new Date(sClean);
+      const d2 = new Date(eClean);
+      const diff = Math.abs(d2 - d1);
+      const days = Math.round(diff / (1000 * 60 * 60 * 24)) || 1;
+      const perDay = delta / days;
+      return ` (${fd(perDay)}/day)`;
+    } catch (e) {
+      return "";
+    }
   };
 
   const sorted = (list) => [...(list||[])].sort((a,b) => {
@@ -203,6 +318,26 @@ export default function Polygraph() {
 
   const TABS = ["overview","alliance","migration","leadership","spenders"];
   const TLABELS = { overview:t("tab_overview"), alliance:t("tab_alliance_intel"), migration:t("tab_migration"), leadership:t("tab_leadership"), spenders:t("tab_spenders") };
+
+  const gradeVal = (g) => {
+    if (g === "A") return 5;
+    if (g === "B") return 4;
+    if (g === "C") return 3;
+    if (g === "D") return 2;
+    return 1;
+  };
+
+  const sortedSweepResults = [...sweepResults].sort((a, b) => {
+    const gradeA = gradeVal(a.ai?.grade || "F");
+    const gradeB = gradeVal(b.ai?.grade || "F");
+    if (gradeA !== gradeB) return gradeB - gradeA;
+    
+    const riskA = parseInt(a.ai?.civilWarProbability || "100", 10);
+    const riskB = parseInt(b.ai?.civilWarProbability || "100", 10);
+    if (riskA !== riskB) return riskA - riskB;
+    
+    return (b.kingdom?.metrics?.totalPowerGained || 0) - (a.kingdom?.metrics?.totalPowerGained || 0);
+  });
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 p-4 md:p-8 animate-fade-in">
@@ -646,47 +781,53 @@ export default function Polygraph() {
       {isSweeping && (
         <div className="bg-[#0d1017] border border-[#1e222b] rounded-xl p-8 shadow-xl flex flex-col items-center justify-center gap-4 animate-pulse">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-fuchsia-500"/>
+          <div className="text-fuchsia-400 text-xs font-bold uppercase tracking-wider">
+            {sweepPhase === "discovery" ? "Phase 1: Discovering Active Kingdoms" : "Phase 2: Running J.A.R.V.I.S. Analysis"}
+          </div>
           <div className="text-gray-400 text-sm font-semibold">
             {t("sweeping_progress", { current: sweepProgress.current, total: sweepProgress.total, kd: sweepProgress.currentKd })}
           </div>
           <div className="w-full max-w-md bg-[#0a0c0f] h-2.5 rounded-full overflow-hidden border border-[#1e222b]">
             <div 
               className="bg-fuchsia-500 h-full transition-all duration-300" 
-              style={{ width: `${(sweepProgress.current / sweepProgress.total) * 100}%` }}
+              style={{ width: `${sweepProgress.total > 0 ? (sweepProgress.current / sweepProgress.total) * 100 : 0}%` }}
             />
           </div>
           <div className="text-xs text-gray-500 font-mono">
-            Successes: {sweepProgress.successes} / {sweepProgress.total} checked
+            {sweepPhase === "discovery" 
+              ? `Active Kingdoms Found: ${sweepProgress.successes}`
+              : `Successfully Analyzed: ${sweepProgress.successes} / ${sweepProgress.total} active`
+            }
           </div>
         </div>
       )}
 
       {/* Range Sweep Results */}
-      {mode === "sweep" && !isSweeping && sweepResults.length > 0 && (
+      {mode === "sweep" && sweepResults.length > 0 && (
         <div className="space-y-6">
           {/* Recommended Winner Banner */}
-          {sweepResults[0] && (
+          {sortedSweepResults[0] && (
             <div className="bg-[#0f1115] border border-emerald-500/20 rounded-xl p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row gap-6 items-center justify-between">
               <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
               <div className="flex flex-col md:flex-row items-center gap-4 relative z-10">
                 <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-3xl font-black px-5 py-3 rounded-lg">
-                  KD {sweepResults[0].kingdom.kd}
+                  KD {sortedSweepResults[0].kingdom.kd}
                 </div>
                 <div>
                   <h3 className="text-emerald-400 font-black tracking-widest text-sm uppercase flex items-center gap-1.5 justify-center md:justify-start">
                     <Crown size={14}/> {t("sweep_winner")}
                   </h3>
                   <p className="text-gray-300 text-sm mt-1 max-w-xl text-center md:text-left">
-                    {sweepResults[0].ai?.gradeRationale || sweepResults[0].ai?.diagnosis || t("sweep_winner_desc")}
+                    {sortedSweepResults[0].ai?.gradeRationale || sortedSweepResults[0].ai?.diagnosis || t("sweep_winner_desc")}
                   </p>
                 </div>
               </div>
               <div className="flex flex-col items-center justify-center shrink-0 border-l border-[#1e222b] pl-6 h-full min-w-[120px]">
-                <div className={`text-4xl font-black px-4 py-2 rounded border ${gc(sweepResults[0].ai?.grade)}`}>
-                  {sweepResults[0].ai?.grade || "N/A"}
+                <div className={`text-4xl font-black px-4 py-2 rounded border ${gc(sortedSweepResults[0].ai?.grade)}`}>
+                  {sortedSweepResults[0].ai?.grade || "N/A"}
                 </div>
                 <div className="text-[10px] text-gray-500 font-bold uppercase mt-2">
-                  Risk: {sweepResults[0].ai?.civilWarProbability || 0}%
+                  Risk: {sortedSweepResults[0].ai?.civilWarProbability || 0}%
                 </div>
               </div>
             </div>
@@ -712,10 +853,13 @@ export default function Polygraph() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1e222b] text-xs font-mono">
-                  {sweepResults.map(res => (
+                  {sortedSweepResults.map(res => (
                     <tr key={res.kingdom.kd} className="hover:bg-[#15181e] transition-colors">
-                      <td className="p-4 font-black text-cyan-400">
-                        KD {res.kingdom.kd}
+                      <td className="p-4">
+                        <div className="font-black text-cyan-400">KD {res.kingdom.kd}</div>
+                        <div className="text-[10px] text-gray-500 font-bold tracking-wider mt-0.5 whitespace-nowrap">
+                          {getScanDateRangeText(res)}
+                        </div>
                       </td>
                       <td className="p-4 text-center">
                         <span className={`font-black px-2.5 py-1 rounded border text-sm ${gc(res.ai?.grade)}`}>
@@ -731,7 +875,12 @@ export default function Polygraph() {
                         {res.ai?.posture || "Unknown"}
                       </td>
                       <td className="p-4 text-right">
-                        {fd(res.kingdom.metrics?.totalPowerGained || 0)}
+                        <div className="font-bold text-gray-200">
+                          {fd(res.kingdom.metrics?.totalPowerGained || 0)}
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                          {getGrowthPerDayText(res)}
+                        </div>
                       </td>
                       <td className="p-4 text-right">
                         {res.kingdom.metrics?.whalesCount || 0}
