@@ -14,7 +14,9 @@ export async function POST(req) {
         const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) return NextResponse.json({ error: "Gemini API Key missing." }, { status: 500 });
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const prompt = `This is a screenshot of a Rise of Kingdoms chat window.
 

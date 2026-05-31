@@ -246,7 +246,9 @@ export async function POST(req) {
             : buildSinglePrompt(kdDataArr7, timeframeDays);
 
         // ── Call Gemini ───────────────────────────────────────────────────────
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent`;
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

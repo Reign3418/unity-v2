@@ -271,12 +271,14 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
 
         const customKey = req.headers.get('x-gemini-key');
         const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
         let aiBrief = null;
         if (apiKey) {
             try {
                 const geminiRes = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`,
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

@@ -27,6 +27,9 @@ export default function AdminConsole() {
   
   // UX State
   const [activeTab, setActiveTab] = useState("overview");
+  const [globalModel, setGlobalModel] = useState("gemini-2.5-flash");
+  const [isUpdatingModel, setIsUpdatingModel] = useState(false);
+
 
   // Forms
   const [passForm, setPassForm] = useState({ kingdomId: "", role: "User", poc: "", expireDays: "7" });
@@ -80,6 +83,7 @@ export default function AdminConsole() {
       setSupporterKingdoms(data.supporterKingdoms || []);
       setFeatureGates(data.featureGates || []);
       setUploadLogs(logsData.uploads || []);
+      setGlobalModel(data.globalGeminiModel || "gemini-2.5-flash");
       
       globalMatrixCache = { ...data, uploadLogs: logsData.uploads };
       globalMatrixTimestamp = Date.now();
@@ -163,6 +167,28 @@ export default function AdminConsole() {
       alert("Local Engine Credentials securely written to Browser Storage.");
     } catch (e) { alert("Failed to save credentials."); }
   };
+
+
+  const handleUpdateGlobalModel = async (modelName) => {
+    setIsUpdatingModel(true);
+    try {
+      setGlobalModel(modelName);
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "UPDATE_GLOBAL_GEMINI_MODEL", payload: { modelName } })
+      });
+      if (!res.ok) throw new Error("Failed to update global default model.");
+      alert(`Global default AI model updated to ${modelName}!`);
+      fetchAdminMatrix();
+    } catch (e) {
+      alert(e.message);
+      fetchAdminMatrix();
+    } finally {
+      setIsUpdatingModel(false);
+    }
+  };
+
 
   const handleBroadcast = async () => {
     if (!broadcastMessage.trim()) return alert("Message cannot be empty.");
@@ -853,6 +879,34 @@ export default function AdminConsole() {
                  <input type="password" placeholder={localKeys.awsKey ? "AWS Key ID (Mapped)" : "Optional Native Env Override"} className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-gray-300 focus:border-orange-500 outline-none" value={localKeys.awsKey} onChange={e => setLocalKeys({...localKeys, awsKey: e.target.value})} />
                  <input type="password" placeholder={localKeys.awsSecret ? "AWS Secret (Mapped)" : "Optional Native Env Override"} className="w-full bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-gray-300 focus:border-orange-500 outline-none" value={localKeys.awsSecret} onChange={e => setLocalKeys({...localKeys, awsSecret: e.target.value})} />
                  <button onClick={handleSaveLocalKeys} className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded p-3 text-xs font-bold uppercase tracking-widest transition-all">Flash Storage Write</button>
+            </div>
+         </div>
+
+         <div className="border border-[#1e222b] bg-[#0a0c10] rounded-xl p-6 md:col-span-2">
+            <h3 className="text-cyan-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2 border-b border-[#1e222b] pb-3"><Bot size={16}/> Global AI Engine Default Model</h3>
+            <div className="space-y-4">
+               <p className="text-xs text-gray-400 leading-relaxed">
+                 Select the default Gemini model used across the platform for all OCR scanning, translation, and coaching Briefs.
+                 Users can still override this individually in their personal Settings page.
+               </p>
+               <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                 <select 
+                   value={globalModel}
+                   onChange={e => handleUpdateGlobalModel(e.target.value)}
+                   disabled={isUpdatingModel}
+                   className="bg-[#161920] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono outline-none cursor-pointer text-sm flex-1 focus:border-cyan-500/50 transition-colors"
+                 >
+                   <option value="gemini-3.5-flash">gemini-3.5-flash (GA - May 2026 - Recommended)</option>
+                   <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                   <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                   <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy)</option>
+                 </select>
+                 {isUpdatingModel && (
+                   <span className="text-xs text-cyan-400 animate-pulse font-mono uppercase font-bold self-center">
+                     🔄 Saving Override...
+                   </span>
+                 )}
+               </div>
             </div>
          </div>
       </div>

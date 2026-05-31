@@ -21,7 +21,8 @@ export async function POST(req) {
             return NextResponse.json({ error: "Gemini server API Key is missing from V2 env variables." }, { status: 500 });
         }
 
-        const apiModel = 'gemini-2.5-flash';
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const prompt = `This is a screenshot of the YOUR RESOURCES & SPEEDUPS tab in Rise of Kingdoms. Ignore the RESOURCES tab, focus only on SPEEDUPS. 

@@ -24,7 +24,8 @@ export async function POST(req) {
             return NextResponse.json({ error: "Gemini API Key missing." }, { status: 500 });
         }
 
-        const apiModel = 'gemini-2.5-flash';
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const prompt = `You are parsing a "Hall of Heroes" screenshot from Rise of Kingdoms showing unit deaths. 

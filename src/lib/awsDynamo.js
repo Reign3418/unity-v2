@@ -112,6 +112,35 @@ export async function getGlobalConfig(configKey) {
 }
 
 /**
+ * Updates a Global Configuration key in DynamoDB
+ */
+export async function updateGlobalConfig(configKey, value) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    try {
+        const params = {
+            TableName: tableName,
+            Item: {
+                'PK': { S: 'GLOBAL_CONFIG' },
+                'SK': { S: `CONFIG#${configKey}` },
+                'attributes': {
+                    M: {
+                        'value': { S: value }
+                      }
+                }
+            }
+        };
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error(`[AWS] Failed to update global config ${configKey}:`, e);
+        return false;
+    }
+}
+
+
+/**
  * Retrieves the complete array of all kingdoms that have ever been uploaded
  * to the AWS cloud ecosystem, automatically bypassing tenant restrictions for Super Admins.
  */

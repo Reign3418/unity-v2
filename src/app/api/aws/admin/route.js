@@ -5,8 +5,9 @@ export const maxDuration = 300;
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, addUserAllowedKingdom, removeUserAllowedKingdom, 
-  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles, getSupporterKingdoms, getFeatureGates, updateFeatureGate, setKingdomSupporterStatus
+  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles, getSupporterKingdoms, getFeatureGates, updateFeatureGate, setKingdomSupporterStatus, getGlobalConfig, updateGlobalConfig
 } from "@/lib/awsDynamo";
+
 
 export async function GET(req) {
   try {
@@ -16,13 +17,14 @@ export async function GET(req) {
     }
 
     // Run both DynamoDB scans continuously over parallel threads
-    const [users, tenants, passcodes, pendingUsers, supporterKingdoms, featureGates] = await Promise.all([
+    const [users, tenants, passcodes, pendingUsers, supporterKingdoms, featureGates, globalGeminiModel] = await Promise.all([
       getAllUsers(),
       getAllTenants(),
       getAllGuestPasses(),
       getPendingUsers(),
       getSupporterKingdoms(),
-      getFeatureGates()
+      getFeatureGates(),
+      getGlobalConfig("GEMINI_MODEL")
     ]);
 
     // Attach current Environment Gateway strings so the Admin knows which DB is active
@@ -37,7 +39,8 @@ export async function GET(req) {
       passcodes,
       pendingUsers,
       supporterKingdoms,
-      featureGates
+      featureGates,
+      globalGeminiModel: globalGeminiModel || "gemini-2.5-flash"
     }, { status: 200 });
 
   } catch (error) {
@@ -257,6 +260,13 @@ export async function POST(req) {
       if (!path) return NextResponse.json({ error: "Missing Route Path" }, { status: 400 });
       const res = await updateFeatureGate(path, requiresSupporter, minimumRole);
       return NextResponse.json({ success: res, message: res ? "Feature Gate Locked" : "Failed Lock" }, { status: 200 });
+    }
+
+    if (action === "UPDATE_GLOBAL_GEMINI_MODEL") {
+      const { modelName } = payload;
+      if (!modelName) return NextResponse.json({ error: "Missing Model Name" }, { status: 400 });
+      const res = await updateGlobalConfig("GEMINI_MODEL", modelName);
+      return NextResponse.json({ success: res, message: res ? `Global Default Model Updated to ${modelName}` : "Failed Update" }, { status: 200 });
     }
 
     return NextResponse.json({ error: "Unknown Admin Directive." }, { status: 400 });

@@ -72,7 +72,9 @@ Return ONLY a valid JSON object matching this exact mathematical structure. Do N
   ]
 }`;
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent`;
 
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {
             method: 'POST',

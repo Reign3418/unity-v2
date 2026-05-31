@@ -58,7 +58,8 @@ RULES:
 7. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
 `;
 
-        const model = stats.geminiModel || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const customModel = req.headers.get('x-gemini-model');
+        const model = customModel || stats.geminiModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {

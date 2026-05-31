@@ -76,7 +76,8 @@ If a camp has no kingdoms visible, leave it as an empty string.
 Example output format:
 ${exampleOutput}`;
 
-        const apiModel = 'gemini-2.5-flash';
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         const apiUrl   = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const response = await fetch(apiUrl, {
