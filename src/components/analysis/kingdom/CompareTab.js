@@ -239,7 +239,7 @@ export default function CompareTab({ targetKd, trends, startDate, endDate }) {
     }, [selectedGovs, t]);
 
     // Single comparison row rendering helper
-    const MetricRow = ({ label, metricKey, isDelta = false }) => {
+    const MetricRow = ({ label, metricKey, isDelta = false, isText = false }) => {
         return (
             <div className="grid grid-cols-5 border-b border-[#1e222b]/40 py-2.5 px-4 items-center hover:bg-white/[0.01] transition-colors">
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider col-span-5 md:col-span-1 py-1 md:py-0">
@@ -257,7 +257,7 @@ export default function CompareTab({ targetKd, trends, startDate, endDate }) {
                                     <Crown size={11} className="text-yellow-500 shrink-0" title={t("category_leader")} />
                                 )}
                                 <span className={`text-[11px] font-mono leading-none ${isLeader ? "font-black text-yellow-400" : "text-gray-300"}`}>
-                                    {isDelta ? formatDeltaVal(rawVal) : formatCurrentVal(numericVal)}
+                                    {isText ? (rawVal || "-") : isDelta ? formatDeltaVal(rawVal) : formatCurrentVal(numericVal)}
                                 </span>
                             </div>
                         );
@@ -457,9 +457,9 @@ export default function CompareTab({ targetKd, trends, startDate, endDate }) {
                         <div className="bg-[#13161c]/40 border-b border-[#1e222b] py-1.5 px-4 text-[9px] font-black uppercase tracking-wider text-cyan-400">
                             {t("section_identity")}
                         </div>
-                        <MetricRow label={t("alliance")} metricKey="alliance" />
+                        <MetricRow label={t("alliance")} metricKey="alliance" isText={true} />
                         <MetricRow label={t("town_hall")} metricKey="townHall" />
-                        <MetricRow label={t("status")} metricKey="status" />
+                        <MetricRow label={t("status")} metricKey="status" isText={true} />
 
                         {/* Section: Growth */}
                         <div className="bg-[#13161c]/40 border-b border-[#1e222b] py-1.5 px-4 text-[9px] font-black uppercase tracking-wider text-purple-400">
