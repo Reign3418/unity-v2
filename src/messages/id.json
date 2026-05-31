@@ -211,6 +211,7 @@
     "gemini_key": "Google Gemini Secret Key",
     "btn_save": "Save Changes",
     "gemini_model": "Gemini Architecture Model",
+    "gemini_3_5_flash_rec": "Gemini 3.5 Flash (Recommended)",
     "gemini_flash_rec": "Gemini 2.5 Flash (Recommended)",
     "gemini_pro": "Gemini 1.5 Pro (Heavy Duty)",
     "gemini_legacy": "Gemini 1.5 Flash (Legacy)",

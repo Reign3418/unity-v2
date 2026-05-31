@@ -16,7 +16,7 @@ export default function SettingsPage() {
     defaultKingdom: "3155",
     theme: "dark",
     geminiKey: "",
-    geminiModel: "gemini-2.5-flash",
+    geminiModel: "gemini-3.5-flash",
     timezone: "",
     playtimeStart: "",
     playtimeEnd: ""
@@ -289,6 +289,7 @@ export default function SettingsPage() {
                 onChange={e => setPrefs(p => ({ ...p, geminiModel: e.target.value }))}
                 className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
+                <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')}</option>
                 <option value="gemini-2.5-flash">{t('gemini_flash_rec')}</option>
                 <option value="gemini-2.5-pro">{t('gemini_pro')}</option>
                 <option value="gemini-1.5-flash">{t('gemini_legacy')}</option>
