@@ -88,13 +88,28 @@ export default function Polygraph() {
     }).catch(() => {});
   }, [defaultKd, restored]);
 
+  const getAiHeaders = () => {
+    if (typeof window === "undefined") return {};
+    try {
+      const prefs = JSON.parse(localStorage.getItem('unty_prefs') || localStorage.getItem('unity_prefs') || '{}');
+      const headers = {};
+      if (prefs.geminiKey) headers['x-gemini-key'] = prefs.geminiKey;
+      if (prefs.geminiModel) headers['x-gemini-model'] = prefs.geminiModel;
+      return headers;
+    } catch (e) {
+      return {};
+    }
+  };
+
   const scan = async () => {
     if (!kd || !endDate) { setError(t("err_provide_input")); return; }
     setLoading(true); setError(null); setData(null);
     const anchor = new Date(endDate + "T23:59:59Z");
     const start = new Date(anchor.getTime() - parseInt(timeframe)*3600000).toISOString().split("T")[0];
     try {
-      const res = await fetch(`/api/aws/health-report?kds=${kd.trim()}&start=${start}&end=${endDate}&depth=${depth}&locale=${locale}`);
+      const res = await fetch(`/api/aws/health-report?kds=${kd.trim()}&start=${start}&end=${endDate}&depth=${depth}&locale=${locale}`, {
+        headers: getAiHeaders()
+      });
       const json = await res.json();
       if (res.ok && json.success) setData(json);
       else setError(json.error || t("err_scan_failed"));
@@ -141,7 +156,9 @@ export default function Polygraph() {
       
       await Promise.all(batch.map(async (currKd) => {
         try {
-          const res = await fetch(`/api/aws/health-report?kds=${currKd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=false`);
+          const res = await fetch(`/api/aws/health-report?kds=${currKd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=false`, {
+            headers: getAiHeaders()
+          });
           setSweepProgress(prev => ({
             ...prev,
             currentKd: currKd,
@@ -182,7 +199,9 @@ export default function Polygraph() {
       }));
       
       try {
-        const res = await fetch(`/api/aws/health-report?kds=${activeKd.kd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=true`);
+        const res = await fetch(`/api/aws/health-report?kds=${activeKd.kd.trim()}&start=${startStr}&end=${endDate}&depth=${depth}&locale=${locale}&ai=true`, {
+          headers: getAiHeaders()
+        });
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.ai) {
