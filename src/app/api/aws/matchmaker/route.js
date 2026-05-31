@@ -229,12 +229,16 @@ export async function POST(req) {
             return NextResponse.json({ error: "Failed to locate actionable historical data for the requested kingdoms." }, { status: 404 });
         }
 
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
         // Fire-and-forget event log
         logEvent('MATCHMAKER_SCAN', {
             kingdoms: limitedKingdoms,
             timeframeDays,
             dualAnalysis,
             kingdomCount: kdDataArr7.length,
+            model: apiModel
         }, {
             userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || '',
@@ -246,8 +250,6 @@ export async function POST(req) {
             : buildSinglePrompt(kdDataArr7, timeframeDays);
 
         // ── Call Gemini ───────────────────────────────────────────────────────
-        const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent`;
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {
             method: 'POST',

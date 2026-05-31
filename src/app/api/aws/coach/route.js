@@ -100,7 +100,8 @@ RULES:
             governorName: stats.name,
             grade: stats.grade,
             locale: stats.locale,
-            kingdomState: stats.kingdomState
+            kingdomState: stats.kingdomState,
+            model: model
         }, {
             userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent'),

@@ -73,7 +73,7 @@ IMPORTANT: Do not return any other text, no markdown formatting, no backticks. O
             // Save to DB
             await setKingdomHoh(kd, endScan, parsed.t4Deads, parsed.t5Deads);
             
-        logEvent('VISION_HOH_SCAN', {}, {
+        logEvent('VISION_HOH_SCAN', { model: apiModel }, {
             userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });

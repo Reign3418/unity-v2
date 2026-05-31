@@ -402,6 +402,7 @@ export default function AIUsageDashboard() {
                                     <th className="px-4 py-3 font-medium">Timestamp</th>
                                     <th className="px-4 py-3 font-medium">User</th>
                                     <th className="px-4 py-3 font-medium">Event / Tool</th>
+                                    <th className="px-4 py-3 font-medium">Model</th>
                                     <th className="px-4 py-3 font-medium">Device Info</th>
                                 </tr>
                             </thead>
@@ -417,6 +418,9 @@ export default function AIUsageDashboard() {
                                         <td className="px-4 py-3 font-bold text-amber-500">
                                             {evt.eventType}
                                         </td>
+                                        <td className="px-4 py-3 font-mono text-xs text-cyan-400 font-bold whitespace-nowrap">
+                                            {evt.metadata?.model || '—'}
+                                        </td>
                                         <td className="px-4 py-3 text-gray-500 max-w-xs truncate" title={evt.userAgent}>
                                             {evt.userAgent}
                                         </td>
@@ -424,7 +428,7 @@ export default function AIUsageDashboard() {
                                 ))}
                                 {filteredEvents.length === 0 && (
                                     <tr>
-                                        <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No events found in this period.</td>
+                                        <td colSpan="5" className="px-4 py-8 text-center text-gray-500">No events found in this period.</td>
                                     </tr>
                                 )}
                             </tbody>

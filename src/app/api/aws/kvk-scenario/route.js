@@ -211,18 +211,19 @@ export async function POST(req) {
             );
         }
 
+        const customModel = req.headers.get('x-gemini-model');
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
         logEvent('KVK_SCENARIO_SCAN', {
-            alliance, enemy, timeframeDays,
+            alliance, enemy, timeframeDays, model: apiModel
         }, {
-            userEmail:  session?.user?.email || 'anonymous',
+            userEmail:  session?.user?.username || session?.user?.email || 'anonymous',
             userAgent:  req.headers.get('user-agent') || '',
         });
 
         // Build AI prompt
         const prompt = buildKvKPrompt(allianceProfile, enemyProfile);
 
-        const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent`;
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {
             method: 'POST',

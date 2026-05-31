@@ -116,7 +116,7 @@ Return ONLY a valid JSON object with this exact structure:
         const parsed = JSON.parse(cleaned);
         
         const session = await auth();
-        logEvent('VISION_FLAG_SCAN', {}, {
+        logEvent('VISION_FLAG_SCAN', { model: apiModel }, {
             userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });

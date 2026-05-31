@@ -72,7 +72,7 @@ export async function POST(req) {
 
         
         const session = await auth();
-        logEvent('VISION_FORGE_SCAN', {}, {
+        logEvent('VISION_FORGE_SCAN', { model: apiModel }, {
             userEmail: session?.user?.username || session?.user?.email || 'anonymous',
             userAgent: req.headers.get('user-agent') || ''
         });
