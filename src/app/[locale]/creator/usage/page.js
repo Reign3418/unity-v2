@@ -24,7 +24,12 @@ export default function AIUsageDashboard() {
     if (error) return <div className="p-10 text-red-500 font-mono">Error: {error}</div>;
 
     // Filter to only show AI/Vision/Gemini related events
-    const aiEvents = events.filter(e => e.eventType.startsWith('VISION_') || e.eventType === 'MATCHMAKER_SCAN' || e.eventType === 'KVK_SCENARIO_SCAN');
+    const aiEvents = events.filter(e => 
+        e.eventType.startsWith('VISION_') || 
+        e.eventType === 'MATCHMAKER_SCAN' || 
+        e.eventType === 'KVK_SCENARIO_SCAN' ||
+        e.eventType === 'AI_COACH_BRIEF'
+    );
 
     // Aggregate by User
     const usageByUser = aiEvents.reduce((acc, curr) => {

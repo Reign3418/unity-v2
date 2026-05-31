@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 
 export const maxDuration = 300;
 import { getGlobalConfig } from "@/lib/awsDynamo";
+import { logEvent } from "@/lib/eventLogger";
 
 
 export async function POST(req) {
@@ -94,6 +95,16 @@ RULES:
         
         const result = await geminiResponse.json();
         const advice = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No advice generated.';
+
+        logEvent('AI_COACH_BRIEF', {
+            governorName: stats.name,
+            grade: stats.grade,
+            locale: stats.locale,
+            kingdomState: stats.kingdomState
+        }, {
+            userEmail: session?.user?.email,
+            userAgent: req.headers.get('user-agent'),
+        });
 
         return NextResponse.json({ success: true, advice });
 
