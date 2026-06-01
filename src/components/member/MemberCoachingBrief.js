@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bot, RefreshCw, RotateCcw, Link2, Settings, ChevronRight } from 'lucide-react';
+import { Bot, RefreshCw, RotateCcw, Link2, Settings, ChevronRight, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 
@@ -341,7 +341,10 @@ export default function MemberCoachingBrief({ govId, kingdomId, session }) {
                             <span className="text-[8px] font-black text-gray-600 uppercase tracking-wider mt-0.5">Grade</span>
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-0.5">J.A.R.V.I.S. Intel Brief</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-0.5 flex items-center gap-1.5">
+                                J.A.R.V.I.S. Intel Brief
+                                <Sparkles size={11} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
+                            </p>
                             <p className="text-base font-bold text-white leading-tight">{myEntry?.name}</p>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                 {/* Archetype badge */}

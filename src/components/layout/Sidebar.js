@@ -8,7 +8,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -18,7 +18,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   const isLeader = session?.user?.isLeader;
 
-  const NavItem = ({ href, icon: Icon, label, hidden }) => {
+  const NavItem = ({ href, icon: Icon, label, hidden, isAi }) => {
     if (hidden) return null;
     const isActive = pathname === href || pathname === `/en${href}` || pathname.includes(`${href}`); // fuzzy match over locale
     
@@ -33,7 +33,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         `}
       >
         <Icon size={18} className={isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400 transition-colors'} />
-        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm font-medium flex items-center gap-1.5">
+          {label}
+          {isAi && <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />}
+        </span>
       </Link>
     );
   };
@@ -76,13 +79,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
           <SectionTitle>{t('sec_analysis')}</SectionTitle>
           <NavItem href="/analysis/kingdom" icon={BarChart2} label={t('nav_kingdom_analysis')} />
-          <NavItem href="/analysis/kvk" icon={Target} label="KvK Hub" />
-          <NavItem href="/analysis/global" icon={TrendingUp} label={t('nav_global_analysis')} />
+          <NavItem href="/analysis/kvk" icon={Target} label="KvK Hub" isAi={true} />
+          <NavItem href="/analysis/global" icon={TrendingUp} label={t('nav_global_analysis')} isAi={true} />
           <NavItem href="/rankings/pre-kvk" icon={Trophy} label={t('nav_pre_kvk')} />
           <NavItem href="/results/dkp" icon={Medal} label={t('nav_dkp')} />
           <NavItem href="/tools/tracker" icon={Timer} label={t('nav_activity_tracker')} />
           <NavItem href="/tools/hunter" icon={Crosshair} label={t('nav_player_hunter')} />
-          <NavItem href="/tools/polygraph" icon={Activity} label="EK Polygraph" />
+          <NavItem href="/tools/polygraph" icon={Activity} label="EK Polygraph" isAi={true} />
 
           <SectionTitle>{t('sec_community')}</SectionTitle>
           <NavItem href="/changelog" icon={BookOpen} label={t('nav_changelog')} />
@@ -115,7 +118,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           >
               <div className="flex items-center gap-3">
                   <FlaskConical size={18} className="text-fuchsia-400 group-hover:animate-pulse" />
-                  <span className="text-sm font-medium">AI Vision OCR</span>
+                  <span className="text-sm font-medium flex items-center gap-1.5">
+                      AI Vision OCR
+                      <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
+                  </span>
               </div>
               <span className="text-[10px] font-mono bg-fuchsia-500/20 px-2 py-0.5 rounded text-fuchsia-200 uppercase tracking-widest border border-fuchsia-500/30">Applet</span>
           </button>
@@ -125,7 +131,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           >
               <div className="flex items-center gap-3">
                   <span className="text-[18px]">🌐</span>
-                  <span className="text-sm font-medium">Chat Translator</span>
+                  <span className="text-sm font-medium flex items-center gap-1.5">
+                      Chat Translator
+                      <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
+                  </span>
               </div>
               <span className="text-[10px] font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-200 uppercase tracking-widest border border-emerald-500/30">Applet</span>
           </button>

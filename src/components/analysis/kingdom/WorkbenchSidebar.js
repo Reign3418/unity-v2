@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, X, Activity,
   BarChart2, TrendingUp, Map, Clock, Crosshair,
   Link, GitMerge, Trophy, Users, Link2, Archive,
-  Cpu, Target, LayoutTemplate, Menu, Building2
+  Cpu, Target, LayoutTemplate, Menu, Building2, Sparkles
 } from 'lucide-react';
 
 // Maps every tab name to its lucide icon
@@ -153,15 +153,16 @@ export default function WorkbenchSidebar({
               {visibleTabs.map(tabName => {
                 const Icon = ICON_MAP[tabName] || Activity;
                 const isActive = activeTab === tabName;
+                const isAi = tabName === 'Growth Analysis';
                 return (
                   <button
                     key={tabName}
-                    title={isCollapsed && !isMobile ? tabName : undefined}
+                    title={isCollapsed && !isMobile ? `${tabName}${isAi ? ' (AI-Powered)' : ''}` : undefined}
                     onClick={() => {
                       setActiveTab(tabName);
                       if (isMobile) setIsMobileOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all mb-0.5 border ${
+                    className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all mb-0.5 border relative ${
                       isActive
                         ? `${cat.bgActiveClass} ${cat.colorClass} shadow-sm`
                         : 'text-gray-500 border-transparent hover:bg-[#1a1e27] hover:text-gray-300'
@@ -169,7 +170,13 @@ export default function WorkbenchSidebar({
                   >
                     <Icon size={13} className="shrink-0" />
                     {(!isCollapsed || isMobile) && (
-                      <span className="truncate leading-none">{tabName}</span>
+                      <span className="truncate leading-none flex items-center gap-1">
+                        {tabName}
+                        {isAi && <Sparkles size={10} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0 ml-0.5" />}
+                      </span>
+                    )}
+                    {isCollapsed && !isMobile && isAi && (
+                      <div className="absolute right-1 top-1 w-1.5 h-1.5 bg-fuchsia-400 rounded-full" />
                     )}
                   </button>
                 );

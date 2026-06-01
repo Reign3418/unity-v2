@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { 
-  Globe2, RefreshCw, BarChart, ShieldAlert, Zap, Plus, X, Users, Save, List, Trash2, Swords, Shield, TrendingUp, AlertTriangle, Target
+  Globe2, RefreshCw, BarChart, ShieldAlert, Zap, Plus, X, Users, Save, List, Trash2, Swords, Shield, TrendingUp, AlertTriangle, Target, Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { 
@@ -573,7 +573,11 @@ export default function GlobalAnalysis() {
                  : 'bg-[#13161c] text-gray-500 border border-[#1e222b] hover:bg-[#1e222b] hover:text-gray-300'
              }`}
            >
-             <Swords size={14} /> KvK Scenario
+             <Swords size={14} />
+             <span className="flex items-center gap-1.5">
+               KvK Scenario
+               <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
+             </span>
            </button>
 
            {/* Recruiting Center — standalone page */}

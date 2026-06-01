@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check } from "lucide-react";
+import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 
@@ -374,7 +374,10 @@ export default function Polygraph() {
           <div className="flex items-center gap-3 flex-1">
             <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]"><Activity className="text-fuchsia-500" size={28}/></div>
             <div>
-              <h1 className="text-2xl font-black text-white tracking-widest uppercase">{t("title")}</h1>
+              <h1 className="text-2xl font-black text-white tracking-widest uppercase flex items-center gap-2">
+                {t("title")}
+                <Sparkles className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" size={18} />
+              </h1>
               <p className="text-fuchsia-400 text-xs font-bold uppercase tracking-[0.2em]">{t("subtitle")}</p>
             </div>
           </div>
@@ -531,7 +534,10 @@ export default function Polygraph() {
               {ai && (
                 <div className="space-y-4">
                   <div className="bg-[#0f1115] border border-[#1e222b] rounded-lg p-5">
-                    <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-2">{t("ai_diagnosis")}</div>
+                    <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-2 flex items-center gap-1.5">
+                      {t("ai_diagnosis")}
+                      <Sparkles size={11} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
+                    </div>
                     <p className="text-gray-300 text-sm leading-relaxed">{ai.diagnosis}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
