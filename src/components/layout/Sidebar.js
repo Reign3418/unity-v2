@@ -88,6 +88,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <NavItem href="/tools/polygraph" icon={Activity} label="EK Polygraph" isAi={true} />
 
           <SectionTitle>{t('sec_community')}</SectionTitle>
+          <NavItem href="/guide" icon={FileText} label="User Guide" />
           <NavItem href="/changelog" icon={BookOpen} label={t('nav_changelog')} />
           <NavItem href="/community" icon={MessageSquare} label={t('nav_community_hub')} />
 
