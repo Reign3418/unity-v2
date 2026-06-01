@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
 import { 
   BookOpen, FileText, Check, Upload, Timer, Wheat, Zap, Shield, 
   Map, Eye, Activity, Target, Sparkles, BrainCircuit, Swords, 
@@ -11,7 +10,7 @@ import {
 export default function UserGuidePage() {
   const [activeTab, setActiveTab] = useState("getting-started");
 
-  // ELI8 custom layout guide tabs
+  // Custom navigation tabs
   const TabButton = ({ id, label, icon: Icon, color }) => (
     <button
       onClick={() => setActiveTab(id)}
@@ -38,11 +37,11 @@ export default function UserGuidePage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-2">
-              Unity Magic Guide Book
+              Unity Platform Guide
               <Sparkles className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" size={24} />
             </h1>
             <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">
-              Let's learn how to use all the super-cool features of Unity 2.0! 🎮✨
+              Step-by-step walkthrough of all features and modules in Unity 2.0!
             </p>
           </div>
         </div>
@@ -50,11 +49,11 @@ export default function UserGuidePage() {
 
       {/* Tabs Menu */}
       <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-xl overflow-x-auto px-2 no-scrollbar">
-        <TabButton id="getting-started" label="🚀 Feeding Unity" icon={Upload} color="indigo" />
-        <TabButton id="calculators" label="🔮 Magic Scanners" icon={Sparkles} color="fuchsia" />
-        <TabButton id="analytics" label="📊 Playground Charts" icon={Activity} color="cyan" />
-        <TabButton id="scouting" label="🌍 Scout Binoculars" icon={Target} color="amber" />
-        <TabButton id="jarvis" label="🤖 Robot Helpers" icon={Bot} color="emerald" />
+        <TabButton id="getting-started" label="🚀 Ingesting Data" icon={Upload} color="indigo" />
+        <TabButton id="calculators" label="🔮 AI Calculators" icon={Sparkles} color="fuchsia" />
+        <TabButton id="analytics" label="📊 Charts & Analytics" icon={Activity} color="cyan" />
+        <TabButton id="scouting" label="🌍 Global Scouting" icon={Target} color="amber" />
+        <TabButton id="jarvis" label="🤖 AI & Discord Bot" icon={Bot} color="emerald" />
       </div>
 
       {/* Tab Contents */}
@@ -65,64 +64,53 @@ export default function UserGuidePage() {
           <div className="bg-[#0d1117] border border-[#1e222b] rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-black text-white tracking-wider uppercase flex items-center gap-2">
               <Upload className="text-indigo-400" size={20} />
-              Feeding Unity Its Snacks (How to Import Data)
+              Ingesting Data (How to Import Scans)
             </h2>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Unity is a super-smart robot, but it gets hungry for data! To help it show you cool charts and battle plans, you need to feed it information from your game. Here are the four ways to do it:
+              Unity relies on historical in-game scans to compute DKP scores, graph player growth curves, and wargame coalition matchups. Here are the primary ways to import scan logs:
             </p>
 
             {/* Warning Box */}
             <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-4 flex gap-3 text-xs text-amber-300">
               <AlertTriangle size={18} className="shrink-0 mt-0.5" />
               <div>
-                <strong className="font-black uppercase tracking-wider block mb-1">Kid-Friendly Rule:</strong>
-                Always upload scans from the exact same day if you are comparing players, otherwise it's like comparing a baby giraffe's height on Monday to a big daddy giraffe's height on Friday!
+                <strong className="font-black uppercase tracking-wider block mb-1">Important Guideline:</strong>
+                Always upload scans recorded at identical intervals when running comparisons. Comparing scans with different time offsets will lead to skewed power and troop kill calculations.
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
               
               {/* Card 1: Bulk Ingest */}
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-indigo-500/30 transition-all group">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg font-mono font-black text-sm">01</div>
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Lego Block Folder (Bulk Upload)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Roster Archive (Bulk Upload)</h3>
                 </div>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  Go to the <strong>Upload</strong> tab. Here, you can drop big folders of pre-saved kingdom data logs. It's like pouring your whole box of Lego blocks onto the rug so Unity can count them and organize them by color!
+                  Go to the <strong>Upload</strong> tab. From here, you can drop zip files or folders of pre-saved kingdom scan files. This populates database entries for all historical periods.
                 </p>
               </div>
 
-              {/* Card 2: Python Harvester */}
+              {/* Card 2: In-Browser OCR */}
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-indigo-500/30 transition-all group">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg font-mono font-black text-sm">02</div>
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Auto-Farmer Buggy (Python Scraper)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Instant Scanner (AI Vision Applet)</h3>
                 </div>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  For advanced users, we have little python-driven farmer buggies running in the background. They log into the game automatically, flip through the leaderboard pages, snap pictures, and send them directly to Unity. 
+                  Open the <strong>AI Vision OCR Applet</strong>. Take a screenshot of any player card in-game, drop it here, and the AI scanner will automatically extract metrics like Power and Kill Points.
                 </p>
               </div>
 
-              {/* Card 3: In-Browser OCR */}
+              {/* Card 3: Hall of Heroes Overrides */}
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-indigo-500/30 transition-all group">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg font-mono font-black text-sm">03</div>
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Magic Camera (AI Vision Applet)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Exact Deaths (Hall of Heroes)</h3>
                 </div>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  Open the <strong>AI Vision OCR Applet</strong>. Snap a screenshot of a player card in the game, drop it here, and the magic scanner will read all the numbers (like Power and Kill Points) automatically!
-                </p>
-              </div>
-
-              {/* Card 4: Hall of Heroes Overrides */}
-              <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-indigo-500/30 transition-all group">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg font-mono font-black text-sm">04</div>
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The graveyard tally (Hall of Heroes)</h3>
-                </div>
-                <p className="text-gray-400 text-xs leading-relaxed">
-                  R4/R5 leaders can upload screenshots of the in-game Hall of Heroes graveyard. Unity reads who lost the most troops, verifying that the numbers matches the DKP sheets exactly!
+                  Commanders can upload Hall of Heroes screenshots showing permanent dead troop logs. The AI extracts exact troop death data to override estimated scan figures, ensuring DKP scores are verified.
                 </p>
               </div>
 
@@ -138,12 +126,12 @@ export default function UserGuidePage() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black text-white tracking-wider uppercase flex items-center gap-2">
                 <Sparkles className="text-fuchsia-400 fill-fuchsia-400/20" size={20} />
-                Magic Scanners (Calculators with AI Vision)
+                AI Calculators (Vision-Enabled Utility Tools)
               </h2>
               <span className="text-[10px] font-mono bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 px-2 py-0.5 rounded uppercase tracking-widest font-bold">Gemini Powered</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Calculators are like super-powered magnifying glasses! Instead of typing all the boring numbers yourself, you can take a picture of your phone screen, drop it in, and let our robot eye (Google Gemini) do the math for you.
+              Unity features utility calculators to save manual transcription time. Simply drop game screenshots into any drop zone, and Google Gemini extracts items, resource values, or layouts dynamically.
             </p>
 
             <div className="space-y-4">
@@ -154,9 +142,9 @@ export default function UserGuidePage() {
                   <Timer className="text-fuchsia-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Hourglasses & Loot Bags (Speedups & Resources)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Inventory Audits (Speedups & Resources)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Drop a picture of your speedups or resource items. The AI count engine scans all your Hourglasses and Resource Boxes (Food, Wood, Stone, Gold) and tells you exactly how many hours or total resources you have locked up!
+                    Upload a screenshot of your speedup or resource inventories. The AI counts all your speedup hours (Building, Research, Training, Healing, Universal) and resource boxes (Food, Wood, Stone, Gold) automatically.
                   </p>
                 </div>
               </div>
@@ -167,9 +155,9 @@ export default function UserGuidePage() {
                   <Zap className="text-fuchsia-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Energy Juice Bottle Planner (Action Points)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Vial Optimization (Action Points)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    AP is like energy juice for your troops to fight monsters! Drop a picture of your AP inventory. Use sliders to choose your strategy (e.g. 20% Marauders, 15% Forts, 65% Barbarians), and the planner does a greedy calculation to tell you exactly which bottles to drink first in plain numbered steps!
+                    Drop a screenshot of your AP items. Adjust sliders to target percentage allocations (e.g., 20% Marauders, 15% Forts, 65% Barbarians), and the greedy allocation engine outputs a checklist specifying which AP vials (Giant, Large, Medium, Small) to consume first.
                   </p>
                 </div>
               </div>
@@ -180,9 +168,9 @@ export default function UserGuidePage() {
                   <Shield className="text-fuchsia-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Lego Castle Builder (Alliance Flag Calculator)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Flag Resource Projections (Alliance Flags)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Flags let your alliance expand your kingdom. Scan your Storehouse screen. The calculator logs all stockpiles (Credits, Food, Wood, Stone, Gold, and crystal requirements for SoC), projects exactly when you will run out, and builds a copyable announcement template with colored text tags to share in the game!
+                    Drop a screenshot of your Alliance Storehouse. The engine parses stockpiles, logs crystal (SoC) progress, projects flag resource deficits, and formats a copyable announcement template with colored text tags to share in alliance mail.
                   </p>
                 </div>
               </div>
@@ -193,9 +181,9 @@ export default function UserGuidePage() {
                   <Swords className="text-fuchsia-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Blacksmith Helper (Equipment Forge Scanner)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Material Valuation (Equipment Forge)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Drop a picture of your material items (Leather, Ebony wood, Iron rocks, and Animal bones). The scanner counts all of your material colors (Legendary Gold, Epic Purple, Elite Blue, etc.) and calculates if you have enough items to forge a shiny new weapon!
+                    Upload your Material Inventory screen. The AI counts Leather, Ebony, Iron, and Bone counts across all rarities (Legendary, Epic, Elite, etc.) and projects craft feasibility.
                   </p>
                 </div>
               </div>
@@ -206,9 +194,9 @@ export default function UserGuidePage() {
                   <Map className="text-fuchsia-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Spyglass Cartography (Real Estate & Deadeye Scanners)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Cartography & Battle Report Sweeps (Real Estate & Deadeye)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    The <strong>Real Estate</strong> tab scans a satellite map photo to locate territory coordinates, while <strong>Deadeye</strong> scans battle reports to compile lists of player names automatically so you can see who was active in battle!
+                    The <strong>Real Estate</strong> tab reads territory coordinate grids from map screenshots, and <strong>Deadeye</strong> parses lists of combat log screenshots to extract and merge active player names.
                   </p>
                 </div>
               </div>
@@ -218,24 +206,24 @@ export default function UserGuidePage() {
         </div>
       )}
 
-      {/* TAB 3: PLAYGROUND CHARTS (ANALYTICS) */}
+      {/* TAB 3: CHARTS & ANALYTICS */}
       {activeTab === "analytics" && (
         <div className="space-y-6">
           <div className="bg-[#0d1117] border border-[#1e222b] rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-black text-white tracking-wider uppercase flex items-center gap-2">
               <Activity className="text-cyan-400" size={20} />
-              Playground Charts & Roster Tools (Analytics)
+              Charts & Roster Tools (Analytics)
             </h2>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Once you've fed Unity its data snacks, you can look at the playground! The playground has cool interactive charts and lists that group players by how they play the game.
+              Once scans are loaded, you can analyze member distributions, compare growth metrics, and track active progression.
             </p>
 
             {/* Note Box */}
             <div className="border border-cyan-500/20 bg-cyan-500/5 rounded-lg p-4 flex gap-3 text-xs text-cyan-300">
               <Info size={18} className="shrink-0 mt-0.5" />
               <div>
-                <strong className="font-black uppercase tracking-wider block mb-1">Friendly Tip:</strong>
-                All lists are sortable! Tap on any header (like "Power Growth" or "Kills") to sort governors from highest to lowest. It's like lining up players by height!
+                <strong className="font-black uppercase tracking-wider block mb-1">Navigation Tip:</strong>
+                All data table columns are sortable. Click any column header (e.g. 'Power Growth' or 'Kills') to instantly sort players from highest to lowest.
               </div>
             </div>
 
@@ -245,10 +233,10 @@ export default function UserGuidePage() {
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-cyan-500/30 transition-all">
                 <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                   <FileText size={16} className="text-cyan-400" />
-                  Stat Sheets (Overview & Compare)
+                  Roster Overview & Comparison
                 </h3>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  The <strong>Overview</strong> is a massive directory of everyone in the kingdom. Want to see how your friends are doing side-by-side? Go to the <strong>Compare</strong> tab and pick up to 5 governors to draw comparative bars!
+                  The <strong>Overview</strong> lists all tracked governors. Select up to 5 governors in the <strong>Compare</strong> tab to plot side-by-side growth bar charts, combat diagnostics, and highlight category leaders.
                 </p>
               </div>
 
@@ -256,14 +244,14 @@ export default function UserGuidePage() {
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-cyan-500/30 transition-all">
                 <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                   <Target size={16} className="text-cyan-400" />
-                  Playground Grouping (Scatter Plot)
+                  Behavioral Clustering (Scatter Plot)
                 </h3>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  This chart groups players into 4 playground teams:
-                  <br />🏆 <strong>Heroes</strong>: High kills and high power.
-                  <br />⚔️ <strong>Warriors</strong>: High kills, but keep their power low and efficient.
-                  <br />🩹 <strong>Feeders</strong>: Lose a lot of troops (get booboos) for the team.
-                  <br />😴 <strong>Slackers</strong>: Take napping time and don't fight much.
+                  Plots Kill Points against Power using statistical clustering to group players into:
+                  <br />🏆 <strong>Heroes</strong>: High combat score and high power.
+                  <br />⚔️ <strong>Warriors</strong>: High combat score, optimized power.
+                  <br />🩹 <strong>Feeders</strong>: High troop loss deltas relative to kills.
+                  <br />😴 <strong>Slackers</strong>: High power, low combat contributions.
                 </p>
               </div>
 
@@ -271,10 +259,10 @@ export default function UserGuidePage() {
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-cyan-500/30 transition-all">
                 <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                   <Activity size={16} className="text-cyan-400" />
-                  The Growth Hill (Growth Analysis)
+                  Trajectory curves (Growth Analysis)
                 </h3>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  This page draws squiggly trendlines. It shows you who is climbing the power hill the fastest, who is walking, and who has stopped growing entirely.
+                  Renders longitudinal curves showing who is growing power/KP, who is stagnant, and general kingdom performance indicators.
                 </p>
               </div>
 
@@ -282,10 +270,10 @@ export default function UserGuidePage() {
               <div className="bg-[#13161c] border border-[#1e222b] rounded-lg p-5 hover:border-cyan-500/30 transition-all">
                 <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                   <Sparkles size={16} className="text-fuchsia-400 shrink-0" />
-                  The Level 5 Race (T5 Push Radar)
+                  T5 Push Tracker
                 </h3>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  Level 5 troops are the strongest soldiers in the game! This radar tracks City Hall 25 players to see how close they are to hitting the 22.3M tech hurdle and building floors, tagging them as <strong>Eligible</strong>, <strong>Pushing</strong>, or <strong>Stagnant</strong>.
+                  Tracks City Hall 25 governors as they push tech/building power toward the 22.3M tech floor, classifying them as Eligible, Pushing (deltas &gt; 0), or Stagnant.
                 </p>
               </div>
 
@@ -294,16 +282,16 @@ export default function UserGuidePage() {
         </div>
       )}
 
-      {/* TAB 4: SCOUT BINOCULARS (GLOBAL TOOLS) */}
+      {/* TAB 4: GLOBAL SCOUTING */}
       {activeTab === "scouting" && (
         <div className="space-y-6">
           <div className="bg-[#0d1117] border border-[#1e222b] rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-black text-white tracking-wider uppercase flex items-center gap-2">
               <Target className="text-amber-400" size={20} />
-              Scout Binoculars (Global Cross-Kingdom Tools)
+              Global Scouting & Recruitment Tools
             </h2>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Want to peek over the fence at other kingdoms or find new players for your team? Peer through the scout binoculars to run recruitment similarity math and wargaming simulations!
+              Evaluate external kingdoms, wargame KvK scenarios, and run recruitment similarity matching.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
@@ -313,10 +301,10 @@ export default function UserGuidePage() {
                 <div>
                   <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                     <Sparkles size={14} className="text-fuchsia-400" />
-                    Magnet Matcher
+                    Vector Matchmaker
                   </h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Uses math vector magnets to score target kingdom players based on how closely they match the behavior of your elite members. It ranks candidates by cosine percentage similarity!
+                    Computes an 8-dimension player persona vector in-memory from target kingdom histories, comparing them to your elite member centroids to find ideal recruitment matches ranked by cosine similarity.
                   </p>
                 </div>
                 <div className="mt-4 text-[10px] font-mono text-amber-500 uppercase tracking-widest font-black">Recruiting Center</div>
@@ -327,10 +315,10 @@ export default function UserGuidePage() {
                 <div>
                   <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                     <Timer size={14} className="text-amber-400" />
-                    Speed Trajectory
+                    Trajectory Predictor
                   </h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Compares a player's 7-day power growth with their 5-day growth. It tags them as <strong>Accelerating</strong> (speeding up!), <strong>Stable</strong> (running steady), or <strong>Decelerating</strong> (slowing down).
+                    Compares 7d and 5d deltas using canonical 00:00 UTC scans to classify players as Accelerating, Stable, or Decelerating.
                   </p>
                 </div>
                 <div className="mt-4 text-[10px] font-mono text-amber-500 uppercase tracking-widest font-black">AI Matchmaker</div>
@@ -341,10 +329,10 @@ export default function UserGuidePage() {
                 <div>
                   <h3 className="text-white font-black text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                     <Swords size={14} className="text-amber-400" />
-                    Pretend Wargame
+                    Wargame Simulator
                   </h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Put your coalition kingdoms against the enemy camp. Unity sums up everyone's soldiers and tech, then hands the numbers to Gemini to predict who will win and warn you about hidden danger flags!
+                    Select coalition kingdoms versus enemy camps. Unity aggregates coalition military metrics and invokes Gemini to output strategic recommendations and danger flags.
                   </p>
                 </div>
                 <div className="mt-4 text-[10px] font-mono text-amber-500 uppercase tracking-widest font-black">Scenario Builder</div>
@@ -355,16 +343,16 @@ export default function UserGuidePage() {
         </div>
       )}
 
-      {/* TAB 5: ROBOT HELPERS (AI & DISCORD BOT) */}
+      {/* TAB 5: AI & DISCORD BOT */}
       {activeTab === "jarvis" && (
         <div className="space-y-6">
           <div className="bg-[#0d1117] border border-[#1e222b] rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-black text-white tracking-wider uppercase flex items-center gap-2">
               <Bot className="text-emerald-400" size={20} />
-              Robot Helpers (J.A.R.V.I.S. AI & Discord Bot)
+              J.A.R.V.I.S. AI & Discord Bot Operations
             </h2>
             <p className="text-gray-400 text-sm leading-relaxed">
-              J.A.R.V.I.S. is our friendly mechanical butler! He lives on the dashboard and inside your Discord chat to give you tips, check logs, and run diagnostic sitreps.
+              Leverage natural language reports, personal coaching briefs, and real-time theater sitreps.
             </p>
 
             <div className="space-y-4">
@@ -375,9 +363,9 @@ export default function UserGuidePage() {
                   <BrainCircuit className="text-emerald-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Your Personal Robot Teacher (Member Coaching Brief)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Individual AI Coaching (Member Coaching Brief)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    When members log into the dashboard, J.A.R.V.I.S. automatically reviews their last 5 scans. He writes a friendly coaching letter, gives you a letter grade (like A+ or B), assigns you a player archetype, and compares your stats to peers in your power bracket. He will even crack a friendly joke (65% roast tone) to keep things fun!
+                    When members log into the dashboard, J.A.R.V.I.S. automatically reviews their last 5 scans. He writes a coaching brief, assigns a grade, tags their archetype, and compares their performance against power-band peers. Note: AI key preferences are respected.
                   </p>
                 </div>
               </div>
@@ -388,9 +376,9 @@ export default function UserGuidePage() {
                   <MessageSquare className="text-emerald-400" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">The Chat Radar Command (Discord `/sitrep`)</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider">Theater Sitrep Command (Discord `/sitrep`)</h3>
                   <p className="text-gray-400 text-xs leading-relaxed">
-                    Type <code>/sitrep</code> in your Discord chat. J.A.R.V.I.S. instantly runs a multi-scan sweep of the theater. Using our "Hospital Rebound" tracking math, he checks if target kingdoms have permanently lost soldiers (deads) or if they are dumping healing speedups to rebuild their army. It groups enemy postures into labels like <strong>Mobilized</strong>, <strong>Recovering</strong>, or <strong>Taking Fire</strong>!
+                    Type <code>/sitrep</code> in your Discord chat. J.A.R.V.I.S. runs a multi-scan sweep of the KvK theater using a "Hospital Rebound" tracking algorithm that parses permanent dead troop intersections (migration-proof) and healing rates to classify enemy postures (e.g. Mobilized, Recovering, Taking Fire).
                   </p>
                 </div>
               </div>
