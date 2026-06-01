@@ -77,7 +77,7 @@ Example output format:
 ${exampleOutput}`;
 
         const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
         const apiUrl   = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const response = await fetch(apiUrl, {

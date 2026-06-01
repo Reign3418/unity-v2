@@ -27,7 +27,7 @@ export default function AdminConsole() {
   
   // UX State
   const [activeTab, setActiveTab] = useState("overview");
-  const [globalModel, setGlobalModel] = useState("gemini-2.5-flash");
+  const [globalModel, setGlobalModel] = useState("gemini-3.1-flash-lite");
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
 
 
@@ -83,7 +83,7 @@ export default function AdminConsole() {
       setSupporterKingdoms(data.supporterKingdoms || []);
       setFeatureGates(data.featureGates || []);
       setUploadLogs(logsData.uploads || []);
-      setGlobalModel(data.globalGeminiModel || "gemini-2.5-flash");
+      setGlobalModel(data.globalGeminiModel || "gemini-3.1-flash-lite");
       
       globalMatrixCache = { ...data, uploadLogs: logsData.uploads };
       globalMatrixTimestamp = Date.now();
@@ -897,7 +897,7 @@ export default function AdminConsole() {
                     className="bg-[#161920] border border-[#1e222b] text-white px-4 py-3 rounded-lg font-mono outline-none cursor-pointer text-sm flex-1 focus:border-cyan-500/50 transition-colors"
                   >
                     <option value="gemini-3.5-flash">gemini-3.5-flash (5 RPM / 20 RPD)</option>
-                    <option value="gemini-2.5-flash">gemini-2.5-flash (5 RPM / 20 RPD)</option>
+                    <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (5 RPM / 20 RPD)</option>
                     <option value="gemini-2.5-pro">gemini-2.5-pro (2 RPM / 50 RPD)</option>
                     <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (20 RPM / 500 RPD - Best for sweeps)</option>
                     <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy - May return 404)</option>

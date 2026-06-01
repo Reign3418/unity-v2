@@ -40,7 +40,7 @@ export async function GET(req) {
       pendingUsers,
       supporterKingdoms,
       featureGates,
-      globalGeminiModel: globalGeminiModel || "gemini-2.5-flash"
+      globalGeminiModel: globalGeminiModel || "gemini-3.1-flash-lite"
     }, { status: 200 });
 
   } catch (error) {

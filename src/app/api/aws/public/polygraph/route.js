@@ -194,7 +194,7 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
         const customKey = req.headers.get('x-gemini-key');
         const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
         let aiBrief = null;
         if (apiKey && aiParam) {

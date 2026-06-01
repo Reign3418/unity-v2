@@ -60,7 +60,7 @@ RULES:
 `;
 
         const customModel = req.headers.get('x-gemini-model');
-        const model = customModel || stats.geminiModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const model = customModel || stats.geminiModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         
         const geminiResponse = await fetch(`${apiUrl}?key=${apiKey}`, {

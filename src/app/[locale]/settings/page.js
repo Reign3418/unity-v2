@@ -16,7 +16,7 @@ export default function SettingsPage() {
     defaultKingdom: "3155",
     theme: "dark",
     geminiKey: "",
-    geminiModel: "gemini-3.5-flash",
+    geminiModel: "gemini-3.1-flash-lite",
     timezone: "",
     playtimeStart: "",
     playtimeEnd: ""
@@ -290,7 +290,7 @@ export default function SettingsPage() {
                 className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
                 <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
-                <option value="gemini-2.5-flash">{t('gemini_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
+                <option value="gemini-3.1-flash-lite">{t('gemini_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
                 <option value="gemini-2.5-pro">{t('gemini_pro')} (Free Tier: 2 RPM / 50 RPD)</option>
                 <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Free Tier: 20 RPM / 500 RPD - Best for sweeps)</option>
                 <option value="gemini-1.5-flash">{t('gemini_legacy')} (Legacy - May return 404)</option>
@@ -313,8 +313,8 @@ export default function SettingsPage() {
                     <span className="text-gray-400">2 RPM / 50 RPD</span>
                   </div>
                   <div className="flex items-center justify-between text-xs last:border-0 last:pb-0">
-                    <span className="text-emerald-400 font-mono font-bold">Gemini 1.5 Flash</span>
-                    <span className="text-emerald-400 font-bold">15 RPM / 1,500 RPD (Best for Sweeps)</span>
+                    <span className="text-emerald-400 font-mono font-bold">Gemini 3.1 Flash Lite</span>
+                    <span className="text-emerald-400 font-bold">20 RPM / 500 RPD (Best for Sweeps)</span>
                   </div>
                 </div>
               </div>

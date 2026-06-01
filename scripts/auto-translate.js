@@ -34,7 +34,7 @@ async function translateBlock(targetLang) {
     
     Return ONLY a valid JSON object matching this structure, with translated string values. Do not wrap in markdown tags if you can avoid it, or if you do, I will strip them.`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

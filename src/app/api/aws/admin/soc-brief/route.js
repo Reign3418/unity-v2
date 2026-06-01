@@ -25,7 +25,7 @@ export async function POST(req) {
         }
 
         const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
         // ── Build coalition summary ───────────────────────────────────────────
         const coalitionLines = camps.map(c => {

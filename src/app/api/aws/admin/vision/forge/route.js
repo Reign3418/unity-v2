@@ -22,7 +22,7 @@ export async function POST(req) {
         }
 
         const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const prompt = `This is a screenshot of the Equipment Material Inventory in Rise of Kingdoms. Ignore all UI text. Identify the 4 distinct material types: Leather (rolled hide/scroll), Ebony (stacked wood logs), Iron (gray rocks/ore), and Animal Bone (white tusk). For each material type, identify the quantities for the 5 rarities based on their background colors: Legendary (Gold), Epic (Purple), Elite (Blue), Advanced (Green), and Normal (Gray). Extract the exact numeric quantity shown in the bottom-right corner of each material tile. If a tile type does not exist, use "0". Return ONLY a valid JSON object matching this structure identically:
