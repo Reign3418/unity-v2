@@ -1096,7 +1096,7 @@ export default function CalculatorsPage() {
   };
 
   // UI Components
-  const TabButton = ({ id, icon: Icon, label, color }) => (
+  const TabButton = ({ id, icon: Icon, label, color, isAi }) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold transition-all duration-200 whitespace-nowrap ${
@@ -1105,7 +1105,11 @@ export default function CalculatorsPage() {
         : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
       }`}
     >
-      <Icon size={18} /> {label}
+      <Icon size={18} />
+      <span className="flex items-center gap-1">
+        {label}
+        {isAi && <Sparkles size={11} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />}
+      </span>
     </button>
   );
 
@@ -1118,7 +1122,10 @@ export default function CalculatorsPage() {
         <div className="flex items-center gap-4 relative z-10 w-full mb-2">
           <BookOpen className="text-indigo-500" size={32} />
           <div>
-            <h1 className="text-3xl font-black text-white tracking-widest uppercase">{t('page_title')}</h1>
+            <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-2">
+              {t('page_title')}
+              <Sparkles className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" size={24} />
+            </h1>
             <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">{t('page_subtitle')}</p>
           </div>
         </div>
@@ -1126,13 +1133,13 @@ export default function CalculatorsPage() {
 
       {/* Tabs */}
       <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-xl overflow-x-auto px-2 no-scrollbar">
-        <TabButton id="speedups" icon={Timer} label={t('tab_speedups')} color="indigo" />
-        <TabButton id="resources" icon={Wheat} label={t('tab_resources')} color="amber" />
-        <TabButton id="ap" icon={Zap} label={t('tab_ap')} color="cyan" />
-        <TabButton id="flag" icon={Shield} label="Alliance Flag" color="rose" />
-        <TabButton id="forge" icon={Shield} label={t('tab_forge')} color="blue" />
-        <TabButton id="realestate" icon={Map} label={t('tab_realestate')} color="teal" />
-        <TabButton id="deadeye" icon={Eye} label={t('tab_deadeye')} color="fuchsia" />
+        <TabButton id="speedups" icon={Timer} label={t('tab_speedups')} color="indigo" isAi={true} />
+        <TabButton id="resources" icon={Wheat} label={t('tab_resources')} color="amber" isAi={true} />
+        <TabButton id="ap" icon={Zap} label={t('tab_ap')} color="cyan" isAi={true} />
+        <TabButton id="flag" icon={Shield} label="Alliance Flag" color="rose" isAi={true} />
+        <TabButton id="forge" icon={Shield} label={t('tab_forge')} color="blue" isAi={true} />
+        <TabButton id="realestate" icon={Map} label={t('tab_realestate')} color="teal" isAi={true} />
+        <TabButton id="deadeye" icon={Eye} label={t('tab_deadeye')} color="fuchsia" isAi={true} />
       </div>
 
       {/* Content Area */}

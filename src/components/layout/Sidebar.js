@@ -94,7 +94,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <SectionTitle>{t('sec_tools')}</SectionTitle>
           <NavItem href="/events" icon={CalendarDays} label={t('nav_events')} />
           <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
-          <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} />
+          <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />
 
           {session?.user?.isSuperAdmin && (
               <>
