@@ -283,7 +283,7 @@ export default function SharedAllianceMerge() {
                                      return (
                                          <div 
                                              key={target.id}
-                                             className={`bg-[#0f1115] border ${isFull ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-[#2d323e]'} rounded-xl flex flex-col relative overflow-hidden h-[600px] shadow-lg`}
+                                             className={`bg-[#0f1115] border ${isFull ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-[#2d323e]'} rounded-xl flex flex-col relative overflow-hidden h-[72vh] shadow-lg`}
                                          >
                                               {/* Header */}
                                               <div className="p-4 border-b border-[#1e222b] bg-[#13161c] relative">
