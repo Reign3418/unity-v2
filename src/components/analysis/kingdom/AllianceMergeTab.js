@@ -566,7 +566,7 @@ export default function AllianceMergeTab({ rosterData, targetKd, secondaryKd, is
                                          key={target.id}
                                          onDragOver={handleDragOver}
                                          onDrop={(e) => handleDrop(e, target.id)}
-                                         className={`bg-[#0f1115] border ${isFull ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-[#2d323e] hover:border-indigo-500/50'} rounded-xl flex flex-col relative overflow-hidden group transition-colors h-[450px] shadow-lg`}
+                                         className={`bg-[#0f1115] border ${isFull ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-[#2d323e] hover:border-indigo-500/50'} rounded-xl flex flex-col relative overflow-hidden group transition-colors h-[600px] shadow-lg`}
                                      >
                                           {/* Header */}
                                           <div className="p-4 border-b border-[#1e222b] bg-[#13161c] relative">
