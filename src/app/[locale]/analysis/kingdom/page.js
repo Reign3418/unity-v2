@@ -575,6 +575,7 @@ export default function KingdomAnalysis() {
           setActiveTab={setActiveTab}
           isMobileOpen={isMobileDrawerOpen}
           setIsMobileOpen={setIsMobileDrawerOpen}
+          secondaryKd={secondaryKd}
         />
 
         {/* Main Content Area */}

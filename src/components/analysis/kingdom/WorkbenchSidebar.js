@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, X, Activity,
   BarChart2, TrendingUp, Map, Clock, Crosshair,
   Link, GitMerge, Trophy, Users, Link2, Archive,
-  Cpu, Target, LayoutTemplate, Menu, Building2, Sparkles
+  Cpu, Target, LayoutTemplate, Menu, Building2, Sparkles, Layers, Minus
 } from 'lucide-react';
 
 // Maps every tab name to its lucide icon
@@ -29,6 +29,19 @@ const ICON_MAP = {
   'T5 Push Radar':    Target,
   'Kingdom Vault':    Building2,
 };
+
+// Tabs that receive merged roster + behavioral data when a secondary KD is stacked
+const STACK_SUPPORTED = new Set([
+  'Kingdom Analysis',
+  'Scatter Plot',
+  'T5 Push Radar',
+  'Team Builder',
+  'Fixed MGE',
+  'Alliance Merge',
+  'Roster View',
+  'Roster Linker',
+  'Fort Tracker',
+]);
 
 // Mission-category groupings — order matters
 const CATEGORIES = [
@@ -68,6 +81,7 @@ export default function WorkbenchSidebar({
   setActiveTab,
   isMobileOpen,
   setIsMobileOpen,
+  secondaryKd,
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -154,10 +168,12 @@ export default function WorkbenchSidebar({
                 const Icon = ICON_MAP[tabName] || Activity;
                 const isActive = activeTab === tabName;
                 const isAi = tabName === 'Growth Analysis';
+                const stackSupported = STACK_SUPPORTED.has(tabName);
+                const stackActive = !!secondaryKd;
                 return (
                   <button
                     key={tabName}
-                    title={isCollapsed && !isMobile ? `${tabName}${isAi ? ' (AI-Powered)' : ''}` : undefined}
+                    title={isCollapsed && !isMobile ? `${tabName}${isAi ? ' (AI-Powered)' : ''}${stackSupported ? ' · Stack KD supported' : ' · Single kingdom only'}` : undefined}
                     onClick={() => {
                       setActiveTab(tabName);
                       if (isMobile) setIsMobileOpen(false);
@@ -170,13 +186,37 @@ export default function WorkbenchSidebar({
                   >
                     <Icon size={13} className="shrink-0" />
                     {(!isCollapsed || isMobile) && (
-                      <span className="truncate leading-none flex items-center gap-1">
+                      <span className="truncate leading-none flex items-center gap-1 flex-1">
                         {tabName}
                         {isAi && <Sparkles size={10} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0 ml-0.5" />}
                       </span>
                     )}
+
+                    {/* Stack indicator */}
+                    {(!isCollapsed || isMobile) && (
+                      stackSupported ? (
+                        <Layers
+                          size={9}
+                          title="Supports Kingdom Stack"
+                          className={`shrink-0 transition-colors ${
+                            stackActive ? 'text-amber-400' : 'text-amber-700/50'
+                          }`}
+                        />
+                      ) : (
+                        <Minus
+                          size={9}
+                          title="Single kingdom only"
+                          className="shrink-0 text-gray-700"
+                        />
+                      )
+                    )}
+
+                    {/* Collapsed-mode dots */}
                     {isCollapsed && !isMobile && isAi && (
                       <div className="absolute right-1 top-1 w-1.5 h-1.5 bg-fuchsia-400 rounded-full" />
+                    )}
+                    {isCollapsed && !isMobile && stackSupported && stackActive && (
+                      <div className="absolute right-1 bottom-1 w-1.5 h-1.5 bg-amber-400 rounded-full" />
                     )}
                   </button>
                 );
