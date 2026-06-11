@@ -109,6 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
               token.isSuperAdmin = user.guestData?.role === "Admin";
               token.isSupporter = true;
+              token.role = user.guestData?.role === "Admin" ? "Admin" : (user.guestData?.role === "Leader" ? "Leader" : (user.guestData?.role === "Data Analyst" || user.guestData?.role === "analyst" ? "Data Analyst" : "User"));
               
               token.tenant = {
                   guildId: "guest",
@@ -142,6 +143,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.isLeader = false;
               token.isSuperAdmin = false;
               token.isSupporter = false;
+              token.role = "User";
               
               token.tenant = {
                   guildId: "freemode",
@@ -346,6 +348,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.tenant = activeTenant;
           token.governorConfig = userConfig;
           token.ownedGuilds = ownedGuilds;
+          token.role = computedSuperAdmin ? "Admin" : (isLeader ? "Leader" : (isAnalyst ? "Data Analyst" : "User"));
           
           let isSupporter = false;
           if (computedSuperAdmin) {
@@ -377,6 +380,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isLeader = token.isLeader;
         session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.isSupporter = token.isSupporter || false;
+        session.user.role = token.role || "User";
         session.user.tenant = token.tenant;
         session.user.allowedKingdoms = token.tenant?.allowedKingdoms || [];
         session.user.governorConfig = token.governorConfig;

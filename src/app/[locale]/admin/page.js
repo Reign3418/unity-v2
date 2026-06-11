@@ -481,7 +481,13 @@ export default function AdminConsole() {
                        <div className="flex gap-2">
                            <select 
                              className="bg-transparent border border-indigo-500/30 text-indigo-400 text-[10px] uppercase font-bold tracking-widest rounded p-1.5 outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-                             value={user.role || "User"}
+                             value={(() => {
+                               const lower = (user.role || '').toLowerCase();
+                               if (lower === 'admin' || lower === 'system admin') return 'Admin';
+                               if (lower === 'leader') return 'LEADER';
+                               if (lower === 'data analyst' || lower === 'analyst') return 'DATA ANALYST';
+                               return user.role || 'User';
+                             })()}
                              onChange={(e) => {
                                const newRole = e.target.value;
                                if(newRole && newRole !== user.role) handleUpdateUserRole(user.discordId, newRole);
@@ -490,7 +496,7 @@ export default function AdminConsole() {
                              <option value="User" className="bg-[#0a0c10] text-gray-300">USER (NODE)</option>
                              <option value="DATA ANALYST" className="bg-[#0a0c10] text-cyan-400">DATA ANALYST</option>
                              <option value="LEADER" className="bg-[#0a0c10] text-indigo-400">LEADER</option>
-                             <option value="System Admin" className="bg-[#0a0c10] text-rose-500">SYSTEM ADMIN</option>
+                             <option value="Admin" className="bg-[#0a0c10] text-rose-500">SYSTEM ADMIN</option>
                            </select>
                            <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`p-1.5 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}><Bot size={14} /></button>
                            <button onClick={() => handleDeleteUserAccess(user.discordId)} className="p-1.5 rounded-lg border border-rose-500/30 text-rose-500 hover:bg-rose-500/20 transition-all" title="Revoke Network Access"><Trash2 size={14} /></button>
@@ -543,7 +549,13 @@ export default function AdminConsole() {
                        <div className="flex gap-2 items-center">
                            <select 
                              className="bg-transparent border border-none text-gray-500 hover:text-indigo-400 text-[10px] font-bold uppercase tracking-widest rounded outline-none transition-colors cursor-pointer mr-1 max-w-[100px]"
-                             value={user.role || "User"}
+                             value={(() => {
+                               const lower = (user.role || '').toLowerCase();
+                               if (lower === 'admin' || lower === 'system admin') return 'Admin';
+                               if (lower === 'leader') return 'LEADER';
+                               if (lower === 'data analyst' || lower === 'analyst') return 'DATA ANALYST';
+                               return user.role || 'User';
+                             })()}
                              onChange={(e) => {
                                const newRole = e.target.value;
                                if(newRole && newRole !== user.role) handleUpdateUserRole(user.discordId, newRole);
@@ -554,7 +566,7 @@ export default function AdminConsole() {
                              <option value="User" className="bg-[#0a0c10] text-gray-300">USER (NODE)</option>
                              <option value="DATA ANALYST" className="bg-[#0a0c10] text-cyan-400">DATA ANALYST</option>
                              <option value="LEADER" className="bg-[#0a0c10] text-indigo-400">LEADER</option>
-                             <option value="System Admin" className="bg-[#0a0c10] text-rose-500">SYSTEM ADMIN</option>
+                             <option value="Admin" className="bg-[#0a0c10] text-rose-500">ADMIN</option>
                            </select>
 
                            <button onClick={() => handleEditUserNotes(user.discordId, user.notes)} className="text-gray-500 hover:text-cyan-400 transition-colors" title="Edit Tracking Note"><TextSelect size={14}/></button>
