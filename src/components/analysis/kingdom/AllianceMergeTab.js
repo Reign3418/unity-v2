@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Cpu, Filter, X, Zap, Layers, RefreshCw, CloudLightning, CloudUpload } from "lucide-react";
+import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Cpu, Filter, X, Zap, Layers, RefreshCw, CloudLightning, CloudUpload, Link2, Check } from "lucide-react";
 
 export default function AllianceMergeTab({ rosterData, targetKd, secondaryKd, isLeader }) {
     // Master State
     const [targets, setTargets] = useState([]); // { id, name, capacity, members: [] }
     const [sourceAlliances, setSourceAlliances] = useState([]); // Currently pooled tags
+    const [copied, setCopied] = useState(false);
     
     // UI Filtering State
     const [searchQuery, setSearchQuery] = useState("");
@@ -18,6 +19,18 @@ export default function AllianceMergeTab({ rosterData, targetKd, secondaryKd, is
     const [lastSyncTime, setLastSyncTime] = useState(null);
     const syncTimeoutRef = useRef(null);
     const isInitialLoadRef = useRef(true);
+
+    const shareLink = () => {
+        const locale = window.location.pathname.split('/')[1] || 'en';
+        let url = `${window.location.origin}/${locale}/shared/alliance-merge?kd=${targetKd}`;
+        if (secondaryKd) {
+            url += `&secondary=${secondaryKd}`;
+        }
+        navigator.clipboard.writeText(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+        });
+    };
 
     const fetchCloudState = async () => {
         if (!targetKd) return;
@@ -524,6 +537,13 @@ export default function AllianceMergeTab({ rosterData, targetKd, secondaryKd, is
                         className="bg-[#13161c] border border-[#2d323e] hover:border-indigo-500 hover:text-indigo-400 text-gray-400 transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 ml-2"
                     >
                         <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> Resync
+                    </button>
+                    <button
+                        onClick={shareLink}
+                        disabled={isSyncing}
+                        className={`border transition-all px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 ml-2 ${copied ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : 'bg-[#13161c] border-[#2d323e] hover:border-indigo-500 hover:text-indigo-400 text-gray-400'}`}
+                    >
+                        {copied ? <><Check size={16} /> Copied!</> : <><Link2 size={16} /> Share Plan</>}
                     </button>
                 </div>
 
