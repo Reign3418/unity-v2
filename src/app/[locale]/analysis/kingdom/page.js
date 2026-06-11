@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users, Search, Menu, PanelLeft, Building2 } from "lucide-react";
+import { BarChart2, RefreshCw, ShieldAlert, FileText, Target, Crosshair, Map, Activity, LayoutTemplate, Layers, Clock, Zap, Cpu, Archive, TrendingUp, Link, GitMerge, Trophy, Link2, Users, Search, Menu, PanelLeft, Building2, X } from "lucide-react";
 import KingdomAnalysisTab from "@/components/analysis/kingdom/KingdomAnalysisTab";
 import OverviewTab from "@/components/analysis/kingdom/OverviewTab";
 import ScatterPlotTab from "@/components/analysis/kingdom/ScatterPlotTab";
@@ -75,6 +75,13 @@ export default function KingdomAnalysis() {
   const [rosterData, setRosterData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRoster, setIsLoadingRoster] = useState(true);
+
+  // ── Secondary Kingdom Stack ──────────────────────────────────────────────
+  const [secondaryKd, setSecondaryKd] = useState('');
+  const [secondaryRosterData, setSecondaryRosterData] = useState([]);
+  const [isLoadingSecondaryRoster, setIsLoadingSecondaryRoster] = useState(false);
+  const [showSecondaryInput, setShowSecondaryInput] = useState(false);
+  const [secondaryKdInput, setSecondaryKdInput] = useState('');
 
   // ── Navigation UI State ────────────────────────────────────────────────
   // Tab Routing State
@@ -164,6 +171,38 @@ export default function KingdomAnalysis() {
           setIsLoadingRoster(false);
       }
   };
+
+  const fetchSecondaryRoster = async (kd) => {
+      if (!kd) { setSecondaryRosterData([]); return; }
+      setIsLoadingSecondaryRoster(true);
+      try {
+          const res = await fetch(`/api/aws/roster?kd=${kd}`);
+          const data = await res.json();
+          if (res.ok && data.roster) {
+              setSecondaryRosterData(data.roster);
+          } else {
+              setSecondaryRosterData([]);
+          }
+      } catch (e) {
+          console.error('Secondary roster fetch failed:', e);
+          setSecondaryRosterData([]);
+      } finally {
+          setIsLoadingSecondaryRoster(false);
+      }
+  };
+
+  // Merge primary + secondary rosters. Secondary players get _sourceKd tag
+  // and namespaced IDs (e.g. "4023_123456") to prevent collisions.
+  const mergedRosterData = useMemo(() => {
+      const primary = rosterData.map(p => ({ ...p, _sourceKd: targetKd }));
+      if (!secondaryKd || secondaryRosterData.length === 0) return primary;
+      const secondary = secondaryRosterData.map(p => ({
+          ...p,
+          _sourceKd: secondaryKd,
+          id: `${secondaryKd}_${p.id}`,
+      }));
+      return [...primary, ...secondary];
+  }, [rosterData, secondaryRosterData, targetKd, secondaryKd]);
 
   useEffect(() => {
     let initialKd = "";
@@ -274,7 +313,7 @@ export default function KingdomAnalysis() {
           case 'Scatter Plot':
               return (
                   <ScatterPlotTab 
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                       targetKd={targetKd}
                       startDate={startDate}
                       endDate={endDate}
@@ -284,7 +323,7 @@ export default function KingdomAnalysis() {
           case 'Team Builder':
               return (
                   <TeamBuilderTab 
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                       targetKd={targetKd}
                       isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
@@ -292,8 +331,9 @@ export default function KingdomAnalysis() {
           case 'Alliance Merge':
               return (
                   <AllianceMergeTab 
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                       targetKd={targetKd}
+                      secondaryKd={secondaryKd}
                       isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
               );
@@ -402,7 +442,7 @@ export default function KingdomAnalysis() {
             </div>
           )}
 
-          {/* Kingdom Selector */}
+          {/* Primary Kingdom Selector */}
           <select value={targetKd}
             onChange={(e) => {
               const newKd = e.target.value;
@@ -410,6 +450,8 @@ export default function KingdomAnalysis() {
               if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
               fetchTrends(newKd);
               fetchRoster(newKd);
+              // Clear secondary if same kingdom selected
+              if (secondaryKd === newKd) { setSecondaryKd(''); setSecondaryRosterData([]); }
             }}
             className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-3 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg text-sm"
           >
@@ -420,6 +462,58 @@ export default function KingdomAnalysis() {
               <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
             )}
           </select>
+
+          {/* ── Secondary Kingdom Stacker ── */}
+          {secondaryKd ? (
+            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-2 text-xs font-mono font-bold text-amber-300 shadow-lg shrink-0">
+              <Layers size={12} className="text-amber-400 shrink-0" />
+              <span>+KD {secondaryKd}</span>
+              {isLoadingSecondaryRoster && <RefreshCw size={10} className="animate-spin ml-0.5" />}
+              <button
+                onClick={() => { setSecondaryKd(''); setSecondaryRosterData([]); setShowSecondaryInput(false); }}
+                className="ml-1 text-amber-500/50 hover:text-red-400 transition-colors"
+                title="Remove stacked kingdom"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : showSecondaryInput ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                type="text"
+                placeholder="KD#..."
+                value={secondaryKdInput}
+                onChange={e => setSecondaryKdInput(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && secondaryKdInput.trim() && secondaryKdInput.trim() !== targetKd) {
+                    const kd = secondaryKdInput.trim();
+                    setSecondaryKd(kd);
+                    setShowSecondaryInput(false);
+                    setSecondaryKdInput('');
+                    fetchSecondaryRoster(kd);
+                  }
+                  if (e.key === 'Escape') { setShowSecondaryInput(false); setSecondaryKdInput(''); }
+                }}
+                className="bg-[#0a0c0f] border border-amber-500/40 text-white text-xs font-mono rounded-lg px-2 py-2 outline-none focus:border-amber-400 w-24 transition-colors"
+                autoFocus
+              />
+              <button
+                onClick={() => { setShowSecondaryInput(false); setSecondaryKdInput(''); }}
+                className="p-1.5 text-gray-500 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSecondaryInput(true)}
+              title="Stack a second kingdom's roster into Alliance Merge & planning tools"
+              className="flex items-center gap-1.5 p-2.5 bg-[#0a0c0f] hover:bg-amber-500/10 text-gray-500 hover:text-amber-400 border border-[#1e222b] hover:border-amber-500/30 rounded-lg transition-colors shadow-lg text-xs font-bold shrink-0"
+            >
+              <Layers size={15} />
+              <span className="hidden lg:inline">Stack KD</span>
+            </button>
+          )}
 
           {/* Search / Command Palette */}
           <button

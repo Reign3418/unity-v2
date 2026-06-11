@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Plus, Trash2, Mail, GripVertical, ShieldAlert, Cpu, Filter, X, Zap, Layers, RefreshCw, CloudLightning, CloudUpload } from "lucide-react";
 
-export default function AllianceMergeTab({ rosterData, targetKd, isLeader }) {
+export default function AllianceMergeTab({ rosterData, targetKd, secondaryKd, isLeader }) {
     // Master State
     const [targets, setTargets] = useState([]); // { id, name, capacity, members: [] }
     const [sourceAlliances, setSourceAlliances] = useState([]); // Currently pooled tags
@@ -78,6 +78,9 @@ export default function AllianceMergeTab({ rosterData, targetKd, isLeader }) {
         if (!rosterData || rosterData.length === 0) return [];
         return [...new Set(rosterData.map(g => g.alliance))].filter(a => a && a !== "Unknown").sort();
     }, [rosterData]);
+
+    // Determine if a player is from the secondary stacked kingdom
+    const isSecondary = (g) => secondaryKd && g._sourceKd === secondaryKd;
 
     const handleAddSource = (tag) => {
         if (!isLeader) return;
@@ -414,14 +417,19 @@ export default function AllianceMergeTab({ rosterData, targetKd, isLeader }) {
                                 onDragEnd={handleDragEnd}
                                 className={`bg-[#13161c] border border-[#1e222b] rounded-lg p-3 transition-colors group flex flex-col relative overflow-hidden ${isLeader ? 'hover:border-indigo-500/50 cursor-grab active:cursor-grabbing' : 'opacity-80 grayscale-[30%] cursor-default'}`}
                             >
-                                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500/20 group-hover:bg-indigo-500/80 transition-colors"></div>
+                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isSecondary(g) ? 'bg-amber-500/20 group-hover:bg-amber-500/80' : 'bg-indigo-500/20 group-hover:bg-indigo-500/80'} transition-colors`}></div>
                                 
                                 <div className="flex items-center justify-between mb-1 pl-1">
                                     <div className="font-bold text-gray-200 text-sm truncate flex items-center gap-1">
-                                        <span className="text-xs text-indigo-400 border-r border-indigo-500/20 pr-1 truncate max-w-[50px] font-mono">[{g.alliance}]</span>
+                                        <span className={`text-xs border-r pr-1 truncate max-w-[50px] font-mono ${isSecondary(g) ? 'text-amber-400 border-amber-500/20' : 'text-indigo-400 border-indigo-500/20'}`}>[{g.alliance}]</span>
                                         <span className="truncate">{g.name || 'Unknown'}</span>
                                     </div>
-                                    <div className="text-[9px] text-gray-600 font-mono tracking-widest">ID:{g.id}</div>
+                                    <div className="flex items-center gap-1.5">
+                                        {isSecondary(g) && (
+                                            <span className="text-[8px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1 py-0.5 rounded">KD {g._sourceKd}</span>
+                                        )}
+                                        <div className="text-[9px] text-gray-600 font-mono tracking-widest">ID:{g.id}</div>
+                                    </div>
                                 </div>
                                 
                                 <div className="flex items-center gap-4 pl-1 text-xs">
@@ -615,12 +623,15 @@ export default function AllianceMergeTab({ rosterData, targetKd, isLeader }) {
                                                             )}
 
                                                             <div className="font-bold text-gray-300 text-sm truncate pr-6 mb-1">
-                                                                <span className="text-gray-500 text-xs font-mono mr-1">[{m.alliance}]</span>
+                                                                <span className={`text-xs font-mono mr-1 ${isSecondary(m) ? 'text-amber-400' : 'text-gray-500'}`}>[{m.alliance}]</span>
                                                                 {m.name || 'Unknown'}
                                                             </div>
                                                             <div className="flex items-center gap-3 text-[10px] font-mono font-bold text-gray-500">
                                                                 <span title="Power">⚡ {formatShortNum(m.power)}</span>
                                                                 <span title="Kill Points">☠️ {formatShortNum(m.killPoints || 0)}</span>
+                                                                {isSecondary(m) && (
+                                                                    <span className="ml-auto text-[8px] bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1 py-0.5 rounded font-black uppercase">KD {m._sourceKd}</span>
+                                                                )}
                                                             </div>
                                                        </div>
                                                    ))
