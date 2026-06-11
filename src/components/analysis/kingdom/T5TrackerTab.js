@@ -7,7 +7,7 @@ import { useLocale } from "next-intl";
 const T5_TECH_FLOOR = 22300000;
 const T5_BUILDING_FLOOR = 14780832;
 
-export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
+export default function T5TrackerTab({ targetKd, secondaryKd, trends, startDate, endDate }) {
     const locale = useLocale();
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
@@ -22,27 +22,53 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
         setSortConfig({ key, direction });
     };
 
-    // Fetch Behavioral Matrix data
+    // Fetch Behavioral Matrix data — parallel for primary + secondary kingdom
     useEffect(() => {
         const fetchBehavioralData = async () => {
             if (!targetKd || !startDate || !endDate) return;
             setIsCompiling(true);
             try {
-                const url = `/api/aws/behavior?kd=${targetKd}&start=${startDate}&end=${endDate}&_t=${Date.now()}`;
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    setBehavioralRoster(data.roster || []);
-                } else {
-                    console.warn(`[T5Tracker Fetch] Error ${res.status}`);
+                const primaryUrl = `/api/aws/behavior?kd=${targetKd}&start=${startDate}&end=${endDate}&_t=${Date.now()}`;
+                const fetches = [fetch(primaryUrl)];
+
+                if (secondaryKd && secondaryKd !== targetKd) {
+                    const secondaryUrl = `/api/aws/behavior?kd=${secondaryKd}&start=${startDate}&end=${endDate}&_t=${Date.now()}`;
+                    fetches.push(fetch(secondaryUrl));
                 }
+
+                const responses = await Promise.all(fetches);
+                const [primaryRes, secondaryRes] = responses;
+
+                let merged = [];
+
+                if (primaryRes.ok) {
+                    const primaryData = await primaryRes.json();
+                    const tagged = (primaryData.roster || []).map(p => ({ ...p, _sourceKd: targetKd }));
+                    merged = [...tagged];
+                } else {
+                    console.warn(`[T5Tracker Primary] Error ${primaryRes.status}`);
+                }
+
+                if (secondaryRes?.ok) {
+                    const secondaryData = await secondaryRes.json();
+                    const tagged = (secondaryData.roster || []).map(p => ({
+                        ...p,
+                        _sourceKd: secondaryKd,
+                        id: `${secondaryKd}_${p.id}`,
+                    }));
+                    merged = [...merged, ...tagged];
+                } else if (secondaryRes) {
+                    console.warn(`[T5Tracker Secondary] Error ${secondaryRes.status}`);
+                }
+
+                setBehavioralRoster(merged);
             } catch (err) {
                 console.error("[T5Tracker Fetch] Exception: ", err);
             }
             setIsCompiling(false);
         };
         fetchBehavioralData();
-    }, [targetKd, startDate, endDate]);
+    }, [targetKd, secondaryKd, startDate, endDate]);
 
     // Process logic
     const t5Data = useMemo(() => {
@@ -276,6 +302,9 @@ export default function T5TrackerTab({ targetKd, trends, startDate, endDate }) {
                                                 <span className="text-[10px] text-gray-600 bg-[#1e222b] px-1.5 py-0.5 rounded">ID: {p.id}</span>
                                                 {p.alliance && p.alliance !== 'None' && (
                                                     <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded">[{p.alliance}]</span>
+                                                )}
+                                                {secondaryKd && p._sourceKd === secondaryKd && (
+                                                    <span className="text-[8px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1 py-0.5 rounded">KD {p._sourceKd}</span>
                                                 )}
                                             </div>
                                         </div>

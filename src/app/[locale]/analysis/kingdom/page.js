@@ -247,7 +247,7 @@ export default function KingdomAnalysis() {
               return (
                   <KingdomAnalysisTab 
                       trends={trends} 
-                      rosterData={rosterData} 
+                      rosterData={mergedRosterData} 
                       targetKd={targetKd} 
                       startDate={startDate}
                       endDate={endDate}
@@ -296,6 +296,7 @@ export default function KingdomAnalysis() {
               return (
                   <T5TrackerTab 
                       targetKd={targetKd}
+                      secondaryKd={secondaryKd}
                       trends={trends}
                       startDate={startDate}
                       endDate={endDate}
@@ -340,7 +341,7 @@ export default function KingdomAnalysis() {
           case 'Fixed MGE':
               return (
                   <MGEPlannerTab
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                       targetKd={targetKd}
                       isLeader={session?.user?.isLeader || session?.user?.isSuperAdmin}
                   />
@@ -359,14 +360,14 @@ export default function KingdomAnalysis() {
           case 'Roster View':
               return (
                   <RosterViewTab
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                       isLoading={isLoadingRoster}
                   />
               );
           case 'Roster Linker':
               return (
                   <AccountLinkerTab
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                       targetKd={targetKd}
                   />
               );
@@ -374,7 +375,7 @@ export default function KingdomAnalysis() {
               return (
                   <FortTrackerTab 
                       targetKd={targetKd}
-                      rosterData={rosterData}
+                      rosterData={mergedRosterData}
                   />
               );
           case 'Kingdom Vault':
