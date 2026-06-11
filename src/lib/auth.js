@@ -287,15 +287,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               isAnalyst = true;
               isMember = true;
 
-              if (!activeTenant) {
-                  const allKds = await getAllTrackedKingdoms();
-                  activeTenant = {
-                      guildId: "analyst",
-                      kingdomId: allKds.length > 0 ? allKds[0] : "3155",
-                      leadershipRoleId: "analyst",
-                      allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
-                  };
-              }
+              // Analysts ALWAYS get all tracked kingdoms — Discord guild membership is irrelevant.
+              // Preserve their existing guild's primary KD as the default workbench KD if they have one.
+              const allKds = await getAllTrackedKingdoms();
+              const existingKingdomId = activeTenant?.kingdomId;
+              activeTenant = {
+                  guildId: activeTenant?.guildId || "analyst",
+                  kingdomId: existingKingdomId || (allKds.length > 0 ? allKds[0] : "3155"),
+                  leadershipRoleId: "analyst",
+                  allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
+              };
           } else if (dbRole === 'leader') {
               isLeader = true;
               isAnalyst = true;   // Leaders inherit analyst access
