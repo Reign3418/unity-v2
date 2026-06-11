@@ -266,7 +266,7 @@ export default function SharedAllianceMerge() {
                     </div>
 
                     {/* RIGHT CANVAS: Alliance Shell Targets */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-12">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2">
                          {targets.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-64 border border-dashed border-[#1e222b] rounded-xl text-gray-600">
                                 <GitMerge className="w-12 h-12 mb-2 opacity-20 text-indigo-500" />
@@ -283,7 +283,7 @@ export default function SharedAllianceMerge() {
                                      return (
                                          <div 
                                              key={target.id}
-                                             className={`bg-[#0f1115] border ${isFull ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-[#2d323e]'} rounded-xl flex flex-col relative overflow-hidden h-[72vh] shadow-lg`}
+                                             className={`bg-[#0f1115] border ${isFull ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-[#2d323e]'} rounded-xl flex flex-col relative overflow-hidden h-[calc(80vh-20px)] shadow-lg`}
                                          >
                                               {/* Header */}
                                               <div className="p-4 border-b border-[#1e222b] bg-[#13161c] relative">
