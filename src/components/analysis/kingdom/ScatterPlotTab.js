@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import ReactECharts from 'echarts-for-react';
 import 'echarts-gl';
+import Link from 'next/link';
 import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send, Download, ArrowUpDown, FileSpreadsheet, UserMinus, Mail } from "lucide-react";
 import { PCA } from 'ml-pca';
 import { useTranslations } from 'next-intl';
@@ -601,19 +602,27 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                         <div className="flex flex-col flex-1 min-h-[600px] animate-fade-in text-gray-300">
                             
                             {/* Longitudinal Scan Period Banner */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between border border-red-500/10 bg-[#160b0c]/30 rounded-xl p-4 mb-4 gap-2">
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] text-red-400/80 uppercase tracking-widest font-black">LONGITUDINAL SCAN PERIOD</span>
-                                    <span className="text-sm font-bold text-gray-200 mt-1">
-                                        {extractDate(startDate)} to {extractDate(endDate)} ({scanDays > 0 ? `${scanDays} Days` : 'Single Snapshot'})
-                                    </span>
+                            <div className="flex flex-col border border-red-500/10 bg-[#160b0c]/30 rounded-xl p-4 mb-4 gap-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-red-400/80 uppercase tracking-widest font-black">LONGITUDINAL SCAN PERIOD</span>
+                                        <span className="text-sm font-bold text-gray-200 mt-1">
+                                            {extractDate(startDate)} to {extractDate(endDate)} ({scanDays > 0 ? `${scanDays} Days` : 'Single Snapshot'})
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
+                                        <span className="bg-[#14171e] px-2.5 py-1 rounded border border-[#1e222b]">
+                                            Start: <span className="text-amber-500">{extractDate(startDate)}</span>
+                                        </span>
+                                        <span className="bg-[#14171e] px-2.5 py-1 rounded border border-[#1e222b]">
+                                            End: <span className="text-cyan-400">{extractDate(endDate)}</span>
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
-                                    <span className="bg-[#14171e] px-2.5 py-1 rounded border border-[#1e222b]">
-                                        Start: <span className="text-amber-500">{extractDate(startDate)}</span>
-                                    </span>
-                                    <span className="bg-[#14171e] px-2.5 py-1 rounded border border-[#1e222b]">
-                                        End: <span className="text-cyan-400">{extractDate(endDate)}</span>
+                                <div className="text-[10px] text-gray-500/80 border-t border-[#1e222b] pt-2 flex items-start gap-1.5 leading-relaxed font-sans">
+                                    <span className="text-red-400">💡</span>
+                                    <span>
+                                        <strong>Command Tip:</strong> Inactivity metrics are calculated over the dates selected in the top navigation date pickers. To analyze long-term campaign-wide deadweight, change the start scan in the header calendar to a date from weeks or months ago (e.g., KvK Day 1).
                                     </span>
                                 </div>
                             </div>
@@ -809,7 +818,13 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                                                             </td>
                                                             <td className="px-4 py-3">
                                                                 <div className="flex flex-col">
-                                                                    <span className="font-bold text-gray-200 text-sm">{g.name}</span>
+                                                                    <Link 
+                                                                        href={`/stats?id=${g.id}`} 
+                                                                        className="font-bold text-gray-200 text-sm hover:text-red-400 hover:underline transition-colors"
+                                                                        title="Click to view full player history timeline"
+                                                                    >
+                                                                        {g.name}
+                                                                    </Link>
                                                                     <div className="flex items-center gap-1.5 mt-0.5">
                                                                         <span className="text-[9px] text-gray-500 bg-[#14171e] border border-[#1e222b] px-1 rounded font-mono">ID: {g.id}</span>
                                                                         {g.alliance && g.alliance !== 'None' && (
