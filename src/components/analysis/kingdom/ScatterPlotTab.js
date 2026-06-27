@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import ReactECharts from 'echarts-for-react';
 import 'echarts-gl';
-import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send } from "lucide-react";
+import { BrainCircuit, RefreshCw, AlertCircle, ShieldAlert, Crosshair, Copy, X, Send, Download, ArrowUpDown, FileSpreadsheet, UserMinus, Mail } from "lucide-react";
 import { PCA } from 'ml-pca';
 import { useTranslations } from 'next-intl';
 
@@ -15,6 +15,13 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
     const [filterCH25, setFilterCH25] = useState(true);
     const [activeModalCategory, setActiveModalCategory] = useState(null);
     const [viewType, setViewType] = useState('3d'); // 3d, donut, radar
+
+    // Deadweight Ledger states
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [sortKey, setSortKey] = useState("powerEnd");
+    const [sortDirection, setSortDirection] = useState("desc");
+    const [archetypeFilter, setArchetypeFilter] = useState("ALL");
+    const [minPowerFilter, setMinPowerFilter] = useState(0);
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
@@ -174,6 +181,160 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
         };
 
     }, [behavioralRoster, filterCH25]);
+
+    // Gather all deadweight players (Slackers, Farmers, Feeders)
+    const deadweightList = useMemo(() => {
+        if (!chartData) return [];
+        const list = [];
+        ['Feeders', 'Slackers', 'Farmers'].forEach(arch => {
+            if (chartData[arch]) {
+                list.push(...chartData[arch]);
+            }
+        });
+        return list;
+    }, [chartData]);
+
+    // Apply filters and sorting to the deadweight list
+    const filteredAndSortedDeadweight = useMemo(() => {
+        let result = [...deadweightList];
+
+        // 1. Filter by Archetype
+        if (archetypeFilter !== "ALL") {
+            result = result.filter(g => g.archetype === archetypeFilter);
+        }
+
+        // 2. Filter by Minimum Power
+        if (minPowerFilter > 0) {
+            result = result.filter(g => (g.gov.powerEnd || 0) >= minPowerFilter);
+        }
+
+        // 3. Filter by Search Query (Name, ID, or Alliance)
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(g => 
+                g.name.toLowerCase().includes(q) || 
+                g.id.toString().includes(q) || 
+                g.alliance.toLowerCase().includes(q)
+            );
+        }
+
+        // 4. Sort
+        result.sort((a, b) => {
+            let valA, valB;
+            if (sortKey === "powerEnd") {
+                valA = a.gov.powerEnd || 0;
+                valB = b.gov.powerEnd || 0;
+            } else if (sortKey === "name") {
+                valA = a.name.toLowerCase();
+                valB = b.name.toLowerCase();
+            } else if (sortKey === "archetype") {
+                valA = a.archetype;
+                valB = b.archetype;
+            } else if (sortKey === "kpRaw") {
+                valA = a.kpRaw || 0;
+                valB = b.kpRaw || 0;
+            } else if (sortKey === "deadsRaw") {
+                valA = a.deadsRaw || 0;
+                valB = b.deadsRaw || 0;
+            } else {
+                valA = a.id;
+                valB = b.id;
+            }
+
+            if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+            if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+            return 0;
+        });
+
+        return result;
+    }, [deadweightList, archetypeFilter, minPowerFilter, searchQuery, sortKey, sortDirection]);
+
+    // Handle sort key change
+    const handleSort = (key) => {
+        if (sortKey === key) {
+            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+        } else {
+            setSortKey(key);
+            setSortDirection("desc");
+        }
+    };
+
+    // Selection handlers
+    const handleSelectRow = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedIds(filteredAndSortedDeadweight.map(g => g.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    // Bulk actions
+    const handleCopySelectedNames = () => {
+        const selected = filteredAndSortedDeadweight.filter(g => selectedIds.includes(g.id));
+        const listToCopy = selected.length > 0 ? selected : filteredAndSortedDeadweight;
+        const names = listToCopy.map(g => g.name);
+        
+        if (names.length === 0) {
+            alert("No players available to copy!");
+            return;
+        }
+        navigator.clipboard.writeText(names.join("\n"));
+        alert(`Copied ${names.length} names to clipboard!`);
+    };
+
+    const handleSendSelectedToMail = () => {
+        const selected = filteredAndSortedDeadweight.filter(g => selectedIds.includes(g.id));
+        const listToSend = selected.length > 0 ? selected : filteredAndSortedDeadweight;
+        const names = listToSend.map(g => g.name);
+
+        if (names.length === 0) {
+            alert("No players available to send!");
+            return;
+        }
+        sendToMailGenerator(names.join("\n"));
+    };
+
+    const handleExportCSV = () => {
+        const selected = filteredAndSortedDeadweight.filter(g => selectedIds.includes(g.id));
+        const listToExport = selected.length > 0 ? selected : filteredAndSortedDeadweight;
+        
+        if (listToExport.length === 0) {
+            alert("No players available to export!");
+            return;
+        }
+
+        const headers = ["Governor ID", "Name", "Alliance", "Archetype", "Power", "Kill Points Gained", "Dead Troops Gained", "Active Days"];
+        const rows = listToExport.map(g => {
+            const safename = (g.name || "").replace(/"/g, '""');
+            const safealliance = (g.alliance || "").replace(/"/g, '""');
+            return [
+                g.id,
+                `"${safename}"`,
+                `"${safealliance}"`,
+                g.archetype,
+                g.gov.powerEnd || 0,
+                g.kpRaw || 0,
+                g.deadsRaw || 0,
+                g.activeDays || 0
+            ];
+        });
+
+        const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Recommended_Deadweight_${targetKd}_${startDate}_${endDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const formatShortNum = (num) => {
         if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
@@ -371,6 +532,7 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                 <div className="flex gap-2 bg-[#0a0c0f] p-1.5 rounded-lg border border-[#1e222b] shadow-xl relative z-20">
                     <button onClick={() => setViewType('3d')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === '3d' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>3D Matrix</button>
                     <button onClick={() => setViewType('donut')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === 'donut' ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>Health Radial</button>
+                    <button onClick={() => setViewType('deadweight')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded transition-all duration-300 ${viewType === 'deadweight' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'text-gray-500 hover:text-gray-300'}`}>Deadweight Ledger</button>
                 </div>
             </div>
 
@@ -395,103 +557,338 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
 
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#13161c_1px,transparent_1px),linear-gradient(to_bottom,#13161c_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-50"></div>
 
-                <div className="flex-1 w-full relative z-10 min-h-[600px]">
-                    {(() => {
-                        let option = {};
+                <div className="flex-1 w-full relative z-10 min-h-[600px] flex flex-col">
+                    {viewType === 'deadweight' ? (
+                        <div className="flex flex-col flex-1 min-h-[600px] animate-fade-in text-gray-300">
+                            
+                            {/* Summary Metrics Cards */}
+                            {(() => {
+                                const totalCount = filteredAndSortedDeadweight.length;
+                                const totalPower = filteredAndSortedDeadweight.reduce((sum, g) => sum + (g.gov.powerEnd || 0), 0);
+                                const selectedCount = selectedIds.length;
+                                const selectedPower = filteredAndSortedDeadweight
+                                    .filter(g => selectedIds.includes(g.id))
+                                    .reduce((sum, g) => sum + (g.gov.powerEnd || 0), 0);
 
-                        if (viewType === '3d') {
-                            const series = Object.keys(chartData).map(key => {
-                                const clusterColor = CLUSTER_COLORS[key];
-                                const data = chartData[key].map(d => {
-                                    const q = searchQuery.toLowerCase();
-                                    const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                const feedersCount = filteredAndSortedDeadweight.filter(g => g.archetype === 'Feeders').length;
+                                const slackersCount = filteredAndSortedDeadweight.filter(g => g.archetype === 'Slackers').length;
+                                const farmersCount = filteredAndSortedDeadweight.filter(g => g.archetype === 'Farmers').length;
+
+                                return (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                                        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-inner">
+                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Target Population</span>
+                                            <div className="flex items-baseline gap-2 mt-2">
+                                                <span className="text-3xl font-black text-white">{totalCount}</span>
+                                                <span className="text-xs text-gray-500">Governors</span>
+                                            </div>
+                                            {selectedCount > 0 && (
+                                                <span className="text-[10px] text-red-400 font-bold mt-1 uppercase tracking-wider">{selectedCount} Selected</span>
+                                            )}
+                                        </div>
+                                        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-inner">
+                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Matchmaking Weight to Drop</span>
+                                            <div className="flex items-baseline gap-1 mt-2">
+                                                <span className="text-3xl font-black text-red-500">{formatShortNum(selectedCount > 0 ? selectedPower : totalPower)}</span>
+                                                <span className="text-xs text-gray-500 uppercase font-black">Power</span>
+                                            </div>
+                                            <span className="text-[9px] text-gray-500 mt-1 uppercase">
+                                                {selectedCount > 0 ? "Sum of selected subset" : "Sum of current filtered list"}
+                                            </span>
+                                        </div>
+                                        <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-xl p-4 flex flex-col justify-between shadow-inner col-span-1 lg:col-span-2">
+                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Composition Breakdown</span>
+                                            <div className="flex flex-wrap items-center gap-3 mt-3">
+                                                <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/25 px-2.5 py-1 rounded text-xs">
+                                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                                    <span className="text-red-400 font-bold">Feeders: {feedersCount}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 bg-white/10 border border-white/25 px-2.5 py-1 rounded text-xs">
+                                                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                                                    <span className="text-gray-300 font-bold">Slackers: {slackersCount}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/25 px-2.5 py-1 rounded text-xs">
+                                                    <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
+                                                    <span className="text-cyan-400 font-bold">Farmers: {farmersCount}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Control & Toolbar Panel */}
+                            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-xl mb-4">
+                                
+                                {/* Filters */}
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Archetype Focus</span>
+                                        <div className="flex bg-[#13161c] border border-[#1e222b] p-1 rounded-lg">
+                                            {["ALL", "Feeders", "Slackers", "Farmers"].map(arch => (
+                                                <button
+                                                    key={arch}
+                                                    onClick={() => { setArchetypeFilter(arch); setSelectedIds([]); }}
+                                                    className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded transition-all ${archetypeFilter === arch ? 'bg-[#1e222b] text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                                                >
+                                                    {arch}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-wider mb-1 font-bold">Minimum Power</span>
+                                        <select
+                                            value={minPowerFilter}
+                                            onChange={(e) => { setMinPowerFilter(Number(e.target.value)); setSelectedIds([]); }}
+                                            className="bg-[#13161c] text-xs text-gray-300 border border-[#1e222b] rounded-lg p-1.5 outline-none focus:border-red-500 cursor-pointer uppercase font-mono"
+                                        >
+                                            <option value={0}>ALL POWERS</option>
+                                            <option value={20000000}>20M+ POWER</option>
+                                            <option value={30000000}>30M+ POWER</option>
+                                            <option value={40000000}>40M+ POWER</option>
+                                            <option value={50000000}>50M+ POWER</option>
+                                            <option value={60000000}>60M+ POWER</option>
+                                            <option value={70000000}>70M+ POWER</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Bulk Action Buttons */}
+                                <div className="flex flex-wrap items-center gap-2 xl:self-end">
+                                    <button
+                                        onClick={handleSendSelectedToMail}
+                                        className="flex items-center gap-1.5 text-[10px] text-[#0f1115] hover:bg-cyan-400 font-bold uppercase tracking-widest bg-cyan-500 px-4 py-2 rounded transition-all shadow-[0_0_10px_rgba(6,182,212,0.3)] hover:scale-105"
+                                    >
+                                        <Send size={12} /> 
+                                        {selectedIds.length > 0 ? `Send ${selectedIds.length} to Mail` : 'Send Filtered to Mail'}
+                                    </button>
+                                    <button
+                                        onClick={handleCopySelectedNames}
+                                        className="flex items-center gap-1.5 text-[10px] text-gray-300 hover:text-white border border-[#2d323e] hover:bg-[#1a1e27] font-bold uppercase tracking-widest bg-[#13161c] px-4 py-2 rounded transition-all"
+                                    >
+                                        <Copy size={12} />
+                                        {selectedIds.length > 0 ? `Copy ${selectedIds.length} Names` : 'Copy Filtered Names'}
+                                    </button>
+                                    <button
+                                        onClick={handleExportCSV}
+                                        className="flex items-center gap-1.5 text-[10px] text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10 font-bold uppercase tracking-widest bg-[#13161c] px-4 py-2 rounded transition-all"
+                                    >
+                                        <FileSpreadsheet size={12} />
+                                        {selectedIds.length > 0 ? `Export CSV (${selectedIds.length})` : 'Export CSV (All)'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Main Table Ledger */}
+                            <div className="flex-1 border border-[#1e222b] rounded-xl overflow-hidden bg-[#0a0c10] flex flex-col min-h-[400px]">
+                                <div className="overflow-y-auto flex-1 max-h-[600px] scrollbar-thin scrollbar-thumb-[#1e222b]">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="sticky top-0 bg-[#0d1117] border-b border-[#1e222b] z-10 shadow-md">
+                                            <tr>
+                                                <th className="px-4 py-4 text-[10px] font-black uppercase text-gray-500 w-[5%] text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        onChange={handleSelectAll}
+                                                        checked={filteredAndSortedDeadweight.length > 0 && selectedIds.length === filteredAndSortedDeadweight.length}
+                                                        className="accent-red-500 cursor-pointer w-4 h-4 rounded border-[#2d323e] bg-[#13161c]"
+                                                    />
+                                                </th>
+                                                <th onClick={() => handleSort('name')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[25%] cursor-pointer hover:text-white transition-colors group">
+                                                    <div className="flex items-center gap-1">
+                                                        Governor 
+                                                        <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'name' ? 'opacity-100 text-red-500' : ''}`} />
+                                                    </div>
+                                                </th>
+                                                <th onClick={() => handleSort('archetype')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group">
+                                                    <div className="flex items-center gap-1">
+                                                        Archetype 
+                                                        <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'archetype' ? 'opacity-100 text-red-500' : ''}`} />
+                                                    </div>
+                                                </th>
+                                                <th onClick={() => handleSort('powerEnd')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[18%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        Power 
+                                                        <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'powerEnd' ? 'opacity-100 text-red-500' : ''}`} />
+                                                    </div>
+                                                </th>
+                                                <th onClick={() => handleSort('kpRaw')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[18%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        KP Gained 
+                                                        <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'kpRaw' ? 'opacity-100 text-red-500' : ''}`} />
+                                                    </div>
+                                                </th>
+                                                <th onClick={() => handleSort('deadsRaw')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[19%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        Deads Gained 
+                                                        <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'deadsRaw' ? 'opacity-100 text-red-500' : ''}`} />
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#1e222b]/50">
+                                            {filteredAndSortedDeadweight.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="6" className="text-center py-10 text-gray-500 text-xs font-mono uppercase">
+                                                        No deadweight players matching current criteria.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                filteredAndSortedDeadweight.map((g) => {
+                                                    const isSelected = selectedIds.includes(g.id);
+                                                    return (
+                                                        <tr 
+                                                            key={g.id} 
+                                                            className={`transition-colors group hover:bg-[#151922] ${isSelected ? 'bg-red-500/5 hover:bg-red-500/10' : ''}`}
+                                                        >
+                                                            <td className="px-4 py-3 text-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => handleSelectRow(g.id)}
+                                                                    className="accent-red-500 cursor-pointer w-4 h-4 rounded border-[#2d323e] bg-[#13161c]"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-bold text-gray-200 text-sm">{g.name}</span>
+                                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                                        <span className="text-[9px] text-gray-500 bg-[#14171e] border border-[#1e222b] px-1 rounded font-mono">ID: {g.id}</span>
+                                                                        {g.alliance && g.alliance !== 'None' && (
+                                                                            <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1 rounded">[{g.alliance}]</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span 
+                                                                    className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider"
+                                                                    style={{ 
+                                                                        color: CLUSTER_COLORS[g.archetype], 
+                                                                        borderColor: `${CLUSTER_COLORS[g.archetype]}30`,
+                                                                        backgroundColor: `${CLUSTER_COLORS[g.archetype]}10` 
+                                                                    }}
+                                                                >
+                                                                    {g.archetype}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono text-sm text-gray-300">
+                                                                {formatShortNum(g.gov.powerEnd)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono text-sm text-gray-300">
+                                                                {formatShortNum(g.kpRaw)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono text-sm text-red-400">
+                                                                {formatShortNum(g.deadsRaw)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        (() => {
+                            let option = {};
+
+                            if (viewType === '3d') {
+                                const series = Object.keys(chartData).map(key => {
+                                    const clusterColor = CLUSTER_COLORS[key];
+                                    const data = chartData[key].map(d => {
+                                        const q = searchQuery.toLowerCase();
+                                        const match = q && (d.name.toLowerCase().includes(q) || d.id.toString().includes(q) || d.alliance.toLowerCase() === q);
+                                        return {
+                                            value: [d.x, d.y, d.z],
+                                            name: d.name,
+                                            itemStyle: {
+                                                color: match ? '#38bdf8' : clusterColor,
+                                                opacity: (q.length > 0 && !match) ? 0.15 : 0.8,
+                                                shadowBlur: match ? 20 : 10,
+                                                shadowColor: match ? '#38bdf8' : clusterColor,
+                                            },
+                                            symbolSize: match ? 13 : 5,
+                                            tooltipStr: `${d.name} [${d.alliance}]<br/>ID: ${d.id}<br/>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`
+                                        };
+                                    });
+
                                     return {
-                                        value: [d.x, d.y, d.z],
-                                        name: d.name,
-                                        itemStyle: {
-                                            color: match ? '#38bdf8' : clusterColor,
-                                            opacity: (q.length > 0 && !match) ? 0.15 : 0.8,
-                                            shadowBlur: match ? 20 : 10,
-                                            shadowColor: match ? '#38bdf8' : clusterColor,
-                                        },
-                                        symbolSize: match ? 13 : 5,
-                                        tooltipStr: `${d.name} [${d.alliance}]<br/>ID: ${d.id}<br/>KP: ${formatShortNum(d.kpRaw)} | Deads: ${formatShortNum(d.deadsRaw)}`
+                                        type: 'scatter3D',
+                                        name: key.toUpperCase(),
+                                        data: data,
                                     };
                                 });
 
-                                return {
-                                    type: 'scatter3D',
-                                    name: key.toUpperCase(),
-                                    data: data,
+                                option = {
+                                    backgroundColor: 'transparent',
+                                    tooltip: {
+                                        formatter: function (params) {
+                                            return params.data.tooltipStr;
+                                        },
+                                        backgroundColor: 'rgba(15,17,21,0.9)',
+                                        borderColor: '#2d323e',
+                                        textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 }
+                                    },
+                                    legend: {
+                                        show: true,
+                                        textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 10 },
+                                        left: 10,
+                                        top: 10,
+                                        orient: 'vertical'
+                                    },
+                                    grid3D: {
+                                        viewControl: {
+                                            autoRotate: true,
+                                            autoRotateSpeed: 5,
+                                            distance: 200,
+                                            alpha: 20,
+                                            beta: 40
+                                        },
+                                        axisLine: { lineStyle: { color: '#1e222b' } },
+                                        splitLine: { lineStyle: { color: '#1e222b' } },
+                                        axisPointer: { show: false },
+                                        environment: 'transparent'
+                                    },
+                                    xAxis3D: { type: 'value', name: 'Volatility (PC1)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
+                                    yAxis3D: { type: 'value', name: 'Efficiency (PC2)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
+                                    zAxis3D: { type: 'value', name: 'Power Shift (PC3)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
+                                    series: series
                                 };
-                            });
+                            }
 
-                            option = {
-                                backgroundColor: 'transparent',
-                                tooltip: {
-                                    formatter: function (params) {
-                                        return params.data.tooltipStr;
-                                    },
-                                    backgroundColor: 'rgba(15,17,21,0.9)',
-                                    borderColor: '#2d323e',
-                                    textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 }
-                                },
-                                legend: {
-                                    show: true,
-                                    textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 10 },
-                                    left: 10,
-                                    top: 10,
-                                    orient: 'vertical'
-                                },
-                                grid3D: {
-                                    viewControl: {
-                                        autoRotate: true,
-                                        autoRotateSpeed: 5,
-                                        distance: 200,
-                                        alpha: 20,
-                                        beta: 40
-                                    },
-                                    axisLine: { lineStyle: { color: '#1e222b' } },
-                                    splitLine: { lineStyle: { color: '#1e222b' } },
-                                    axisPointer: { show: false },
-                                    environment: 'transparent'
-                                },
-                                xAxis3D: { type: 'value', name: 'Volatility (PC1)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
-                                yAxis3D: { type: 'value', name: 'Efficiency (PC2)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
-                                zAxis3D: { type: 'value', name: 'Power Shift (PC3)', nameTextStyle: { color: '#6b7280' }, axisLabel: { color: '#6b7280' } },
-                                series: series
-                            };
-                        }
+                            if (viewType === 'donut') {
+                                const pieData = Object.keys(chartData).map(cat => ({
+                                    name: cat.toUpperCase(),
+                                    value: chartData[cat].length,
+                                    itemStyle: { color: CLUSTER_COLORS[cat] }
+                                })).filter(d => d.value > 0);
+                                
+                                option = {
+                                    backgroundColor: 'transparent',
+                                    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: 'rgba(15,17,21,0.9)', borderColor: '#2d323e', textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 } },
+                                    legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 } },
+                                    series: [{
+                                        type: 'pie',
+                                        radius: ['50%', '75%'],
+                                        avoidLabelOverlap: false,
+                                        label: { show: true, position: 'outside', formatter: '{b}\n{d}%', color: '#ffffff', fontFamily: 'monospace' },
+                                        data: pieData
+                                    }]
+                                };
+                            }
 
-                        if (viewType === 'donut') {
-                            const pieData = Object.keys(chartData).map(cat => ({
-                                name: cat.toUpperCase(),
-                                value: chartData[cat].length,
-                                itemStyle: { color: CLUSTER_COLORS[cat] }
-                            })).filter(d => d.value > 0);
-                            
-                            option = {
-                                backgroundColor: 'transparent',
-                                tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: 'rgba(15,17,21,0.9)', borderColor: '#2d323e', textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 } },
-                                legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { color: '#9ca3af', fontFamily: 'monospace', fontSize: 12 } },
-                                series: [{
-                                    type: 'pie',
-                                    radius: ['50%', '75%'],
-                                    avoidLabelOverlap: false,
-                                    label: { show: true, position: 'outside', formatter: '{b}\n{d}%', color: '#ffffff', fontFamily: 'monospace' },
-                                    data: pieData
-                                }]
-                            };
-                        }
-
-                        return (
-                            <ReactECharts
-                                option={option}
-                                style={{ width: '100%', height: '100%', minHeight: '600px' }}
-                                opts={{ renderer: 'canvas' }}
-                            />
-                        );
-                    })()}
+                            return (
+                                <ReactECharts
+                                    option={option}
+                                    style={{ width: '100%', height: '100%', minHeight: '600px' }}
+                                    opts={{ renderer: 'canvas' }}
+                                />
+                            );
+                        })()
+                    )}
                 </div>
             </div>
 
