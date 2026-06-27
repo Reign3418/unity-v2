@@ -343,6 +343,45 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
         return num.toLocaleString();
     };
 
+    // Calculate scan period days between start and end date
+    const scanDays = useMemo(() => {
+        if (!startDate || !endDate) return 0;
+        const startStr = extractDate(startDate);
+        const endStr = extractDate(endDate);
+        if (!startStr || !endStr) return 0;
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+        const diffTime = Math.abs(end - start);
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 0;
+    }, [startDate, endDate]);
+
+    const getIndictmentText = (g, days) => {
+        const kp = g.kpRaw || 0;
+        const deads = g.deadsRaw || 0;
+        const pDiff = g.gov.powerDiff || 0;
+        const periodStr = days > 0 ? `${days} days` : 'this period';
+        
+        if (g.archetype === 'Slackers') {
+            if (kp === 0 && deads === 0) {
+                return `⚠️ 0 KP / 0 Deads over ${periodStr} (plateaued deadweight)`;
+            }
+            return `⚠️ Low output: only ${formatShortNum(kp)} KP / ${formatShortNum(deads)} Deads over ${periodStr}`;
+        }
+        if (g.archetype === 'Farmers') {
+            const powerGrowthText = pDiff > 0 ? `+${formatShortNum(pDiff)}` : `${formatShortNum(pDiff)}`;
+            if (kp === 0 && deads === 0) {
+                return `⚠️ Pure Farmer: grew ${powerGrowthText} Power, 0 KP / 0 Deads over ${periodStr}`;
+            }
+            return `⚠️ Hoarding: grew ${powerGrowthText} Power with minimal combat (${formatShortNum(kp)} KP) over ${periodStr}`;
+        }
+        if (g.archetype === 'Feeders') {
+            const ratioText = deads > 0 ? ` (${formatShortNum(kp / deads)} KP/Dead ratio)` : '';
+            return `⚠️ Feeder: bled ${formatShortNum(deads)} Deads with only ${formatShortNum(kp)} KP over ${periodStr}${ratioText}`;
+        }
+        return '';
+    };
+
     const CLUSTER_COLORS = {
         'Heroes': '#10b981', // Neon Emerald (Great)
         'Warriors': '#facc15', // Neon Yellow (Warning/Good)
@@ -561,6 +600,24 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                     {viewType === 'deadweight' ? (
                         <div className="flex flex-col flex-1 min-h-[600px] animate-fade-in text-gray-300">
                             
+                            {/* Longitudinal Scan Period Banner */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between border border-red-500/10 bg-[#160b0c]/30 rounded-xl p-4 mb-4 gap-2">
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] text-red-400/80 uppercase tracking-widest font-black">LONGITUDINAL SCAN PERIOD</span>
+                                    <span className="text-sm font-bold text-gray-200 mt-1">
+                                        {extractDate(startDate)} to {extractDate(endDate)} ({scanDays > 0 ? `${scanDays} Days` : 'Single Snapshot'})
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
+                                    <span className="bg-[#14171e] px-2.5 py-1 rounded border border-[#1e222b]">
+                                        Start: <span className="text-amber-500">{extractDate(startDate)}</span>
+                                    </span>
+                                    <span className="bg-[#14171e] px-2.5 py-1 rounded border border-[#1e222b]">
+                                        End: <span className="text-cyan-400">{extractDate(endDate)}</span>
+                                    </span>
+                                </div>
+                            </div>
+                            
                             {/* Summary Metrics Cards */}
                             {(() => {
                                 const totalCount = filteredAndSortedDeadweight.length;
@@ -758,6 +815,10 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                                                                         {g.alliance && g.alliance !== 'None' && (
                                                                             <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1 rounded">[{g.alliance}]</span>
                                                                         )}
+                                                                    </div>
+                                                                    {/* Fact-based Indictment for leadership */}
+                                                                    <div className="text-[10px] text-red-400/80 mt-1 font-mono leading-tight">
+                                                                        {getIndictmentText(g, scanDays)}
                                                                     </div>
                                                                 </div>
                                                             </td>
