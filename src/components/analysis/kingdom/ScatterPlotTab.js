@@ -19,7 +19,7 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
 
     // Deadweight Ledger states
     const [selectedIds, setSelectedIds] = useState([]);
-    const [sortKey, setSortKey] = useState("powerEnd");
+    const [sortKey, setSortKey] = useState("dwtScore");
     const [sortDirection, setSortDirection] = useState("desc");
     const [archetypeFilter, setArchetypeFilter] = useState("ALL");
     const [minPowerFilter, setMinPowerFilter] = useState(0);
@@ -161,6 +161,26 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
              else if (gov.kpRaw <= avgKp && gov.deadsRaw > avgDeads) archetype = 'Feeders';
              else if (gov.powerDiff > avgPowerDiff) archetype = 'Farmers';
 
+             // Calculate Multi-Factor Deadweight Score (DWT)
+             const kp = gov.kpRaw || 0;
+             const deads = gov.deadsRaw || 0;
+             const power = gov.powerEnd || 1;
+             const pDiff = gov.powerDiff || 0;
+
+             const combatOutput = kp + (deads * 10);
+             const expectedDkp = power * 0.08; // 8% of power expected in DKP
+             const combatDeficit = Math.max(0, 1 - (combatOutput / expectedDkp));
+
+             let growthPenalty = 0;
+             if (pDiff > 0 && combatOutput < expectedDkp) {
+                 growthPenalty = Math.min(0.2, (pDiff / power) * 2);
+             } else if (pDiff < 0) {
+                 growthPenalty = Math.max(-0.3, (pDiff / power)); // Lost power/troops reduces risk
+             }
+
+             const matchmakingWeight = Math.min(1.0, Math.max(0.2, power / 60000000));
+             const dwtScore = Math.max(0, Math.min(100, Math.round((combatDeficit + growthPenalty) * matchmakingWeight * 100)));
+
              clusters[archetype].push({
                  id: gov.id,
                  name: gov.name,
@@ -172,6 +192,7 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                  deadsRaw: gov.deadsRaw,
                  archetype: archetype,
                  activeDays: gov.activeDays,
+                 dwtScore: dwtScore,
                  gov: gov
              });
         });
@@ -183,13 +204,15 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
 
     }, [behavioralRoster, filterCH25]);
 
-    // Gather all deadweight players (Slackers, Farmers, Feeders)
+    // Gather all deadweight players (Slackers, Farmers, Feeders) with a Deadweight Score >= 30%
     const deadweightList = useMemo(() => {
         if (!chartData) return [];
         const list = [];
         ['Feeders', 'Slackers', 'Farmers'].forEach(arch => {
             if (chartData[arch]) {
-                list.push(...chartData[arch]);
+                // Only include if DWT Score is 30% or higher (excludes active flag fillers & minor low-power accounts)
+                const candidates = chartData[arch].filter(g => (g.dwtScore || 0) >= 30);
+                list.push(...candidates);
             }
         });
         return list;
@@ -222,7 +245,10 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
         // 4. Sort
         result.sort((a, b) => {
             let valA, valB;
-            if (sortKey === "powerEnd") {
+            if (sortKey === "dwtScore") {
+                valA = a.dwtScore || 0;
+                valB = b.dwtScore || 0;
+            } else if (sortKey === "powerEnd") {
                 valA = a.gov.powerEnd || 0;
                 valB = b.gov.powerEnd || 0;
             } else if (sortKey === "name") {
@@ -310,7 +336,7 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
             return;
         }
 
-        const headers = ["Governor ID", "Name", "Alliance", "Archetype", "Power", "Kill Points Gained", "Dead Troops Gained", "Active Days"];
+        const headers = ["Governor ID", "Name", "Alliance", "Archetype", "Power", "Kill Points Gained", "Dead Troops Gained", "Active Days", "Deadweight Score"];
         const rows = listToExport.map(g => {
             const safename = (g.name || "").replace(/"/g, '""');
             const safealliance = (g.alliance || "").replace(/"/g, '""');
@@ -322,7 +348,8 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                 g.gov.powerEnd || 0,
                 g.kpRaw || 0,
                 g.deadsRaw || 0,
-                g.activeDays || 0
+                g.activeDays || 0,
+                `${g.dwtScore || 0}%`
             ];
         });
 
@@ -361,24 +388,26 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
         const kp = g.kpRaw || 0;
         const deads = g.deadsRaw || 0;
         const pDiff = g.gov.powerDiff || 0;
+        const power = g.gov.powerEnd || 1;
         const periodStr = days > 0 ? `${days} days` : 'this period';
+        const expectedDkp = Math.round(power * 0.08);
+        const combatOutput = kp + (deads * 10);
         
         if (g.archetype === 'Slackers') {
             if (kp === 0 && deads === 0) {
-                return `⚠️ 0 KP / 0 Deads over ${periodStr} (plateaued deadweight)`;
+                return `⚠️ Slacker: 0 combat contribution over ${periodStr} (Expected: ${formatShortNum(expectedDkp)} DKP)`;
             }
-            return `⚠️ Low output: only ${formatShortNum(kp)} KP / ${formatShortNum(deads)} Deads over ${periodStr}`;
+            return `⚠️ Low output: only ${formatShortNum(combatOutput)} DKP generated over ${periodStr} (Expected: ${formatShortNum(expectedDkp)} DKP)`;
         }
         if (g.archetype === 'Farmers') {
             const powerGrowthText = pDiff > 0 ? `+${formatShortNum(pDiff)}` : `${formatShortNum(pDiff)}`;
             if (kp === 0 && deads === 0) {
-                return `⚠️ Pure Farmer: grew ${powerGrowthText} Power, 0 KP / 0 Deads over ${periodStr}`;
+                return `⚠️ Farmer: grew ${powerGrowthText} Power with 0 combat contribution over ${periodStr}`;
             }
-            return `⚠️ Hoarding: grew ${powerGrowthText} Power with minimal combat (${formatShortNum(kp)} KP) over ${periodStr}`;
+            return `⚠️ Hoarding: grew ${powerGrowthText} Power with only ${formatShortNum(combatOutput)} DKP over ${periodStr} (Expected: ${formatShortNum(expectedDkp)} DKP)`;
         }
         if (g.archetype === 'Feeders') {
-            const ratioText = deads > 0 ? ` (${formatShortNum(kp / deads)} KP/Dead ratio)` : '';
-            return `⚠️ Feeder: bled ${formatShortNum(deads)} Deads with only ${formatShortNum(kp)} KP over ${periodStr}${ratioText}`;
+            return `⚠️ Feeder: combat output was only ${formatShortNum(combatOutput)} DKP relative to ${formatShortNum(power)} Power over ${periodStr}`;
         }
         return '';
     };
@@ -761,34 +790,40 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                                                         className="accent-red-500 cursor-pointer w-4 h-4 rounded border-[#2d323e] bg-[#13161c]"
                                                     />
                                                 </th>
-                                                <th onClick={() => handleSort('name')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[25%] cursor-pointer hover:text-white transition-colors group">
+                                                <th onClick={() => handleSort('name')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[22%] cursor-pointer hover:text-white transition-colors group">
                                                     <div className="flex items-center gap-1">
                                                         Governor 
                                                         <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'name' ? 'opacity-100 text-red-500' : ''}`} />
                                                     </div>
                                                 </th>
-                                                <th onClick={() => handleSort('archetype')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group">
+                                                <th onClick={() => handleSort('archetype')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[13%] cursor-pointer hover:text-white transition-colors group">
                                                     <div className="flex items-center gap-1">
                                                         Archetype 
                                                         <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'archetype' ? 'opacity-100 text-red-500' : ''}`} />
                                                     </div>
                                                 </th>
-                                                <th onClick={() => handleSort('powerEnd')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[18%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                <th onClick={() => handleSort('powerEnd')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group text-right">
                                                     <div className="flex items-center justify-end gap-1">
                                                         Power 
                                                         <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'powerEnd' ? 'opacity-100 text-red-500' : ''}`} />
                                                     </div>
                                                 </th>
-                                                <th onClick={() => handleSort('kpRaw')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[18%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                <th onClick={() => handleSort('kpRaw')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group text-right">
                                                     <div className="flex items-center justify-end gap-1">
                                                         KP Gained 
                                                         <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'kpRaw' ? 'opacity-100 text-red-500' : ''}`} />
                                                     </div>
                                                 </th>
-                                                <th onClick={() => handleSort('deadsRaw')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[19%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                <th onClick={() => handleSort('deadsRaw')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 w-[15%] cursor-pointer hover:text-white transition-colors group text-right">
                                                     <div className="flex items-center justify-end gap-1">
                                                         Deads Gained 
                                                         <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'deadsRaw' ? 'opacity-100 text-red-500' : ''}`} />
+                                                    </div>
+                                                </th>
+                                                <th onClick={() => handleSort('dwtScore')} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-red-400 w-[15%] cursor-pointer hover:text-white transition-colors group text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        DWT Index 
+                                                        <ArrowUpDown size={10} className={`opacity-0 group-hover:opacity-100 transition-opacity ${sortKey === 'dwtScore' ? 'opacity-100 text-red-500' : ''}`} />
                                                     </div>
                                                 </th>
                                             </tr>
@@ -857,6 +892,15 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                                                             </td>
                                                             <td className="px-4 py-3 text-right font-mono text-sm text-red-400">
                                                                 {formatShortNum(g.deadsRaw)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono text-sm">
+                                                                <span className={`font-bold ${
+                                                                    (g.dwtScore || 0) >= 70 ? 'text-red-500 font-extrabold shadow-[0_0_8px_rgba(239,68,68,0.1)]' : 
+                                                                    (g.dwtScore || 0) >= 45 ? 'text-amber-500' : 
+                                                                    'text-gray-400'
+                                                                }`}>
+                                                                    {g.dwtScore || 0}%
+                                                                </span>
                                                             </td>
                                                         </tr>
                                                     );
