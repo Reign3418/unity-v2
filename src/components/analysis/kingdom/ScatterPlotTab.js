@@ -78,9 +78,9 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
         
         if (validRoster.length === 0) return { chartData: {}, statistics: {} };
 
-        // 2. Extract Raw Averages to determine Structural Archetypes (Heroes, Warriors, Feeders, Slackers, Farmers)
-        const totalKp = validRoster.reduce((sum, g) => sum + g.kpRaw, 0);
-        const totalDeads = validRoster.reduce((sum, g) => sum + g.deadsRaw, 0);
+        // 2. Extract Averages to determine Structural Archetypes over the current scan period (difference-based)
+        const totalKp = validRoster.reduce((sum, g) => sum + (g.kpDiff || 0), 0);
+        const totalDeads = validRoster.reduce((sum, g) => sum + (g.deadsDiff || 0), 0);
         const totalPowerDiff = validRoster.reduce((sum, g) => sum + (g.powerDiff || 0), 0);
         const avgKp = totalKp / validRoster.length;
         const avgDeads = totalDeads / validRoster.length;
@@ -156,14 +156,14 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
              const zVal = parseFloat(pc3Array[index].toFixed(2));
 
              let archetype = 'Slackers';
-             if (gov.kpRaw > avgKp && gov.deadsRaw > avgDeads) archetype = 'Warriors';
-             else if (gov.kpRaw > avgKp && gov.deadsRaw <= avgDeads) archetype = 'Heroes';
-             else if (gov.kpRaw <= avgKp && gov.deadsRaw > avgDeads) archetype = 'Feeders';
+             if ((gov.kpDiff || 0) > avgKp && (gov.deadsDiff || 0) > avgDeads) archetype = 'Warriors';
+             else if ((gov.kpDiff || 0) > avgKp && (gov.deadsDiff || 0) <= avgDeads) archetype = 'Heroes';
+             else if ((gov.kpDiff || 0) <= avgKp && (gov.deadsDiff || 0) > avgDeads) archetype = 'Feeders';
              else if (gov.powerDiff > avgPowerDiff) archetype = 'Farmers';
 
-             // Calculate Multi-Factor Deadweight Score (DWT)
-             const kp = gov.kpRaw || 0;
-             const deads = gov.deadsRaw || 0;
+             // Calculate Multi-Factor Deadweight Score (DWT) based on scan period gains/deltas
+             const kp = gov.kpDiff || 0;
+             const deads = gov.deadsDiff || 0;
              const power = gov.powerEnd || 1;
              const pDiff = gov.powerDiff || 0;
 
@@ -188,8 +188,8 @@ export default function ScatterPlotTab({ targetKd, startDate, endDate }) {
                  x: xVal,
                  y: yVal,
                  z: zVal,
-                 kpRaw: gov.kpRaw,
-                 deadsRaw: gov.deadsRaw,
+                 kpRaw: gov.kpDiff || 0,     // Map scan period diffs for ledger displays/sorting
+                 deadsRaw: gov.deadsDiff || 0, // Map scan period diffs for ledger displays/sorting
                  archetype: archetype,
                  activeDays: gov.activeDays,
                  dwtScore: dwtScore,
