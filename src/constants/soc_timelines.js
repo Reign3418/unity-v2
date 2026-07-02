@@ -24,6 +24,26 @@ export const MAP_TIMELINES = {
         { title: "Siege the Land", durationDays: 0.003, offsetDays: 42.115, description: "A total of 200 crusader flags were built between all coalitions." }
     ],
 
+    "Heroic Anthem": [
+        { title: "Selection of KvK Format", durationDays: 3, offsetDays: 0, description: "Kings select Season of Conquest format and seed." },
+        { title: "Matchmaking Phase", durationDays: 6, offsetDays: 3, description: "System locks kingdoms into matchmaking arrays." },
+        { title: "Preparation Phase", durationDays: 1, offsetDays: 9, description: "Eve of the crusade. Final troop prep and AP stockpiling." },
+        { title: "Marauder (Pre-KvK)", durationDays: 2, offsetDays: 10, description: "Kill Marauders to earn Coalition Points and AP pots. Power baseline recorded here." },
+        { title: "Lost Kingdom Opens", durationDays: 1, offsetDays: 11, description: "Lost Kingdom opens. Build alliance fortresses." },
+        { title: "Camps Capture", durationDays: 1, offsetDays: 12, description: "Your coalition must control 1 Crusader Camp." },
+        { title: "Troop Training", durationDays: 2, offsetDays: 12, description: "Train troops to contribute to your Kingdom's Coalition Points." },
+        { title: "Fort Hunt", durationDays: 2, offsetDays: 14, description: "Destroy Marauder Fortresses for Coalition Points." },
+        { title: "Hand in Hand (Pass 4)", durationDays: 2, offsetDays: 19, description: "Pass 4 (Z5) unlocks. DKP tracking begins." },
+        { title: "Sanctuary Capture", durationDays: 2, offsetDays: 21, description: "Your coalition controls a Sanctuary." },
+        { title: "Pass 5 Unsealed", durationDays: 2, offsetDays: 27, description: "Pass 5 (Free Z6) unlocks." },
+        { title: "Pass 6 (Altars)", durationDays: 2, offsetDays: 30, description: "Pass 6 unlocks. Altar of Darkness opens." },
+        { title: "Circle Capture", durationDays: 2, offsetDays: 32, description: "Your coalition controls a Circle." },
+        { title: "Pass 7 Clash", durationDays: 2, offsetDays: 41, description: "Pass 7 unlocks." },
+        { title: "Pass 8 (Kingsland)", durationDays: 2, offsetDays: 44, description: "Pass 8 unlocks. Kingsland opens." },
+        { title: "Ziggurat Capture", durationDays: 3, offsetDays: 50, description: "Great Ziggurat unlocks." },
+        { title: "LK Ends", durationDays: 1, offsetDays: 61, description: "Lost Kingdom season ends." }
+    ],
+
     "Tides of War": [
         // ── Pre-KvK ──────────────────────────────────────────────────────────────
         { title: "Selection of KvK Format", durationDays: 3,     offsetDays: 0,      description: "Kings select Season of Conquest format and seed." },

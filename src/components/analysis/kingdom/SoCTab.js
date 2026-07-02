@@ -25,7 +25,7 @@ const TOW_CAMP_TEMPLATES = [
 ];
 
 const getCampTemplates = (mapName) =>
-    mapName === 'Tides of War' ? TOW_CAMP_TEMPLATES : CAMP_TEMPLATES;
+    (mapName === 'Tides of War' || mapName === 'Heroic Anthem') ? TOW_CAMP_TEMPLATES : CAMP_TEMPLATES;
 
 export default function SoCTab({ targetKd }) {
     const [isLoading, setIsLoading] = useState(true);
@@ -473,6 +473,7 @@ export default function SoCTab({ targetKd }) {
                         >
                             <option value="Siege of Orleans">Siege of Orleans</option>
                             <option value="Tides of War">Tides of War (Season of Conquest)</option>
+                            <option value="Heroic Anthem">Heroic Anthem (Fixed Pass Opening)</option>
                         </select>
                     </div>
                 </div>
