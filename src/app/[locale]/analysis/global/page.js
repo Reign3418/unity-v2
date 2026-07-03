@@ -411,75 +411,36 @@ export default function GlobalAnalysis() {
   };
 
   // --- DELTA ENGINE PROCESSING ---
-  const processedDeltaData = useMemo(() => {
-      if (activeTab !== 'DELTA' || !globalStats || !startScan || !endScan) return [];
+  const [processedDeltaData, setProcessedDeltaData] = useState([]);
+  const [isDeltaLoading, setIsDeltaLoading] = useState(false);
+
+  useEffect(() => {
+      if (activeTab !== 'DELTA' || !globalStats || globalStats.length === 0 || !startScan || !endScan) {
+          return;
+      }
       
-      const results = [];
-      const targetStart = new Date(startScan);
-      const targetEnd = new Date(endScan);
-
-      globalStats.forEach(kdData => {
-          if (!kdData.history || kdData.history.length === 0) return;
-          
-          let startNode = null;
-          let endNode = null;
-
-          let closestStartDiff = Infinity;
-          let closestEndDiff = Infinity;
-
-          kdData.history.forEach(t => {
-              if (!t.scanDate) return;
-              const dateStr = t.scanDate.split('T')[0];
-              const tDate = new Date(dateStr);
+      const fetchExactDeltas = async () => {
+          setIsDeltaLoading(true);
+          try {
+              const kdsToFetch = targetKds.length > 0 
+                  ? targetKds.join(',') 
+                  : globalStats.map(k => k.kingdom.replace('KD ', '')).join(',');
               
-              const startDiff = Math.abs(tDate - targetStart);
-              if (startDiff < closestStartDiff) {
-                  closestStartDiff = startDiff;
-                  startNode = t;
+              const url = `/api/aws/global/delta?start=${startScan}&end=${endScan}&kds=${kdsToFetch}&cap=${topNFilter}`;
+              const res = await fetch(url);
+              const data = await res.json();
+              if (res.ok && data.exactDeltas) {
+                  setProcessedDeltaData(data.exactDeltas.sort((a,b) => b.powerDelta - a.powerDelta));
               }
-
-              const endDiff = Math.abs(tDate - targetEnd);
-              if (endDiff < closestEndDiff) {
-                  closestEndDiff = endDiff;
-                  endNode = t;
-              }
-          });
-
-          if (!startNode || !endNode) return;
-
-          let sPower = 0, sKp = 0, sDead = 0;
-          let ePower = 0, eKp = 0, eDead = 0;
-
-          if (topNFilter === 'All') {
-              sPower = startNode.summary?.totalPower || 0;
-              sKp = startNode.summary?.totalKP || 0;
-              sDead = startNode.summary?.totalDeads || startNode.summary?.deadTroops || startNode.summary?.totalDead || 0;
-              
-              ePower = endNode.summary?.totalPower || 0;
-              eKp = endNode.summary?.totalKP || 0;
-              eDead = endNode.summary?.totalDeads || endNode.summary?.deadTroops || endNode.summary?.totalDead || 0;
-          } else {
-              sPower = startNode.summary?.topSlices?.[topNFilter]?.power || 0;
-              sKp = startNode.summary?.topSlices?.[topNFilter]?.kp || 0;
-              sDead = startNode.summary?.topSlices?.[topNFilter]?.deads || startNode.summary?.topSlices?.[topNFilter]?.deadTroops || startNode.summary?.topSlices?.[topNFilter]?.dead || 0;
-              
-              ePower = endNode.summary?.topSlices?.[topNFilter]?.power || 0;
-              eKp = endNode.summary?.topSlices?.[topNFilter]?.kp || 0;
-              eDead = endNode.summary?.topSlices?.[topNFilter]?.deads || endNode.summary?.topSlices?.[topNFilter]?.deadTroops || endNode.summary?.topSlices?.[topNFilter]?.dead || 0;
+          } catch (e) {
+              console.error("Failed to fetch exact deltas:", e);
+          } finally {
+              setIsDeltaLoading(false);
           }
-
-          results.push({
-              kingdom: kdData.kingdom.replace('KD ', ''),
-              startPower: sPower,
-              endPower: ePower,
-              powerDelta: ePower - sPower,
-              kpGained: eKp - sKp,
-              deadsGained: eDead - sDead
-          });
-      });
-
-      return results.sort((a,b) => b.powerDelta - a.powerDelta);
-  }, [globalStats, startScan, endScan, topNFilter, activeTab]);
+      };
+      
+      fetchExactDeltas();
+  }, [globalStats, targetKds, startScan, endScan, topNFilter, activeTab]);
 
   const [deltaSort, setDeltaSort] = useState({ key: 'powerDelta', direction: 'desc' });
   const handleDeltaSort = (key) => {
@@ -1162,7 +1123,7 @@ export default function GlobalAnalysis() {
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1e222b]">
+                    <tbody className={`divide-y divide-[#1e222b] transition-opacity duration-300 ${isDeltaLoading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                         {sortedDeltaData.map((row, idx) => (
                             <tr key={row.kingdom} className="hover:bg-white/5 transition-colors">
                                 <td className="px-6 py-4 text-left">
