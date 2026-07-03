@@ -788,7 +788,7 @@ export default function SoCTab({ targetKd }) {
                                 {baselineScan && (
                                     <button 
                                         onClick={() => {
-                                            const url = `${window.location.origin}/en/shared/dkp?kd=${targetKd}&baseline=${baselineScan}`;
+                                            const url = `${window.location.origin}/en/shared/soc?kd=${targetKd}&baseline=${baselineScan}`;
                                             navigator.clipboard.writeText(url);
                                             alert("Public link copied to clipboard: " + url);
                                         }}
