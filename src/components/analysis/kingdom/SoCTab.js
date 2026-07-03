@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MAP_TIMELINES, TIDES_SCHEDULE } from '../../../constants/soc_timelines';
-import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock } from 'lucide-react';
+import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { addDays, addHours, format, isValid, parseISO } from 'date-fns';
+import AlgorithmMatrixEditor from './AlgorithmMatrixEditor';
 
 const formatNum = (num) => {
   if (!num && num !== 0) return "0";
@@ -51,6 +52,11 @@ export default function SoCTab({ targetKd }) {
     const [campDkpRows, setCampDkpRows] = useState([]);
     const [isDkpLoading, setIsDkpLoading] = useState(false);
     const [governorCap, setGovernorCap]   = useState(0); // 0 = unlimited
+    const [isMatrixOpen, setIsMatrixOpen] = useState(false);
+
+    const updateGlobalConfigField = (field, value) => {
+        setGlobalConfig(prev => ({ ...prev, [field]: value }));
+    };
 
     // AI Tactical Brief
     const [isBriefing, setIsBriefing]   = useState(false);
@@ -324,7 +330,9 @@ export default function SoCTab({ targetKd }) {
                     t5Kills: 0,
                     totalDeads: 0,
                     totalKp: 0,
-                    totalDkp: 0
+                    totalDkp: 0,
+                    targetDkp: 0,
+                    targetDeads: 0
                 };
 
                 // Sweep AWS across all matched remote Kingdoms
@@ -332,10 +340,7 @@ export default function SoCTab({ targetKd }) {
                     const params = new URLSearchParams({
                       kd,
                       start: dkpStartScan,
-                      end: latestScan,
-                      t4: t4Pts,
-                      t5: t5Pts,
-                      deads: deadsPts,
+                      end: latestScan
                     });
                     
                     const res = await fetch(`/api/aws/dkp?${params.toString()}`);
@@ -349,15 +354,61 @@ export default function SoCTab({ targetKd }) {
 
                     // Sum this kingdom's players into the Camp Totals
                     const kdAgg = capped.reduce((acc, gov) => {
+                        const pDelta = typeof gov.pDelta === "number" ? gov.pDelta : 0;
+                        const t4Diff = typeof gov.t4Delta === "number" ? gov.t4Delta : 0;
+                        const t5Diff = typeof gov.t5Delta === "number" ? gov.t5Delta : 0;
+                        const deadsDiff = typeof gov.dDelta === "number" ? gov.dDelta : 0;
+                        
+                        // Power Start
+                        const powerStart = Math.max(0, (gov.power || 0) - pDelta);
+                        
+                        let rawKvkKP = 0;
+                        let targetDkp = 0;
+                        let targetDeads = 0;
+
+                        if (globalConfig.dkpSystem === "basic") {
+                            rawKvkKP = (t4Diff * (globalConfig.basicT4Points || 0)) + (t5Diff * (globalConfig.basicT5Points || 0)) + (deadsDiff * (globalConfig.basicDeadsPoints || 0));
+                        } else if (globalConfig.dkpSystem === "bracketed") {
+                            const pM = powerStart / 1000000;
+                            let mult = globalConfig.b6Mult || 5.0;
+                            
+                            if (pM <= (globalConfig.b1Max || 24)) mult = (globalConfig.b1Mult || 1.5);
+                            else if (pM <= (globalConfig.b2Max || 35)) mult = (globalConfig.b2Mult || 2.0);
+                            else if (pM <= (globalConfig.b3Max || 45)) mult = (globalConfig.b3Mult || 2.5);
+                            else if (pM <= (globalConfig.b4Max || 55)) mult = (globalConfig.b4Mult || 3.0);
+                            else if (pM <= (globalConfig.b5Max || 70)) mult = (globalConfig.b5Mult || 4.0);
+
+                            rawKvkKP = (t4Diff * (globalConfig.advT4Points || 10)) + (t5Diff * (globalConfig.advT5Points || 20));
+                            targetDkp = powerStart * mult;
+                            targetDeads = powerStart * (globalConfig.bracketDeadsMultiplier || 0.02);
+                        } else if (globalConfig.dkpSystem === "hoh") {
+                            const totalKills = t4Diff + t5Diff;
+                            const t4Ratio = totalKills > 0 ? (t4Diff / totalKills) : 1; 
+                            const estT4Deads = deadsDiff * t4Ratio;
+                            const estT5Deads = deadsDiff * (1 - t4Ratio);
+                            
+                            rawKvkKP = (t4Diff * (globalConfig.hohT4Kill || 1)) + (t5Diff * (globalConfig.hohT5Kill || 5)) + (estT4Deads * (globalConfig.hohT4Dead || 15)) + (estT5Deads * (globalConfig.hohT5Dead || 30));
+                        } else {
+                            // Advanced
+                            rawKvkKP = (t4Diff * (globalConfig.advT4Points || 10)) + (t5Diff * (globalConfig.advT5Points || 20));
+                            const t4MixRatio = 1 - (globalConfig.t5MixRatio || 0.7);
+                            const kpTargetMultiplier = ((((globalConfig.t5MixRatio || 0.7) * (globalConfig.advT5Points || 20)) + (t4MixRatio * (globalConfig.advT4Points || 10))) * (globalConfig.kpMultiplier || 1.25)) / (globalConfig.kpPowerDivisor || 3);
+                            
+                            targetDkp = powerStart * kpTargetMultiplier;
+                            targetDeads = powerStart * (globalConfig.deadsMultiplier || 0.02);
+                        }
+
                         acc.totalPower += gov.power || 0;
-                        acc.powerDelta += typeof gov.pDelta === "number" ? gov.pDelta : 0;
-                        acc.t4Kills += typeof gov.t4Delta === "number" ? gov.t4Delta : 0;
-                        acc.t5Kills += typeof gov.t5Delta === "number" ? gov.t5Delta : 0;
-                        acc.totalDeads += typeof gov.dDelta === "number" ? gov.dDelta : 0;
+                        acc.powerDelta += pDelta;
+                        acc.t4Kills += t4Diff;
+                        acc.t5Kills += t5Diff;
+                        acc.totalDeads += deadsDiff;
                         acc.totalKp += gov.kDelta || 0;
-                        acc.totalDkp += gov.dkpScore || 0;
+                        acc.totalDkp += rawKvkKP; // Override with local calc
+                        acc.targetDkp += targetDkp;
+                        acc.targetDeads += targetDeads;
                         return acc;
-                    }, { totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, totalKp: 0, totalDkp: 0 });
+                    }, { totalPower: 0, powerDelta: 0, t4Kills: 0, t5Kills: 0, totalDeads: 0, totalKp: 0, totalDkp: 0, targetDkp: 0, targetDeads: 0 });
 
                     campAgg.totalPower += kdAgg.totalPower;
                     campAgg.powerDelta += kdAgg.powerDelta;
@@ -366,6 +417,8 @@ export default function SoCTab({ targetKd }) {
                     campAgg.totalDeads += kdAgg.totalDeads;
                     campAgg.totalKp += kdAgg.totalKp;
                     campAgg.totalDkp += kdAgg.totalDkp;
+                    campAgg.targetDkp += kdAgg.targetDkp;
+                    campAgg.targetDeads += kdAgg.targetDeads;
                 }
                 
                 newRows.push(campAgg);
@@ -634,6 +687,26 @@ export default function SoCTab({ targetKd }) {
                 </div>
             </div>
 
+            {/* Coalition Target Simulator (Algorithm Matrix) */}
+            <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6 relative overflow-hidden mb-6">
+                <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsMatrixOpen(!isMatrixOpen)}>
+                    <div>
+                        <h3 className="text-xl font-black flex items-center gap-2 mb-1 uppercase tracking-widest text-purple-400">
+                            Coalition Target Simulator
+                        </h3>
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Configure global constraints to simulate DKP requirements across all coalitions.</p>
+                    </div>
+                    <button className="text-slate-400 hover:text-white transition-colors p-2 bg-slate-800/50 rounded-lg">
+                        {isMatrixOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </button>
+                </div>
+                {isMatrixOpen && (
+                    <div className="mt-6 border-t border-slate-800 pt-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                        <AlgorithmMatrixEditor config={globalConfig} updateField={updateGlobalConfigField} />
+                    </div>
+                )}
+            </div>
+
             {/* Camp Matchmaking DKP Aggregator */}
             <div className="bg-[#0f1115] border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
                 <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent left-0" />
@@ -762,7 +835,7 @@ export default function SoCTab({ targetKd }) {
                         <table className="w-full whitespace-nowrap text-[12px]">
                             <thead className="bg-black/40 border-b border-[#1e222b]">
                                 <tr>
-                                    {["Camp", "Total Power", "Power +/-", "T4 Kills +/-", "T5 Kills +/-", "Deads +/-", "Total KP +/-", "Camp DKP"].map((h) => (
+                                    {["Camp", "Total Power", "Power +/-", "T4 Kills +/-", "T5 Kills +/-", "Deads +/-", "Target Deads", "Total KP +/-", "Camp DKP", "Target DKP"].map((h) => (
                                         <th key={h} className="px-4 py-3 text-left font-bold uppercase tracking-wider text-gray-500 text-[10px]">
                                             {h}
                                         </th>
@@ -772,7 +845,7 @@ export default function SoCTab({ targetKd }) {
                             <tbody className="divide-y divide-[#1e222b]">
                                 {isDkpLoading ? (
                                     <tr>
-                                        <td colSpan={8} className="px-4 py-12 text-center">
+                                        <td colSpan={10} className="px-4 py-12 text-center">
                                             <RefreshCw size={24} className="animate-spin text-cyan-400 mx-auto mb-3" />
                                             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
                                                 Interrogating AWS Network For All Kingdoms...
@@ -781,7 +854,7 @@ export default function SoCTab({ targetKd }) {
                                     </tr>
                                 ) : campDkpRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="px-4 py-12 text-center text-[11px] font-bold uppercase tracking-widest text-slate-600">
+                                        <td colSpan={10} className="px-4 py-12 text-center text-[11px] font-bold uppercase tracking-widest text-slate-600">
                                             Click "Compute Data" to aggregate the Kingdom Coalitions.
                                         </td>
                                     </tr>
@@ -802,11 +875,13 @@ export default function SoCTab({ targetKd }) {
                                             </td>
                                             <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t4Kills)}</td>
                                             <td className="px-4 py-4 font-mono text-slate-300">{formatNum(row.t5Kills)}</td>
-                                            <td className="px-4 py-4 font-mono text-rose-400 font-bold">{formatNum(row.totalDeads)}</td>
+                                            <td className={`px-4 py-4 font-mono font-bold ${row.totalDeads >= row.targetDeads ? "text-emerald-400" : "text-rose-400"}`}>{formatNum(row.totalDeads)}</td>
+                                            <td className="px-4 py-4 font-mono text-slate-400">{formatNum(row.targetDeads)}</td>
                                             <td className="px-4 py-4 font-mono text-cyan-400">{formatNum(row.totalKp)}</td>
-                                            <td className="px-4 py-4 font-mono font-black text-white text-[15px] drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                                            <td className={`px-4 py-4 font-mono font-black text-[15px] drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] ${row.totalDkp >= row.targetDkp ? "text-emerald-400" : "text-rose-400"}`}>
                                                 {formatNum(row.totalDkp)}
                                             </td>
+                                            <td className="px-4 py-4 font-mono text-slate-400 font-bold">{formatNum(row.targetDkp)}</td>
                                         </tr>
                                     ))
                                 )}
