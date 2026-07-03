@@ -3,6 +3,7 @@ import { MAP_TIMELINES, TIDES_SCHEDULE } from '../../../constants/soc_timelines'
 import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { addDays, addHours, format, isValid, parseISO } from 'date-fns';
 import AlgorithmMatrixEditor from './AlgorithmMatrixEditor';
+import CampRosterTable from './CampRosterTable';
 
 const formatNum = (num) => {
   if (!num && num !== 0) return "0";
@@ -53,6 +54,10 @@ export default function SoCTab({ targetKd }) {
     const [isDkpLoading, setIsDkpLoading] = useState(false);
     const [governorCap, setGovernorCap]   = useState(0); // 0 = unlimited
     const [isMatrixOpen, setIsMatrixOpen] = useState(false);
+
+    // --- Individual Governor Roster States ---
+    const [campGovernors, setCampGovernors] = useState({});
+    const [selectedRosterCamp, setSelectedRosterCamp] = useState(null);
 
     const updateGlobalConfigField = (field, value) => {
         setGlobalConfig(prev => ({ ...prev, [field]: value }));
@@ -310,13 +315,13 @@ export default function SoCTab({ targetKd }) {
         const t5Pts = globalConfig.advT5Points || 20;
         const deadsPts = globalConfig.deadsPoints || 30; // standard DKP uses 30 for deads default in missing global
 
-        const newRows = [];
-
         try {
+            setIsDkpLoading(true);
+            const newRows = [];
+            const newCampGovernors = {};
+
             for (const camp of camps) {
-                // Parse Kingdom numbers, ignoring # and spacing
-                const kdsArray = camp.kds.split(',').map(k => k.replace(/\D/g, '').trim()).filter(k => k.length > 0);
-                
+                const kdsArray = camp.kds.split(',').map(k => k.trim()).filter(Boolean);
                 if (kdsArray.length === 0) continue;
 
                 // Aggregate logic for the entire Camp
@@ -336,6 +341,8 @@ export default function SoCTab({ targetKd }) {
                 };
 
                 // Sweep AWS across all matched remote Kingdoms
+                const tempGovs = [];
+
                 for (const kd of kdsArray) {
                     const params = new URLSearchParams({
                       kd,
@@ -398,6 +405,40 @@ export default function SoCTab({ targetKd }) {
                             targetDeads = powerStart * (globalConfig.deadsMultiplier || 0.02);
                         }
 
+                        const finalDkp = rawKvkKP;
+                        const t4t5Combined = t4Diff + t5Diff;
+                        const kpPercent = targetDkp > 0 ? Math.round((rawKvkKP / targetDkp) * 100) : 0;
+                        const deadPercent = targetDeads > 0 ? Math.round((deadsDiff / targetDeads) * 100) : 0;
+                        
+                        let quotaPct = 0;
+                        if (globalConfig.dkpSystem === 'advanced' || globalConfig.dkpSystem === 'bracketed') {
+                            const deadWeight = (globalConfig.deadsWeight || 50) / 100;
+                            const kpWeight = 1 - deadWeight;
+                            const kpScore = Math.min(kpPercent, 100) * kpWeight;
+                            const deadScore = Math.min(deadPercent, 100) * deadWeight;
+                            quotaPct = Math.round(kpScore + deadScore);
+                        }
+
+                        tempGovs.push({
+                            id: gov.id,
+                            name: gov.name,
+                            kd: kd,
+                            status: gov.status || "Sleeper",
+                            powerStart: powerStart,
+                            powerDiff: pDelta,
+                            t4Diff: t4Diff,
+                            t5Diff: t5Diff,
+                            t4t5Combined: t4t5Combined,
+                            deadsDiff: deadsDiff,
+                            kvkKP: rawKvkKP,
+                            targetDkp: targetDkp,
+                            targetDeads: targetDeads,
+                            kpPercent: kpPercent,
+                            deadPercent: deadPercent,
+                            finalDkp: finalDkp,
+                            quotaPct: quotaPct
+                        });
+
                         acc.totalPower += gov.power || 0;
                         acc.powerDelta += pDelta;
                         acc.t4Kills += t4Diff;
@@ -421,9 +462,14 @@ export default function SoCTab({ targetKd }) {
                     campAgg.targetDeads += kdAgg.targetDeads;
                 }
                 
+                newCampGovernors[camp.name] = tempGovs.sort((a,b) => b.powerStart - a.powerStart);
                 newRows.push(campAgg);
             }
             
+            setCampGovernors(newCampGovernors);
+            if (Object.keys(newCampGovernors).length > 0 && !selectedRosterCamp) {
+                setSelectedRosterCamp(Object.keys(newCampGovernors)[0]);
+            }
             setCampDkpRows(newRows.sort((a, b) => b.totalDkp - a.totalDkp));
         } catch(e) {
             console.error("Failed to sequence Camp DKP Leaderboards", e);
@@ -891,7 +937,37 @@ export default function SoCTab({ targetKd }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            {/* Coalition Roster Tabbing */}
+            {Object.keys(campGovernors).length > 0 && (
+                <div className="mt-8">
+                    <div className="flex items-center gap-2 border-b border-slate-800 pb-2 mb-4 overflow-x-auto custom-scrollbar">
+                        {Object.keys(campGovernors).map((cName) => {
+                            const isActive = selectedRosterCamp === cName;
+                            const campDef = camps.find(c => c.name === cName);
+                            const activeColor = campDef ? campDef.color.split(' ')[1] : 'text-slate-200';
+                            
+                            return (
+                                <button
+                                    key={`tab-${cName}`}
+                                    onClick={() => setSelectedRosterCamp(cName)}
+                                    className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded transition-all whitespace-nowrap ${isActive ? `bg-[#1e222b] ${activeColor} shadow-inner` : 'text-slate-500 hover:bg-[#1a1d24] hover:text-slate-300'}`}
+                                >
+                                    {cName}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {selectedRosterCamp && campGovernors[selectedRosterCamp] && (
+                        <CampRosterTable 
+                            campName={selectedRosterCamp}
+                            governors={campGovernors[selectedRosterCamp]} 
+                            globalConfig={globalConfig} 
+                        />
+                    )}
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-8">
                 
                 {/* Tactical Timeline Explorer */}
                 <div className="xl:col-span-7 space-y-4">
