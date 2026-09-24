@@ -93,6 +93,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <NavItem href="/community" icon={MessageSquare} label={t('nav_community_hub')} />
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
+          <NavItem href="/tools/map-planner" icon={MapIcon} label={t('nav_map_planner')} isAi={true} />
           <NavItem href="/events" icon={CalendarDays} label={t('nav_events')} />
           <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />

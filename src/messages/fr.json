@@ -33,7 +33,8 @@
     "footer_contact": "Contact",
     "footer_privacy": "Confidentialité",
     "footer_terms": "Conditions",
-    "nav_usage": "Utilisation de l'IA"
+    "nav_usage": "Utilisation de l'IA",
+    "nav_map_planner": "Planificateur de Carte KvK"
   },
   "HomePage": {
     "subtitle_prefix": "Parce qu'il n'y a pas de",

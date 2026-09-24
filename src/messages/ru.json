@@ -33,7 +33,8 @@
     "footer_contact": "Контакты",
     "footer_privacy": "Приватность",
     "footer_terms": "Условия",
-    "nav_usage": "Использование ИИ"
+    "nav_usage": "Использование ИИ",
+    "nav_map_planner": "Планировщик карты KvK"
   },
   "HomePage": {
     "subtitle_prefix": "Потому что нет",

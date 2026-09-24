@@ -33,7 +33,8 @@
     "footer_contact": "연락처",
     "footer_privacy": "개인정보보호",
     "footer_terms": "이용약관",
-    "nav_usage": "AI 사용량"
+    "nav_usage": "AI 사용량",
+    "nav_map_planner": "KvK 맵 플래너"
   },
   "HomePage": {
     "subtitle_prefix": "팀에는",
