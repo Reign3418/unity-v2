@@ -169,6 +169,101 @@ export async function getAllTrackedKingdoms() {
 }
 
 /**
+ * Retrieves the global telemetry metrics (unique governors, kingdoms tracked, snapshots)
+ */
+export async function getGlobalTelemetryMetrics() {
+    const raw = await getGlobalConfig("GLOBAL_TELEMETRY");
+    if (raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            return parsed;
+        } catch (e) {
+            console.error("[AWS] Failed to parse GLOBAL_TELEMETRY:", e);
+        }
+    }
+    
+    // Default fallback dynamically linked to actual tracked kingdoms length
+    const allKds = await getAllTrackedKingdoms();
+    return {
+        totalGovernors: 139064,
+        totalSnapshots: "1.17M",
+        totalKingdoms: allKds.length > 0 ? allKds.length : 163,
+        lastUpdated: null
+    };
+}
+
+/**
+ * Updates the global telemetry metrics in DynamoDB
+ */
+export async function updateGlobalTelemetryMetrics({ totalGovernors, totalKingdoms, totalSnapshots }) {
+    const current = await getGlobalTelemetryMetrics();
+    const updated = {
+        totalGovernors: totalGovernors !== undefined && totalGovernors !== null ? Number(totalGovernors) : current.totalGovernors,
+        totalKingdoms: totalKingdoms !== undefined && totalKingdoms !== null ? Number(totalKingdoms) : current.totalKingdoms,
+        totalSnapshots: totalSnapshots !== undefined && totalSnapshots !== null ? String(totalSnapshots) : current.totalSnapshots,
+        lastUpdated: new Date().toISOString()
+    };
+    await updateGlobalConfig("GLOBAL_TELEMETRY", JSON.stringify(updated));
+    return updated;
+}
+
+/**
+ * Automatically syncs and recalculates tracked kingdoms & global telemetry metrics
+ */
+export async function syncGlobalMetrics() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    // 1. Gather all kingdoms across sources
+    const [existingTracked, tenants, users] = await Promise.all([
+        getAllTrackedKingdoms(),
+        getAllTenants(),
+        getAllUsers()
+    ]);
+
+    const allKdSet = new Set(existingTracked);
+    tenants.forEach(t => {
+        if (t.kingdomId) allKdSet.add(String(t.kingdomId));
+        if (Array.isArray(t.allowedKingdoms)) t.allowedKingdoms.forEach(k => allKdSet.add(String(k)));
+    });
+    users.forEach(u => {
+        const targetKd = u.attributes?.targetKingdom?.S || u.attributes?.kingdomId?.S;
+        if (targetKd) allKdSet.add(String(targetKd));
+    });
+
+    const uniqueKingdoms = Array.from(allKdSet).filter(k => k && String(k).replace(/\D/g, '').length < 10).sort((a,b) => parseInt(a) - parseInt(b));
+
+    // 2. Update TRACKED_KINGDOMS set in DynamoDB if new kingdoms found
+    if (uniqueKingdoms.length > 0) {
+        try {
+            await dbClient.send(new PutItemCommand({
+                TableName: tableName,
+                Item: {
+                    'PK': { S: 'SYSTEM#CONFIG' },
+                    'SK': { S: 'TRACKED_KINGDOMS' },
+                    'kingdoms': { SS: uniqueKingdoms }
+                }
+            }));
+        } catch (e) {
+            console.error("[AWS] Error updating TRACKED_KINGDOMS set:", e);
+        }
+    }
+
+    // 3. Update GLOBAL_TELEMETRY with verified kingdom count
+    const currentTelemetry = await getGlobalTelemetryMetrics();
+    const updated = await updateGlobalTelemetryMetrics({
+        totalGovernors: currentTelemetry.totalGovernors,
+        totalKingdoms: uniqueKingdoms.length,
+        totalSnapshots: currentTelemetry.totalSnapshots
+    });
+
+    return {
+        ...updated,
+        kingdoms: uniqueKingdoms
+    };
+}
+
+/**
  * Searches the Unity global AWS DynamoDB table for a specific Governor ID or Name
  */
 export async function getGovernorStats(queryParam) {

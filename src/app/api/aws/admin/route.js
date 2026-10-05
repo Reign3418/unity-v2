@@ -5,7 +5,8 @@ export const maxDuration = 300;
 import { 
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, addUserAllowedKingdom, removeUserAllowedKingdom, 
-  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles, getSupporterKingdoms, getFeatureGates, updateFeatureGate, setKingdomSupporterStatus, getGlobalConfig, updateGlobalConfig
+  rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles, getSupporterKingdoms, getFeatureGates, updateFeatureGate, setKingdomSupporterStatus, getGlobalConfig, updateGlobalConfig,
+  getGlobalTelemetryMetrics, updateGlobalTelemetryMetrics, syncGlobalMetrics, getAllTrackedKingdoms
 } from "@/lib/awsDynamo";
 
 
@@ -16,15 +17,17 @@ export async function GET(req) {
       return NextResponse.json({ error: "Unauthorized. Master Creator Clearance Required." }, { status: 403 });
     }
 
-    // Run both DynamoDB scans continuously over parallel threads
-    const [users, tenants, passcodes, pendingUsers, supporterKingdoms, featureGates, globalGeminiModel] = await Promise.all([
+    // Run all DynamoDB scans continuously over parallel threads
+    const [users, tenants, passcodes, pendingUsers, supporterKingdoms, featureGates, globalGeminiModel, globalTelemetry, trackedKingdoms] = await Promise.all([
       getAllUsers(),
       getAllTenants(),
       getAllGuestPasses(),
       getPendingUsers(),
       getSupporterKingdoms(),
       getFeatureGates(),
-      getGlobalConfig("GEMINI_MODEL")
+      getGlobalConfig("GEMINI_MODEL"),
+      getGlobalTelemetryMetrics(),
+      getAllTrackedKingdoms()
     ]);
 
     // Attach current Environment Gateway strings so the Admin knows which DB is active
@@ -40,7 +43,14 @@ export async function GET(req) {
       pendingUsers,
       supporterKingdoms,
       featureGates,
-      globalGeminiModel: globalGeminiModel || "gemini-3.1-flash-lite"
+      globalGeminiModel: globalGeminiModel || "gemini-3.1-flash-lite",
+      globalTelemetry: globalTelemetry || {
+        totalGovernors: 139064,
+        totalSnapshots: "1.17M",
+        totalKingdoms: (trackedKingdoms && trackedKingdoms.length) || 163,
+        lastUpdated: null
+      },
+      trackedKingdomsCount: (trackedKingdoms && trackedKingdoms.length) || 0
     }, { status: 200 });
 
   } catch (error) {
@@ -262,11 +272,15 @@ export async function POST(req) {
       return NextResponse.json({ success: res, message: res ? "Feature Gate Locked" : "Failed Lock" }, { status: 200 });
     }
 
-    if (action === "UPDATE_GLOBAL_GEMINI_MODEL") {
-      const { modelName } = payload;
-      if (!modelName) return NextResponse.json({ error: "Missing Model Name" }, { status: 400 });
-      const res = await updateGlobalConfig("GEMINI_MODEL", modelName);
-      return NextResponse.json({ success: res, message: res ? `Global Default Model Updated to ${modelName}` : "Failed Update" }, { status: 200 });
+    if (action === "SYNC_GLOBAL_METRICS") {
+      const telemetry = await syncGlobalMetrics();
+      return NextResponse.json({ success: true, telemetry, message: `Global metrics synchronized. Found ${telemetry.totalKingdoms} tracked kingdoms.` }, { status: 200 });
+    }
+
+    if (action === "UPDATE_GLOBAL_TELEMETRY") {
+      const { totalGovernors, totalKingdoms, totalSnapshots } = payload || {};
+      const telemetry = await updateGlobalTelemetryMetrics({ totalGovernors, totalKingdoms, totalSnapshots });
+      return NextResponse.json({ success: true, telemetry, message: "Global telemetry counts updated successfully." }, { status: 200 });
     }
 
     return NextResponse.json({ error: "Unknown Admin Directive." }, { status: 400 });

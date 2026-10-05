@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
-  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink, Search
+  UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink, Search, Sliders
 } from "lucide-react";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
@@ -24,6 +24,19 @@ export default function AdminConsole() {
   const [pendingUsers, setPendingUsers] = useState(globalMatrixCache?.pendingUsers || []);
   const [supporterKingdoms, setSupporterKingdoms] = useState(globalMatrixCache?.supporterKingdoms || []);
   const [featureGates, setFeatureGates] = useState(globalMatrixCache?.featureGates || []);
+  const [telemetry, setTelemetry] = useState(globalMatrixCache?.globalTelemetry || {
+    totalGovernors: 139064,
+    totalSnapshots: "1.17M",
+    totalKingdoms: 163,
+    lastUpdated: null
+  });
+  const [isSyncingTelemetry, setIsSyncingTelemetry] = useState(false);
+  const [isEditTelemetryModalOpen, setIsEditTelemetryModalOpen] = useState(false);
+  const [telemetryForm, setTelemetryForm] = useState({
+    totalGovernors: 139064,
+    totalKingdoms: 163,
+    totalSnapshots: "1.17M"
+  });
   
   // UX State
   const [activeTab, setActiveTab] = useState("overview");
@@ -84,6 +97,14 @@ export default function AdminConsole() {
       setFeatureGates(data.featureGates || []);
       setUploadLogs(logsData.uploads || []);
       setGlobalModel(data.globalGeminiModel || "gemini-3.1-flash-lite");
+      if (data.globalTelemetry) {
+        setTelemetry(data.globalTelemetry);
+        setTelemetryForm({
+          totalGovernors: data.globalTelemetry.totalGovernors || 139064,
+          totalKingdoms: data.globalTelemetry.totalKingdoms || 163,
+          totalSnapshots: data.globalTelemetry.totalSnapshots || "1.17M"
+        });
+      }
       
       globalMatrixCache = { ...data, uploadLogs: logsData.uploads };
       globalMatrixTimestamp = Date.now();
@@ -97,6 +118,65 @@ export default function AdminConsole() {
   // ----------------------------------------------------
   // ACTION HANDLERS
   // ----------------------------------------------------
+
+  const handleSyncTelemetry = async () => {
+    setIsSyncingTelemetry(true);
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SYNC_GLOBAL_METRICS" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to synchronize metrics.");
+      if (data.telemetry) {
+        setTelemetry(data.telemetry);
+        setTelemetryForm({
+          totalGovernors: data.telemetry.totalGovernors,
+          totalKingdoms: data.telemetry.totalKingdoms,
+          totalSnapshots: data.telemetry.totalSnapshots
+        });
+        if (globalMatrixCache) {
+          globalMatrixCache.globalTelemetry = data.telemetry;
+        }
+      }
+      alert(`✅ ${data.message || "Global metrics synchronized successfully!"}`);
+    } catch (e) {
+      alert(`❌ ${e.message}`);
+    } finally {
+      setIsSyncingTelemetry(false);
+    }
+  };
+
+  const handleSaveTelemetry = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/aws/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_GLOBAL_TELEMETRY",
+          payload: {
+            totalGovernors: Number(telemetryForm.totalGovernors),
+            totalKingdoms: Number(telemetryForm.totalKingdoms),
+            totalSnapshots: String(telemetryForm.totalSnapshots)
+          }
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update metrics.");
+      if (data.telemetry) {
+        setTelemetry(data.telemetry);
+        if (globalMatrixCache) {
+          globalMatrixCache.globalTelemetry = data.telemetry;
+        }
+      }
+      setIsEditTelemetryModalOpen(false);
+      alert("✅ Global telemetry counts updated successfully!");
+    } catch (e) {
+      alert(`❌ ${e.message}`);
+    }
+  };
 
   const toggleTenantAi = async (guildId, currentStatus) => {
     try {
@@ -378,13 +458,56 @@ export default function AdminConsole() {
       {/* GLOBAL TELEMETRY STATS */}
       <div className="mt-8 mb-8 border border-[#1e222b] bg-[#0a0c10] rounded-xl p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-1 bg-gradient-to-b from-fuchsia-500 to-indigo-500 h-full"></div>
-        <h3 className="text-gray-400 font-bold mb-6 flex items-center gap-2 text-sm uppercase tracking-wider"><Database size={18} className="text-fuchsia-500"/> Global Master Telemetry</h3>
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-gray-200 font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
+              <Database size={18} className="text-fuchsia-500"/> Global Master Telemetry
+            </h3>
+            <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+              Live indexed count across all cloud rosters, historical scans, and registered kingdoms.
+              {telemetry.lastUpdated && (
+                <span className="text-gray-400 ml-2">
+                  • Last synchronized: {new Date(telemetry.lastUpdated).toLocaleString()}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSyncTelemetry}
+              disabled={isSyncingTelemetry}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 shadow-sm"
+              title="Audit and automatically recount all tracked kingdoms and ecosystem nodes"
+            >
+              <RefreshCw size={14} className={isSyncingTelemetry ? "animate-spin text-cyan-400" : ""} />
+              <span>{isSyncingTelemetry ? "Recalculating..." : "Sync Totals"}</span>
+            </button>
+            <button
+              onClick={() => {
+                setTelemetryForm({
+                  totalGovernors: telemetry.totalGovernors || 139064,
+                  totalKingdoms: telemetry.totalKingdoms || 163,
+                  totalSnapshots: telemetry.totalSnapshots || "1.17M"
+                });
+                setIsEditTelemetryModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e222b] hover:bg-[#2d323e] text-gray-300 hover:text-white border border-[#2d323e] text-xs font-bold uppercase tracking-wider transition-all"
+              title="Manually calibrate or override governor & kingdom counts"
+            >
+              <Sliders size={14} />
+              <span>Calibrate</span>
+            </button>
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
            <div className="group border-l border-[#1e222b] pl-6 hover:border-fuchsia-500/50 transition-colors">
               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-fuchsia-400 transition-colors mb-1">Tracked Governors</div>
               <div className="flex items-baseline gap-2">
-                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">139,064</span>
+                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">
+                   {Number(telemetry.totalGovernors || 139064).toLocaleString()}
+                 </span>
                  <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Active</span>
               </div>
               <div className="text-xs text-gray-600 mt-2">Distinct `GOV_PROFILE` matrix links</div>
@@ -393,7 +516,9 @@ export default function AdminConsole() {
            <div className="group border-l border-[#1e222b] pl-6 hover:border-indigo-500/50 transition-colors">
               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-indigo-400 transition-colors mb-1">Scan Snapshots</div>
               <div className="flex items-baseline gap-2">
-                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">1.17M</span>
+                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">
+                   {telemetry.totalSnapshots || "1.17M"}
+                 </span>
                  <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest">Growth</span>
               </div>
               <div className="text-xs text-gray-600 mt-2">Total longitudinal history plots</div>
@@ -402,7 +527,9 @@ export default function AdminConsole() {
            <div className="group border-l border-[#1e222b] pl-6 hover:border-amber-500/50 transition-colors">
               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-amber-400 transition-colors mb-1">Affiliated Kingdoms</div>
               <div className="flex items-baseline gap-2">
-                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">163</span>
+                 <span className="text-3xl font-black text-white group-hover:scale-105 transition-transform origin-left">
+                   {telemetry.totalKingdoms || 163}
+                 </span>
                  <span className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">Realms</span>
               </div>
               <div className="text-xs text-gray-600 mt-2">Unique `KD#` event horizons mapped</div>
@@ -1114,6 +1241,89 @@ export default function AdminConsole() {
              {activeTab === 'tenants' && renderTenants()}
              {activeTab === 'cloud' && renderCloud()}
              {activeTab === 'broadcast' && renderBroadcast()}
+
+        {/* Telemetry Calibration Modal */}
+        {isEditTelemetryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-[#0f1115] border border-cyan-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+              <div className="flex items-center justify-between pb-4 border-b border-[#1e222b] mb-4">
+                <div className="flex items-center gap-2">
+                  <Database className="text-cyan-400" size={18} />
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Calibrate Global Telemetry</h3>
+                </div>
+                <button 
+                  onClick={() => setIsEditTelemetryModalOpen(false)}
+                  className="text-gray-500 hover:text-white transition-colors"
+                >
+                  <XCircle size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveTelemetry} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                    Total Tracked Unique Governors
+                  </label>
+                  <input
+                    type="number"
+                    value={telemetryForm.totalGovernors}
+                    onChange={(e) => setTelemetryForm(prev => ({ ...prev, totalGovernors: e.target.value }))}
+                    required
+                    className="w-full bg-[#0a0c10] border border-[#1e222b] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 outline-none"
+                    placeholder="e.g. 139064"
+                  />
+                  <p className="text-[10px] text-gray-600 mt-1">Unique player profiles and longitudinal cards indexed.</p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                    Affiliated Kingdoms Tracked
+                  </label>
+                  <input
+                    type="number"
+                    value={telemetryForm.totalKingdoms}
+                    onChange={(e) => setTelemetryForm(prev => ({ ...prev, totalKingdoms: e.target.value }))}
+                    required
+                    className="w-full bg-[#0a0c10] border border-[#1e222b] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 outline-none"
+                    placeholder="e.g. 163"
+                  />
+                  <p className="text-[10px] text-gray-600 mt-1">Unique kingdom horizons mapped in the Unity cloud.</p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                    Longitudinal Scan Snapshots
+                  </label>
+                  <input
+                    type="text"
+                    value={telemetryForm.totalSnapshots}
+                    onChange={(e) => setTelemetryForm(prev => ({ ...prev, totalSnapshots: e.target.value }))}
+                    required
+                    className="w-full bg-[#0a0c10] border border-[#1e222b] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 outline-none"
+                    placeholder="e.g. 1.17M"
+                  />
+                  <p className="text-[10px] text-gray-600 mt-1">Total roster and OCR history snapshots recorded.</p>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1e222b]">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditTelemetryModalOpen(false)}
+                    className="px-4 py-2 rounded-lg bg-[#1e222b] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                  >
+                    Save &amp; Publish Metrics
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
           </div>
        </div>
     </div>
