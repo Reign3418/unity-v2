@@ -6,7 +6,7 @@ import Link from "next/link";
 import { 
   Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key, Cpu, Database, 
   Activity, Terminal, ChevronDown, Box, Castle, BookOpen, Swords, 
-  Sparkles, ArrowRight, Lock, Award, Users, CheckSquare, Clock, Flame
+  Sparkles, ArrowRight, Lock, Award, Users, CheckSquare, Clock, Flame, QrCode
 } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
@@ -78,6 +78,9 @@ export default function Home() {
               <a href="#equipment-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Swords size={14} className="text-amber-400" /> Equipment & Pairings
               </a>
+              <Link href="/album-card" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-white/5 transition flex items-center gap-1.5">
+                <QrCode size={14} className="text-amber-400" /> RoK Album Seal
+              </Link>
               <a href="#war-room-suite" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Shield size={14} className="text-cyan-400" /> War Room Suite
               </a>
@@ -335,6 +338,48 @@ export default function Home() {
 
           {/* Module 3: Equipment Progression & Commander Synergy Matrix */}
           <EquipmentGuide />
+
+          {/* Module 4: RoK Album Disguise Studio Showcase */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 mb-20">
+            <div className="bg-gradient-to-r from-[#0c101a] via-[#111726] to-[#0c101a] border border-[#D4AF37]/40 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-[#D4AF37] transition-all">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-[100px] pointer-events-none"></div>
+              
+              <div className="flex-1 space-y-3 relative z-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  <Shield size={13} className="text-amber-400" />
+                  Anti-Bot Camouflage • In-Game Album Ready
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white font-cinzel">
+                  In-Game RoK Album QR Studio
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 font-mono leading-relaxed max-w-2xl">
+                  Standard QR codes get rejected by Lilith&apos;s automated image filter. Use our Studio to generate an authentic 1080x1080 <strong>Kingdom War Intelligence Card</strong> with an embedded verification seal that safely passes in-game gallery review.
+                </p>
+                <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] font-mono">
+                  <span className="text-emerald-400 flex items-center gap-1">
+                    ✓ 1080x1080 Square Dimensions
+                  </span>
+                  <span className="text-cyan-400 flex items-center gap-1">
+                    ✓ Level-H 30% Damage Tolerance
+                  </span>
+                  <span className="text-amber-300 flex items-center gap-1">
+                    ✓ Custom Kingdom &amp; Tag
+                  </span>
+                </div>
+              </div>
+
+              <div className="relative z-10 shrink-0">
+                <Link
+                  href="/album-card"
+                  className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(212,175,55,0.3)] hover:shadow-[0_0_40px_rgba(212,175,55,0.5)] transition-all flex items-center gap-2.5"
+                >
+                  <QrCode size={18} />
+                  <span>Launch Album Studio</span>
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+          </div>
 
         </div>
 
@@ -739,13 +784,22 @@ export default function Home() {
         <p className="text-gray-400 max-w-2xl mx-auto mb-8 text-lg">
           {t('welcome_desc')}
         </p>
-        <Link 
-          href="/upload" 
-          className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
-        >
-          <UploadCloud size={20} />
-          {t('btn_upload')}
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link 
+            href="/upload" 
+            className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+          >
+            <UploadCloud size={20} />
+            {t('btn_upload')}
+          </Link>
+          <Link 
+            href="/album-card" 
+            className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-amber-300 border border-[#D4AF37]/40 hover:border-[#D4AF37] px-6 py-3 rounded-lg font-bold transition-all"
+          >
+            <QrCode size={18} className="text-amber-400" />
+            <span>RoK Album QR Studio</span>
+          </Link>
+        </div>
       </div>
 
       {/* Global Master Clock */}

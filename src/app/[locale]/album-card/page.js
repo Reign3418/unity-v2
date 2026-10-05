@@ -212,7 +212,7 @@ export default function AlbumCardPage() {
       {/* Top Breadcrumb */}
       <div className="max-w-5xl mx-auto mb-8 flex items-center justify-between">
         <Link 
-          href="/en"
+          href="/#public-academy"
           className="inline-flex items-center gap-2 text-xs font-mono font-bold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-wider"
         >
           <ArrowLeft size={14} /> Back to Governor Academy
