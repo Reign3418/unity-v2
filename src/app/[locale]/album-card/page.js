@@ -1,25 +1,69 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { 
   Shield, Download, Sparkles, Crown, ArrowLeft, 
-  CheckCircle2, Info, Eye, Image as ImageIcon, Flame, Castle
+  CheckCircle2, Heart, Swords, Eye, Edit3
 } from "lucide-react";
 
+// Curated presets that bridge beginner warmth with veteran depth
+const PRESETS = [
+  {
+    id: "conquest",
+    label: "Day 1 to Conquest (Recommended)",
+    pill: "PUBLIC ACADEMY & WAR SUITE",
+    title: "FROM DAY 1 TO CONQUEST",
+    subtitle: "DAY 1 ESSENTIALS • SPEEDUP CALCULATORS • ENDGAME WARFARE",
+    tagline: "PROTECTING THE STARTERS • POWERING THE VETERANS"
+  },
+  {
+    id: "brotherhood",
+    label: "Grow Together, Fight As One",
+    pill: "ALLIANCE BROTHERHOOD",
+    title: "GROW TOGETHER • FIGHT AS ONE",
+    subtitle: "EVERY GOVERNOR MATTERS • FROM FIRST WALL TO FINAL RUIN",
+    tagline: "BUILT BY LONG-HAUL VETERANS FOR THE NEXT GENERATION"
+  },
+  {
+    id: "mastery",
+    label: "The Governor's Codex",
+    pill: "PUBLIC ACADEMY & COMBAT FORGE",
+    title: "THE GOVERNOR'S CODEX",
+    subtitle: "STARTER TRAPS • RUSH PLANNER • KVK COMBAT MATH",
+    tagline: "THE FOUNDATION FOR STARTERS • THE ARSENAL FOR MASTERS"
+  }
+];
+
 export default function AlbumCardPage() {
+  const [selectedPreset, setSelectedPreset] = useState("conquest");
   const [kingdomNum, setKingdomNum] = useState("3418");
   const [allianceTag, setAllianceTag] = useState("UN");
+  
+  // Custom text overrides
+  const [customTitle, setCustomTitle] = useState(PRESETS[0].title);
+  const [customSubtitle, setCustomSubtitle] = useState(PRESETS[0].subtitle);
+  const [customTagline, setCustomTagline] = useState(PRESETS[0].tagline);
+  const [customPill, setCustomPill] = useState(PRESETS[0].pill);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [qrBase64, setQrBase64] = useState("");
   const canvasRef = useRef(null);
 
-  // Load Level-H QR code
+  // Switch preset
+  const handleSelectPreset = (p) => {
+    setSelectedPreset(p.id);
+    setCustomTitle(p.title);
+    setCustomSubtitle(p.subtitle);
+    setCustomTagline(p.tagline);
+    setCustomPill(p.pill);
+  };
+
+  // Fetch Level-H QR code
   useEffect(() => {
     const targetUrl = `https://unity-v2-azure.vercel.app/en?utm_source=rok_album&utm_medium=photo&utm_campaign=k${kingdomNum}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=12&color=000000&bgcolor=ffffff&data=${encodeURIComponent(targetUrl)}`;
     
-    // Fetch and convert to base64 for canvas rendering
     fetch(qrUrl)
       .then(res => res.blob())
       .then(blob => {
@@ -30,23 +74,20 @@ export default function AlbumCardPage() {
       .catch(err => console.error("Error loading QR:", err));
   }, [kingdomNum]);
 
-  // Handle PNG generation & direct download
-  const handleDownloadPng = () => {
-    setIsDownloading(true);
+  // Draw full 1080x1080 canvas
+  const renderToCanvas = useCallback((targetCanvas) => {
+    if (!targetCanvas) return;
+    const ctx = targetCanvas.getContext("2d");
+    if (!ctx) return;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1080;
-    const ctx = canvas.getContext("2d");
-
-    // 1. Draw Deep Obsidian Gradient Background
+    // 1. Deep Obsidian Gradient Background
     const bgGrad = ctx.createRadialGradient(540, 432, 100, 540, 432, 700);
     bgGrad.addColorStop(0, "#111726");
     bgGrad.addColorStop(1, "#05070a");
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, 1080, 1080);
 
-    // 2. Draw Ornate Outer Borders
+    // 2. Ornate Outer Borders
     ctx.strokeStyle = "#D4AF37";
     ctx.lineWidth = 4;
     ctx.strokeRect(30, 30, 1020, 1020);
@@ -74,23 +115,26 @@ export default function AlbumCardPage() {
 
     // 3. Top Header Pill
     ctx.fillStyle = "#1E293B";
-    ctx.fillRect(340, 65, 400, 36);
-    ctx.strokeRect(340, 65, 400, 36);
+    ctx.fillRect(290, 65, 500, 36);
+    ctx.strokeStyle = "#D4AF37";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(290, 65, 500, 36);
     ctx.fillStyle = "#D4AF37";
-    ctx.font = "bold 13px sans-serif";
+    ctx.font = "bold 12px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`KINGDOM ${kingdomNum} • GOVERNOR CODEX`, 540, 88);
+    ctx.fillText(`KINGDOM ${kingdomNum} • ${customPill}`, 540, 88);
 
-    // 4. Main Titles
+    // 4. Grand Title (Emotional hook bridging beginners & veterans)
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 42px serif";
-    ctx.fillText("WAR INTELLIGENCE ARCHIVE", 540, 150);
+    ctx.font = "900 44px serif";
+    ctx.textAlign = "center";
+    ctx.fillText(customTitle, 540, 150);
 
     ctx.fillStyle = "#94A3B8";
     ctx.font = "14px monospace";
-    ctx.fillText("CITY HALL 25 ROADMAP • SOC COMMANDER BUILDS • SPEEDUP ENGINE", 540, 185);
+    ctx.fillText(customSubtitle, 540, 185);
 
-    // Divider Line
+    // Divider Line with Diamond
     ctx.strokeStyle = "#334155";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -98,7 +142,16 @@ export default function AlbumCardPage() {
     ctx.lineTo(840, 215);
     ctx.stroke();
 
-    // 5. Strategy Cards Across Middle (Disguises image as strategy guide)
+    // Diamond
+    ctx.fillStyle = "#D4AF37";
+    ctx.beginPath();
+    ctx.moveTo(540, 208);
+    ctx.lineTo(548, 215);
+    ctx.lineTo(540, 222);
+    ctx.lineTo(532, 215);
+    ctx.fill();
+
+    // 5. Strategy Cards Across Middle (Provides 85% game-infographic camouflage)
     const drawCard = (x, y, w, h, iconText, title, sub, tag, color) => {
       ctx.fillStyle = "#0F172A";
       ctx.strokeStyle = "#334155";
@@ -127,7 +180,7 @@ export default function AlbumCardPage() {
       ctx.fillText(tag, x + 15, y + 100);
     };
 
-    drawCard(80, 245, 280, 125, "CH", "City Hall 1-25", "Prerequisites & Walls", "[ FREE RUSH PLANNER ]", "#38BDF8");
+    drawCard(80, 245, 280, 125, "CH", "City Hall 1-25", "Prerequisites & Rush Route", "[ FREE RUSH PLANNER ]", "#38BDF8");
     drawCard(400, 245, 280, 125, "!", "The 7 Fatal Traps", "Save Heads & Sculptures", "[ SURVIVAL CODEX ]", "#34D399");
     drawCard(720, 245, 280, 125, "⚔", "Early to SoC BiS", "Pairings & 30% Crit Math", "[ ARMORY PROGRESSION ]", "#C084FC");
 
@@ -150,7 +203,7 @@ export default function AlbumCardPage() {
         // QR Image
         ctx.drawImage(qrImg, 350, 420, 380, 380);
 
-        // Central Crest Overlay (Safe with Level H 30% error correction)
+        // Central Unity Crest Overlay (Safe with Level H 30% error correction)
         ctx.fillStyle = "#070A0F";
         ctx.strokeStyle = "#D4AF37";
         ctx.lineWidth = 3;
@@ -172,45 +225,67 @@ export default function AlbumCardPage() {
         ctx.fillStyle = "#0F172A";
         ctx.strokeStyle = "#D4AF37";
         ctx.lineWidth = 1.5;
-        ctx.fillRect(240, 870, 600, 64);
-        ctx.strokeRect(240, 870, 600, 64);
+        ctx.fillRect(230, 870, 620, 64);
+        ctx.strokeRect(230, 870, 620, 64);
 
         ctx.fillStyle = "#FDE047";
         ctx.font = "bold 15px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("★ SCAN OFFICIAL SEAL TO ACCESS ACADEMY ★", 540, 900);
+        ctx.fillText("★ SCAN OFFICIAL SEAL TO ACCESS ACADEMY ★", 540, 899);
 
         ctx.fillStyle = "#94A3B8";
         ctx.font = "11px monospace";
         ctx.fillText("0 LOGIN REQUIRED • 100% FREE PUBLIC ACCESS FOR ALL GOVERNORS", 540, 922);
 
+        // Heart & Veteran Tagline
+        ctx.fillStyle = "#E2E8F0";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(customTagline, 540, 978);
+
         // Manual Entry URL
         ctx.fillStyle = "#64748B";
-        ctx.font = "13px monospace";
-        ctx.fillText("PORTAL: unity-v2-azure.vercel.app", 540, 980);
+        ctx.font = "12px monospace";
+        ctx.fillText("PORTAL: unity-v2-azure.vercel.app", 540, 1005);
 
         ctx.fillStyle = "#334155";
         ctx.font = "10px sans-serif";
-        ctx.fillText(`ISSUED BY KINGDOM ${kingdomNum} HIGH COMMAND • OSIRIS & KVK INTEL`, 540, 1025);
-
-        // Download trigger
-        const link = document.createElement("a");
-        link.download = `rok-k${kingdomNum}-album-card.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        setIsDownloading(false);
+        ctx.fillText(`ISSUED BY KINGDOM ${kingdomNum} HIGH COMMAND • OSIRIS & KVK INTEL`, 540, 1035);
       };
       qrImg.src = qrBase64;
-    } else {
-      setIsDownloading(false);
     }
+  }, [kingdomNum, allianceTag, customTitle, customSubtitle, customTagline, customPill, qrBase64]);
+
+  // Redraw preview canvas whenever state changes
+  useEffect(() => {
+    if (canvasRef.current && qrBase64) {
+      renderToCanvas(canvasRef.current);
+    }
+  }, [renderToCanvas, qrBase64]);
+
+  // Handle high-res PNG download
+  const handleDownloadPng = () => {
+    setIsDownloading(true);
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = 1080;
+    exportCanvas.height = 1080;
+    
+    renderToCanvas(exportCanvas);
+
+    // Wait a frame for image draw to flush
+    setTimeout(() => {
+      const link = document.createElement("a");
+      link.download = `rok-k${kingdomNum}-governor-codex.png`;
+      link.href = exportCanvas.toDataURL("image/png");
+      link.click();
+      setIsDownloading(false);
+    }, 200);
   };
 
   return (
     <div className="min-h-screen bg-[#070a0f] text-slate-200 py-12 px-4 sm:px-6 lg:px-8 font-sans">
       
       {/* Top Breadcrumb */}
-      <div className="max-w-5xl mx-auto mb-8 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto mb-8 flex items-center justify-between">
         <Link 
           href="/#public-academy"
           className="inline-flex items-center gap-2 text-xs font-mono font-bold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-wider"
@@ -223,115 +298,175 @@ export default function AlbumCardPage() {
       </div>
 
       {/* Main Studio Header */}
-      <div className="max-w-5xl mx-auto text-center mb-10">
+      <div className="max-w-4xl mx-auto text-center mb-10">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 mb-3 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-          <Shield size={14} className="text-amber-400" />
-          Anti-Bot Camouflage • Bypasses Lilith Automated Album Block
+          <Heart size={14} className="text-rose-400 fill-rose-500/20" />
+          <Swords size={14} className="text-amber-400" />
+          The Heart to Guide Starters • The Depth to Power Veterans
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-wider font-cinzel">
-          In-Game RoK Album Disguise Card
+          In-Game RoK Album Disguise Studio
         </h1>
         <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto mt-2 font-mono leading-relaxed">
-          Standard QR codes get rejected by Lilith's automated image filter. This generator disguises your QR code inside an authentic 1080x1080 <strong>Kingdom War Intelligence Codex</strong>.
+          Naked QR codes get blocked by Lilith&apos;s automated filter. This studio disguises your link inside a 1080x1080 <strong>Kingdom War &amp; Academy Card</strong> that welcomes beginners while commanding the respect of long-haul veterans.
         </p>
       </div>
 
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Controls Column */}
-        <div className="bg-[#0b0e14] border border-[#1e2433] rounded-2xl p-6 shadow-xl space-y-6 flex flex-col justify-between">
-          <div className="space-y-5">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-[#1e2433] pb-3 flex items-center gap-2">
-              <Crown size={16} className="text-[#D4AF37]" />
-              Card Customization
-            </h3>
-
-            {/* Kingdom Number */}
+        {/* Controls Column (5 cols) */}
+        <div className="lg:col-span-5 bg-[#0b0e14] border border-[#1e2433] rounded-2xl p-6 shadow-xl space-y-6 flex flex-col justify-between">
+          <div className="space-y-6">
+            
+            {/* Tone & Phrasing Presets */}
             <div>
-              <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Kingdom Number
-              </label>
-              <input 
-                type="text" 
-                value={kingdomNum}
-                onChange={(e) => setKingdomNum(e.target.value.replace(/[^0-9]/g, ''))}
-                maxLength={5}
-                className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
-                placeholder="3418"
-              />
+              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block mb-3 flex items-center gap-1.5">
+                <Crown size={14} className="text-[#D4AF37]" />
+                1. Select Phrasing Vibe:
+              </span>
+              <div className="space-y-2">
+                {PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleSelectPreset(preset)}
+                    className={`w-full p-3 rounded-xl text-left transition-all border text-xs font-bold flex flex-col gap-0.5 ${
+                      selectedPreset === preset.id
+                        ? "bg-amber-500/15 border-amber-500/80 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                        : "bg-[#121622] border-[#1e2638] text-slate-400 hover:text-white hover:border-slate-600"
+                    }`}
+                  >
+                    <span className="text-amber-300 font-bold">{preset.label}</span>
+                    <span className="text-[10px] font-mono text-slate-400">{preset.tagline}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Alliance Tag */}
-            <div>
-              <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Alliance Tag / Crest
-              </label>
-              <input 
-                type="text" 
-                value={allianceTag}
-                onChange={(e) => setAllianceTag(e.target.value.toUpperCase())}
-                maxLength={4}
-                className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-cyan-500"
-                placeholder="UN"
-              />
+            {/* Kingdom & Tag Customization */}
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#1e2433]">
+              <div>
+                <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Kingdom #
+                </label>
+                <input 
+                  type="text" 
+                  value={kingdomNum}
+                  onChange={(e) => setKingdomNum(e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={5}
+                  className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="3418"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Alliance Tag
+                </label>
+                <input 
+                  type="text" 
+                  value={allianceTag}
+                  onChange={(e) => setAllianceTag(e.target.value.toUpperCase())}
+                  maxLength={4}
+                  className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-cyan-500"
+                  placeholder="UN"
+                />
+              </div>
             </div>
 
-            {/* The 3 Anti-Bot Rules */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5 text-xs">
+            {/* Custom Text Fine-Tuning Accordion */}
+            <div className="pt-2 border-t border-[#1e2433] space-y-3">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-bold flex items-center gap-1">
+                <Edit3 size={13} className="text-slate-500" />
+                Customize Exact Words:
+              </span>
+              
+              <div>
+                <label className="block text-[10px] uppercase font-mono text-slate-500 mb-1">Headline</label>
+                <input 
+                  type="text" 
+                  value={customTitle}
+                  onChange={(e) => {
+                    setCustomTitle(e.target.value);
+                    setSelectedPreset("custom");
+                  }}
+                  className="w-full bg-[#121622] border border-[#1e2638] rounded-lg px-3 py-1.5 text-xs text-white font-serif font-bold focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase font-mono text-slate-500 mb-1">Heart &amp; Veteran Tagline</label>
+                <input 
+                  type="text" 
+                  value={customTagline}
+                  onChange={(e) => {
+                    setCustomTagline(e.target.value);
+                    setSelectedPreset("custom");
+                  }}
+                  className="w-full bg-[#121622] border border-[#1e2638] rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            {/* Why This Bypasses Lilith's Filter */}
+            <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
               <span className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
-                <CheckCircle2 size={13} /> Why This Bypasses The Filter
+                <CheckCircle2 size={13} /> The Anti-Bot Camouflage
               </span>
               <p className="text-slate-300 leading-relaxed text-[11px]">
-                <strong>1. 85% Gaming Content:</strong> Surrounding the QR code with City Hall and commander stats convinces Tencent's AI filter that this is a fan-art strategy infographic rather than an ad.
+                <strong>85% Game Infographic:</strong> Tencent&apos;s filter sees City Hall milestones, commander pairs, and kingdom shields, cataloging it as fan art rather than an ad.
               </p>
               <p className="text-slate-300 leading-relaxed text-[11px]">
-                <strong>2. Level-H Error Correction:</strong> Placing the circular crest in the dead-center breaks the raw barcode signature while allowing phone cameras to scan with 100% precision.
+                <strong>Center Crest (Level-H):</strong> The central crest breaks the barcode pattern for Lilith&apos;s bot, yet smartphone cameras read it effortlessly.
               </p>
             </div>
+
           </div>
 
           {/* Download Action */}
           <button
             onClick={handleDownloadPng}
             disabled={isDownloading || !qrBase64}
-            className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold rounded-xl uppercase tracking-wider text-xs transition-all shadow-[0_0_25px_rgba(212,175,55,0.3)] hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-black font-extrabold rounded-xl uppercase tracking-wider text-xs transition-all shadow-[0_0_25px_rgba(212,175,55,0.3)] hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-4"
           >
             <Download size={16} />
-            <span>{isDownloading ? "Generating 1080x1080 PNG..." : "Download RoK Album Card (PNG)"}</span>
+            <span>{isDownloading ? "Rendering 1080x1080 PNG..." : "Download RoK Album Card (PNG)"}</span>
           </button>
         </div>
 
-        {/* Live Visual Preview Column */}
-        <div className="lg:col-span-2 bg-[#0b0e14] border border-[#1e2433] rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Live Visual Preview Column (7 cols) */}
+        <div className="lg:col-span-7 bg-[#0b0e14] border border-[#1e2433] rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-between relative overflow-hidden">
           <div className="w-full flex items-center justify-between mb-4 border-b border-[#1e2433] pb-3">
             <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Eye size={14} className="text-cyan-400" /> Live Album Card Preview (1080x1080)
+              <Eye size={14} className="text-cyan-400" /> Live 1080x1080 Card Preview
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-              Ready for RoK Gallery Upload
+              Updates in Real-Time
             </span>
           </div>
 
-          {/* Card Preview Container */}
-          <div className="w-full max-w-[440px] aspect-square rounded-2xl border-2 border-[#D4AF37]/40 shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden relative group">
-            <img 
-              src="/qr/rok-album-disguise.svg" 
-              alt="RoK Album Disguise Card Preview"
+          {/* High-Res Dynamic Canvas Container */}
+          <div className="w-full max-w-[480px] aspect-square rounded-2xl border-2 border-[#D4AF37]/50 shadow-[0_0_40px_rgba(0,0,0,0.9)] overflow-hidden relative group bg-[#05070a]">
+            <canvas 
+              ref={canvasRef} 
+              width={1080} 
+              height={1080} 
               className="w-full h-full object-contain"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
               <button
                 onClick={handleDownloadPng}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs uppercase tracking-wider shadow-2xl flex items-center gap-2"
+                className="px-6 py-3 rounded-xl bg-amber-500 text-black font-extrabold text-xs uppercase tracking-wider shadow-2xl flex items-center gap-2"
               >
-                <Download size={15} /> Save PNG to Device
+                <Download size={16} /> Save 1080x1080 PNG
               </button>
             </div>
           </div>
 
-          <p className="text-[11px] font-mono text-slate-500 mt-4 text-center">
-            Upload this exact square image to your in-game Governor Profile Photo Album. Other players can scan the central seal directly from their screen!
-          </p>
+          <div className="mt-4 p-3 rounded-xl bg-[#10141f] border border-[#1d2435] text-center w-full max-w-[480px]">
+            <p className="text-[11px] font-mono text-slate-400">
+              💡 <strong>How to upload:</strong> Save this image to your phone roll $\rightarrow$ Open RoK $\rightarrow$ Tap your Governor Profile $\rightarrow$ <strong>Photo Album</strong> $\rightarrow$ Upload!
+            </p>
+          </div>
         </div>
 
       </div>

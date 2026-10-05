@@ -32,17 +32,17 @@
   </g>
 
   <!-- Top Pill / Header Badge -->
-  <rect x="340" y="65" width="400" height="36" rx="18" fill="#1E293B" stroke="url(#goldGrad)" stroke-width="1.5" />
-  <text x="540" y="88" fill="#D4AF37" font-family="sans-serif" font-size="13" font-weight="bold" text-anchor="middle" letter-spacing="3">
-    KINGDOM 3418 • GOVERNOR CODEX
+  <rect x="310" y="65" width="460" height="36" rx="18" fill="#1E293B" stroke="url(#goldGrad)" stroke-width="1.5" />
+  <text x="540" y="88" fill="#D4AF37" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" letter-spacing="3">
+    KINGDOM 3418 • PUBLIC ACADEMY &amp; WAR SUITE
   </text>
 
-  <!-- Grand Header Title -->
-  <text x="540" y="150" fill="#FFFFFF" font-family="serif" font-size="42" font-weight="900" text-anchor="middle" letter-spacing="2">
-    WAR INTELLIGENCE ARCHIVE
+  <!-- Grand Header Title: Balanced for Beginners & Veterans -->
+  <text x="540" y="150" fill="#FFFFFF" font-family="serif" font-size="44" font-weight="900" text-anchor="middle" letter-spacing="3">
+    FROM DAY 1 TO CONQUEST
   </text>
-  <text x="540" y="185" fill="#94A3B8" font-family="monospace" font-size="15" text-anchor="middle" letter-spacing="1">
-    CITY HALL 25 ROADMAP • SOC COMMANDER BUILDS • SPEEDUP ENGINE
+  <text x="540" y="185" fill="#94A3B8" font-family="monospace" font-size="14" text-anchor="middle" letter-spacing="1">
+    DAY 1 ESSENTIALS • SPEEDUP CALCULATORS • ENDGAME WARFARE
   </text>
 
   <!-- Divider Line with Diamond -->
@@ -50,15 +50,15 @@
   <polygon points="540,208 548,215 540,222 532,215" fill="#D4AF37" />
 
   <!-- 3 Strategy Feature Cards Across Middle -->
-  <!-- Card 1: CH 25 Rush -->
+  <!-- Card 1: CH 25 Rush (Starter) -->
   <rect x="80" y="245" width="280" height="125" rx="14" fill="#0F172A" stroke="#334155" stroke-width="1.5" />
   <circle cx="120" cy="285" r="18" fill="#D4AF37" fill-opacity="0.15" stroke="#D4AF37" stroke-width="1" />
   <text x="120" y="291" fill="#D4AF37" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">CH</text>
   <text x="150" y="280" fill="#F8FAFC" font-family="sans-serif" font-size="15" font-weight="bold">City Hall 1-25</text>
-  <text x="150" y="300" fill="#94A3B8" font-family="sans-serif" font-size="11">Prerequisites &amp; Walls Mapped</text>
+  <text x="150" y="300" fill="#94A3B8" font-family="sans-serif" font-size="11">Prerequisites &amp; Rush Route</text>
   <text x="220" y="345" fill="#38BDF8" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">[ FREE RUSH PLANNER ]</text>
 
-  <!-- Card 2: 7 Deadly Traps -->
+  <!-- Card 2: 7 Deadly Traps (Account Protection) -->
   <rect x="400" y="245" width="280" height="125" rx="14" fill="#0F172A" stroke="#334155" stroke-width="1.5" />
   <circle cx="440" cy="285" r="18" fill="#10B981" fill-opacity="0.15" stroke="#10B981" stroke-width="1" />
   <text x="440" y="291" fill="#10B981" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">!</text>
@@ -66,7 +66,7 @@
   <text x="470" y="300" fill="#94A3B8" font-family="sans-serif" font-size="11">Save Heads &amp; Gold Sculptures</text>
   <text x="540" y="345" fill="#34D399" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">[ SURVIVAL CODEX ]</text>
 
-  <!-- Card 3: Gear & Pairings -->
+  <!-- Card 3: Gear & Pairings (Veteran Depth) -->
   <rect x="720" y="245" width="280" height="125" rx="14" fill="#0F172A" stroke="#334155" stroke-width="1.5" />
   <circle cx="760" cy="285" r="18" fill="#A855F7" fill-opacity="0.15" stroke="#A855F7" stroke-width="1" />
   <text x="760" y="291" fill="#A855F7" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">⚔</text>
@@ -90,21 +90,25 @@
   </g>
 
   <!-- Bottom Action Callout -->
-  <rect x="240" y="870" width="600" height="64" rx="16" fill="#0F172A" stroke="url(#goldGrad)" stroke-width="1.5" />
-  <text x="540" y="900" fill="#FDE047" font-family="sans-serif" font-size="15" font-weight="bold" text-anchor="middle" letter-spacing="1">
+  <rect x="230" y="870" width="620" height="64" rx="16" fill="#0F172A" stroke="url(#goldGrad)" stroke-width="1.5" />
+  <text x="540" y="899" fill="#FDE047" font-family="sans-serif" font-size="15" font-weight="bold" text-anchor="middle" letter-spacing="1">
     ★ SCAN OFFICIAL SEAL TO ACCESS ACADEMY ★
   </text>
   <text x="540" y="922" fill="#94A3B8" font-family="monospace" font-size="11" text-anchor="middle">
     0 LOGIN REQUIRED • 100% FREE PUBLIC ACCESS FOR ALL GOVERNORS
   </text>
 
-  <!-- Subtle Web URL at Base for Manual Entry -->
-  <text x="540" y="980" fill="#64748B" font-family="monospace" font-size="13" text-anchor="middle" letter-spacing="2">
+  <!-- The Emotional Heart & Veteran Power Tagline -->
+  <text x="540" y="978" fill="#E2E8F0" font-family="sans-serif" font-size="13" font-weight="bold" text-anchor="middle" letter-spacing="2">
+    PROTECTING THE STARTERS • POWERING THE VETERANS
+  </text>
+  
+  <text x="540" y="1005" fill="#64748B" font-family="monospace" font-size="12" text-anchor="middle" letter-spacing="1">
     PORTAL: unity-v2-azure.vercel.app
   </text>
 
   <!-- Footer Authenticity Stamp -->
-  <text x="540" y="1025" fill="#334155" font-family="sans-serif" font-size="10" text-anchor="middle">
+  <text x="540" y="1035" fill="#334155" font-family="sans-serif" font-size="10" text-anchor="middle">
     ISSUED BY KINGDOM 3418 HIGH COMMAND • OSIRIS &amp; KVK INTEL
   </text>
 </svg>
