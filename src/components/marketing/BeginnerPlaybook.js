@@ -118,7 +118,7 @@ const TOP_EPIC_COMMANDERS = [
   }
 ];
 
-export default function BeginnerCodex() {
+export default function BeginnerPlaybook() {
   const [activeTab, setActiveTab] = useState("rules");
   const [expandedRule, setExpandedRule] = useState(1);
 
@@ -129,19 +129,19 @@ export default function BeginnerCodex() {
       if (hash === '#beginner-traps' || hash === '#7-traps' || hash === '#traps') {
         setActiveTab("rules");
         setTimeout(() => {
-          const el = document.getElementById("beginner-traps") || document.getElementById("beginner-codex");
+          const el = document.getElementById("beginner-traps") || document.getElementById("beginner-playbook");
           if (el) el.scrollIntoView({ behavior: "smooth" });
         }, 50);
       } else if (hash === '#speedup-calculator' || hash === '#live-math' || hash === '#calculator') {
         setActiveTab("calculator");
         setTimeout(() => {
-          const el = document.getElementById("speedup-calculator") || document.getElementById("beginner-codex");
+          const el = document.getElementById("speedup-calculator") || document.getElementById("beginner-playbook");
           if (el) el.scrollIntoView({ behavior: "smooth" });
         }, 50);
       } else if (hash === '#top-commanders' || hash === '#commanders') {
         setActiveTab("commanders");
         setTimeout(() => {
-          const el = document.getElementById("top-commanders") || document.getElementById("beginner-codex");
+          const el = document.getElementById("top-commanders") || document.getElementById("beginner-playbook");
           if (el) el.scrollIntoView({ behavior: "smooth" });
         }, 50);
       }
@@ -171,7 +171,7 @@ export default function BeginnerCodex() {
   const daysRemaining = (finalHours / 24).toFixed(1);
 
   return (
-    <div id="beginner-codex" className="w-full bg-[#0a0d14] text-slate-200 border-t border-[#1e222b] py-20 relative overflow-hidden font-sans scroll-mt-16">
+    <div id="beginner-playbook" className="w-full bg-[#0a0d14] text-slate-200 border-t border-[#1e222b] py-20 relative overflow-hidden font-sans scroll-mt-16">
       
       {/* Background Ambience */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -186,7 +186,7 @@ export default function BeginnerCodex() {
             Governor Academy • 100% Free Public Intel
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight uppercase font-cinzel">
-            The New Governor <span className="gold-gradient-text">Survival Codex</span>
+            The New Governor <span className="gold-gradient-text">Survival Playbook</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-400 mt-3 leading-relaxed">
             Essential tactical fundamentals for new accounts and jumpers. Avoid irreversible mistakes, master commander investments, and calculate build times with mathematical precision.

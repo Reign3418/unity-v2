@@ -153,7 +153,7 @@ export default function CityHallUpgradeGuide() {
             <div>
               <span className="font-cinzel text-xl font-bold tracking-wider gold-gradient-text">ROK MASTERY</span>
               <span className="hidden sm:inline-block text-[11px] uppercase tracking-widest text-slate-400 ml-3 border-l border-slate-700 pl-3 font-mono">
-                City Hall Strategy Codex
+                City Hall Strategy Guide
               </span>
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function CityHallUpgradeGuide() {
             Public Free Tool • No Login Required
           </div>
           <h2 className="font-cinzel text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 text-white">
-            CITY HALL <span className="gold-gradient-text">UPGRADE CODEX</span>
+            CITY HALL <span className="gold-gradient-text">UPGRADE BLUEPRINT</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10">
             Rushing City Hall is the single most vital meta-strategy in Rise of Kingdoms. Unlock higher march queues, T4/T5 troop tiers, maximized Alliance Help efficiency, and territory dominance.

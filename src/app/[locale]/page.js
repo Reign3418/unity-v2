@@ -12,7 +12,7 @@ import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import LandingTopography from "@/components/marketing/LandingTopography";
 import CityHallUpgradeGuide from "@/components/marketing/CityHallUpgradeGuide";
-import BeginnerCodex from "@/components/marketing/BeginnerCodex";
+import BeginnerPlaybook from "@/components/marketing/BeginnerPlaybook";
 import EquipmentGuide from "@/components/marketing/EquipmentGuide";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
@@ -72,8 +72,8 @@ export default function Home() {
               <a href="#city-hall-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition flex items-center gap-1.5">
                 <Castle size={14} className="text-[#D4AF37]" /> City Hall Rush
               </a>
-              <a href="#beginner-codex" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition flex items-center gap-1.5">
-                <BookOpen size={14} className="text-emerald-400" /> Beginner Codex
+              <a href="#beginner-playbook" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition flex items-center gap-1.5">
+                <BookOpen size={14} className="text-emerald-400" /> Beginner Playbook
               </a>
               <a href="#equipment-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Swords size={14} className="text-amber-400" /> Equipment & Pairings
@@ -326,15 +326,15 @@ export default function Home() {
               Master The Game From Day 1
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto mt-2">
-              Use our interactive City Hall rush planner, beginner survival codex, and equipment progression matrix below to fast-track your progression.
+              Use our interactive City Hall rush planner, beginner survival playbook, and equipment progression matrix below to fast-track your progression.
             </p>
           </div>
 
-          {/* Module 1: City Hall Upgrade Codex & Rush Planner */}
+          {/* Module 1: City Hall Upgrade Blueprint & Rush Planner */}
           <CityHallUpgradeGuide />
 
-          {/* Module 2: The New Governor Survival Codex */}
-          <BeginnerCodex />
+          {/* Module 2: The New Governor Survival Playbook */}
+          <BeginnerPlaybook />
 
           {/* Module 3: Equipment Progression & Commander Synergy Matrix */}
           <EquipmentGuide />
@@ -353,7 +353,7 @@ export default function Home() {
                   In-Game RoK Album QR Studio
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 font-mono leading-relaxed max-w-2xl">
-                  Standard QR codes get rejected by Lilith&apos;s automated image filter. Use our Studio to generate an authentic 1080x1080 <strong>Kingdom War Intelligence Card</strong> with an embedded verification seal that safely passes in-game gallery review.
+                  Standard QR codes get rejected by Lilith&apos;s automated image filter. Use our Studio to generate an authentic 1080x1080 <strong>Kingdom Strategy Card</strong> with an embedded verification seal that safely passes in-game gallery review.
                 </p>
                 <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] font-mono">
                   <span className="text-emerald-400 flex items-center gap-1">

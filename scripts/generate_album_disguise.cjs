@@ -79,7 +79,7 @@ https.get(qrApi, (res) => {
   <text x="440" y="291" fill="#10B981" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">!</text>
   <text x="470" y="280" fill="#F8FAFC" font-family="sans-serif" font-size="15" font-weight="bold">The 7 Fatal Traps</text>
   <text x="470" y="300" fill="#94A3B8" font-family="sans-serif" font-size="11">Save Heads &amp; Gold Sculptures</text>
-  <text x="540" y="345" fill="#34D399" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">[ SURVIVAL CODEX ]</text>
+  <text x="540" y="345" fill="#34D399" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">[ SURVIVAL PLAYBOOK ]</text>
 
   <!-- Card 3: Gear & Pairings (Veteran Depth) -->
   <rect x="720" y="245" width="280" height="125" rx="14" fill="#0F172A" stroke="#334155" stroke-width="1.5" />

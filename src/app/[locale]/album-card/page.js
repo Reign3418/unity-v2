@@ -27,9 +27,9 @@ const PRESETS = [
   },
   {
     id: "mastery",
-    label: "The Governor's Codex",
+    label: "The Governor's Blueprint",
     pill: "PUBLIC ACADEMY & COMBAT FORGE",
-    title: "THE GOVERNOR'S CODEX",
+    title: "THE GOVERNOR'S BLUEPRINT",
     subtitle: "STARTER TRAPS • RUSH PLANNER • KVK COMBAT MATH",
     tagline: "THE FOUNDATION FOR STARTERS • THE ARSENAL FOR MASTERS"
   }
@@ -181,7 +181,7 @@ export default function AlbumCardPage() {
     };
 
     drawCard(80, 245, 280, 125, "CH", "City Hall 1-25", "Prerequisites & Rush Route", "[ FREE RUSH PLANNER ]", "#38BDF8");
-    drawCard(400, 245, 280, 125, "!", "The 7 Fatal Traps", "Save Heads & Sculptures", "[ SURVIVAL CODEX ]", "#34D399");
+    drawCard(400, 245, 280, 125, "!", "The 7 Fatal Traps", "Save Heads & Sculptures", "[ SURVIVAL PLAYBOOK ]", "#34D399");
     drawCard(720, 245, 280, 125, "⚔", "Early to SoC BiS", "Pairings & 30% Crit Math", "[ ARMORY PROGRESSION ]", "#C084FC");
 
     // 6. Draw Central QR Seal
@@ -274,7 +274,7 @@ export default function AlbumCardPage() {
     // Wait a frame for image draw to flush
     setTimeout(() => {
       const link = document.createElement("a");
-      link.download = `rok-k${kingdomNum}-governor-codex.png`;
+      link.download = `rok-k${kingdomNum}-governor-blueprint.png`;
       link.href = exportCanvas.toDataURL("image/png");
       link.click();
       setIsDownloading(false);
