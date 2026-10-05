@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin } from "./awsDynamo";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -64,11 +64,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       }
     }),
+    CredentialsProvider({
+      id: "governor",
+      name: "Governor ID & PIN",
+      credentials: {
+        governorId: { label: "Governor ID", type: "text" },
+        pin: { label: "4-Digit PIN", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.governorId || !credentials?.pin) return null;
+        const cleanId = String(credentials.governorId).trim();
+        const govAuth = await getGovernorAuth(cleanId);
+        if (!govAuth) return null;
+
+        const hashed = hashGovernorPin(credentials.pin);
+        if (govAuth.pinHash !== hashed) {
+          return null;
+        }
+
+        return {
+          id: `GOV_${cleanId}`,
+          name: govAuth.governorName || `Governor ${cleanId}`,
+          email: `${cleanId}@unity.rok`,
+          image: "https://cdn.discordapp.com/embed/avatars/2.png",
+          govData: govAuth
+        };
+      }
+    }),
   ],
   secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
   callbacks: {
     async jwt({ token, user, account, profile }) {
-      if (account?.provider === 'credentials' || account?.provider === 'guest' || account?.provider === 'freemode') {
+      if (account?.provider === 'credentials' || account?.provider === 'guest' || account?.provider === 'freemode' || account?.provider === 'governor') {
           // ==========================================
           // EMERGENCY OFFLINE LOGIN BYPASS (DISCORD DOWN)
           // ==========================================
@@ -152,6 +179,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   allowedKingdoms: []
               };
               token.governorConfig = {};
+              token.ownedGuilds = [];
+              return token;
+          }
+
+          // ==========================================
+          // GOVERNOR ID & PIN LOGIN BYPASS
+          // ==========================================
+          if (user?.id?.startsWith("GOV_")) {
+              token.id = user.id;
+              token.username = user.name;
+              token.avatar = user.image;
+              token.accessToken = "GOV_MODE";
+              
+              token.isMember = true;
+              token.isAnalyst = user.govData?.role === "Data Analyst" || user.govData?.role === "analyst" || user.govData?.role === "Leader" || user.govData?.role === "Admin";
+              token.isLeader = user.govData?.role === "Leader" || user.govData?.role === "Admin";
+              token.isSuperAdmin = user.govData?.role === "Admin";
+              token.isSupporter = true;
+              token.role = user.govData?.role || "User";
+              
+              const kd = String(user.govData?.kingdomId || "3418");
+              token.tenant = {
+                  guildId: "kingdom_" + kd,
+                  kingdomId: kd,
+                  allianceTag: user.govData?.allianceTag || "",
+                  leadershipRoleId: "member",
+                  allowedKingdoms: [kd]
+              };
+              token.governorConfig = {
+                  governorId: user.govData?.governorId,
+                  governorName: user.govData?.governorName
+              };
               token.ownedGuilds = [];
               return token;
           }

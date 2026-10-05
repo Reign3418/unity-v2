@@ -15,6 +15,7 @@ import CityHallUpgradeGuide from "@/components/marketing/CityHallUpgradeGuide";
 import BeginnerPlaybook from "@/components/marketing/BeginnerPlaybook";
 import EquipmentGuide from "@/components/marketing/EquipmentGuide";
 import AccessMatrix from "@/components/marketing/AccessMatrix";
+import GovernorAuthModal from "@/components/auth/GovernorAuthModal";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
@@ -25,6 +26,8 @@ export default function Home() {
   const [isExploding, setIsExploding] = useState(false);
   const [fireworks, setFireworks] = useState([]);
   const [isGuestModalOpen, setGuestModalOpen] = useState(false);
+  const [isGovModalOpen, setGovModalOpen] = useState(false);
+  const [govModalTab, setGovModalTab] = useState("register");
   const [isApplyModalOpen, setApplyModalOpen] = useState(false);
   const [guestPasscode, setGuestPasscode] = useState("");
 
@@ -484,8 +487,34 @@ export default function Home() {
                   <span className="tracking-widest uppercase text-sm drop-shadow-md">{t('login_discord')}</span>
                 </button>
 
+                {/* RoK Autonomous Self-Registration & ID Login */}
+                <div className="w-full space-y-2.5 mt-3">
+                  <button 
+                    onClick={() => {
+                      setGovModalTab("register");
+                      setGovModalOpen(true);
+                    }}
+                    className="group relative flex items-center justify-center gap-2.5 w-full py-3.5 bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-400/30 border border-amber-500/50 hover:border-amber-400 text-amber-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(245,158,11,0.15)] cursor-pointer"
+                  >
+                    <Sparkles size={15} className="text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span>Self-Register via RoK Profile</span>
+                    <span className="text-[9px] font-mono bg-amber-500 text-black px-1.5 py-0.5 rounded font-black">AI</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setGovModalTab("login");
+                      setGovModalOpen(true);
+                    }}
+                    className="w-full py-2.5 bg-[#121622] hover:bg-[#181f30] border border-[#232b3e] hover:border-cyan-500/40 text-slate-300 hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Key size={14} className="text-cyan-400" />
+                    <span>Governor ID &amp; PIN Login</span>
+                  </button>
+                </div>
+
                 {/* Separator */}
-                <div className="flex items-center w-full my-5 opacity-60">
+                <div className="flex items-center w-full my-4 opacity-60">
                   <div className="flex-grow border-t border-gray-700"></div>
                   <span className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('missing_discord')}</span>
                   <div className="flex-grow border-t border-gray-700"></div>
@@ -585,6 +614,13 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Governor ID & Profile OCR Modal */}
+          <GovernorAuthModal
+            isOpen={isGovModalOpen}
+            onClose={() => setGovModalOpen(false)}
+            initialTab={govModalTab}
+          />
 
           {/* Apply for Access Modal */}
           {isApplyModalOpen && (

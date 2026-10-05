@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { DynamoDBClient, ScanCommand, QueryCommand, PutItemCommand, UpdateItemCommand, GetItemCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
 
 // Initialize the DynamoDB Client
@@ -4703,5 +4704,88 @@ export async function setKingdomHoh(kd, endScan, t4Deads, t5Deads) {
     } catch (e) {
         console.error(`[AWS] Failed to save Kingdom HOH for KD ${kd}:`, e);
         return false;
+    }
+}
+
+/**
+ * ──────────────────────────────────────────────────────────────────────────
+ * GOVERNOR AUTONOMOUS SELF-REGISTRATION & PIN AUTH
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+export function hashGovernorPin(pin) {
+    const salt = process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || 'unity_gov_salt_secure_3418';
+    return crypto.createHash('sha256').update(String(pin).trim() + salt).digest('hex');
+}
+
+export async function saveGovernorAuth({ governorId, governorName, kingdomId, allianceTag, pinHash, power, killPoints, role = 'User' }) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) throw new Error('AWS_TABLE_NAME is not set');
+
+    try {
+        const cleanId = String(governorId).trim();
+        const params = {
+            TableName: tableName,
+            Item: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` },
+                attributes: {
+                    M: {
+                        governorId: { S: cleanId },
+                        governorName: { S: String(governorName || 'Governor') },
+                        kingdomId: { S: String(kingdomId || '3418') },
+                        allianceTag: { S: String(allianceTag || '') },
+                        pinHash: { S: String(pinHash) },
+                        power: { N: String(power || 0) },
+                        killPoints: { N: String(killPoints || 0) },
+                        role: { S: String(role || 'User') },
+                        registeredAt: { S: new Date().toISOString() },
+                        updatedAt: { S: new Date().toISOString() }
+                    }
+                }
+            }
+        };
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error(`[AWS] Failed to save Governor Auth for ${governorId}:`, e);
+        return false;
+    }
+}
+
+export async function getGovernorAuth(governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return null;
+
+    try {
+        const cleanId = String(governorId).trim();
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: 'PK = :pk AND SK = :sk',
+            ExpressionAttributeValues: {
+                ':pk': { S: 'AUTH_GOVERNOR' },
+                ':sk': { S: `GOV#${cleanId}` }
+            }
+        };
+
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items && result.Items.length > 0) {
+            const attrs = result.Items[0].attributes?.M || {};
+            return {
+                governorId: attrs.governorId?.S || cleanId,
+                governorName: attrs.governorName?.S || 'Governor',
+                kingdomId: attrs.kingdomId?.S || '3418',
+                allianceTag: attrs.allianceTag?.S || '',
+                pinHash: attrs.pinHash?.S || '',
+                power: attrs.power?.N ? Number(attrs.power.N) : 0,
+                killPoints: attrs.killPoints?.N ? Number(attrs.killPoints.N) : 0,
+                role: attrs.role?.S || 'User',
+                registeredAt: attrs.registeredAt?.S || null
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error(`[AWS] Failed to get Governor Auth for ${governorId}:`, e);
+        return null;
     }
 }
