@@ -12,6 +12,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Styling:** Tailwind CSS `v4` with `@tailwindcss/postcss`
 - **Authentication:** `next-auth: 5.0.0-beta.30`
 - **Database:** AWS DynamoDB (`@aws-sdk/client-dynamodb: 3.1014.0`)
+- **Spreadsheet Engine:** `exceljs: 4.4.0` (modern streaming parsing & export via `@/lib/excelHelper`)
 - **Internationalization:** `next-intl: 4.9.0` (12 languages)
 - **Icons:** `lucide-react: 0.577.0`
 
@@ -67,3 +68,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Standard Default:** `gemini-3.1-flash-lite` (20 RPM / 500 RPD) — optimal for high throughput and zero rate-limit blocks on shared keys.
 - **Client Overrides:** Respect `x-gemini-key` and `x-gemini-model` headers for governors with personal Ultra / Paid keys (`gemini-2.5-pro` for deep reasoning, `gemini-3.5-flash` for high-resolution OCR).
 - **Never use deprecated models:** Do NOT reference `gemini-1.5-flash` or `gemini-2.0-flash` as primary defaults (discontinued by Google).
+
+## 7. Zero-Cost Modernization & Prototype Standards ($0.00 Serverless)
+- **Spreadsheet Processing:** Always use `@/lib/excelHelper` (`exceljs`) for parsing multi-sheet workbooks and generating styled `.xlsx` exports. Eliminates memory leaks and prototype pollution vulnerabilities on 60k+ KvK rosters at `$0.00` cost.
+- **In-Browser Vision OCR Prototype (`/experimental/ocr`):** Operates on dual engines: Local WebGPU / HTML5 Canvas optical processing (`$0.00` / zero API tokens consumed / offline capable) and Cloud Fast-Track (`gemini-3.1-flash-lite` free quota).
+- **Governor Anomaly & Fraud Outlier Engine (`/creator/lab/anomaly-detector`, `@/lib/anomalyDetector`):** 100% free client-side multivariate math detecting stat-padders (T1 farm duelers), scripted bot accounts, deadweight whales, and account buyer liabilities before KvK matchmaking.
+- **Battle Predictor Tactical Thinking Engine Prototype (`/creator/lab/battle-predictor`):** Supports `gemini-2.5-flash` deep reasoning scenarios alongside high-throughput `gemini-3.1-flash-lite`.

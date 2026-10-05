@@ -6,7 +6,7 @@ import {
   FileSpreadsheet, Cloud, Camera, Upload, ArrowRight,
   Database, Github, CheckCircle2, AlertTriangle, Loader2, Sparkles 
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { downloadExcelFile, parseExcelWorkbook } from "@/lib/excelHelper";
 import { useTranslations } from "next-intl";
 
 export default function UploadHub() {
@@ -146,13 +146,8 @@ function CloudExtractor() {
       const data = await res.json();
       if (!data.roster) throw new Error("Empty Payload");
 
-      // Generate CSV from JSON Array
-      const worksheet = XLSX.utils.json_to_sheet(data.roster);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, `KD_${targetKd}_Live`);
-      
-      // Trigger browser download
-      XLSX.writeFile(workbook, `Unity_Live_Sync_KD${targetKd}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      // Generate Excel from JSON Array using modern ExcelJS engine
+      await downloadExcelFile(data.roster, `Unity_Live_Sync_KD${targetKd}_${new Date().toISOString().split('T')[0]}.xlsx`, `KD_${targetKd}_Live`);
 
       setDownloadedRows(data.roster.length);
       setSyncStatus("success");
@@ -270,43 +265,34 @@ function DropZone({ title, description, icon, theme, optional = false }) {
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = await parseExcelWorkbook(event.target.result);
 
         // Heroscrolls Denial Filter 2: Proprietary Tab Signatures
         const heroscrollsTabs = ['deltas', 'start', 'end', 'excluded governors', 'camp totals', 'earth', 'fire', 'water', 'wind'];
-        const isHeroscrolls = workbook.SheetNames.some(name => heroscrollsTabs.includes(name.toLowerCase()));
+        const isHeroscrolls = workbook.sheetNames.some(name => heroscrollsTabs.includes(name.toLowerCase()));
         if (isHeroscrolls) {
           alert("File Rejected: Detected Heroscrolls internal sheet structures (Deltas, Start, End). Please discard this format and upload the raw tracking scan.");
           return;
         }
         
         // Extract DTG from Summary F2 if it exists
-        let extractedDtg = null;
-        if (workbook.Sheets['Summary']) {
-           const summarySheet = workbook.Sheets['Summary'];
-           if (summarySheet['F2']) {
-               extractedDtg = summarySheet['F2'].w || summarySheet['F2'].v;
-           }
-        }
+        const extractedDtg = workbook.summaryDtg;
 
         let totalRows = 0;
         let successCount = 0;
 
         // Discover the overall "Primary Kingdom" for this workbook by finding the first tab possessing a \d{3,} block or relying on the literal filename.
-        const primaryKdMatch = workbook.SheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
+        const primaryKdMatch = workbook.sheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
         const fallbackKdMatch = file.name.match(/\d{3,}/);
         const primaryKd = primaryKdMatch ? primaryKdMatch[0] : (fallbackKdMatch ? fallbackKdMatch[0] : null);
 
-        for (const sheetName of workbook.SheetNames) {
+        for (const sheetName of workbook.sheetNames) {
             // EXCLUDE EXTRANEOUS TABS (HeroScrolls / RokBoard Metadata)
             const lowerName = sheetName.toLowerCase();
             if (lowerName.includes('summary') || lowerName.includes('top') || lowerName.includes('rolled up')) {
                 continue;
             }
 
-            const worksheet = workbook.Sheets[sheetName];
-            
             // Extract >= 3 digit KD from tab string (e.g "KD 1302" -> "1302")
             const extractedKdMatch = sheetName.match(/\d{3,}/);
             const dynamicKd = extractedKdMatch ? extractedKdMatch[0] : primaryKd;
@@ -316,7 +302,7 @@ function DropZone({ title, description, icon, theme, optional = false }) {
                  continue; // A valid route is totally mandatory to fire the DB Hooks
             }
 
-            const jsonPayloadRaw = XLSX.utils.sheet_to_json(worksheet, { defval: 0 }); 
+            const jsonPayloadRaw = workbook.sheets[sheetName]; 
             if (!jsonPayloadRaw || jsonPayloadRaw.length === 0) continue;
 
             // SANITIZER ENGINE: Forcibly strip trailing whitespaces from third-party CSV headers (e.g 'Alliance ')

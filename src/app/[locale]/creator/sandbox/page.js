@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Upload, AlertTriangle, CheckCircle2, Cloud, Database, Trash2, ArrowRight, Loader2 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { parseExcelWorkbook } from "@/lib/excelHelper";
 
 const UNITY_VARS = [
   { label: "-- Ignore --", val: "" },
@@ -133,46 +133,39 @@ export default function SandboxPage() {
     const reader = new FileReader();
     setActiveFileName(file.name);
     
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
+        const workbook = await parseExcelWorkbook(event.target.result);
 
         // Extract DTG from Summary F2 if it exists
-        if (workbook.Sheets['Summary']) {
-           const summarySheet = workbook.Sheets['Summary'];
-           if (summarySheet['F2']) {
-               const rawDtg = summarySheet['F2'].w || summarySheet['F2'].v;
-               // Try to parse to YYYY-MM-DDTHH:mm for native HTML input compatibility
-               const d = new Date(rawDtg);
-               if (!isNaN(d.getTime())) {
-                   const tzOffset = d.getTimezoneOffset() * 60000;
-                   setScanDateOverride(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
-               }
-           }
+        if (workbook.summaryDtg) {
+            const rawDtg = workbook.summaryDtg;
+            const d = new Date(rawDtg);
+            if (!isNaN(d.getTime())) {
+                const tzOffset = d.getTimezoneOffset() * 60000;
+                setScanDateOverride(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
+            }
         }
 
         const fileNameMatch = file.name.match(/\d{3,}/);
         const fileNameKd = fileNameMatch ? fileNameMatch[0] : "UNKNOWN";
 
-        const primaryKdMatch = workbook.SheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
+        const primaryKdMatch = workbook.sheetNames.find(s => s.match(/\d{3,}/))?.match(/\d{3,}/);
         const primaryKd = primaryKdMatch ? primaryKdMatch[0] : fileNameKd;
 
         const tempTabs = [];
 
-        for (const sheetName of workbook.SheetNames) {
+        for (const sheetName of workbook.sheetNames) {
           // EXCLUDE EXTRANEOUS TABS (HeroScrolls / RokBoard Metadata)
           const lowerName = sheetName.toLowerCase();
           if (lowerName.includes('summary') || lowerName.includes('top') || lowerName.includes('rolled up')) {
               continue;
           }
 
-          const worksheet = workbook.Sheets[sheetName];
-
           const extractedKdMatch = sheetName.match(/\d{3,}/);
           const computedKd = extractedKdMatch ? extractedKdMatch[0] : primaryKd;
 
-          const jsonPayload = XLSX.utils.sheet_to_json(worksheet, { defval: 0 });
+          const jsonPayload = workbook.sheets[sheetName];
           if (!jsonPayload || jsonPayload.length === 0) continue;
 
           // Extract RAW structures for the Inspector

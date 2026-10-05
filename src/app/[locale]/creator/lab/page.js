@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { FlaskConical, AlertTriangle, Crosshair, Ghost, Target, Dna, Trophy, Swords, Clock } from "lucide-react";
+import { FlaskConical, AlertTriangle, Crosshair, Ghost, Target, Dna, Trophy, Swords, Clock, AlertOctagon, Camera } from "lucide-react";
 import Link from "next/link";
 
 const TOOLS = [
@@ -74,6 +74,26 @@ const TOOLS = [
         label: "Timeline Replay",
         desc: "Scrub through every historical scan snapshot. Watch the roster evolve with rank change indicators in real-time.",
         badge: "NEW",
+    },
+    {
+        href: "/creator/lab/anomaly-detector",
+        icon: AlertOctagon,
+        color: "text-rose-400",
+        bg: "from-rose-500/5",
+        border: "group-hover:border-rose-500/50",
+        label: "Anomaly & Fraud Matrix",
+        desc: "Algorithmic detection of stat-padders (T1 farm duelers), scripted bot accounts, and deadweight whales ($0.00 Serverless).",
+        badge: "PROTOTYPE",
+    },
+    {
+        href: "/experimental/ocr",
+        icon: Camera,
+        color: "text-fuchsia-400",
+        bg: "from-fuchsia-500/5",
+        border: "group-hover:border-fuchsia-500/50",
+        label: "AI Vision Scanner",
+        desc: "In-browser OCR engine running zero-cost client extraction with optional Gemini Flash-Lite fast tracking.",
+        badge: "PROTOTYPE",
     },
 ];
 

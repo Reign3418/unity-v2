@@ -157,14 +157,15 @@ export async function GET(req) {
             const customKey = req.headers.get('x-gemini-key');
             const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
             const customModel = req.headers.get('x-gemini-model');
-            const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+            const requestedModel = searchParams.get('model');
+            const apiModel = customModel || requestedModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
             if (apiKey) {
                 const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.7 },
+                        generationConfig: { temperature: apiModel.includes('2.5') ? 0.6 : 0.7 },
                     }),
                 });
                 if (geminiRes.ok) {
@@ -199,6 +200,8 @@ export async function GET(req) {
             timeframeDays,
             topN: validTopN,
             t5Threshold: T5_POWER_THRESHOLD,
+            modelUsed: apiModel || 'gemini-3.1-flash-lite',
+            isPrototype: (apiModel || '').includes('2.5'),
             kingdoms,       // sorted 1st place first
             metricResults,
             verdict,

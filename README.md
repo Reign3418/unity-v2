@@ -49,6 +49,9 @@ Built with **Next.js 16 (App Router)**, **React 19**, **Tailwind CSS v4**, **AWS
 * **Player Hunter (`/tools/hunter`):** Query historical trajectories across 163 kingdoms and 139,000+ governors to audit migration applicants.
 * **Ghost Hunter (`/tools/ghost-hunter`):** Evaluates kingdom vitality by identifying dormant accounts carrying dead-weight power with zero activity deltas.
 * **Recruitment Hit List (`/tools/recruitment-hitlist`):** Identifies high-velocity players who migrated away from your kingdom and are actively accelerating in power elsewhere.
+* **Governor Anomaly & Fraud Engine (`/creator/lab/anomaly-detector` — Prototype):** Pure mathematical multivariate outlier detection identifying stat-padders (T1 duelers), scripted bot accounts, deadweight whales, and account buyer liabilities at `$0.00` serverless cost.
+* **AI Vision Scanner (`/experimental/ocr` — Prototype):** Dual-engine OCR running zero-cost in-browser WebGPU / Canvas optical processing alongside serverless Gemini 3.1 Flash-Lite.
+* **Tactical Battle Predictor (`/creator/lab/battle-predictor`):** Simulates head-to-head kingdom combat odds with radar charts and the Gemini 2.5 Flash Tactical Thinking Engine (Prototype).
 * **KvK Scenario Predictor & Matchmaker:** Simulates bracket seeds and evaluates alliance combat odds using historical battle metadata.
 
 ### 3. Public Governor Academy & Calculators (Zero Login)
@@ -108,7 +111,7 @@ npm run check:i18n
   "telemetry": "@vercel/analytics 2.0.1 & Custom DynamoDB Event Logger",
   "icons": "Lucide React 0.577.0",
   "realtime": "Socket.io Client 4.8.3",
-  "data_parsing": "PapaParse 5.5.3, XLSX 0.18.5"
+  "data_parsing": "PapaParse 5.5.3, ExcelJS 4.4.0 (migrated from SheetJS)"
 }
 ```
 

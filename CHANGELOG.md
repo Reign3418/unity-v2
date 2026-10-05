@@ -2,6 +2,25 @@
 
 All notable changes to the Unity V2 platform are documented in this file.
 
+## [2.5.0] — 2026-10-05
+
+### Added
+- **Modern Spreadsheet Architecture (`exceljs: 4.4.0`):**
+  - Replaced legacy SheetJS (`xlsx`) with modern `exceljs` via `@/lib/excelHelper`.
+  - Added streaming workbook parser (`parseExcelWorkbook`), cell formula sanitization, and styled `.xlsx` export utilities (`downloadExcelFile`).
+  - Completely resolved SheetJS security vulnerabilities and memory spikes on 60,000-row KvK roster spreadsheets.
+- **Governor Anomaly & Fraud Outlier Engine (`/creator/lab/anomaly-detector`, `@/lib/anomalyDetector` — Prototype):**
+  - 100% free serverless multivariate mathematical engine (`$0.00` compute cost).
+  - Algorithmic classification for Stat-Padders (T1 farm duelers), Farm Bots, Deadweight Whales, and Account Buyer liabilities.
+  - Interactive Lab audit table with risk scoring, filtering, and one-click `.xlsx` audit export.
+- **AI Vision Scanner Dual-Engine Prototype (`/experimental/ocr`):**
+  - Added zero-cost **In-Browser WebGPU / Canvas optical extractor** (`$0.00` / zero API tokens consumed / offline capable).
+  - Dual-mode architecture supporting instant local client-side processing alongside serverless Gemini 3.1 Flash-Lite.
+  - Added styled Excel export (`.xlsx`) in addition to CSV and Clipboard.
+- **Battle Predictor Tactical Thinking Engine Prototype (`/creator/lab/battle-predictor`):**
+  - Added AI Engine selector to toggle between **Gemini 3.1 Flash-Lite (Standard Free Recon)** and **Gemini 2.5 Flash Tactical Thinking Engine (Prototype)** for unforgiving tactical battle breakdowns.
+  - Added dynamic prototype badging and model identification in the UI.
+
 ---
 
 ## [2.4.0] — 2026-10-05

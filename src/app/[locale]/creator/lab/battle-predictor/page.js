@@ -24,6 +24,7 @@ export default function BattlePredictor() {
     const [kingdoms, setKingdoms] = useState(["", ""]);
     const [topN, setTopN] = useState(300);
     const [days, setDays] = useState(30);
+    const [selectedModel, setSelectedModel] = useState("gemini-3.1-flash-lite");
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -42,7 +43,7 @@ export default function BattlePredictor() {
         if (filled.length < 2) return;
         setLoading(true); setError(null); setData(null);
         try {
-            const params = new URLSearchParams({ days, top: topN });
+            const params = new URLSearchParams({ days, top: topN, model: selectedModel });
             filled.forEach((kd, i) => params.set(`kd${i + 1}`, kd.trim()));
             const res = await fetch(`/api/lab/battle-predictor?${params}`);
             const json = await res.json();
@@ -131,6 +132,23 @@ export default function BattlePredictor() {
                             </button>
                         ))}
                     </div>
+                    <div className="w-px h-8 bg-[#1e222b]"/>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-gray-600 text-xs uppercase tracking-wider font-bold">AI Engine</span>
+                        <button 
+                            onClick={() => setSelectedModel("gemini-3.1-flash-lite")} 
+                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${selectedModel === "gemini-3.1-flash-lite" ? "bg-rose-500/20 border-rose-500/40 text-rose-300" : "bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-gray-300"}`}
+                        >
+                            Flash-Lite (Free)
+                        </button>
+                        <button 
+                            onClick={() => setSelectedModel("gemini-2.5-flash")} 
+                            className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${selectedModel === "gemini-2.5-flash" ? "bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]" : "bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-gray-300"}`}
+                        >
+                            <span>Tactical 2.5</span>
+                            <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1 py-0.2 rounded font-mono">PROTOTYPE</span>
+                        </button>
+                    </div>
                     <button
                         onClick={run}
                         disabled={loading || kingdoms.filter(k => k.trim()).length < 2}
@@ -176,9 +194,14 @@ export default function BattlePredictor() {
                             return (
                                 <div className="mb-6 space-y-3">
                                     {/* Header */}
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         <Zap size={15} className="text-yellow-400"/>
                                         <span className="text-yellow-400 text-xs font-bold uppercase tracking-widest">AI Battle Assessment</span>
+                                        {data?.isPrototype && (
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                                <span>Prototype: Tactical Thinking Engine ({data.modelUsed})</span>
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Per-kingdom cards (parsed) */}
