@@ -13,6 +13,7 @@ import AnimatedLogo from "@/components/AnimatedLogo";
 import LandingTopography from "@/components/marketing/LandingTopography";
 import CityHallUpgradeGuide from "@/components/marketing/CityHallUpgradeGuide";
 import BeginnerCodex from "@/components/marketing/BeginnerCodex";
+import EquipmentGuide from "@/components/marketing/EquipmentGuide";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
@@ -73,6 +74,9 @@ export default function Home() {
               </a>
               <a href="#beginner-codex" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <BookOpen size={14} className="text-emerald-400" /> Beginner Codex
+              </a>
+              <a href="#equipment-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-white/5 transition flex items-center gap-1.5">
+                <Swords size={14} className="text-amber-400" /> Equipment & Pairings
               </a>
               <a href="#war-room-suite" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Shield size={14} className="text-cyan-400" /> War Room Suite
@@ -258,7 +262,7 @@ export default function Home() {
               Master The Game From Day 1
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto mt-2">
-              Use our interactive City Hall rush planner and beginner codex below to fast-track your progression without spending gems blindly.
+              Use our interactive City Hall rush planner, beginner survival codex, and equipment progression matrix below to fast-track your progression.
             </p>
           </div>
 
@@ -267,6 +271,9 @@ export default function Home() {
 
           {/* Module 2: The New Governor Survival Codex */}
           <BeginnerCodex />
+
+          {/* Module 3: Equipment Progression & Commander Synergy Matrix */}
+          <EquipmentGuide />
 
         </div>
 
