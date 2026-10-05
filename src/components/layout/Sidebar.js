@@ -8,7 +8,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -93,10 +93,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <NavItem href="/community" icon={MessageSquare} label={t('nav_community_hub')} />
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
-          <NavItem href="/tools/map-planner" icon={MapIcon} label={t('nav_map_planner')} isAi={true} />
-          <NavItem href="/events" icon={CalendarDays} label={t('nav_events')} />
-          <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />
+          <NavItem href="/tools/ghost-hunter" icon={Ghost} label="Ghost Hunter" isAi={true} />
+          <NavItem href="/tools/recruitment-hitlist" icon={Target} label="Recruit Hitlist" />
+          <NavItem href="/tools/map-planner" icon={MapIcon} label={t('nav_map_planner')} isAi={true} />
+          <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
+          <NavItem href="/translator" icon={MessageSquare} label="Chat Translator" isAi={true} />
 
           {session?.user?.isSuperAdmin && (
               <>
@@ -111,35 +113,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <SectionTitle>{t('sec_system')}</SectionTitle>
           <NavItem href="/settings" icon={Settings} label={t('nav_settings')} />
           <NavItem href="/admin" icon={Lock} label={t('nav_admin')} hidden={!session?.user?.isSuperAdmin} />
-
-          {/* AI Experimental OCR Desktop Applet Injection */}
-          <SectionTitle>Experimental Lab</SectionTitle>
-          <button 
-            onClick={() => window.open('/en/experimental/ocr', 'Unity Applet', 'width=550,height=850,toolbar=0,menubar=0,location=0')}
-            className={`w-[calc(100%-2rem)] mx-4 flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200 group relative border border-fuchsia-500/20 bg-fuchsia-500/5 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/40 text-fuchsia-300 mt-2`}
-          >
-              <div className="flex items-center gap-3">
-                  <FlaskConical size={18} className="text-fuchsia-400 group-hover:animate-pulse" />
-                  <span className="text-sm font-medium flex items-center gap-1.5">
-                      AI Vision OCR
-                      <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
-                  </span>
-              </div>
-              <span className="text-[10px] font-mono bg-fuchsia-500/20 px-2 py-0.5 rounded text-fuchsia-200 uppercase tracking-widest border border-fuchsia-500/30">Applet</span>
-          </button>
-          <button 
-            onClick={() => window.open('/en/translator', 'Unity Translator', 'width=420,height=720,toolbar=0,menubar=0,location=0,resizable=1')}
-            className={`w-[calc(100%-2rem)] mx-4 flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200 group relative border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-emerald-300 mt-2`}
-          >
-              <div className="flex items-center gap-3">
-                  <span className="text-[18px]">🌐</span>
-                  <span className="text-sm font-medium flex items-center gap-1.5">
-                      Chat Translator
-                      <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />
-                  </span>
-              </div>
-              <span className="text-[10px] font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-200 uppercase tracking-widest border border-emerald-500/30">Applet</span>
-          </button>
         </div>
       </div>
 

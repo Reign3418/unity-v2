@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getAdvancedKingdomDeltas } from "@/lib/awsDynamo";
+import { logEvent } from "@/lib/eventLogger";
 
 export const maxDuration = 300;
 
 export async function GET(req) {
     try {
         const session = await auth();
-        if (!session || !session.user?.isSuperAdmin) {
-            return NextResponse.json({ error: "Super Admin clearance required." }, { status: 403 });
+        if (!session || (!session.user?.isSuperAdmin && !session.user?.isLeader)) {
+            return NextResponse.json({ error: "Kingdom Leadership or Admin clearance required." }, { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);
@@ -38,6 +39,16 @@ export async function GET(req) {
 
         // Grade
         const grade = vitalityScore >= 85 ? 'A' : vitalityScore >= 70 ? 'B' : vitalityScore >= 55 ? 'C' : vitalityScore >= 40 ? 'D' : 'F';
+
+        logEvent('GHOST_HUNTER_SCAN', {
+            kingdomId,
+            timeframeDays,
+            vitalityScore,
+            grade,
+            ghostCount: ghosts.length
+        }, {
+            userEmail: session?.user?.email || 'anonymous'
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,

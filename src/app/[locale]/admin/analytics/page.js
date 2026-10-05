@@ -4,9 +4,24 @@ import { useState, useEffect } from "react";
 import { Activity, Users, Search, Crosshair, Trophy, RefreshCw, Shield, TrendingUp, Clock, BarChart2, Eye } from "lucide-react";
 
 const FEATURE_META = {
-    MATCHMAKER_SCAN: { label: "Matchmaker", icon: Trophy,    color: "text-fuchsia-400", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20" },
-    TRACKER_SCAN:    { label: "Tracker",    icon: Activity,  color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
-    HUNTER_SEARCH:   { label: "Hunter",    icon: Search,    color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20" },
+    AUTH_SELF_REGISTER:     { label: "Self-Register",      icon: Shield,     color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+    AUTH_PARSE_PROFILE:     { label: "Profile OCR",        icon: Eye,        color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    SUPPORT_PING_DISPATCHED:{ label: "SOS Help Ping",      icon: Shield,     color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    HUNTER_SEARCH:          { label: "Player Hunter",      icon: Search,     color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20" },
+    GHOST_HUNTER_SCAN:      { label: "Ghost Hunter",       icon: Activity,   color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
+    RECRUITMENT_HITLIST_SCAN:{ label: "Recruit Hitlist",   icon: Crosshair,  color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
+    MATCHMAKER_SCAN:        { label: "KvK Matchmaker",     icon: Trophy,     color: "text-fuchsia-400", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20" },
+    TRACKER_SCAN:           { label: "Activity Tracker",   icon: Activity,   color: "text-teal-400",    bg: "bg-teal-500/10",    border: "border-teal-500/20" },
+    VISION_POLYGRAPH_SCAN:  { label: "EK Polygraph",       icon: Eye,        color: "text-indigo-400",  bg: "bg-indigo-500/10",  border: "border-indigo-500/20" },
+    AI_COACH_BRIEF:         { label: "AI War Coach",       icon: TrendingUp, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
+    KVK_SCENARIO_SCAN:      { label: "KvK Scenario Sim",   icon: Trophy,     color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20" },
+    CALCULATOR_TAB_VIEW:    { label: "Calculators",        icon: BarChart2,  color: "text-emerald-300", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+    VISION_RESOURCES_SCAN:  { label: "Vision Resources",   icon: Eye,        color: "text-amber-300",   bg: "bg-amber-500/10",   border: "border-amber-500/20" },
+    VISION_SPEEDUP_SCAN:    { label: "Vision Speedups",    icon: Clock,      color: "text-indigo-300",  bg: "bg-indigo-500/10",  border: "border-indigo-500/20" },
+    VISION_AP_SCAN:         { label: "Vision AP",          icon: Activity,   color: "text-cyan-300",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    VISION_FLAG_SCAN:       { label: "Vision Flag",        icon: Shield,     color: "text-rose-300",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    VISION_FORGE_SCAN:      { label: "Vision Forge",       icon: Activity,   color: "text-blue-300",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
+    VISION_DEADEYE_SCAN:    { label: "Vision Deadeye",     icon: Search,     color: "text-fuchsia-300", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20" }
 };
 
 const TimeAgo = ({ ts }) => {
@@ -95,18 +110,17 @@ export default function AdminAnalytics() {
                     >{d}d</button>
                 ))}
                 <div className="w-px h-5 bg-[#1e222b] mx-2" />
-                <span className="text-gray-600 text-xs uppercase tracking-wider">Feature</span>
-                {['', 'MATCHMAKER_SCAN', 'TRACKER_SCAN', 'HUNTER_SEARCH'].map(f => (
-                    <button
-                        key={f || 'all'}
-                        onClick={() => setFilterFeature(f)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all border ${
-                            filterFeature === f
-                                ? 'bg-fuchsia-500/20 border-fuchsia-500/40 text-fuchsia-300'
-                                : 'bg-[#13161c] border-[#1e222b] text-gray-500 hover:text-gray-300'
-                        }`}
-                    >{f ? (FEATURE_META[f]?.label || f) : 'All'}</button>
-                ))}
+                <span className="text-gray-600 text-xs uppercase tracking-wider shrink-0">Feature Filter</span>
+                <select
+                    value={filterFeature}
+                    onChange={(e) => setFilterFeature(e.target.value)}
+                    className="bg-[#13161c] border border-[#1e222b] text-white text-xs rounded-lg px-3 py-1.5 focus:border-fuchsia-500/50 outline-none cursor-pointer"
+                >
+                    <option value="">All Platform Features</option>
+                    {Object.entries(FEATURE_META).map(([key, meta]) => (
+                        <option key={key} value={key}>{meta.label}</option>
+                    ))}
+                </select>
             </div>
 
             {error && (
@@ -134,13 +148,21 @@ export default function AdminAnalytics() {
                             <Activity size={14} className="text-cyan-400"/>
                             <span className="text-gray-500 text-[10px] uppercase tracking-widest">By Feature</span>
                         </div>
-                        <div className="space-y-1.5">
-                            {Object.entries(FEATURE_META).map(([key, meta]) => (
-                                <div key={key} className="flex justify-between items-center">
-                                    <span className={`text-xs ${meta.color}`}>{meta.label}</span>
-                                    <span className="text-white font-mono font-bold text-sm">{(stats.byFeature[key] || 0).toLocaleString()}</span>
-                                </div>
-                            ))}
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                            {Object.entries(stats.byFeature || {})
+                                .sort(([, a], [, b]) => b - a)
+                                .map(([key, count]) => {
+                                    const meta = FEATURE_META[key] || { label: key, color: 'text-gray-400' };
+                                    return (
+                                        <div key={key} className="flex justify-between items-center">
+                                            <span className={`text-xs ${meta.color} truncate max-w-[130px]`}>{meta.label}</span>
+                                            <span className="text-white font-mono font-bold text-xs">{count.toLocaleString()}</span>
+                                        </div>
+                                    );
+                                })}
+                            {Object.keys(stats.byFeature || {}).length === 0 && (
+                                <span className="text-gray-600 text-xs">No activity yet</span>
+                            )}
                         </div>
                     </div>
 

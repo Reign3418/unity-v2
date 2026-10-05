@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { notifyAdmin } from "@/lib/notifyAdmin";
+import { logEvent } from "@/lib/eventLogger";
 
 export async function POST(req) {
     try {
@@ -34,6 +35,16 @@ export async function POST(req) {
                 userMessage: message.trim()
             }
         });
+
+        logEvent('SUPPORT_PING_DISPATCHED', {
+            governorId: governorId || 'Unknown',
+            governorName: governorName || 'Unknown',
+            kingdomNumber: kingdomNumber || '3418',
+            allianceTag: allianceTag || 'N/A',
+            contact: contact.trim()
+        }, {
+            userEmail: contact.trim()
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,

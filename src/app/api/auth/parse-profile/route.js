@@ -3,6 +3,7 @@ export const maxDuration = 300;
 
 import { getGlobalConfig, getGovernorStats, getGovernorAuth } from "@/lib/awsDynamo";
 import { notifyAdmin } from "@/lib/notifyAdmin";
+import { logEvent } from "@/lib/eventLogger";
 
 export async function POST(req) {
     try {
@@ -127,6 +128,16 @@ Guidelines:
                 }
             }).catch(() => {});
         }
+
+        logEvent('AUTH_PARSE_PROFILE', {
+            governorId: cleanId,
+            governorName: parsed.governorName || cleanId,
+            kingdomNumber: parsed.kingdomNumber || targetKingdom,
+            allianceTag: parsed.allianceTag || '',
+            eligible
+        }, {
+            userEmail: parsed.governorName || cleanId
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,

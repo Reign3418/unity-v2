@@ -56,7 +56,8 @@ export default function AIUsageDashboard() {
             e.eventType.startsWith('VISION_') || 
             e.eventType === 'MATCHMAKER_SCAN' || 
             e.eventType === 'KVK_SCENARIO_SCAN' ||
-            e.eventType === 'AI_COACH_BRIEF'
+            e.eventType === 'AI_COACH_BRIEF' ||
+            e.eventType === 'AUTH_PARSE_PROFILE'
         );
     }, [events]);
 

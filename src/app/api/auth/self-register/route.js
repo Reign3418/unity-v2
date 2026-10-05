@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { saveGovernorAuth, getGovernorAuth, hashGovernorPin } from "@/lib/awsDynamo";
 import { notifyAdmin } from "@/lib/notifyAdmin";
+import { logEvent } from "@/lib/eventLogger";
 
 export async function POST(req) {
     try {
@@ -82,6 +83,16 @@ export async function POST(req) {
 
             return NextResponse.json({ error: "Database write error. Please try again." }, { status: 500 });
         }
+
+        logEvent('AUTH_SELF_REGISTER', {
+            governorId: cleanId,
+            governorName: governorName || `Governor ${cleanId}`,
+            kingdomNumber: targetKingdom,
+            allianceTag: String(allianceTag || '').trim(),
+            power: Number(power) || 0
+        }, {
+            userEmail: governorName || cleanId
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,

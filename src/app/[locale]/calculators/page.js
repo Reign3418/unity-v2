@@ -1096,10 +1096,22 @@ export default function CalculatorsPage() {
   };
 
   // UI Components
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    fetch('/api/telemetry/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'CALCULATOR_TAB_VIEW',
+        metadata: { tab: id }
+      })
+    }).catch(() => {});
+  };
+
   const TabButton = ({ id, icon: Icon, label, color, isAi }) => (
     <button
-      onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold transition-all duration-200 whitespace-nowrap ${
+      onClick={() => handleTabChange(id)}
+      className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold transition-all duration-200 whitespace-nowrap cursor-pointer ${
         activeTab === id 
         ? `border-${color}-500 text-${color}-400 bg-${color}-500/5` 
         : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'

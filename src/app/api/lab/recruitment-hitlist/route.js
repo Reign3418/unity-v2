@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getBehavioralMatrix } from "@/lib/awsDynamo";
+import { logEvent } from "@/lib/eventLogger";
 
 export const maxDuration = 300;
 
 export async function GET(req) {
     try {
         const session = await auth();
-        if (!session || !session.user?.isSuperAdmin) {
-            return NextResponse.json({ error: "Super Admin clearance required." }, { status: 403 });
+        if (!session || (!session.user?.isSuperAdmin && !session.user?.isLeader)) {
+            return NextResponse.json({ error: "Kingdom Leadership or Admin clearance required." }, { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);
@@ -44,6 +45,15 @@ export async function GET(req) {
                 currentKingdom: m.currentKingdom || null,
                 departureDate: m.firstSeen || null,
             }));
+
+        logEvent('RECRUITMENT_HITLIST_SCAN', {
+            kingdomId,
+            days,
+            totalMigrantsOut: migrants.length,
+            activeTargets: hits.length
+        }, {
+            userEmail: session?.user?.email || 'anonymous'
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,
