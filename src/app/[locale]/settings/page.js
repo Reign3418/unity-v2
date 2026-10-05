@@ -289,10 +289,9 @@ export default function SettingsPage() {
                 onChange={e => setPrefs(p => ({ ...p, geminiModel: e.target.value }))}
                 className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
-                <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
-                <option value="gemini-3.1-flash-lite">{t('gemini_flash_rec')} (Free Tier: 5 RPM / 20 RPD)</option>
-                <option value="gemini-2.5-pro">{t('gemini_pro')} (Free Tier: 2 RPM / 50 RPD)</option>
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Free Tier: 20 RPM / 500 RPD - Best for sweeps)</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Default / Recommended - 20 RPM / 500 RPD)</option>
+                <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')} (5 RPM / 20 RPD)</option>
+                <option value="gemini-2.5-pro">{t('gemini_pro')} (2 RPM / 50 RPD)</option>
                 <option value="gemini-1.5-flash">{t('gemini_legacy')} (Legacy - May return 404)</option>
               </select>
 
