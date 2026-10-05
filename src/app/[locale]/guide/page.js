@@ -4,7 +4,7 @@ import { useState } from "react";
 import { 
   BookOpen, FileText, Check, Upload, Timer, Wheat, Zap, Shield, 
   Map, Eye, Activity, Target, Sparkles, BrainCircuit, Swords, 
-  Bot, ChevronRight, MessageSquare, AlertTriangle, AlertCircle, Info, HelpCircle
+  Bot, ChevronRight, MessageSquare, AlertTriangle, AlertCircle, Info, HelpCircle, Download
 } from "lucide-react";
 
 export default function UserGuidePage() {
@@ -35,7 +35,7 @@ export default function UserGuidePage() {
           <div className="bg-[#1e222b] p-3 rounded-xl border border-[#2d323e]">
             <BookOpen className="text-cyan-400" size={32} />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-2">
               Unity Platform Guide
               <Sparkles className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" size={24} />
@@ -44,6 +44,15 @@ export default function UserGuidePage() {
               Step-by-step walkthrough of all features and modules in Unity 2.0!
             </p>
           </div>
+          <a 
+            href="/docs/Unity_V2_System_Architecture_Guide.pdf" 
+            download="Unity_V2_System_Architecture_Guide.pdf"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/25 shrink-0 border border-indigo-400/30 hover:scale-105"
+          >
+            <Download size={15} />
+            <span className="hidden md:inline font-bold">Executive PDF Blueprint</span>
+            <span className="md:hidden font-bold">PDF Guide</span>
+          </a>
         </div>
       </div>
 
