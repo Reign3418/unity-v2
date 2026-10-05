@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MAP_TIMELINES, TIDES_SCHEDULE } from '../../../constants/soc_timelines';
 import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock, ChevronDown, ChevronUp } from 'lucide-react';

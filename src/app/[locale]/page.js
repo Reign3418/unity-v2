@@ -3,10 +3,11 @@
 import { useSession, signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key, Cpu, Database, Activity, Terminal, ChevronDown, Box } from "lucide-react";
+import { Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key, Cpu, Database, Activity, Terminal, ChevronDown, Box, Castle } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import LandingTopography from "@/components/marketing/LandingTopography";
+import CityHallUpgradeGuide from "@/components/marketing/CityHallUpgradeGuide";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
@@ -233,6 +234,17 @@ export default function Home() {
                   <Zap size={14} /> {t('request_setup')}
                 </button>
              </div>
+
+             <div className="pt-2 w-full">
+                <a 
+                  href="#city-hall-guide"
+                  className="w-full py-3 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 hover:border-[#D4AF37]/60 rounded-lg text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 group shadow-[0_0_15px_rgba(212,175,55,0.15)]"
+                >
+                  <Castle size={14} className="group-hover:scale-110 transition-transform" />
+                  <span>City Hall Rush Guide (Free)</span>
+                  <ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" />
+                </a>
+             </div>
           </div>
         </div>
 
@@ -340,6 +352,11 @@ export default function Home() {
            <ChevronDown size={32} className="text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)] mt-1" />
         </div>
         </div>
+
+        {/* =========================================
+            SECTION: CITY HALL UPGRADE CODEX & PLANNER
+            ========================================= */}
+        <CityHallUpgradeGuide />
 
         {/* =========================================
             SECTION 2: MARKETING FEATURE MATRIX
