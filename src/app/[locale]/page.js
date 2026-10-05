@@ -14,6 +14,7 @@ import LandingTopography from "@/components/marketing/LandingTopography";
 import CityHallUpgradeGuide from "@/components/marketing/CityHallUpgradeGuide";
 import BeginnerPlaybook from "@/components/marketing/BeginnerPlaybook";
 import EquipmentGuide from "@/components/marketing/EquipmentGuide";
+import AccessMatrix from "@/components/marketing/AccessMatrix";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
@@ -77,6 +78,9 @@ export default function Home() {
               </a>
               <a href="#equipment-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Swords size={14} className="text-amber-400" /> Equipment & Pairings
+              </a>
+              <a href="#access-matrix" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
+                <Key size={14} className="text-cyan-400" /> Free vs. Login
               </a>
               <Link href="/album-card" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-white/5 transition flex items-center gap-1.5">
                 <QrCode size={14} className="text-amber-400" /> RoK Album Seal
@@ -310,6 +314,11 @@ export default function Home() {
             </a>
 
         </div>
+
+        {/* ========================================================
+            SECTION: ACCESS MATRIX (100% FREE VS. RESTRICTED WAR ROOM)
+            ======================================================== */}
+        <AccessMatrix />
 
         {/* ========================================================
             SECTION: FREE PUBLIC GOVERNOR ACADEMY (NO LOGIN REQUIRED)

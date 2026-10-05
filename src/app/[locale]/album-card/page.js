@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { 
   Shield, Download, Sparkles, Crown, ArrowLeft, 
-  CheckCircle2, Heart, Swords, Eye, Edit3
+  CheckCircle2, Heart, Swords, Eye, Edit3, Key, Unlock
 } from "lucide-react";
 
 // Curated presets that bridge beginner warmth with veteran depth
@@ -225,17 +225,17 @@ export default function AlbumCardPage() {
         ctx.fillStyle = "#0F172A";
         ctx.strokeStyle = "#D4AF37";
         ctx.lineWidth = 1.5;
-        ctx.fillRect(230, 870, 620, 64);
-        ctx.strokeRect(230, 870, 620, 64);
+        ctx.fillRect(190, 870, 700, 66);
+        ctx.strokeRect(190, 870, 700, 66);
 
         ctx.fillStyle = "#FDE047";
-        ctx.font = "bold 15px sans-serif";
+        ctx.font = "bold 14px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("★ SCAN OFFICIAL SEAL TO ACCESS ACADEMY ★", 540, 899);
+        ctx.fillText("★ PUBLIC ACADEMY: 100% FREE & ZERO LOGIN ★", 540, 897);
 
         ctx.fillStyle = "#94A3B8";
-        ctx.font = "11px monospace";
-        ctx.fillText("0 LOGIN REQUIRED • 100% FREE PUBLIC ACCESS FOR ALL GOVERNORS", 540, 922);
+        ctx.font = "10.5px monospace";
+        ctx.fillText("ALLIANCE WAR ROOM & OCR INTEL SUITE: VERIFIED KINGDOM ACCESS", 540, 921);
 
         // Heart & Veteran Tagline
         ctx.fillStyle = "#E2E8F0";
@@ -417,6 +417,19 @@ export default function AlbumCardPage() {
               </p>
               <p className="text-slate-300 leading-relaxed text-[11px]">
                 <strong>Center Crest (Level-H):</strong> The central crest breaks the barcode pattern for Lilith&apos;s bot, yet smartphone cameras read it effortlessly.
+              </p>
+            </div>
+
+            {/* Access Clarity Notice */}
+            <div className="p-3.5 rounded-xl bg-[#0c1017] border border-[#1e2638] space-y-2 text-xs">
+              <span className="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
+                <Key size={13} /> What Governors Receive
+              </span>
+              <p className="text-slate-300 leading-relaxed text-[11px]">
+                <strong className="text-emerald-400">🟢 100% Free (Zero Login):</strong> Anyone scanning gets instant access to City Hall Rush, 7 Fatal Traps, Live Math Speedups, and Equipment Progression.
+              </p>
+              <p className="text-slate-400 leading-relaxed text-[11px]">
+                <strong className="text-cyan-400">🔒 War Room (Clearance):</strong> Automated OCR Roster Scanner, KvK DKP tracking, and Tactical Maps require Discord authentication and kingdom role permissions.
               </p>
             </div>
 
