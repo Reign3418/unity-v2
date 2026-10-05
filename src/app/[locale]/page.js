@@ -18,11 +18,13 @@ import AccessMatrix from "@/components/marketing/AccessMatrix";
 import GovernorAuthModal from "@/components/auth/GovernorAuthModal";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
+import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 
 export default function Home() {
   const pathname = usePathname();
   const t = useTranslations('HomePage');
   const { data: session } = useSession();
+  const { effectiveIsLeader, effectiveIsSuperAdmin, previewRole } = useRolePreview();
   const [isExploding, setIsExploding] = useState(false);
   const [fireworks, setFireworks] = useState([]);
   const [isGuestModalOpen, setGuestModalOpen] = useState(false);
@@ -830,13 +832,32 @@ export default function Home() {
           {t('welcome_desc')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link 
-            href="/upload" 
-            className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
-          >
-            <UploadCloud size={20} />
-            {t('btn_upload')}
-          </Link>
+          {(effectiveIsLeader || effectiveIsSuperAdmin) ? (
+            <Link 
+              href="/upload" 
+              className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+            >
+              <UploadCloud size={20} />
+              {t('btn_upload')}
+            </Link>
+          ) : (
+            <>
+              <Link 
+                href="/stats" 
+                className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+              >
+                <Users size={20} />
+                <span>My KvK Stats</span>
+              </Link>
+              <Link 
+                href="/calculators" 
+                className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 px-6 py-3 rounded-lg font-bold transition-all"
+              >
+                <CheckSquare size={18} className="text-cyan-400" />
+                <span>Calculators</span>
+              </Link>
+            </>
+          )}
           <Link 
             href="/album-card" 
             className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-amber-300 border border-[#D4AF37]/40 hover:border-[#D4AF37] px-6 py-3 rounded-lg font-bold transition-all"

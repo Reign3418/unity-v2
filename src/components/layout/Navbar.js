@@ -2,11 +2,13 @@
 
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare } from 'lucide-react';
+import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare, Eye } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
+  const { previewRole, setPreviewRole, isRealSuperAdmin, effectiveIsLeader, effectiveSession } = useRolePreview();
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,7 +98,7 @@ export default function Navbar({ onMenuClick }) {
           <h1 className="text-lg md:text-xl font-bold text-white tracking-wide truncate max-w-[150px] md:max-w-none">
             {getPageTitle()}
           </h1>
-          {session?.user?.isLeader && (
+          {effectiveIsLeader && (
             <span className="hidden sm:flex bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full items-center gap-1">
               <ShieldCheck size={12} />
               Command
@@ -104,7 +106,37 @@ export default function Navbar({ onMenuClick }) {
           )}
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
+          {/* View-As Role Preview Dropdown (SuperAdmin Impersonation & Testing Suite) */}
+          {isRealSuperAdmin && (
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
+              previewRole 
+                ? 'bg-amber-500/15 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)]' 
+                : 'bg-[#1e222b]/50 border-[#2d323e] hover:border-cyan-500/40'
+            }`}>
+              <Eye size={14} className={previewRole ? 'text-amber-400 animate-pulse' : 'text-cyan-400'} />
+              <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:inline ${
+                previewRole ? 'text-amber-400' : 'text-gray-400'
+              }`}>
+                View As:
+              </span>
+              <select 
+                value={previewRole || 'superadmin'}
+                onChange={(e) => setPreviewRole(e.target.value === 'superadmin' ? null : e.target.value)}
+                className={`bg-transparent font-mono text-xs font-bold outline-none cursor-pointer ${
+                  previewRole ? 'text-amber-300 font-black' : 'text-cyan-400'
+                }`}
+                title="SuperAdmin View-As: Experience Unity as other membership tiers"
+              >
+                <option value="superadmin" className="bg-[#0f1115] text-cyan-400">👑 SuperAdmin (Real)</option>
+                <option value="leader" className="bg-[#0f1115] text-amber-400">🛡️ Leader (R4/R5)</option>
+                <option value="analyst" className="bg-[#0f1115] text-sky-400">📊 Data Analyst</option>
+                <option value="member" className="bg-[#0f1115] text-emerald-400">👤 Member (Standard)</option>
+                <option value="guest" className="bg-[#0f1115] text-gray-400">🌐 Guest (Public/Free)</option>
+              </select>
+            </div>
+          )}
+
           {/* Global Connection Status */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1e222b]/50 border border-[#2d323e] relative group cursor-help transition-colors hover:border-cyan-500/50">
             <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
@@ -127,7 +159,7 @@ export default function Navbar({ onMenuClick }) {
           </div>
 
           {/* Global Kingdom Autoloader */}
-          {session?.user?.allowedKingdoms?.length > 0 && (
+          {((effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || []).length > 0) && (
              <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-r border-[#1e222b]">
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Target KD:</span>
                 <select 
@@ -135,17 +167,17 @@ export default function Navbar({ onMenuClick }) {
                   defaultValue={
                       typeof window !== 'undefined' && localStorage.getItem('unty_active_kd') 
                           ? localStorage.getItem('unty_active_kd') 
-                          : (session.user.allowedKingdoms[0] || "3155")
+                          : ((effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || [])[0] || "3155")
                   }
                   onChange={(e) => {
                       localStorage.setItem('unty_active_kd', e.target.value);
                       window.location.reload();
                   }}
                 >
-                  {session.user.allowedKingdoms.map(kd => (
+                  {(effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || []).map(kd => (
                     <option key={kd} value={kd} className="bg-[#0f1115] text-white">[{kd}]</option>
                   ))}
-                  {session.user.allowedKingdoms.length > 1 && (
+                  {(effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || []).length > 1 && (
                      <option value="GLOBAL" className="bg-[#0f1115] text-amber-400">[ALL KINGDOMS]</option>
                   )}
                 </select>

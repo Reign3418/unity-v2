@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { Link2, Plus, Settings, RotateCcw, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 
 export default function MyStats() {
   const { data: session } = useSession();
+  const { effectiveIsSuperAdmin, effectiveIsLeader } = useRolePreview();
   const [profiles, setProfiles] = useState([]);
   const [globalPresence, setGlobalPresence] = useState({ status: "Active", note: "", requiresPing: false });
   const [isLoading, setIsLoading] = useState(true);
@@ -142,10 +144,10 @@ export default function MyStats() {
             </h1>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
               <span className="bg-[#1e222b] text-gray-400 text-xs px-3 py-1 rounded-full border border-[#2d323e]">ID: {session.user.id}</span>
-              {session.user.isSuperAdmin && (
+              {effectiveIsSuperAdmin && (
                 <span className="bg-rose-500/10 text-rose-500 text-[10px] px-3 py-1 rounded-full border border-rose-500/30 uppercase tracking-widest font-bold shadow-[0_0_10px_rgba(244,63,94,0.3)]">Master Creator</span>
               )}
-              {session.user.isLeader && !session.user.isSuperAdmin && (
+              {effectiveIsLeader && !effectiveIsSuperAdmin && (
                 <span className="bg-amber-500/10 text-amber-500 text-[10px] px-3 py-1 rounded-full border border-amber-500/20 font-bold uppercase tracking-widest">Leadership Clearance</span>
               )}
             </div>

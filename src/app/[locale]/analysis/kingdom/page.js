@@ -25,6 +25,7 @@ import CommandPalette from "@/components/analysis/kingdom/CommandPalette";
 import MemberPortal from "@/components/member/MemberPortal";
 import { useTranslations } from "next-intl";
 import KingdomVault from "@/app/[locale]/vault/page";
+import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -117,10 +118,11 @@ export default function KingdomAnalysis() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // ── Role tier resolution (additive hierarchy) ─────────────────────────
-  const isAnalyst    = session?.user?.isAnalyst    || false;
-  const isLeader     = session?.user?.isLeader     || false;
-  const isSuperAdmin = session?.user?.isSuperAdmin || false;
+  // ── Role tier resolution (additive hierarchy with Role Preview support) ──
+  const { effectiveIsSuperAdmin, effectiveIsLeader, effectiveIsAnalyst, effectiveSession } = useRolePreview();
+  const isAnalyst    = effectiveIsAnalyst;
+  const isLeader     = effectiveIsLeader;
+  const isSuperAdmin = effectiveIsSuperAdmin;
 
   // ── Tab permission matrix ──────────────────────────────────────────────
   // minRole: 'analyst' = analyst+leader+admin | 'leader' = leader+admin only
@@ -552,7 +554,7 @@ export default function KingdomAnalysis() {
 
   // ── MEMBER PORTAL: Base members see personal dashboard only ──────────────
   if (!isAnalyst && !isLeader && !isSuperAdmin) {
-    return <MemberPortal session={session} />;
+    return <MemberPortal session={effectiveSession || session} />;
   }
 
   // ── SIDEBAR LAYOUT ──────────────────────────────────────────────────────

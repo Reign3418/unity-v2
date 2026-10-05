@@ -4,19 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
+import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { 
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { effectiveIsSuperAdmin, effectiveIsLeader, previewRole } = useRolePreview();
   const t = useTranslations('Sidebar');
 
-  const isLeader = session?.user?.isLeader;
+  const isLeader = effectiveIsLeader;
 
   const NavItem = ({ href, icon: Icon, label, hidden, isAi }) => {
     if (hidden) return null;
@@ -64,9 +66,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       `}>
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-[#1e222b] bg-[#0a0c0f]">
-        <div className="flex items-center gap-3">
-          <img src="/logo-smooth-dark.png" alt="Unity Logo" className="w-9 h-9 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]" />
-          <span className="text-xl font-bold tracking-widest text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]">UN.TY</span>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            <img src="/logo-smooth-dark.png" alt="Unity Logo" className="w-9 h-9 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]" />
+            <span className="text-xl font-bold tracking-widest text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]">UN.TY</span>
+          </div>
+          {previewRole && (
+            <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-mono uppercase font-black tracking-widest">
+              {previewRole}
+            </span>
+          )}
         </div>
       </div>
 
@@ -75,7 +84,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         <div className="px-3 py-4 space-y-1">
           <NavItem href="/" icon={LayoutDashboard} label={t('nav_dashboard')} />
           <NavItem href="/stats" icon={User} label={t('nav_stats')} />
-          <NavItem href="/upload" icon={UploadCloud} label={t('nav_load')} />
+          <NavItem href="/upload" icon={UploadCloud} label={t('nav_load')} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
 
           <SectionTitle>{t('sec_analysis')}</SectionTitle>
           <NavItem href="/analysis/kingdom" icon={BarChart2} label={t('nav_kingdom_analysis')} />
@@ -94,13 +103,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />
-          <NavItem href="/tools/ghost-hunter" icon={Ghost} label="Ghost Hunter" isAi={true} />
-          <NavItem href="/tools/recruitment-hitlist" icon={Target} label="Recruit Hitlist" />
+          <NavItem href="/tools/ghost-hunter" icon={Ghost} label="Ghost Hunter" isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
+          <NavItem href="/tools/recruitment-hitlist" icon={Target} label="Recruit Hitlist" hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/map-planner" icon={MapIcon} label={t('nav_map_planner')} isAi={true} />
           <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
           <NavItem href="/translator" icon={MessageSquare} label="Chat Translator" isAi={true} />
 
-          {session?.user?.isSuperAdmin && (
+          {effectiveIsSuperAdmin && (
               <>
                   <SectionTitle>{t('sec_creator')}</SectionTitle>
                   <NavItem href="/creator/sandbox" icon={Database} label={t('nav_sandbox')} />
@@ -112,7 +121,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
           <SectionTitle>{t('sec_system')}</SectionTitle>
           <NavItem href="/settings" icon={Settings} label={t('nav_settings')} />
-          <NavItem href="/admin" icon={Lock} label={t('nav_admin')} hidden={!session?.user?.isSuperAdmin} />
+          <NavItem href="/admin" icon={Lock} label={t('nav_admin')} hidden={!effectiveIsSuperAdmin} />
         </div>
       </div>
 
