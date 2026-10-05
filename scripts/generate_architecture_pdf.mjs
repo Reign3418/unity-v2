@@ -25,7 +25,7 @@ const htmlContent = `<!DOCTYPE html>
 
         @page {
             size: A4 portrait;
-            margin: 12mm 15mm 15mm 15mm;
+            margin: 8mm 12mm 10mm 12mm;
         }
 
         * {
@@ -38,16 +38,19 @@ const htmlContent = `<!DOCTYPE html>
             font-family: 'Inter', -apple-system, sans-serif;
             background-color: #080a0f;
             color: #cbd5e1;
-            font-size: 9.5pt;
-            line-height: 1.5;
+            font-size: 8.5pt;
+            line-height: 1.42;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
         .page {
+            height: 277mm;
+            max-height: 277mm;
             page-break-after: always;
             position: relative;
-            padding-bottom: 20px;
+            overflow: hidden;
+            padding-bottom: 25px;
         }
 
         .page:last-child {
@@ -60,8 +63,8 @@ const htmlContent = `<!DOCTYPE html>
             align-items: center;
             justify-content: space-between;
             border-bottom: 2px solid #312e81;
-            padding-bottom: 12px;
-            margin-bottom: 18px;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .logo-group {
@@ -208,8 +211,8 @@ const htmlContent = `<!DOCTYPE html>
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8pt;
-            margin: 10px 0;
+            font-size: 7.3pt;
+            margin: 6px 0;
             background: #0f1219;
             border-radius: 6px;
             overflow: hidden;
@@ -220,7 +223,7 @@ const htmlContent = `<!DOCTYPE html>
             background: #171d2b;
             color: #38bdf8;
             text-align: left;
-            padding: 6px 8px;
+            padding: 4px 6px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -228,7 +231,7 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         td {
-            padding: 6px 8px;
+            padding: 4px 6px;
             border-bottom: 1px solid #182030;
             color: #cbd5e1;
         }
@@ -548,7 +551,7 @@ const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.
 if (fs.existsSync(edgePath)) {
     console.log(`[2/3] Compiling vector PDF via Microsoft Edge Headless Engine...`);
     try {
-        const cmd = `"${edgePath}" --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf="${outputPdfPath}" "file:///${tempHtmlPath.replace(/\\\\/g, '/')}"`;
+        const cmd = `"${edgePath}" --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf-no-header --print-to-pdf="${outputPdfPath}" "file:///${tempHtmlPath.replace(/\\\\/g, '/')}"`;
         execSync(cmd, { stdio: 'inherit' });
         console.log(`[SUCCESS] PDF compiled to public docs: ${outputPdfPath}`);
 
