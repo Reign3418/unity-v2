@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 import { getGlobalConfig, getGovernorStats, getGovernorAuth } from "@/lib/awsDynamo";
+import { notifyAdmin } from "@/lib/notifyAdmin";
 
 export async function POST(req) {
     try {
@@ -74,6 +75,13 @@ Guidelines:
         }
 
         if (!parsed.governorId) {
+            notifyAdmin({
+                type: "FAILED_REGISTRATION",
+                title: "⚠️ Profile Scan Failed: Missing ID",
+                message: "A player uploaded a screenshot, but Gemini Vision could not locate a Governor ID.",
+                details: { reason: "Missing Governor ID in screenshot", rawOCR: rawText.slice(0, 300) }
+            }).catch(() => {});
+
             return NextResponse.json({ 
                 error: "Could not find a valid Governor ID in the screenshot. Please upload the main Governor Profile screen (tap your top-left avatar in Rise of Kingdoms)." 
             }, { status: 422 });
@@ -81,6 +89,13 @@ Guidelines:
 
         const cleanId = String(parsed.governorId).replace(/\D/g, '');
         if (!cleanId || cleanId.length < 6) {
+            notifyAdmin({
+                type: "FAILED_REGISTRATION",
+                title: "⚠️ Profile Scan Failed: Invalid ID Format",
+                message: `Parsed ID was '${parsed.governorId}', which does not meet the 6+ digit requirement.`,
+                details: { governorId: parsed.governorId, reason: "Invalid ID length" }
+            }).catch(() => {});
+
             return NextResponse.json({ 
                 error: "Detected an invalid Governor ID format. Please ensure your ID is fully legible." 
             }, { status: 422 });
@@ -96,6 +111,22 @@ Guidelines:
         const isKingdomMatch = String(parsed.kingdomNumber || '').trim() === targetKingdom;
         const isAllianceMatch = String(parsed.allianceTag || '').toUpperCase().includes('UN');
         const isRosterMatch = !!rosterRecord;
+        const eligible = isKingdomMatch || isAllianceMatch || isRosterMatch;
+
+        if (!eligible) {
+            notifyAdmin({
+                type: "FAILED_REGISTRATION",
+                title: `⚠️ Ineligible Governor Registration: KD #${parsed.kingdomNumber || 'Unknown'}`,
+                message: `Governor ${parsed.governorName || cleanId} (ID: ${cleanId}) attempted registration, but belongs to Kingdom #${parsed.kingdomNumber} and Alliance [${parsed.allianceTag}].`,
+                details: {
+                    governorId: cleanId,
+                    governorName: parsed.governorName,
+                    kingdomNumber: parsed.kingdomNumber,
+                    allianceTag: parsed.allianceTag,
+                    reason: "Not on Kingdom 3418 roster or UN alliance"
+                }
+            }).catch(() => {});
+        }
 
         return NextResponse.json({
             success: true,
@@ -111,13 +142,19 @@ Guidelines:
                 isKingdomMatch,
                 isAllianceMatch,
                 isRosterMatch,
-                eligible: isKingdomMatch || isAllianceMatch || isRosterMatch,
+                eligible,
                 isAlreadyRegistered: !!existingAuth
             }
         });
 
     } catch (err) {
         console.error("[ParseProfile Error]:", err);
+        notifyAdmin({
+            type: "FAILED_REGISTRATION",
+            title: "🚨 Registration OCR Exception",
+            message: err.message || "Unknown error during OCR profile parse",
+            details: { reason: err.message }
+        }).catch(() => {});
         return NextResponse.json({ error: err.message || "Internal profile parsing error." }, { status: 500 });
     }
 }

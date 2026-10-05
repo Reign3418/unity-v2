@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { saveGovernorAuth, getGovernorAuth, hashGovernorPin } from "@/lib/awsDynamo";
+import { notifyAdmin } from "@/lib/notifyAdmin";
 
 export async function POST(req) {
     try {
@@ -72,6 +73,13 @@ export async function POST(req) {
         });
 
         if (!saved) {
+            notifyAdmin({
+                type: "FAILED_REGISTRATION",
+                title: `🚨 Database Error: Gov ${cleanId}`,
+                message: `Failed to write governor credentials to DynamoDB for ${governorName || cleanId}.`,
+                details: { governorId: cleanId, governorName, kingdomNumber: targetKingdom, reason: "DynamoDB write failed" }
+            }).catch(() => {});
+
             return NextResponse.json({ error: "Database write error. Please try again." }, { status: 500 });
         }
 
@@ -85,6 +93,12 @@ export async function POST(req) {
 
     } catch (err) {
         console.error("[SelfRegister Error]:", err);
+        notifyAdmin({
+            type: "FAILED_REGISTRATION",
+            title: "🚨 Registration Submission Crash",
+            message: err.message || "Unknown error during self-register",
+            details: { reason: err.message }
+        }).catch(() => {});
         return NextResponse.json({ error: err.message || "Failed to complete self-registration." }, { status: 500 });
     }
 }

@@ -1,14 +1,21 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { 
   X, Shield, Camera, UploadCloud, CheckCircle2, AlertCircle, 
-  Key, Lock, Sparkles, ArrowRight, UserCheck, RefreshCw, Smartphone
+  Key, Lock, Sparkles, ArrowRight, UserCheck, RefreshCw, Smartphone,
+  HelpCircle, Send, MessageSquare
 } from "lucide-react";
 
 export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login" }) {
-  const [tab, setTab] = useState(initialTab); // "login" | "register"
+  const [tab, setTab] = useState(initialTab); // "login" | "register" | "help"
+
+  useEffect(() => {
+    if (initialTab) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
   
   // Login State
   const [loginGovId, setLoginGovId] = useState("");
@@ -30,7 +37,59 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
   const [isAgeConfirmed, setIsAgeConfirmed] = useState(false);
   const [isSubmittingRegister, setIsSubmittingRegister] = useState(false);
 
+  // Support / Help State
+  const [helpGovIdentifier, setHelpGovIdentifier] = useState("");
+  const [helpContact, setHelpContact] = useState("");
+  const [helpMessage, setHelpMessage] = useState("");
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [helpSuccess, setHelpSuccess] = useState(false);
+  const [helpError, setHelpError] = useState("");
+
   const fileInputRef = useRef(null);
+
+  // Handle SOS / Question Support Ping
+  const handleHelpSubmit = async (e) => {
+    e.preventDefault();
+    setHelpError("");
+    setHelpSuccess(false);
+
+    if (!helpMessage || !helpMessage.trim()) {
+      setHelpError("Please enter your question or describe what issue you are experiencing.");
+      return;
+    }
+    if (!helpContact || !helpContact.trim()) {
+      setHelpError("Please provide your contact handle (Discord tag, RoK in-game name, or WhatsApp/Email).");
+      return;
+    }
+
+    setHelpLoading(true);
+    try {
+      const res = await fetch("/api/auth/support-ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          governorId: helpGovIdentifier || extractedData?.governorId || loginGovId || "",
+          governorName: extractedData?.governorName || "",
+          kingdomNumber: extractedData?.kingdomNumber || "3418",
+          allianceTag: extractedData?.allianceTag || "",
+          contact: helpContact.trim(),
+          message: helpMessage.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to dispatch SOS ping.");
+      }
+
+      setHelpSuccess(true);
+      setHelpMessage("");
+    } catch (err) {
+      setHelpError(err.message || "Failed to transmit support ping. Please try again.");
+    } finally {
+      setHelpLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -208,23 +267,36 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
         <div className="flex border-b border-[#1e2433] bg-[#0d1017]">
           <button
             onClick={() => setTab("login")}
-            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 border-b-2 ${
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 ${
               tab === "login" 
                 ? "border-cyan-400 text-cyan-400 bg-cyan-500/5" 
                 : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
-            <Key size={14} /> Governor ID Login
+            <Key size={13} />
+            <span className="truncate">Login</span>
           </button>
           <button
             onClick={() => setTab("register")}
-            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 border-b-2 ${
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 ${
               tab === "register" 
                 ? "border-amber-400 text-amber-300 bg-amber-500/5" 
                 : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
-            <Camera size={14} /> Self-Register (RoK Profile)
+            <Camera size={13} />
+            <span className="truncate">Self-Register</span>
+          </button>
+          <button
+            onClick={() => setTab("help")}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 ${
+              tab === "help" 
+                ? "border-rose-400 text-rose-300 bg-rose-500/5" 
+                : "border-transparent text-slate-400 hover:text-white"
+            }`}
+          >
+            <HelpCircle size={13} />
+            <span className="truncate">Need Help?</span>
           </button>
         </div>
 
@@ -244,9 +316,22 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
               </div>
 
               {loginError && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-                  <AlertCircle size={15} className="shrink-0" />
-                  <span>{loginError}</span>
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
+                  <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span>{loginError}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHelpGovIdentifier(loginGovId || "");
+                        setHelpError("");
+                        setTab("help");
+                      }}
+                      className="block mt-1 font-bold text-cyan-400 hover:underline cursor-pointer"
+                    >
+                      Need help? Ping Kingdom Officers &rarr;
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -329,9 +414,22 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   </div>
 
                   {registerError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-                      <AlertCircle size={15} className="shrink-0" />
-                      <span>{registerError}</span>
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
+                      <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <span>{registerError}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHelpGovIdentifier(loginGovId || "");
+                            setHelpError("");
+                            setTab("help");
+                          }}
+                          className="block mt-1 font-bold text-amber-400 hover:underline cursor-pointer"
+                        >
+                          Having trouble scanning? Ping Kingdom Officers &rarr;
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -404,9 +502,22 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   </div>
 
                   {registerError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-                      <AlertCircle size={15} className="shrink-0" />
-                      <span>{registerError}</span>
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
+                      <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <span>{registerError}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHelpGovIdentifier(extractedData?.governorId || "");
+                            setHelpError("");
+                            setTab("help");
+                          }}
+                          className="block mt-1 font-bold text-amber-400 hover:underline cursor-pointer"
+                        >
+                          Having trouble activating? Ping Kingdom Officers &rarr;
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -511,6 +622,133 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
               )}
 
             </div>
+          )}
+
+          {/* ========================================================
+              TAB 3: OFFICER PING & SUPPORT / QUESTION DISPATCH
+              ======================================================== */}
+          {tab === "help" && (
+            <form onSubmit={handleHelpSubmit} className="space-y-4">
+              <div className="text-center mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto mb-2 text-rose-400">
+                  <MessageSquare size={22} />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  Officer Dispatch &amp; Support Ping
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 font-mono">
+                  Having trouble registering, forgot your PIN, or have questions? Dispatch a high-priority alert directly to Kingdom 3418 High Command.
+                </p>
+              </div>
+
+              {helpSuccess ? (
+                <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={22} />
+                  </div>
+                  <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider font-mono">
+                    Officer Alert Transmitted!
+                  </h4>
+                  <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                    Kingdom 3418 leadership has been pinged via Discord and the Command Console. An officer will reach out to you directly.
+                  </p>
+                  <div className="pt-2 flex justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setHelpSuccess(false); setTab("login"); }}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      Back to Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setHelpSuccess(false); setTab("register"); }}
+                      className="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-300 rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      Try Self-Register
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {helpError && (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                      <AlertCircle size={15} className="shrink-0" />
+                      <span>{helpError}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Governor ID or In-Game Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={helpGovIdentifier}
+                      onChange={(e) => setHelpGovIdentifier(e.target.value)}
+                      placeholder="e.g. 12345678 or 'Reign'"
+                      className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-rose-400 transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Your Contact Handle <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={helpContact}
+                      onChange={(e) => setHelpContact(e.target.value)}
+                      placeholder="e.g. Discord username, RoK In-game name, WhatsApp/Email"
+                      className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-rose-400 transition-colors"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-500 font-mono mt-1 block">
+                      So officers know where to reply back to you.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Issue Description / Question <span className="text-rose-400">*</span>
+                    </label>
+                    <textarea
+                      value={helpMessage}
+                      onChange={(e) => setHelpMessage(e.target.value)}
+                      rows={3}
+                      placeholder="e.g. 'My screenshot is showing invalid format', 'Forgot my PIN', or 'Question about migration requirements'..."
+                      className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-rose-400 transition-colors resize-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-start gap-2">
+                    <Shield size={14} className="text-rose-400 shrink-0 mt-0.5" />
+                    <span>
+                      Dispatches an automated high-priority alert to Kingdom 3418 Discord &amp; War Room Console.
+                    </span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={helpLoading}
+                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-amber-600 hover:from-rose-400 hover:to-amber-500 text-white font-extrabold rounded-xl uppercase tracking-wider text-xs transition-all shadow-[0_0_25px_rgba(244,63,94,0.3)] hover:shadow-[0_0_35px_rgba(244,63,94,0.5)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+                  >
+                    {helpLoading ? (
+                      <>
+                        <RefreshCw size={15} className="animate-spin" />
+                        <span>Transmitting SOS Alert...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={15} />
+                        <span>Send SOS Ping to Kingdom Officers</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </form>
           )}
 
         </div>
