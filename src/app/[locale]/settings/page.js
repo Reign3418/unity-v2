@@ -289,31 +289,39 @@ export default function SettingsPage() {
                 onChange={e => setPrefs(p => ({ ...p, geminiModel: e.target.value }))}
                 className="w-full bg-[#13161c] border border-[#1e222b] rounded-lg px-4 py-3 text-white font-mono text-sm cursor-pointer focus:outline-none focus:border-cyan-500/50 transition-colors"
               >
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Default / Recommended - 20 RPM / 500 RPD)</option>
-                <option value="gemini-3.5-flash">{t('gemini_3_5_flash_rec')} (5 RPM / 20 RPD)</option>
-                <option value="gemini-2.5-pro">{t('gemini_pro')} (2 RPM / 50 RPD)</option>
-                <option value="gemini-1.5-flash">{t('gemini_legacy')} (Legacy - May return 404)</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Default - 20 RPM / 500 RPD)</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro (Ultra Tier - Deep Strategy & Complex Analysis)</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Tier - Frontier Vision & Fast OCR)</option>
+                <option value="gemini-1.5-flash">{t('gemini_legacy')} (Legacy)</option>
               </select>
 
               <div className="mt-4 bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4 space-y-2">
-                <p className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  ⚠️ Free Tier Quotas & Rate Limits
-                </p>
+                <div className="flex items-center justify-between border-b border-[#1e222b] pb-2">
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    ⚠️ Free Tier vs. 💎 Ultra / Paid Tier
+                  </span>
+                  <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                    Personal Override
+                  </span>
+                </div>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  Choosing the right model helps avoid API rate limits during range sweeps and intensive OCR analysis:
+                  When using the shared server key, the platform is pinned to <strong className="text-emerald-400">Gemini 3.1 Flash-Lite</strong> to avoid 429 quota exhaustion.
                 </p>
-                <div className="grid grid-cols-1 gap-2 pt-1">
-                  <div className="flex items-center justify-between text-xs border-b border-[#1e222b] pb-2 last:border-0 last:pb-0">
-                    <span className="text-white font-mono font-bold">Gemini 3.5 & 2.5 Flash</span>
-                    <span className="text-gray-400">5 RPM / 20 RPD (Highly restricted)</span>
+                <div className="grid grid-cols-1 gap-2 pt-1 text-xs">
+                  <div className="flex items-center justify-between border-b border-[#1e222b] pb-1.5">
+                    <span className="text-slate-300 font-mono">Gemini 3.1 Flash-Lite (Free)</span>
+                    <span className="text-emerald-400 font-bold">20 RPM / 500 RPD</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs border-b border-[#1e222b] pb-2 last:border-0 last:pb-0">
-                    <span className="text-white font-mono font-bold">Gemini 2.5 Pro</span>
+                  <div className="flex items-center justify-between border-b border-[#1e222b] pb-1.5">
+                    <span className="text-slate-300 font-mono">Gemini 3.5 Flash (Free Tier)</span>
+                    <span className="text-gray-400">5 RPM / 20 RPD</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-[#1e222b] pb-1.5">
+                    <span className="text-slate-300 font-mono">Gemini 2.5 Pro (Free Tier)</span>
                     <span className="text-gray-400">2 RPM / 50 RPD</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs last:border-0 last:pb-0">
-                    <span className="text-emerald-400 font-mono font-bold">Gemini 3.1 Flash Lite</span>
-                    <span className="text-emerald-400 font-bold">20 RPM / 500 RPD (Best for Sweeps)</span>
+                  <div className="p-2 rounded bg-cyan-950/20 border border-cyan-500/30 text-cyan-300 text-[11px] leading-relaxed">
+                    💎 <strong>Ultra / Personal Paid API Key:</strong> By entering your personal Google AI Studio key above, free-tier limits no longer apply. You receive 360+ RPM and millions of TPM with zero throttling!
                   </div>
                 </div>
               </div>
