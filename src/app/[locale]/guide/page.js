@@ -124,6 +124,168 @@ export default function UserGuidePage() {
               </div>
 
             </div>
+
+            {/* The Golden Rule: Start vs. End Scans (The "Monkey Guide") */}
+            <div className="bg-[#10141d] border border-indigo-500/30 rounded-xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1e222b] pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🐒</span>
+                    <h3 className="text-white font-black text-base uppercase tracking-wider">
+                      How Scans Work: The "Monkey Guide" to Start & End Dynamics
+                    </h3>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Why Current Power is a lie, and why <strong className="text-indigo-400">Delta (&Delta; = End &minus; Start)</strong> is the only metric High Command cares about.
+                  </p>
+                </div>
+                <span className="self-start sm:self-auto text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-3 py-1 rounded-lg uppercase tracking-wider">
+                  The Gold Standard
+                </span>
+              </div>
+
+              {/* 3 Step Visual Flow */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-[#151922] border border-[#232a3b] rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">Step 01 • The Baseline</span>
+                    <span className="text-xl">📸</span>
+                  </div>
+                  <div className="text-white font-bold text-sm">Start Scan (Day 1)</div>
+                  <p className="text-gray-400 text-xs leading-relaxed">
+                    The kingdom "weigh-in" right before KvK opens. We record every governor's exact Power, Kill Points, T1-T5 Kills, and Dead Troops.
+                  </p>
+                </div>
+
+                <div className="bg-[#151922] border border-[#232a3b] rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-rose-400 uppercase tracking-widest">Step 02 • The Final Bell</span>
+                    <span className="text-xl">🏁</span>
+                  </div>
+                  <div className="text-white font-bold text-sm">End Scan (Day 30)</div>
+                  <p className="text-gray-400 text-xs leading-relaxed">
+                    The final snapshot taken right as KvK closes. Every player's updated metrics are locked in.
+                  </p>
+                </div>
+
+                <div className="bg-[#151922] border border-indigo-500/40 bg-indigo-500/5 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-widest">Step 03 • The Truth</span>
+                    <span className="text-xl">⚖️</span>
+                  </div>
+                  <div className="text-white font-bold text-sm">The Delta (&Delta; = End &minus; Start)</div>
+                  <p className="text-gray-400 text-xs leading-relaxed">
+                    Unity subtracts Start from End. It ignores what you had before and isolates <strong className="text-indigo-300">ONLY what you accomplished during the war</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Real World Comparison Archetypes */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-gray-400">
+                  What Unity Sees: 3 Real Governor Archetypes
+                </h4>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  {/* Archetype 1 */}
+                  <div className="bg-[#131720] border border-emerald-500/30 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <span>⚔️</span> The War Hero
+                      </span>
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                        PROMOTED
+                      </span>
+                    </div>
+                    <div className="font-mono text-xs space-y-1 bg-[#0a0d13] p-2.5 rounded-lg border border-[#1e2533]">
+                      <div className="flex justify-between text-gray-400"><span>Start Power:</span> <span>75M</span></div>
+                      <div className="flex justify-between text-gray-400"><span>End Power:</span> <span>68M</span></div>
+                      <div className="flex justify-between text-amber-400 font-bold border-t border-[#1e2533] pt-1">
+                        <span>Power Delta:</span> <span>-7M (Lost)</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-400 font-bold">
+                        <span>KP Delta:</span> <span>+170M (War!)</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-400 font-bold">
+                        <span>Deads Delta:</span> <span>+2.4M (Rally)</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-[11px] leading-relaxed">
+                      A noob thinks: <em>"Their power went down, they are weak!"</em> Unity knows: <strong>They bled 2.4M troops on the pass rally</strong> and racked up 170M kill points. True warrior.
+                    </p>
+                  </div>
+
+                  {/* Archetype 2 */}
+                  <div className="bg-[#131720] border border-rose-500/30 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                        <span>🐋</span> The Deadweight Whale
+                      </span>
+                      <span className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                        LIABILITY
+                      </span>
+                    </div>
+                    <div className="font-mono text-xs space-y-1 bg-[#0a0d13] p-2.5 rounded-lg border border-[#1e2533]">
+                      <div className="flex justify-between text-gray-400"><span>Start Power:</span> <span>85M</span></div>
+                      <div className="flex justify-between text-gray-400"><span>End Power:</span> <span>85M</span></div>
+                      <div className="flex justify-between text-gray-500 font-bold border-t border-[#1e2533] pt-1">
+                        <span>Power Delta:</span> <span>0M (Flat)</span>
+                      </div>
+                      <div className="flex justify-between text-rose-400 font-bold">
+                        <span>KP Delta:</span> <span>0 (Zero Fights)</span>
+                      </div>
+                      <div className="flex justify-between text-rose-400 font-bold">
+                        <span>Deads Delta:</span> <span>0 (Zero Deads)</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-[11px] leading-relaxed">
+                      Sitting at 85M power before & after KvK. Their power inflated your kingdom's matchmaking seed, making your enemies harder, while they stayed in bubble. <strong>Evict or zero.</strong>
+                    </p>
+                  </div>
+
+                  {/* Archetype 3 */}
+                  <div className="bg-[#131720] border border-amber-500/30 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <span>🌾</span> The Farm Sponger
+                      </span>
+                      <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                        LEECH
+                      </span>
+                    </div>
+                    <div className="font-mono text-xs space-y-1 bg-[#0a0d13] p-2.5 rounded-lg border border-[#1e2533]">
+                      <div className="flex justify-between text-gray-400"><span>Start Power:</span> <span>45M</span></div>
+                      <div className="flex justify-between text-gray-400"><span>End Power:</span> <span>58M</span></div>
+                      <div className="flex justify-between text-cyan-400 font-bold border-t border-[#1e2533] pt-1">
+                        <span>Power Delta:</span> <span>+13M (Growth)</span>
+                      </div>
+                      <div className="flex justify-between text-rose-400 font-bold">
+                        <span>KP Delta:</span> <span>0 (Zero Fights)</span>
+                      </div>
+                      <div className="flex justify-between text-rose-400 font-bold">
+                        <span>Deads Delta:</span> <span>0 (Zero Deads)</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-[11px] leading-relaxed">
+                      Grew by +13M power during KvK! But zero combat output. They gathered in safe zones and leeched crusade rewards while the frontline died.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* The Anchor Secret: Why Governor ID Matters */}
+              <div className="bg-[#0b0e14] border border-[#1e2432] rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div className="space-y-1">
+                  <div className="font-bold text-white flex items-center gap-2">
+                    <span className="text-indigo-400 font-mono">🔑</span>
+                    <span>The Anchor Secret: Why Player Names Don't Matter</span>
+                  </div>
+                  <p className="text-gray-400 text-[11px]">
+                    Governors change their in-game names constantly. But their <strong>8-digit Numeric Governor ID (e.g. 88410294)</strong> never changes. Unity maps every Start and End row by Governor ID, so nobody can hide behind a name change.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
