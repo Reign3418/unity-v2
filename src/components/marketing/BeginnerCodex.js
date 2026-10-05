@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ShieldAlert, BookOpen, AlertOctagon, Sparkles, Crown, Swords, 
   Wheat, Calculator, Check, ArrowRight, Zap, Target, Star, Flame,
@@ -122,6 +122,36 @@ export default function BeginnerCodex() {
   const [activeTab, setActiveTab] = useState("rules");
   const [expandedRule, setExpandedRule] = useState(1);
 
+  // Auto-switch tabs and scroll based on URL hash
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      if (hash === '#beginner-traps' || hash === '#7-traps' || hash === '#traps') {
+        setActiveTab("rules");
+        setTimeout(() => {
+          const el = document.getElementById("beginner-traps") || document.getElementById("beginner-codex");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      } else if (hash === '#speedup-calculator' || hash === '#live-math' || hash === '#calculator') {
+        setActiveTab("calculator");
+        setTimeout(() => {
+          const el = document.getElementById("speedup-calculator") || document.getElementById("beginner-codex");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      } else if (hash === '#top-commanders' || hash === '#commanders') {
+        setActiveTab("commanders");
+        setTimeout(() => {
+          const el = document.getElementById("top-commanders") || document.getElementById("beginner-codex");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
   // Speedup Discount Calculator State
   const [baseDays, setBaseDays] = useState(10);
   const [hasRune, setHasRune] = useState(15); // 0, 10, 15
@@ -141,7 +171,7 @@ export default function BeginnerCodex() {
   const daysRemaining = (finalHours / 24).toFixed(1);
 
   return (
-    <div id="beginner-codex" className="w-full bg-[#0a0d14] text-slate-200 border-t border-[#1e222b] py-20 relative overflow-hidden font-sans">
+    <div id="beginner-codex" className="w-full bg-[#0a0d14] text-slate-200 border-t border-[#1e222b] py-20 relative overflow-hidden font-sans scroll-mt-16">
       
       {/* Background Ambience */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -165,7 +195,10 @@ export default function BeginnerCodex() {
           {/* Quick Sub-Navigation Pills */}
           <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 mt-8">
             <button
-              onClick={() => setActiveTab("rules")}
+              onClick={() => {
+                setActiveTab("rules");
+                window.location.hash = "#beginner-traps";
+              }}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === "rules"
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
@@ -175,7 +208,10 @@ export default function BeginnerCodex() {
               <AlertOctagon size={16} /> The 7 Deadly Traps
             </button>
             <button
-              onClick={() => setActiveTab("commanders")}
+              onClick={() => {
+                setActiveTab("commanders");
+                window.location.hash = "#top-commanders";
+              }}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === "commanders"
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
@@ -185,7 +221,10 @@ export default function BeginnerCodex() {
               <Swords size={16} /> Top 5 Epic Commanders
             </button>
             <button
-              onClick={() => setActiveTab("calculator")}
+              onClick={() => {
+                setActiveTab("calculator");
+                window.location.hash = "#speedup-calculator";
+              }}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === "calculator"
                   ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
@@ -193,13 +232,16 @@ export default function BeginnerCodex() {
               }`}
             >
               <Calculator size={16} /> Speedup Discount Engine
+              <span className="px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-200 text-[9px] font-mono font-bold tracking-wider">
+                LIVE MATH
+              </span>
             </button>
           </div>
         </div>
 
         {/* ── TAB 1: THE 7 GOLDEN TRAPS ── */}
         {activeTab === "rules" && (
-          <div className="space-y-4 animate-fade-in max-w-5xl mx-auto">
+          <div id="beginner-traps" className="space-y-4 animate-fade-in max-w-5xl mx-auto scroll-mt-24">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {GOLDEN_RULES.map((rule) => {
                 const isExpanded = expandedRule === rule.id;
@@ -256,7 +298,7 @@ export default function BeginnerCodex() {
 
         {/* ── TAB 2: TOP 5 EPIC COMMANDERS ── */}
         {activeTab === "commanders" && (
-          <div className="space-y-4 animate-fade-in max-w-5xl mx-auto">
+          <div id="top-commanders" className="space-y-4 animate-fade-in max-w-5xl mx-auto scroll-mt-24">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {TOP_EPIC_COMMANDERS.map((cmd) => (
                 <div 
@@ -318,7 +360,7 @@ export default function BeginnerCodex() {
 
         {/* ── TAB 3: SPEEDUP DISCOUNT ENGINE ── */}
         {activeTab === "calculator" && (
-          <div className="animate-fade-in max-w-4xl mx-auto bg-[#121622] border border-[#1E2638] rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div id="speedup-calculator" className="animate-fade-in max-w-4xl mx-auto bg-[#121622] border border-[#1E2638] rounded-3xl p-6 sm:p-8 shadow-2xl scroll-mt-24">
             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
               <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37]">
                 <Clock size={24} />

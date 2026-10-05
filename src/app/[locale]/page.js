@@ -212,38 +212,99 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Live Metrics / Value Ticker Bar */}
+            {/* Live Metrics / Interactive Value Teleport Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto mt-14 w-full text-left">
-              <div className="bg-[#0f1115]/80 p-4 rounded-xl border border-[#1e222b] backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">City Hall Database</span>
-                <div className="text-xl font-extrabold text-[#D4AF37] font-mono mt-0.5">25 Levels</div>
+              
+              {/* Card 1: City Hall Guide */}
+              <a 
+                href="#city-hall-guide"
+                className="group bg-[#0f1115]/80 hover:bg-[#131720] p-4 rounded-xl border border-[#1e222b] hover:border-[#D4AF37]/50 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(212,175,55,0.2)] block text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-amber-400 transition-colors">
+                    City Hall Database
+                  </span>
+                  <ArrowRight size={13} className="text-slate-600 group-hover:text-[#D4AF37] group-hover:translate-x-1 transition-all" />
+                </div>
+                <div className="text-xl font-extrabold text-[#D4AF37] font-mono mt-1">25 Levels</div>
                 <p className="text-[11px] text-slate-400 mt-0.5">Every wall & prerequisite mapped</p>
-              </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#D4AF37] mt-2 group-hover:underline">
+                  Explore Rush Path &rarr;
+                </span>
+              </a>
 
-              <div className="bg-[#0f1115]/80 p-4 rounded-xl border border-[#1e222b] backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Beginner Survival</span>
-                <div className="text-xl font-extrabold text-emerald-400 font-mono mt-0.5">7 Traps</div>
+              {/* Card 2: 7 Deadly Traps */}
+              <a 
+                href="#beginner-traps"
+                onClick={() => {
+                  window.location.hash = "#beginner-traps";
+                  window.dispatchEvent(new HashChangeEvent("hashchange"));
+                }}
+                className="group bg-[#0f1115]/80 hover:bg-[#131720] p-4 rounded-xl border border-[#1e222b] hover:border-emerald-500/50 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] block text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-emerald-400 transition-colors">
+                    Beginner Survival
+                  </span>
+                  <ArrowRight size={13} className="text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
+                </div>
+                <div className="text-xl font-extrabold text-emerald-400 font-mono mt-1">7 Traps</div>
                 <p className="text-[11px] text-slate-400 mt-0.5">Avoid fatal early game mistakes</p>
-              </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 mt-2 group-hover:underline">
+                  Read 7 Fatal Mistakes &rarr;
+                </span>
+              </a>
 
-              <div className="bg-[#0f1115]/80 p-4 rounded-xl border border-[#1e222b] backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Calculators</span>
-                <div className="text-xl font-extrabold text-cyan-400 font-mono mt-0.5">Live Math</div>
+              {/* Card 3: Live Math Calculator */}
+              <a 
+                href="#speedup-calculator"
+                onClick={() => {
+                  window.location.hash = "#speedup-calculator";
+                  window.dispatchEvent(new HashChangeEvent("hashchange"));
+                }}
+                className="group bg-[#0f1115]/80 hover:bg-[#131720] p-4 rounded-xl border border-[#1e222b] hover:border-cyan-500/50 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(6,182,212,0.25)] block text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-cyan-400 transition-colors">
+                    Calculators
+                  </span>
+                  <ArrowRight size={13} className="text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                </div>
+                <div className="text-xl font-extrabold text-cyan-400 font-mono mt-1">Live Math</div>
                 <p className="text-[11px] text-slate-400 mt-0.5">Runes, titles & alliance helps</p>
-              </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400 mt-2 group-hover:underline">
+                  Launch Discount Engine &rarr;
+                </span>
+              </a>
 
-              <div className="bg-[#0f1115]/80 p-4 rounded-xl border border-[#1e222b] backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Public Access</span>
-                <div className="text-xl font-extrabold text-purple-400 font-mono mt-0.5">0 Login</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">100% free open intelligence</p>
-              </div>
+              {/* Card 4: Equipment & Pairings */}
+              <a 
+                href="#equipment-guide"
+                className="group bg-[#0f1115]/80 hover:bg-[#131720] p-4 rounded-xl border border-[#1e222b] hover:border-purple-500/50 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] block text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-purple-400 transition-colors">
+                    Public Armory
+                  </span>
+                  <ArrowRight size={13} className="text-slate-600 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
+                </div>
+                <div className="text-xl font-extrabold text-purple-400 font-mono mt-1">0 Login</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Early to SoC BiS gear & pairings</p>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-400 mt-2 group-hover:underline">
+                  Explore Forge & Pairings &rarr;
+                </span>
+              </a>
+
             </div>
 
             {/* Scroll Indicator */}
-            <div className="mt-12 flex flex-col items-center gap-1 animate-bounce opacity-70 cursor-pointer">
-              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">Scroll To Explore</span>
+            <a 
+              href="#public-academy"
+              className="mt-12 flex flex-col items-center gap-1 animate-bounce opacity-70 hover:opacity-100 transition-opacity cursor-pointer group"
+            >
+              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest group-hover:text-cyan-400 transition-colors">Scroll To Explore</span>
               <ChevronDown size={20} className="text-cyan-400" />
-            </div>
+            </a>
 
         </div>
 
