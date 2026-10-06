@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Nuevo en el escaneo (Inicio tardío, saltador novato o emergió del rango inferior)",
     "badge_migrant_tooltip": "Migrante con pasaporte entre reinos",
     "archetype_roster_emergence": "Aparición en Roster",
-    "archetype_emergence_megalodon": "Megalodón Emergente"
+    "archetype_emergence_megalodon": "Megalodón Emergente",
+    "card_mode_title": "Propósito y Destino de la Tarjeta",
+    "card_mode_album": "Álbum de Fotos RoK (Camuflaje Seguro)",
+    "card_mode_discord": "Banner de Discord / Web",
+    "card_mode_album_badge": "Seguro contra Lilith • Sin URLs",
+    "card_mode_discord_badge": "URL Directa",
+    "card_mode_album_desc": "Camuflado como un Pasaporte de Batalla oficial del reino. Se han eliminado todas las URLs y palabras clave para superar la revisión automática de imágenes de Lilith."
   },
   "CompareTab": {
     "title": "Banco de trabajo de comparación de jugadores",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Copiar BBCode / Texto de Discord",
     "bbcode_copied": "¡BBCode copiado!",
     "album_instructions_1": "• Guarda la imagen → Abre Perfil RoK → Álbum de Fotos → Subir.",
-    "album_instructions_2": "• ¡Los gobernadores que escaneen tu foto accederán directo al Polígrafo de tu reino!"
+    "album_instructions_2": "• ¡Los gobernadores que escaneen tu foto accederán directo al Polígrafo de tu reino!",
+    "card_mode_title": "Propósito y Destino de la Tarjeta",
+    "card_mode_album": "Álbum de Fotos RoK (Camuflaje Seguro)",
+    "card_mode_discord": "Banner de Discord / Web",
+    "card_mode_album_badge": "Seguro contra Lilith • Sin URLs",
+    "card_mode_discord_badge": "URL Directa",
+    "card_mode_album_desc": "Camuflado como un Pasaporte de Batalla oficial del reino. Se han eliminado todas las URLs y palabras clave para superar la revisión automática de imágenes de Lilith."
   }
 }

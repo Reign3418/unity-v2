@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "扫描新增（晚进服、新手迁城跳板或从未上榜跃升至榜单深度）",
     "badge_migrant_tooltip": "跨王国移民通行证迁入",
     "archetype_roster_emergence": "黑马跃升",
-    "archetype_emergence_megalodon": "跃升巨齿鲨大帝"
+    "archetype_emergence_megalodon": "跃升巨齿鲨大帝",
+    "card_mode_title": "卡片用途与发布渠道",
+    "card_mode_album": "RoK游戏相册（防封伪装）",
+    "card_mode_discord": "Discord / 网页横幅",
+    "card_mode_album_badge": "莉莉丝审核安全 • 零网址",
+    "card_mode_discord_badge": "直印短链接",
+    "card_mode_album_desc": "已伪装成王国官方远征通行战报。彻底移除了所有外部网址及营销敏感词，确保100%通过莉莉丝游戏相册自动图像审核。执政官可在相册中截图并通过手机相册或扫码识别密印。"
   },
   "CompareTab": {
     "title": "执政官对比工作台",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "复制 BBCode / Discord 代码",
     "bbcode_copied": "BBCode 已复制！",
     "album_instructions_1": "• 保存图片 → 打开万国觉醒个人资料 → 照片相册 → 点击上传。",
-    "album_instructions_2": "• 执政官扫描相册中的战报卡二维码，即可直接进入本王国专属测谎仪页面！"
+    "album_instructions_2": "• 执政官扫描相册中的战报卡二维码，即可直接进入本王国专属测谎仪页面！",
+    "card_mode_title": "卡片用途与发布渠道",
+    "card_mode_album": "RoK游戏相册（防封伪装）",
+    "card_mode_discord": "Discord / 网页横幅",
+    "card_mode_album_badge": "莉莉丝审核安全 • 零网址",
+    "card_mode_discord_badge": "直印短链接",
+    "card_mode_album_desc": "已伪装成王国官方远征通行战报。彻底移除了所有外部网址及营销敏感词，确保100%通过莉莉丝游戏相册自动图像审核。执政官可在相册中截图并通过手机相册或扫码识别密印。"
   }
 }

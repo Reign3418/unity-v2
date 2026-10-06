@@ -758,7 +758,13 @@
     "badge_new_entry_tooltip": "New to scan (Late starter, beginner jumper, or emerged from initial scan depth)",
     "badge_migrant_tooltip": "Cross-kingdom passport migrant",
     "archetype_roster_emergence": "Roster Emergence",
-    "archetype_emergence_megalodon": "Emergence Megalodon"
+    "archetype_emergence_megalodon": "Emergence Megalodon",
+    "card_mode_title": "Card Purpose & Target",
+    "card_mode_album": "RoK Photo Album (Anti-Ban Camouflage)",
+    "card_mode_discord": "Discord / Web Banner",
+    "card_mode_album_badge": "Lilith Safe • Zero URLs",
+    "card_mode_discord_badge": "Direct URL Printed",
+    "card_mode_album_desc": "Camouflaged as an official Kingdom Battle Passport. All URLs and advertising trigger words are removed to pass Lilith Games automated in-game image review. Governors screenshot and scan the Cypher Seal."
   },
   "Landing": {
     "nav_city_hall": "City Hall Rush",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Copy BBCode / Discord Text",
     "bbcode_copied": "Copied BBCode!",
     "album_instructions_1": "• Save image → Open RoK Profile → Photo Album → Upload.",
-    "album_instructions_2": "• Players scanning your album avatar arrive directly at your Kingdom's Polygraph!"
+    "album_instructions_2": "• Players scanning your album avatar arrive directly at your Kingdom's Polygraph!",
+    "card_mode_title": "Card Purpose & Target",
+    "card_mode_album": "RoK Photo Album (Anti-Ban Camouflage)",
+    "card_mode_discord": "Discord / Web Banner",
+    "card_mode_album_badge": "Lilith Safe • Zero URLs",
+    "card_mode_discord_badge": "Direct URL Printed",
+    "card_mode_album_desc": "Camouflaged as an official Kingdom Battle Passport. All URLs and advertising trigger words are removed to pass Lilith Games automated in-game image review. Governors screenshot and scan the Cypher Seal."
   }
 }

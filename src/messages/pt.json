@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Novo na varredura (Início tardio, jumper iniciante ou ascensão do anonimato)",
     "badge_migrant_tooltip": "Imigrante por passaporte entre reinos",
     "archetype_roster_emergence": "Emergência no Roster",
-    "archetype_emergence_megalodon": "Megalodonte Emergente"
+    "archetype_emergence_megalodon": "Megalodonte Emergente",
+    "card_mode_title": "Finalidade e Destino do Cartão",
+    "card_mode_album": "Álbum de Fotos RoK (Camuflagem Segura)",
+    "card_mode_discord": "Banner Discord / Web",
+    "card_mode_album_badge": "Seguro contra Lilith • Sem URLs",
+    "card_mode_discord_badge": "URL Direta",
+    "card_mode_album_desc": "Camuflado como um Passaporte de Batalha oficial do reino. Todas as URLs e palavras de gatilho foram removidas para aprovação na moderação automática de imagens da Lilith."
   },
   "CompareTab": {
     "title": "Bancada de Comparação de Governadores",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Copiar BBCode / Texto Discord",
     "bbcode_copied": "BBCode copiado!",
     "album_instructions_1": "• Salve a imagem → Abra Perfil RoK → Álbum de Fotos → Enviar.",
-    "album_instructions_2": "• Jogadores que escanearem seu avatar irão direto para o Polígrafo do seu reino!"
+    "album_instructions_2": "• Jogadores que escanearem seu avatar irão direto para o Polígrafo do seu reino!",
+    "card_mode_title": "Finalidade e Destino do Cartão",
+    "card_mode_album": "Álbum de Fotos RoK (Camuflagem Segura)",
+    "card_mode_discord": "Banner Discord / Web",
+    "card_mode_album_badge": "Seguro contra Lilith • Sem URLs",
+    "card_mode_discord_badge": "URL Direta",
+    "card_mode_album_desc": "Camuflado como um Passaporte de Batalha oficial do reino. Todas as URLs e palavras de gatilho foram removidas para aprovação na moderação automática de imagens da Lilith."
   }
 }

@@ -18,6 +18,7 @@ export default function PolygraphShareModal({
   t
 }) {
   const [activeTab, setActiveTab] = useState("card"); // 'card' | 'links' | 'bbcode'
+  const [cardMode, setCardMode] = useState("album"); // 'album' (anti-ban camouflage) | 'discord' (social link)
   const [theme, setTheme] = useState("gold"); // 'gold' | 'neon'
   const [copiedLink, setCopiedLink] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -38,7 +39,7 @@ export default function PolygraphShareModal({
   const ai = data?.ai;
   const me = kdd?.metrics;
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://unity-v2.vercel.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://unity-v2-azure.vercel.app";
   const shortUrl = `${origin}/s/${kd}`;
   const windowShortUrl = `${origin}/qr?k=${kd}&e=${endDate || ""}&t=${timeframe}`;
   const directFullUrl = `${origin}/${locale}/shared/polygraph?kd=${kd}${endDate ? `&end=${endDate}` : ""}&tf=${timeframe}&depth=${depth}`;
@@ -84,6 +85,7 @@ export default function PolygraphShareModal({
     return String(n || 0);
   };
 
+  // Draw 1080x1080 RoK Photo Album Business Card
   // Draw 1080x1080 RoK Photo Album Business Card
   const renderToCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -146,21 +148,31 @@ export default function PolygraphShareModal({
 
     // 3. Header Pill Badge
     ctx.fillStyle = "#0B0F19";
-    ctx.fillRect(300, 68, 480, 34);
+    ctx.fillRect(280, 68, 520, 34);
     ctx.strokeStyle = primaryColor;
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(300, 68, 480, 34);
+    ctx.strokeRect(280, 68, 520, 34);
 
     ctx.fillStyle = primaryColor;
     ctx.font = "bold 11px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`★ KINGDOM ${kd} • STRATEGIC INTELLIGENCE DOSSIER ★`, 540, 90);
+    if (cardMode === "album") {
+      ctx.fillText(`★ KINGDOM ${kd} • ARCHIVAL MILITARY DOSSIER ★`, 540, 90);
+    } else {
+      ctx.fillText(`★ KINGDOM ${kd} • STRATEGIC INTELLIGENCE DOSSIER ★`, 540, 90);
+    }
 
     // 4. Grand Title (Game Camouflage)
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 46px serif";
-    ctx.textAlign = "center";
-    ctx.fillText("EARLY KINGDOM POLYGRAPH", 540, 155);
+    if (cardMode === "album") {
+      ctx.font = "900 42px serif";
+      ctx.textAlign = "center";
+      ctx.fillText("KVK ALLIANCE BATTLE PASSPORT", 540, 155);
+    } else {
+      ctx.font = "900 46px serif";
+      ctx.textAlign = "center";
+      ctx.fillText("EARLY KINGDOM POLYGRAPH", 540, 155);
+    }
 
     // Kingdom Meta Subtitle
     const ageLabel = kdd?.serverAgeDays !== null && kdd?.serverAgeDays !== undefined
@@ -243,9 +255,23 @@ export default function PolygraphShareModal({
     ctx.fillRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
     ctx.strokeRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
 
-    // Inner White Pad for Scan Reliability
-    ctx.fillStyle = "#FFFFFF";
+    // Inner Pad (Clean soft ivory/titanium in album mode for elegant heraldic look)
+    ctx.fillStyle = cardMode === "album" ? "#F8FAFC" : "#FFFFFF";
     ctx.fillRect(qrX, qrY, qrSize, qrSize);
+
+    // Top Seal Ribbon in Album Mode
+    if (cardMode === "album") {
+      ctx.fillStyle = "#0B0F19";
+      ctx.fillRect(390, qrY - 26, 300, 24);
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(390, qrY - 26, 300, 24);
+
+      ctx.fillStyle = primaryColor;
+      ctx.font = "bold 10px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("⚜ ARCHIVAL CYPHER MATRIX ⚜", 540, qrY - 10);
+    }
 
     // Draw QR image
     if (qrBase64) {
@@ -254,25 +280,25 @@ export default function PolygraphShareModal({
       img.onload = () => {
         ctx.drawImage(img, qrX + 8, qrY + 8, qrSize - 16, qrSize - 16);
 
-        // Center Unity Shield Overlay
+        // Center Unity Heraldry Shield Overlay
         const cx = 540;
         const cy = qrY + qrSize / 2;
         ctx.fillStyle = "#070A0F";
         ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(cx, cy, 32, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 34, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = primaryColor;
         ctx.font = "900 13px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("UN•TY", cx, cy - 2);
+        ctx.fillText(`KD ${kd}`, cx, cy - 2);
 
         ctx.fillStyle = "#38BDF8";
         ctx.font = "bold 9px monospace";
-        ctx.fillText(`KD ${kd}`, cx, cy + 12);
+        ctx.fillText(cardMode === "album" ? "VERIFIED" : "UN•TY", cx, cy + 12);
 
         finishCardDrawing(ctx, primaryColor, accentColor);
       };
@@ -280,7 +306,7 @@ export default function PolygraphShareModal({
     } else {
       finishCardDrawing(ctx, primaryColor, accentColor);
     }
-  }, [theme, kd, kdd, ai, me, depth, timeframe, qrBase64]);
+  }, [theme, cardMode, kd, kdd, ai, me, depth, timeframe, qrBase64, shortUrl]);
 
   const finishCardDrawing = (ctx, primaryColor, accentColor) => {
     // 7. Camouflage Frame Label under QR
@@ -290,21 +316,32 @@ export default function PolygraphShareModal({
     ctx.lineWidth = 1.5;
     ctx.strokeRect(240, 770, 600, 48);
 
-    ctx.fillStyle = primaryColor;
-    ctx.font = "bold 13px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("★ SCAN CAMERA TO UNLOCK LIVE KINGDOM ROSTER ★", 540, 792);
+    if (cardMode === "album") {
+      ctx.fillStyle = primaryColor;
+      ctx.font = "bold 13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("★ IMPERIAL SEAL OF ARCHIVAL VERIFICATION ★", 540, 792);
 
-    ctx.fillStyle = "#94A3B8";
-    ctx.font = "10px monospace";
-    ctx.fillText("REAL-TIME SPENDER SIGNATURES • ALLIANCE TURMOIL • FRAUD RADAR", 540, 808);
+      ctx.fillStyle = "#94A3B8";
+      ctx.font = "10px monospace";
+      ctx.fillText("CROSS-ALLIANCE HEGEMONY • SPENDER SIGNATURES • BATTLE READY", 540, 808);
+    } else {
+      ctx.fillStyle = primaryColor;
+      ctx.font = "bold 13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("★ SCAN CAMERA TO UNLOCK LIVE KINGDOM ROSTER ★", 540, 792);
+
+      ctx.fillStyle = "#94A3B8";
+      ctx.font = "10px monospace";
+      ctx.fillText("REAL-TIME SPENDER SIGNATURES • ALLIANCE TURMOIL • ROSTER VELOCITY", 540, 808);
+    }
 
     // 8. Roster Summary Quote
     ctx.fillStyle = "#E2E8F0";
     ctx.font = "italic 13px sans-serif";
-    const diagText = ai?.diagnosis 
-      ? `"${ai.diagnosis.slice(0, 110)}..."` 
-      : `"Verified Early Kingdom Polygraph analysis. Zero bot padding, full roster velocity."`;
+    const diagText = cardMode === "album"
+      ? `"Kingdom ${kd} longitudinal combat readiness verified. Roster integrity authenticated by Alliance High Command."`
+      : (ai?.diagnosis ? `"${ai.diagnosis.slice(0, 110)}..."` : `"Verified Early Kingdom Polygraph analysis. Zero bot padding, full roster velocity."`);
     ctx.fillText(diagText, 540, 860);
 
     // 9. Bottom Strategic Callout Banner
@@ -314,18 +351,35 @@ export default function PolygraphShareModal({
     ctx.fillRect(160, 900, 760, 64);
     ctx.strokeRect(160, 900, 760, 64);
 
-    ctx.fillStyle = "#38BDF8";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText("UNITY COMBAT NETWORK • PUBLIC GOVERNOR WAR SUITE", 540, 926);
+    if (cardMode === "album") {
+      ctx.fillStyle = primaryColor;
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`KINGDOM ${kd} ALLIANCE WAR ROOM • OFFICIAL REGISTRY`, 540, 926);
 
-    ctx.fillStyle = "#64748B";
-    ctx.font = "bold 11px monospace";
-    ctx.fillText(`PORTAL DIRECT SHORTLINK: ${shortUrl.replace("https://", "")}`, 540, 948);
+      ctx.fillStyle = "#94A3B8";
+      ctx.font = "bold 11px monospace";
+      ctx.fillText(`AUTHENTICATED BY HIGH COMMAND • ARCHIVAL CLUSTER: KD-${kd}-ALPHA`, 540, 948);
 
-    // 10. Legal/Anti-Lilith-Ban Camouflage Watermark
-    ctx.fillStyle = "#475569";
-    ctx.font = "10px sans-serif";
-    ctx.fillText("CONFIDENTIAL ALLIANCE RECORD • ZERO LOGIN • FREE TO ALL GOVERNORS", 540, 1000);
+      // 10. Watermark
+      ctx.fillStyle = "#475569";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("CONFIDENTIAL RECORD • AUTHORIZED FOR ALLIANCE LEADERSHIP", 540, 1000);
+    } else {
+      ctx.fillStyle = "#38BDF8";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("UNITY COMBAT NETWORK • PUBLIC GOVERNOR WAR SUITE", 540, 926);
+
+      ctx.fillStyle = "#64748B";
+      ctx.font = "bold 11px monospace";
+      ctx.fillText(`PORTAL DIRECT SHORTLINK: ${shortUrl.replace("https://", "")}`, 540, 948);
+
+      // 10. Watermark
+      ctx.fillStyle = "#475569";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("CONFIDENTIAL ALLIANCE RECORD • ZERO LOGIN • FREE TO ALL GOVERNORS", 540, 1000);
+    }
   };
 
   useEffect(() => {
@@ -342,7 +396,9 @@ export default function PolygraphShareModal({
 
     try {
       const link = document.createElement("a");
-      link.download = `KD${kd}_Polygraph_Business_Card.png`;
+      link.download = cardMode === "album"
+        ? `KD${kd}_Battle_Passport_Album.png`
+        : `KD${kd}_Polygraph_Discord.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -479,6 +535,53 @@ export default function PolygraphShareModal({
               {/* Controls & Features (Right/Bottom) */}
               <div className="lg:col-span-5 space-y-4">
                 
+                {/* Card Target Mode Selector */}
+                <div className="bg-[#0f131d] border border-[#1e2434] rounded-xl p-4 space-y-3">
+                  <div className="text-xs font-bold uppercase text-gray-300 tracking-wider flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield size={14} className={cardMode === "album" ? "text-emerald-400" : "text-cyan-400"} />
+                      {tr("card_mode_title", "Card Purpose & Target")}
+                    </div>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                      cardMode === "album"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        : "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+                    }`}>
+                      {cardMode === "album" ? tr("card_mode_album_badge", "Lilith Safe • Zero URLs") : tr("card_mode_discord_badge", "Direct URL Printed")}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCardMode("album")}
+                      className={`px-3 py-2.5 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors ${
+                        cardMode === "album"
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm"
+                          : "bg-[#141824] text-gray-400 border-[#232a3c] hover:text-white"
+                      }`}
+                    >
+                      <span>🛡</span> {tr("card_mode_album", "RoK Photo Album")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardMode("discord")}
+                      className={`px-3 py-2.5 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors ${
+                        cardMode === "discord"
+                          ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm"
+                          : "bg-[#141824] text-gray-400 border-[#232a3c] hover:text-white"
+                      }`}
+                    >
+                      <span>⚡</span> {tr("card_mode_discord", "Discord / Web")}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed font-sans">
+                    {cardMode === "album" 
+                      ? tr("card_mode_album_desc", "Camouflaged as an official Kingdom Battle Passport. All URLs and advertising trigger words are removed to pass Lilith Games automated in-game image review. Governors screenshot and scan the Cypher Seal.")
+                      : "Optimized for Discord announcements and WhatsApp groups with the direct shortlink printed on the card."
+                    }
+                  </p>
+                </div>
+
                 {/* Style Customizer */}
                 <div className="bg-[#0f131d] border border-[#1e2434] rounded-xl p-4 space-y-3">
                   <div className="text-xs font-bold uppercase text-gray-300 tracking-wider flex items-center gap-2">
@@ -509,17 +612,6 @@ export default function PolygraphShareModal({
                       <span>⚡</span> {tr("card_theme_neon", "Cyber Neon")}
                     </button>
                   </div>
-                </div>
-
-                {/* RoK Album Stealth Feature Explainer */}
-                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5 space-y-1.5">
-                  <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Shield size={13} className="text-emerald-400" />
-                    {tr("lilith_protection_title", "Lilith Moderation Protection")}
-                  </div>
-                  <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                    {tr("lilith_protection_desc", "Structured as a legitimate Kingdom Combat Dossier so Lilith's automated image OCR approves it without flags. Features Level-H error correction to survive album recompression.")}
-                  </p>
                 </div>
 
                 {/* Primary Actions */}

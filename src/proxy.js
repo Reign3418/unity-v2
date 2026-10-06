@@ -6,6 +6,6 @@ export default createMiddleware({
 });
 
 export const config = {
-  // Skip all paths that should not be internationalized (API, internal nextjs folders, static files)
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  // Skip all paths that should not be internationalized (API, internal nextjs folders, shortlinks, static files)
+  matcher: ['/((?!api|_next|_vercel|s(?:/|$)|qr(?:/|$)|.*\\..*).*)']
 };

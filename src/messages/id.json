@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Baru dalam pindaian (Mulai telat, jumper pemula, atau melonjak dari luar pindaian awal)",
     "badge_migrant_tooltip": "Migran paspor lintas kerajaan",
     "archetype_roster_emergence": "Kemunculan Roster",
-    "archetype_emergence_megalodon": "Megalodon Muncul"
+    "archetype_emergence_megalodon": "Megalodon Muncul",
+    "card_mode_title": "Tujuan & Target Kartu",
+    "card_mode_album": "Album Foto RoK (Kamuflase Anti-Ban)",
+    "card_mode_discord": "Banner Discord / Web",
+    "card_mode_album_badge": "Aman dari Lilith • Tanpa URL",
+    "card_mode_discord_badge": "URL Langsung",
+    "card_mode_album_desc": "Disamarkan sebagai Paspor Pertempuran Kerajaan resmi. Semua URL dan kata pemicu dihapus agar lolos inspeksi gambar otomatis Lilith Games."
   },
   "CompareTab": {
     "title": "Meja Kerja Perbandingan Gubernur",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Salin Teks BBCode / Discord",
     "bbcode_copied": "BBCode disalin!",
     "album_instructions_1": "• Simpan gambar → Buka Profil RoK → Album Foto → Unggah.",
-    "album_instructions_2": "• Gubernur yang memindai avatar album Anda akan langsung menuju Poligraf Kerajaan!"
+    "album_instructions_2": "• Gubernur yang memindai avatar album Anda akan langsung menuju Poligraf Kerajaan!",
+    "card_mode_title": "Tujuan & Target Kartu",
+    "card_mode_album": "Album Foto RoK (Kamuflase Anti-Ban)",
+    "card_mode_discord": "Banner Discord / Web",
+    "card_mode_album_badge": "Aman dari Lilith • Tanpa URL",
+    "card_mode_discord_badge": "URL Langsung",
+    "card_mode_album_desc": "Disamarkan sebagai Paspor Pertempuran Kerajaan resmi. Semua URL dan kata pemicu dihapus agar lolos inspeksi gambar otomatis Lilith Games."
   }
 }

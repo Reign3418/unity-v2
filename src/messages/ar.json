@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "جديد في المسح (بداية متأخرة، قفز للمبتدئين، أو ارتقاء من خارج المسح الأولي)",
     "badge_migrant_tooltip": "مهاجر بجوازات سفر عبر الممالك",
     "archetype_roster_emergence": "ظهور في القائمة",
-    "archetype_emergence_megalodon": "حوت ظهور ميغالودون"
+    "archetype_emergence_megalodon": "حوت ظهور ميغالودون",
+    "card_mode_title": "غرض البطاقة والهدف",
+    "card_mode_album": "ألبوم صور RoK (تمويه آمن)",
+    "card_mode_discord": "لافتة ديسكورد / ويب",
+    "card_mode_album_badge": "آمن من ليليث • بدون روابط",
+    "card_mode_discord_badge": "رابط مباشر",
+    "card_mode_album_desc": "مموهة كجواز معركة رسمي للمملكة. تم حذف جميع الروابط والكلمات التحفيزية لتجاوز فحص الصور الآلي لشركة ليليث بنجاح."
   },
   "CompareTab": {
     "title": "منصة مقارنة القادة",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "نسخ نص BBCode / Discord",
     "bbcode_copied": "تم نسخ BBCode!",
     "album_instructions_1": "• احفظ الصورة ← افتح ملف RoK الشخصي ← ألبوم الصور ← رفع.",
-    "album_instructions_2": "• الحكام الذين يمسحون صورتك في الألبوم ينتقلون مباشرة إلى بوليغراف مملكتك!"
+    "album_instructions_2": "• الحكام الذين يمسحون صورتك في الألبوم ينتقلون مباشرة إلى بوليغراف مملكتك!",
+    "card_mode_title": "غرض البطاقة والهدف",
+    "card_mode_album": "ألبوم صور RoK (تمويه آمن)",
+    "card_mode_discord": "لافتة ديسكورد / ويب",
+    "card_mode_album_badge": "آمن من ليليث • بدون روابط",
+    "card_mode_discord_badge": "رابط مباشر",
+    "card_mode_album_desc": "مموهة كجواز معركة رسمي للمملكة. تم حذف جميع الروابط والكلمات التحفيزية لتجاوز فحص الصور الآلي لشركة ليليث بنجاح."
   }
 }

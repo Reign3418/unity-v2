@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Nouveau dans le scan (Début tardif, sauteur novice ou percée dans le classement)",
     "badge_migrant_tooltip": "Migrant par passeport inter-royaumes",
     "archetype_roster_emergence": "Émergence Roster",
-    "archetype_emergence_megalodon": "Mégalodon Émergent"
+    "archetype_emergence_megalodon": "Mégalodon Émergent",
+    "card_mode_title": "Objectif & Destination de la Carte",
+    "card_mode_album": "Album Photo RoK (Camouflage Anti-Ban)",
+    "card_mode_discord": "Bannière Discord / Web",
+    "card_mode_album_badge": "Conforme Lilith • Zéro URL",
+    "card_mode_discord_badge": "URL Directe",
+    "card_mode_album_desc": "Camouflé en passeport de combat officiel du royaume. Toutes les URLs et mots déclencheurs sont supprimés pour valider la modération automatique des images de Lilith."
   },
   "CompareTab": {
     "title": "Atelier de comparaison des gouverneurs",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Copier le Texte BBCode / Discord",
     "bbcode_copied": "BBCode copié !",
     "album_instructions_1": "• Enregistrez l'image → Ouvrez Profil RoK → Album Photo → Importer.",
-    "album_instructions_2": "• Les joueurs scannant votre avatar accèdent directement au Polygraphe de votre royaume !"
+    "album_instructions_2": "• Les joueurs scannant votre avatar accèdent directement au Polygraphe de votre royaume !",
+    "card_mode_title": "Objectif & Destination de la Carte",
+    "card_mode_album": "Album Photo RoK (Camouflage Anti-Ban)",
+    "card_mode_discord": "Bannière Discord / Web",
+    "card_mode_album_badge": "Conforme Lilith • Zéro URL",
+    "card_mode_discord_badge": "URL Directe",
+    "card_mode_album_desc": "Camouflé en passeport de combat officiel du royaume. Toutes les URLs et mots déclencheurs sont supprimés pour valider la modération automatique des images de Lilith."
   }
 }

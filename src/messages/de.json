@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Neu im Scan (Später Start, Anfänger-Jumper oder Aufstieg aus geringer Tiefe)",
     "badge_migrant_tooltip": "Königreich-übergreifender Pass-Migrant",
     "archetype_roster_emergence": "Kader-Aufsteiger",
-    "archetype_emergence_megalodon": "Aufsteiger-Megalodon"
+    "archetype_emergence_megalodon": "Aufsteiger-Megalodon",
+    "card_mode_title": "Kartenzweck & Ziel",
+    "card_mode_album": "RoK-Fotoalbum (Tarnungs-Schutz)",
+    "card_mode_discord": "Discord / Web-Banner",
+    "card_mode_album_badge": "Lilith-sicher • Keine URLs",
+    "card_mode_discord_badge": "Direkte URL",
+    "card_mode_album_desc": "Als offizieller Königreichs-Schlachtpass getarnt. Alle URLs und Trigger-Wörter wurden entfernt, um die automatische Bildprüfung von Lilith Games sicher zu bestehen."
   },
   "CompareTab": {
     "title": "Spielervergleich",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "BBCode / Discord-Text kopieren",
     "bbcode_copied": "BBCode kopiert!",
     "album_instructions_1": "• Bild speichern → RoK-Profil öffnen → Fotoalbum → Hochladen.",
-    "album_instructions_2": "• Spieler, die das Bild scannen, landen direkt im Polygraph Ihres Königreichs!"
+    "album_instructions_2": "• Spieler, die das Bild scannen, landen direkt im Polygraph Ihres Königreichs!",
+    "card_mode_title": "Kartenzweck & Ziel",
+    "card_mode_album": "RoK-Fotoalbum (Tarnungs-Schutz)",
+    "card_mode_discord": "Discord / Web-Banner",
+    "card_mode_album_badge": "Lilith-sicher • Keine URLs",
+    "card_mode_discord_badge": "Direkte URL",
+    "card_mode_album_desc": "Als offizieller Königreichs-Schlachtpass getarnt. Alle URLs und Trigger-Wörter wurden entfernt, um die automatische Bildprüfung von Lilith Games sicher zu bestehen."
   }
 }

@@ -41,8 +41,12 @@ export async function GET(request) {
       } catch (err) {}
     }
 
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+    const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
+    const baseUrl = host ? `${proto}://${host}` : request.url;
+
     if (targetKd) {
-      const destination = new URL(`/${locale}/shared/polygraph`, request.url);
+      const destination = new URL(`/${locale}/shared/polygraph`, baseUrl);
       destination.searchParams.set("kd", targetKd);
       if (targetEnd) destination.searchParams.set("end", targetEnd);
       destination.searchParams.set("tf", targetTf);
@@ -57,7 +61,10 @@ export async function GET(request) {
   }
 
   // Build target URL
-  const destination = new URL(`/${locale}`, request.url);
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
+  const baseUrl = host ? `${proto}://${host}` : request.url;
+  const destination = new URL(`/${locale}`, baseUrl);
   destination.searchParams.set("utm_source", source);
   destination.searchParams.set("utm_medium", medium);
   destination.searchParams.set("utm_campaign", campaign);

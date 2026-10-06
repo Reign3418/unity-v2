@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Taramada yeni (Geç başlangıç, acemi sıçrayıcı veya tarama dışından yükselen)",
     "badge_migrant_tooltip": "Krallıklar arası pasaport göçmeni",
     "archetype_roster_emergence": "Kadroya Yükseliş",
-    "archetype_emergence_megalodon": "Yükselen Megalodon"
+    "archetype_emergence_megalodon": "Yükselen Megalodon",
+    "card_mode_title": "Kart Amacı ve Hedefi",
+    "card_mode_album": "RoK Fotoğraf Albümü (Kamuflaj Modu)",
+    "card_mode_discord": "Discord / Web Afişi",
+    "card_mode_album_badge": "Lilith Güvenli • URL Yok",
+    "card_mode_discord_badge": "Doğrudan URL",
+    "card_mode_album_desc": "Resmi bir Krallık Savaş Pasaportu olarak kamufle edilmiştir. Lilith Games'in otomatik görsel denetimini geçmek için tüm URL'ler ve tetikleyici kelimeler kaldırılmıştır."
   },
   "CompareTab": {
     "title": "Vali Karşılaştırma Çalışma Alanı",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "BBCode / Discord Metnini Kopyala",
     "bbcode_copied": "BBCode kopyalandı!",
     "album_instructions_1": "• Görseli kaydedin → RoK Profilini açın → Fotoğraf Albümü → Yükle.",
-    "album_instructions_2": "• Albüm görselinizi tarayan valiler doğrudan Krallık Poligrafınıza ulaşır!"
+    "album_instructions_2": "• Albüm görselinizi tarayan valiler doğrudan Krallık Poligrafınıza ulaşır!",
+    "card_mode_title": "Kart Amacı ve Hedefi",
+    "card_mode_album": "RoK Fotoğraf Albümü (Kamuflaj Modu)",
+    "card_mode_discord": "Discord / Web Afişi",
+    "card_mode_album_badge": "Lilith Güvenli • URL Yok",
+    "card_mode_discord_badge": "Doğrudan URL",
+    "card_mode_album_desc": "Resmi bir Krallık Savaş Pasaportu olarak kamufle edilmiştir. Lilith Games'in otomatik görsel denetimini geçmek için tüm URL'ler ve tetikleyici kelimeler kaldırılmıştır."
   }
 }

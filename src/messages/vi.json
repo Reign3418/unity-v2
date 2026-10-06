@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Mới trong bản quét (Bắt đầu muộn, jumper mới hoặc bứt phá từ ngoài phạm vi)",
     "badge_migrant_tooltip": "Người di cư hộ chiếu liên vương quốc",
     "archetype_roster_emergence": "Đột Phá Danh Sách",
-    "archetype_emergence_megalodon": "Megalodon Đột Phá"
+    "archetype_emergence_megalodon": "Megalodon Đột Phá",
+    "card_mode_title": "Mục đích & Nơi chia sẻ Thẻ",
+    "card_mode_album": "Album Ảnh RoK (Ngụy trang kiểm duyệt)",
+    "card_mode_discord": "Banner Discord / Web",
+    "card_mode_album_badge": "An toàn kiểm duyệt • Không chứa URL",
+    "card_mode_discord_badge": "Hiển thị URL Trực tiếp",
+    "card_mode_album_desc": "Được ngụy trang thành Hộ chiếu Chiến đấu chính thức của Vương quốc. Toàn bộ đường dẫn URL và từ khóa quảng cáo đã được loại bỏ để vượt qua bộ lọc kiểm duyệt ảnh tự động của Lilith."
   },
   "CompareTab": {
     "title": "Bàn làm việc so sánh người chơi",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Sao Chép BBCode / Văn Bản Discord",
     "bbcode_copied": "Đã sao chép BBCode!",
     "album_instructions_1": "• Lưu ảnh → Mở Hồ Sơ RoK → Album Ảnh → Tải Lên.",
-    "album_instructions_2": "• Các thống đốc quét ảnh đại diện album sẽ được chuyển thẳng đến Máy Đo Đa Ký của vương quốc!"
+    "album_instructions_2": "• Các thống đốc quét ảnh đại diện album sẽ được chuyển thẳng đến Máy Đo Đa Ký của vương quốc!",
+    "card_mode_title": "Mục đích & Nơi chia sẻ Thẻ",
+    "card_mode_album": "Album Ảnh RoK (Ngụy trang kiểm duyệt)",
+    "card_mode_discord": "Banner Discord / Web",
+    "card_mode_album_badge": "An toàn kiểm duyệt • Không chứa URL",
+    "card_mode_discord_badge": "Hiển thị URL Trực tiếp",
+    "card_mode_album_desc": "Được ngụy trang thành Hộ chiếu Chiến đấu chính thức của Vương quốc. Toàn bộ đường dẫn URL và từ khóa quảng cáo đã được loại bỏ để vượt qua bộ lọc kiểm duyệt ảnh tự động của Lilith."
   }
 }

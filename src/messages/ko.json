@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "스캔 신규 진입 (늦은 시작, 초보 점퍼 또는 초기 스캔 범위 밖에서 급상승)",
     "badge_migrant_tooltip": "여권 왕국 간 이민자",
     "archetype_roster_emergence": "로스터 급부상",
-    "archetype_emergence_megalodon": "급부상 메갈로돈"
+    "archetype_emergence_megalodon": "급부상 메갈로돈",
+    "card_mode_title": "카드 용도 및 대상",
+    "card_mode_album": "RoK 프로필 앨범 (위장 안전 모드)",
+    "card_mode_discord": "디스코드 / 웹 배너",
+    "card_mode_album_badge": "릴리스 검열 통과 • URL 없음",
+    "card_mode_discord_badge": "직접 URL 표기",
+    "card_mode_album_desc": "공식 왕국 전투 여권 형태로 위장되었습니다. 릴리스 게임즈의 자동 이미지 검열을 통과하기 위해 모든 외부 URL과 트리거 단어가 제거되었습니다."
   },
   "CompareTab": {
     "title": "총사령관 비교 분석",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "BBCode / 디스코드 텍스트 복사",
     "bbcode_copied": "BBCode 복사 완료!",
     "album_instructions_1": "• 이미지 저장 → RoK 프로필 열기 → 사진 앨범 → 업로드.",
-    "album_instructions_2": "• 앨범 아바타를 스캔한 지도자는 즉시 왕국 폴리그래프로 직행합니다!"
+    "album_instructions_2": "• 앨범 아바타를 스캔한 지도자는 즉시 왕국 폴리그래프로 직행합니다!",
+    "card_mode_title": "카드 용도 및 대상",
+    "card_mode_album": "RoK 프로필 앨범 (위장 안전 모드)",
+    "card_mode_discord": "디스코드 / 웹 배너",
+    "card_mode_album_badge": "릴리스 검열 통과 • URL 없음",
+    "card_mode_discord_badge": "직접 URL 표기",
+    "card_mode_album_desc": "공식 왕국 전투 여권 형태로 위장되었습니다. 릴리스 게임즈의 자동 이미지 검열을 통과하기 위해 모든 외부 URL과 트리거 단어가 제거되었습니다."
   }
 }

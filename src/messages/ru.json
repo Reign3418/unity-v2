@@ -725,7 +725,13 @@
     "badge_new_entry_tooltip": "Новый в сканировании (Поздний старт, начинающий прыгун или рывок в топ)",
     "badge_migrant_tooltip": "Межсерверный мигрант по паспорту",
     "archetype_roster_emergence": "Прорыв в ростер",
-    "archetype_emergence_megalodon": "Внезапный Мегалодон"
+    "archetype_emergence_megalodon": "Внезапный Мегалодон",
+    "card_mode_title": "Назначение и формат карты",
+    "card_mode_album": "Фотоальбом RoK (Камуфляж от бана)",
+    "card_mode_discord": "Баннер Discord / Web",
+    "card_mode_album_badge": "Защита Lilith • Без ссылок",
+    "card_mode_discord_badge": "Прямая ссылка",
+    "card_mode_album_desc": "Замаскировано под официальный боевой паспорт королевства. Все ссылки и ключевые слова удалены для успешного прохождения автоматической модерации изображений Lilith."
   },
   "CompareTab": {
     "title": "Верстак сравнения игроков",
@@ -1385,6 +1391,12 @@
     "btn_copy_bbcode_blast": "Скопировать BBCode / текст для Discord",
     "bbcode_copied": "BBCode скопирован!",
     "album_instructions_1": "• Сохраните изображение → Профиль RoK → Фотоальбом → Загрузить.",
-    "album_instructions_2": "• Игроки, отсканировавшие фото в альбоме, сразу попадут в Полиграф вашего королевства!"
+    "album_instructions_2": "• Игроки, отсканировавшие фото в альбоме, сразу попадут в Полиграф вашего королевства!",
+    "card_mode_title": "Назначение и формат карты",
+    "card_mode_album": "Фотоальбом RoK (Камуфляж от бана)",
+    "card_mode_discord": "Баннер Discord / Web",
+    "card_mode_album_badge": "Защита Lilith • Без ссылок",
+    "card_mode_discord_badge": "Прямая ссылка",
+    "card_mode_album_desc": "Замаскировано под официальный боевой паспорт королевства. Все ссылки и ключевые слова удалены для успешного прохождения автоматической модерации изображений Lilith."
   }
 }
