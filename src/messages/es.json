@@ -720,9 +720,9 @@
     "bbcode_copied": "¡BBCode copiado!",
     "album_instructions_1": "• Guarda la imagen → Abre Perfil RoK → Álbum de Fotos → Subir.",
     "album_instructions_2": "• ¡Los gobernadores que escaneen tu foto accederán directo al Polígrafo de tu reino!",
-    "spenders_desc_nascent": "Gobernadores con un aumento de <highlight>500k+</highlight> de poder en el periodo seleccionado. <new>[NUEVA ENTRADA]</new> = Inicio tardío, saltador principiante o ascenso a la profundidad de escaneo (la migración está bloqueada en servidores nacientes).",
+    "spenders_desc_nascent": "Gobernadores que ganaron <highlight>500k+</highlight> de poder en el intervalo. <new>[NUEVA ENTRADA]</new> = Ascendió a las mejores posiciones o inicio tardío.",
     "badge_new_entry": "NUEVA ENTRADA",
-    "badge_new_entry_tooltip": "Nuevo en el escaneo (Inicio tardío, saltador novato o emergió del rango inferior)",
+    "badge_new_entry_tooltip": "Ascendió a las mejores posiciones o inicio tardío",
     "badge_migrant_tooltip": "Migrante con pasaporte entre reinos",
     "archetype_roster_emergence": "Aparición en Roster",
     "archetype_emergence_megalodon": "Megalodón Emergente",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Paz Armoniosa",
     "causality_peace_desc": "Cero ataques militares entre alianzas o aniquilaciones rebeldes. Todas las bajas coinciden con desgaste en recolección, guardianes de santuarios o PVE.",
     "causality_power_trimming_title": "Reducción Estratégica de Poder Pre-Migración",
-    "causality_power_trimming_desc": "Estos gobernadores perdieron intencionalmente millones en tropas y sufrieron grandes bajas sin causar daño. NO fueron víctimas de una guerra civil; sacrificaron tropas en santuarios para bajar su poder por debajo de los límites de inmigración (ej. tope de 25M)."
+    "causality_power_trimming_desc": "Estos gobernadores perdieron intencionalmente millones en tropas y sufrieron grandes bajas sin causar daño. NO fueron víctimas de una guerra civil; sacrificaron tropas en santuarios para bajar su poder por debajo de los límites de inmigración (ej. tope de 25M).",
+    "tab_roster_flow": "Flujo de Miembros",
+    "roster_flow_intel": "Inteligencia de Flujo",
+    "roster_new_entries": "Nuevas Entradas Top",
+    "no_new_entries": "No se detectaron nuevas entradas.",
+    "roster_departed": "Descendió bajo el umbral de escaneo",
+    "no_roster_departures": "No se detectaron salidas.",
+    "alliance_gravity_centers": "Centros Gravitacionales de Alianzas",
+    "new_entries_joined": "{count} nuevas entradas top unidas"
   },
   "CompareTab": {
     "title": "Banco de trabajo de comparación de jugadores",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Los umbrales de arquetipos se ajustan dinámicamente según el pico del reino activo, garantizando que reinos jóvenes (p. ej. Día 2) y veteranos de SoC se evalúen con precisión."
   },
   "Tools": {
-    "spenders_desc_nascent": "Gobernadores con un aumento de <highlight>500k+</highlight> de poder en el periodo seleccionado. <new>[NUEVA ENTRADA]</new> = Inicio tardío, saltador principiante o ascenso a la profundidad de escaneo (la migración está bloqueada en servidores nacientes).",
+    "spenders_desc_nascent": "Gobernadores que ganaron <highlight>500k+</highlight> de poder en el intervalo. <new>[NUEVA ENTRADA]</new> = Ascendió a las mejores posiciones o inicio tardío.",
     "badge_new_entry": "NUEVA ENTRADA",
-    "badge_new_entry_tooltip": "Nuevo en el escaneo (Inicio tardío, saltador novato o emergió del rango inferior)",
+    "badge_new_entry_tooltip": "Ascendió a las mejores posiciones o inicio tardío",
     "badge_migrant_tooltip": "Migrante con pasaporte entre reinos",
     "archetype_roster_emergence": "Aparición en Roster",
     "archetype_emergence_megalodon": "Megalodón Emergente",

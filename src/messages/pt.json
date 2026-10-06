@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode copiado!",
     "album_instructions_1": "• Salve a imagem → Abra Perfil RoK → Álbum de Fotos → Enviar.",
     "album_instructions_2": "• Jogadores que escanearem seu avatar irão direto para o Polígrafo do seu reino!",
-    "spenders_desc_nascent": "Governadores que ganharam <highlight>500k+</highlight> de poder no período selecionado. <new>[NOVA ENTRADA]</new> = Início tardio, jumper iniciante ou ascensão na profundidade da varredura (a imigração por passaporte está bloqueada em reinos recentes).",
+    "spenders_desc_nascent": "Governadores que ganharam <highlight>500k+</highlight> de poder no intervalo selecionado. <new>[NOVA ENTRADA]</new> = Subiu para o topo ou início tardio.",
     "badge_new_entry": "NOVA ENTRADA",
-    "badge_new_entry_tooltip": "Novo na varredura (Início tardio, jumper iniciante ou ascensão do anonimato)",
+    "badge_new_entry_tooltip": "Subiu para o topo ou início tardio",
     "badge_migrant_tooltip": "Imigrante por passaporte entre reinos",
     "archetype_roster_emergence": "Emergência no Roster",
     "archetype_emergence_megalodon": "Megalodonte Emergente",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Paz Harmoniosa",
     "causality_peace_desc": "Zero ataques militares entre alianças ou aniquilações rebeldes. Todas as baixas coincidem com assédio de coleta, guardiões de santuários ou PVE.",
     "causality_power_trimming_title": "Redução Estratégica de Poder Pré-Migração",
-    "causality_power_trimming_desc": "Estes governadores sacrificaram intencionalmente milhões em tropas e sofreram grandes baixas sem causar dano. NÃO foram vítimas de uma guerra civil; sacrificaram tropas em santuários para baixar o poder abaixo dos limites de imigração (ex. teto de 25M)."
+    "causality_power_trimming_desc": "Estes governadores sacrificaram intencionalmente milhões em tropas e sofreram grandes baixas sem causar dano. NÃO foram vítimas de uma guerra civil; sacrificaram tropas em santuários para baixar o poder abaixo dos limites de imigração (ex. teto de 25M).",
+    "tab_roster_flow": "Fluxo de Membros",
+    "roster_flow_intel": "Inteligência de Fluxo",
+    "roster_new_entries": "Novas Entradas no Topo",
+    "no_new_entries": "Nenhuma nova entrada detectada.",
+    "roster_departed": "Caiu Abaixo do Limite de Escaneamento",
+    "no_roster_departures": "Nenhuma saída detectada.",
+    "alliance_gravity_centers": "Centros de Gravidade de Alianças",
+    "new_entries_joined": "{count} novas entradas de topo ingressaram"
   },
   "CompareTab": {
     "title": "Bancada de Comparação de Governadores",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Os limites dos arquétipos ajustam-se dinamicamente ao pico do reino ativo, garantindo avaliações realistas tanto para reinos jovens (ex: Dia 2) quanto para o SoC."
   },
   "Tools": {
-    "spenders_desc_nascent": "Governadores que ganharam <highlight>500k+</highlight> de poder no período selecionado. <new>[NOVA ENTRADA]</new> = Início tardio, jumper iniciante ou ascensão na profundidade da varredura (a imigração por passaporte está bloqueada em reinos recentes).",
+    "spenders_desc_nascent": "Governadores que ganharam <highlight>500k+</highlight> de poder no intervalo selecionado. <new>[NOVA ENTRADA]</new> = Subiu para o topo ou início tardio.",
     "badge_new_entry": "NOVA ENTRADA",
-    "badge_new_entry_tooltip": "Novo na varredura (Início tardio, jumper iniciante ou ascensão do anonimato)",
+    "badge_new_entry_tooltip": "Subiu para o topo ou início tardio",
     "badge_migrant_tooltip": "Imigrante por passaporte entre reinos",
     "archetype_roster_emergence": "Emergência no Roster",
     "archetype_emergence_megalodon": "Megalodonte Emergente",

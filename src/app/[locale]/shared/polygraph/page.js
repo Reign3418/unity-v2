@@ -81,8 +81,15 @@ export default function SharedPolygraph() {
   const doSort = (key) => setSort(s => ({ key, dir: s.key===key && s.dir==='desc' ? 'asc' : 'desc' }));
   const si = (k) => sort.key===k ? (sort.dir==='desc' ? '↓' : '↑') : '↕';
 
+  const isNascent = kdd?.serverAgeDays !== null && kdd?.serverAgeDays !== undefined && kdd.serverAgeDays < 90;
   const TABS = ['overview','alliance','migration','leadership','spenders'];
-  const TLABELS = { overview:'Overview', alliance:'Alliance Intel', migration:'Migration', leadership:'Leadership', spenders:'Spenders' };
+  const TLABELS = { 
+    overview: t('tab_overview'), 
+    alliance: t('tab_alliance_intel'), 
+    migration: isNascent ? t('tab_roster_flow') : t('tab_migration'), 
+    leadership: t('tab_leadership'), 
+    spenders: t('tab_spenders') 
+  };
 
   return (
     <div className="min-h-screen bg-[#060810] text-slate-200 p-4 md:p-8 font-sans">
@@ -415,15 +422,15 @@ export default function SharedPolygraph() {
             </div>
           )}
 
-          {/* Migration */}
+          {/* Migration / Roster Flow */}
           {tab==='migration' && (
             <div className="p-6 space-y-6">
-              {ai?.migrantIntel && <div className="bg-[#0f1115] border border-violet-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider mb-1">Migration Intel</div><p className="text-gray-300 text-sm">{ai.migrantIntel}</p></div>}
+              {ai?.migrantIntel && <div className="bg-[#0f1115] border border-violet-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider mb-1">{isNascent ? t("roster_flow_intel") : t("migration_intel")}</div><p className="text-gray-300 text-sm">{ai.migrantIntel}</p></div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><UserPlus size={14} className="text-emerald-400"/><div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">New Arrivals ({kdd.migration?.newArrivals?.length||0})</div></div>
+                  <div className="flex items-center gap-2 mb-3"><UserPlus size={14} className="text-emerald-400"/><div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{isNascent ? t("roster_new_entries") : t("new_arrivals")} ({kdd.migration?.newArrivals?.length||0})</div></div>
                   <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {(kdd.migration?.newArrivals||[]).length===0 && <div className="text-gray-600 text-xs italic">No new arrivals detected.</div>}
+                    {(kdd.migration?.newArrivals||[]).length===0 && <div className="text-gray-600 text-xs italic">{isNascent ? t("no_new_entries") : t("no_new_arrivals")}</div>}
                     {(kdd.migration?.newArrivals||[]).map((a,i)=>(
                       <div key={i} className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
                         <span className="text-[10px] font-bold text-cyan-400">[{a.alliance||'?'}]</span>
@@ -435,9 +442,9 @@ export default function SharedPolygraph() {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><UserMinus size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">Departed ({kdd.migration?.departed?.length||0})</div></div>
+                  <div className="flex items-center gap-2 mb-3"><UserMinus size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">{isNascent ? t("roster_departed") : t("departed")} ({kdd.migration?.departed?.length||0})</div></div>
                   <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {(kdd.migration?.departed||[]).length===0 && <div className="text-gray-600 text-xs italic">No departures detected.</div>}
+                    {(kdd.migration?.departed||[]).length===0 && <div className="text-gray-600 text-xs italic">{isNascent ? t("no_roster_departures") : t("no_departures")}</div>}
                     {(kdd.migration?.departed||[]).map((d,i)=>(
                       <div key={i} className="flex flex-col gap-1 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
                         <div className="flex items-center gap-2">
@@ -639,9 +646,9 @@ export default function SharedPolygraph() {
                 className="text-xs text-gray-500"
                 dangerouslySetInnerHTML={{
                   __html: (kdd.serverAgeDays !== null && kdd.serverAgeDays < 90 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc"))
-                    .replace("<highlight>", '<span className="text-amber-400 font-bold">')
+                    .replace("<highlight>", '<span class="text-amber-400 font-bold">')
                     .replace("</highlight>", "</span>")
-                    .replace("<new>", '<span className="text-blue-400">')
+                    .replace("<new>", '<span class="text-cyan-400 font-semibold">')
                     .replace("</new>", "</span>")
                 }}
               />

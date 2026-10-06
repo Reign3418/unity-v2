@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode disalin!",
     "album_instructions_1": "• Simpan gambar → Buka Profil RoK → Album Foto → Unggah.",
     "album_instructions_2": "• Gubernur yang memindai avatar album Anda akan langsung menuju Poligraf Kerajaan!",
-    "spenders_desc_nascent": "Gubernur yang memperoleh <highlight>500k+</highlight> daya dalam rentang waktu terpilih. <new>[ENTRI BARU]</new> = Mulai terlambat, pelompat pemula, atau muncul ke kedalaman pindaian teratas (migrasi paspor terkunci di server baru).",
+    "spenders_desc_nascent": "Gubernur yang memperoleh <highlight>500k+</highlight> daya dalam rentang waktu yang dipilih. <new>[ENTRI BARU]</new> = Melesat ke peringkat atas atau mulai terlambat.",
     "badge_new_entry": "ENTRI BARU",
-    "badge_new_entry_tooltip": "Baru dalam pindaian (Mulai telat, jumper pemula, atau melonjak dari luar pindaian awal)",
+    "badge_new_entry_tooltip": "Melesat ke peringkat atas atau mulai terlambat",
     "badge_migrant_tooltip": "Migran paspor lintas kerajaan",
     "archetype_roster_emergence": "Kemunculan Roster",
     "archetype_emergence_megalodon": "Megalodon Muncul",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Masa Damai Harmonis",
     "causality_peace_desc": "Nol serangan militer antar aliansi atau pembantaian liar. Semua korban terdaftar cocok dengan gangguan pengumpulan, penjaga kuil, atau aktivitas PVE.",
     "causality_power_trimming_title": "Pemangkasan Kekuatan Strategis Pra-Migrasi",
-    "causality_power_trimming_desc": "Para gubernur ini sengaja memangkas jutaan kekuatan pasukan dan menderita korban tewas tanpa memberikan kerusakan tempur. Mereka BUKAN korban perang saudara; mereka mengorbankan pasukan di kuil suci agar berada di bawah batas paspor migrasi (misal batas 25M)."
+    "causality_power_trimming_desc": "Para gubernur ini sengaja memangkas jutaan kekuatan pasukan dan menderita korban tewas tanpa memberikan kerusakan tempur. Mereka BUKAN korban perang saudara; mereka mengorbankan pasukan di kuil suci agar berada di bawah batas paspor migrasi (misal batas 25M).",
+    "tab_roster_flow": "Arus Anggota",
+    "roster_flow_intel": "Intel Arus Anggota",
+    "roster_new_entries": "Entri Peringkat Atas Baru",
+    "no_new_entries": "Tidak ada entri baru terdeteksi.",
+    "roster_departed": "Turun di Bawah Kedalaman Pindai",
+    "no_roster_departures": "Tidak ada kepergian terdeteksi.",
+    "alliance_gravity_centers": "Pusat Gravitasi Aliansi",
+    "new_entries_joined": "{count} entri top baru bergabung"
   },
   "CompareTab": {
     "title": "Meja Kerja Perbandingan Gubernur",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Ambang batas arketipe diskalakan secara dinamis mengikuti puncak kerajaan aktif, memastikan kerajaan baru (cth. Hari ke-2) dan SoC dinilai secara realistis."
   },
   "Tools": {
-    "spenders_desc_nascent": "Gubernur yang memperoleh <highlight>500k+</highlight> daya dalam rentang waktu terpilih. <new>[ENTRI BARU]</new> = Mulai terlambat, pelompat pemula, atau muncul ke kedalaman pindaian teratas (migrasi paspor terkunci di server baru).",
+    "spenders_desc_nascent": "Gubernur yang memperoleh <highlight>500k+</highlight> daya dalam rentang waktu yang dipilih. <new>[ENTRI BARU]</new> = Melesat ke peringkat atas atau mulai terlambat.",
     "badge_new_entry": "ENTRI BARU",
-    "badge_new_entry_tooltip": "Baru dalam pindaian (Mulai telat, jumper pemula, atau melonjak dari luar pindaian awal)",
+    "badge_new_entry_tooltip": "Melesat ke peringkat atas atau mulai terlambat",
     "badge_migrant_tooltip": "Migran paspor lintas kerajaan",
     "archetype_roster_emergence": "Kemunculan Roster",
     "archetype_emergence_megalodon": "Megalodon Muncul",

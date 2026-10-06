@@ -353,9 +353,16 @@ export default function Polygraph() {
   const kdd = data?.kingdom;
   const ai = data?.ai;
   const me = kdd?.metrics;
+  const isNascent = kdd?.serverAgeDays !== null && kdd?.serverAgeDays !== undefined && kdd.serverAgeDays < 90;
 
   const TABS = ["overview","alliance","migration","leadership","spenders"];
-  const TLABELS = { overview:t("tab_overview"), alliance:t("tab_alliance_intel"), migration:t("tab_migration"), leadership:t("tab_leadership"), spenders:t("tab_spenders") };
+  const TLABELS = { 
+    overview: t("tab_overview"), 
+    alliance: t("tab_alliance_intel"), 
+    migration: isNascent ? t("tab_roster_flow") : t("tab_migration"), 
+    leadership: t("tab_leadership"), 
+    spenders: t("tab_spenders") 
+  };
 
   const gradeVal = (g) => {
     if (g === "A") return 5;
@@ -825,15 +832,15 @@ export default function Polygraph() {
             </div>
           )}
 
-          {/* Tab: Migration */}
+          {/* Tab: Migration / Roster Flow */}
           {tab === "migration" && (
             <div className="p-6 space-y-6">
-              {ai?.migrantIntel && <div className="bg-[#0f1115] border border-violet-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider mb-1">{t("migration_intel")}</div><p className="text-gray-300 text-sm">{ai.migrantIntel}</p></div>}
+              {ai?.migrantIntel && <div className="bg-[#0f1115] border border-violet-500/20 rounded-lg p-4"><div className="text-[10px] uppercase font-bold text-violet-400 tracking-wider mb-1">{isNascent ? t("roster_flow_intel") : t("migration_intel")}</div><p className="text-gray-300 text-sm">{ai.migrantIntel}</p></div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><UserPlus size={14} className="text-emerald-400"/><div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{t("new_arrivals")} ({kdd.migration?.newArrivals?.length||0})</div></div>
+                  <div className="flex items-center gap-2 mb-3"><UserPlus size={14} className="text-emerald-400"/><div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{isNascent ? t("roster_new_entries") : t("new_arrivals")} ({kdd.migration?.newArrivals?.length||0})</div></div>
                   <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {(kdd.migration?.newArrivals||[]).length === 0 && <div className="text-gray-600 text-xs italic">{t("no_new_arrivals")}</div>}
+                    {(kdd.migration?.newArrivals||[]).length === 0 && <div className="text-gray-600 text-xs italic">{isNascent ? t("no_new_entries") : t("no_new_arrivals")}</div>}
                     {(kdd.migration?.newArrivals||[]).map((a,i)=>(
                       <div key={i} className="flex items-center gap-2 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
                         <span className="text-[10px] font-bold text-cyan-400">[{a.alliance||"?"}]</span>
@@ -845,9 +852,9 @@ export default function Polygraph() {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><UserMinus size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">{t("departed")} ({kdd.migration?.departed?.length||0})</div></div>
+                  <div className="flex items-center gap-2 mb-3"><UserMinus size={14} className="text-rose-400"/><div className="text-xs font-bold text-rose-400 uppercase tracking-wider">{isNascent ? t("roster_departed") : t("departed")} ({kdd.migration?.departed?.length||0})</div></div>
                   <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {(kdd.migration?.departed||[]).length === 0 && <div className="text-gray-600 text-xs italic">{t("no_departures")}</div>}
+                    {(kdd.migration?.departed||[]).length === 0 && <div className="text-gray-600 text-xs italic">{isNascent ? t("no_roster_departures") : t("no_departures")}</div>}
                     {(kdd.migration?.departed||[]).map((d,i)=>(
                       <div key={i} className="flex flex-col gap-1 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2 text-xs">
                         <div className="flex items-center gap-2">
@@ -863,7 +870,7 @@ export default function Polygraph() {
               </div>
               {kdd.followSignals?.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-3">{t("follow_signals")}</div>
+                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-3">{isNascent ? t("alliance_gravity_centers") : t("follow_signals")}</div>
                   <div className="space-y-2">
                     {kdd.followSignals.map((f,i)=>(
                       <div key={i} className="bg-[#0f1115] border border-fuchsia-500/20 rounded-lg p-4">
@@ -873,7 +880,7 @@ export default function Polygraph() {
                           <span className="text-xs text-cyan-400 font-mono">[{f.leaderAlliance}]</span>
                           <span className="text-xs text-gray-500">{fmt(f.leaderPower)} power</span>
                         </div>
-                        <div className="text-xs text-gray-400">{t("new_arrivals_joined", {count: f.followerCount})} [{f.leaderAlliance}]: <span className="text-gray-300">{f.followers.join(", ")}</span></div>
+                        <div className="text-xs text-gray-400">{t(isNascent ? "new_entries_joined" : "new_arrivals_joined", {count: f.followerCount})} [{f.leaderAlliance}]: <span className="text-gray-300">{f.followers.join(", ")}</span></div>
                       </div>
                     ))}
                   </div>
@@ -881,7 +888,7 @@ export default function Polygraph() {
               )}
               {ai?.followAnalysis && (
                 <div className="bg-[#0f1115] border border-fuchsia-500/20 rounded-lg p-4">
-                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-1">{t("ai_follow_analysis")}</div>
+                  <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-1">{isNascent ? t("roster_flow_intel") : t("ai_follow_analysis")}</div>
                   <p className="text-gray-300 text-sm">{ai.followAnalysis}</p>
                 </div>
               )}
@@ -1079,9 +1086,9 @@ export default function Polygraph() {
                 className="text-xs text-gray-500" 
                 dangerouslySetInnerHTML={{ 
                   __html: (kdd.serverAgeDays !== null && kdd.serverAgeDays < 90 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc"))
-                    .replace("<highlight>", '<span className="text-amber-400 font-bold">')
+                    .replace("<highlight>", '<span class="text-amber-400 font-bold">')
                     .replace("</highlight>", "</span>")
-                    .replace("<new>", '<span className="text-blue-400">')
+                    .replace("<new>", '<span class="text-cyan-400 font-semibold">')
                     .replace("</new>", "</span>") 
                 }} 
               />

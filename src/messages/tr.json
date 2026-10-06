@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode kopyalandı!",
     "album_instructions_1": "• Görseli kaydedin → RoK Profilini açın → Fotoğraf Albümü → Yükle.",
     "album_instructions_2": "• Albüm görselinizi tarayan valiler doğrudan Krallık Poligrafınıza ulaşır!",
-    "spenders_desc_nascent": "Seçilen zaman aralığında <highlight>500k+</highlight> güç kazanan valiler. <new>[YENİ GİRİŞ]</new> = Geç başlayan, acemi sıçrayıcı veya tarama derinliğine yükselen (yeni krallıklarda pasaport göçü kilitlidir).",
+    "spenders_desc_nascent": "Seçilen zaman aralığında <highlight>500k+</highlight> güç kazanan valiler. <new>[YENİ GİRİŞ]</new> = Üst sıralara fırladı veya geç başladı.",
     "badge_new_entry": "YENİ GİRİŞ",
-    "badge_new_entry_tooltip": "Taramada yeni (Geç başlangıç, acemi sıçrayıcı veya tarama dışından yükselen)",
+    "badge_new_entry_tooltip": "Üst sıralara fırladı veya geç başladı",
     "badge_migrant_tooltip": "Krallıklar arası pasaport göçmeni",
     "archetype_roster_emergence": "Kadroya Yükseliş",
     "archetype_emergence_megalodon": "Yükselen Megalodon",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Uyumlu Barış Dönemi",
     "causality_peace_desc": "İttifaklar arası askeri saldırı veya kuralsız sıfırlama tespit edilmedi. Tüm kayıplar kaynak tacizleri, tapınak muhafızları veya PVE etkinlikleriyle uyumludur.",
     "causality_power_trimming_title": "Göç Öncesi Stratejik Güç Budama",
-    "causality_power_trimming_desc": "Bu valiler, çatışmada hasar vermeden bilerek milyonlarca asker gücünü feda etti ve kayıp verdi. Düşmanca bir iç savaşın kurbanı DEĞİLLERDİR; göç sınırının (ör. 25M sınırı) altına inmek için kutsal alanlarda bilerek asker öldürdüler."
+    "causality_power_trimming_desc": "Bu valiler, çatışmada hasar vermeden bilerek milyonlarca asker gücünü feda etti ve kayıp verdi. Düşmanca bir iç savaşın kurbanı DEĞİLLERDİR; göç sınırının (ör. 25M sınırı) altına inmek için kutsal alanlarda bilerek asker öldürdüler.",
+    "tab_roster_flow": "Kadro Akışı",
+    "roster_flow_intel": "Kadro Akışı İstihbaratı",
+    "roster_new_entries": "Yeni Üst Sıra Girişleri",
+    "no_new_entries": "Yeni giriş tespit edilmedi.",
+    "roster_departed": "Tarama Derinliğinin Altına Düştü",
+    "no_roster_departures": "Ayrılan tespit edilmedi.",
+    "alliance_gravity_centers": "İttifak Çekim Merkezleri",
+    "new_entries_joined": "{count} yeni üst sıra üyesi katıldı"
   },
   "CompareTab": {
     "title": "Vali Karşılaştırma Çalışma Alanı",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Arketip eşikleri aktif krallığın tarama zirvesine göre dinamik olarak ölçeklenir; hem genç krallıkların (ör. 2. Gün) hem de Fetih Sezonu krallıklarının gerçekçi değerlendirilmesini sağlar."
   },
   "Tools": {
-    "spenders_desc_nascent": "Seçilen zaman aralığında <highlight>500k+</highlight> güç kazanan valiler. <new>[YENİ GİRİŞ]</new> = Geç başlayan, acemi sıçrayıcı veya tarama derinliğine yükselen (yeni krallıklarda pasaport göçü kilitlidir).",
+    "spenders_desc_nascent": "Seçilen zaman aralığında <highlight>500k+</highlight> güç kazanan valiler. <new>[YENİ GİRİŞ]</new> = Üst sıralara fırladı veya geç başladı.",
     "badge_new_entry": "YENİ GİRİŞ",
-    "badge_new_entry_tooltip": "Taramada yeni (Geç başlangıç, acemi sıçrayıcı veya tarama dışından yükselen)",
+    "badge_new_entry_tooltip": "Üst sıralara fırladı veya geç başladı",
     "badge_migrant_tooltip": "Krallıklar arası pasaport göçmeni",
     "archetype_roster_emergence": "Kadroya Yükseliş",
     "archetype_emergence_megalodon": "Yükselen Megalodon",

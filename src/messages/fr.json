@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode copié !",
     "album_instructions_1": "• Enregistrez l'image → Ouvrez Profil RoK → Album Photo → Importer.",
     "album_instructions_2": "• Les joueurs scannant votre avatar accèdent directement au Polygraphe de votre royaume !",
-    "spenders_desc_nascent": "Gouverneurs ayant gagné <highlight>500k+</highlight> de puissance sur la période choisie. <new>[NOUVELLE ENTRÉE]</new> = Démarrage tardif, sauteur débutant ou émergence dans le scan (la migration est verrouillée sur les serveurs naissants).",
+    "spenders_desc_nascent": "Gouverneurs ayant gagné <highlight>500k+</highlight> de puissance dans l'intervalle sélectionné. <new>[NOUVELLE ENTRÉE]</new> = Montée dans le top ou début tardif.",
     "badge_new_entry": "NOUVELLE ENTRÉE",
-    "badge_new_entry_tooltip": "Nouveau dans le scan (Début tardif, sauteur novice ou percée dans le classement)",
+    "badge_new_entry_tooltip": "Montée dans le top ou début tardif",
     "badge_migrant_tooltip": "Migrant par passeport inter-royaumes",
     "archetype_roster_emergence": "Émergence Roster",
     "archetype_emergence_megalodon": "Mégalodon Émergent",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Paix Harmonieuse",
     "causality_peace_desc": "Aucune frappe militaire inter-alliances ou anéantissement sauvage. Toutes les pertes correspondent au harcèlement de récolte, gardiens de sanctuaires ou activités PVE.",
     "causality_power_trimming_title": "Réduction Stratégique de Puissance Pré-Migration",
-    "causality_power_trimming_desc": "Ces gouverneurs ont délibérément sacrifié des millions de puissance de troupes sans infliger de dégâts. Ils n'étaient PAS victimes d'une guerre civile, mais ont fait mourir leurs troupes sur des sanctuaires pour passer sous le plafond d'immigration (ex. 25M)."
+    "causality_power_trimming_desc": "Ces gouverneurs ont délibérément sacrifié des millions de puissance de troupes sans infliger de dégâts. Ils n'étaient PAS victimes d'une guerre civile, mais ont fait mourir leurs troupes sur des sanctuaires pour passer sous le plafond d'immigration (ex. 25M).",
+    "tab_roster_flow": "Flux des Membres",
+    "roster_flow_intel": "Renseignement sur le Flux",
+    "roster_new_entries": "Nouvelles Entrées au Sommet",
+    "no_new_entries": "Aucune nouvelle entrée détectée.",
+    "roster_departed": "Passé sous le seuil de scan",
+    "no_roster_departures": "Aucun départ détecté.",
+    "alliance_gravity_centers": "Centres de Gravité d'Alliance",
+    "new_entries_joined": "{count} nouvelles entrées majeures ont rejoint"
   },
   "CompareTab": {
     "title": "Atelier de comparaison des gouverneurs",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Les seuils d'archétypes s'adaptent dynamiquement au pic du royaume actif, assurant une évaluation équitable pour les jeunes royaumes (ex: Jour 2) et les royaumes SoC."
   },
   "Tools": {
-    "spenders_desc_nascent": "Gouverneurs ayant gagné <highlight>500k+</highlight> de puissance sur la période choisie. <new>[NOUVELLE ENTRÉE]</new> = Démarrage tardif, sauteur débutant ou émergence dans le scan (la migration est verrouillée sur les serveurs naissants).",
+    "spenders_desc_nascent": "Gouverneurs ayant gagné <highlight>500k+</highlight> de puissance dans l'intervalle sélectionné. <new>[NOUVELLE ENTRÉE]</new> = Montée dans le top ou début tardif.",
     "badge_new_entry": "NOUVELLE ENTRÉE",
-    "badge_new_entry_tooltip": "Nouveau dans le scan (Début tardif, sauteur novice ou percée dans le classement)",
+    "badge_new_entry_tooltip": "Montée dans le top ou début tardif",
     "badge_migrant_tooltip": "Migrant par passeport inter-royaumes",
     "archetype_roster_emergence": "Émergence Roster",
     "archetype_emergence_megalodon": "Mégalodon Émergent",

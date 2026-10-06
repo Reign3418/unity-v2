@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode 已复制！",
     "album_instructions_1": "• 保存图片 → 打开万国觉醒个人资料 → 照片相册 → 点击上传。",
     "album_instructions_2": "• 执政官扫描相册中的战报卡二维码，即可直接进入本王国专属测谎仪页面！",
-    "spenders_desc_nascent": "在选定周期内实力增长 <highlight>50万+</highlight> 的执政官。<new>[新增收录]</new> = 较晚建号、新手跳板或冲入高位扫描深度（新王国严格锁定移民通行证）。",
+    "spenders_desc_nascent": "在选定时间窗口内战力提升 <highlight>500k+</highlight> 的执政官。<new>[新进榜]</new> = 战力突飞猛进冲入前列或后期起步。",
     "badge_new_entry": "新增收录",
-    "badge_new_entry_tooltip": "扫描新增（晚进服、新手迁城跳板或从未上榜跃升至榜单深度）",
+    "badge_new_entry_tooltip": "战力突飞猛进冲入前列或后期起步",
     "badge_migrant_tooltip": "跨王国移民通行证迁入",
     "archetype_roster_emergence": "黑马跃升",
     "archetype_emergence_megalodon": "跃升巨齿鲨大帝",
@@ -752,7 +752,15 @@
     "causality_peace_title": "和谐和平共处",
     "causality_peace_desc": "未检测到任何跨联盟交火或违规清零。所有阵亡记录均符合采集摩擦、圣地守护者清剿等常规 PVE 损耗。",
     "causality_power_trimming_title": "移民准入战略性压战力（自残送兵）",
-    "causality_power_trimming_desc": "这些执政官在无实质反击输出的情况下，主动牺牲数百万部队战力并承担高额阵亡。他们并非敌对内战的受害者，而是为了符合目标王国移民通行证战力红线（如 25M 封顶），在圣地守护者或关卡刻意自残削减战力。"
+    "causality_power_trimming_desc": "这些执政官在无实质反击输出的情况下，主动牺牲数百万部队战力并承担高额阵亡。他们并非敌对内战的受害者，而是为了符合目标王国移民通行证战力红线（如 25M 封顶），在圣地守护者或关卡刻意自残削减战力。",
+    "tab_roster_flow": "战力流动",
+    "roster_flow_intel": "战力流动情报",
+    "roster_new_entries": "新进榜高战",
+    "no_new_entries": "未检测到新进榜执政官。",
+    "roster_departed": "跌出扫描深度",
+    "no_roster_departures": "未检测到离开人员。",
+    "alliance_gravity_centers": "联盟引力中心",
+    "new_entries_joined": "{count} 位新进榜成员加入"
   },
   "CompareTab": {
     "title": "执政官对比工作台",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "原型判定阈值根据当前王国的实际活动峰值动态缩放，确保新王国（如第2天）与征服赛季王国均能获得符合其实际发展上限的公正评估。"
   },
   "Tools": {
-    "spenders_desc_nascent": "在选定周期内实力增长 <highlight>50万+</highlight> 的执政官。<new>[新增收录]</new> = 较晚建号、新手跳板或冲入高位扫描深度（新王国严格锁定移民通行证）。",
+    "spenders_desc_nascent": "在选定时间窗口内战力提升 <highlight>500k+</highlight> 的执政官。<new>[新进榜]</new> = 战力突飞猛进冲入前列或后期起步。",
     "badge_new_entry": "新增收录",
-    "badge_new_entry_tooltip": "扫描新增（晚进服、新手迁城跳板或从未上榜跃升至榜单深度）",
+    "badge_new_entry_tooltip": "战力突飞猛进冲入前列或后期起步",
     "badge_migrant_tooltip": "跨王国移民通行证迁入",
     "archetype_roster_emergence": "黑马跃升",
     "archetype_emergence_megalodon": "跃升巨齿鲨大帝",

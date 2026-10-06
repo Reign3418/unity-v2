@@ -720,9 +720,9 @@
     "bbcode_copied": "Đã sao chép BBCode!",
     "album_instructions_1": "• Lưu ảnh → Mở Hồ Sơ RoK → Album Ảnh → Tải Lên.",
     "album_instructions_2": "• Các thống đốc quét ảnh đại diện album sẽ được chuyển thẳng đến Máy Đo Đa Ký của vương quốc!",
-    "spenders_desc_nascent": "Thống đốc đã tăng <highlight>500k+</highlight> sức mạnh trong khoảng thời gian đã chọn. <new>[MỤC MỚI]</new> = Bắt đầu muộn, jumper tân thủ hoặc bứt phá vào độ sâu quét (di cư hộ chiếu bị khóa ở các máy chủ mới).",
+    "spenders_desc_nascent": "Thống đốc tăng thêm <highlight>500k+</highlight> lực chiến trong khoảng thời gian đã chọn. <new>[GIA NHẬP MỚI]</new> = Tăng vọt lên nhóm dẫn đầu hoặc bắt đầu muộn.",
     "badge_new_entry": "MỤC MỚI",
-    "badge_new_entry_tooltip": "Mới trong bản quét (Bắt đầu muộn, jumper mới hoặc bứt phá từ ngoài phạm vi)",
+    "badge_new_entry_tooltip": "Tăng vọt lên nhóm dẫn đầu hoặc bắt đầu muộn",
     "badge_migrant_tooltip": "Người di cư hộ chiếu liên vương quốc",
     "archetype_roster_emergence": "Đột Phá Danh Sách",
     "archetype_emergence_megalodon": "Megalodon Đột Phá",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Hòa Bình Ổn Định",
     "causality_peace_desc": "Không có cuộc tấn công quân sự liên minh hoặc thanh trừng nổi loạn nào. Mọi tổn thất lính đều khớp với va chạm mỏ tài nguyên, hộ vệ đền thánh hoặc PVE.",
     "causality_power_trimming_title": "Cắt Giảm Lực Chiến Chiến Lược Trước Di Cư",
-    "causality_power_trimming_desc": "Các thống đốc này đã chủ động hy sinh hàng triệu lực chiến lính và chịu tổn thất tử trận mà không gây sát thương giao tranh. Họ KHÔNG phải là nạn nhân của nội chiến, mà đã tự hủy lính vào đền thánh để hạ lực chiến xuống dưới mức trần nhập cư (ví dụ mốc 25M)."
+    "causality_power_trimming_desc": "Các thống đốc này đã chủ động hy sinh hàng triệu lực chiến lính và chịu tổn thất tử trận mà không gây sát thương giao tranh. Họ KHÔNG phải là nạn nhân của nội chiến, mà đã tự hủy lính vào đền thánh để hạ lực chiến xuống dưới mức trần nhập cư (ví dụ mốc 25M).",
+    "tab_roster_flow": "Dòng Nhân Sự",
+    "roster_flow_intel": "Tình Báo Dòng Nhân Sự",
+    "roster_new_entries": "Gia Nhập Hạng Đầu Mới",
+    "no_new_entries": "Không phát hiện gia nhập mới nào.",
+    "roster_departed": "Tụt Xuống Dưới Độ Sâu Quét",
+    "no_roster_departures": "Không phát hiện rời đi nào.",
+    "alliance_gravity_centers": "Trung Tâm Trọng Lực Liên Minh",
+    "new_entries_joined": "{count} thành viên tốp đầu mới đã gia nhập"
   },
   "CompareTab": {
     "title": "Bàn làm việc so sánh người chơi",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Ngưỡng hình mẫu thay đổi linh hoạt theo mức đỉnh của vương quốc đang chọn, đảm bảo vương quốc non trẻ (như Ngày 2) và vương quốc Mùa Chinh Phục đều được đánh giá chuẩn xác."
   },
   "Tools": {
-    "spenders_desc_nascent": "Thống đốc đã tăng <highlight>500k+</highlight> sức mạnh trong khoảng thời gian đã chọn. <new>[MỤC MỚI]</new> = Bắt đầu muộn, jumper tân thủ hoặc bứt phá vào độ sâu quét (di cư hộ chiếu bị khóa ở các máy chủ mới).",
+    "spenders_desc_nascent": "Thống đốc tăng thêm <highlight>500k+</highlight> lực chiến trong khoảng thời gian đã chọn. <new>[GIA NHẬP MỚI]</new> = Tăng vọt lên nhóm dẫn đầu hoặc bắt đầu muộn.",
     "badge_new_entry": "MỤC MỚI",
-    "badge_new_entry_tooltip": "Mới trong bản quét (Bắt đầu muộn, jumper mới hoặc bứt phá từ ngoài phạm vi)",
+    "badge_new_entry_tooltip": "Tăng vọt lên nhóm dẫn đầu hoặc bắt đầu muộn",
     "badge_migrant_tooltip": "Người di cư hộ chiếu liên vương quốc",
     "archetype_roster_emergence": "Đột Phá Danh Sách",
     "archetype_emergence_megalodon": "Megalodon Đột Phá",

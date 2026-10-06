@@ -550,6 +550,7 @@ ALLIANCE CHURN (top switchers):
 ${allianceSwitchers.slice(0, 8).map(s => `${s.name}: [${s.from}] → [${s.to}] | Power: ${(s.power/1000000).toFixed(1)}M`).join('\n')}
 `;
 
+        const isNascent = serverAgeDays !== null && serverAgeDays < 90;
         const aiPrompt = `You are J.A.R.V.I.S., a Rise of Kingdoms intelligence analyst. Perform an Early Kingdom Polygraph Test on Kingdom ${kd}.
 
 ${kingdomSummary}
@@ -558,10 +559,10 @@ CRITICAL KINGDOM AGE & ERA CONTEXT:
 This kingdom is ${serverAgeDays !== null ? `${serverAgeDays} days old in ${era}` : 'of uncalibrated age'}.
 - Evaluate their stability and growth specifically through the lens of this age and game stage. A young kingdom (<150 days) naturally grows rapidly from building/tech development; an older kingdom (>300 days) grows primarily through troop training and KvK pass wars.
 - Consider whether their velocity (${velocityRatio ? `${velocityRatio}% of historical daily pace` : 'standard'}) represents a mobilization surge, healthy peacetime growth, or stagnation.
-- NASCENT KINGDOM MIGRATION RULE: If serverAgeDays < 90 (especially < 10 days), cross-kingdom passport migration is strictly LOCKED by RoK game mechanics. Any new accounts are late starters, beginner teleport jumpers (CH 7 cap), or unranked players who surged into top scan depth — NEVER passport migrants. Do NOT claim players migrated from other kingdoms.
+- NASCENT KINGDOM RULE: If serverAgeDays < 90, this is an early foundation kingdom. Focus analysis purely on domestic velocity, alliance development, and internal stability. Do NOT discuss or analyze cross-kingdom migration.
 - CAUSAL COMBAT MATRIX & CIVIL WAR RULE: Use the verified incidents in the RoK Battle Wiki Causality findings above. If an Inter-Alliance Clash is identified, name the aggressor and victim alliances and specifically cite the zeroed victims and top strikers. If a Pre-Migration Power Trimming is detected, do NOT confuse it with a civil war victim.
 
-Assess stability, conflict patterns, and migration signals. Return ONLY raw JSON matching this exact schema:
+Assess stability, conflict patterns, and ${isNascent ? 'internal roster flow' : 'migration signals'}. Return ONLY raw JSON matching this exact schema:
 
 CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the language code: '${locale}' (e.g. if 'es' use Spanish, if 'ko' use Korean, if 'zh' use Chinese). Maintain the exact JSON keys in English, but translate ALL of the JSON string values into ${locale}.
 
@@ -572,13 +573,13 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
   "civilWarRationale": "1-2 sentences. Specifically explain what signals drove this civil war %. Reference alliance switching counts, deads delta, specific alliance KP/dead imbalances, or internal fractures observed.",
   "posture": "Peaceful Farming | Active Skirmishing | Civil War | Whale Surge | Rapid Expansion",
   "diagnosis": "2-3 sentences on overall kingdom health based on power vs deads ratio and growth pattern.",
-  "stabilityIndex": "1 sentence on roster churn, migration volume, and alliance switching.",
+  "stabilityIndex": "${isNascent ? '1 sentence on roster churn and alliance switching.' : '1 sentence on roster churn, migration volume, and alliance switching.'}",
   "economicIntel": "1 sentence analyzing the balance of troop power vs commander vs tech growth.",
   "conflictTheories": ["Deduce which alliances are fighting based on deads + troop drops. Be specific with alliance tags.", "Second theory if applicable."],
-  "followAnalysis": "1-2 sentences: Which alliances are attracting new migrants? Is there a gravitational center forming? Call out specific tags.",
+  "followAnalysis": "${isNascent ? '1-2 sentences: Which alliances are consolidating the top active player base? Is there a gravitational center forming? Call out specific tags.' : '1-2 sentences: Which alliances are attracting new migrants? Is there a gravitational center forming? Call out specific tags.'}",
   "leadershipAssessment": "1-2 sentences assessing influence structure based on BEHAVIORAL signals (operators, veterans, gravity centers). Do NOT assume power rank = leadership. Note if combat-active governors suggest an organized command structure vs a fragmented leaderless state.",
-  "migrantIntel": "1 sentence on what the arrivals and departures signal about this kingdom's reputation and trajectory.",
-  "recommendation": "One clear action sentence: is this kingdom worth migrating to, attacking, or avoiding?"
+  "migrantIntel": "${isNascent ? '1 sentence on internal roster flow and top rank emergence (do NOT mention passport migration).' : '1 sentence on what the arrivals and departures signal about the kingdom reputation and trajectory.'}",
+  "recommendation": "${isNascent ? 'One clear action sentence assessing kingdom foundation, alliance synergy, and future trajectory.' : 'One clear action sentence: is this kingdom worth migrating to, attacking, or avoiding?'}"
 }`;
 
         const customKey = req.headers.get('x-gemini-key');

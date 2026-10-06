@@ -975,55 +975,45 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     } else if (isT5Pushing) {
       archetypeKey = "archetype_t5_pushing";
       badgeColor = "text-violet-400 bg-violet-500/20 border-violet-500/40 shadow-[0_0_12px_rgba(139,92,246,0.25)]";
-    } else if (isEmergentEntry) {
-      if (pDelta >= 3000000) {
-        archetypeKey = "archetype_emergence_megalodon";
-        badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
-      } else {
-        archetypeKey = "archetype_roster_emergence";
-        badgeColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
-      }
-    } else if (w.isMigrant) {
+    } else if (w.isMigrant && !isYoungServer) {
       archetypeKey = "archetype_jumper";
       badgeColor = "text-blue-400 bg-blue-500/10 border-blue-500/30";
-    } else if (pDelta >= 3000000) {
-      archetypeKey = "archetype_megalodon";
-      badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
+    } else if (buildPct >= 45) {
+      archetypeKey = "archetype_ch_rusher";
+      badgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
     } else if (troopPct >= 45) {
       archetypeKey = "archetype_troop_rusher";
       badgeColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
     } else if (techPct >= 40) {
       archetypeKey = "archetype_tech_rusher";
       badgeColor = "text-violet-400 bg-violet-500/10 border-violet-500/30";
-    } else if (buildPct >= 40) {
-      archetypeKey = "archetype_ch_rusher";
-      badgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+    } else if (pDelta >= 3000000) {
+      archetypeKey = "archetype_megalodon";
+      badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
     }
 
     let rationale = "";
     const ageText = (serverAgeDays !== null && serverAgeDays !== undefined) ? `on Day ${serverAgeDays} of the kingdom` : "in this scan interval";
+    const breakdownText = (sumD > 0)
+      ? ` Roster distribution: ${troopPct}% Troops (+${fmt(troopD)}), ${techPct}% Tech (+${fmt(techD)}), ${buildPct}% Buildings (+${fmt(buildD)}).`
+      : "";
 
     if (isT5Eligible) {
       rationale = `T5 Sovereign Whale: Surpassed both the 22.3M Tech Floor and 14.8M Building Floor requirements. Unlocked or immediately eligible for Tier 5 legion recruitment, establishing dominant battlefield firepower.`;
     } else if (isT5Pushing) {
       rationale = `T5 Push in Progress: Actively sprinting towards the T5 threshold (${t5TechPct}% Tech / ${t5BuildPct}% Buildings). Fast-tracking prerequisite research and building upgrades indicates imminent Tier 5 unlock readiness.`;
-    } else if (isEmergentEntry) {
-      const breakdownText = (sumD > 0)
-        ? ` Roster distribution: ${troopPct}% Troops (+${fmt(troopD)}), ${techPct}% Tech (+${fmt(techD)}), ${buildPct}% Buildings (+${fmt(buildD)}).`
-        : "";
-      rationale = `Cross-kingdom passport migration is hard-locked in a ${serverAgeDays !== null && serverAgeDays !== undefined ? serverAgeDays : "young"}d-old nascent kingdom (passport migration unlocks only post-KvK 1). This governor did not immigrate from outside; they either started late (after Scan 1), emerged into the top scan depth from initial unranked obscurity, or landed via beginner teleport (CH 7 cap) before speed-rushing +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) in ${days * 24}h into [${w.alliance || "No Tag"}].${breakdownText}`;
-    } else if (w.isMigrant) {
+    } else if (w.isMigrant && !isYoungServer) {
       rationale = `Migrated into the kingdom during this window with ${fmt(w.powerEnd || pDelta)} power. Injects immediate external combat readiness and high-tier march capacity into [${w.alliance || "No Tag"}].`;
-    } else if (serverAgeDays !== null && serverAgeDays <= 7) {
-      rationale = `Gaining +${fmt(pDelta)} power in ${days * 24} hours (+${fmt(hourlyPace)}/hr) ${ageText} is mathematically impossible on baseline AP and free quest rewards. Generating this velocity requires extensive gem acceleration, VIP rank pushes, and premium bundles.`;
+    } else if (buildPct >= 45) {
+      rationale = `Surged +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}], heavily prioritizing City Hall & prerequisite structures (+${fmt(buildD)} building power, ${buildPct}% of delta). Fast-tracking base infrastructure and march capacity.${breakdownText}`;
     } else if (troopPct >= 45) {
-      rationale = `Surged +${fmt(troopD)} in troop power alone (${troopPct}% of delta), advancing at +${fmt(hourlyPace)} power/hr. Training this many battalions in ${days * 24}h requires dumping heavy reserves of training speedups and continuous gem-boosted queues.`;
+      rationale = `Surged +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}], expanding troop power alone by +${fmt(troopD)} (${troopPct}% of delta). Rapidly scaling military battalion count.${breakdownText}`;
     } else if (techPct >= 40) {
-      rationale = `Invested +${fmt(techD)} power into Military & Economic Technology (${techPct}% of delta). High-tier research carries multi-week timers; instant completion confirms significant universal speedup and resource reserves.`;
-    } else if (buildPct >= 40) {
-      rationale = `Fast-tracked City Hall & prerequisite defensive structures for +${fmt(buildD)} building power (${buildPct}% of delta). Bypassed standard real-time construction bottlenecks using targeted construction speedups.`;
+      rationale = `Invested heavily into Military and Economic Technology (+${fmt(techD)} power, ${techPct}% of delta), advancing at +${fmt(hourlyPace)} power/hr into [${w.alliance || "No Tag"}]. Fast-tracking research timers.${breakdownText}`;
+    } else if (pDelta >= 3000000) {
+      rationale = `High-velocity surge of +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}], accelerating across buildings, tech, and troop queues. Establishing dominant early kingdom presence.${breakdownText}`;
     } else {
-      rationale = `Sustained aggressive multi-vector acceleration (+${fmt(hourlyPace)} power/hr pace) distributed across troops (+${fmt(troopD)}), tech (+${fmt(techD)}), and buildings (+${fmt(buildD)}). Growth velocity exceeds standard peacetime pace by more than 5x.`;
+      rationale = `Sustained multi-vector acceleration (+${fmt(hourlyPace)} power/hr pace) distributed across troops (+${fmt(troopD)}), tech (+${fmt(techD)}), and buildings (+${fmt(buildD)}). Growth velocity exceeds standard peacetime pace by more than 5x.`;
     }
 
     return {
@@ -1407,7 +1397,7 @@ export function CombatCausalityCard({ combatCausality, serverAgeDays, t }) {
       )}
 
       {/* Pre-Migration Power Trimming Callout */}
-      {powerCutMigrants.length > 0 && (
+      {(serverAgeDays === null || serverAgeDays >= 90) && powerCutMigrants.length > 0 && (
         <div className="bg-[#121520] border border-cyan-500/30 rounded-lg p-3.5 space-y-2">
           <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1.5">
             <Shield size={12} className="text-cyan-400" />

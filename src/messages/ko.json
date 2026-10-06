@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode 복사 완료!",
     "album_instructions_1": "• 이미지 저장 → RoK 프로필 열기 → 사진 앨범 → 업로드.",
     "album_instructions_2": "• 앨범 아바타를 스캔한 지도자는 즉시 왕국 폴리그래프로 직행합니다!",
-    "spenders_desc_nascent": "선택한 기간 동안 <highlight>50만+</highlight> 전투력을 획득한 지도자입니다. <new>[새 진입]</new> = 늦은 시작, 초보자 점퍼, 또는 스캔 상위권 진입 (신규 서버에서는 여권 이민이 잠겨 있습니다).",
+    "spenders_desc_nascent": "선택된 기간 동안 전투력 <highlight>500k+</highlight> 이상을 획득한 지도자입니다. <new>[신규 진입]</new> = 상위권 급상승 또는 늦게 시작한 유저.",
     "badge_new_entry": "새 진입",
-    "badge_new_entry_tooltip": "스캔 신규 진입 (늦은 시작, 초보 점퍼 또는 초기 스캔 범위 밖에서 급상승)",
+    "badge_new_entry_tooltip": "상위권 급상승 또는 늦게 시작한 유저",
     "badge_migrant_tooltip": "여권 왕국 간 이민자",
     "archetype_roster_emergence": "로스터 급부상",
     "archetype_emergence_megalodon": "급부상 메갈로돈",
@@ -752,7 +752,15 @@
     "causality_peace_title": "화합된 평화 상태",
     "causality_peace_desc": "연맹 간 무력 충돌이나 반역자 처형이 발생하지 않았습니다. 기록된 전사자는 채집 견제, 성지 수호자 사냥 또는 PVE 활동과 일치합니다.",
     "causality_power_trimming_title": "이민 조건 충족을 위한 전략적 투력 감축",
-    "causality_power_trimming_desc": "해당 집정관들은 적에게 피해를 입히지 않고 의도적으로 대규모 병력을 소모하여 전사자를 냈습니다. 이는 적대적 내전의 피해자가 아니며, 목표 왕국의 이민 허용 상한(예: 25M 투력 제한) 이하로 낮추기 위해 성지나 관문에 병력을 자진 소모한 전략적 감축입니다."
+    "causality_power_trimming_desc": "해당 집정관들은 적에게 피해를 입히지 않고 의도적으로 대규모 병력을 소모하여 전사자를 냈습니다. 이는 적대적 내전의 피해자가 아니며, 목표 왕국의 이민 허용 상한(예: 25M 투력 제한) 이하로 낮추기 위해 성지나 관문에 병력을 자진 소모한 전략적 감축입니다.",
+    "tab_roster_flow": "명부 변동",
+    "roster_flow_intel": "명부 변동 정보",
+    "roster_new_entries": "신규 상위 진입자",
+    "no_new_entries": "감지된 신규 진입자가 없습니다.",
+    "roster_departed": "스캔 범위 이하로 하락",
+    "no_roster_departures": "감지된 이탈자가 없습니다.",
+    "alliance_gravity_centers": "연맹 중력 중심",
+    "new_entries_joined": "신규 상위 진입자 {count}명 합류"
   },
   "CompareTab": {
     "title": "총사령관 비교 분석",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "아키타입 기준선은 활성 왕국의 최고 기록을 바탕으로 유동적으로 스케일링되어, 신생 서버(2일차 등)부터 정복의 시즌 서버까지 각 발달 단계에 맞게 정확히 평가됩니다."
   },
   "Tools": {
-    "spenders_desc_nascent": "선택한 기간 동안 <highlight>50만+</highlight> 전투력을 획득한 지도자입니다. <new>[새 진입]</new> = 늦은 시작, 초보자 점퍼, 또는 스캔 상위권 진입 (신규 서버에서는 여권 이민이 잠겨 있습니다).",
+    "spenders_desc_nascent": "선택된 기간 동안 전투력 <highlight>500k+</highlight> 이상을 획득한 지도자입니다. <new>[신규 진입]</new> = 상위권 급상승 또는 늦게 시작한 유저.",
     "badge_new_entry": "새 진입",
-    "badge_new_entry_tooltip": "스캔 신규 진입 (늦은 시작, 초보 점퍼 또는 초기 스캔 범위 밖에서 급상승)",
+    "badge_new_entry_tooltip": "상위권 급상승 또는 늦게 시작한 유저",
     "badge_migrant_tooltip": "여권 왕국 간 이민자",
     "archetype_roster_emergence": "로스터 급부상",
     "archetype_emergence_megalodon": "급부상 메갈로돈",

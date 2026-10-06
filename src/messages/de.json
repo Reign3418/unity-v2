@@ -720,9 +720,9 @@
     "bbcode_copied": "BBCode kopiert!",
     "album_instructions_1": "• Bild speichern → RoK-Profil öffnen → Fotoalbum → Hochladen.",
     "album_instructions_2": "• Spieler, die das Bild scannen, landen direkt im Polygraph Ihres Königreichs!",
-    "spenders_desc_nascent": "Statthalter mit einem Zuwachs von <highlight>500k+</highlight> Macht im gewählten Zeitraum. <new>[NEUER EINTRAG]</new> = Spätzünder, Anfänger-Jumper oder Aufsteiger in die Scan-Tiefe (Pass-Migration ist in neuen Königreichen gesperrt).",
+    "spenders_desc_nascent": "Statthalter, die im ausgewählten Zeitfenster <highlight>500k+</highlight> Macht gewonnen haben. <new>[NEUER EINTRAG]</new> = In die Spitzenränge aufgestiegen oder Spätzünder.",
     "badge_new_entry": "NEUER EINTRAG",
-    "badge_new_entry_tooltip": "Neu im Scan (Später Start, Anfänger-Jumper oder Aufstieg aus geringer Tiefe)",
+    "badge_new_entry_tooltip": "In die Spitzenränge aufgestiegen oder Spätzünder",
     "badge_migrant_tooltip": "Königreich-übergreifender Pass-Migrant",
     "archetype_roster_emergence": "Kader-Aufsteiger",
     "archetype_emergence_megalodon": "Aufsteiger-Megalodon",
@@ -752,7 +752,15 @@
     "causality_peace_title": "Harmonische Friedenszeit",
     "causality_peace_desc": "Keine Angriffe zwischen Allianzen oder unautorisierte Angriffe festgestellt. Sämtliche Verluste entsprechen Ressourcenüberfällen, Wächtern an heiligen Stätten oder PVE-Kämpfen.",
     "causality_power_trimming_title": "Strategische Machtreduzierung vor Migration",
-    "causality_power_trimming_desc": "Diese Gouverneure haben gezielt Millionen an Truppenmacht geopfert und hohe Verluste erlitten, ohne nennenswerten Schaden auszuteilen. Sie waren KEINE Opfer eines feindlichen Bürgerkriegs, sondern ließen Truppen an heiligen Stätten verbluten, um unter die Migrationsgrenze (z. B. 25M) zu gelangen."
+    "causality_power_trimming_desc": "Diese Gouverneure haben gezielt Millionen an Truppenmacht geopfert und hohe Verluste erlitten, ohne nennenswerten Schaden auszuteilen. Sie waren KEINE Opfer eines feindlichen Bürgerkriegs, sondern ließen Truppen an heiligen Stätten verbluten, um unter die Migrationsgrenze (z. B. 25M) zu gelangen.",
+    "tab_roster_flow": "Kader-Fluss",
+    "roster_flow_intel": "Kader-Fluss Aufklärung",
+    "roster_new_entries": "Neue Spitzen-Einträge",
+    "no_new_entries": "Keine neuen Einträge erkannt.",
+    "roster_departed": "Unter Scan-Tiefe gefallen",
+    "no_roster_departures": "Keine Abgänge erkannt.",
+    "alliance_gravity_centers": "Allianz-Gravitationszentren",
+    "new_entries_joined": "{count} neue Spitzeneinträge beigetreten"
   },
   "CompareTab": {
     "title": "Spielervergleich",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Schwellenwerte für Archetypen skalieren dynamisch mit dem Spitzenwert des Königreichs, sodass junge Reiche (z. B. Tag 2) und SoC-Reiche realistisch bewertet werden."
   },
   "Tools": {
-    "spenders_desc_nascent": "Statthalter mit einem Zuwachs von <highlight>500k+</highlight> Macht im gewählten Zeitraum. <new>[NEUER EINTRAG]</new> = Spätzünder, Anfänger-Jumper oder Aufsteiger in die Scan-Tiefe (Pass-Migration ist in neuen Königreichen gesperrt).",
+    "spenders_desc_nascent": "Statthalter, die im ausgewählten Zeitfenster <highlight>500k+</highlight> Macht gewonnen haben. <new>[NEUER EINTRAG]</new> = In die Spitzenränge aufgestiegen oder Spätzünder.",
     "badge_new_entry": "NEUER EINTRAG",
-    "badge_new_entry_tooltip": "Neu im Scan (Später Start, Anfänger-Jumper oder Aufstieg aus geringer Tiefe)",
+    "badge_new_entry_tooltip": "In die Spitzenränge aufgestiegen oder Spätzünder",
     "badge_migrant_tooltip": "Königreich-übergreifender Pass-Migrant",
     "archetype_roster_emergence": "Kader-Aufsteiger",
     "archetype_emergence_megalodon": "Aufsteiger-Megalodon",

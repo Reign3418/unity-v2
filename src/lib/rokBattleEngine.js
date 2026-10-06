@@ -151,13 +151,12 @@ export function analyzeCombatCausality(roster = [], allianceMap = {}, serverAgeD
 
         // Casualty candidate: took heavy deads or shed large power with deads
         if (deadsDelta >= minZeroedDeads || (pDelta <= minZeroedPowerDrop && deadsDelta >= 15000)) {
-            // Check if this matches a Migration Power Cut:
-            // High deads + power shed to drop near/under standard migration threshold (25M or seed line)
-            // with very low KP trade (they didn't fight back, they suicided troops into flags/passes/sites)
-            const droppedBelowMigrationCap = powerStart >= 24000000 && power <= 25500000;
+            // Check if this matches a Migration Power Cut (only relevant for mature servers >=90d):
+            const canMigrate = serverAgeDays === null || serverAgeDays >= 90;
+            const droppedBelowMigrationCap = canMigrate && powerStart >= 24000000 && power <= 25500000;
             const pureSuicideRatio = kpDelta < (deadsDelta * 2); // almost no KP return
 
-            if ((droppedBelowMigrationCap || pDelta <= -5000000) && pureSuicideRatio) {
+            if (canMigrate && (droppedBelowMigrationCap || pDelta <= -5000000) && pureSuicideRatio) {
                 powerCutCandidates.push({
                     id: gov.id,
                     name: gov.name,
@@ -318,12 +317,12 @@ export function buildRoKBattleWikiPromptContext({ kd, serverAgeDays, era, causal
     const age = serverAgeDays !== null && serverAgeDays !== undefined ? serverAgeDays : 'Uncalibrated';
     const days = Math.max(1, windowDays || 1);
 
+    const isYoung = serverAgeDays !== null && serverAgeDays < 90;
+
     // Age-specific wiki rules
     let eraRule = '';
-    if (serverAgeDays !== null && serverAgeDays < 10) {
-        eraRule = 'IMMUTABLE RULE: Nascent server (<10d). Cross-kingdom passport migration is 100% mechanically LOCKED. Any "new" accounts are fresh spawns, late starters, or beginner jumpers (CH 7 cap). NEVER claim external passport migration.';
-    } else if (serverAgeDays !== null && serverAgeDays < 90) {
-        eraRule = 'IMMUTABLE RULE: Early pre-KvK kingdom. Cross-kingdom migration is tightly capped (max 25M power without special permit). PVE Holy Site guardian contests generate deads without matching PVP KP.';
+    if (isYoung) {
+        eraRule = 'IMMUTABLE RULE: Nascent foundation kingdom (<90d). Focus analysis strictly on domestic power growth, alliance building, and internal stability. Do NOT mention cross-kingdom migration.';
     } else if (serverAgeDays !== null && serverAgeDays < 180) {
         eraRule = 'IMMUTABLE RULE: KvK 1 Era. High command focuses on kingdom unification. Civil war threatens KvK qualification and Seed seeding.';
     } else {
@@ -349,10 +348,10 @@ export function buildRoKBattleWikiPromptContext({ kd, serverAgeDays, era, causal
         }).join('\n');
     }
 
-    // Power-cut migration summary
-    let powerCutWiki = 'None detected.';
-    if (causality?.powerCutMigrants?.length > 0) {
-        powerCutWiki = causality.powerCutMigrants.map(p => `${p.name} [${p.alliance}]: ${p.reason}`).join('\n');
+    // Power-cut migration summary (only for mature kingdoms)
+    let powerCutWiki = '';
+    if (!isYoung && causality?.powerCutMigrants?.length > 0) {
+        powerCutWiki = `\n- PRE-MIGRATION POWER TRIMMING (STRATEGIC SELF-ZERO):\n${causality.powerCutMigrants.map(p => `${p.name} [${p.alliance}]: ${p.reason}`).join('\n')}`;
     }
 
     return `
@@ -361,9 +360,7 @@ export function buildRoKBattleWikiPromptContext({ kd, serverAgeDays, era, causal
 - DOMAIN ERA RULE: ${eraRule}
 - T5 PUSH RADAR: ${t5Wiki}
 - CAUSAL COMBAT MATRIX ("WHO ATTACKED WHO"):
-${combatWiki}
-- PRE-MIGRATION POWER TRIMMING (STRATEGIC SELF-ZERO):
-${powerCutWiki}
+${combatWiki}${powerCutWiki}
 ================================================
 `;
 }

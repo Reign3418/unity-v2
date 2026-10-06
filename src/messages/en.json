@@ -753,9 +753,9 @@
     "bbcode_copied": "Copied BBCode!",
     "album_instructions_1": "• Save image → Open RoK Profile → Photo Album → Upload.",
     "album_instructions_2": "• Players scanning your album avatar arrive directly at your Kingdom's Polygraph!",
-    "spenders_desc_nascent": "Governors who gained <highlight>500k+</highlight> power in the selected window. <new>[NEW ENTRY]</new> = Late starter, beginner jumper, or emerged into top scan depth (passport migration is locked in nascent servers).",
+    "spenders_desc_nascent": "Governors who gained <highlight>500k+</highlight> power in the selected window. <new>[NEW ENTRY]</new> = Surged into top rankings or late starter.",
     "badge_new_entry": "NEW ENTRY",
-    "badge_new_entry_tooltip": "New to scan (Late starter, beginner jumper, or emerged from initial scan depth)",
+    "badge_new_entry_tooltip": "Surged into top rankings or late starter",
     "badge_migrant_tooltip": "Cross-kingdom passport migrant",
     "archetype_roster_emergence": "Roster Emergence",
     "archetype_emergence_megalodon": "Emergence Megalodon",
@@ -785,7 +785,15 @@
     "causality_peace_title": "Harmonious Peacetime",
     "causality_peace_desc": "Zero inter-alliance military strikes or rogue zeroings detected. All registered troop attrition matches peaceful gathering harassment, holy site guardians, or PVE activities.",
     "causality_power_trimming_title": "Strategic Pre-Migration Power Trimming",
-    "causality_power_trimming_desc": "These governors intentionally shed millions in troop power and took heavy deads without dealing combat damage. They were NOT victims of a hostile civil war assault; they sacrificed troops on holy sites or neutral passes to lower their power below immigration passport caps (e.g. 25M cap)."
+    "causality_power_trimming_desc": "These governors intentionally shed millions in troop power and took heavy deads without dealing combat damage. They were NOT victims of a hostile civil war assault; they sacrificed troops on holy sites or neutral passes to lower their power below immigration passport caps (e.g. 25M cap).",
+    "tab_roster_flow": "Roster Flow",
+    "roster_flow_intel": "Roster Flow Intel",
+    "roster_new_entries": "New Top-Rank Entries",
+    "no_new_entries": "No new entries detected.",
+    "roster_departed": "Dropped Below Scan Depth",
+    "no_roster_departures": "No departures detected.",
+    "alliance_gravity_centers": "Alliance Gravity Centers",
+    "new_entries_joined": "{count} new top entries joined"
   },
   "Landing": {
     "nav_city_hall": "City Hall Rush",
@@ -1382,9 +1390,9 @@
     "era_dynamic_desc": "Archetype thresholds scale dynamically against the active kingdom's scan peak, ensuring young kingdoms (e.g. Day 2) and mature SoC kingdoms are evaluated against their realistic developmental ceiling."
   },
   "Tools": {
-    "spenders_desc_nascent": "Governors who gained <highlight>500k+</highlight> power in the selected window. <new>[NEW ENTRY]</new> = Late starter, beginner jumper, or emerged into top scan depth (passport migration is locked in nascent servers).",
+    "spenders_desc_nascent": "Governors who gained <highlight>500k+</highlight> power in the selected window. <new>[NEW ENTRY]</new> = Surged into top rankings or late starter.",
     "badge_new_entry": "NEW ENTRY",
-    "badge_new_entry_tooltip": "New to scan (Late starter, beginner jumper, or emerged from initial scan depth)",
+    "badge_new_entry_tooltip": "Surged into top rankings or late starter",
     "badge_migrant_tooltip": "Cross-kingdom passport migrant",
     "archetype_roster_emergence": "Roster Emergence",
     "archetype_emergence_megalodon": "Emergence Megalodon",

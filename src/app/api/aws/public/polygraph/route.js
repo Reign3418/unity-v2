@@ -482,6 +482,7 @@ ALLIANCE CHURN (top switchers):
 ${allianceSwitchers.slice(0, 8).map(s => `${s.name}: [${s.from}] → [${s.to}] | Power: ${(s.power/1000000).toFixed(1)}M`).join('\n')}
 `;
 
+        const isNascent = serverAgeDays !== null && serverAgeDays < 90;
         const aiPrompt = `You are J.A.R.V.I.S., a Rise of Kingdoms intelligence analyst. Perform an Early Kingdom Polygraph Test on Kingdom ${kd}.
 ${kingdomSummary}
 
@@ -489,10 +490,10 @@ CRITICAL KINGDOM AGE & ERA CONTEXT:
 This kingdom is ${serverAgeDays !== null ? `${serverAgeDays} days old in ${era}` : 'of uncalibrated age'}.
 - Evaluate their stability and growth specifically through the lens of this age and game stage. A young kingdom (<150 days) naturally grows rapidly from building/tech development; an older kingdom (>300 days) grows primarily through troop training and KvK pass wars.
 - Consider whether their velocity (${velocityRatio ? `${velocityRatio}% of historical daily pace` : 'standard'}) represents a mobilization surge, healthy peacetime growth, or stagnation.
-- NASCENT KINGDOM MIGRATION RULE: If serverAgeDays < 90 (especially < 10 days), cross-kingdom passport migration is strictly LOCKED by RoK game mechanics. Any new accounts are late starters, beginner teleport jumpers (CH 7 cap), or unranked players who surged into top scan depth — NEVER passport migrants. Do NOT claim players migrated from other kingdoms.
+- NASCENT KINGDOM RULE: If serverAgeDays < 90, this is an early foundation kingdom. Focus analysis purely on domestic velocity, alliance development, and internal stability. Do NOT discuss or analyze cross-kingdom migration.
 - CAUSAL COMBAT MATRIX & CIVIL WAR RULE: Use the verified incidents in the RoK Battle Wiki Causality findings above. If an Inter-Alliance Clash is identified, name the aggressor and victim alliances and specifically cite the zeroed victims and top strikers. If a Pre-Migration Power Trimming is detected, do NOT confuse it with a civil war victim.
 
-Assess stability, conflict patterns, and migration signals. Return ONLY raw JSON.
+Assess stability, conflict patterns, and ${isNascent ? 'internal roster flow' : 'migration signals'}. Return ONLY raw JSON.
 CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${locale}'.
 {
   "grade": "A|B|C|D|F",
@@ -504,10 +505,10 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
   "stabilityIndex": "1 sentence on roster churn and switching.",
   "economicIntel": "1 sentence on troop vs commander vs tech balance.",
   "conflictTheories": ["Theory 1 with specific alliance tags.", "Theory 2 if applicable."],
-  "followAnalysis": "1-2 sentences on alliance gravity centers.",
+  "followAnalysis": "${isNascent ? '1-2 sentences on alliance consolidation and player gravity centers.' : '1-2 sentences on alliance gravity centers.'}",
   "leadershipAssessment": "1-2 sentences on behavioral influence signals.",
-  "migrantIntel": "1 sentence on migration trajectory.",
-  "recommendation": "One action sentence: migrate, attack, or avoid?"
+  "migrantIntel": "${isNascent ? '1 sentence on internal roster flow and top rank emergence (do NOT mention passport migration).' : '1 sentence on migration trajectory.'}",
+  "recommendation": "${isNascent ? 'One action sentence on kingdom foundation, alliance synergy, and outlook.' : 'One action sentence: migrate, attack, or avoid?'}"
 }`;
 
         const customKey = req.headers.get('x-gemini-key');
