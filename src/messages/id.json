@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "Tidak ada kerajaan yang cocok dengan \"#{query}\"",
     "error_saving": "Gagal menyimpan kalibrasi kerajaan",
     "scan_error": "Tidak dapat membaca info kerajaan dari gambar."
+  },
+  "Archetypes": {
+    "title": "Arketipe Gubernur",
+    "modal_title": "Matriks & Kodeks Arketipe Gubernur",
+    "modal_subtitle": "Klasifikasi perilaku relatif terhadap aktivitas pemindaian kerajaan",
+    "col_header": "Arketipe",
+    "header_tooltip": "Klik untuk melihat definisi dan kriteria lengkap arketipe",
+    "window_note": "Dikalibrasi berdasarkan puncak output Kerajaan {kd} pada rentang pindai ini ({age}h).",
+    "brawler_name": "Brawler",
+    "brawler_desc": "Perolehan Kill Point tinggi dengan korban mati minimal/rendah. Petarung medan terbuka yang efisien bertukar kill.",
+    "brawler_trigger": "KP Tinggi (≥40% batas rentang), Gugur Rendah/Sedang",
+    "grower_name": "Grower",
+    "grower_desc": "Pertumbuhan kekuatan positif yang kuat pada bangunan, riset, atau pasukan di masa damai untuk persiapan perang.",
+    "grower_trigger": "Δ Kekuatan > 0 dengan korban tempur rendah",
+    "warrior_name": "Warrior",
+    "warrior_desc": "Kill Point tinggi disertai korban gugur yang berat. Pemimpin reli dan garda pertahanan garis depan.",
+    "warrior_trigger": "KP Tinggi (≥40% batas) & Gugur Tinggi (≥40% batas)",
+    "meatshield_name": "Meatshield",
+    "meatshield_desc": "Banyak menelan korban gugur demi melindungi struktur kerajaan dan mengisi reli/garnisun, dengan KP pribadi rendah.",
+    "meatshield_trigger": "Gugur Tinggi (≥40% batas), KP Rendah",
+    "harvester_name": "Harvester",
+    "harvester_desc": "Kecepatan mengumpulkan sumber daya tingkat atas. Penggerak ekonomi penyedia logistik dan biaya sembuh.",
+    "harvester_trigger": "Pengumpulan Tinggi (≥50% batas rentang)",
+    "casual_name": "Casual",
+    "casual_desc": "Pertumbuhan minimal atau mandek di seluruh kategori kekuatan, tempur, dan ekonomi. Akun dorman atau santai.",
+    "casual_trigger": "Delta kekuatan, tempur, dan ekonomi di bawah ambang batas",
+    "era_dynamic_label": "Dinamika Usia Server",
+    "era_dynamic_desc": "Ambang batas arketipe diskalakan secara dinamis mengikuti puncak kerajaan aktif, memastikan kerajaan baru (cth. Hari ke-2) dan SoC dinilai secara realistis."
   }
 }

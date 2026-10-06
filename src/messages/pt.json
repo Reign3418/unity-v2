@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "Nenhum reino encontrado para \"#{query}\"",
     "error_saving": "Erro ao salvar a calibração do reino",
     "scan_error": "Não foi possível ler as informações do reino na imagem."
+  },
+  "Archetypes": {
+    "title": "Arquétipos de Governador",
+    "modal_title": "Matriz e Códice de Arquétipos de Governador",
+    "modal_subtitle": "Classificação comportamental relativa à atividade de escaneamento do reino",
+    "col_header": "Arquétipo",
+    "header_tooltip": "Clique para ver todas as definições e critérios de arquétipos",
+    "window_note": "Calibrado contra o pico de produção do Reino {kd} neste intervalo ({age}d).",
+    "brawler_name": "Lutador (Brawler)",
+    "brawler_desc": "Alto ganho de Kill Points com baixas mínimas ou leves. Combatentes de campo aberto que trocam eliminações eficientemente.",
+    "brawler_trigger": "KP Alto (≥40% do teto do intervalo), Baixas baixas/moderadas",
+    "grower_name": "Construtor (Grower)",
+    "grower_desc": "Forte aceleração de poder em edifícios, tecnologia ou tropas em tempos de paz, preparando-se para guerras futuras.",
+    "grower_trigger": "Poder Δ > 0 com baixas de combate baixas",
+    "warrior_name": "Guerreiro (Warrior)",
+    "warrior_desc": "Altos Kill Points combinados com pesadas perdas de tropas mortas. Líderes de rali e defensores de guarnição.",
+    "warrior_trigger": "KP Alto (≥40% do teto) & Mortes Altas (≥40% do teto)",
+    "meatshield_name": "Escudo Vivo (Meatshield)",
+    "meatshield_desc": "Altas perdas de tropas absorvidas para proteger estruturas do reino e encher ralis/guarnições, com KP individual baixo.",
+    "meatshield_trigger": "Mortes Altas (≥40% do teto), KP Baixo",
+    "harvester_name": "Colhedor (Harvester)",
+    "harvester_desc": "Ritmo superior de coleta de recursos. Motores econômicos financiando curas, passagens e cofres de guerra do reino.",
+    "harvester_trigger": "Coleta Alta (≥50% do teto do intervalo)",
+    "casual_name": "Casual",
+    "casual_desc": "Crescimento mínimo ou estagnado em poder, combate e recursos durante este período. Conta de manutenção ou dormente.",
+    "casual_trigger": "Deltas de poder, combate e economia abaixo do limite",
+    "era_dynamic_label": "Dinâmica de Idade do Servidor",
+    "era_dynamic_desc": "Os limites dos arquétipos ajustam-se dinamicamente ao pico do reino ativo, garantindo avaliações realistas tanto para reinos jovens (ex: Dia 2) quanto para o SoC."
   }
 }

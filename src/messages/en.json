@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "No kingdoms found matching \"#{query}\"",
     "error_saving": "Error saving kingdom calibration",
     "scan_error": "Could not read Kingdom Info from image. Please ensure the screenshot clearly displays the Kingdom Info popup."
+  },
+  "Archetypes": {
+    "title": "Governor Archetypes",
+    "modal_title": "Governor Archetype Matrix & Codex",
+    "modal_subtitle": "Behavioral classification relative to Kingdom scan activity",
+    "col_header": "Archetype",
+    "header_tooltip": "Click to view full Archetype definitions & criteria",
+    "window_note": "Calibrated against Kingdom {kd}'s peak output in this scan window ({age}d).",
+    "brawler_name": "Brawler",
+    "brawler_desc": "Heavy Kill Point acquisition with minimal/low casualties. Open-field skirmishers who trade kills efficiently.",
+    "brawler_trigger": "High KP (≥40% interval ceiling), Low/Moderate Deads",
+    "grower_name": "Grower",
+    "grower_desc": "Strong positive power acceleration across building, tech, or troops during peacetime, preparing for future war stages.",
+    "grower_trigger": "Power Δ > 0 with low combat casualties",
+    "warrior_name": "Warrior",
+    "warrior_desc": "High Kill Points paired with heavy dead casualties. Frontline fighters, rally leaders, and garrison defenders.",
+    "warrior_trigger": "High KP (≥40% ceiling) & High Deads (≥40% ceiling)",
+    "meatshield_name": "Meatshield",
+    "meatshield_desc": "High dead troop casualties absorbed to protect kingdom assets and fill rallies/garrisons, with low individual KP.",
+    "meatshield_trigger": "High Deads (≥40% ceiling), Low KP",
+    "harvester_name": "Harvester",
+    "harvester_desc": "Top-tier resource gathering pace. Economic engines funding kingdom healing, passes, and war chests.",
+    "harvester_trigger": "High Gathering (≥50% interval ceiling)",
+    "casual_name": "Casual",
+    "casual_desc": "Minimal or stagnant power, combat, and resource growth across this interval. Maintenance or dormant status.",
+    "casual_trigger": "Sub-threshold power, combat, and economy deltas",
+    "era_dynamic_label": "Server Age Dynamic",
+    "era_dynamic_desc": "Archetype thresholds scale dynamically against the active kingdom's scan peak, ensuring young kingdoms (e.g. Day 2) and mature SoC kingdoms are evaluated against their realistic developmental ceiling."
   }
 }

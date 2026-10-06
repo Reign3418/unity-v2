@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "\"#{query}\" ile eşleşen krallık bulunamadı",
     "error_saving": "Kalibrasyon kaydedilirken hata oluştu",
     "scan_error": "Görüntüden krallık bilgisi okunamadı."
+  },
+  "Archetypes": {
+    "title": "Vali Arketipleri",
+    "modal_title": "Vali Arketip Matrisi ve El Kitabı",
+    "modal_subtitle": "Krallık tarama aktivitesine dayalı davranışsal sınıflandırma",
+    "col_header": "Arketip",
+    "header_tooltip": "Arketip tanımlarını ve kriterlerini görmek için tıklayın",
+    "window_note": "Bu tarama aralığında Krallık {kd}'nin zirve çıktısına göre kalibre edilmiştir ({age}g).",
+    "brawler_name": "Brawler (Meydan Dövüşçüsü)",
+    "brawler_desc": "Minimum veya düşük kayıplarla yüksek Öldürme Puanı kazancı. Açık alanda etkili takas yapan savaşçılar.",
+    "brawler_trigger": "Yüksek KP (Aralık tavanının ≥%40'ı), Düşük/Orta Ölüler",
+    "grower_name": "Grower (Gelişici)",
+    "grower_desc": "Barış döneminde bina, teknoloji veya birliklerde güçlü pozitif güç artışı sağlayarak gelecekteki savaşlara hazırlık.",
+    "grower_trigger": "Düşük savaş kayıplarıyla Güç Δ > 0",
+    "warrior_name": "Warrior (Savaşçı)",
+    "warrior_desc": "Ağır ölü birlik kayıplarıyla eşleşen yüksek Öldürme Puanları. Ön cephe savaşçıları, ralli liderleri ve garnizon muhafızları.",
+    "warrior_trigger": "Yüksek KP (Tavanın ≥%40'ı) & Yüksek Ölüler (Tavanın ≥%40'ı)",
+    "meatshield_name": "Meatshield (Et Kalkanı)",
+    "meatshield_desc": "Krallık yapılarını korumak ve rallileri/garnizonları doldurmak için ağır ölü kayıpları üstlenen, bireysel KP'si düşük fedakarlar.",
+    "meatshield_trigger": "Yüksek Ölüler (Tavanın ≥%40'ı), Düşük KP",
+    "harvester_name": "Harvester (Hasatçı)",
+    "harvester_desc": "Üst düzey kaynak toplama temposu. Krallık iyileştirmelerini, geçitleri ve savaş kasalarını finanse eden ekonomik motor.",
+    "harvester_trigger": "Yüksek Toplama (Aralık tavanının ≥%50'si)",
+    "casual_name": "Casual (Gündelik)",
+    "casual_desc": "Bu aralıkta güç, savaş ve kaynak genelinde minimum veya durgun büyüme. Bakım modu veya pasif hesap.",
+    "casual_trigger": "Eşik altı güç, savaş ve ekonomi deltaları",
+    "era_dynamic_label": "Sunucu Yaşı Dinamiği",
+    "era_dynamic_desc": "Arketip eşikleri aktif krallığın tarama zirvesine göre dinamik olarak ölçeklenir; hem genç krallıkların (ör. 2. Gün) hem de Fetih Sezonu krallıklarının gerçekçi değerlendirilmesini sağlar."
   }
 }

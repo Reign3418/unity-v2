@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "Keine Königreiche passend zu \"#{query}\" gefunden",
     "error_saving": "Fehler beim Speichern der Kalibrierung",
     "scan_error": "Königreichs-Info konnte nicht gelesen werden. Bitte prüfen Sie den Screenshot."
+  },
+  "Archetypes": {
+    "title": "Herrscher-Archetypen",
+    "modal_title": "Herrscher-Archetypen-Matrix & Kodex",
+    "modal_subtitle": "Verhaltensklassifizierung relativ zur Scan-Aktivität des Königreichs",
+    "col_header": "Archetyp",
+    "header_tooltip": "Klicken, um alle Archetyp-Definitionen und Kriterien anzuzeigen",
+    "window_note": "Kalibriert anhand der Spitzenleistung von Königreich {kd} in diesem Scan-Intervall ({age} T.).",
+    "brawler_name": "Brawler (Schläger)",
+    "brawler_desc": "Hoher Kill-Punkte-Gewinn bei minimalen/geringen Verlusten. Offene-Feld-Kämpfer, die Kills effizient tauschen.",
+    "brawler_trigger": "Hohe KP (≥40% Intervall-Grenze), geringe/moderate Gefallene",
+    "grower_name": "Grower (Wachstum)",
+    "grower_desc": "Starkes Kraftwachstum bei Bau, Forschung oder Truppen in Friedenszeiten zur Vorbereitung auf künftige Kriege.",
+    "grower_trigger": "Macht-Δ > 0 mit geringen Kampfverlusten",
+    "warrior_name": "Warrior (Krieger)",
+    "warrior_desc": "Hohe Kill-Punkte kombiniert mit hohen Gefallenen. Frontkämpfer, Rally-Leiter und Garnisonsverteidiger.",
+    "warrior_trigger": "Hohe KP (≥40% Grenze) & hohe Gefallene (≥40% Grenze)",
+    "meatshield_name": "Meatshield (Kanonenfutter)",
+    "meatshield_desc": "Hohe Gefallenen-Zahlen zum Schutz von Königreichsstrukturen und Füllen von Rallies/Garnisonen bei niedrigen eigenen KP.",
+    "meatshield_trigger": "Hohe Gefallene (≥40% Grenze), niedrige KP",
+    "harvester_name": "Harvester (Sammler)",
+    "harvester_desc": "Hervorragende Ressourcensammel-Rate. Wirtschaftliche Stütze zur Finanzierung von Heilung, Pässen und Kriegskassen.",
+    "harvester_trigger": "Hohe Sammlung (≥50% Intervall-Grenze)",
+    "casual_name": "Casual (Gelegenheitsspieler)",
+    "casual_desc": "Minimales oder stagnierendes Wachstum bei Macht, Kampf und Ressourcen in diesem Zeitraum.",
+    "casual_trigger": "Unterdurchschnittliche Deltas in Macht, Kampf und Wirtschaft",
+    "era_dynamic_label": "Serveralter-Dynamik",
+    "era_dynamic_desc": "Schwellenwerte für Archetypen skalieren dynamisch mit dem Spitzenwert des Königreichs, sodass junge Reiche (z. B. Tag 2) und SoC-Reiche realistisch bewertet werden."
   }
 }

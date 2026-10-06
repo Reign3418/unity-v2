@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "\"#{query}\"와 일치하는 왕국이 없습니다",
     "error_saving": "왕국 보정 저장 실패",
     "scan_error": "이미지에서 왕국 정보를 읽을 수 없습니다. 스크린샷을 확인해 주세요."
+  },
+  "Archetypes": {
+    "title": "사령관 행동 아키타입",
+    "modal_title": "사령관 아키타입 매트릭스 & 코덱스",
+    "modal_subtitle": "왕국 스캔 활동량 기반 행동 패턴 분류",
+    "col_header": "아키타입",
+    "header_tooltip": "클릭하여 아키타입 상세 정의 및 조건 확인",
+    "window_note": "해당 스캔 기간 내 {kd} 왕국의 최고 기록 기준으로 보정됨 ({age}일차).",
+    "brawler_name": "브롤러 (Brawler)",
+    "brawler_desc": "사망자 손실은 최소화하면서 높은 킬포인트를 획득하는 효율적인 필드전 교전 특화 사령관.",
+    "brawler_trigger": "높은 KP (해당 구간 최고치의 ≥40%), 낮거나 보통 수준의 전사자",
+    "grower_name": "성장형 (Grower)",
+    "grower_desc": "평화 기간 동안 건물, 연구, 병력 생산을 통해 전투력을 빠르게 성장시키며 다음 전쟁을 준비하는 사령관.",
+    "grower_trigger": "전투력 증가(Δ) > 0, 낮은 전투 손실",
+    "warrior_name": "워리어 (Warrior)",
+    "warrior_desc": "높은 킬포인트와 막대한 전사자 수를 동시에 기록하는 최전선 집결장 및 주둔 방어 핵심 전력.",
+    "warrior_trigger": "높은 KP (최고치의 ≥40%) & 높은 전사자 (최고치의 ≥40%)",
+    "meatshield_name": "미트실드 (Meatshield)",
+    "meatshield_desc": "개인 킬포인트는 낮지만 왕국 구조물 수호 및 집결/주둔 지원을 위해 대량의 병력 전사를 감수한 희생형 사령관.",
+    "meatshield_trigger": "높은 전사자 (최고치의 ≥40%), 낮은 KP",
+    "harvester_name": "하베스터 (Harvester)",
+    "harvester_desc": "압도적인 자원 채집량으로 왕국 치료비와 전쟁 보급품을 충당하는 경제의 중심축.",
+    "harvester_trigger": "높은 자원 채집량 (해당 구간 최고치의 ≥50%)",
+    "casual_name": "캐주얼 (Casual)",
+    "casual_desc": "해당 기간 동안 전투력, 교전, 경제 성장량이 전반적으로 정체된 유지 및 휴면 사령관.",
+    "casual_trigger": "전투력, 전투, 경제 증감치 기준치 미달",
+    "era_dynamic_label": "서버 연령 동적 반영",
+    "era_dynamic_desc": "아키타입 기준선은 활성 왕국의 최고 기록을 바탕으로 유동적으로 스케일링되어, 신생 서버(2일차 등)부터 정복의 시즌 서버까지 각 발달 단계에 맞게 정확히 평가됩니다."
   }
 }

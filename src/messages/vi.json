@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "Không tìm thấy vương quốc khớp với \"#{query}\"",
     "error_saving": "Lỗi lưu hiệu chuẩn vương quốc",
     "scan_error": "Không thể đọc thông tin vương quốc từ hình ảnh."
+  },
+  "Archetypes": {
+    "title": "Hình Mẫu Thống Đốc",
+    "modal_title": "Ma Trận & Cẩm Nang Hình Mẫu Thống Đốc",
+    "modal_subtitle": "Phân loại hành vi tương đối theo hoạt động quét của vương quốc",
+    "col_header": "Hình Mẫu",
+    "header_tooltip": "Nhấp để xem đầy đủ định nghĩa và tiêu chí hình mẫu",
+    "window_note": "Được hiệu chỉnh theo mức đỉnh của Vương quốc {kd} trong chu kỳ quét này ({age} ngày).",
+    "brawler_name": "Brawler (Đấu Sĩ)",
+    "brawler_desc": "Đạt điểm hạ gục cao với tổn thất quân tử trận tối thiểu hoặc thấp. Đấu sĩ giao tranh ngoài đồng hiệu quả.",
+    "brawler_trigger": "KP cao (≥40% trần chu kỳ), Tử trận thấp/vừa",
+    "grower_name": "Grower (Nhà Phát Triển)",
+    "grower_desc": "Tăng trưởng sức mạnh mạnh mẽ qua công trình, công nghệ hoặc luyện quân trong thời bình, chuẩn bị cho chiến tranh.",
+    "grower_trigger": "Sức mạnh Δ > 0 với tổn thất chiến đấu thấp",
+    "warrior_name": "Warrior (Chiến Binh)",
+    "warrior_desc": "Điểm hạ gục cao đi kèm với tổn thất quân tử trận lớn. Đội trưởng tập hợp và chỉ huy thủ thành tuyến đầu.",
+    "warrior_trigger": "KP cao (≥40% trần) & Tử trận cao (≥40% trần)",
+    "meatshield_name": "Meatshield (Lá Chắn Thịt)",
+    "meatshield_desc": "Chấp nhận tổn thất quân tử trận lớn để bảo vệ công trình vương quốc và lấp đầy tập hợp/thủ thành với KP cá nhân thấp.",
+    "meatshield_trigger": "Tử trận cao (≥40% trần), KP thấp",
+    "harvester_name": "Harvester (Thu Hoạch Gia)",
+    "harvester_desc": "Tốc độ thu gom tài nguyên vượt trội. Đầu tàu kinh tế tài trợ chi phí hồi quân, cửa ải và kho chiến tranh.",
+    "harvester_trigger": "Thu gom cao (≥50% trần chu kỳ)",
+    "casual_name": "Casual (Thường)",
+    "casual_desc": "Tăng trưởng tối thiểu hoặc đình trệ trên mọi chỉ số sức mạnh, chiến đấu và kinh tế. Tài khoản duy trì hoặc nhàn rỗi.",
+    "casual_trigger": "Chỉ số sức mạnh, chiến đấu và kinh tế dưới ngưỡng",
+    "era_dynamic_label": "Động Lực Tuổi Máy Chủ",
+    "era_dynamic_desc": "Ngưỡng hình mẫu thay đổi linh hoạt theo mức đỉnh của vương quốc đang chọn, đảm bảo vương quốc non trẻ (như Ngày 2) và vương quốc Mùa Chinh Phục đều được đánh giá chuẩn xác."
   }
 }

@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2, Gift, Clock } from "lucide-react";
-import { useLocale } from "next-intl";
+import { 
+    TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, 
+    Sparkles, Crosshair, Bot, X, Loader2, Gift, Clock, Swords, Sprout, Wheat, Shield, User, Info 
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate, kingdomMetadata, serverAgeDays }) {
     const locale = useLocale();
+    const tArch = useTranslations('Archetypes');
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
 
@@ -20,6 +24,68 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
     // Lotto State
     const [lottoWinner, setLottoWinner] = useState(null);
     const [isRolling, setIsRolling] = useState(false);
+
+    // Archetype Codex State
+    const [showArchetypeCodex, setShowArchetypeCodex] = useState(false);
+
+    const getArchetypeMeta = (archetype) => {
+        switch (archetype) {
+            case 'Brawler':
+                return {
+                    name: tArch('brawler_name'),
+                    desc: tArch('brawler_desc'),
+                    trigger: tArch('brawler_trigger'),
+                    color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+                    dotColor: 'bg-amber-400',
+                    icon: Swords
+                };
+            case 'Grower':
+                return {
+                    name: tArch('grower_name'),
+                    desc: tArch('grower_desc'),
+                    trigger: tArch('grower_trigger'),
+                    color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+                    dotColor: 'bg-cyan-400',
+                    icon: Sprout
+                };
+            case 'Warrior':
+                return {
+                    name: tArch('warrior_name'),
+                    desc: tArch('warrior_desc'),
+                    trigger: tArch('warrior_trigger'),
+                    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+                    dotColor: 'bg-emerald-400',
+                    icon: Shield
+                };
+            case 'Meatshield':
+                return {
+                    name: tArch('meatshield_name'),
+                    desc: tArch('meatshield_desc'),
+                    trigger: tArch('meatshield_trigger'),
+                    color: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+                    dotColor: 'bg-rose-400',
+                    icon: ShieldAlert
+                };
+            case 'Harvester':
+                return {
+                    name: tArch('harvester_name'),
+                    desc: tArch('harvester_desc'),
+                    trigger: tArch('harvester_trigger'),
+                    color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+                    dotColor: 'bg-yellow-400',
+                    icon: Wheat
+                };
+            default:
+                return {
+                    name: tArch('casual_name'),
+                    desc: tArch('casual_desc'),
+                    trigger: tArch('casual_trigger'),
+                    color: 'text-gray-400 bg-gray-500/10 border-gray-500/30',
+                    dotColor: 'bg-gray-400',
+                    icon: User
+                };
+        }
+    };
 
 
     useEffect(() => {
@@ -458,14 +524,26 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                 </div>
 
                 {/* Main Data Table View */}
-                <div className="w-full overflow-x-auto border-t border-[#1e222b] pt-4">
+                <div className="w-full overflow-x-auto border-t border-[#1e222b] pt-4 min-h-[420px] pb-16">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-[#1e222b]">
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Governor</th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Growth Score</th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Grade</th>
-                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Archetype</th>
+                                <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">
+                                    <div className="flex items-center gap-1.5">
+                                        <span>{tArch('col_header')}</span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowArchetypeCodex(true)}
+                                            className="text-gray-400 hover:text-cyan-400 p-0.5 rounded transition-colors cursor-pointer"
+                                            title={tArch('header_tooltip')}
+                                        >
+                                            <Info size={13} />
+                                        </button>
+                                    </div>
+                                </th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Power Δ</th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">KP Δ</th>
                                 <th className="p-3 text-xs font-black text-gray-500 uppercase tracking-widest">Deads Δ</th>
@@ -474,7 +552,7 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredData.map(p => {
+                            {filteredData.map((p, idx) => {
                                 let gradeColor = "text-gray-500 border-gray-500/20 bg-gray-500/10";
                                 if (p.grade === 'S') gradeColor = "text-amber-400 border-amber-400/20 bg-amber-400/10";
                                 if (p.grade === 'A') gradeColor = "text-emerald-400 border-emerald-400/20 bg-emerald-400/10";
@@ -482,12 +560,8 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                                 if (p.grade === 'C') gradeColor = "text-orange-400 border-orange-400/20 bg-orange-400/10";
                                 if (p.grade === 'D') gradeColor = "text-red-500 border-red-500/20 bg-red-500/10";
 
-                                let archColor = "text-gray-400 bg-gray-500/10 border-gray-500/20";
-                                if (p.archetype === 'Warrior') archColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-                                if (p.archetype === 'Brawler') archColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
-                                if (p.archetype === 'Meatshield') archColor = "text-red-400 bg-red-500/10 border-red-500/20";
-                                if (p.archetype === 'Harvester') archColor = "text-yellow-400 bg-yellow-500/10 border-yellow-500/20";
-                                if (p.archetype === 'Grower') archColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+                                const archMeta = getArchetypeMeta(p.archetype);
+                                const ArchIcon = archMeta.icon;
 
                                 return (
                                     <tr key={p.id} className="border-b border-[#1e222b] hover:bg-[#13161c] transition-colors">
@@ -504,9 +578,56 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                                             </span>
                                         </td>
                                         <td className="p-3">
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded border tracking-wider uppercase ${archColor}`}>
-                                                {p.archetype}
-                                            </span>
+                                            <div className="relative inline-block group/arch">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowArchetypeCodex(true)}
+                                                    className={`text-[10px] font-bold px-2 py-1 rounded border tracking-wider uppercase flex items-center gap-1.5 cursor-pointer hover:brightness-125 transition-all shadow-sm ${archMeta.color}`}
+                                                    title={`${archMeta.name}: ${archMeta.desc}`}
+                                                >
+                                                    <ArchIcon size={12} className="shrink-0" />
+                                                    <span>{p.archetype}</span>
+                                                </button>
+
+                                                {/* Hover Clarification Card */}
+                                                <div className={`absolute ${idx < 3 ? 'top-full mt-2' : 'bottom-full mb-2'} left-0 w-80 bg-[#0c0f16]/95 backdrop-blur-md border border-[#2a3040] rounded-xl shadow-[0_15px_35px_rgba(0,0,0,0.85)] p-3.5 z-50 hidden group-hover/arch:block pointer-events-none text-left`}>
+                                                    <div className="flex items-center justify-between mb-2 border-b border-[#1e222b] pb-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <ArchIcon size={14} className={archMeta.color.split(' ')[0]} />
+                                                            <span className="text-xs font-black uppercase tracking-wider text-white">
+                                                                {archMeta.name}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">
+                                                            {tArch('col_header')}
+                                                        </span>
+                                                    </div>
+
+                                                    <p className="text-[11px] text-gray-300 leading-relaxed mb-2.5">
+                                                        {archMeta.desc}
+                                                    </p>
+
+                                                    <div className="bg-[#121622] rounded-lg p-2 border border-[#1e222b] space-y-1 mb-2">
+                                                        <span className="text-gray-500 font-bold uppercase text-[9px] tracking-wider block">
+                                                            Trigger Criteria:
+                                                        </span>
+                                                        <p className="text-[10px] font-mono text-cyan-300/90 leading-tight">
+                                                            {archMeta.trigger}
+                                                        </p>
+                                                    </div>
+
+                                                    {serverAgeDays !== null ? (
+                                                        <div dir="ltr" className="text-[9px] text-gray-400 font-mono flex items-center gap-1 pt-1.5 border-t border-[#1e222b]">
+                                                            <Clock size={10} className="text-cyan-400 shrink-0" />
+                                                            <span>Calibrated to KD {targetKd} peak (Age: {serverAgeDays}d)</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-[9px] text-gray-500 font-mono pt-1.5 border-t border-[#1e222b]">
+                                                            Relative to kingdom interval peak
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="p-3">
                                             <div className={`font-bold font-mono text-sm ${p.powerDiff >= 0 ? 'text-emerald-400' : 'text-red-500'}`}>
@@ -633,6 +754,98 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                         <div className="p-4 border-t border-[#1e222b] bg-[#13161c]">
                             <button onClick={() => setLottoWinner(null)} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-black uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg">
                                 Complete Roll
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Archetype Codex Modal */}
+            {showArchetypeCodex && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-[#0f1115] border border-cyan-500/40 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col shadow-[0_0_50px_rgba(6,182,212,0.2)] animate-slide-up max-h-[90vh]">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-cyan-950/40 to-blue-950/40 p-5 border-b border-cyan-500/20 flex justify-between items-center relative">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500"></div>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/40">
+                                    <Swords className="text-cyan-400 w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-black tracking-widest uppercase text-base">{tArch('modal_title')}</h3>
+                                    <p className="text-cyan-300/70 text-xs font-mono uppercase tracking-wider">{tArch('modal_subtitle')}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowArchetypeCodex(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            {/* Server Age Dynamic Callout */}
+                            <div className="bg-[#121622] border border-cyan-500/30 rounded-xl p-4 relative overflow-hidden">
+                                <div className="flex items-center gap-2 mb-1.5 text-cyan-400 font-bold text-xs uppercase tracking-wider">
+                                    <Clock size={14} />
+                                    <span>{tArch('era_dynamic_label')}</span>
+                                    {serverAgeDays !== null && (
+                                        <span dir="ltr" className="ml-auto font-mono text-[11px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">
+                                            KD {targetKd} Age: {serverAgeDays}d
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-gray-300 leading-relaxed">
+                                    {tArch('era_dynamic_desc')}
+                                </p>
+                            </div>
+
+                            {/* 6 Archetypes Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {[
+                                    { key: 'Brawler', meta: getArchetypeMeta('Brawler') },
+                                    { key: 'Grower', meta: getArchetypeMeta('Grower') },
+                                    { key: 'Warrior', meta: getArchetypeMeta('Warrior') },
+                                    { key: 'Meatshield', meta: getArchetypeMeta('Meatshield') },
+                                    { key: 'Harvester', meta: getArchetypeMeta('Harvester') },
+                                    { key: 'Casual', meta: getArchetypeMeta('Casual') },
+                                ].map(({ key, meta }) => {
+                                    const IconComponent = meta.icon;
+                                    return (
+                                        <div key={key} className="bg-[#0a0c0f] border border-[#1e222b] hover:border-[#2d323e] p-3.5 rounded-xl flex flex-col justify-between transition-colors">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`p-1.5 rounded-lg border ${meta.color}`}>
+                                                            <IconComponent size={14} />
+                                                        </span>
+                                                        <span className="font-bold text-white text-sm uppercase tracking-wide">
+                                                            {meta.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-gray-400 leading-relaxed mb-3">
+                                                    {meta.desc}
+                                                </p>
+                                            </div>
+                                            <div className="bg-[#121622] rounded-lg p-2 border border-[#1e222b]">
+                                                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block mb-0.5">Trigger Condition:</span>
+                                                <span className="text-[11px] text-cyan-300 font-mono leading-tight">
+                                                    {meta.trigger}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-[#0a0c0f] p-4 border-t border-[#1e222b] flex justify-end">
+                            <button
+                                onClick={() => setShowArchetypeCodex(false)}
+                                className="px-6 py-2 bg-[#13161c] hover:bg-[#1e222b] text-gray-300 border border-[#2d323e] rounded-lg text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                            >
+                                Close
                             </button>
                         </div>
                     </div>

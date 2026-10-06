@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "Aucun royaume correspondant à \"#{query}\"",
     "error_saving": "Erreur lors de l'enregistrement",
     "scan_error": "Impossible de lire les infos du royaume. Vérifiez la capture."
+  },
+  "Archetypes": {
+    "title": "Archétypes de Gouverneur",
+    "modal_title": "Matrice et Codex des Archétypes de Gouverneur",
+    "modal_subtitle": "Classification comportementale relative à l'activité de scan du royaume",
+    "col_header": "Archétype",
+    "header_tooltip": "Cliquez pour voir les définitions et critères des archétypes",
+    "window_note": "Calibré par rapport au pic d'activité du Royaume {kd} sur cette période ({age}j).",
+    "brawler_name": "Bagarreur (Brawler)",
+    "brawler_desc": "Gain élevé de points d'élimination avec des pertes minimales. Combattants en champ libre échangeant efficacement.",
+    "brawler_trigger": "KP élevés (≥40% du plafond de la période), morts faibles/modérées",
+    "grower_name": "Bâtisseur (Grower)",
+    "grower_desc": "Forte accélération de puissance via bâtiments, tech ou troupes en temps de paix, préparant les futures guerres.",
+    "grower_trigger": "Puissance Δ > 0 avec faibles pertes au combat",
+    "warrior_name": "Guerrier (Warrior)",
+    "warrior_desc": "Points d'élimination élevés couplés à de lourdes pertes de troupes. Meneurs de ralliements et capitaines de garnison.",
+    "warrior_trigger": "KP élevés (≥40% du plafond) & morts élevées (≥40% du plafond)",
+    "meatshield_name": "Bouclier de Chaire (Meatshield)",
+    "meatshield_desc": "Lourdes pertes de troupes absorbées pour défendre les structures et remplir ralliements/garnisons, avec peu de KP personnels.",
+    "meatshield_trigger": "Morts élevées (≥40% du plafond), faibles KP",
+    "harvester_name": "Récolteur (Harvester)",
+    "harvester_desc": "Vitesse de récolte de ressources exceptionnelle. Moteurs économiques finançant soins, passes et trésors de guerre.",
+    "harvester_trigger": "Récolte élevée (≥50% du plafond de la période)",
+    "casual_name": "Occasionnel (Casual)",
+    "casual_desc": "Croissance minimale ou stagnante en puissance, combat et ressources. Joueur en maintenance ou inactif.",
+    "casual_trigger": "Deltas de puissance, combat et économie sous les seuils",
+    "era_dynamic_label": "Dynamique d'Âge du Serveur",
+    "era_dynamic_desc": "Les seuils d'archétypes s'adaptent dynamiquement au pic du royaume actif, assurant une évaluation équitable pour les jeunes royaumes (ex: Jour 2) et les royaumes SoC."
   }
 }

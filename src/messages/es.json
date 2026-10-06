@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "No se encontraron reinos con \"#{query}\"",
     "error_saving": "Error al guardar la calibración del reino",
     "scan_error": "No se pudo leer la información de la imagen. Verifica la captura."
+  },
+  "Archetypes": {
+    "title": "Arquetipos de Gobernador",
+    "modal_title": "Matriz y Códice de Arquetipos de Gobernador",
+    "modal_subtitle": "Clasificación de comportamiento relativa a la actividad del escaneo del reino",
+    "col_header": "Arquetipo",
+    "header_tooltip": "Haz clic para ver definiciones y criterios de los arquetipos",
+    "window_note": "Calibrado contra el pico de actividad del Reino {kd} en este intervalo ({age}d).",
+    "brawler_name": "Luchador (Brawler)",
+    "brawler_desc": "Alto incremento de puntos de muerte con bajas mínimas o leves. Combatientes de campo abierto que intercambian bajas eficientemente.",
+    "brawler_trigger": "Altos KP (≥40% del tope del intervalo), muertos bajos/moderados",
+    "grower_name": "Constructor (Grower)",
+    "grower_desc": "Fuerte aceleración de poder en construcción, tecnología o tropas en tiempos de paz, preparándose para la guerra.",
+    "grower_trigger": "Poder Δ > 0 con bajas de combate bajas",
+    "warrior_name": "Guerrero (Warrior)",
+    "warrior_desc": "Altos puntos de muerte combinados con grandes pérdidas de tropas muertas. Líderes de ataque y defensores de guarnición.",
+    "warrior_trigger": "Altos KP (≥40% del tope) y altos muertos (≥40% del tope)",
+    "meatshield_name": "Escudo de Carne (Meatshield)",
+    "meatshield_desc": "Altas bajas de tropas absorbidas para defender estructuras del reino y llenar ataques/guarniciones con KP individuales bajos.",
+    "meatshield_trigger": "Altos muertos (≥40% del tope), bajos KP",
+    "harvester_name": "Recolector (Harvester)",
+    "harvester_desc": "Ritmo sobresaliente de recolección de recursos. Motores económicos que financian curaciones, pases y cofres del reino.",
+    "harvester_trigger": "Alta recolección (≥50% del tope del intervalo)",
+    "casual_name": "Casual",
+    "casual_desc": "Crecimiento mínimo o estancado en poder, combate y recursos durante este intervalo. Mantenimiento o cuenta inactiva.",
+    "casual_trigger": "Deltas de poder, combate y economía por debajo del umbral",
+    "era_dynamic_label": "Dinámica de Edad del Servidor",
+    "era_dynamic_desc": "Los umbrales de arquetipos se ajustan dinámicamente según el pico del reino activo, garantizando que reinos jóvenes (p. ej. Día 2) y veteranos de SoC se evalúen con precisión."
   }
 }

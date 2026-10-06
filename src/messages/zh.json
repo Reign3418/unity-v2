@@ -1211,5 +1211,33 @@
     "no_kingdoms_found": "未找到匹配 \"#{query}\" 的王国",
     "error_saving": "保存王国校准失败",
     "scan_error": "无法从图片中识别王国信息，请确保截图包含清晰的“王国信息”面板。"
+  },
+  "Archetypes": {
+    "title": "执政官原型定位",
+    "modal_title": "执政官行为原型矩阵与法典",
+    "modal_subtitle": "基于王国扫描活动区间的行为特征分类",
+    "col_header": "行为原型",
+    "header_tooltip": "点击查看原型完整定义与判定条件",
+    "window_note": "根据王国 {kd} 在此扫描区间的峰值产出校准（{age}天）。",
+    "brawler_name": "格斗者 (Brawler)",
+    "brawler_desc": "在极低阵亡损失下取得极高击杀分。精于野战换血、避开亏损的高效交战者。",
+    "brawler_trigger": "高击杀分 (≥区间峰值40%)，阵亡极低或中等",
+    "grower_name": "发育者 (Grower)",
+    "grower_desc": "在和平期通过建筑、科技或造兵快速提升战力，为下一阶段战争积蓄力量。",
+    "grower_trigger": "战力增量 Δ > 0 且极少交战损失",
+    "warrior_name": "战士 (Warrior)",
+    "warrior_desc": "超高击杀分并承担大量阵亡损失。一线集结手、驻防大将与死战核心。",
+    "warrior_trigger": "高击杀分 (≥峰值40%) 且 高阵亡 (≥峰值40%)",
+    "meatshield_name": "肉盾 (Meatshield)",
+    "meatshield_desc": "为保卫王国建筑和填补集结/驻防牺牲大量阵亡部队，个人击杀分相对较低。",
+    "meatshield_trigger": "高阵亡 (≥峰值40%)，低击杀分",
+    "harvester_name": "采集者 (Harvester)",
+    "harvester_desc": "拥有顶尖资源采集速度。保障全王国战时治疗、关卡争夺与国库后勤的经济支柱。",
+    "harvester_trigger": "高采集量 (≥区间峰值50%)",
+    "casual_name": "休闲/待命 (Casual)",
+    "casual_desc": "在此区间内战力、交战与采集各项指标均停滞或极低。处于挂机维护或休眠状态。",
+    "casual_trigger": "战力、战斗与经济各项增量均低于判定阈值",
+    "era_dynamic_label": "服务器开服天数动态",
+    "era_dynamic_desc": "原型判定阈值根据当前王国的实际活动峰值动态缩放，确保新王国（如第2天）与征服赛季王国均能获得符合其实际发展上限的公正评估。"
   }
 }
