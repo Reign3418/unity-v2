@@ -4904,6 +4904,9 @@ export async function getKingdomMetadata(kingdomId) {
         if (result.Item) {
             return {
                 foundedDate: result.Item.foundedDate?.S || null,
+                kingdomName: result.Item.kingdomName?.S || null,
+                theKing: result.Item.theKing?.S || null,
+                kingdomProgress: result.Item.kingdomProgress?.S || null,
                 updatedAt: result.Item.updatedAt?.S || null
             };
         }
@@ -4915,21 +4918,26 @@ export async function getKingdomMetadata(kingdomId) {
 }
 
 /**
- * Sets the metadata (e.g., foundedDate) for a specific kingdom.
+ * Sets the metadata (e.g., foundedDate, kingdomName, theKing, kingdomProgress) for a specific kingdom.
  */
 export async function setKingdomMetadata(kingdomId, data) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) return false;
     
     try {
+        const item = {
+            'PK': { S: `KINGDOM#${kingdomId}` },
+            'SK': { S: 'METADATA' },
+            'foundedDate': { S: data.foundedDate || '' },
+            'updatedAt': { S: new Date().toISOString() }
+        };
+        if (data.kingdomName) item['kingdomName'] = { S: data.kingdomName };
+        if (data.theKing) item['theKing'] = { S: data.theKing };
+        if (data.kingdomProgress) item['kingdomProgress'] = { S: data.kingdomProgress };
+
         const params = {
             TableName: tableName,
-            Item: {
-                'PK': { S: `KINGDOM#${kingdomId}` },
-                'SK': { S: 'METADATA' },
-                'foundedDate': { S: data.foundedDate || '' },
-                'updatedAt': { S: new Date().toISOString() }
-            }
+            Item: item
         };
         await dbClient.send(new PutItemCommand(params));
         return true;

@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Königreichsgründung & Server-Alterskalibrierung",
+    "subtitle": "Legen Sie das Server-Alter oder Gründungsdatum fest, um zeitbereinigte Wachstumsmetriken zu aktivieren.",
+    "filter_placeholder": "Königreich # filtern...",
+    "all_filter": "Alle",
+    "anchored_filter": "Kalibriert",
+    "missing_filter": "Alter fehlt",
+    "ai_dropzone_title": "KI-Screenshot-Scanner für Königreichs-Infos",
+    "ai_dropzone_desc": "Ziehen, einfügen (Strg+V) oder klicken, um einen Screenshot hochzuladen",
+    "ai_dropzone_scanning": "Königreichs-Info wird mit Gemini Vision analysiert...",
+    "ai_scan_detected": "Königreich #{kingdomNumber} ({kingdomName}) erkannt • Alter: {days} Tage",
+    "btn_auto_save": "Kalibrierung bestätigen & speichern",
+    "status_anchored": "Alter kalibriert",
+    "status_missing": "Alter fehlt",
+    "label_server_age": "Server-Alter im Spiel (Tage)",
+    "server_age_placeholder": "z.B. 223 oder 223 d",
+    "server_age_helper": "Aus dem Königreichs-Info-Fenster im Spiel",
+    "label_founded_date": "Berechnetes Gründungsdatum",
+    "live_age_badge": "{days} Tage alt",
+    "btn_save": "Kalibrierung speichern",
+    "btn_saving": "Wird gespeichert...",
+    "btn_saved": "Gespeichert ✓",
+    "no_kingdoms_found": "Keine Königreiche passend zu \"#{query}\" gefunden",
+    "error_saving": "Fehler beim Speichern der Kalibrierung",
+    "scan_error": "Königreichs-Info konnte nicht gelesen werden. Bitte prüfen Sie den Screenshot."
   }
 }

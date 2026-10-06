@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Калибровка Даты Основания и Возраста Сервера",
+    "subtitle": "Укажите возраст сервера или дату запуска для активации временных метрик скорости и роста.",
+    "filter_placeholder": "Поиск королевства #...",
+    "all_filter": "Все",
+    "anchored_filter": "Откалибровано",
+    "missing_filter": "Возраст отсутствует",
+    "ai_dropzone_title": "ИИ-Сканер Скриншотов Информации о Королевстве",
+    "ai_dropzone_desc": "Перетащите, вставьте (Ctrl+V) или нажмите для загрузки скриншота",
+    "ai_dropzone_scanning": "Сканирование панели информации королевства через Gemini Vision...",
+    "ai_scan_detected": "Обнаружено королевство #{kingdomNumber} ({kingdomName}) • Возраст: {days} дн.",
+    "btn_auto_save": "Подтвердить и сохранить",
+    "status_anchored": "Возраст откалиброван",
+    "status_missing": "Возраст отсутствует",
+    "label_server_age": "Возраст сервера в игре (дни)",
+    "server_age_placeholder": "напр. 223 или 223 d",
+    "server_age_helper": "Из внутриигрового окна информации о королевстве",
+    "label_founded_date": "Рассчитанная дата запуска",
+    "live_age_badge": "Возраст: {days} дн.",
+    "btn_save": "Сохранить калибровку",
+    "btn_saving": "Сохранение...",
+    "btn_saved": "Сохранено ✓",
+    "no_kingdoms_found": "Королевств по запросу \"#{query}\" не найдено",
+    "error_saving": "Ошибка сохранения калибровки",
+    "scan_error": "Не удалось распознать данные королевства на скриншоте."
   }
 }

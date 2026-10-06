@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "왕국 창설일 및 서버 경과일 캘리브레이션",
+    "subtitle": "게임 내 서버 경과일 또는 창설일을 설정하여 시간 보정 성장 지표를 활성화합니다.",
+    "filter_placeholder": "왕국 번호 검색...",
+    "all_filter": "전체",
+    "anchored_filter": "보정 완료",
+    "missing_filter": "경과일 누락",
+    "ai_dropzone_title": "AI 왕국 정보 스크린샷 스캐너",
+    "ai_dropzone_desc": "인게임 왕국 정보 스크린샷을 드래그하거나 붙여넣기(Ctrl+V)하여 자동 보정하세요",
+    "ai_dropzone_scanning": "Gemini Vision으로 왕국 정보 스캔 중...",
+    "ai_scan_detected": "왕국 #{kingdomNumber} ({kingdomName}) 감지 • 서버 경과일: {days}일",
+    "btn_auto_save": "보정 확인 및 저장",
+    "status_anchored": "경과일 보정됨",
+    "status_missing": "경과일 누락",
+    "label_server_age": "게임 내 서버 경과일 (일수)",
+    "server_age_placeholder": "예: 223 또는 223 d",
+    "server_age_helper": "게임 내 왕국 정보 팝업창 기준",
+    "label_founded_date": "계산된 왕국 창설일",
+    "live_age_badge": "{days}일 경과",
+    "btn_save": "보정 저장",
+    "btn_saving": "저장 중...",
+    "btn_saved": "저장 완료 ✓",
+    "no_kingdoms_found": "\"#{query}\"와 일치하는 왕국이 없습니다",
+    "error_saving": "왕국 보정 저장 실패",
+    "scan_error": "이미지에서 왕국 정보를 읽을 수 없습니다. 스크린샷을 확인해 주세요."
   }
 }

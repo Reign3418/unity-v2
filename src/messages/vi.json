@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Ngày Thành Lập Vương Quốc & Hiệu Chuẩn Tuổi Máy Chủ",
+    "subtitle": "Đặt số ngày tuổi máy chủ hoặc ngày thành lập để kích hoạt các chỉ số tốc độ tăng trưởng.",
+    "filter_placeholder": "Lọc Vương Quốc #...",
+    "all_filter": "Tất cả",
+    "anchored_filter": "Đã hiệu chuẩn",
+    "missing_filter": "Thiếu số ngày",
+    "ai_dropzone_title": "Trình Quét AI Ảnh Chụp Thông Tin Vương Quốc",
+    "ai_dropzone_desc": "Kéo thả, dán (Ctrl+V) hoặc nhấp để tải lên ảnh chụp Thông Tin Vương Quốc",
+    "ai_dropzone_scanning": "Đang quét bảng Thông Tin Vương Quốc bằng Gemini Vision...",
+    "ai_scan_detected": "Đã phát hiện Vương Quốc #{kingdomNumber} ({kingdomName}) • Tuổi máy chủ: {days} ngày",
+    "btn_auto_save": "Xác nhận & Lưu Hiệu Chuẩn",
+    "status_anchored": "Đã hiệu chuẩn tuổi",
+    "status_missing": "Thiếu số ngày",
+    "label_server_age": "Tuổi Máy Chủ Trong Game (Ngày)",
+    "server_age_placeholder": "vd: 223 hoặc 223 d",
+    "server_age_helper": "Lấy từ bảng Thông Tin Vương Quốc trong game",
+    "label_founded_date": "Ngày Thành Lập Đã Tính Toán",
+    "live_age_badge": "{days} Ngày Tuổi",
+    "btn_save": "Lưu Hiệu Chuẩn",
+    "btn_saving": "Đang lưu...",
+    "btn_saved": "Đã lưu ✓",
+    "no_kingdoms_found": "Không tìm thấy vương quốc khớp với \"#{query}\"",
+    "error_saving": "Lỗi lưu hiệu chuẩn vương quốc",
+    "scan_error": "Không thể đọc thông tin vương quốc từ hình ảnh."
   }
 }

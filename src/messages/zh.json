@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "王国建立时间与服务器天数校准",
+    "subtitle": "设置游戏内开服天数或建立日期，以启用经过时间调整的王国发展速度与测谎仪分析。",
+    "filter_placeholder": "按王国编号过滤...",
+    "all_filter": "全部",
+    "anchored_filter": "已校准",
+    "missing_filter": "缺失天数",
+    "ai_dropzone_title": "AI 王国信息截图扫描器",
+    "ai_dropzone_desc": "拖入、粘贴 (Ctrl+V) 或点击上传游戏内“王国信息”截图即可一键自动校准",
+    "ai_dropzone_scanning": "正在通过 Gemini 视觉引擎分析王国信息...",
+    "ai_scan_detected": "检测到王国 #{kingdomNumber} ({kingdomName}) • 服务器天数: {days}天",
+    "btn_auto_save": "确认并保存校准",
+    "status_anchored": "天数已校准",
+    "status_missing": "缺失天数",
+    "label_server_age": "游戏内开服天数（天）",
+    "server_age_placeholder": "例如: 223 或 223 d",
+    "server_age_helper": "取自游戏内“王国信息”面板",
+    "label_founded_date": "自动计算的创服日期",
+    "live_age_badge": "已开服 {days} 天",
+    "btn_save": "保存校准",
+    "btn_saving": "保存中...",
+    "btn_saved": "已保存 ✓",
+    "no_kingdoms_found": "未找到匹配 \"#{query}\" 的王国",
+    "error_saving": "保存王国校准失败",
+    "scan_error": "无法从图片中识别王国信息，请确保截图包含清晰的“王国信息”面板。"
   }
 }

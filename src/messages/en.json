@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Kingdom Foundation & Server Age Calibration",
+    "subtitle": "Set in-game server age or foundation dates to enable Time-Adjusted Velocity and Polygraph growth models.",
+    "filter_placeholder": "Filter Kingdom #...",
+    "all_filter": "All",
+    "anchored_filter": "Calibrated",
+    "missing_filter": "Missing Age",
+    "ai_dropzone_title": "AI Kingdom Info Screenshot Scanner",
+    "ai_dropzone_desc": "Drop, paste (Ctrl+V), or click to upload an in-game Kingdom Info screenshot to auto-calibrate",
+    "ai_dropzone_scanning": "Scanning Kingdom Info panel with Gemini Vision...",
+    "ai_scan_detected": "Detected Kingdom #{kingdomNumber} ({kingdomName}) • Server Age: {days}d",
+    "btn_auto_save": "Confirm & Save Calibration",
+    "status_anchored": "Age Calibrated",
+    "status_missing": "Age Missing",
+    "label_server_age": "In-Game Server Age (Days)",
+    "server_age_placeholder": "e.g. 223 or 223 d",
+    "server_age_helper": "From in-game Kingdom Info screen",
+    "label_founded_date": "Calculated Launch Birthday",
+    "live_age_badge": "{days} Days Old",
+    "btn_save": "Save Calibration",
+    "btn_saving": "Saving...",
+    "btn_saved": "Saved ✓",
+    "no_kingdoms_found": "No kingdoms found matching \"#{query}\"",
+    "error_saving": "Error saving kingdom calibration",
+    "scan_error": "Could not read Kingdom Info from image. Please ensure the screenshot clearly displays the Kingdom Info popup."
   }
 }

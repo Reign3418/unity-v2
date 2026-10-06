@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Fundação do Reino e Calibração de Idade do Servidor",
+    "subtitle": "Defina a idade do servidor ou data de fundação para métricas ajustadas no tempo.",
+    "filter_placeholder": "Filtrar Reino #...",
+    "all_filter": "Todos",
+    "anchored_filter": "Calibrado",
+    "missing_filter": "Idade Ausente",
+    "ai_dropzone_title": "Scanner IA de Captura de Info do Reino",
+    "ai_dropzone_desc": "Arraste, cole (Ctrl+V) ou clique para enviar uma captura de Info do Reino",
+    "ai_dropzone_scanning": "Analisando painel de Info do Reino com Gemini Vision...",
+    "ai_scan_detected": "Reino #{kingdomNumber} ({kingdomName}) Detectado • Idade: {days}d",
+    "btn_auto_save": "Confirmar e Salvar Calibração",
+    "status_anchored": "Idade Calibrada",
+    "status_missing": "Idade Ausente",
+    "label_server_age": "Idade do Servidor no Jogo (Dias)",
+    "server_age_placeholder": "ex: 223 ou 223 d",
+    "server_age_helper": "Do painel Info do Reino dentro do jogo",
+    "label_founded_date": "Data de Lançamento Calculada",
+    "live_age_badge": "{days} Dias de Vida",
+    "btn_save": "Salvar Calibração",
+    "btn_saving": "Salvando...",
+    "btn_saved": "Salvo ✓",
+    "no_kingdoms_found": "Nenhum reino encontrado para \"#{query}\"",
+    "error_saving": "Erro ao salvar a calibração do reino",
+    "scan_error": "Não foi possível ler as informações do reino na imagem."
   }
 }

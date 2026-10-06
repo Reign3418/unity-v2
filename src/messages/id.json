@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Fondasi Kerajaan & Kalibrasi Usia Server",
+    "subtitle": "Atur usia server dalam game atau tanggal peluncuran untuk metrik pertumbuhan terkalibrasi waktu.",
+    "filter_placeholder": "Filter Kerajaan #...",
+    "all_filter": "Semua",
+    "anchored_filter": "Terkalibrasi",
+    "missing_filter": "Usia Hilang",
+    "ai_dropzone_title": "Pemindai Tangkapan Layar Info Kerajaan AI",
+    "ai_dropzone_desc": "Tarik, tempel (Ctrl+V), atau klik untuk mengunggah tangkapan layar Info Kerajaan",
+    "ai_dropzone_scanning": "Memindai panel Info Kerajaan dengan Gemini Vision...",
+    "ai_scan_detected": "Kerajaan #{kingdomNumber} ({kingdomName}) Terdeteksi • Usia Server: {days}h",
+    "btn_auto_save": "Konfirmasi & Simpan Kalibrasi",
+    "status_anchored": "Usia Terkalibrasi",
+    "status_missing": "Usia Hilang",
+    "label_server_age": "Usia Server Dalam Game (Hari)",
+    "server_age_placeholder": "cth: 223 atau 223 d",
+    "server_age_helper": "Dari panel Info Kerajaan dalam game",
+    "label_founded_date": "Tanggal Peluncuran Terhitung",
+    "live_age_badge": "Berusia {days} Hari",
+    "btn_save": "Simpan Kalibrasi",
+    "btn_saving": "Menyimpan...",
+    "btn_saved": "Tersimpan ✓",
+    "no_kingdoms_found": "Tidak ada kerajaan yang cocok dengan \"#{query}\"",
+    "error_saving": "Gagal menyimpan kalibrasi kerajaan",
+    "scan_error": "Tidak dapat membaca info kerajaan dari gambar."
   }
 }

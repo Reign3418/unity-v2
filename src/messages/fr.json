@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Fondation du Royaume et Calibrage de l'Âge du Serveur",
+    "subtitle": "Définissez l'âge du serveur ou la date de fondation pour activer les métriques ajustées dans le temps.",
+    "filter_placeholder": "Filtrer Royaume #...",
+    "all_filter": "Tous",
+    "anchored_filter": "Calibré",
+    "missing_filter": "Âge manquant",
+    "ai_dropzone_title": "Scanner IA de Capture d'Écran Info Royaume",
+    "ai_dropzone_desc": "Glissez, collez (Ctrl+V) ou cliquez pour charger une capture d'écran",
+    "ai_dropzone_scanning": "Analyse du panneau Info Royaume avec Gemini Vision...",
+    "ai_scan_detected": "Royaume #{kingdomNumber} ({kingdomName}) détecté • Âge: {days}j",
+    "btn_auto_save": "Confirmer & Enregistrer le Calibrage",
+    "status_anchored": "Âge calibré",
+    "status_missing": "Âge manquant",
+    "label_server_age": "Âge du Serveur en Jeu (Jours)",
+    "server_age_placeholder": "ex: 223 ou 223 d",
+    "server_age_helper": "Depuis le panneau Info Royaume en jeu",
+    "label_founded_date": "Date de Fondation Calculée",
+    "live_age_badge": "{days} Jours d'Âge",
+    "btn_save": "Enregistrer le Calibrage",
+    "btn_saving": "Enregistrement...",
+    "btn_saved": "Enregistré ✓",
+    "no_kingdoms_found": "Aucun royaume correspondant à \"#{query}\"",
+    "error_saving": "Erreur lors de l'enregistrement",
+    "scan_error": "Impossible de lire les infos du royaume. Vérifiez la capture."
   }
 }

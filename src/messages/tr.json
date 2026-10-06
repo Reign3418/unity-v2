@@ -1185,5 +1185,31 @@
     "lbl_recommended_pairings": "Recommended Commander Pairings For This Setup",
     "lbl_pairings_sub": "Equipment stats only shine when combined with proper active skill ordering and talent trees.",
     "lbl_talent_tree": "Talent Tree:"
+  },
+  "KingdomManager": {
+    "title": "Krallık Kuruluş ve Sunucu Yaşı Kalibrasyonu",
+    "subtitle": "Zamana göre ayarlanmış büyüme metriklerini etkinleştirmek için sunucu yaşını veya kuruluş tarihini belirleyin.",
+    "filter_placeholder": "Krallık # Filtrele...",
+    "all_filter": "Tümü",
+    "anchored_filter": "Kalibre Edildi",
+    "missing_filter": "Yaş Eksik",
+    "ai_dropzone_title": "Yapay Zeka Krallık Bilgisi Ekran Görüntüsü Tarayıcısı",
+    "ai_dropzone_desc": "Otomatik kalibre etmek için oyun içi Krallık Bilgisi ekran görüntüsünü sürükleyin veya yapıştırın (Ctrl+V)",
+    "ai_dropzone_scanning": "Gemini Vision ile Krallık Bilgisi paneli taranıyor...",
+    "ai_scan_detected": "Krallık #{kingdomNumber} ({kingdomName}) Algılandı • Sunucu Yaşı: {days} gün",
+    "btn_auto_save": "Kalibrasyonu Onayla ve Kaydet",
+    "status_anchored": "Yaş Kalibre Edildi",
+    "status_missing": "Yaş Eksik",
+    "label_server_age": "Oyun İçi Sunucu Yaşı (Gün)",
+    "server_age_placeholder": "örn. 223 veya 223 d",
+    "server_age_helper": "Oyun içi Krallık Bilgisi panelinden",
+    "label_founded_date": "Hesaplanan Kuruluş Tarihi",
+    "live_age_badge": "{days} Günlük",
+    "btn_save": "Kalibrasyonu Kaydet",
+    "btn_saving": "Kaydediliyor...",
+    "btn_saved": "Kaydedildi ✓",
+    "no_kingdoms_found": "\"#{query}\" ile eşleşen krallık bulunamadı",
+    "error_saving": "Kalibrasyon kaydedilirken hata oluştu",
+    "scan_error": "Görüntüden krallık bilgisi okunamadı."
   }
 }

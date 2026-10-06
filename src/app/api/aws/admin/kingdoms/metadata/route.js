@@ -40,18 +40,25 @@ export async function POST(req) {
         }
 
         const body = await req.json();
-        const { kingdomId, foundedDate } = body;
+        const { kingdomId, foundedDate, kingdomName, theKing, kingdomProgress } = body;
 
         if (!kingdomId) {
             return NextResponse.json({ error: "kingdomId is required." }, { status: 400 });
         }
 
-        const success = await setKingdomMetadata(kingdomId, { foundedDate });
+        const success = await setKingdomMetadata(kingdomId, { foundedDate, kingdomName, theKing, kingdomProgress });
         if (!success) {
             return NextResponse.json({ error: "Failed to update Kingdom Metadata in AWS." }, { status: 500 });
         }
 
-        return NextResponse.json({ message: "Kingdom Metadata Updated Successfully.", kingdomId, foundedDate });
+        return NextResponse.json({ 
+            message: "Kingdom Metadata Updated Successfully.", 
+            kingdomId, 
+            foundedDate,
+            kingdomName: kingdomName || null,
+            theKing: theKing || null,
+            kingdomProgress: kingdomProgress || null
+        });
 
     } catch (e) {
         console.error("API POST /api/aws/admin/kingdoms/metadata Error", e);
