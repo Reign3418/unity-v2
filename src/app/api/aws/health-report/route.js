@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, getKingdomMetadata, parseScanDate } from '@/lib/awsDynamo';
 import { logEvent } from '@/lib/eventLogger';
+import { analyzeKingdomPolygraphAnomalies } from '@/lib/anomalyDetector';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -279,6 +280,9 @@ export async function GET(req) {
             : null;
         const momentumStatus = velocityRatio === null ? 'UNKNOWN' : velocityRatio >= 130 ? 'SURGE' : velocityRatio >= 85 ? 'NOMINAL' : velocityRatio > 0 ? 'SLOW' : 'NEGATIVE';
 
+        // ── Compute Deception & Fraud Detection Matrix ──
+        const anomalies = analyzeKingdomPolygraphAnomalies(sortedRoster, serverAgeDays, era);
+
         // ── Build AI Prompt ──
         const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag')
             .sort((a,b) => b.powerDelta - a.powerDelta);
@@ -299,6 +303,16 @@ ${lifetimePowerVelocity ? `- Lifetime Daily Pace: +${(lifetimePowerVelocity / 1e
 - Departed: ${departed.length}
 - Alliance Switchers: ${allianceSwitchers.length}
 - High-Velocity Spenders (>500k): ${whales.length}
+
+ANOMALY & DECEPTION MATRIX (Polygraph Fraud Signals):
+- Kingdom Integrity Score: ${anomalies.integrityScore}/100 (${anomalies.integrityRating})
+- Predicted KvK Seed: ${anomalies.seedProjection} (Top 50 Power: ${(anomalies.top50Power/1e9).toFixed(2)}B, Peer Maturity: ${anomalies.peerBenchmark.maturityRating})
+- Stat-Padding Suspects (T1 Farm Duelers): ${anomalies.statPadders.length} detected
+${anomalies.statPadders.slice(0, 3).map(s => `  ${s.name} [${s.alliance}]: ${s.reason}`).join('\n')}
+- Seed Sandbagging Suspects (Power Dumping): ${anomalies.sandbaggers.length} detected
+${anomalies.sandbaggers.slice(0, 3).map(s => `  ${s.name} [${s.alliance}]: ${s.reason}`).join('\n')}
+- Deadweight Whales: ${anomalies.deadweightWhales.length} detected (${(anomalies.deadweightPowerTotal/1e6).toFixed(1)}M power, ${anomalies.deadweightPowerPercentage}% of Top 50 power)
+- Frontline Hyper-Combatants: ${anomalies.hyperCombatants.length} detected
 
 BEHAVIORAL SIGNATURES (computed from roster activity — NOT raw power rank):
 - Operators (high KP, low power grind — likely coordinating): ${operators.length} detected
@@ -415,6 +429,7 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
             migration: { newArrivals, departed },
             behavioralSigs,
             followSignals,
+            anomalies,
         };
 
         return NextResponse.json({ success: true, kingdom: kdResult, ai: aiBrief }, { status: 200 });

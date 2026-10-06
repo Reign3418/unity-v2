@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock } from "lucide-react";
+import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
+import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, KvKClashModal } from "./PolygraphGauges";
 
 function Tooltip({ text, children }) {
   if (!text) return children;
@@ -33,6 +34,12 @@ export default function Polygraph() {
   const [sort, setSort] = useState({ key: "powerDelta", dir: "desc" });
   const [restored, setRestored] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Remastered Modal states
+  const [inspectCategory, setInspectCategory] = useState(null);
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
+  const [isClashModalOpen, setIsClashModalOpen] = useState(false);
+  const [clashOpponentKd, setClashOpponentKd] = useState("");
 
   // Range Finder states
   const [mode, setMode] = useState("single"); // "single" | "sweep"
@@ -451,9 +458,17 @@ export default function Polygraph() {
               }} className="text-gray-600 hover:text-gray-400 text-xs font-bold py-2 px-3 rounded-lg border border-[#1e222b] transition-colors">{t("btn_clear")}</button>
             )}
             {mode === "single" && data && (
-              <button onClick={shareLink} className={`flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border transition-colors ${copied?"border-emerald-500/40 text-emerald-400 bg-emerald-500/10":"border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10"}`}>
-                {copied ? <><Check size={13}/> Copied!</> : <><Link2 size={13}/> Share</>}
-              </button>
+              <>
+                <button onClick={shareLink} className={`flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border transition-colors ${copied?"border-emerald-500/40 text-emerald-400 bg-emerald-500/10":"border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10"}`}>
+                  {copied ? <><Check size={13}/> Copied!</> : <><Link2 size={13}/> Share</>}
+                </button>
+                <button 
+                  onClick={() => setIsMailModalOpen(true)} 
+                  className="flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                >
+                  <Send size={13}/> {t("dispatch_mail_btn")}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -515,65 +530,28 @@ export default function Polygraph() {
           {tab === "overview" && (
             <div className="p-6 space-y-5">
               
-              {/* Time-Adjusted Velocity KPI Banner */}
+              {/* Remastered Cyber-Tactical Visual Gauges */}
               {kdd.velocityMetrics && (
-                <div className="bg-gradient-to-r from-[#11141c] via-[#161a24] to-[#11141c] border border-cyan-500/25 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                      <Zap size={20} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-2">
-                        <span>Time-Adjusted Velocity</span>
-                        {kdd.velocityMetrics.momentumStatus && (
-                          <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase ${
-                            kdd.velocityMetrics.momentumStatus === 'SURGE' 
-                              ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
-                              : kdd.velocityMetrics.momentumStatus === 'NOMINAL'
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          }`}>
-                            {kdd.velocityMetrics.momentumStatus}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-                        {kdd.serverAgeDays !== null ? `Age: ${kdd.serverAgeDays}d • ` : ''}
-                        Window: {kdd.velocityMetrics.windowDays}d scan interval
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6 text-center">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Window Pace</div>
-                      <div className="text-sm font-black font-mono text-cyan-400">
-                        {kdd.velocityMetrics.windowPowerVelocity >= 0 ? '+' : ''}{fmt(kdd.velocityMetrics.windowPowerVelocity)}/d
-                      </div>
-                    </div>
-                    {kdd.velocityMetrics.lifetimePowerVelocity && (
-                      <>
-                        <div className="w-[1px] h-8 bg-[#1e222b]" />
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Lifetime Daily Pace</div>
-                          <div className="text-sm font-black font-mono text-slate-300">
-                            +{fmt(kdd.velocityMetrics.lifetimePowerVelocity)}/d
-                          </div>
-                        </div>
-                        <div className="w-[1px] h-8 bg-[#1e222b]" />
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Momentum Ratio</div>
-                          <div className={`text-sm font-black font-mono ${
-                            kdd.velocityMetrics.velocityRatio >= 130 ? 'text-fuchsia-400' : kdd.velocityMetrics.velocityRatio >= 85 ? 'text-emerald-400' : 'text-amber-400'
-                          }`}>
-                            {kdd.velocityMetrics.velocityRatio}%
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <MomentumTachometer
+                  velocityMetrics={kdd.velocityMetrics}
+                  serverAgeDays={kdd.serverAgeDays}
+                  t={t}
+                />
               )}
+
+              <SeismicTensionGauge
+                civilWarProbability={ai?.civilWarProbability}
+                civilWarRationale={ai?.civilWarRationale}
+                switchersCount={me?.switchersCount}
+                alliances={kdd.alliances}
+                t={t}
+              />
+
+              <DeceptionRadarCard
+                anomalies={kdd.anomalies}
+                t={t}
+                onInspect={(cat) => setInspectCategory(cat)}
+              />
 
               {/* Metric Bars */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -947,12 +925,14 @@ export default function Polygraph() {
                 <thead className="bg-[#101318] text-[10px] uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="p-4 font-bold">Kingdom</th>
+                    <th className="p-4 font-bold text-center">{t("predicted_seed")}</th>
                     <th className="p-4 font-bold text-center">Grade</th>
-                    <th className="p-4 font-bold text-center">Civil War Risk</th>
-                    <th className="p-4 font-bold">Posture</th>
-                    <th className="p-4 font-bold text-right">Growth (Power)</th>
-                    <th className="p-4 font-bold text-right">Spenders</th>
-                    <th className="p-4 font-bold">Recommendation</th>
+                    <th className="p-4 font-bold text-center">{t("civil_war_risk")}</th>
+                    <th className="p-4 font-bold text-center">{t("clash_stat_integrity")}</th>
+                    <th className="p-4 font-bold">{t("col_posture")}</th>
+                    <th className="p-4 font-bold text-right">{t("col_power")}</th>
+                    <th className="p-4 font-bold text-right">{t("tab_spenders")}</th>
+                    <th className="p-4 font-bold">{t("col_recommendation")}</th>
                     <th className="p-4 font-bold text-center">Actions</th>
                   </tr>
                 </thead>
@@ -966,6 +946,11 @@ export default function Polygraph() {
                         </div>
                       </td>
                       <td className="p-4 text-center">
+                        <span className="font-black px-2 py-0.5 rounded text-[11px] bg-gradient-to-r from-fuchsia-500/15 to-purple-500/15 border border-fuchsia-500/30 text-fuchsia-300">
+                          {res.kingdom?.anomalies?.projectedSeed || "Seed B"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
                         <span className={`font-black px-2.5 py-1 rounded border text-sm ${gc(res.ai?.grade)}`}>
                           {res.ai?.grade || "N/A"}
                         </span>
@@ -973,6 +958,13 @@ export default function Polygraph() {
                       <td className="p-4 text-center">
                         <span className={`font-bold ${parseInt(res.ai?.civilWarProbability || "0") > 50 ? "text-rose-400" : "text-emerald-400"}`}>
                           {res.ai?.civilWarProbability || 0}%
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`font-mono font-bold text-xs ${
+                          (res.kingdom?.anomalies?.integrityScore ?? 100) >= 90 ? 'text-emerald-400' : (res.kingdom?.anomalies?.integrityScore ?? 100) >= 70 ? 'text-amber-400' : 'text-rose-400'
+                        }`}>
+                          {res.kingdom?.anomalies?.integrityScore ?? 100}/100
                         </span>
                       </td>
                       <td className="p-4 text-gray-300 font-medium">
@@ -993,17 +985,30 @@ export default function Polygraph() {
                         {res.ai?.recommendation || "N/A"}
                       </td>
                       <td className="p-4 text-center">
-                        <button
-                          onClick={() => {
-                            setKd(res.kingdom.kd);
-                            setData(res);
-                            setMode("single");
-                            setTab("overview");
-                          }}
-                          className="bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/20 text-[10px] font-bold py-1.5 px-3 rounded-md transition-colors"
-                        >
-                          {t("btn_load_polygraph")}
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              setKd(res.kingdom.kd);
+                              setData(res);
+                              setMode("single");
+                              setTab("overview");
+                            }}
+                            className="bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/20 text-[10px] font-bold py-1.5 px-3 rounded-md transition-colors whitespace-nowrap"
+                          >
+                            {t("btn_load_polygraph")}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setClashOpponentKd(res.kingdom.kd);
+                              setIsClashModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold py-1.5 px-2.5 rounded-md transition-colors whitespace-nowrap"
+                            title="Clash against this kingdom in KvK War Room"
+                          >
+                            <Swords size={12} />
+                            {t("clash_btn")}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1028,6 +1033,34 @@ export default function Polygraph() {
           <div className="text-gray-600 text-xs">{t("loading_sub")}</div>
         </div>
       )}
+
+      {/* Remastered Modals */}
+      <SuspectsModal
+        isOpen={!!inspectCategory}
+        onClose={() => setInspectCategory(null)}
+        category={inspectCategory}
+        list={kdd?.anomalies?.[inspectCategory] || []}
+        t={t}
+      />
+
+      <MailDispatchModal
+        isOpen={isMailModalOpen}
+        onClose={() => setIsMailModalOpen(false)}
+        kd={kd}
+        kdd={kdd}
+        ai={ai}
+        t={t}
+        locale={locale}
+      />
+
+      <KvKClashModal
+        isOpen={isClashModalOpen}
+        onClose={() => setIsClashModalOpen(false)}
+        primaryKd={startKd || kd}
+        initialOpponentKd={clashOpponentKd}
+        sweepResults={sweepResults}
+        t={t}
+      />
     </div>
   );
 }

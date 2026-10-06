@@ -1,7 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Crown, UserPlus, UserMinus, Zap, Clock } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Crown, UserPlus, UserMinus, Zap, Clock, Send, Scale } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal } from '@/app/[locale]/tools/polygraph/PolygraphGauges';
 
 const fmt = (n) => {
   const abs = Math.abs(n);
@@ -16,6 +18,8 @@ const mb = (d) => { const m=Math.floor(d/1e6); return m>=3?'bg-rose-600 text-whi
 const mbt = (d) => { const m=Math.floor(d/1e6); return m>=1?`${m}M+`:'500k+'; };
 
 export default function SharedPolygraph() {
+  const t = useTranslations("Polygraph");
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const kd = searchParams.get('kd');
   const end = searchParams.get('end');
@@ -27,6 +31,10 @@ export default function SharedPolygraph() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('overview');
   const [sort, setSort] = useState({ key: 'powerDelta', dir: 'desc' });
+
+  // Remastered modals
+  const [inspectCategory, setInspectCategory] = useState(null);
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
 
   useEffect(() => {
     if (!kd || !end) { setError('Invalid link — missing kingdom or date parameters.'); setLoading(false); return; }
@@ -79,9 +87,17 @@ export default function SharedPolygraph() {
               <h1 className="text-2xl font-black text-white tracking-widest uppercase">EK Polygraph</h1>
               <p className="text-fuchsia-400 text-xs font-bold uppercase tracking-[0.2em]">Kingdom Intelligence Brief — Shared View</p>
             </div>
-            <div className="ml-auto text-right">
-              <div className="text-gray-600 text-[10px] uppercase tracking-wider">Kingdom · Window</div>
-              <div className="text-gray-300 font-mono font-bold">KD {kd} · {tf}h ending {end}</div>
+            <div className="ml-auto flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-gray-600 text-[10px] uppercase tracking-wider">Kingdom · Window</div>
+                <div className="text-gray-300 font-mono font-bold">KD {kd} · {tf}h ending {end}</div>
+              </div>
+              <button 
+                onClick={() => setIsMailModalOpen(true)}
+                className="flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+              >
+                <Send size={13} /> {t("dispatch_mail_btn")}
+              </button>
             </div>
           </div>
         </div>
@@ -135,65 +151,28 @@ export default function SharedPolygraph() {
           {tab==='overview' && (
             <div className="p-6 space-y-5">
               
-              {/* Time-Adjusted Velocity KPI Banner */}
+              {/* Remastered Cyber-Tactical Visual Gauges */}
               {kdd.velocityMetrics && (
-                <div className="bg-gradient-to-r from-[#11141c] via-[#161a24] to-[#11141c] border border-cyan-500/25 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                      <Zap size={20} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-2">
-                        <span>Time-Adjusted Velocity</span>
-                        {kdd.velocityMetrics.momentumStatus && (
-                          <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase ${
-                            kdd.velocityMetrics.momentumStatus === 'SURGE' 
-                              ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
-                              : kdd.velocityMetrics.momentumStatus === 'NOMINAL'
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          }`}>
-                            {kdd.velocityMetrics.momentumStatus}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-                        {kdd.serverAgeDays !== null ? `Age: ${kdd.serverAgeDays}d • ` : ''}
-                        Window: {kdd.velocityMetrics.windowDays}d scan interval
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6 text-center">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Window Pace</div>
-                      <div className="text-sm font-black font-mono text-cyan-400">
-                        {kdd.velocityMetrics.windowPowerVelocity >= 0 ? '+' : ''}{fmt(kdd.velocityMetrics.windowPowerVelocity)}/d
-                      </div>
-                    </div>
-                    {kdd.velocityMetrics.lifetimePowerVelocity && (
-                      <>
-                        <div className="w-[1px] h-8 bg-[#1e222b]" />
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Lifetime Daily Pace</div>
-                          <div className="text-sm font-black font-mono text-slate-300">
-                            +{fmt(kdd.velocityMetrics.lifetimePowerVelocity)}/d
-                          </div>
-                        </div>
-                        <div className="w-[1px] h-8 bg-[#1e222b]" />
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Momentum Ratio</div>
-                          <div className={`text-sm font-black font-mono ${
-                            kdd.velocityMetrics.velocityRatio >= 130 ? 'text-fuchsia-400' : kdd.velocityMetrics.velocityRatio >= 85 ? 'text-emerald-400' : 'text-amber-400'
-                          }`}>
-                            {kdd.velocityMetrics.velocityRatio}%
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <MomentumTachometer
+                  velocityMetrics={kdd.velocityMetrics}
+                  serverAgeDays={kdd.serverAgeDays}
+                  t={t}
+                />
               )}
+
+              <SeismicTensionGauge
+                civilWarProbability={ai?.civilWarProbability}
+                civilWarRationale={ai?.civilWarRationale}
+                switchersCount={me?.switchersCount}
+                alliances={kdd.alliances}
+                t={t}
+              />
+
+              <DeceptionRadarCard
+                anomalies={kdd.anomalies}
+                t={t}
+                onInspect={(cat) => setInspectCategory(cat)}
+              />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[{label:'Power',val:me?.totalPowerGained,color:'text-fuchsia-400'},{label:'Troops',val:me?.totalTroopPowerGained,color:'text-cyan-400'},{label:'Cmdr',val:me?.totalCmdPowerGained,color:'text-amber-400'},{label:'Tech',val:me?.totalTechPowerGained,color:'text-violet-400'},{label:'Deads',val:me?.totalDeadsGained,color:'text-rose-400'}].map(({label,val,color})=>(
                   <div key={label} className={`bg-[#0a0c0f] border rounded-lg p-4 text-center ${label==='Deads'&&val>0?'border-rose-500/30':'border-[#1e222b]'}`}>
@@ -365,6 +344,25 @@ export default function SharedPolygraph() {
           Powered by Unity Combat Intelligence · unity-v2.vercel.app
         </div>
       </div>
+
+      {/* Remastered Modals */}
+      <SuspectsModal
+        isOpen={!!inspectCategory}
+        onClose={() => setInspectCategory(null)}
+        category={inspectCategory}
+        list={kdd?.anomalies?.[inspectCategory] || []}
+        t={t}
+      />
+
+      <MailDispatchModal
+        isOpen={isMailModalOpen}
+        onClose={() => setIsMailModalOpen(false)}
+        kd={kd}
+        kdd={kdd}
+        ai={ai}
+        t={t}
+        locale={locale}
+      />
     </div>
   );
 }

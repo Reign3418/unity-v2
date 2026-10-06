@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, getKingdomMetadata, parseScanDate } from '@/lib/awsDynamo';
 import { logEvent } from '@/lib/eventLogger';
+import { analyzeKingdomPolygraphAnomalies } from '@/lib/anomalyDetector';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -193,6 +194,8 @@ export async function GET(req) {
             : null;
         const momentumStatus = velocityRatio === null ? 'UNKNOWN' : velocityRatio >= 130 ? 'SURGE' : velocityRatio >= 85 ? 'NOMINAL' : velocityRatio > 0 ? 'SLOW' : 'NEGATIVE';
 
+        const anomalies = analyzeKingdomPolygraphAnomalies(sortedRoster, serverAgeDays, era);
+
         const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag').sort((a, b) => b.powerDelta - a.powerDelta);
 
         const kingdomSummary = `
@@ -211,6 +214,13 @@ ${lifetimePowerVelocity ? `- Lifetime Daily Pace: +${(lifetimePowerVelocity / 1e
 - Departed: ${departed.length}
 - Alliance Switchers: ${allianceSwitchers.length}
 - High-Velocity Spenders (>500k): ${whales.length}
+
+ANOMALY & DECEPTION MATRIX (Polygraph Fraud Signals):
+- Kingdom Integrity Score: ${anomalies.integrityScore}/100 (${anomalies.integrityRating})
+- Predicted KvK Seed: ${anomalies.seedProjection} (Top 50 Power: ${(anomalies.top50Power/1e9).toFixed(2)}B, Peer Maturity: ${anomalies.peerBenchmark.maturityRating})
+- Stat-Padding Suspects (T1 Farm Duelers): ${anomalies.statPadders.length} detected
+- Seed Sandbagging Suspects (Power Dumping): ${anomalies.sandbaggers.length} detected
+- Deadweight Whales: ${anomalies.deadweightWhales.length} detected (${(anomalies.deadweightPowerTotal/1e6).toFixed(1)}M power, ${anomalies.deadweightPowerPercentage}% of Top 50 power)
 
 BEHAVIORAL SIGNATURES:
 - Operators (high KP, low power grind): ${operators.length} detected
@@ -308,6 +318,7 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
             migration: { newArrivals, departed },
             behavioralSigs,
             followSignals,
+            anomalies,
         };
 
         return NextResponse.json({ success: true, kingdom: kdResult, ai: aiBrief }, { status: 200 });
