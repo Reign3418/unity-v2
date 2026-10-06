@@ -353,7 +353,7 @@ export default function Polygraph() {
   const kdd = data?.kingdom;
   const ai = data?.ai;
   const me = kdd?.metrics;
-  const isNascent = kdd?.serverAgeDays !== null && kdd?.serverAgeDays !== undefined && kdd.serverAgeDays < 90;
+  const isNascent = kdd?.serverAgeDays !== null && kdd?.serverAgeDays !== undefined && kdd.serverAgeDays <= 10;
 
   const TABS = ["overview","alliance","migration","leadership","spenders"];
   const TLABELS = { 
@@ -773,13 +773,13 @@ export default function Polygraph() {
                                                   {(g.isMigrant || g.isLateStartOrEmergence || g.isNew) && (
                                                     <span 
                                                       className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${
-                                                        (kdd.serverAgeDays !== null && kdd.serverAgeDays < 90) || g.isLateStartOrEmergence
+                                                        (kdd.serverAgeDays !== null && kdd.serverAgeDays <= 10) || g.isLateStartOrEmergence
                                                           ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
                                                           : "bg-blue-500/20 text-blue-300 border-blue-500/30"
                                                       }`}
-                                                      title={(kdd.serverAgeDays !== null && kdd.serverAgeDays < 90) || g.isLateStartOrEmergence ? t("badge_new_entry_tooltip") : t("badge_migrant_tooltip")}
+                                                      title={(kdd.serverAgeDays !== null && kdd.serverAgeDays <= 10) || g.isLateStartOrEmergence ? t("badge_new_entry_tooltip") : t("badge_migrant_tooltip")}
                                                     >
-                                                      {(kdd.serverAgeDays !== null && kdd.serverAgeDays < 90) || g.isLateStartOrEmergence ? t("badge_new_entry") : "NEW"}
+                                                      {(kdd.serverAgeDays !== null && kdd.serverAgeDays <= 10) || g.isLateStartOrEmergence ? t("badge_new_entry") : "NEW"}
                                                     </span>
                                                   )}
                                                 </div>
@@ -1085,7 +1085,7 @@ export default function Polygraph() {
               <div 
                 className="text-xs text-gray-500" 
                 dangerouslySetInnerHTML={{ 
-                  __html: (kdd.serverAgeDays !== null && kdd.serverAgeDays < 90 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc"))
+                  __html: (kdd.serverAgeDays !== null && kdd.serverAgeDays <= 10 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc"))
                     .replace("<highlight>", '<span class="text-amber-400 font-bold">')
                     .replace("</highlight>", "</span>")
                     .replace("<new>", '<span class="text-cyan-400 font-semibold">')

@@ -911,7 +911,7 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
   const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState("");
 
-  const isYoungServer = serverAgeDays !== null && serverAgeDays !== undefined && serverAgeDays < 90;
+  const isNascentServer = serverAgeDays !== null && serverAgeDays !== undefined && serverAgeDays <= 10;
 
   const filteredWhales = whales.filter(w => {
     if (!search.trim()) return true;
@@ -975,7 +975,7 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     } else if (isT5Pushing) {
       archetypeKey = "archetype_t5_pushing";
       badgeColor = "text-violet-400 bg-violet-500/20 border-violet-500/40 shadow-[0_0_12px_rgba(139,92,246,0.25)]";
-    } else if (w.isMigrant && !isYoungServer) {
+    } else if (w.isMigrant && !isNascentServer) {
       archetypeKey = "archetype_jumper";
       badgeColor = "text-blue-400 bg-blue-500/10 border-blue-500/30";
     } else if (buildPct >= 45) {
@@ -1002,7 +1002,7 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
       rationale = `T5 Sovereign Whale: Surpassed both the 22.3M Tech Floor and 14.8M Building Floor requirements. Unlocked or immediately eligible for Tier 5 legion recruitment, establishing dominant battlefield firepower.`;
     } else if (isT5Pushing) {
       rationale = `T5 Push in Progress: Actively sprinting towards the T5 threshold (${t5TechPct}% Tech / ${t5BuildPct}% Buildings). Fast-tracking prerequisite research and building upgrades indicates imminent Tier 5 unlock readiness.`;
-    } else if (w.isMigrant && !isYoungServer) {
+    } else if (w.isMigrant && !isNascentServer) {
       rationale = `Migrated into the kingdom during this window with ${fmt(w.powerEnd || pDelta)} power. Injects immediate external combat readiness and high-tier march capacity into [${w.alliance || "No Tag"}].`;
     } else if (buildPct >= 45) {
       rationale = `Surged +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}], heavily prioritizing City Hall & prerequisite structures (+${fmt(buildD)} building power, ${buildPct}% of delta). Fast-tracking base infrastructure and march capacity.${breakdownText}`;
@@ -1397,7 +1397,7 @@ export function CombatCausalityCard({ combatCausality, serverAgeDays, t }) {
       )}
 
       {/* Pre-Migration Power Trimming Callout */}
-      {(serverAgeDays === null || serverAgeDays >= 90) && powerCutMigrants.length > 0 && (
+      {(serverAgeDays === null || serverAgeDays > 10) && powerCutMigrants.length > 0 && (
         <div className="bg-[#121520] border border-cyan-500/30 rounded-lg p-3.5 space-y-2">
           <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1.5">
             <Shield size={12} className="text-cyan-400" />

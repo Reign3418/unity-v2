@@ -151,8 +151,8 @@ export function analyzeCombatCausality(roster = [], allianceMap = {}, serverAgeD
 
         // Casualty candidate: took heavy deads or shed large power with deads
         if (deadsDelta >= minZeroedDeads || (pDelta <= minZeroedPowerDrop && deadsDelta >= 15000)) {
-            // Check if this matches a Migration Power Cut (only relevant for mature servers >=90d):
-            const canMigrate = serverAgeDays === null || serverAgeDays >= 90;
+            // Check if this matches a Migration Power Cut (only relevant after migration opens, serverAgeDays > 10):
+            const canMigrate = serverAgeDays === null || serverAgeDays > 10;
             const droppedBelowMigrationCap = canMigrate && powerStart >= 24000000 && power <= 25500000;
             const pureSuicideRatio = kpDelta < (deadsDelta * 2); // almost no KP return
 
@@ -317,16 +317,18 @@ export function buildRoKBattleWikiPromptContext({ kd, serverAgeDays, era, causal
     const age = serverAgeDays !== null && serverAgeDays !== undefined ? serverAgeDays : 'Uncalibrated';
     const days = Math.max(1, windowDays || 1);
 
-    const isYoung = serverAgeDays !== null && serverAgeDays < 90;
+    const isNascent = serverAgeDays !== null && serverAgeDays <= 10;
 
     // Age-specific wiki rules
     let eraRule = '';
-    if (isYoung) {
-        eraRule = 'IMMUTABLE RULE: Nascent foundation kingdom (<90d). Focus analysis strictly on domestic power growth, alliance building, and internal stability. Do NOT mention cross-kingdom migration.';
+    if (isNascent) {
+        eraRule = 'IMMUTABLE RULE: Nascent foundation kingdom (<=10d). Cross-kingdom immigration is mechanically locked by RoK game rules. Any new accounts are late starters or top-rank emerges. Focus strictly on domestic power growth, alliance building, and internal stability. Do NOT mention cross-kingdom migration.';
+    } else if (serverAgeDays !== null && serverAgeDays < 90) {
+        eraRule = 'Early pre-KvK kingdom (11-90d). Cross-kingdom migration is active up to 25M power cap. Track new arrivals joining top alliances and roster consolidation.';
     } else if (serverAgeDays !== null && serverAgeDays < 180) {
-        eraRule = 'IMMUTABLE RULE: KvK 1 Era. High command focuses on kingdom unification. Civil war threatens KvK qualification and Seed seeding.';
+        eraRule = 'IMMUTABLE RULE: KvK 1 Era. High command focuses on kingdom unification. Civil war threatens KvK qualification and Seed seeding. Cross-kingdom migration is active.';
     } else {
-        eraRule = 'IMMUTABLE RULE: Established / SoC Era. High Dead counts and high KP are typical of pass fighting and crystal-tech marches.';
+        eraRule = 'IMMUTABLE RULE: Mature / End Game Era (KvK 2/3 & Season of Conquest). High-volume cross-kingdom migration in and out. Track whales trimming power to pass immigration caps, combat deployments, and coalition shifts.';
     }
 
     // T5 Radar summary
@@ -348,9 +350,9 @@ export function buildRoKBattleWikiPromptContext({ kd, serverAgeDays, era, causal
         }).join('\n');
     }
 
-    // Power-cut migration summary (only for mature kingdoms)
+    // Power-cut migration summary (only after migration opens >10d)
     let powerCutWiki = '';
-    if (!isYoung && causality?.powerCutMigrants?.length > 0) {
+    if (!isNascent && causality?.powerCutMigrants?.length > 0) {
         powerCutWiki = `\n- PRE-MIGRATION POWER TRIMMING (STRATEGIC SELF-ZERO):\n${causality.powerCutMigrants.map(p => `${p.name} [${p.alliance}]: ${p.reason}`).join('\n')}`;
     }
 

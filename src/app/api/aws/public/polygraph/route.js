@@ -292,11 +292,12 @@ export async function GET(req) {
 
         for (const gov of sortedRoster) {
             const isNew = gov.powerDelta === 'NEW' || gov.status === 'New';
-            // In nascent/young servers (<90d, especially <10d), cross-kingdom passport migration is locked by game design.
-            // A "NEW" account is an internal emergence, late starter, or beginner jumper, NOT a passport immigrant.
-            const isYoungServer = serverAgeDays !== null && serverAgeDays < 90;
-            const isPassportMigrant = isNew && !isYoungServer;
-            const isLateStartOrEmergence = isNew && isYoungServer;
+            // In nascent foundation servers (<=10d), cross-kingdom passport migration is locked by game design.
+            // A "NEW" account in days 1-10 is an internal emergence, late starter, or beginner jumper, NOT a passport immigrant.
+            // After 10 days (serverAgeDays > 10) and into end game, cross-kingdom migration is active.
+            const isNascentServer = serverAgeDays !== null && serverAgeDays <= 10;
+            const isPassportMigrant = isNew && !isNascentServer;
+            const isLateStartOrEmergence = isNew && isNascentServer;
 
             const pDelta = isNew ? gov.powerEnd : (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0);
             // Fallback to end-state power components if delta is 0 for new arrivals/late starters
@@ -482,7 +483,7 @@ ALLIANCE CHURN (top switchers):
 ${allianceSwitchers.slice(0, 8).map(s => `${s.name}: [${s.from}] → [${s.to}] | Power: ${(s.power/1000000).toFixed(1)}M`).join('\n')}
 `;
 
-        const isNascent = serverAgeDays !== null && serverAgeDays < 90;
+        const isNascent = serverAgeDays !== null && serverAgeDays <= 10;
         const aiPrompt = `You are J.A.R.V.I.S., a Rise of Kingdoms intelligence analyst. Perform an Early Kingdom Polygraph Test on Kingdom ${kd}.
 ${kingdomSummary}
 
@@ -490,7 +491,8 @@ CRITICAL KINGDOM AGE & ERA CONTEXT:
 This kingdom is ${serverAgeDays !== null ? `${serverAgeDays} days old in ${era}` : 'of uncalibrated age'}.
 - Evaluate their stability and growth specifically through the lens of this age and game stage. A young kingdom (<150 days) naturally grows rapidly from building/tech development; an older kingdom (>300 days) grows primarily through troop training and KvK pass wars.
 - Consider whether their velocity (${velocityRatio ? `${velocityRatio}% of historical daily pace` : 'standard'}) represents a mobilization surge, healthy peacetime growth, or stagnation.
-- NASCENT KINGDOM RULE: If serverAgeDays < 90, this is an early foundation kingdom. Focus analysis purely on domestic velocity, alliance development, and internal stability. Do NOT discuss or analyze cross-kingdom migration.
+- NASCENT KINGDOM RULE (<=10 DAYS): If serverAgeDays <= 10, cross-kingdom immigration is mechanically locked by RoK game design. Focus analysis purely on domestic velocity, alliance development, and internal stability. Do NOT claim external immigration occurred.
+- MIGRATION ERA RULE (>10 DAYS & END GAME): If serverAgeDays > 10, cross-kingdom immigration is active (up to 25M cap in early eras, open cross-season in KvK/SoC). New arrivals and departed accounts represent genuine migration in and out.
 - CAUSAL COMBAT MATRIX & CIVIL WAR RULE: Use the verified incidents in the RoK Battle Wiki Causality findings above. If an Inter-Alliance Clash is identified, name the aggressor and victim alliances and specifically cite the zeroed victims and top strikers. If a Pre-Migration Power Trimming is detected, do NOT confuse it with a civil war victim.
 
 Assess stability, conflict patterns, and ${isNascent ? 'internal roster flow' : 'migration signals'}. Return ONLY raw JSON.
