@@ -230,70 +230,114 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
     };
 
     // ----------------------------------------------------------------------
-    // MAIL GENERATOR BRIDGE (V2 Pipeline)
+    // MAIL GENERATOR BRIDGE (V2 Pipeline with Server Age & Era Dynamics)
     // ----------------------------------------------------------------------
     const generateReport = (type) => {
         if (!filteredData || filteredData.length === 0) return;
 
         let sorted = [...filteredData];
-        if (type === 'gathering') {
-            sorted.sort((a, b) => b.gatheredDiff - a.gatheredDiff);
+        if (type === 'combat') {
+            // Sort by Kill Points gained; fallback to Dead troops
+            sorted.sort((a, b) => ((b.kpDiff || 0) - (a.kpDiff || 0)) || ((b.deadsDiff || 0) - (a.deadsDiff || 0)));
+        } else if (type === 'gathering') {
+            // Sort by Resources Gathered
+            sorted.sort((a, b) => (b.gatheredDiff || 0) - (a.gatheredDiff || 0));
+        } else {
+            // Growth Report: Sort by Age-Calibrated Final Score
+            sorted.sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
         }
 
-        let topMovers = 3;
-        let bottomReview = 10;
-        
-        if (type === 'gathering') {
-            topMovers = 5;
-            bottomReview = 20; 
-        }
+        const topMovers = 5;
+        const bottomReview = type === 'gathering' ? 15 : 10;
 
         const topList = sorted.slice(0, topMovers);
-        const bottomList = sorted.slice(-bottomReview).reverse(); 
+        const bottomList = sorted.slice(-bottomReview).reverse();
 
         const allianceName = allianceFilter || "All Alliances";
-        let reportTitle = type === 'combat' ? "Combat Report ⚔️" : type === 'growth' ? "Growth Report 📈" : "Gathering Report 🌾";
-        
-        let report = `${reportTitle}: <color=#000000><b>${allianceName}</b></color>\nScan Period: (${startDate} to ${endDate})\n\n`;
+        const eraProgress = kingdomMetadata?.kingdomProgress || (serverAgeDays > 270 ? 'Season of Conquest' : serverAgeDays >= 120 ? 'KvK 1/2' : 'Nascent / Pre-KvK');
+        const weightsModelName = (serverAgeDays > 270 || kingdomMetadata?.kingdomProgress === 'Season of Conquest') 
+            ? 'SoC Weights' 
+            : (serverAgeDays >= 120) 
+                ? 'Mid-Era Weights' 
+                : 'Early-Era Weights';
 
-        if (type === 'gathering' && allianceFilter) {
+        let reportTitle = type === 'combat' ? "Combat Report ⚔️" : type === 'growth' ? "Growth Report 📈" : "Gathering Report 🌾";
+
+        // --- Header Block with Kingdom Age & Dynamic Context ---
+        let report = `<b><color=#00FFFF>${reportTitle}</color></b>: <color=#FFD700><b>${allianceName}</b></color>\n`;
+        report += `Kingdom: <b>#${targetKd}</b>${serverAgeDays !== null ? ` | Age: <b>${serverAgeDays}d</b> (${eraProgress})` : ''}\n`;
+        report += `State: <b>${kingdomState === 'War' ? '⚔️ At War' : '🕊️ At Peace'}</b> | Model: <b>${weightsModelName}</b>\n`;
+        report += `Interval: (${startDate} to ${endDate})\n\n`;
+
+        // --- Aggregate Summary Block ---
+        const fmt = formatShortNum;
+        if (type === 'combat') {
+            const totalKP = filteredData.reduce((sum, p) => sum + (p.kpDiff || 0), 0);
+            const totalDeads = filteredData.reduce((sum, p) => sum + (p.deadsDiff || 0), 0);
+            const totalPwr = filteredData.reduce((sum, p) => sum + (p.powerDiff || 0), 0);
+            report += `<b>Combat Totals (${filteredData.length} Govs):</b>\n`;
+            report += `KP Gained: <color=#32CD32><b>+${fmt(totalKP)}</b></color> | Deads: <color=#FF4500><b>+${fmt(totalDeads)}</b></color>\n`;
+            report += `Net Power: <b>${totalPwr >= 0 ? '+' : ''}${fmt(totalPwr)}</b>\n\n`;
+        } else if (type === 'growth') {
+            const totalPwr = filteredData.reduce((sum, p) => sum + (p.powerDiff || 0), 0);
+            const totalTech = filteredData.reduce((sum, p) => sum + (p.techPowerDiff || 0), 0);
+            const totalTroop = filteredData.reduce((sum, p) => sum + (p.troopPowerDiff || 0), 0);
+            const totalBld = filteredData.reduce((sum, p) => sum + (p.bldPowerDiff || 0), 0);
+            report += `<b>Growth Summary (${filteredData.length} Govs):</b>\n`;
+            report += `Tier Count: <b>S:${sTierCount} A:${aTierCount} B:${bTierCount} C:${cTierCount} D:${dTierCount}</b>\n`;
+            report += `Net Power: <color=#32CD32><b>${totalPwr >= 0 ? '+' : ''}${fmt(totalPwr)}</b></color> (Tech:+${fmt(totalTech)} Trp:+${fmt(totalTroop)} Bld:+${fmt(totalBld)})\n\n`;
+        } else if (type === 'gathering') {
             const totalGathered = filteredData.reduce((sum, p) => sum + (p.gatheredDiff || 0), 0);
             const totalAssistance = filteredData.reduce((sum, p) => sum + (p.assistDiff || 0), 0);
-            report += `<b>Alliance Totals:</b>\n`;
-            report += `Total Gathered: <color=#D2691E><b>${formatShortNum(totalGathered)}</b></color>\n`;
-            report += `Total Assistance: <b>${formatShortNum(totalAssistance)}</b>\n\n`;
+            report += `<b>Economy Totals (${filteredData.length} Govs):</b>\n`;
+            report += `Total Gathered: <color=#FFA500><b>${fmt(totalGathered)}</b></color>\n`;
+            report += `Total Assistance: <b>${fmt(totalAssistance)}</b>\n\n`;
         }
 
+        const showTag = !allianceFilter;
+
+        // --- Row Formatter ---
         const formatRow = (p) => {
-            const fmt = formatShortNum;
-            if (type === 'growth') {
-                return `(Tech:+${fmt(p.techPowerDiff)} Cdr:+${fmt(p.cmdPowerDiff)} Bld:+${fmt(p.bldPowerDiff)} RSS:+${fmt(p.gatheredDiff)} Asst:+${fmt(p.assistDiff)})`;
-            } else if (type === 'gathering') {
-                return `(Gathered: <color=#D2691E>+${fmt(p.gatheredDiff)}</color> | Asst: +${fmt(p.assistDiff)})`;
+            if (type === 'combat') {
+                return `KP:<color=#32CD32>+${fmt(p.kpDiff)}</color> Dds:<color=#FF4500>+${fmt(p.deadsDiff)}</color> Pwr:${p.powerDiff >= 0 ? '+' : ''}${fmt(p.powerDiff)}`;
+            } else if (type === 'growth') {
+                return `Sc:<color=#32CD32>${p.finalScore.toFixed(1)} [${p.grade}]</color> (Pwr:${p.powerDiff >= 0 ? '+' : ''}${fmt(p.powerDiff)} Tech:+${fmt(p.techPowerDiff)} Trp:+${fmt(p.troopPowerDiff)})`;
             } else {
-                return `(Pwr:${p.powerDiff > 0 ? '+' : ''}${fmt(p.powerDiff)} KP:+${fmt(p.kpDiff)} Dds:+${fmt(p.deadsDiff)})`;
+                return `Gathered:<color=#FFA500>+${fmt(p.gatheredDiff)}</color> Asst:+${fmt(p.assistDiff)}`;
             }
         };
 
-        const showTag = !allianceFilter; 
-
-        let topHeader = (type === 'gathering') ? "🌾 TOP 5 HARVESTERS" : "🏆 TOP 3 MOVERS";
+        // --- Top Leaders Section ---
+        let topHeader = type === 'combat' 
+            ? "⚔️ TOP 5 COMBAT LEADERS" 
+            : type === 'growth' 
+                ? "🏆 TOP 5 GROWTH MOVERS" 
+                : "🌾 TOP 5 HARVESTERS";
         report += `<color=#32CD32><b>${topHeader}</b></color>\n`;
 
         topList.forEach((p, i) => {
-            let metricText = type === 'gathering' ? '' : `Sc:<color=#32CD32>${p.finalScore.toFixed(1)}</color> `;
-            report += `${i + 1}. <b>${p.name}</b>${showTag ? ` [${p.alliance}]` : ''} ${metricText}${formatRow(p)}\n`;
+            report += `${i + 1}. <b>${p.name}</b>${showTag ? ` [${p.alliance}]` : ''} [${p.archetype}] ${formatRow(p)}\n`;
         });
 
-        let bottomHeader = (type === 'gathering') ? "⚠️ BOTTOM 20 GATHERERS (Review)" : "⚠️ BOTTOM 10 (Review)";
+        // --- Bottom Review Section ---
+        let bottomHeader = type === 'combat' 
+            ? "⚠️ BOTTOM 10 COMBAT (Review)" 
+            : type === 'growth' 
+                ? "⚠️ BOTTOM 10 GROWTH (Review)" 
+                : "⚠️ BOTTOM 15 GATHERERS (Review)";
         report += `\n<color=#FF4500><b>${bottomHeader}</b></color>\n`;
 
         bottomList.forEach((p, i) => {
-            let metricText = type === 'gathering' ? '' : `Sc:<color=#FF4500>${p.finalScore.toFixed(1)}</color> `;
-            report += `${i + 1}. <b>${p.name}</b>${showTag ? ` [${p.alliance}]` : ''} ${metricText}${formatRow(p)}\n`;
+            if (type === 'combat') {
+                report += `${i + 1}. <b>${p.name}</b>${showTag ? ` [${p.alliance}]` : ''} [${p.archetype}] KP:+${fmt(p.kpDiff)} Dds:+${fmt(p.deadsDiff)}\n`;
+            } else if (type === 'growth') {
+                report += `${i + 1}. <b>${p.name}</b>${showTag ? ` [${p.alliance}]` : ''} [${p.archetype}] Sc:<color=#FF4500>${p.finalScore.toFixed(1)} [${p.grade}]</color> (Pwr:${p.powerDiff >= 0 ? '+' : ''}${fmt(p.powerDiff)})\n`;
+            } else {
+                report += `${i + 1}. <b>${p.name}</b>${showTag ? ` [${p.alliance}]` : ''} [${p.archetype}] Gathered:+${fmt(p.gatheredDiff)}\n`;
+            }
         });
 
-        report += `\nGenerated by Unity V2`;
+        report += `\nGenerated by Unity V2 • Kingdom Analytics Matrix`;
 
         // Dispatch precisely mapped payload to the Mail Generator
         localStorage.setItem('unity_mail_roster', JSON.stringify([{
@@ -748,6 +792,11 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                                 <div>
                                     <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Grade</div>
                                     <div className="text-white font-black text-lg">{lottoWinner.grade}</div>
+                                </div>
+                                <div className="h-8 w-px bg-[#1e222b]"></div>
+                                <div>
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Archetype</div>
+                                    <div className="text-cyan-400 font-bold text-xs uppercase tracking-wider">{lottoWinner.archetype}</div>
                                 </div>
                             </div>
                         </div>
