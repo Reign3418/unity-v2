@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect, Fragment } from "react";
-import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, ChevronRight, Search, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords } from "lucide-react";
+import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, ChevronRight, Search, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords, QrCode } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, KvKClashModal, SpendersAccordionList } from "./PolygraphGauges";
+import PolygraphShareModal from "./PolygraphShareModal";
 
 function Tooltip({ text, children }) {
   if (!text) return children;
@@ -42,6 +43,7 @@ export default function Polygraph() {
   // Remastered Modal states
   const [inspectCategory, setInspectCategory] = useState(null);
   const [isMailModalOpen, setIsMailModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isClashModalOpen, setIsClashModalOpen] = useState(false);
   const [clashOpponentKd, setClashOpponentKd] = useState("");
 
@@ -463,8 +465,11 @@ export default function Polygraph() {
             )}
             {mode === "single" && data && (
               <>
-                <button onClick={shareLink} className={`flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border transition-colors ${copied?"border-emerald-500/40 text-emerald-400 bg-emerald-500/10":"border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10"}`}>
-                  {copied ? <><Check size={13}/> Copied!</> : <><Link2 size={13}/> Share</>}
+                <button 
+                  onClick={() => setIsShareModalOpen(true)} 
+                  className="flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                >
+                  <QrCode size={13}/> {t("btn_share_card")}
                 </button>
                 <button 
                   onClick={() => setIsMailModalOpen(true)} 
@@ -1287,6 +1292,18 @@ export default function Polygraph() {
         primaryKd={startKd || kd}
         initialOpponentKd={clashOpponentKd}
         sweepResults={sweepResults}
+        t={t}
+      />
+
+      <PolygraphShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        kd={kd}
+        data={data}
+        endDate={endDate}
+        timeframe={timeframe}
+        depth={depth}
+        locale={locale}
         t={t}
       />
     </div>

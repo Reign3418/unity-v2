@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect, Fragment } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Crown, UserPlus, UserMinus, Zap, Clock, Send, Scale, ChevronRight, ChevronDown, Users, Search } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Crown, UserPlus, UserMinus, Zap, Clock, Send, Scale, ChevronRight, ChevronDown, Users, Search, QrCode } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, SpendersAccordionList } from '@/app/[locale]/tools/polygraph/PolygraphGauges';
+import PolygraphShareModal from '@/app/[locale]/tools/polygraph/PolygraphShareModal';
 
 const fmt = (n) => {
   const abs = Math.abs(n);
@@ -39,12 +40,17 @@ export default function SharedPolygraph() {
   // Remastered modals
   const [inspectCategory, setInspectCategory] = useState(null);
   const [isMailModalOpen, setIsMailModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!kd || !end) { setError('Invalid link — missing kingdom or date parameters.'); setLoading(false); return; }
-    const anchor = new Date(end + 'T23:59:59Z');
-    const start = new Date(anchor.getTime() - parseInt(tf)*3600000).toISOString().split('T')[0];
-    fetch(`/api/aws/public/polygraph?kds=${kd}&start=${start}&end=${end}&depth=${depth}`)
+    if (!kd) { setError('Invalid link — missing kingdom parameter.'); setLoading(false); return; }
+    let url = `/api/aws/public/polygraph?kds=${kd}&depth=${depth}`;
+    if (end) {
+      const anchor = new Date(end + 'T23:59:59Z');
+      const start = new Date(anchor.getTime() - parseInt(tf || 24)*3600000).toISOString().split('T')[0];
+      url += `&start=${start}&end=${end}`;
+    }
+    fetch(url)
       .then(r => r.json())
       .then(d => { if (d.success) setData(d); else setError(d.error || 'Failed to load intelligence brief.'); })
       .catch(() => setError('Network error — unable to reach the Unity server.'))
@@ -96,6 +102,12 @@ export default function SharedPolygraph() {
                 <div className="text-gray-600 text-[10px] uppercase tracking-wider">Kingdom · Window</div>
                 <div className="text-gray-300 font-mono font-bold">KD {kd} · {tf}h ending {end}</div>
               </div>
+              <button 
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+              >
+                <QrCode size={13} /> {t("btn_share_card")}
+              </button>
               <button 
                 onClick={() => setIsMailModalOpen(true)}
                 className="flex items-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors shadow-[0_0_10px_rgba(6,182,212,0.15)]"
@@ -661,6 +673,18 @@ export default function SharedPolygraph() {
         ai={ai}
         t={t}
         locale={locale}
+      />
+
+      <PolygraphShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        kd={kd}
+        data={data}
+        endDate={end}
+        timeframe={tf}
+        depth={depth}
+        locale={locale}
+        t={t}
       />
     </div>
   );

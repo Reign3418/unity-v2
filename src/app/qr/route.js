@@ -18,6 +18,44 @@ export async function GET(request) {
   const medium = searchParams.get("medium") || searchParams.get("utm_medium") || "scan";
   const locale = searchParams.get("locale") || searchParams.get("lang") || "en";
 
+  const kd = searchParams.get("kd") || searchParams.get("k");
+  const p = searchParams.get("p");
+
+  // If scanning a Polygraph Business Card / Album Card
+  if (kd || p) {
+    let targetKd = kd;
+    let targetEnd = searchParams.get("end") || searchParams.get("e");
+    let targetTf = searchParams.get("tf") || searchParams.get("t") || "24";
+    let targetDepth = searchParams.get("depth") || searchParams.get("d") || "300";
+
+    if (p) {
+      try {
+        const decoded = Buffer.from(p, 'base64url').toString('utf8');
+        if (decoded.includes('_')) {
+          const parts = decoded.split('_');
+          targetKd = parts[0];
+          targetEnd = parts[1] || targetEnd;
+          targetTf = parts[2] || targetTf;
+          targetDepth = parts[3] || targetDepth;
+        }
+      } catch (err) {}
+    }
+
+    if (targetKd) {
+      const destination = new URL(`/${locale}/shared/polygraph`, request.url);
+      destination.searchParams.set("kd", targetKd);
+      if (targetEnd) destination.searchParams.set("end", targetEnd);
+      destination.searchParams.set("tf", targetTf);
+      destination.searchParams.set("depth", targetDepth);
+      destination.searchParams.set("utm_source", source || "album_card");
+      destination.searchParams.set("utm_medium", medium || "qr_scan");
+      destination.searchParams.set("utm_campaign", campaign || `kd_${targetKd}`);
+
+      console.log(`[POLYGRAPH QR SCAN] KD: ${targetKd} | End: ${targetEnd || 'latest'} | Locale: ${locale}`);
+      return NextResponse.redirect(destination, 307);
+    }
+  }
+
   // Build target URL
   const destination = new URL(`/${locale}`, request.url);
   destination.searchParams.set("utm_source", source);
