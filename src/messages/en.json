@@ -793,7 +793,9 @@
     "roster_departed": "Dropped Below Scan Depth",
     "no_roster_departures": "No departures detected.",
     "alliance_gravity_centers": "Alliance Gravity Centers",
-    "new_entries_joined": "{count} new top entries joined"
+    "new_entries_joined": "{count} new top entries joined",
+    "alliance_power": "Alliance Power",
+    "alliance_top_pillar": "Top Pillar"
   },
   "Landing": {
     "nav_city_hall": "City Hall Rush",

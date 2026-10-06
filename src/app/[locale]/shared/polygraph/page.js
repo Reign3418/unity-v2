@@ -600,19 +600,40 @@ export default function SharedPolygraph() {
                   </div>
                   <div className="space-y-2">
                     {(!kdd.followSignals || kdd.followSignals.length === 0) && <div className="text-gray-700 text-xs italic">{t("none_detected")}</div>}
-                    {(kdd.followSignals || []).map((f,i)=>(
-                      <div key={i} className="text-xs bg-[#11141c] border border-[#1b202c] rounded p-2">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="text-fuchsia-400 font-mono font-black text-xs">[{f.leaderAlliance}]</span>
-                          <span className="text-[10px] font-mono text-gray-400 bg-[#161a25] px-1.5 py-0.5 rounded border border-[#232837]">
-                            {f.label || (f.signalType === 'consolidation' ? `${f.followerCount} switchers absorbed` : `${f.followerCount} arrivals`)}
-                          </span>
+                    {(kdd.followSignals || []).map((f, i) => {
+                      const allianceInfo = (kdd.alliances || []).find(a => a.tag === f.leaderAlliance);
+                      const aPower = f.alliancePower || allianceInfo?.powerEnd || 0;
+                      const aDelta = f.allianceDelta ?? allianceInfo?.powerDelta ?? 0;
+                      return (
+                        <div key={i} className="text-xs bg-[#11141c] border border-[#1b202c] rounded p-2.5 space-y-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-fuchsia-400 font-mono font-black text-xs">[{f.leaderAlliance}]</span>
+                              {f.leader && (
+                                <span className="text-[11px] text-gray-300 flex items-center gap-1">
+                                  <Crown size={10} className="text-fuchsia-400 shrink-0" />
+                                  <span className="font-semibold text-white">{f.leader}</span>
+                                  {f.leaderPower > 0 && <span className="text-gray-500 font-mono">({fmt(f.leaderPower)})</span>}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {aPower > 0 && (
+                                <span className="text-[10px] font-mono text-gray-300">
+                                  <strong className="text-white">{fmt(aPower)}</strong> {aDelta !== 0 && <span className={aDelta > 0 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>({fd(aDelta)})</span>}
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-gray-400 bg-[#161a25] px-1.5 py-0.5 rounded border border-[#232837]">
+                                {f.label || (f.signalType === 'consolidation' ? `${f.followerCount} switchers absorbed` : `${f.followerCount} arrivals`)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-400 truncate">
+                            {f.followers?.length ? f.followers.join(", ") : "No player names"}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-1 truncate">
-                          {f.followers?.length ? f.followers.join(", ") : "No player names"}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>

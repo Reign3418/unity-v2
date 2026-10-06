@@ -872,17 +872,43 @@ export default function Polygraph() {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider mb-3">{isNascent ? t("alliance_gravity_centers") : t("follow_signals")}</div>
                   <div className="space-y-2">
-                    {kdd.followSignals.map((f,i)=>(
-                      <div key={i} className="bg-[#0f1115] border border-fuchsia-500/20 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Crown size={12} className="text-fuchsia-400"/>
-                          <span className="text-sm font-bold text-white">{f.leader}</span>
-                          <span className="text-xs text-cyan-400 font-mono">[{f.leaderAlliance}]</span>
-                          <span className="text-xs text-gray-500">{fmt(f.leaderPower)} power</span>
+                    {kdd.followSignals.map((f, i) => {
+                      const allianceInfo = (kdd.alliances || []).find(a => a.tag === f.leaderAlliance);
+                      const aPower = f.alliancePower || allianceInfo?.powerEnd || 0;
+                      const aDelta = f.allianceDelta ?? allianceInfo?.powerDelta ?? 0;
+                      return (
+                        <div key={i} className="bg-[#0f1115] border border-fuchsia-500/20 rounded-lg p-4 space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-[#1e222b]">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-cyan-400 font-mono">[{f.leaderAlliance}]</span>
+                              {f.leader && (
+                                <div className="flex items-center gap-1.5 text-xs text-gray-300">
+                                  <Crown size={12} className="text-fuchsia-400 shrink-0" />
+                                  <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">{t("alliance_top_pillar")}:</span>
+                                  <span className="font-semibold text-white">{f.leader}</span>
+                                  {f.leaderPower > 0 && <span className="text-gray-500 font-mono">({fmt(f.leaderPower)})</span>}
+                                </div>
+                              )}
+                            </div>
+                            {aPower > 0 && (
+                              <div className="flex items-center gap-1.5 text-xs font-mono">
+                                <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">{t("alliance_power")}:</span>
+                                <span className="text-white font-bold">{fmt(aPower)}</span>
+                                {aDelta !== 0 && (
+                                  <span className={aDelta > 0 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                                    ({fd(aDelta)})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            <span className="text-fuchsia-300 font-semibold">{t(isNascent ? "new_entries_joined" : "new_arrivals_joined", { count: f.followerCount })} [{f.leaderAlliance}]:</span>{" "}
+                            <span className="text-gray-300">{f.followers.join(", ")}</span>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-400">{t(isNascent ? "new_entries_joined" : "new_arrivals_joined", {count: f.followerCount})} [{f.leaderAlliance}]: <span className="text-gray-300">{f.followers.join(", ")}</span></div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

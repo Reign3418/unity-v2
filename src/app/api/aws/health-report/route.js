@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic';
  *   Anchors         — active all window, same alliance, not a migrant → core stable member
  *   Gravity Centers — alliances attracting migrants (or absorbing internal switchers in young/nascent kingdoms)
  */
-function computeBehavioralSignatures(roster, followSignals = [], serverAgeDays = null, era = 'Uncalibrated', windowDays = 1, allianceSwitchers = []) {
+function computeBehavioralSignatures(roster, followSignals = [], serverAgeDays = null, era = 'Uncalibrated', windowDays = 1, allianceSwitchers = [], allianceMap = {}) {
     const active = roster.filter(g => g.status !== 'Missing' && g.powerDelta !== 'MISSING');
     const days = Math.max(1, windowDays || 1);
     const topGov = roster[0] || {};
@@ -209,15 +209,23 @@ function computeBehavioralSignatures(roster, followSignals = [], serverAgeDays =
         gravityCenters = Object.values(switcherDestinations)
             .sort((a, b) => b.followerCount - a.followerCount || b.totalPowerGained - a.totalPowerGained)
             .slice(0, 5)
-            .map(h => ({
-                leaderAlliance: h.leaderAlliance,
-                type: 'CONSOLIDATION_HUB',
-                signalType: 'consolidation',
-                followerCount: h.followerCount,
-                followers: h.followers.slice(0, 5),
-                powerTransferred: h.totalPowerGained,
-                label: `${h.followerCount} switcher${h.followerCount !== 1 ? 's' : ''}`
-            }));
+            .map(h => {
+                const aData = allianceMap?.[h.leaderAlliance];
+                const topGov = (aData?.governors || []).slice().sort((a, b) => (b.powerEnd || 0) - (a.powerEnd || 0))[0];
+                return {
+                    leaderAlliance: h.leaderAlliance,
+                    leader: topGov?.name || null,
+                    leaderPower: topGov?.powerEnd || 0,
+                    alliancePower: aData?.powerEnd || h.totalPowerGained || 0,
+                    allianceDelta: aData?.powerDelta || 0,
+                    type: 'CONSOLIDATION_HUB',
+                    signalType: 'consolidation',
+                    followerCount: h.followerCount,
+                    followers: h.followers.slice(0, 5),
+                    powerTransferred: h.totalPowerGained,
+                    label: `${h.followerCount} switcher${h.followerCount !== 1 ? 's' : ''}`
+                };
+            });
     }
 
     const calibration = {
@@ -454,10 +462,15 @@ export async function GET(req) {
             }
             for (const [tag, arrivals] of Object.entries(arrivalsByAlliance)) {
                 if (arrivals.length > 0) {
+                    const aData = allianceMap[tag];
+                    const topGov = (aData?.governors || []).slice().sort((a, b) => (b.powerEnd || 0) - (a.powerEnd || 0))[0];
                     const existingCount = allianceCounts[tag] || 0;
                     followSignals.push({
                         leaderAlliance: tag,
-                        leader: null, // no longer pinned to power rank
+                        leader: topGov?.name || null,
+                        leaderPower: topGov?.powerEnd || 0,
+                        alliancePower: aData?.powerEnd || 0,
+                        allianceDelta: aData?.powerDelta || 0,
                         existingMemberCount: existingCount,
                         followerCount: arrivals.length,
                         followers: arrivals.slice(0, 5).map(f => f.name),
@@ -484,7 +497,7 @@ export async function GET(req) {
         const momentumStatus = velocityRatio === null ? 'UNKNOWN' : velocityRatio >= 130 ? 'SURGE' : velocityRatio >= 85 ? 'NOMINAL' : velocityRatio > 0 ? 'SLOW' : 'NEGATIVE';
 
         // ── Compute Behavioral Signatures (Age & Window Calibrated) ──
-        const behavioralSigs = computeBehavioralSignatures(sortedRoster, followSignals, serverAgeDays, era, windowDays, allianceSwitchers);
+        const behavioralSigs = computeBehavioralSignatures(sortedRoster, followSignals, serverAgeDays, era, windowDays, allianceSwitchers, allianceMap);
         const { operators, veterans, anchors, gravityCenters, calibration } = behavioralSigs;
 
         // Populate followSignals with internal consolidation hubs if no cross-kingdom migration exists

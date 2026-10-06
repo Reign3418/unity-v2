@@ -760,7 +760,9 @@
     "roster_departed": "跌出扫描深度",
     "no_roster_departures": "未检测到离开人员。",
     "alliance_gravity_centers": "联盟引力中心",
-    "new_entries_joined": "{count} 位新进榜成员加入"
+    "new_entries_joined": "{count} 位新进榜成员加入",
+    "alliance_power": "联盟战力",
+    "alliance_top_pillar": "主力支柱"
   },
   "CompareTab": {
     "title": "执政官对比工作台",

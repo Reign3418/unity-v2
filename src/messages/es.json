@@ -760,7 +760,9 @@
     "roster_departed": "Descendió bajo el umbral de escaneo",
     "no_roster_departures": "No se detectaron salidas.",
     "alliance_gravity_centers": "Centros Gravitacionales de Alianzas",
-    "new_entries_joined": "{count} nuevas entradas top unidas"
+    "new_entries_joined": "{count} nuevas entradas top unidas",
+    "alliance_power": "Poder de Alianza",
+    "alliance_top_pillar": "Pilar Principal"
   },
   "CompareTab": {
     "title": "Banco de trabajo de comparación de jugadores",

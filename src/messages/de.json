@@ -760,7 +760,9 @@
     "roster_departed": "Unter Scan-Tiefe gefallen",
     "no_roster_departures": "Keine Abgänge erkannt.",
     "alliance_gravity_centers": "Allianz-Gravitationszentren",
-    "new_entries_joined": "{count} neue Spitzeneinträge beigetreten"
+    "new_entries_joined": "{count} neue Spitzeneinträge beigetreten",
+    "alliance_power": "Allianz-Macht",
+    "alliance_top_pillar": "Spitzenpfeiler"
   },
   "CompareTab": {
     "title": "Spielervergleich",

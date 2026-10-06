@@ -760,7 +760,9 @@
     "roster_departed": "Passé sous le seuil de scan",
     "no_roster_departures": "Aucun départ détecté.",
     "alliance_gravity_centers": "Centres de Gravité d'Alliance",
-    "new_entries_joined": "{count} nouvelles entrées majeures ont rejoint"
+    "new_entries_joined": "{count} nouvelles entrées majeures ont rejoint",
+    "alliance_power": "Puissance de l'Alliance",
+    "alliance_top_pillar": "Pilier Majeur"
   },
   "CompareTab": {
     "title": "Atelier de comparaison des gouverneurs",

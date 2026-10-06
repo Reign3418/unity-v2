@@ -760,7 +760,9 @@
     "roster_departed": "Tụt Xuống Dưới Độ Sâu Quét",
     "no_roster_departures": "Không phát hiện rời đi nào.",
     "alliance_gravity_centers": "Trung Tâm Trọng Lực Liên Minh",
-    "new_entries_joined": "{count} thành viên tốp đầu mới đã gia nhập"
+    "new_entries_joined": "{count} thành viên tốp đầu mới đã gia nhập",
+    "alliance_power": "Lực Chiến Liên Minh",
+    "alliance_top_pillar": "Trụ Cột Hàng Đầu"
   },
   "CompareTab": {
     "title": "Bàn làm việc so sánh người chơi",

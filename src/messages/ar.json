@@ -760,7 +760,9 @@
     "roster_departed": "تراجع دون عمق الفحص",
     "no_roster_departures": "لم يتم رصد أي مغادرات.",
     "alliance_gravity_centers": "مراكز جذب التحالفات",
-    "new_entries_joined": "انضم {count} أعضاء جدد في القمة"
+    "new_entries_joined": "انضم {count} أعضاء جدد في القمة",
+    "alliance_power": "قوة التحالف",
+    "alliance_top_pillar": "الركيزة الأساسية"
   },
   "CompareTab": {
     "title": "منصة مقارنة القادة",

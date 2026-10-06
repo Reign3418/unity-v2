@@ -760,7 +760,9 @@
     "roster_departed": "Опустились ниже глубины сканирования",
     "no_roster_departures": "Убывших не обнаружено.",
     "alliance_gravity_centers": "Центры притяжения альянсов",
-    "new_entries_joined": "Присоединилось новых топовых игроков: {count}"
+    "new_entries_joined": "Присоединилось новых топовых игроков: {count}",
+    "alliance_power": "Мощь альянса",
+    "alliance_top_pillar": "Главная опора"
   },
   "CompareTab": {
     "title": "Верстак сравнения игроков",

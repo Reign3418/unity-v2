@@ -760,7 +760,9 @@
     "roster_departed": "스캔 범위 이하로 하락",
     "no_roster_departures": "감지된 이탈자가 없습니다.",
     "alliance_gravity_centers": "연맹 중력 중심",
-    "new_entries_joined": "신규 상위 진입자 {count}명 합류"
+    "new_entries_joined": "신규 상위 진입자 {count}명 합류",
+    "alliance_power": "연맹 전투력",
+    "alliance_top_pillar": "핵심 기둥"
   },
   "CompareTab": {
     "title": "총사령관 비교 분석",

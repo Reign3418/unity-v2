@@ -760,7 +760,9 @@
     "roster_departed": "Caiu Abaixo do Limite de Escaneamento",
     "no_roster_departures": "Nenhuma saída detectada.",
     "alliance_gravity_centers": "Centros de Gravidade de Alianças",
-    "new_entries_joined": "{count} novas entradas de topo ingressaram"
+    "new_entries_joined": "{count} novas entradas de topo ingressaram",
+    "alliance_power": "Poder da Aliança",
+    "alliance_top_pillar": "Pilar Principal"
   },
   "CompareTab": {
     "title": "Bancada de Comparação de Governadores",

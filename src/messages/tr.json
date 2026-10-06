@@ -760,7 +760,9 @@
     "roster_departed": "Tarama Derinliğinin Altına Düştü",
     "no_roster_departures": "Ayrılan tespit edilmedi.",
     "alliance_gravity_centers": "İttifak Çekim Merkezleri",
-    "new_entries_joined": "{count} yeni üst sıra üyesi katıldı"
+    "new_entries_joined": "{count} yeni üst sıra üyesi katıldı",
+    "alliance_power": "İttifak Gücü",
+    "alliance_top_pillar": "Temel Direk"
   },
   "CompareTab": {
     "title": "Vali Karşılaştırma Çalışma Alanı",

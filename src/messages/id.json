@@ -760,7 +760,9 @@
     "roster_departed": "Turun di Bawah Kedalaman Pindai",
     "no_roster_departures": "Tidak ada kepergian terdeteksi.",
     "alliance_gravity_centers": "Pusat Gravitasi Aliansi",
-    "new_entries_joined": "{count} entri top baru bergabung"
+    "new_entries_joined": "{count} entri top baru bergabung",
+    "alliance_power": "Daya Aliansi",
+    "alliance_top_pillar": "Pilar Utama"
   },
   "CompareTab": {
     "title": "Meja Kerja Perbandingan Gubernur",
