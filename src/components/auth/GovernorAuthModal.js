@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signIn } from "next-auth/react";
+import { useTranslations } from 'next-intl';
 import { 
   X, Shield, Camera, UploadCloud, CheckCircle2, AlertCircle, 
   Key, Lock, Sparkles, ArrowRight, UserCheck, RefreshCw, Smartphone,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 
 export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login" }) {
+  const t = useTranslations('GovernorAuth');
   const [tab, setTab] = useState(initialTab); // "login" | "register" | "help"
 
   useEffect(() => {
@@ -257,7 +259,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                 Kingdom 3418 War Room
               </span>
               <span className="text-sm font-bold text-white">
-                Governor Identity Portal
+                {t('portal_title')}
               </span>
             </div>
           </div>
@@ -280,7 +282,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
             }`}
           >
             <Key size={13} />
-            <span className="truncate">Login</span>
+            <span className="truncate">{t('tab_login')}</span>
           </button>
           <button
             onClick={() => setTab("register")}
@@ -291,7 +293,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
             }`}
           >
             <Camera size={13} />
-            <span className="truncate">Self-Register</span>
+            <span className="truncate">{t('tab_register')}</span>
           </button>
           <button
             onClick={() => setTab("help")}
@@ -302,7 +304,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
             }`}
           >
             <HelpCircle size={13} />
-            <span className="truncate">Need Help?</span>
+            <span className="truncate">{t('tab_help')}</span>
           </button>
         </div>
 
@@ -315,9 +317,9 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
           {tab === "login" && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div className="text-center mb-6">
-                <h3 className="text-lg font-bold text-white">Welcome Back, Governor</h3>
+                <h3 className="text-lg font-bold text-white">{t('login_title')}</h3>
                 <p className="text-xs text-slate-400 mt-1 font-mono">
-                  Enter your numeric Governor ID and your 4-digit PIN. No Discord required.
+                  {t('login_desc')}
                 </p>
               </div>
 
@@ -335,7 +337,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       }}
                       className="block mt-1 font-bold text-cyan-400 hover:underline cursor-pointer"
                     >
-                      Need help? Ping Kingdom Officers &rarr;
+                      {t('link_officers')}
                     </button>
                   </div>
                 </div>
@@ -343,13 +345,13 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
 
               <div>
                 <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Governor ID (In-Game Numeric ID)
+                  {t('label_governor_id')}
                 </label>
                 <input
                   type="text"
                   value={loginGovId}
                   onChange={(e) => setLoginGovId(e.target.value.replace(/\D/g, ""))}
-                  placeholder="e.g. 12345678"
+                  placeholder={t('placeholder_governor_id')}
                   className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                   required
                 />
@@ -357,7 +359,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
 
               <div>
                 <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  4-Digit Secret PIN
+                  {t('label_pin')}
                 </label>
                 <input
                   type="password"
@@ -378,12 +380,12 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                 {loginLoading ? (
                   <>
                     <RefreshCw size={15} className="animate-spin" />
-                    <span>Verifying Identity Matrix...</span>
+                    <span>{t('btn_logging_in')}</span>
                   </>
                 ) : (
                   <>
                     <Key size={15} />
-                    <span>Log In to War Room</span>
+                    <span>{t('btn_login')}</span>
                   </>
                 )}
               </button>
@@ -394,7 +396,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   onClick={() => setTab("register")}
                   className="text-xs font-mono text-amber-400 hover:underline"
                 >
-                  Never registered? Self-register using your RoK screenshot &rarr;
+                  {t('link_never_registered')}
                 </button>
               </div>
             </form>
@@ -412,10 +414,10 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   <div className="text-center">
                     <h3 className="text-base sm:text-lg font-bold text-white flex items-center justify-center gap-2">
                       <Sparkles size={16} className="text-amber-400" />
-                      Instant Self-Registration
+                      {t('register_title')}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1 font-mono">
-                      Upload your in-game <strong>Governor Profile</strong> screenshot. Our Gemini AI scanner verifies your ID, Kingdom, and Alliance automatically.
+                      {t('register_desc')}
                     </p>
                   </div>
 
@@ -433,7 +435,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                           }}
                           className="block mt-1 font-bold text-amber-400 hover:underline cursor-pointer"
                         >
-                          Having trouble scanning? Ping Kingdom Officers &rarr;
+                          {t('link_officers')}
                         </button>
                       </div>
                     </div>
@@ -455,23 +457,23 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       <Camera size={26} />
                     </div>
                     <span className="text-xs sm:text-sm font-bold text-white block">
-                      Tap or Click to Upload Profile Screenshot
+                      {t('drop_title')}
                     </span>
                     <span className="text-[11px] font-mono text-slate-500 mt-1 block">
-                      PNG, JPG, or Mobile Camera Roll screenshot
+                      {t('drop_subtitle')}
                     </span>
                   </div>
 
                   {/* Visual Guide Box */}
                   <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 space-y-1.5 font-mono">
                     <span className="font-bold text-cyan-400 uppercase text-[10px] tracking-wider block">
-                      💡 How to capture your profile in Rise of Kingdoms:
+                      {t('guide_title')}
                     </span>
                     <p className="text-[11px] text-slate-400">
-                      1. Open RoK $\rightarrow$ Tap your avatar in the top-left corner.
+                      {t('guide_step_1')}
                     </p>
                     <p className="text-[11px] text-slate-400">
-                      2. Take a screenshot showing your <strong>Name, Governor ID, Kingdom, and Alliance Tag</strong>.
+                      {t('guide_step_2')}
                     </p>
                   </div>
                 </div>
@@ -488,10 +490,10 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-bold text-white font-mono tracking-widest uppercase">
-                      Gemini Vision OCR Active...
+                      {t('ocr_scanning_title')}
                     </h4>
                     <p className="text-xs text-slate-400 font-mono">
-                      Extracting Governor ID, Kingdom Number &amp; Alliance Tag
+                      {t('ocr_scanning_desc')}
                     </p>
                   </div>
                 </div>
@@ -502,9 +504,9 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                 <form onSubmit={handleRegisterSubmit} className="space-y-4">
                   <div className="text-center">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mb-2">
-                      <UserCheck size={14} /> Profile Successfully Parsed
+                      <UserCheck size={14} /> {t('confirm_parsed')}
                     </span>
-                    <h3 className="text-base font-bold text-white">Confirm Your Identity</h3>
+                    <h3 className="text-base font-bold text-white">{t('confirm_title')}</h3>
                   </div>
 
                   {registerError && (
@@ -521,7 +523,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                           }}
                           className="block mt-1 font-bold text-amber-400 hover:underline cursor-pointer"
                         >
-                          Having trouble activating? Ping Kingdom Officers &rarr;
+                          {t('link_officers')}
                         </button>
                       </div>
                     </div>
@@ -530,15 +532,15 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   {/* Scanned Card */}
                   <div className="p-4 rounded-2xl bg-[#111622] border border-amber-500/30 space-y-3 font-mono text-xs">
                     <div className="flex items-center justify-between border-b border-[#1e2433] pb-2.5">
-                      <span className="text-slate-400">Governor Name:</span>
+                      <span className="text-slate-400">{t('label_name')}:</span>
                       <span className="font-bold text-amber-300 text-sm">{extractedData.governorName}</span>
                     </div>
                     <div className="flex items-center justify-between border-b border-[#1e2433] pb-2.5">
-                      <span className="text-slate-400">Governor ID:</span>
+                      <span className="text-slate-400">{t('label_id')}:</span>
                       <span className="font-bold text-white">{extractedData.governorId}</span>
                     </div>
                     <div className="flex items-center justify-between border-b border-[#1e2433] pb-2.5">
-                      <span className="text-slate-400">Kingdom:</span>
+                      <span className="text-slate-400">{t('label_kingdom')}:</span>
                       <div className="flex items-center gap-1">
                         <span className="text-cyan-400 font-bold">#</span>
                         <input
@@ -551,16 +553,16 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       </div>
                     </div>
                     <div className="flex items-center justify-between border-b border-[#1e2433] pb-2.5">
-                      <span className="text-slate-400">Alliance:</span>
+                      <span className="text-slate-400">{t('label_alliance')}:</span>
                       <span className="font-bold text-emerald-400">[{extractedData.allianceTag || "None"}]</span>
                     </div>
                     {verificationMeta?.isRosterMatch && String(extractedData.kingdomNumber) === "3418" ? (
                       <div className="text-[10px] text-emerald-400 flex items-center gap-1 pt-1 font-sans">
-                        <CheckCircle2 size={13} /> Matched with Kingdom 3418 scanned player census!
+                        <CheckCircle2 size={13} /> {t('census_matched')}
                       </div>
                     ) : extractedData.kingdomNumber && String(extractedData.kingdomNumber) !== "3418" ? (
                       <div className="text-[10px] text-cyan-400 flex items-center gap-1 pt-1 font-sans">
-                        <CheckCircle2 size={13} /> Custom Kingdom #{extractedData.kingdomNumber} specified
+                        <CheckCircle2 size={13} /> {t('custom_kingdom_selected')} #{extractedData.kingdomNumber}
                       </div>
                     ) : null}
                   </div>
@@ -569,7 +571,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <div>
                       <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        Create 4-Digit PIN
+                        {t('label_create_pin')}
                       </label>
                       <input
                         type="password"
@@ -583,7 +585,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                     </div>
                     <div>
                       <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        Confirm PIN
+                        {t('label_confirm_pin')}
                       </label>
                       <input
                         type="password"
@@ -607,7 +609,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       className="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
                     />
                     <label htmlFor="ageCheck" className="cursor-pointer leading-relaxed">
-                      I confirm I am <strong>at least 13 years of age</strong> and am the registered owner of this Rise of Kingdoms account.
+                      {t('age_checkbox')}
                     </label>
                   </div>
 
@@ -617,7 +619,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       onClick={() => setScanStep(1)}
                       className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
                     >
-                      Rescan
+                      {t('btn_rescan')}
                     </button>
                     <button
                       type="submit"
@@ -627,12 +629,12 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       {isSubmittingRegister ? (
                         <>
                           <RefreshCw size={15} className="animate-spin" />
-                          <span>Activating Account...</span>
+                          <span>{t('btn_activating')}</span>
                         </>
                       ) : (
                         <>
                           <CheckCircle2 size={16} />
-                          <span>Activate &amp; Enter War Room</span>
+                          <span>{t('btn_activate')}</span>
                         </>
                       )}
                     </button>
@@ -653,10 +655,10 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                   <MessageSquare size={22} />
                 </div>
                 <h3 className="text-base sm:text-lg font-bold text-white">
-                  Officer Dispatch &amp; Support Ping
+                  {t('help_title')}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 font-mono">
-                  Having trouble registering, forgot your PIN, or have questions? Dispatch a high-priority alert directly to Kingdom 3418 High Command.
+                  {t('help_desc')}
                 </p>
               </div>
 
@@ -666,10 +668,10 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                     <CheckCircle2 size={22} />
                   </div>
                   <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider font-mono">
-                    Officer Alert Transmitted!
+                    {t('help_success_title')}
                   </h4>
                   <p className="text-xs text-slate-300 font-mono leading-relaxed">
-                    Kingdom 3418 leadership has been pinged via Discord and the Command Console. An officer will reach out to you directly.
+                    {t('help_success_desc')}
                   </p>
                   <div className="pt-2 flex justify-center gap-3">
                     <button
@@ -677,14 +679,14 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       onClick={() => { setHelpSuccess(false); setTab("login"); }}
                       className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      Back to Login
+                      {t('tab_login')}
                     </button>
                     <button
                       type="button"
                       onClick={() => { setHelpSuccess(false); setTab("register"); }}
                       className="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-300 rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      Try Self-Register
+                      {t('tab_register')}
                     </button>
                   </div>
                 </div>
@@ -699,53 +701,43 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
 
                   <div>
                     <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Governor ID or In-Game Name (Optional)
+                      {t('help_label_id')}
                     </label>
                     <input
                       type="text"
                       value={helpGovIdentifier}
                       onChange={(e) => setHelpGovIdentifier(e.target.value)}
-                      placeholder="e.g. 12345678 or 'Reign'"
+                      placeholder="e.g. 12345678"
                       className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-rose-400 transition-colors"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Your Contact Handle <span className="text-rose-400">*</span>
+                      {t('help_label_contact')} <span className="text-rose-400">*</span>
                     </label>
                     <input
                       type="text"
                       value={helpContact}
                       onChange={(e) => setHelpContact(e.target.value)}
-                      placeholder="e.g. Discord username, RoK In-game name, WhatsApp/Email"
+                      placeholder={t('help_placeholder_contact')}
                       className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-rose-400 transition-colors"
                       required
                     />
-                    <span className="text-[10px] text-slate-500 font-mono mt-1 block">
-                      So officers know where to reply back to you.
-                    </span>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Issue Description / Question <span className="text-rose-400">*</span>
+                      {t('help_label_message')} <span className="text-rose-400">*</span>
                     </label>
                     <textarea
                       value={helpMessage}
                       onChange={(e) => setHelpMessage(e.target.value)}
                       rows={3}
-                      placeholder="e.g. 'My screenshot is showing invalid format', 'Forgot my PIN', or 'Question about migration requirements'..."
+                      placeholder={t('help_placeholder_message')}
                       className="w-full bg-[#121622] border border-[#1e2638] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-rose-400 transition-colors resize-none"
                       required
                     />
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-start gap-2">
-                    <Shield size={14} className="text-rose-400 shrink-0 mt-0.5" />
-                    <span>
-                      Dispatches an automated high-priority alert to Kingdom 3418 Discord &amp; War Room Console.
-                    </span>
                   </div>
 
                   <button
@@ -756,12 +748,12 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                     {helpLoading ? (
                       <>
                         <RefreshCw size={15} className="animate-spin" />
-                        <span>Transmitting SOS Alert...</span>
+                        <span>{t('btn_sending_sos')}</span>
                       </>
                     ) : (
                       <>
                         <Send size={15} />
-                        <span>Send SOS Ping to Kingdom Officers</span>
+                        <span>{t('btn_send_sos')}</span>
                       </>
                     )}
                   </button>

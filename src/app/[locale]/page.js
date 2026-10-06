@@ -23,6 +23,7 @@ import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 export default function Home() {
   const pathname = usePathname();
   const t = useTranslations('HomePage');
+  const tLanding = useTranslations('Landing');
   const { data: session } = useSession();
   const { effectiveIsLeader, effectiveIsSuperAdmin, previewRole } = useRolePreview();
   const [isExploding, setIsExploding] = useState(false);
@@ -76,22 +77,22 @@ export default function Home() {
             {/* Public Quick Links */}
             <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-xs font-semibold">
               <a href="#city-hall-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition flex items-center gap-1.5">
-                <Castle size={14} className="text-[#D4AF37]" /> City Hall Rush
+                <Castle size={14} className="text-[#D4AF37]" /> {tLanding('nav_city_hall')}
               </a>
               <a href="#beginner-playbook" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-emerald-400 hover:bg-white/5 transition flex items-center gap-1.5">
-                <BookOpen size={14} className="text-emerald-400" /> Beginner Playbook
+                <BookOpen size={14} className="text-emerald-400" /> {tLanding('nav_beginner')}
               </a>
               <a href="#equipment-guide" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-white/5 transition flex items-center gap-1.5">
-                <Swords size={14} className="text-amber-400" /> Equipment & Pairings
+                <Swords size={14} className="text-amber-400" /> {tLanding('nav_equipment')}
               </a>
               <a href="#access-matrix" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
-                <Key size={14} className="text-cyan-400" /> Free vs. Login
+                <Key size={14} className="text-cyan-400" /> {tLanding('nav_free_vs_login')}
               </a>
               <Link href="/album-card" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-white/5 transition flex items-center gap-1.5">
-                <QrCode size={14} className="text-amber-400" /> RoK Album Seal
+                <QrCode size={14} className="text-amber-400" /> {tLanding('nav_album_seal')}
               </Link>
               <a href="#war-room-suite" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
-                <Shield size={14} className="text-cyan-400" /> War Room Suite
+                <Shield size={14} className="text-cyan-400" /> {tLanding('nav_war_room')}
               </a>
             </nav>
 
@@ -136,7 +137,7 @@ export default function Home() {
                 className="hidden sm:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:shadow-[0_0_25px_rgba(6,182,212,0.4)]"
               >
                 <Zap size={13} />
-                <span>Enter War Room</span>
+                <span>{tLanding('nav_enter_war_room')}</span>
               </a>
             </div>
 
@@ -187,20 +188,20 @@ export default function Home() {
             {/* Top Pill */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 mb-6 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-              Public Governor Academy & Enterprise War Room
+              {tLanding('hero_pill')}
             </div>
 
             {/* Grand Headline */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-gray-500 uppercase tracking-widest max-w-5xl leading-tight drop-shadow-md">
-              The Complete Rise of Kingdoms <br className="hidden sm:inline" />
+              {tLanding('hero_title_1')} <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-300">
-                Intelligence Platform
+                {tLanding('hero_title_2')}
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-sm sm:text-base text-gray-400 max-w-2xl mx-auto leading-relaxed mt-5">
-              Explore 100% free interactive City Hall rush calculators, beginner survival rules, and commander pairings with <strong>zero login required</strong>. Backed by an enterprise AI analytics suite for elite kingdom leadership.
+              {tLanding('hero_subtitle')}
             </p>
 
             {/* Dual Main Call-To-Action Buttons */}
@@ -210,7 +211,7 @@ export default function Home() {
                 className="px-6 py-3.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#D4AF37] border border-[#D4AF37]/40 hover:border-[#D4AF37]/80 rounded-xl font-bold text-xs sm:text-sm tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(212,175,55,0.2)] hover:shadow-[0_0_35px_rgba(212,175,55,0.4)] flex items-center gap-2 group"
               >
                 <Castle size={18} className="group-hover:scale-110 transition-transform" />
-                <span>Explore Free Governor Academy</span>
+                <span>{tLanding('hero_btn_academy')}</span>
                 <ChevronDown size={16} className="group-hover:translate-y-0.5 transition-transform" />
               </a>
 
@@ -219,7 +220,7 @@ export default function Home() {
                 className="px-6 py-3.5 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold rounded-xl text-xs sm:text-sm tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] flex items-center gap-2 group"
               >
                 <Zap size={18} className="text-black" />
-                <span>Enter War Room (Discord & Passcode)</span>
+                <span>{tLanding('hero_btn_war_room')}</span>
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </a>
             </div>
@@ -234,14 +235,14 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-amber-400 transition-colors">
-                    City Hall Database
+                    {tLanding('card_ch_tag')}
                   </span>
                   <ArrowRight size={13} className="text-slate-600 group-hover:text-[#D4AF37] group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="text-xl font-extrabold text-[#D4AF37] font-mono mt-1">25 Levels</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Every wall & prerequisite mapped</p>
+                <div className="text-xl font-extrabold text-[#D4AF37] font-mono mt-1">{tLanding('card_ch_val')}</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">{tLanding('card_ch_desc')}</p>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#D4AF37] mt-2 group-hover:underline">
-                  Explore Rush Path &rarr;
+                  {tLanding('card_ch_cta')}
                 </span>
               </a>
 
@@ -252,18 +253,18 @@ export default function Home() {
                   window.location.hash = "#beginner-traps";
                   window.dispatchEvent(new HashChangeEvent("hashchange"));
                 }}
-                className="group bg-[#0f1115]/80 hover:bg-[#131720] p-4 rounded-xl border border-[#1e222b] hover:border-emerald-500/50 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] block text-left"
+                className="group bg-[#0f1115]/80 hover:bg-[#131720] p-4 rounded-xl border border-[#1e222b] hover:border-emerald-500/50 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(168,185,129,0.2)] block text-left"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-emerald-400 transition-colors">
-                    Beginner Survival
+                    {tLanding('card_beg_tag')}
                   </span>
                   <ArrowRight size={13} className="text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="text-xl font-extrabold text-emerald-400 font-mono mt-1">7 Traps</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Avoid fatal early game mistakes</p>
+                <div className="text-xl font-extrabold text-emerald-400 font-mono mt-1">{tLanding('card_beg_val')}</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">{tLanding('card_beg_desc')}</p>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 mt-2 group-hover:underline">
-                  Read 7 Fatal Mistakes &rarr;
+                  {tLanding('card_beg_cta')}
                 </span>
               </a>
 
@@ -278,14 +279,14 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-cyan-400 transition-colors">
-                    Calculators
+                    {tLanding('card_calc_tag')}
                   </span>
                   <ArrowRight size={13} className="text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="text-xl font-extrabold text-cyan-400 font-mono mt-1">Live Math</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Runes, titles & alliance helps</p>
+                <div className="text-xl font-extrabold text-cyan-400 font-mono mt-1">{tLanding('card_calc_val')}</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">{tLanding('card_calc_desc')}</p>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400 mt-2 group-hover:underline">
-                  Launch Discount Engine &rarr;
+                  {tLanding('card_calc_cta')}
                 </span>
               </a>
 
@@ -296,14 +297,14 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider group-hover:text-purple-400 transition-colors">
-                    Public Armory
+                    {tLanding('card_armory_tag')}
                   </span>
                   <ArrowRight size={13} className="text-slate-600 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="text-xl font-extrabold text-purple-400 font-mono mt-1">0 Login</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">Early to SoC BiS gear & pairings</p>
+                <div className="text-xl font-extrabold text-purple-400 font-mono mt-1">{tLanding('card_armory_val')}</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">{tLanding('card_armory_desc')}</p>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-400 mt-2 group-hover:underline">
-                  Explore Forge & Pairings &rarr;
+                  {tLanding('card_armory_cta')}
                 </span>
               </a>
 
