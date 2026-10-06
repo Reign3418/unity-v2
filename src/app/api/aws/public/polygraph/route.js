@@ -6,28 +6,132 @@ import { analyzeKingdomPolygraphAnomalies } from '@/lib/anomalyDetector';
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-function computeBehavioralSignatures(roster, followSignals) {
+/**
+ * Behavioral Proxies for Leadership / Influence
+ * Age-calibrated across RoK life stages:
+ *   Operators       — high KP delta (age-scaled), non-spike power delta → frontline combat coordinators / rally commanders
+ *   Veterans        — high accumulated power (age-scaled), stable this window → strategic pillars / tenured command
+ *   Anchors         — active all window, same alliance, not a migrant → core stable member
+ *   Gravity Centers — alliances attracting migrants (or absorbing internal switchers in young/nascent kingdoms)
+ */
+function computeBehavioralSignatures(roster, followSignals = [], serverAgeDays = null, era = 'Uncalibrated', windowDays = 1, allianceSwitchers = []) {
     const active = roster.filter(g => g.status !== 'Missing' && g.powerDelta !== 'MISSING');
-    const KP_OPERATOR_THRESHOLD = 50000;
-    const operators = active
-        .filter(g => {
+    const days = Math.max(1, windowDays || 1);
+    const topGov = roster[0] || {};
+    const topPower = topGov.powerEnd || 50000000;
+
+    // ── Age-Calibrated Operator Thresholds ──
+    let kpOperatorThreshold = 50000 * days;
+    let maxOperatorPowerDelta = 2000000;
+
+    if (serverAgeDays !== null && serverAgeDays !== undefined) {
+        if (serverAgeDays <= 7) {
+            kpOperatorThreshold = Math.max(1000, Math.round(1500 * days));
+            maxOperatorPowerDelta = Math.max(4000000, Math.round(topPower * 0.5));
+        } else if (serverAgeDays < 30) {
+            kpOperatorThreshold = Math.max(2500, Math.round(5000 * days));
+            maxOperatorPowerDelta = Math.max(3500000, Math.round(topPower * 0.4));
+        } else if (serverAgeDays < 90) {
+            kpOperatorThreshold = Math.max(5000, Math.round(12000 * days));
+            maxOperatorPowerDelta = Math.max(3000000, Math.round(topPower * 0.35));
+        } else if (serverAgeDays < 180) {
+            kpOperatorThreshold = Math.max(12000, Math.round(25000 * days));
+            maxOperatorPowerDelta = 2500000;
+        } else if (serverAgeDays < 365) {
+            kpOperatorThreshold = Math.max(20000, Math.round(35000 * days));
+            maxOperatorPowerDelta = 2000000;
+        } else {
+            kpOperatorThreshold = Math.max(25000, Math.round(50000 * days));
+            maxOperatorPowerDelta = 2000000;
+        }
+    } else {
+        if (topPower < 15000000) {
+            kpOperatorThreshold = Math.max(2000, Math.round(4000 * days));
+            maxOperatorPowerDelta = 4000000;
+        } else if (topPower < 40000000) {
+            kpOperatorThreshold = Math.max(10000, Math.round(20000 * days));
+            maxOperatorPowerDelta = 2500000;
+        } else {
+            kpOperatorThreshold = Math.max(25000, Math.round(50000 * days));
+            maxOperatorPowerDelta = 2000000;
+        }
+    }
+
+    // ── Age-Calibrated Veteran Thresholds ──
+    let minVeteranPower = 20000000;
+    let maxVeteranPowerDelta = 3000000;
+
+    if (serverAgeDays !== null && serverAgeDays !== undefined) {
+        if (serverAgeDays <= 7) {
+            minVeteranPower = Math.max(1000000, Math.min(Math.round(topPower * 0.35), 6000000));
+            maxVeteranPowerDelta = Math.max(1500000, Math.round(minVeteranPower * 0.4));
+        } else if (serverAgeDays < 30) {
+            minVeteranPower = Math.max(2500000, Math.min(Math.round(topPower * 0.35), 10000000));
+            maxVeteranPowerDelta = Math.max(2000000, Math.round(minVeteranPower * 0.3));
+        } else if (serverAgeDays < 90) {
+            minVeteranPower = Math.max(6000000, Math.min(Math.round(topPower * 0.35), 18000000));
+            maxVeteranPowerDelta = 3000000;
+        } else if (serverAgeDays < 180) {
+            minVeteranPower = Math.max(12000000, Math.min(Math.round(topPower * 0.35), 25000000));
+            maxVeteranPowerDelta = 3000000;
+        } else if (serverAgeDays < 365) {
+            minVeteranPower = Math.max(20000000, Math.min(Math.round(topPower * 0.35), 35000000));
+            maxVeteranPowerDelta = 3500000;
+        } else {
+            minVeteranPower = Math.max(30000000, Math.min(Math.round(topPower * 0.35), 50000000));
+            maxVeteranPowerDelta = 4000000;
+        }
+    } else {
+        minVeteranPower = Math.max(2500000, Math.min(Math.round(topPower * 0.35), 30000000));
+        maxVeteranPowerDelta = Math.max(1000000, Math.round(minVeteranPower * 0.25));
+    }
+
+    // ── 1. Operators: high KP delta + combat-focused power profile ──
+    let candidateOperators = active.filter(g => {
+        const kp = g.kpDelta || 0;
+        const pd = typeof g.powerDelta === 'number' ? g.powerDelta : (g.powerDelta === 'NEW' ? 9999999 : 0);
+        return kp >= kpOperatorThreshold && pd < maxOperatorPowerDelta;
+    });
+
+    if (candidateOperators.length < 4) {
+        const secondaryThreshold = Math.max(500 * days, Math.round(kpOperatorThreshold * 0.4));
+        candidateOperators = active.filter(g => {
             const kp = g.kpDelta || 0;
-            const pd = typeof g.powerDelta === 'number' ? g.powerDelta : (g.powerDelta === 'NEW' ? 999999 : 0);
-            return kp >= KP_OPERATOR_THRESHOLD && pd < 2000000;
-        })
+            const pd = typeof g.powerDelta === 'number' ? g.powerDelta : (g.powerDelta === 'NEW' ? 9999999 : 0);
+            return kp >= secondaryThreshold && pd < maxOperatorPowerDelta;
+        });
+    }
+
+    const operators = candidateOperators
         .sort((a, b) => (b.kpDelta || 0) - (a.kpDelta || 0))
         .slice(0, 12)
-        .map(g => ({ id: g.id, name: g.name, alliance: g.alliance, kpDelta: g.kpDelta || 0, powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0, powerEnd: g.powerEnd || 0 }));
+        .map(g => ({
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            kpDelta: g.kpDelta || 0,
+            powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0,
+            powerEnd: g.powerEnd || 0,
+        }));
 
+    // ── 2. Veterans: top accumulated power, stable power delta this window ──
     const veterans = active
         .filter(g => {
-            const pd = typeof g.powerDelta === 'number' ? g.powerDelta : 999999;
-            return g.powerEnd >= 20000000 && pd < 3000000 && g.powerDelta !== 'NEW';
+            const pd = typeof g.powerDelta === 'number' ? g.powerDelta : 9999999;
+            return g.powerEnd >= minVeteranPower && pd < maxVeteranPowerDelta && g.powerDelta !== 'NEW';
         })
         .sort((a, b) => b.powerEnd - a.powerEnd)
         .slice(0, 12)
-        .map(g => ({ id: g.id, name: g.name, alliance: g.alliance, powerEnd: g.powerEnd || 0, powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0, kpDelta: g.kpDelta || 0 }));
+        .map(g => ({
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            powerEnd: g.powerEnd || 0,
+            powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0,
+            kpDelta: g.kpDelta || 0,
+        }));
 
+    // ── 3. Anchors: stable, non-migrating, same alliance the whole window ──
     const anchors = active
         .filter(g => {
             const sameAlliance = !g.allianceStart || g.allianceStart === 'None' || g.allianceStart === g.alliance;
@@ -35,9 +139,71 @@ function computeBehavioralSignatures(roster, followSignals) {
         })
         .sort((a, b) => b.powerEnd - a.powerEnd)
         .slice(0, 15)
-        .map(g => ({ id: g.id, name: g.name, alliance: g.alliance, powerEnd: g.powerEnd || 0, kpDelta: g.kpDelta || 0, powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0 }));
+        .map(g => ({
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            powerEnd: g.powerEnd || 0,
+            kpDelta: g.kpDelta || 0,
+            powerDelta: typeof g.powerDelta === 'number' ? g.powerDelta : 0,
+        }));
 
-    return { operators, veterans, anchors, gravityCenters: followSignals || [] };
+    // ── 4. Gravity Centers: Cross-kingdom migration or Internal Alliance Consolidation ──
+    let gravityCenters = [];
+    let gravityCenterType = 'migration';
+
+    if (followSignals && followSignals.length > 0) {
+        gravityCenters = followSignals.map(f => ({
+            ...f,
+            type: 'MIGRATION_HUB',
+            signalType: 'migration',
+            label: `${f.followerCount} arrival${f.followerCount !== 1 ? 's' : ''}`
+        }));
+    } else if (allianceSwitchers && allianceSwitchers.length > 0) {
+        gravityCenterType = 'consolidation';
+        const switcherDestinations = {};
+        for (const s of allianceSwitchers) {
+            if (!s.to || s.to === 'None' || s.to === 'No Tag') continue;
+            if (!switcherDestinations[s.to]) {
+                switcherDestinations[s.to] = {
+                    leaderAlliance: s.to,
+                    type: 'CONSOLIDATION_HUB',
+                    signalType: 'consolidation',
+                    followerCount: 0,
+                    followers: [],
+                    totalPowerGained: 0
+                };
+            }
+            switcherDestinations[s.to].followerCount += 1;
+            switcherDestinations[s.to].followers.push(s.name);
+            switcherDestinations[s.to].totalPowerGained += (s.power || 0);
+        }
+
+        gravityCenters = Object.values(switcherDestinations)
+            .sort((a, b) => b.followerCount - a.followerCount || b.totalPowerGained - a.totalPowerGained)
+            .slice(0, 5)
+            .map(h => ({
+                leaderAlliance: h.leaderAlliance,
+                type: 'CONSOLIDATION_HUB',
+                signalType: 'consolidation',
+                followerCount: h.followerCount,
+                followers: h.followers.slice(0, 5),
+                powerTransferred: h.totalPowerGained,
+                label: `${h.followerCount} switcher${h.followerCount !== 1 ? 's' : ''}`
+            }));
+    }
+
+    const calibration = {
+        serverAgeDays,
+        era,
+        windowDays,
+        kpOperatorThreshold,
+        minVeteranPower,
+        maxOperatorPowerDelta,
+        gravityCenterType
+    };
+
+    return { operators, veterans, anchors, gravityCenters, calibration };
 }
 
 export async function GET(req) {
@@ -208,9 +374,6 @@ export async function GET(req) {
             followSignals.sort((a, b) => b.followerCount - a.followerCount);
         }
 
-        const behavioralSigs = computeBehavioralSignatures(sortedRoster, followSignals);
-        const { operators, veterans } = behavioralSigs;
-
         // ── Time-Adjusted Velocity Metrics ──
         let windowDays = 1;
         if (resolvedStartDate && resolvedEndDate) {
@@ -226,6 +389,13 @@ export async function GET(req) {
             ? Math.round((windowPowerVelocity / lifetimePowerVelocity) * 100)
             : null;
         const momentumStatus = velocityRatio === null ? 'UNKNOWN' : velocityRatio >= 130 ? 'SURGE' : velocityRatio >= 85 ? 'NOMINAL' : velocityRatio > 0 ? 'SLOW' : 'NEGATIVE';
+
+        // ── Compute Behavioral Signatures (Age & Window Calibrated) ──
+        const behavioralSigs = computeBehavioralSignatures(sortedRoster, followSignals, serverAgeDays, era, windowDays, allianceSwitchers);
+        const { operators, veterans, anchors, gravityCenters, calibration } = behavioralSigs;
+
+        // Populate followSignals with internal consolidation hubs if no cross-kingdom migration exists
+        const effectiveFollowSignals = (followSignals && followSignals.length > 0) ? followSignals : (gravityCenters || []);
 
         const anomalies = analyzeKingdomPolygraphAnomalies(sortedRoster, serverAgeDays, era);
 
@@ -260,11 +430,13 @@ ANOMALY & DECEPTION MATRIX (Polygraph Fraud Signals):
 - Seed Sandbagging Suspects (Power Dumping): ${anomalies.sandbaggers.length} detected
 - Deadweight Whales: ${anomalies.deadweightWhales.length} detected (${(anomalies.deadweightPowerTotal/1e6).toFixed(1)}M power, ${anomalies.deadweightPowerPercentage}% of Top 50 power)
 
-BEHAVIORAL SIGNATURES:
-- Operators (high KP, low power grind): ${operators.length} detected
-${operators.slice(0,5).map(g=>`  [${g.alliance}] ${g.name} | KP+${(g.kpDelta/1000).toFixed(0)}k | Power:${g.powerDelta>=0?'+':''}${(g.powerDelta/1000000).toFixed(1)}M`).join('\n')}
-- Alliance Gravity Centers (attracting new arrivals):
-${followSignals.slice(0,5).map(f=>`  [${f.leaderAlliance}] ${f.followerCount} new arrival(s)`).join('\n')||'  None detected.'}
+BEHAVIORAL SIGNATURES (Age-Calibrated for ${era}, Age: ${serverAgeDays ?? 'Uncalibrated'}d, Window: ${windowDays}d):
+- Operators (high KP ≥ ${calibration.kpOperatorThreshold.toLocaleString()}, low power grind — combat leaders/coordinators): ${operators.length} detected
+${operators.slice(0, 6).map(g => `  [${g.alliance}] ${g.name} | KP+${(g.kpDelta/1000).toFixed(1)}k | Power:${g.powerDelta>=0?'+':''}${(g.powerDelta/1000000).toFixed(2)}M`).join('\n') || '  None detected'}
+- Veterans (power ≥ ${(calibration.minVeteranPower/1000000).toFixed(1)}M, low power delta — tenured command/pillars): ${veterans.length} detected
+${veterans.slice(0, 6).map(g => `  [${g.alliance}] ${g.name} | Total:${(g.powerEnd/1000000).toFixed(1)}M | Delta:${(g.powerDelta/1000000).toFixed(2)}M`).join('\n') || '  None detected'}
+- Gravity Centers (${calibration.gravityCenterType === 'consolidation' ? 'Internal Alliance Consolidation' : 'Migrant Influx'}):
+${effectiveFollowSignals.slice(0, 5).map(f => `  [${f.leaderAlliance}] ${f.followerCount} ${f.signalType === 'consolidation' ? 'switchers absorbed' : 'new arrivals'}${f.followers?.length ? ` (${f.followers.join(', ')})` : ''}`).join('\n') || '  None detected.'}
 
 ALLIANCE MATRIX (sorted by power growth):
 ${allianceList.slice(0, 15).map(a => `[${a.tag}] Govs:${a.govCount} | Power:${a.powerDelta > 0 ? '+' : ''}${(a.powerDelta/1000000).toFixed(2)}M | KP:${a.kpDelta > 0 ? '+' : ''}${(a.kpDelta/1000).toFixed(0)}k | Deads:${a.deadsDelta}`).join('\n')}
@@ -355,7 +527,7 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
             whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 20),
             migration: { newArrivals, departed },
             behavioralSigs,
-            followSignals,
+            followSignals: effectiveFollowSignals,
             anomalies,
         };
 
