@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Mã Vạch Cổ Điển",
     "card_seal_morphed_desc": "Biến đổi thành huy chương mặt trời hoàng gia đích thực với đinh tán hắc diện thạch bo tròn và hoa văn tinh xảo. Vượt qua bộ lọc kiểm duyệt ảnh tự động của Lilith.",
     "card_seal_cyber_desc": "Mật mã chiến thuật phát sáng với khung mạng dành cho Discord và web.",
-    "card_seal_classic_desc": "Mã QR vuông tương phản cao dành cho bài đăng tuyển quân trên Discord."
+    "card_seal_classic_desc": "Mã QR vuông tương phản cao dành cho bài đăng tuyển quân trên Discord.",
+    "card_seal_crest": "Huy Hiệu Hoàng Gia (Không QR)",
+    "card_seal_crest_desc": "Thay thế mã QR bằng huy hiệu Thành Trì Chiến Tranh Bộ Chỉ Huy Tối Cao hiển thị Xếp loại, Cá voi và Tốc độ. Hoàn toàn 100% không có bất kỳ mẫu mã vạch nào.",
+    "tab_unity_richtext": "Thư & Ghi Chú Trong Game (HTML)",
+    "rok_mail_title": "Thư Phát Sóng Liên Minh & Vương Quốc (Unity Rich Text)",
+    "rok_note_title": "Chữ Ký Hồ Sơ / Ghi Chú Thành Viên",
+    "discord_md_title": "Thông Báo Lãnh Đạo Discord"
   }
 }

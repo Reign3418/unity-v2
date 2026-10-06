@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Klasik Barkod",
     "card_seal_morphed_desc": "Yuvarlatılmış obsidyen taşları ve krallık telkari işlemeleriyle otantik bir güneş madalyonuna dönüştürüldü. Lilith'in otomatik albüm görsel denetimini atlatır.",
     "card_seal_cyber_desc": "Web ve Discord paylaşımları için siber çerçeveli taktik şifre.",
-    "card_seal_classic_desc": "Discord alım duyuruları için yüksek kontrastlı kare QR kod."
+    "card_seal_classic_desc": "Discord alım duyuruları için yüksek kontrastlı kare QR kod.",
+    "card_seal_crest": "Kraliyet Arması Rozeti (QR Yok)",
+    "card_seal_crest_desc": "QR kodunu Derece, Balinalar ve Güç Hızını gösteren heybetli bir Yüksek Komuta Savaş Arması ile değiştirir. Barkod veya tarama desenlerinden %100 arındırılmıştır.",
+    "tab_unity_richtext": "RoK Oyun İçi Posta & Notlar (HTML)",
+    "rok_mail_title": "RoK İttifak & Krallık Postası (Unity Rich Text)",
+    "rok_note_title": "Profil İmzası / İttifak Notu",
+    "discord_md_title": "Discord Liderlik Duyurusu"
   }
 }

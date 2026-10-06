@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Código Clásico",
     "card_seal_morphed_desc": "Transformado en un auténtico medallón solar del reino con tachuelas de obsidiana redondeadas y filigrana real. Elude el filtro de visión computarizada de Lilith.",
     "card_seal_cyber_desc": "Cifra táctica luminosa con marco cibernético para publicaciones en web y Discord.",
-    "card_seal_classic_desc": "Código QR cuadrado de alto contraste para anuncios de reclutamiento en Discord."
+    "card_seal_classic_desc": "Código QR cuadrado de alto contraste para anuncios de reclutamiento en Discord.",
+    "card_seal_crest": "Insignia de Escudo Real (Sin QR)",
+    "card_seal_crest_desc": "Reemplaza el código QR con un imponente escudo de la ciudadela del Alto Mando que muestra el grado, ballenas y velocidad. 100% libre de patrones de escaneo.",
+    "tab_unity_richtext": "Correo y Notas de RoK (HTML)",
+    "rok_mail_title": "Mensaje de Correo de Alianza y Reino (Unity Rich Text)",
+    "rok_note_title": "Firma de Perfil / Nota de Miembro de Alianza",
+    "discord_md_title": "Anuncio de Liderazgo en Discord"
   }
 }

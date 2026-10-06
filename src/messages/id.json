@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Kode Klasik",
     "card_seal_morphed_desc": "Diubah menjadi medali matahari kerajaan autentik dengan ornamen obsidian membulat dan filigri emas. Melewati filter inspeksi otomatis album Lilith.",
     "card_seal_cyber_desc": "Sandi taktis bercahaya dengan bingkai siber untuk posting web dan Discord.",
-    "card_seal_classic_desc": "Kode QR persegi kontras tinggi untuk pengumuman rekrutmen Discord."
+    "card_seal_classic_desc": "Kode QR persegi kontras tinggi untuk pengumuman rekrutmen Discord.",
+    "card_seal_crest": "Lambang Perisai Kerajaan (Tanpa QR)",
+    "card_seal_crest_desc": "Mengganti kode QR dengan lencana Perisai Perang Komando Tinggi yang megah dengan Grade, Whales, dan Kecepatan. 100% bebas dari pola kode batang.",
+    "tab_unity_richtext": "Pesan & Catatan Game RoK (HTML)",
+    "rok_mail_title": "Surat Siaran Aliansi RoK (Unity Rich Text)",
+    "rok_note_title": "Tanda Tangan Profil / Catatan Anggota",
+    "discord_md_title": "Pengumuman Kepemimpinan Discord"
   }
 }

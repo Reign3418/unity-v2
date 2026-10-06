@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Código Clássico",
     "card_seal_morphed_desc": "Transformado em um autêntico medalhão solar do reino com tachas de obsidiana arredondadas e filigrana real. Bula a revisão automática de imagens da Lilith.",
     "card_seal_cyber_desc": "Cifra tática luminosa com moldura cibernética para web e Discord.",
-    "card_seal_classic_desc": "Código QR quadrado de alto contraste para anúncios de recrutamento no Discord."
+    "card_seal_classic_desc": "Código QR quadrado de alto contraste para anúncios de recrutamento no Discord.",
+    "card_seal_crest": "Brasão Real (Sem QR)",
+    "card_seal_crest_desc": "Substitui o código QR por um imponente brasão de guerra do Alto Comando com Grau, Baleias e Velocidade. 100% livre de padrões de código de barras.",
+    "tab_unity_richtext": "Correio e Notas do RoK (HTML)",
+    "rok_mail_title": "Correio de Aliança & Reino (Unity Rich Text)",
+    "rok_note_title": "Assinatura de Perfil / Nota de Aliança",
+    "discord_md_title": "Anúncio de Liderança no Discord"
   }
 }

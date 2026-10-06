@@ -1435,6 +1435,12 @@
     "card_seal_classic": "传统黑白二维码",
     "card_seal_morphed_desc": "完美拟态为王国正统太阳勋章，采用圆角黑曜石铆钉与皇家金纹细工，彻底摆脱生硬的条码特征，助您轻松通过莉莉丝游戏相册图像AI审核。",
     "card_seal_cyber_desc": "发光战术秘印，具备赛博机甲风格边框，适合Discord与网页分享。",
-    "card_seal_classic_desc": "高对比度方形二维码，适合Discord招募公告与外部社区。"
+    "card_seal_classic_desc": "高对比度方形二维码，适合Discord招募公告与外部社区。",
+    "card_seal_crest": "皇家战勋勋章（无二维码）",
+    "card_seal_crest_desc": "完全移除二维码，替换为庄严的王国最高统帅部战勋勋章，展示评级、巨鲸数与发展速度。彻底杜绝任何条码图像，相册100%绝不违规。",
+    "tab_unity_richtext": "游戏内邮件与备注（HTML富文本）",
+    "rok_mail_title": "游戏内王国/联盟全员通告信（Unity富文本）",
+    "rok_note_title": "个人签名档 / 联盟成员备注",
+    "discord_md_title": "Discord 指挥官公告"
   }
 }

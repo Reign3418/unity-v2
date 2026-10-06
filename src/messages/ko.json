@@ -1435,6 +1435,12 @@
     "card_seal_classic": "클래식 바코드",
     "card_seal_morphed_desc": "둥근 흑요석 타일과 왕실 금빛 세공이 적용된 정통 왕국 태양 메달리온으로 위장되어 릴리스의 자동 사진 앨범 검열을 통과합니다.",
     "card_seal_cyber_desc": "웹 및 디스코드 게시용 네온 사이버 프레임 암호 인장.",
-    "card_seal_classic_desc": "디스코드 모집 공지 및 외부 공유용 고대비 사각 QR 코드."
+    "card_seal_classic_desc": "디스코드 모집 공지 및 외부 공유용 고대비 사각 QR 코드.",
+    "card_seal_crest": "왕실 문장 배지 (QR 없음)",
+    "card_seal_crest_desc": "QR 코드를 완전히 제거하고 등급, 고래 수, 전력 성장 속도를 표시하는 웅장한 최고사령부 요새 전쟁 문장으로 대체합니다. 바코드 패턴이 전혀 없습니다.",
+    "tab_unity_richtext": "인게임 우편 & 메모 (HTML)",
+    "rok_mail_title": "RoK 연맹/왕국 전체 우편 (Unity Rich Text)",
+    "rok_note_title": "프로필 서명 / 연맹원 메모",
+    "discord_md_title": "디스코드 지휘부 공지"
   }
 }

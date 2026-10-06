@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Klassischer Barcode",
     "card_seal_morphed_desc": "In ein authentisches Sonnenmedaillon mit abgerundeten Obsidian-Nieten und Königsfiligran verwandelt. Umgeht Liliths automatische Bilderkennung für Fotoalben.",
     "card_seal_cyber_desc": "Leuchtende taktische Chiffre mit Cyber-Rahmen für Web und Discord.",
-    "card_seal_classic_desc": "Kontrastreicher quadratischer QR-Code für Discord-Rekrutierungsnachrichten."
+    "card_seal_classic_desc": "Kontrastreicher quadratischer QR-Code für Discord-Rekrutierungsnachrichten.",
+    "card_seal_crest": "Königliches Wappen (Kein QR)",
+    "card_seal_crest_desc": "Ersetzt den QR-Code durch ein imposantes Kriegswappen der Hohen Führung mit Note, Walen und Geschwindigkeit. Zu 100% frei von Barcode-Mustern.",
+    "tab_unity_richtext": "RoK Spielpost & Notizen (HTML)",
+    "rok_mail_title": "RoK Allianznachricht (Unity Rich Text)",
+    "rok_note_title": "Profilsignatur / Allianznotiz",
+    "discord_md_title": "Discord-Führungsankündigung"
   }
 }

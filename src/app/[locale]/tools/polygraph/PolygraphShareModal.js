@@ -337,96 +337,139 @@ export default function PolygraphShareModal({
         ctx.fillText("⚜ STRATEGIC INTELLIGENCE CYPHER ⚜", sealCx, sealCy - medRadius - 16);
       }
 
-      // 6d. Render Morphed QR Matrix
-      try {
-        const qr = QRCode.create(shortUrl, { errorCorrectionLevel: 'H' });
-        const modSize = qr.modules.size;
-        const cSize = 7; // Exact 7px integer modules
-        const qWidth = modSize * cSize; // ~259px
-        const qStartX = Math.floor(sealCx - qWidth / 2);
-        const qStartY = Math.floor(sealCy - qWidth / 2);
-        const darkColor = isCyber ? "#0A1120" : "#141724"; // Deep obsidian bronze
-        const lightColor = isCyber ? "#E0F2FE" : "#FCF8EC";
-
-        const isFinderPattern = (r, c) => {
-          if (r < 7 && c < 7) return true;
-          if (r < 7 && c >= modSize - 7) return true;
-          if (r >= modSize - 7 && c < 7) return true;
-          return false;
-        };
-
-        const mid = Math.floor(modSize / 2);
-
-        // Draw data modules as smooth rounded tiles
-        ctx.fillStyle = darkColor;
-        for (let r = 0; r < modSize; r++) {
-          for (let c = 0; c < modSize; c++) {
-            // Reserve 5x5 center area for shield crest
-            if (Math.abs(r - mid) <= 2 && Math.abs(c - mid) <= 2) continue;
-            if (isFinderPattern(r, c)) continue;
-
-            if (qr.modules.get(r, c)) {
-              drawRoundRect(ctx, qStartX + c * cSize, qStartY + r * cSize, cSize, cSize, 1.8, true, false);
-            }
-          }
-        }
-
-        // Draw 3 Corner Citadels (Finder Patterns with 1:1:3:1:1 ratio)
-        const drawFinder = (cornerR, cornerC) => {
-          const fx = qStartX + cornerC * cSize;
-          const fy = qStartY + cornerR * cSize;
-          const fw = 7 * cSize;
-
-          // Outer 7x7 rounded rect
-          ctx.fillStyle = darkColor;
-          drawRoundRect(ctx, fx, fy, fw, fw, 3, true, false);
-          // Inner 5x5 vellum
-          ctx.fillStyle = lightColor;
-          drawRoundRect(ctx, fx + cSize, fy + cSize, 5 * cSize, 5 * cSize, 2, true, false);
-          // Center 3x3 core
-          ctx.fillStyle = darkColor;
-          drawRoundRect(ctx, fx + 2 * cSize, fy + 2 * cSize, 3 * cSize, 3 * cSize, 1.5, true, false);
-          // Gilded center micro-rivet
-          ctx.fillStyle = sealThemeColor;
-          ctx.beginPath();
-          ctx.arc(fx + 3.5 * cSize, fy + 3.5 * cSize, 1.5, 0, Math.PI * 2);
-          ctx.fill();
-        };
-
-        drawFinder(0, 0);
-        drawFinder(0, modSize - 7);
-        drawFinder(modSize - 7, 0);
-
-        // 6e. Center Imperial High Command Shield Crest
-        ctx.fillStyle = darkColor;
-        ctx.beginPath();
-        ctx.arc(sealCx, sealCy, 21, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = sealThemeColor;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(sealCx, sealCy, 21, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = "#0B0F19";
-        ctx.beginPath();
-        ctx.arc(sealCx, sealCy, 18, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = sealThemeColor;
-        ctx.font = "bold 9px sans-serif";
+      if (sealStyle === "crest") {
+        // 6d-ALT: Grand Kingdom High Command Citadel (NO QR CODE AT ALL)
+        ctx.fillStyle = primaryColor;
+        ctx.font = "34px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(`KD ${kd}`, sealCx, sealCy - 3);
+        ctx.fillText("👑", sealCx, sealCy - 110);
+
+        ctx.fillStyle = primaryColor;
+        ctx.font = "900 36px serif";
+        ctx.fillText(`KINGDOM ${kd}`, sealCx, sealCy - 66);
+
+        // Grade Badge Pill
+        ctx.fillStyle = "#0B0F19";
+        drawRoundRect(ctx, sealCx - 95, sealCy - 44, 190, 36, 18, true, false);
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2;
+        drawRoundRect(ctx, sealCx - 95, sealCy - 44, 190, 36, 18, false, true);
+
+        ctx.fillStyle = grade === "A" ? "#10B981" : (grade === "B" ? "#06B6D4" : "#F59E0B");
+        ctx.font = "900 18px monospace";
+        ctx.fillText(`POLYGRAPH: GRADE ${grade}`, sealCx, sealCy - 26);
+
+        // Metric Rows inside Plaque
+        ctx.fillStyle = "#1E293B";
+        ctx.font = "bold 13px monospace";
+        ctx.fillText(`⚡ MOBILIZATION: ${pace}`, sealCx, sealCy + 16);
 
         ctx.fillStyle = sealAccentColor;
-        ctx.font = "bold 7px monospace";
-        ctx.fillText(cardMode === "album" ? "★ SEAL ★" : "UN•TY", sealCx, sealCy + 7);
+        ctx.font = "bold 13px monospace";
+        ctx.fillText(`👑 SPENDERS: ${whalesCount} WHALES`, sealCx, sealCy + 42);
 
-      } catch (err) {
-        console.error("QR render error:", err);
+        ctx.fillStyle = parseInt(civilWar) > 50 ? "#F43F5E" : "#10B981";
+        ctx.font = "bold 12px monospace";
+        ctx.fillText(`⚔️ CIVIL WAR: ${civilWar} ${riskStatus}`, sealCx, sealCy + 68);
+
+        // Bottom Plaque Ribbon
+        ctx.fillStyle = primaryColor;
+        ctx.font = "bold 11px monospace";
+        ctx.fillText("★ ALLIANCE HIGH COMMAND SEAL ★", sealCx, sealCy + 106);
+      } else {
+        // 6d. Render Morphed QR Matrix
+        try {
+          const qr = QRCode.create(shortUrl, { errorCorrectionLevel: 'H' });
+          const modSize = qr.modules.size;
+          const cSize = 7; // Exact 7px integer modules
+          const qWidth = modSize * cSize; // ~259px
+          const qStartX = Math.floor(sealCx - qWidth / 2);
+          const qStartY = Math.floor(sealCy - qWidth / 2);
+          const darkColor = isCyber ? "#0A1120" : "#141724"; // Deep obsidian bronze
+          const lightColor = isCyber ? "#E0F2FE" : "#FCF8EC";
+
+          const isFinderPattern = (r, c) => {
+            if (r < 7 && c < 7) return true;
+            if (r < 7 && c >= modSize - 7) return true;
+            if (r >= modSize - 7 && c < 7) return true;
+            return false;
+          };
+
+          const mid = Math.floor(modSize / 2);
+
+          // Draw data modules as smooth rounded tiles
+          ctx.fillStyle = darkColor;
+          for (let r = 0; r < modSize; r++) {
+            for (let c = 0; c < modSize; c++) {
+              // Reserve 5x5 center area for shield crest
+              if (Math.abs(r - mid) <= 2 && Math.abs(c - mid) <= 2) continue;
+              if (isFinderPattern(r, c)) continue;
+
+              if (qr.modules.get(r, c)) {
+                drawRoundRect(ctx, qStartX + c * cSize, qStartY + r * cSize, cSize, cSize, 1.8, true, false);
+              }
+            }
+          }
+
+          // Draw 3 Corner Citadels (Finder Patterns with 1:1:3:1:1 ratio)
+          const drawFinder = (cornerR, cornerC) => {
+            const fx = qStartX + cornerC * cSize;
+            const fy = qStartY + cornerR * cSize;
+            const fw = 7 * cSize;
+
+            // Outer 7x7 rounded rect
+            ctx.fillStyle = darkColor;
+            drawRoundRect(ctx, fx, fy, fw, fw, 3, true, false);
+            // Inner 5x5 vellum
+            ctx.fillStyle = lightColor;
+            drawRoundRect(ctx, fx + cSize, fy + cSize, 5 * cSize, 5 * cSize, 2, true, false);
+            // Center 3x3 core
+            ctx.fillStyle = darkColor;
+            drawRoundRect(ctx, fx + 2 * cSize, fy + 2 * cSize, 3 * cSize, 3 * cSize, 1.5, true, false);
+            // Gilded center micro-rivet
+            ctx.fillStyle = sealThemeColor;
+            ctx.beginPath();
+            ctx.arc(fx + 3.5 * cSize, fy + 3.5 * cSize, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          };
+
+          drawFinder(0, 0);
+          drawFinder(0, modSize - 7);
+          drawFinder(modSize - 7, 0);
+
+          // 6e. Center Imperial High Command Shield Crest
+          ctx.fillStyle = darkColor;
+          ctx.beginPath();
+          ctx.arc(sealCx, sealCy, 21, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = sealThemeColor;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(sealCx, sealCy, 21, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = "#0B0F19";
+          ctx.beginPath();
+          ctx.arc(sealCx, sealCy, 18, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = sealThemeColor;
+          ctx.font = "bold 9px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`KD ${kd}`, sealCx, sealCy - 3);
+
+          ctx.fillStyle = sealAccentColor;
+          ctx.font = "bold 7px monospace";
+          ctx.fillText(cardMode === "album" ? "★ SEAL ★" : "UN•TY", sealCx, sealCy + 7);
+
+        } catch (err) {
+          console.error("QR render error:", err);
+        }
       }
+
     } else {
       // Classic Square Barcode (For Discord announcements & forum posts)
       const qrSize = 340;
@@ -769,13 +812,30 @@ export default function PolygraphShareModal({
                       <Sun size={14} className="text-amber-400" />
                       {tr("card_seal_style_title", "Cypher Seal Disguise")}
                     </div>
+                    {sealStyle === "crest" && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                        Zero QR Code • 100% Safe
+                      </span>
+                    )}
                     {sealStyle === "morphed" && (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/30">
                         Album Safe
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSealStyle("crest")}
+                      className={`px-2 py-2 rounded-lg text-[11px] font-bold border flex flex-col items-center justify-center gap-1 transition-colors text-center ${
+                        sealStyle === "crest"
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm"
+                          : "bg-[#141824] text-gray-400 border-[#232a3c] hover:text-white"
+                      }`}
+                    >
+                      <span className="text-sm">🛡️</span>
+                      <span className="truncate w-full">{tr("card_seal_crest", "No QR Badge")}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setSealStyle("morphed")}
@@ -814,6 +874,7 @@ export default function PolygraphShareModal({
                     </button>
                   </div>
                   <p className="text-[11px] text-gray-400 leading-relaxed font-sans">
+                    {sealStyle === "crest" && tr("card_seal_crest_desc", "Replaces the QR code with an imposing Kingdom High Command War Citadel badge displaying Grade, Whales, and Velocity. 100% free of any barcode or scan patterns.")}
                     {sealStyle === "morphed" && tr("card_seal_morphed_desc", "Morphed into an authentic Kingdom Sun Medallion with rounded obsidian tiles, sunburst filigree, and high-command crest. Bypasses Lilith's computer-vision photo album filter.")}
                     {sealStyle === "cyber" && tr("card_seal_cyber_desc", "Luminous tactical cypher with cyber-styled framing for web and social posts.")}
                     {sealStyle === "classic" && tr("card_seal_classic_desc", "High-contrast square QR code for Discord recruitment posts and external media.")}
@@ -851,7 +912,6 @@ export default function PolygraphShareModal({
                     </button>
                   </div>
                 </div>
-
 
                 {/* Primary Actions */}
                 <div className="space-y-2 pt-2">
@@ -987,32 +1047,112 @@ export default function PolygraphShareModal({
             </div>
           )}
 
-          {/* TAB 3: BBCode & Discord */}
+          {/* TAB 3: RoK In-Game Mail & Notes (Unity Rich Text / HTML) */}
           {activeTab === "bbcode" && (
             <div className="space-y-4">
               <div className="text-xs text-gray-400 leading-relaxed">
-                {tr("bbcode_desc", "Pre-formatted for in-game kingdom mail broadcasts and Discord recruitment announcements:")}
+                Rise of Kingdoms uses Unity Rich Text tags (HTML-like <code className="text-amber-400">&lt;color&gt;</code> and <code className="text-amber-400">&lt;b&gt;</code>). Links inside RoK are not clickable, but these formatted snippets render styled colors and headers for in-game mail, alliance boards, and personal notes:
               </div>
 
-              <div className="relative bg-[#090b10] border border-[#1e2434] rounded-xl p-4">
-                <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap leading-relaxed select-all">
-                  {bbcodeText}
-                </pre>
-                <div className="mt-3 flex justify-end">
-                  <button
-                    onClick={() => handleCopyLink(bbcodeText, "bbcode")}
-                    className={`px-4 py-2 text-xs font-bold rounded-lg border transition-colors flex items-center gap-1.5 ${
-                      copiedLink === "bbcode"
-                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                        : "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30 hover:bg-fuchsia-500/30"
-                    }`}
-                  >
-                    {copiedLink === "bbcode" ? <><Check size={13} /> {tr("bbcode_copied", "Copied BBCode!")}</> : <><Copy size={13} /> {tr("btn_copy_bbcode_blast", "Copy BBCode / Discord Text")}</>}
-                  </button>
+              {/* 1. In-Game Mail Blast */}
+              <div className="bg-[#0f131d] border border-[#1e2434] rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                    <Send size={13} />
+                    {tr("rok_mail_title", "RoK In-Game Mail Blast (Unity Rich Text)")}
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    Renders Colors in Mail
+                  </span>
+                </div>
+                <div className="relative bg-[#090b10] border border-[#1e2434] rounded-xl p-3">
+                  <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap leading-relaxed select-all">
+{`<size=22><b><color=#ffd700>👑 KINGDOM ${kd} EARLY POLYGRAPH BRIEF</color></b></size>
+<color=#00e5ff>Window:</color> ${endDate || "Latest"} (${timeframe}h)
+<color=#ffd700>Grade:</color> <b><color=lime>Grade ${ai?.grade || "N/A"}</color></b> | <color=#ff0055>Civil War:</color> <color=${parseInt(ai?.civilWarProbability || 0) > 50 ? "#ff0055" : "#00ff88"}>${ai?.civilWarProbability || 0}%</color>
+<color=#00ff88>Daily Mobilization:</color> <b><color=#ffd700>+${fmt(Math.round((me?.totalPowerGained || 0) / Math.max(1, parseInt(timeframe) / 24)))}/d</color></b>
+<color=#c084fc>Active Spenders:</color> <b><color=#c084fc>${kdd?.whales?.length || 0} Whales</color></b>
+<color=#94a3b8>Live Kingdom Dossier:</color>
+<size=18><b><color=#ffcc00>${shortUrl.replace("https://", "")}</color></b></size>`}
+                  </pre>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() => handleCopyLink(`<size=22><b><color=#ffd700>👑 KINGDOM ${kd} EARLY POLYGRAPH BRIEF</color></b></size>\n<color=#00e5ff>Window:</color> ${endDate || "Latest"} (${timeframe}h)\n<color=#ffd700>Grade:</color> <b><color=lime>Grade ${ai?.grade || "N/A"}</color></b> | <color=#ff0055>Civil War:</color> <color=${parseInt(ai?.civilWarProbability || 0) > 50 ? "#ff0055" : "#00ff88"}>${ai?.civilWarProbability || 0}%</color>\n<color=#00ff88>Daily Mobilization:</color> <b><color=#ffd700>+${fmt(Math.round((me?.totalPowerGained || 0) / Math.max(1, parseInt(timeframe) / 24)))}/d</color></b>\n<color=#c084fc>Active Spenders:</color> <b><color=#c084fc>${kdd?.whales?.length || 0} Whales</color></b>\n<color=#94a3b8>Live Kingdom Dossier:</color>\n<size=18><b><color=#ffcc00>${shortUrl.replace("https://", "")}</color></b></size>`, "mail_html")}
+                      className={`px-4 py-2 text-xs font-bold rounded-lg border transition-colors flex items-center gap-1.5 ${
+                        copiedLink === "mail_html"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : "bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30"
+                      }`}
+                    >
+                      {copiedLink === "mail_html" ? <><Check size={13} /> {tr("link_copied", "Copied")}</> : <><Copy size={13} /> Copy RoK Mail HTML</>}
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {/* 2. Player Signature / Member Note */}
+              <div className="bg-[#0f131d] border border-[#1e2434] rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-cyan-400 tracking-wider flex items-center gap-1.5">
+                    <Eye size={13} />
+                    {tr("rok_note_title", "Player Profile Signature / Alliance Note")}
+                  </div>
+                  <span className="text-[10px] font-mono text-gray-500">Compact 1-Liner</span>
+                </div>
+                <div className="relative bg-[#090b10] border border-[#1e2434] rounded-xl p-3">
+                  <pre className="text-xs font-mono text-cyan-300 whitespace-pre-wrap select-all">
+{`<b><color=#ffd700>KD${kd}</color></b> <color=lime>Grade ${ai?.grade || "A"}</color> | <color=#00e5ff>+${fmt(Math.round((me?.totalPowerGained || 0) / Math.max(1, parseInt(timeframe) / 24)))}/d</color> | <b><color=#ffcc00>${shortUrl.replace("https://", "")}</color></b>`}
+                  </pre>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() => handleCopyLink(`<b><color=#ffd700>KD${kd}</color></b> <color=lime>Grade ${ai?.grade || "A"}</color> | <color=#00e5ff>+${fmt(Math.round((me?.totalPowerGained || 0) / Math.max(1, parseInt(timeframe) / 24)))}/d</color> | <b><color=#ffcc00>${shortUrl.replace("https://", "")}</color></b>`, "note_html")}
+                      className={`px-4 py-2 text-xs font-bold rounded-lg border transition-colors flex items-center gap-1.5 ${
+                        copiedLink === "note_html"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : "bg-cyan-500/20 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/30"
+                      }`}
+                    >
+                      {copiedLink === "note_html" ? <><Check size={13} /> {tr("link_copied", "Copied")}</> : <><Copy size={13} /> Copy Note HTML</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Discord Markdown Announcement */}
+              <div className="bg-[#0f131d] border border-[#1e2434] rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-fuchsia-400 tracking-wider">
+                    {tr("discord_md_title", "Discord Leadership Announcement")}
+                  </div>
+                  <span className="text-[10px] font-mono text-gray-500">Markdown</span>
+                </div>
+                <div className="relative bg-[#090b10] border border-[#1e2434] rounded-xl p-3">
+                  <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap leading-relaxed select-all">
+{`**⚡ KINGDOM ${kd} EARLY POLYGRAPH BRIEF**
+> **Audit Window:** ${endDate || "Latest"} (${timeframe}h window)
+> **Grade:** \`${ai?.grade || "N/A"}\` | **Civil War Risk:** \`${ai?.civilWarProbability || 0}%\`
+> **Daily Mobilization:** \`+${fmt(Math.round((me?.totalPowerGained || 0) / Math.max(1, parseInt(timeframe) / 24)))}/day\`
+> **Active Spenders:** \`${kdd?.whales?.length || 0} Whales\`
+**Live Dossier:** <${shortUrl}>`}
+                  </pre>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() => handleCopyLink(`**⚡ KINGDOM ${kd} EARLY POLYGRAPH BRIEF**\n> **Audit Window:** ${endDate || "Latest"} (${timeframe}h window)\n> **Grade:** \`${ai?.grade || "N/A"}\` | **Civil War Risk:** \`${ai?.civilWarProbability || 0}%\`\n> **Daily Mobilization:** \`+${fmt(Math.round((me?.totalPowerGained || 0) / Math.max(1, parseInt(timeframe) / 24)))}/day\`\n> **Active Spenders:** \`${kdd?.whales?.length || 0} Whales\`\n**Live Dossier:** <${shortUrl}>`, "discord_md")}
+                      className={`px-4 py-2 text-xs font-bold rounded-lg border transition-colors flex items-center gap-1.5 ${
+                        copiedLink === "discord_md"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30 hover:bg-fuchsia-500/30"
+                      }`}
+                    >
+                      {copiedLink === "discord_md" ? <><Check size={13} /> {tr("link_copied", "Copied")}</> : <><Copy size={13} /> Copy Discord Text</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
+
 
         </div>
 

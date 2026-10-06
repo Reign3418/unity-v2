@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Code-barres Classique",
     "card_seal_morphed_desc": "Métamorphosé en un authentique médaillon solaire avec rivets d'obsidienne arrondis et filigrane royal. Contourne le filtre de vision automatique de Lilith.",
     "card_seal_cyber_desc": "Chiffre tactique luminescent avec encadrement cybernétique pour le web et Discord.",
-    "card_seal_classic_desc": "Code QR carré à fort contraste pour les annonces de recrutement Discord."
+    "card_seal_classic_desc": "Code QR carré à fort contraste pour les annonces de recrutement Discord.",
+    "card_seal_crest": "Blason Royal (Sans QR)",
+    "card_seal_crest_desc": "Remplace le code QR par un imposant blason militaire du Haut Commandement affichant la note, les baleines et la vélocité. 100% exempt de tout motif de code-barres.",
+    "tab_unity_richtext": "Courrier et Notes en Jeu (HTML)",
+    "rok_mail_title": "Courrier d'Alliance & de Royaume (Unity Rich Text)",
+    "rok_note_title": "Signature de Profil / Note d'Alliance",
+    "discord_md_title": "Annonce de Commandement Discord"
   }
 }

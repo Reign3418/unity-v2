@@ -1435,6 +1435,12 @@
     "card_seal_classic": "Classic Barcode",
     "card_seal_morphed_desc": "Morphed into an authentic Kingdom Sun Medallion with rounded obsidian tiles, sunburst filigree, and high-command crest. Bypasses Lilith's computer-vision photo album filter.",
     "card_seal_cyber_desc": "Luminous tactical cypher with cyber-styled framing for web and social posts.",
-    "card_seal_classic_desc": "High-contrast square QR code for Discord recruitment posts and external media."
+    "card_seal_classic_desc": "High-contrast square QR code for Discord recruitment posts and external media.",
+    "card_seal_crest": "Royal Crest Badge (No QR)",
+    "card_seal_crest_desc": "Replaces the QR code with an imposing Kingdom High Command War Citadel badge displaying Grade, Whales, and Velocity. 100% free of any barcode or scan patterns.",
+    "tab_unity_richtext": "RoK In-Game Mail & Notes (HTML)",
+    "rok_mail_title": "RoK In-Game Mail Blast (Unity Rich Text)",
+    "rok_note_title": "Player Profile Signature / Alliance Note",
+    "discord_md_title": "Discord Leadership Announcement"
   }
 }
