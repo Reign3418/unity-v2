@@ -17,6 +17,7 @@ export async function GET(request, { params }) {
   const tf = searchParams.get("tf") || searchParams.get("t") || "24";
   const depth = searchParams.get("depth") || searchParams.get("d") || "300";
   const locale = searchParams.get("locale") || searchParams.get("lang") || "en";
+  const source = searchParams.get("src") || "short_link";
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
   const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
   const baseUrl = host ? `${proto}://${host}` : request.url;
