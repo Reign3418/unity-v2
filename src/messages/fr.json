@@ -656,7 +656,11 @@
     "clash_stat_whales": "Baleines et dépensiers actifs",
     "clash_advantage_a": "Avantage KD {kd}",
     "clash_advantage_b": "Avantage KD {kd}",
-    "clash_advantage_tie": "Forces équivalentes"
+    "clash_advantage_tie": "Forces équivalentes",
+    "col_gov": "Gouverneur",
+    "alliance_roster_title": "Membres de l'alliance",
+    "expand_roster_hint": "Cliquez sur une alliance pour examiner ses gouverneurs",
+    "no_govs_in_alliance": "Aucun gouverneur enregistré dans les effectifs de cette alliance."
   },
   "CompareTab": {
     "title": "Atelier de comparaison des gouverneurs",

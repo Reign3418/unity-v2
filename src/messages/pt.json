@@ -656,7 +656,11 @@
     "clash_stat_whales": "Baleias / investidores ativos",
     "clash_advantage_a": "Vantagem KD {kd}",
     "clash_advantage_b": "Vantagem KD {kd}",
-    "clash_advantage_tie": "Equilibrado"
+    "clash_advantage_tie": "Equilibrado",
+    "col_gov": "Governador",
+    "alliance_roster_title": "Lista da aliança",
+    "expand_roster_hint": "Clique em qualquer aliança para inspecionar seus governadores",
+    "no_govs_in_alliance": "Nenhum governador registrado nesta lista de aliança."
   },
   "CompareTab": {
     "title": "Bancada de Comparação de Governadores",

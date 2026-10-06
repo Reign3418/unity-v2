@@ -656,7 +656,11 @@
     "clash_stat_whales": "Whale / Pengeluaran Aktif",
     "clash_advantage_a": "Keunggulan KD {kd}",
     "clash_advantage_b": "Keunggulan KD {kd}",
-    "clash_advantage_tie": "Kekuatan Seimbang"
+    "clash_advantage_tie": "Kekuatan Seimbang",
+    "col_gov": "Gubernur",
+    "alliance_roster_title": "Daftar Anggota Aliansi",
+    "expand_roster_hint": "Klik aliansi mana saja untuk memeriksa gubernurnya",
+    "no_govs_in_alliance": "Tidak ada gubernur yang tercatat dalam daftar aliansi ini."
   },
   "CompareTab": {
     "title": "Meja Kerja Perbandingan Gubernur",

@@ -689,7 +689,11 @@
     "clash_stat_whales": "Active Whales / Spenders",
     "clash_advantage_a": "Advantage KD {kd}",
     "clash_advantage_b": "Advantage KD {kd}",
-    "clash_advantage_tie": "Evenly Matched"
+    "clash_advantage_tie": "Evenly Matched",
+    "col_gov": "Governor",
+    "alliance_roster_title": "Alliance Roster",
+    "expand_roster_hint": "Click any alliance to inspect its governors",
+    "no_govs_in_alliance": "No governors recorded in this alliance roster."
   },
   "Landing": {
     "nav_city_hall": "City Hall Rush",

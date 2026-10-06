@@ -202,7 +202,20 @@ export async function GET(req) {
 
             const activeTag = gov.alliance && gov.alliance !== 'None' ? gov.alliance : 'No Tag';
             if (!allianceMap[activeTag]) {
-                allianceMap[activeTag] = { tag: activeTag, govCount: 0, powerStart: 0, powerEnd: 0, powerDelta: 0, troopDelta: 0, cmdDelta: 0, techDelta: 0, buildDelta: 0, kpDelta: 0, deadsDelta: 0 };
+                allianceMap[activeTag] = { 
+                    tag: activeTag, 
+                    govCount: 0, 
+                    powerStart: 0, 
+                    powerEnd: 0, 
+                    powerDelta: 0, 
+                    troopDelta: 0, 
+                    cmdDelta: 0, 
+                    techDelta: 0, 
+                    buildDelta: 0, 
+                    kpDelta: 0, 
+                    deadsDelta: 0,
+                    governors: []
+                };
             }
             allianceMap[activeTag].govCount += 1;
             allianceMap[activeTag].powerStart += (gov.powerStart || 0);
@@ -214,6 +227,20 @@ export async function GET(req) {
             allianceMap[activeTag].buildDelta += buildDelta;
             allianceMap[activeTag].kpDelta += kpDelta;
             allianceMap[activeTag].deadsDelta += deadsDelta;
+            allianceMap[activeTag].governors.push({
+                id: gov.id,
+                name: gov.name,
+                powerEnd: gov.powerEnd,
+                powerStart: gov.powerStart || 0,
+                powerDelta: pDelta,
+                troopDelta,
+                cmdDelta,
+                techDelta,
+                kpDelta,
+                deadsDelta,
+                isMigrant,
+                isWhale: pDelta >= whaleThreshold || (gov.powerEnd || 0) >= 65000000
+            });
         }
 
         // ── Migration processing ──
@@ -285,6 +312,10 @@ export async function GET(req) {
 
         // ── Build AI Prompt ──
         const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag')
+            .map(a => ({
+                ...a,
+                governors: (a.governors || []).sort((x, y) => (y.powerEnd || 0) - (x.powerEnd || 0))
+            }))
             .sort((a,b) => b.powerDelta - a.powerDelta);
 
         const kingdomSummary = `

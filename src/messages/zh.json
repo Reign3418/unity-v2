@@ -656,7 +656,11 @@
     "clash_stat_whales": "活跃巨氪 / 大统帅",
     "clash_advantage_a": "KD {kd} 占据战术优势",
     "clash_advantage_b": "KD {kd} 占据战术优势",
-    "clash_advantage_tie": "势均力敌"
+    "clash_advantage_tie": "势均力敌",
+    "col_gov": "总督",
+    "alliance_roster_title": "联盟总督花名册",
+    "expand_roster_hint": "点击任意联盟查看其所属总督详情",
+    "no_govs_in_alliance": "该联盟名单中未记录任何总督。"
   },
   "CompareTab": {
     "title": "执政官对比工作台",

@@ -656,7 +656,11 @@
     "clash_stat_whales": "Cá voi / Người nạp tiền tích cực",
     "clash_advantage_a": "Lợi thế KD {kd}",
     "clash_advantage_b": "Lợi thế KD {kd}",
-    "clash_advantage_tie": "Tương đương"
+    "clash_advantage_tie": "Tương đương",
+    "col_gov": "Thống đốc",
+    "alliance_roster_title": "Danh sách liên minh",
+    "expand_roster_hint": "Nhấp vào bất kỳ liên minh nào để kiểm tra các thống đốc",
+    "no_govs_in_alliance": "Không có thống đốc nào được ghi nhận trong danh sách liên minh này."
   },
   "CompareTab": {
     "title": "Bàn làm việc so sánh người chơi",

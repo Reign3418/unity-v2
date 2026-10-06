@@ -656,7 +656,11 @@
     "clash_stat_whales": "الحيتان وكبار المنفقين النشطين",
     "clash_advantage_a": "أفضلية المملكة {kd}",
     "clash_advantage_b": "أفضلية المملكة {kd}",
-    "clash_advantage_tie": "متكافئان تماماً"
+    "clash_advantage_tie": "متكافئان تماماً",
+    "col_gov": "الحاكم",
+    "alliance_roster_title": "قائمة أعضاء التحالف",
+    "expand_roster_hint": "انقر على أي تحالف لفحص حكامه",
+    "no_govs_in_alliance": "لا يوجد حكام مسجلون في قائمة هذا التحالف."
   },
   "CompareTab": {
     "title": "منصة مقارنة القادة",

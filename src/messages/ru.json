@@ -656,7 +656,11 @@
     "clash_stat_whales": "Активные киты / донатеры",
     "clash_advantage_a": "Преимущество KD {kd}",
     "clash_advantage_b": "Преимущество KD {kd}",
-    "clash_advantage_tie": "Равные силы"
+    "clash_advantage_tie": "Равные силы",
+    "col_gov": "Правитель",
+    "alliance_roster_title": "Состав альянса",
+    "expand_roster_hint": "Нажмите на любой альянс, чтобы просмотреть его правителей",
+    "no_govs_in_alliance": "В составе этого альянса нет зарегистрированных правителей."
   },
   "CompareTab": {
     "title": "Верстак сравнения игроков",

@@ -656,7 +656,11 @@
     "clash_stat_whales": "활동 중인 고래/과금러",
     "clash_advantage_a": "KD {kd} 우세",
     "clash_advantage_b": "KD {kd} 우세",
-    "clash_advantage_tie": "호각세 (대등)"
+    "clash_advantage_tie": "호각세 (대등)",
+    "col_gov": "총독",
+    "alliance_roster_title": "연맹 총독 명단",
+    "expand_roster_hint": "연맹을 클릭하여 소속 총독을 확인하세요",
+    "no_govs_in_alliance": "이 연맹 명단에 기록된 총독이 없습니다."
   },
   "CompareTab": {
     "title": "총사령관 비교 분석",

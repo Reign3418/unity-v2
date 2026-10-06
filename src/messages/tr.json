@@ -656,7 +656,11 @@
     "clash_stat_whales": "Aktif Balinalar / Harcayıcılar",
     "clash_advantage_a": "KD {kd} Avantajı",
     "clash_advantage_b": "KD {kd} Avantajı",
-    "clash_advantage_tie": "Eşit Güçte"
+    "clash_advantage_tie": "Eşit Güçte",
+    "col_gov": "Vali",
+    "alliance_roster_title": "İttifak Kadrosu",
+    "expand_roster_hint": "Valilerini incelemek için herhangi bir ittifaka tıklayın",
+    "no_govs_in_alliance": "Bu ittifak kadrosunda kayıtlı vali yok."
   },
   "CompareTab": {
     "title": "Vali Karşılaştırma Çalışma Alanı",

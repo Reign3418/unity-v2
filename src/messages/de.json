@@ -656,7 +656,11 @@
     "clash_stat_whales": "Aktive Wale / Spender",
     "clash_advantage_a": "Vorteil KD {kd}",
     "clash_advantage_b": "Vorteil KD {kd}",
-    "clash_advantage_tie": "Ausgeglichen"
+    "clash_advantage_tie": "Ausgeglichen",
+    "col_gov": "Gouverneur",
+    "alliance_roster_title": "Allianz-Kader",
+    "expand_roster_hint": "Klicken Sie auf eine Allianz, um ihre Gouverneure zu prüfen",
+    "no_govs_in_alliance": "Keine Gouverneure in diesem Allianzkader erfasst."
   },
   "CompareTab": {
     "title": "Spielervergleich",

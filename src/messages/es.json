@@ -656,7 +656,11 @@
     "clash_stat_whales": "Ballenas y gastadores activos",
     "clash_advantage_a": "Ventaja KD {kd}",
     "clash_advantage_b": "Ventaja KD {kd}",
-    "clash_advantage_tie": "Parejos"
+    "clash_advantage_tie": "Parejos",
+    "col_gov": "Gobernador",
+    "alliance_roster_title": "Lista de la alianza",
+    "expand_roster_hint": "Haz clic en cualquier alianza para ver sus gobernadores",
+    "no_govs_in_alliance": "No hay gobernadores registrados en la lista de esta alianza."
   },
   "CompareTab": {
     "title": "Banco de trabajo de comparación de jugadores",

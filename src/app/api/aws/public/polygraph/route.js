@@ -140,11 +140,44 @@ export async function GET(req) {
                 allianceSwitchers.push({ id: gov.id, name: gov.name, from: gov.allianceStart, to: gov.alliance, power: gov.powerEnd });
             }
             const activeTag = gov.alliance && gov.alliance !== 'None' ? gov.alliance : 'No Tag';
-            if (!allianceMap[activeTag]) allianceMap[activeTag] = { tag: activeTag, govCount: 0, powerDelta: 0, troopDelta: 0, cmdDelta: 0, techDelta: 0, kpDelta: 0, deadsDelta: 0 };
+            if (!allianceMap[activeTag]) {
+                allianceMap[activeTag] = { 
+                    tag: activeTag, 
+                    govCount: 0, 
+                    powerStart: 0,
+                    powerEnd: 0,
+                    powerDelta: 0, 
+                    troopDelta: 0, 
+                    cmdDelta: 0, 
+                    techDelta: 0, 
+                    kpDelta: 0, 
+                    deadsDelta: 0,
+                    governors: []
+                };
+            }
             allianceMap[activeTag].govCount += 1;
-            allianceMap[activeTag].powerDelta += pDelta; allianceMap[activeTag].troopDelta += troopDelta;
-            allianceMap[activeTag].cmdDelta += cmdDelta; allianceMap[activeTag].techDelta += techDelta;
-            allianceMap[activeTag].kpDelta += kpDelta; allianceMap[activeTag].deadsDelta += deadsDelta;
+            allianceMap[activeTag].powerStart += (gov.powerStart || 0);
+            allianceMap[activeTag].powerEnd += gov.powerEnd;
+            allianceMap[activeTag].powerDelta += pDelta; 
+            allianceMap[activeTag].troopDelta += troopDelta;
+            allianceMap[activeTag].cmdDelta += cmdDelta; 
+            allianceMap[activeTag].techDelta += techDelta;
+            allianceMap[activeTag].kpDelta += kpDelta; 
+            allianceMap[activeTag].deadsDelta += deadsDelta;
+            allianceMap[activeTag].governors.push({
+                id: gov.id,
+                name: gov.name,
+                powerEnd: gov.powerEnd,
+                powerStart: gov.powerStart || 0,
+                powerDelta: pDelta,
+                troopDelta,
+                cmdDelta,
+                techDelta,
+                kpDelta,
+                deadsDelta,
+                isMigrant,
+                isWhale: pDelta >= whaleThreshold || (gov.powerEnd || 0) >= 65000000
+            });
         }
 
         const newArrivals = (migrationData || [])
@@ -196,7 +229,12 @@ export async function GET(req) {
 
         const anomalies = analyzeKingdomPolygraphAnomalies(sortedRoster, serverAgeDays, era);
 
-        const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag').sort((a, b) => b.powerDelta - a.powerDelta);
+        const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag')
+            .map(a => ({
+                ...a,
+                governors: (a.governors || []).sort((x, y) => (y.powerEnd || 0) - (x.powerEnd || 0))
+            }))
+            .sort((a, b) => b.powerDelta - a.powerDelta);
 
         const kingdomSummary = `
 KINGDOM ${kd} ${kingdomMeta?.kingdomName ? `(${kingdomMeta.kingdomName})` : ''} (Top ${depth} Govs | Depth: ${sortedRoster.length}):

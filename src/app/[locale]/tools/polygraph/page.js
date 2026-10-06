@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords } from "lucide-react";
+import { useState, useEffect, Fragment } from "react";
+import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, ChevronRight, Search, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, KvKClashModal } from "./PolygraphGauges";
@@ -34,6 +34,10 @@ export default function Polygraph() {
   const [sort, setSort] = useState({ key: "powerDelta", dir: "desc" });
   const [restored, setRestored] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Alliance Intel expansion & search
+  const [expandedTag, setExpandedTag] = useState(null);
+  const [govSearch, setGovSearch] = useState("");
 
   // Remastered Modal states
   const [inspectCategory, setInspectCategory] = useState(null);
@@ -618,28 +622,169 @@ export default function Polygraph() {
                   <ul className="space-y-2">{ai.conflictTheories.map((theory,i)=><li key={i} className="text-gray-400 text-xs flex items-start gap-2"><span className="text-rose-500/50 mt-0.5">•</span>{theory}</li>)}</ul>
                 </div>
               )}
+              {/* Alliance Intel Table Header + Search */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-gray-400">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-gray-400">{t("expand_roster_hint")}</span>
+                  {expandedTag && (
+                    <span className="text-[10px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                      Viewing [{expandedTag}]
+                    </span>
+                  )}
+                </div>
+                {expandedTag && (
+                  <div className="relative w-full sm:w-64">
+                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="text"
+                      value={govSearch}
+                      onChange={e => setGovSearch(e.target.value)}
+                      placeholder="Search governors in alliance..."
+                      className="w-full bg-[#0a0c0f] border border-[#1e222b] text-white text-xs pl-8 pr-3 py-1.5 rounded-lg outline-none focus:border-cyan-500 transition-colors"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="overflow-x-auto border border-[#1e222b] rounded-lg">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-[#15181e] text-[10px] uppercase tracking-wider text-gray-500">
                     <tr>
                       {[["tag",t("col_tag")],["govCount",t("col_govs")],["powerDelta",t("col_power")],["troopDelta",t("col_troops")],["cmdDelta",t("col_cmdr")],["techDelta",t("col_tech")],["kpDelta",t("col_kp")],["deadsDelta",t("col_deads")]].map(([k,l])=>(
-                        <th key={k} className="p-2 font-bold cursor-pointer hover:text-white transition-colors" onClick={()=>doSort(k)}>{l} <span className="text-gray-600 ml-1">{si(k)}</span></th>
+                        <th key={k} className="p-2.5 font-bold cursor-pointer hover:text-white transition-colors" onClick={()=>doSort(k)}>{l} <span className="text-gray-600 ml-1">{si(k)}</span></th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e222b] text-xs font-mono">
-                    {sorted(kdd.alliances).map(a=>(
-                      <tr key={a.tag} className="hover:bg-[#15181e] transition-colors">
-                        <td className="p-2 font-bold text-cyan-400">[{a.tag}]</td>
-                        <td className="p-2 text-right text-gray-400">{a.govCount}</td>
-                        <td className={`p-2 text-right font-bold ${a.powerDelta>=0?"text-emerald-400":"text-rose-400"}`}>{fd(a.powerDelta)}</td>
-                        <td className={`p-2 text-right ${a.troopDelta>=0?"text-cyan-400":"text-rose-400"}`}>{fd(a.troopDelta)}</td>
-                        <td className={`p-2 text-right ${a.cmdDelta>=0?"text-amber-400":"text-rose-400"}`}>{fd(a.cmdDelta)}</td>
-                        <td className={`p-2 text-right ${a.techDelta>=0?"text-violet-400":"text-rose-400"}`}>{fd(a.techDelta)}</td>
-                        <td className={`p-2 text-right ${a.kpDelta>0?"text-orange-400":"text-gray-600"}`}>{a.kpDelta>0?fd(a.kpDelta):"-"}</td>
-                        <td className={`p-2 text-right ${a.deadsDelta>0?"text-rose-400 font-bold":"text-gray-600"}`}>{a.deadsDelta>0?fd(a.deadsDelta):"-"}</td>
-                      </tr>
-                    ))}
+                    {sorted(kdd.alliances).map(a => {
+                      const isExpanded = expandedTag === a.tag;
+                      const govs = a.governors || [];
+                      const filteredGovs = govSearch.trim()
+                        ? govs.filter(g => (g.name || "").toLowerCase().includes(govSearch.toLowerCase()))
+                        : govs;
+
+                      return (
+                        <Fragment key={a.tag}>
+                          <tr 
+                            onClick={() => {
+                              setExpandedTag(isExpanded ? null : a.tag);
+                              setGovSearch("");
+                            }}
+                            className={`cursor-pointer transition-colors ${
+                              isExpanded ? "bg-[#171b24] border-l-2 border-l-cyan-400" : "hover:bg-[#15181e]"
+                            }`}
+                            title="Click to view governors"
+                          >
+                            <td className="p-2.5 font-bold text-cyan-400">
+                              <div className="flex items-center gap-1.5">
+                                {isExpanded ? (
+                                  <ChevronDown size={14} className="text-cyan-400 shrink-0" />
+                                ) : (
+                                  <ChevronRight size={14} className="text-gray-500 shrink-0" />
+                                )}
+                                <span>[{a.tag}]</span>
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-right text-gray-300">
+                              <span className="px-1.5 py-0.5 rounded bg-[#101319] border border-[#232834] text-[11px]">
+                                {a.govCount}
+                              </span>
+                            </td>
+                            <td className={`p-2.5 text-right font-bold ${a.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fd(a.powerDelta)}</td>
+                            <td className={`p-2.5 text-right ${a.troopDelta >= 0 ? "text-cyan-400" : "text-rose-400"}`}>{fd(a.troopDelta)}</td>
+                            <td className={`p-2.5 text-right ${a.cmdDelta >= 0 ? "text-amber-400" : "text-rose-400"}`}>{fd(a.cmdDelta)}</td>
+                            <td className={`p-2.5 text-right ${a.techDelta >= 0 ? "text-violet-400" : "text-rose-400"}`}>{fd(a.techDelta)}</td>
+                            <td className={`p-2.5 text-right ${a.kpDelta > 0 ? "text-orange-400" : "text-gray-600"}`}>{a.kpDelta > 0 ? fd(a.kpDelta) : "-"}</td>
+                            <td className={`p-2.5 text-right ${a.deadsDelta > 0 ? "text-rose-400 font-bold" : "text-gray-600"}`}>{a.deadsDelta > 0 ? fd(a.deadsDelta) : "-"}</td>
+                          </tr>
+
+                          {/* Expanded Governors Roster Drawer */}
+                          {isExpanded && (
+                            <tr className="bg-[#090b10] border-b border-[#1e222b]">
+                              <td colSpan={8} className="p-3 sm:p-4">
+                                <div className="bg-[#0d1017] border border-[#222735] rounded-xl overflow-hidden shadow-2xl space-y-3 p-4">
+                                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#1e222b]">
+                                    <div className="flex items-center gap-2">
+                                      <Users size={16} className="text-cyan-400" />
+                                      <span className="font-black text-cyan-300 text-xs font-mono uppercase tracking-wider">
+                                        [{a.tag}] {t("alliance_roster_title")}
+                                      </span>
+                                      <span className="text-[10px] font-mono text-gray-400 bg-[#141722] px-2 py-0.5 rounded border border-[#232834]">
+                                        {govs.length} {t("col_govs")}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 font-mono">
+                                      Showing {filteredGovs.length} of {govs.length} governors
+                                    </div>
+                                  </div>
+
+                                  <div className="max-h-80 overflow-y-auto border border-[#1e222b] rounded-lg">
+                                    {govs.length === 0 ? (
+                                      <div className="text-center py-8 text-gray-500 text-xs italic font-mono">
+                                        {t("no_govs_in_alliance")}
+                                      </div>
+                                    ) : filteredGovs.length === 0 ? (
+                                      <div className="text-center py-8 text-gray-500 text-xs italic font-mono">
+                                        No governors match &quot;{govSearch}&quot;
+                                      </div>
+                                    ) : (
+                                      <table className="w-full text-left border-collapse text-xs font-mono">
+                                        <thead className="bg-[#12151d] text-[10px] uppercase text-gray-500 sticky top-0 z-10">
+                                          <tr>
+                                            <th className="p-2.5">#</th>
+                                            <th className="p-2.5">{t("col_gov")}</th>
+                                            <th className="p-2.5 text-right">{t("col_power")}</th>
+                                            <th className="p-2.5 text-right">Power &Delta;</th>
+                                            <th className="p-2.5 text-right">{t("col_troops")} &Delta;</th>
+                                            <th className="p-2.5 text-right">{t("col_kp")} &Delta;</th>
+                                            <th className="p-2.5 text-right">{t("col_deads")} &Delta;</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#171b24]">
+                                          {filteredGovs.map((g, idx) => (
+                                            <tr key={g.id || idx} className="hover:bg-[#141722] transition-colors">
+                                              <td className="p-2.5 text-gray-600 font-bold w-10">{idx + 1}</td>
+                                              <td className="p-2.5">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-bold text-gray-200">{g.name}</span>
+                                                  {g.isWhale && (
+                                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                      WHALE
+                                                    </span>
+                                                  )}
+                                                  {g.isMigrant && (
+                                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                      NEW
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
+                                              <td className="p-2.5 text-right text-gray-300 font-bold">{fmt(g.powerEnd || 0)}</td>
+                                              <td className={`p-2.5 text-right font-bold ${g.powerDelta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                {fd(g.powerDelta || 0)}
+                                              </td>
+                                              <td className={`p-2.5 text-right ${g.troopDelta >= 0 ? "text-cyan-400" : "text-rose-400"}`}>
+                                                {fd(g.troopDelta || 0)}
+                                              </td>
+                                              <td className={`p-2.5 text-right ${g.kpDelta > 0 ? "text-orange-400 font-bold" : "text-gray-600"}`}>
+                                                {g.kpDelta > 0 ? fd(g.kpDelta) : "-"}
+                                              </td>
+                                              <td className={`p-2.5 text-right ${g.deadsDelta > 0 ? "text-rose-400 font-bold" : "text-gray-600"}`}>
+                                                {g.deadsDelta > 0 ? fd(g.deadsDelta) : "-"}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
