@@ -192,6 +192,12 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
       return;
     }
 
+    const cleanKd = String(extractedData.kingdomNumber || "").replace(/\D/g, '');
+    if (!cleanKd) {
+      setRegisterError("Please enter your numeric Kingdom number (e.g. 3418).");
+      return;
+    }
+
     setIsSubmittingRegister(true);
     try {
       const res = await fetch("/api/auth/self-register", {
@@ -200,7 +206,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
         body: JSON.stringify({
           governorId: extractedData.governorId,
           governorName: extractedData.governorName,
-          kingdomNumber: extractedData.kingdomNumber,
+          kingdomNumber: cleanKd,
           allianceTag: extractedData.allianceTag,
           power: extractedData.power,
           killPoints: extractedData.killPoints,
@@ -533,17 +539,30 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                     </div>
                     <div className="flex items-center justify-between border-b border-[#1e2433] pb-2.5">
                       <span className="text-slate-400">Kingdom:</span>
-                      <span className="font-bold text-cyan-400">#{extractedData.kingdomNumber}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-cyan-400 font-bold">#</span>
+                        <input
+                          type="text"
+                          value={extractedData.kingdomNumber || ""}
+                          onChange={(e) => setExtractedData({ ...extractedData, kingdomNumber: e.target.value.replace(/\D/g, '') })}
+                          className="bg-black/30 border border-cyan-500/30 rounded px-2 py-0.5 w-20 text-right text-cyan-400 font-bold focus:outline-none focus:border-cyan-400 transition-colors"
+                          placeholder="e.g. 3418"
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center justify-between border-b border-[#1e2433] pb-2.5">
                       <span className="text-slate-400">Alliance:</span>
                       <span className="font-bold text-emerald-400">[{extractedData.allianceTag || "None"}]</span>
                     </div>
-                    {verificationMeta?.isRosterMatch && (
+                    {verificationMeta?.isRosterMatch && String(extractedData.kingdomNumber) === "3418" ? (
                       <div className="text-[10px] text-emerald-400 flex items-center gap-1 pt-1 font-sans">
                         <CheckCircle2 size={13} /> Matched with Kingdom 3418 scanned player census!
                       </div>
-                    )}
+                    ) : extractedData.kingdomNumber && String(extractedData.kingdomNumber) !== "3418" ? (
+                      <div className="text-[10px] text-cyan-400 flex items-center gap-1 pt-1 font-sans">
+                        <CheckCircle2 size={13} /> Custom Kingdom #{extractedData.kingdomNumber} specified
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Choose PIN */}

@@ -6,7 +6,7 @@ import {
   getAllUsers, getAllTenants, purgeKingdomDatabase, toggleUserAIAccess, toggleTenantAIAccess,
   getAllGuestPasses, getPendingUsers, createGuestPass, deleteGuestPass, approvePendingUser, addUserAllowedKingdom, removeUserAllowedKingdom, 
   rejectPendingUser, addTenantAllowedKingdom, removeTenantAllowedKingdom, updateUserNotes, updateTenantNotes, deleteTenantConfig, updateUserRole, deleteUserAccess, syncDiscordProfiles, syncTenantGuildProfiles, getSupporterKingdoms, getFeatureGates, updateFeatureGate, setKingdomSupporterStatus, getGlobalConfig, updateGlobalConfig,
-  getGlobalTelemetryMetrics, updateGlobalTelemetryMetrics, syncGlobalMetrics, getAllTrackedKingdoms
+  getGlobalTelemetryMetrics, updateGlobalTelemetryMetrics, syncGlobalMetrics, getAllTrackedKingdoms, getAllGovernorAuths
 } from "@/lib/awsDynamo";
 
 
@@ -18,7 +18,7 @@ export async function GET(req) {
     }
 
     // Run all DynamoDB scans continuously over parallel threads
-    const [users, tenants, passcodes, pendingUsers, supporterKingdoms, featureGates, globalGeminiModel, globalTelemetry, trackedKingdoms] = await Promise.all([
+    const [users, tenants, passcodes, pendingUsers, supporterKingdoms, featureGates, globalGeminiModel, globalTelemetry, trackedKingdoms, governors] = await Promise.all([
       getAllUsers(),
       getAllTenants(),
       getAllGuestPasses(),
@@ -27,7 +27,8 @@ export async function GET(req) {
       getFeatureGates(),
       getGlobalConfig("GEMINI_MODEL"),
       getGlobalTelemetryMetrics(),
-      getAllTrackedKingdoms()
+      getAllTrackedKingdoms(),
+      getAllGovernorAuths()
     ]);
 
     // Attach current Environment Gateway strings so the Admin knows which DB is active
@@ -38,6 +39,7 @@ export async function GET(req) {
         tableName: process.env.AWS_TABLE_NAME || "Not Mapped"
       },
       users,
+      governors,
       tenants,
       passcodes,
       pendingUsers,

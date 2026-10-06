@@ -4884,3 +4884,154 @@ export async function getGovernorAuth(governorId) {
         return null;
     }
 }
+
+/**
+ * Retrieves the metadata (e.g., foundedDate) for a specific kingdom.
+ */
+export async function getKingdomMetadata(kingdomId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return null;
+    
+    try {
+        const params = {
+            TableName: tableName,
+            Key: {
+                'PK': { S: `KINGDOM#${kingdomId}` },
+                'SK': { S: 'METADATA' }
+            }
+        };
+        const result = await dbClient.send(new GetItemCommand(params));
+        if (result.Item) {
+            return {
+                foundedDate: result.Item.foundedDate?.S || null,
+                updatedAt: result.Item.updatedAt?.S || null
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("AWS GetKingdomMetadata Error", e);
+        return null;
+    }
+}
+
+/**
+ * Sets the metadata (e.g., foundedDate) for a specific kingdom.
+ */
+export async function setKingdomMetadata(kingdomId, data) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+    
+    try {
+        const params = {
+            TableName: tableName,
+            Item: {
+                'PK': { S: `KINGDOM#${kingdomId}` },
+                'SK': { S: 'METADATA' },
+                'foundedDate': { S: data.foundedDate || '' },
+                'updatedAt': { S: new Date().toISOString() }
+            }
+        };
+        await dbClient.send(new PutItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS SetKingdomMetadata Error", e);
+        return false;
+    }
+}
+
+/**
+ * Retrieves all profile registered Governor Authentications.
+ */
+export async function getAllGovernorAuths() {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return [];
+
+    try {
+        const params = {
+            TableName: tableName,
+            KeyConditionExpression: "PK = :pk",
+            ExpressionAttributeValues: {
+                ":pk": { S: "AUTH_GOVERNOR" }
+            }
+        };
+        const result = await dbClient.send(new QueryCommand(params));
+        if (result.Items) {
+            return result.Items.map(item => {
+                const attrs = item.attributes?.M || {};
+                return {
+                    governorId: attrs.governorId?.S || '',
+                    governorName: attrs.governorName?.S || 'Governor',
+                    kingdomId: attrs.kingdomId?.S || '3418',
+                    allianceTag: attrs.allianceTag?.S || '',
+                    power: attrs.power?.N ? Number(attrs.power.N) : 0,
+                    killPoints: attrs.killPoints?.N ? Number(attrs.killPoints.N) : 0,
+                    role: attrs.role?.S || 'User',
+                    registeredAt: attrs.registeredAt?.S || null
+                };
+            });
+        }
+        return [];
+    } catch (e) {
+        console.error("AWS GetAllGovernorAuths Error", e);
+        return [];
+    }
+}
+
+/**
+ * Updates a registered Governor Auth profile's Kingdom and Role
+ */
+export async function updateGovernorAuth(governorId, kingdomId, role) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const cleanId = String(governorId).trim();
+        const params = {
+            TableName: tableName,
+            Key: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` }
+            },
+            UpdateExpression: "SET #a.kingdomId = :k, #a.#r = :r, #a.updatedAt = :u",
+            ExpressionAttributeNames: {
+                "#a": "attributes",
+                "#r": "role"
+            },
+            ExpressionAttributeValues: {
+                ":k": { S: String(kingdomId) },
+                ":r": { S: String(role) },
+                ":u": { S: new Date().toISOString() }
+            }
+        };
+        await dbClient.send(new UpdateItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS UpdateGovernorAuth Error", e);
+        return false;
+    }
+}
+
+/**
+ * Deletes a registered Governor Auth profile
+ */
+export async function deleteGovernorAuth(governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const { DeleteItemCommand } = await import('@aws-sdk/client-dynamodb');
+        const cleanId = String(governorId).trim();
+        const params = {
+            TableName: tableName,
+            Key: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` }
+            }
+        };
+        await dbClient.send(new DeleteItemCommand(params));
+        return true;
+    } catch (e) {
+        console.error("AWS DeleteGovernorAuth Error", e);
+        return false;
+    }
+}

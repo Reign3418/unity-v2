@@ -6,6 +6,8 @@ import {
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
   UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink, Search, Sliders
 } from "lucide-react";
+import KingdomManager from "./KingdomManager";
+import GovernorManager from "./GovernorManager";
 
 // Global SPA cache to eliminate redundant DynamoDB/Vercel fetch latency during route navigation
 let globalMatrixCache = null;
@@ -18,6 +20,7 @@ export default function AdminConsole() {
   const [isLoading, setIsLoading] = useState(!globalMatrixCache);
   const [awsEnv, setAwsEnv] = useState(globalMatrixCache?.env || { region: "Scanning...", tableName: "Scanning..." });
   const [users, setUsers] = useState(globalMatrixCache?.users || []);
+  const [governors, setGovernors] = useState(globalMatrixCache?.governors || []);
   const [tenants, setTenants] = useState(globalMatrixCache?.tenants || []);
   const [uploadLogs, setUploadLogs] = useState(globalMatrixCache?.uploadLogs || []);
   const [passcodes, setPasscodes] = useState(globalMatrixCache?.passcodes || []);
@@ -90,6 +93,7 @@ export default function AdminConsole() {
       
       setAwsEnv(data.env);
       setUsers(data.users || []);
+      setGovernors(data.governors || []);
       setTenants(data.tenants || []);
       setPasscodes(data.passcodes || []);
       setPendingUsers(data.pendingUsers || []);
@@ -1199,10 +1203,12 @@ export default function AdminConsole() {
              
              <div className="pt-6 pb-2 px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">Access Management</div>
              <TabButton icon={<Users size={18}/>} label="Identity Matrix" active={activeTab === 'identity'} onClick={() => setActiveTab('identity')} />
+             <TabButton icon={<ShieldAlert size={18}/>} label="Governor Logins" active={activeTab === 'governors'} onClick={() => setActiveTab('governors')} />
              <TabButton icon={<Key size={18}/>} label="Web Passcodes" active={activeTab === 'passcodes'} onClick={() => setActiveTab('passcodes')} />
 
              <div className="pt-6 pb-2 px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">Feature Gateways</div>
              <TabButton icon={<Lock size={18}/>} label="Topography & Supporters" active={activeTab === 'gates'} onClick={() => setActiveTab('gates')} />
+             <TabButton icon={<Database size={18}/>} label="Kingdom Configs" active={activeTab === 'kingdoms'} onClick={() => setActiveTab('kingdoms')} />
              
              <div className="pt-6 pb-2 px-2 text-[10px] font-black uppercase tracking-widest text-gray-600">Scale Integrations</div>
              <TabButton icon={<Server size={18}/>} label="Tenant Guilds" active={activeTab === 'tenants'} onClick={() => setActiveTab('tenants')} />
@@ -1236,8 +1242,10 @@ export default function AdminConsole() {
           <div className="flex-1 overflow-y-auto w-full pt-24 px-8 pb-12 scrollbar-thin scrollbar-thumb-[#1e222b] scrollbar-track-transparent h-full">
              {activeTab === 'overview' && renderOverview()}
              {activeTab === 'identity' && renderIdentity()}
+             {activeTab === 'governors' && <GovernorManager governors={governors} />}
              {activeTab === 'passcodes' && renderPasscodes()}
              {activeTab === 'gates' && renderFeatureGates()}
+             {activeTab === 'kingdoms' && <KingdomManager />}
              {activeTab === 'tenants' && renderTenants()}
              {activeTab === 'cloud' && renderCloud()}
              {activeTab === 'broadcast' && renderBroadcast()}
