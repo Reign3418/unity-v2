@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
-export const maxDuration = 300;
-import { getKingdomTrends } from "@/lib/awsDynamo";
+import { getKingdomTrends, getKingdomMetadata } from "@/lib/awsDynamo";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +24,7 @@ export async function GET(req) {
     }
 
     let trendsData = [];
+    let metadata = null;
 
     if (kingdomId === 'GLOBAL') {
         const allowed = session.user.allowedKingdoms || [];
@@ -70,9 +70,10 @@ export async function GET(req) {
     } else {
         // Retrieve entire chronological footprint natively via DATES pointer
         trendsData = await getKingdomTrends(kingdomId);
+        metadata = await getKingdomMetadata(kingdomId);
     }
 
-    return NextResponse.json({ trends: trendsData }, { status: 200 });
+    return NextResponse.json({ trends: trendsData, metadata }, { status: 200 });
 
   } catch (error) {
     console.error("[API/AWS/Trends] Fatal Error:", error);

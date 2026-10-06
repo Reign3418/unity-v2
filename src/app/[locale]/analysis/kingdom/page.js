@@ -71,6 +71,7 @@ export default function KingdomAnalysis() {
   
   const [targetKd, setTargetKd] = useState("");
   const [trends, setTrends] = useState([]);
+  const [kingdomMetadata, setKingdomMetadata] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [rosterData, setRosterData] = useState([]);
@@ -143,11 +144,17 @@ export default function KingdomAnalysis() {
     try {
       const res = await fetch(`/api/aws/trends?kd=${kd}`);
       const data = await res.json();
-      if (res.ok) setTrends(data.trends || []);
-      else setTrends([]);
+      if (res.ok) {
+        setTrends(data.trends || []);
+        setKingdomMetadata(data.metadata || null);
+      } else {
+        setTrends([]);
+        setKingdomMetadata(null);
+      }
     } catch (e) {
       console.error(e);
       setTrends([]);
+      setKingdomMetadata(null);
     } finally {
       setIsLoading(false);
     }
@@ -243,6 +250,14 @@ export default function KingdomAnalysis() {
       }
   }, [trends]);
 
+  const serverAgeDays = useMemo(() => {
+    if (!kingdomMetadata?.foundedDate) return null;
+    const ref = endDate ? new Date(endDate + 'T23:59:59Z') : new Date();
+    const born = new Date(kingdomMetadata.foundedDate);
+    const diff = ref.getTime() - born.getTime();
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+  }, [kingdomMetadata, endDate]);
+
   const renderActiveTab = () => {
       switch (activeTab) {
           case 'Kingdom Analysis':
@@ -253,6 +268,8 @@ export default function KingdomAnalysis() {
                       targetKd={targetKd} 
                       startDate={startDate}
                       endDate={endDate}
+                      kingdomMetadata={kingdomMetadata}
+                      serverAgeDays={serverAgeDays}
                   />
               );
           case 'Overview':
@@ -262,6 +279,8 @@ export default function KingdomAnalysis() {
                       trends={trends}
                       startDate={startDate}
                       endDate={endDate}
+                      kingdomMetadata={kingdomMetadata}
+                      serverAgeDays={serverAgeDays}
                   />
               );
           case 'Compare':
@@ -292,6 +311,8 @@ export default function KingdomAnalysis() {
                       trends={trends}
                       startDate={startDate}
                       endDate={endDate}
+                      kingdomMetadata={kingdomMetadata}
+                      serverAgeDays={serverAgeDays}
                   />
               );
           case 'T5 Push Radar':
@@ -465,6 +486,17 @@ export default function KingdomAnalysis() {
               <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
             )}
           </select>
+
+          {/* Kingdom Age & Season Badge */}
+          {serverAgeDays !== null && (
+            <div dir="ltr" className="hidden sm:flex items-center gap-1.5 bg-[#161a24] border border-cyan-500/30 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-cyan-300 shadow-md shrink-0">
+              <Clock size={12} className="text-cyan-400 shrink-0" />
+              <span>Age: {serverAgeDays}d</span>
+              {kingdomMetadata?.kingdomProgress && (
+                <span className="text-[10px] text-gray-400 font-normal">({kingdomMetadata.kingdomProgress})</span>
+              )}
+            </div>
+          )}
 
           {/* ── Secondary Kingdom Stacker ── */}
           {secondaryKd ? (

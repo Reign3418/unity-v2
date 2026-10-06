@@ -27,7 +27,7 @@ export async function POST(req) {
         const prompt = `You are an expert, highly motivating performance and life coach for the mobile game Rise of Kingdoms. 
 A governor named "${stats.name}" has reached out to you for help on how they are doing and how they can improve.
 
-They are currently playing in a Kingdom that is **${stats.kingdomState === 'War' ? 'AT WAR' : 'AT PEACE'}**.
+They are currently playing in a Kingdom that is **${stats.kingdomState === 'War' ? 'AT WAR' : 'AT PEACE'}**${stats.serverAgeDays ? ` (Server Age: ${stats.serverAgeDays} days, Era: ${stats.kingdomProgress || 'Active'})` : ''}.
 These metrics cover the snapshot period from **${stats.startDate} to ${stats.endDate}**.
         
 Here is their actual growth over this specific time period (deltas):
@@ -55,8 +55,9 @@ RULES:
 3. ${stats.peerAvg ? `Compare them to their peers! If they gathered way less than their peers, tell them they are falling behind economically. If their tech is higher, praise them for outpacing the pack.` : `Focus on their raw numbers and how they can optimize their specific bottleneck.`}
 4. **IF AT WAR:** Call them out if they have high Troop Power growth but zero Kill Points or Deads (they are training troops but not fighting).
 5. **IF AT PEACE:** DO NOT penalize them or mention lack of Kill Points or Dead Troops. Focus entirely on their economic growth (Tech, Building, Troops, Gathering).
-6. **BE EXTREMELY BRIEF.** Maximum 2 short sentences per thought. Get straight to the point. Keep the entire response under 75 words.
-7. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
+${stats.serverAgeDays && stats.serverAgeDays > 270 ? '6. **MATURE KINGDOM CONTEXT:** In mature Season of Conquest kingdoms, City Hall 25 and core buildings are already maxed out. Do NOT criticize low or zero building growth; focus on technology, troop expansion, and resource management.' : ''}
+7. **BE EXTREMELY BRIEF.** Maximum 2 short sentences per thought. Get straight to the point. Keep the entire response under 75 words.
+8. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
 `;
 
         const customModel = req.headers.get('x-gemini-model');

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2, Gift } from "lucide-react";
+import { TrendingUp, RefreshCw, ShieldAlert, FileText, Download, Target, Search, Filter, Sparkles, Crosshair, Bot, X, Loader2, Gift, Clock } from "lucide-react";
 import { useLocale } from "next-intl";
 
-export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate }) {
+export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate, kingdomMetadata, serverAgeDays }) {
     const locale = useLocale();
     const [isCompiling, setIsCompiling] = useState(false);
     const [behavioralRoster, setBehavioralRoster] = useState([]);
@@ -68,10 +68,32 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
         const maxTroop = Math.max(1, getPercentile(validRoster, p => p.troopPowerDiff));
         const maxGathered = Math.max(1, getPercentile(validRoster, p => p.gatheredDiff));
 
-        // Growth Configuration (Dynamic based on Peace/War State)
-        const WEIGHTS = kingdomState === "Peace" 
-            ? { TECH: 32, BLD: 30, TROOP: 28, KP: 0, DEADS: 0, GATHERED: 10 } // Strict Growth Meta
-            : { TECH: 25, BLD: 25, TROOP: 25, KP: 12, DEADS: 8, GATHERED: 5 }; // Balanced KvK Meta
+        // Growth Configuration (Dynamic based on Peace/War State AND Kingdom Age Maturity)
+        const isMatureKingdom = (serverAgeDays !== null && serverAgeDays > 270) || kingdomMetadata?.kingdomProgress === 'Season of Conquest';
+        const isMidKingdom = (serverAgeDays !== null && serverAgeDays >= 120 && serverAgeDays <= 270) || kingdomMetadata?.kingdomProgress === 'Season 2' || kingdomMetadata?.kingdomProgress === 'Season 3';
+
+        let WEIGHTS;
+        if (kingdomState === "Peace") {
+            if (isMatureKingdom) {
+                // In mature/SoC kingdoms, CH25 is capped: building power is negligible, troops and tech dominate
+                WEIGHTS = { TECH: 35, BLD: 5, TROOP: 50, KP: 0, DEADS: 0, GATHERED: 10 };
+            } else if (isMidKingdom) {
+                // In KvK 1/2 kingdoms, building power is winding down, tech & troop expansion surge
+                WEIGHTS = { TECH: 36, BLD: 14, TROOP: 40, KP: 0, DEADS: 0, GATHERED: 10 };
+            } else {
+                // Young kingdom (<120d): building and early tech are foundational
+                WEIGHTS = { TECH: 32, BLD: 30, TROOP: 28, KP: 0, DEADS: 0, GATHERED: 10 };
+            }
+        } else {
+            // War / KvK State
+            if (isMatureKingdom) {
+                WEIGHTS = { TECH: 25, BLD: 5, TROOP: 35, KP: 20, DEADS: 12, GATHERED: 3 };
+            } else if (isMidKingdom) {
+                WEIGHTS = { TECH: 28, BLD: 10, TROOP: 32, KP: 16, DEADS: 10, GATHERED: 4 };
+            } else {
+                WEIGHTS = { TECH: 25, BLD: 25, TROOP: 25, KP: 12, DEADS: 8, GATHERED: 5 };
+            }
+        }
         const CAP = 1.25; // 125% Maximum structural overflow limit
 
         const determineGrade = (score) => {
@@ -255,6 +277,8 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                 endDate,
                 peerAvg,
                 locale,
+                serverAgeDays,
+                kingdomProgress: kingdomMetadata?.kingdomProgress,
                 geminiModel: prefs.geminiModel
             };
             const res = await fetch('/api/aws/coach', {
@@ -298,10 +322,20 @@ export default function GrowthAnalysisTab({ targetKd, trends, startDate, endDate
                     <p className="text-gray-400 mt-2 text-sm font-mono relative z-20">AI-driven analysis of player growth, activity, and combat trajectory.</p>
                 </div>
 
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    {serverAgeDays !== null && (
+                        <div dir="ltr" className="flex items-center gap-1.5 bg-[#161a24] border border-purple-500/30 rounded-lg px-3 py-2 text-xs font-mono font-bold text-purple-300 shadow-md">
+                            <Clock size={13} className="text-purple-400 shrink-0" />
+                            <span>Age: {serverAgeDays}d</span>
+                            <span className="text-[10px] text-gray-400 font-normal">
+                                ({(serverAgeDays > 270 || kingdomMetadata?.kingdomProgress === 'Season of Conquest') ? 'SoC Weights' : (serverAgeDays >= 120) ? 'Mid-Era Weights' : 'Early-Era Weights'})
+                            </span>
+                        </div>
+                    )}
+
                     <button 
                         onClick={() => setKingdomState(s => s === "Peace" ? "War" : "Peace")}
-                        className={`px-4 flex items-center justify-center rounded-lg border text-xs font-black uppercase tracking-widest transition-colors ${
+                        className={`px-4 py-2 flex items-center justify-center rounded-lg border text-xs font-black uppercase tracking-widest transition-colors ${
                             kingdomState === "Peace" 
                                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20" 
                                 : "bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20"

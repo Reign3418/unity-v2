@@ -5,12 +5,12 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { ShieldAlert, TrendingUp, Search } from "lucide-react";
+import { ShieldAlert, TrendingUp, Search, Clock } from "lucide-react";
 import { useTranslations } from 'next-intl';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#64748b'];
 
-export default function KingdomAnalysisTab({ trends, rosterData, targetKd, startDate, endDate }) {
+export default function KingdomAnalysisTab({ trends, rosterData, targetKd, startDate, endDate, kingdomMetadata, serverAgeDays }) {
   const t = useTranslations('KingdomAnalysis');
   const [activeAlliance, setActiveAlliance] = useState("");
 
@@ -186,6 +186,16 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd, start
                             {activeAlliance ? t('trajectory_title_alliance', { alliance: activeAlliance }) : t('trajectory_title_all')}
                         </h2>
                     </div>
+
+                    {serverAgeDays !== null && serverAgeDays !== undefined && (
+                        <div dir="ltr" className="flex items-center gap-1.5 bg-[#161a24] border border-cyan-500/30 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-cyan-300 shadow-md self-start sm:self-auto">
+                            <Clock size={12} className="text-cyan-400 shrink-0" />
+                            <span>Age: {serverAgeDays}d</span>
+                            {kingdomMetadata?.kingdomProgress && (
+                                <span className="text-[10px] text-gray-400 font-normal">({kingdomMetadata.kingdomProgress})</span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 w-full min-h-[300px] z-10 relative">

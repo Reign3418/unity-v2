@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, parseScanDate } from '@/lib/awsDynamo';
+import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, getKingdomMetadata, parseScanDate } from '@/lib/awsDynamo';
 import { logEvent } from '@/lib/eventLogger';
 
 export const maxDuration = 300;
@@ -103,11 +103,12 @@ export async function GET(req) {
         // Single kingdom mode — only process the first kingdom
         const kd = kdsParam.split(',')[0].trim();
 
-        // ── Run all three engines concurrently for the single kingdom ──
-        const [rosterData, migrationData, trendsData] = await Promise.all([
+        // ── Run all engines concurrently for the single kingdom (including Kingdom Metadata) ──
+        const [rosterData, migrationData, trendsData, kingdomMeta] = await Promise.all([
             getOverviewDeltas(kd, start, end),
             getMigrationMatrix(kd, start, end),
-            getKingdomTrends(kd).catch(() => [])
+            getKingdomTrends(kd).catch(() => []),
+            getKingdomMetadata(kd).catch(() => null)
         ]);
 
         if (!rosterData || rosterData.length === 0) {
@@ -130,7 +131,39 @@ export async function GET(req) {
             }
         }
 
+        // ── Compute Kingdom Age & Game Era ──
+        let serverAgeDays = null;
+        let era = kingdomMeta?.kingdomProgress || 'Uncalibrated';
+        let eraKey = 'unknown';
+
+        if (kingdomMeta?.foundedDate) {
+            const refDate = resolvedEndDate ? new Date(resolvedEndDate) : new Date();
+            const birthDate = new Date(kingdomMeta.foundedDate);
+            const diffMs = refDate.getTime() - birthDate.getTime();
+            serverAgeDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+            if (!kingdomMeta?.kingdomProgress) {
+                if (serverAgeDays < 90) {
+                    era = 'Pre-KvK 1 (Nascent)';
+                    eraKey = 'pre_kvk1';
+                } else if (serverAgeDays < 180) {
+                    era = 'KvK 1 (First War)';
+                    eraKey = 'kvk1';
+                } else if (serverAgeDays < 270) {
+                    era = 'Season 2';
+                    eraKey = 'season2';
+                } else if (serverAgeDays < 365) {
+                    era = 'Season 3';
+                    eraKey = 'season3';
+                } else {
+                    era = 'Season of Conquest';
+                    eraKey = 'soc';
+                }
+            }
+        }
+
         const sortedRoster = rosterData.sort((a, b) => b.powerEnd - a.powerEnd).slice(0, depth);
+        const totalEndPower = sortedRoster.reduce((sum, g) => sum + (g.powerEnd || 0), 0);
 
         // ── Aggregate metrics ──
         const allianceMap = {};
@@ -230,12 +263,33 @@ export async function GET(req) {
         const behavioralSigs = computeBehavioralSignatures(sortedRoster, followSignals);
         const { operators, veterans, anchors } = behavioralSigs;
 
+        // ── Time-Adjusted Velocity Metrics ──
+        let windowDays = 1;
+        if (resolvedStartDate && resolvedEndDate) {
+            const sTime = new Date(resolvedStartDate).getTime();
+            const eTime = new Date(resolvedEndDate).getTime();
+            windowDays = Math.max(1, Math.round(Math.abs(eTime - sTime) / (1000 * 60 * 60 * 24)));
+        }
+        const windowPowerVelocity = Math.round(totalPowerGained / windowDays);
+        const lifetimePowerVelocity = (serverAgeDays && serverAgeDays > 0) 
+            ? Math.round(totalEndPower / serverAgeDays) 
+            : null;
+        const velocityRatio = (lifetimePowerVelocity && lifetimePowerVelocity > 0)
+            ? Math.round((windowPowerVelocity / lifetimePowerVelocity) * 100)
+            : null;
+        const momentumStatus = velocityRatio === null ? 'UNKNOWN' : velocityRatio >= 130 ? 'SURGE' : velocityRatio >= 85 ? 'NOMINAL' : velocityRatio > 0 ? 'SLOW' : 'NEGATIVE';
+
         // ── Build AI Prompt ──
         const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag')
             .sort((a,b) => b.powerDelta - a.powerDelta);
 
         const kingdomSummary = `
-KINGDOM ${kd} (Top ${depth} Govs | Depth: ${sortedRoster.length}):
+KINGDOM ${kd} ${kingdomMeta?.kingdomName ? `(${kingdomMeta.kingdomName})` : ''} (Top ${depth} Govs | Depth: ${sortedRoster.length}):
+- Server Age: ${serverAgeDays !== null ? `${serverAgeDays} Days Old` : 'Uncalibrated'} | Era: ${era} | Founded: ${kingdomMeta?.foundedDate || 'Unknown'}
+- The King: ${kingdomMeta?.theKing || 'Unknown'}
+- Tracked Kingdom Power: ${(totalEndPower / 1e6).toFixed(1)}M
+- Window Velocity: ${windowPowerVelocity >= 0 ? '+' : ''}${(windowPowerVelocity / 1e6).toFixed(2)}M/day (over ${windowDays} days)
+${lifetimePowerVelocity ? `- Lifetime Daily Pace: +${(lifetimePowerVelocity / 1e6).toFixed(2)}M/day (Velocity Momentum: ${velocityRatio}%, Status: ${momentumStatus})` : ''}
 - Total Power Gained: ${totalPowerGained.toLocaleString()}
 - Troop Power Gained: ${totalTroopPowerGained.toLocaleString()}
 - Cmdr Power Gained: ${totalCmdPowerGained.toLocaleString()}
@@ -267,6 +321,11 @@ ${allianceSwitchers.slice(0, 8).map(s => `${s.name}: [${s.from}] → [${s.to}] |
         const aiPrompt = `You are J.A.R.V.I.S., a Rise of Kingdoms intelligence analyst. Perform an Early Kingdom Polygraph Test on Kingdom ${kd}.
 
 ${kingdomSummary}
+
+CRITICAL KINGDOM AGE & ERA CONTEXT:
+This kingdom is ${serverAgeDays !== null ? `${serverAgeDays} days old in ${era}` : 'of uncalibrated age'}.
+- Evaluate their stability and growth specifically through the lens of this age and game stage. A young kingdom (<150 days) naturally grows rapidly from building/tech development; an older kingdom (>300 days) grows primarily through troop training and KvK pass wars.
+- Consider whether their velocity (${velocityRatio ? `${velocityRatio}% of historical daily pace` : 'standard'}) represents a mobilization surge, healthy peacetime growth, or stagnation.
 
 Assess stability, conflict patterns, and migration signals. Return ONLY raw JSON matching this exact schema:
 
@@ -332,6 +391,20 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
 
         const kdResult = {
             kd,
+            kingdomName: kingdomMeta?.kingdomName || null,
+            theKing: kingdomMeta?.theKing || null,
+            kingdomProgress: era,
+            foundedDate: kingdomMeta?.foundedDate || null,
+            serverAgeDays,
+            era,
+            eraKey,
+            velocityMetrics: {
+                windowDays,
+                windowPowerVelocity,
+                lifetimePowerVelocity,
+                velocityRatio,
+                momentumStatus
+            },
             rosterSize: sortedRoster.length,
             startDate: resolvedStartDate,
             endDate: resolvedEndDate,

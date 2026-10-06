@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity, ArrowUp, ArrowDown } from "lucide-react";
+import { Download, Search, Filter, ShieldAlert, LayoutTemplate, Activity, ArrowUp, ArrowDown, Clock } from "lucide-react";
 import { useTranslations } from 'next-intl';
 import { useSession } from "next-auth/react";
 import GovernorNotesModal from "./GovernorNotesModal";
 
-export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
+export default function OverviewTab({ targetKd, trends, startDate, endDate, kingdomMetadata, serverAgeDays }) {
     const { data: session } = useSession();
     const isR4 = session?.user?.isLeader || session?.user?.isSuperAdmin;
     
@@ -202,6 +202,15 @@ export default function OverviewTab({ targetKd, trends, startDate, endDate }) {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {serverAgeDays !== null && serverAgeDays !== undefined && (
+                            <div dir="ltr" className="flex items-center gap-1.5 bg-[#161a24] border border-cyan-500/30 rounded-lg px-3 py-2 text-xs font-mono font-bold text-cyan-300 shadow-md">
+                                <Clock size={14} className="text-cyan-400 shrink-0" />
+                                <span>Age: {serverAgeDays}d</span>
+                                {kingdomMetadata?.kingdomProgress && (
+                                    <span className="text-[10px] text-gray-400 font-normal">({kingdomMetadata.kingdomProgress})</span>
+                                )}
+                            </div>
+                        )}
                         <button 
                             onClick={handleExportCSV}
                             disabled={filteredData.length === 0}
