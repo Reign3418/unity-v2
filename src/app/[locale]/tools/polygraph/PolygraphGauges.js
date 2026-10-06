@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Zap, AlertTriangle, Scale, Swords, Check, Copy, ExternalLink, X, Shield, Crown, Sparkles, Activity, ChevronDown, ChevronUp, Search, TrendingUp, Cpu, UserPlus, Flame } from "lucide-react";
+import { Zap, AlertTriangle, Scale, Swords, Check, Copy, ExternalLink, X, Shield, Crown, Sparkles, Activity, ChevronDown, ChevronUp, Search, TrendingUp, Cpu, UserPlus, Flame, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 // Formatter helper
@@ -956,10 +956,26 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
 
     const isEmergentEntry = isYoungServer && (w.isLateStartOrEmergence || w.isNew || w.isMigrant);
 
+    // T5 Push Radar calculations (Floors: Tech 22.3M, Building 14.78M)
+    const t5TechFloor = 22300000;
+    const t5BuildFloor = 14780832;
+    const currentTech = w.techEnd || 0;
+    const currentBuild = w.buildEnd || 0;
+    const isT5Eligible = currentTech >= t5TechFloor && currentBuild >= t5BuildFloor;
+    const t5TechPct = Math.min(100, Math.round((currentTech / t5TechFloor) * 100));
+    const t5BuildPct = Math.min(100, Math.round((currentBuild / t5BuildFloor) * 100));
+    const isT5Pushing = !isT5Eligible && (techD > 0 || buildD > 0) && (t5TechPct >= 40 || t5BuildPct >= 40);
+
     let archetypeKey = "archetype_multi";
     let badgeColor = "text-amber-400 bg-amber-500/10 border-amber-500/30";
 
-    if (isEmergentEntry) {
+    if (isT5Eligible) {
+      archetypeKey = "archetype_t5_unlocked";
+      badgeColor = "text-emerald-400 bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]";
+    } else if (isT5Pushing) {
+      archetypeKey = "archetype_t5_pushing";
+      badgeColor = "text-violet-400 bg-violet-500/20 border-violet-500/40 shadow-[0_0_12px_rgba(139,92,246,0.25)]";
+    } else if (isEmergentEntry) {
       if (pDelta >= 3000000) {
         archetypeKey = "archetype_emergence_megalodon";
         badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
@@ -987,7 +1003,11 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     let rationale = "";
     const ageText = (serverAgeDays !== null && serverAgeDays !== undefined) ? `on Day ${serverAgeDays} of the kingdom` : "in this scan interval";
 
-    if (isEmergentEntry) {
+    if (isT5Eligible) {
+      rationale = `T5 Sovereign Whale: Surpassed both the 22.3M Tech Floor and 14.8M Building Floor requirements. Unlocked or immediately eligible for Tier 5 legion recruitment, establishing dominant battlefield firepower.`;
+    } else if (isT5Pushing) {
+      rationale = `T5 Push in Progress: Actively sprinting towards the T5 threshold (${t5TechPct}% Tech / ${t5BuildPct}% Buildings). Fast-tracking prerequisite research and building upgrades indicates imminent Tier 5 unlock readiness.`;
+    } else if (isEmergentEntry) {
       const breakdownText = (sumD > 0)
         ? ` Roster distribution: ${troopPct}% Troops (+${fmt(troopD)}), ${techPct}% Tech (+${fmt(techD)}), ${buildPct}% Buildings (+${fmt(buildD)}).`
         : "";
@@ -1010,6 +1030,9 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
       hourlyPace,
       troopD, techD, buildD, cmdD, kpD, deadD,
       troopPct, techPct, buildPct, cmdPct,
+      currentTech, currentBuild,
+      t5TechPct, t5BuildPct,
+      isT5Eligible, isT5Pushing,
       archetypeKey, badgeColor,
       rationale
     };
@@ -1170,6 +1193,55 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
                       </div>
                     </div>
 
+                    {/* T5 Push Radar Status Bar */}
+                    {(prof.currentTech > 0 || prof.currentBuild > 0) && (
+                      <div className="bg-[#090b10] border border-cyan-500/20 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider">
+                          <span className="text-cyan-400 flex items-center gap-1.5">
+                            <Target size={12} className="text-cyan-400" />
+                            {t("t5_radar_progress_title")}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded font-mono text-[9px] font-black ${
+                            prof.isT5Eligible 
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)]" 
+                              : prof.isT5Pushing 
+                              ? "bg-violet-500/20 text-violet-300 border border-violet-500/40 animate-pulse"
+                              : "bg-[#141722] text-gray-400 border border-[#232837]"
+                          }`}>
+                            {prof.isT5Eligible ? t("t5_status_ready") : prof.isT5Pushing ? t("t5_status_pushing") : t("t5_status_progressing")}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                          <div>
+                            <div className="flex justify-between text-[11px] text-gray-400 mb-0.5">
+                              <span>{t("t5_tech_floor_label")}: {fmt(prof.currentTech)} / 22.3M</span>
+                              <span className="text-violet-400 font-bold">{prof.t5TechPct}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-[#151922] rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${prof.currentTech >= 22300000 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-violet-500'}`} 
+                                style={{ width: `${prof.t5TechPct}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between text-[11px] text-gray-400 mb-0.5">
+                              <span>{t("t5_building_floor_label")}: {fmt(prof.currentBuild)} / 14.8M</span>
+                              <span className="text-amber-400 font-bold">{prof.t5BuildPct}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-[#151922] rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${prof.currentBuild >= 14780832 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-amber-500'}`} 
+                                style={{ width: `${prof.t5BuildPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Combat & Field Footprint */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1b202c] text-xs font-mono">
                       <div className="flex items-center gap-4">
@@ -1203,6 +1275,161 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 7. Combat Causality Card ("Who Attacked Who" & Civil War Clash Matrix)
+ */
+export function CombatCausalityCard({ combatCausality, serverAgeDays, t }) {
+  if (!combatCausality) return null;
+
+  const { incidents = [], powerCutMigrants = [], hasConfirmedClash, hasInternalPurge, totalKingdomKP = 0, totalKingdomDeads = 0 } = combatCausality;
+
+  return (
+    <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-5 shadow-xl relative overflow-hidden space-y-4">
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-rose-500 to-transparent" />
+      
+      {/* Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1e222b] pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400">
+            <Swords size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              {t("causality_matrix_title")}
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase font-bold ${
+                hasConfirmedClash 
+                  ? "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse" 
+                  : hasInternalPurge 
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                  : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+              }`}>
+                {hasConfirmedClash ? t("causality_clash_detected") : hasInternalPurge ? t("causality_internal_purge") : t("causality_peacetime")}
+              </span>
+            </h3>
+            <p className="text-[11px] text-gray-400">{t("causality_matrix_desc")}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 text-xs font-mono">
+          <div className="bg-[#141720] border border-[#232734] px-2.5 py-1 rounded text-orange-400">
+            <span className="text-gray-500 text-[10px] uppercase block">{t("metric_kp_gained")}</span>
+            +{fmt(totalKingdomKP)}
+          </div>
+          <div className="bg-[#141720] border border-[#232734] px-2.5 py-1 rounded text-rose-400">
+            <span className="text-gray-500 text-[10px] uppercase block">{t("metric_deads")}</span>
+            +{fmt(totalKingdomDeads)}
+          </div>
+        </div>
+      </div>
+
+      {/* Incidents List */}
+      {incidents.length > 0 ? (
+        <div className="space-y-3">
+          {incidents.map((inc, idx) => (
+            <div key={idx} className="bg-[#0a0c10] border border-[#1e222b] rounded-lg p-3.5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${
+                    inc.severity === 'CRITICAL' ? 'bg-rose-600/30 text-rose-300 border-rose-500/50' : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  }`}>
+                    {inc.severity}
+                  </span>
+                  <span className="text-xs font-bold text-white font-mono">{inc.title}</span>
+                </div>
+                <div className="text-[11px] font-mono text-gray-400">
+                  Deads: <span className="text-rose-400 font-bold">+{fmt(inc.deadsCount)}</span> | KP: <span className="text-orange-400 font-bold">+{fmt(inc.kpCount)}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-300 leading-relaxed">{inc.description}</p>
+
+              {/* Two-column: Casualties vs Strikers */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {/* Column 1: Zeroed / Victims */}
+                <div className="bg-[#11141c] border border-rose-500/20 rounded-lg p-2.5 space-y-2">
+                  <div className="text-[10px] uppercase font-bold text-rose-400 tracking-wider flex items-center gap-1.5">
+                    <AlertTriangle size={12} className="text-rose-400" />
+                    {t("causality_victims_header", { tag: inc.victimTag })}
+                  </div>
+                  {inc.victims && inc.victims.length > 0 ? (
+                    <div className="space-y-1">
+                      {inc.victims.map((v, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs font-mono bg-[#090b10] px-2 py-1 rounded border border-[#1e222b]">
+                          <span className="text-gray-300 truncate max-w-[120px] font-bold">{v.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-rose-400">+{fmt(v.deadsDelta)} {t("metric_deads")}</span>
+                            <span className="text-gray-500 text-[10px]">({v.powerDelta < 0 ? fmt(v.powerDelta) : '+0'})</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-gray-500 italic">{t("no_named_casualties")}</div>
+                  )}
+                </div>
+
+                {/* Column 2: Attackers / Strikers */}
+                <div className="bg-[#11141c] border border-orange-500/20 rounded-lg p-2.5 space-y-2">
+                  <div className="text-[10px] uppercase font-bold text-orange-400 tracking-wider flex items-center gap-1.5">
+                    <Swords size={12} className="text-orange-400" />
+                    {t("causality_attackers_header", { tag: inc.aggressorTag })}
+                  </div>
+                  {inc.strikers && inc.strikers.length > 0 ? (
+                    <div className="space-y-1">
+                      {inc.strikers.map((s, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs font-mono bg-[#090b10] px-2 py-1 rounded border border-[#1e222b]">
+                          <span className="text-gray-300 truncate max-w-[120px] font-bold">{s.name}</span>
+                          <span className="text-orange-400 font-bold">+{fmt(s.kpDelta)} KP</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-gray-500 italic">{t("no_named_strikers")}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-[#0a0c10] border border-emerald-500/20 rounded-lg p-4 flex items-center gap-3">
+          <Check size={18} className="text-emerald-400 shrink-0" />
+          <div className="text-xs text-gray-300">
+            <span className="font-bold text-emerald-400">{t("causality_peace_title")}</span> — {t("causality_peace_desc")}
+          </div>
+        </div>
+      )}
+
+      {/* Pre-Migration Power Trimming Callout */}
+      {powerCutMigrants.length > 0 && (
+        <div className="bg-[#121520] border border-cyan-500/30 rounded-lg p-3.5 space-y-2">
+          <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1.5">
+            <Shield size={12} className="text-cyan-400" />
+            {t("causality_power_trimming_title")}
+          </div>
+          <p className="text-xs text-gray-300 leading-relaxed">
+            {t("causality_power_trimming_desc")}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-xs">
+            {powerCutMigrants.map((p, idx) => (
+              <div key={idx} className="bg-[#090b10] border border-[#1e222b] rounded px-2.5 py-1.5 flex items-center justify-between">
+                <div>
+                  <span className="text-cyan-300 font-bold">[{p.alliance}] {p.name}</span>
+                  <div className="text-[10px] text-gray-500">Shed {fmt(p.powerDelta)} power</div>
+                </div>
+                <div className="text-right">
+                  <span className="text-rose-400 font-bold">+{fmt(p.deadsDelta)} deads</span>
+                  <div className="text-[10px] text-emerald-400 font-bold">Target &lt;25M</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

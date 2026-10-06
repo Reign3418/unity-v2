@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { Activity, AlertTriangle, CheckCircle2, Crown, UserPlus, UserMinus, Zap, Clock, Send, Scale, ChevronRight, ChevronDown, Users, Search, QrCode } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, SpendersAccordionList } from '@/app/[locale]/tools/polygraph/PolygraphGauges';
+import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, CombatCausalityCard, SuspectsModal, MailDispatchModal, SpendersAccordionList } from '@/app/[locale]/tools/polygraph/PolygraphGauges';
 import PolygraphShareModal from '@/app/[locale]/tools/polygraph/PolygraphShareModal';
 
 const fmt = (n) => {
@@ -181,6 +181,12 @@ export default function SharedPolygraph() {
                 civilWarRationale={ai?.civilWarRationale}
                 switchersCount={me?.switchersCount}
                 alliances={kdd.alliances}
+                t={t}
+              />
+
+              <CombatCausalityCard
+                combatCausality={kdd.combatCausality}
+                serverAgeDays={kdd.serverAgeDays}
                 t={t}
               />
 

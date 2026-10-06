@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment } from "react";
 import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, ChevronRight, Search, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords, QrCode } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
-import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, KvKClashModal, SpendersAccordionList } from "./PolygraphGauges";
+import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, CombatCausalityCard, SuspectsModal, MailDispatchModal, KvKClashModal, SpendersAccordionList } from "./PolygraphGauges";
 import PolygraphShareModal from "./PolygraphShareModal";
 
 function Tooltip({ text, children }) {
@@ -553,6 +553,12 @@ export default function Polygraph() {
                 civilWarRationale={ai?.civilWarRationale}
                 switchersCount={me?.switchersCount}
                 alliances={kdd.alliances}
+                t={t}
+              />
+
+              <CombatCausalityCard
+                combatCausality={kdd.combatCausality}
+                serverAgeDays={kdd.serverAgeDays}
                 t={t}
               />
 

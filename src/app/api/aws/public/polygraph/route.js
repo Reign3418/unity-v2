@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, getKingdomMetadata, parseScanDate } from '@/lib/awsDynamo';
 import { logEvent } from '@/lib/eventLogger';
 import { analyzeKingdomPolygraphAnomalies } from '@/lib/anomalyDetector';
+import { analyzeCombatCausality, analyzeT5Progress, buildRoKBattleWikiPromptContext } from '@/lib/rokBattleEngine';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -325,7 +326,10 @@ export async function GET(req) {
                     deadsDelta,
                     isNew,
                     isMigrant: isPassportMigrant,
-                    isLateStartOrEmergence
+                    isLateStartOrEmergence,
+                    techEnd: gov.techEnd || 0,
+                    buildEnd: gov.buildEnd || 0,
+                    townHall: gov.townHall || 25
                 });
             }
             if (gov.allianceStart && gov.alliance !== gov.allianceStart && gov.allianceStart !== 'None') {
@@ -426,6 +430,9 @@ export async function GET(req) {
         const effectiveFollowSignals = (followSignals && followSignals.length > 0) ? followSignals : (gravityCenters || []);
 
         const anomalies = analyzeKingdomPolygraphAnomalies(sortedRoster, serverAgeDays, era);
+        const combatCausality = analyzeCombatCausality(sortedRoster, allianceMap, serverAgeDays, windowDays);
+        const t5Intelligence = analyzeT5Progress(sortedRoster, serverAgeDays, windowDays);
+        const battleWikiPrompt = buildRoKBattleWikiPromptContext({ kd, serverAgeDays, era, causality: combatCausality, t5: t5Intelligence, windowDays });
 
         const allianceList = Object.values(allianceMap).filter(a => a.tag !== 'No Tag')
             .map(a => ({
@@ -450,6 +457,8 @@ ${lifetimePowerVelocity ? `- Lifetime Daily Pace: +${(lifetimePowerVelocity / 1e
 - Departed: ${departed.length}
 - Alliance Switchers: ${allianceSwitchers.length}
 - High-Velocity Spenders (>500k): ${whales.length}
+
+${battleWikiPrompt}
 
 ANOMALY & DECEPTION MATRIX (Polygraph Fraud Signals):
 - Kingdom Integrity Score: ${anomalies.integrityScore}/100 (${anomalies.integrityRating})
@@ -481,6 +490,7 @@ This kingdom is ${serverAgeDays !== null ? `${serverAgeDays} days old in ${era}`
 - Evaluate their stability and growth specifically through the lens of this age and game stage. A young kingdom (<150 days) naturally grows rapidly from building/tech development; an older kingdom (>300 days) grows primarily through troop training and KvK pass wars.
 - Consider whether their velocity (${velocityRatio ? `${velocityRatio}% of historical daily pace` : 'standard'}) represents a mobilization surge, healthy peacetime growth, or stagnation.
 - NASCENT KINGDOM MIGRATION RULE: If serverAgeDays < 90 (especially < 10 days), cross-kingdom passport migration is strictly LOCKED by RoK game mechanics. Any new accounts are late starters, beginner teleport jumpers (CH 7 cap), or unranked players who surged into top scan depth — NEVER passport migrants. Do NOT claim players migrated from other kingdoms.
+- CAUSAL COMBAT MATRIX & CIVIL WAR RULE: Use the verified incidents in the RoK Battle Wiki Causality findings above. If an Inter-Alliance Clash is identified, name the aggressor and victim alliances and specifically cite the zeroed victims and top strikers. If a Pre-Migration Power Trimming is detected, do NOT confuse it with a civil war victim.
 
 Assess stability, conflict patterns, and migration signals. Return ONLY raw JSON.
 CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${locale}'.
@@ -558,6 +568,8 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
             behavioralSigs,
             followSignals: effectiveFollowSignals,
             anomalies,
+            combatCausality,
+            t5Intelligence,
         };
 
         return NextResponse.json({ success: true, kingdom: kdResult, ai: aiBrief }, { status: 200 });
