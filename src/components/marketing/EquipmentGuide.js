@@ -6,6 +6,7 @@ import {
   ArrowRight, ChevronRight, Info, Check, Flame, Layers, 
   Award, TrendingUp, HelpCircle, RefreshCw, AlertTriangle
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // =========================================================================
 // DATA REPOSITORY: EQUIPMENT PROGRESSION BY CLASS & TIER
@@ -899,8 +900,19 @@ const CRAFTING_COMMANDMENTS = [
   }
 ];
 
+const SLOT_KEYS = {
+  "Weapon": "slot_weapon",
+  "Helm": "slot_helm",
+  "Chest": "slot_chest",
+  "Gloves": "slot_gloves",
+  "Pants": "slot_pants",
+  "Boots": "slot_boots",
+  "Accessory 1": "slot_acc1",
+  "Accessory 2": "slot_acc2"
+};
+
 // Helper to determine rarity styling
-function getRarityStyle(rarity) {
+function getRarityStyle(rarity, t) {
   switch (rarity) {
     case "green":
       return {
@@ -908,7 +920,7 @@ function getRarityStyle(rarity) {
         bg: "bg-emerald-950/20",
         badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
         name: "text-emerald-300",
-        label: "Advanced (Green)"
+        label: t ? t('rarity_green') : "Advanced (Green)"
       };
     case "blue":
       return {
@@ -916,7 +928,7 @@ function getRarityStyle(rarity) {
         bg: "bg-sky-950/20",
         badge: "bg-sky-500/10 text-sky-400 border-sky-500/30",
         name: "text-sky-300",
-        label: "Rare (Blue)"
+        label: t ? t('rarity_blue') : "Rare (Blue)"
       };
     case "purple":
       return {
@@ -924,7 +936,7 @@ function getRarityStyle(rarity) {
         bg: "bg-purple-950/20",
         badge: "bg-purple-500/10 text-purple-400 border-purple-500/30",
         name: "text-purple-300",
-        label: "Epic (Purple)"
+        label: t ? t('rarity_purple') : "Epic (Purple)"
       };
     case "gold":
     default:
@@ -933,12 +945,14 @@ function getRarityStyle(rarity) {
         bg: "bg-amber-950/20",
         badge: "bg-[#D4AF37]/15 text-[#D4AF37] border-[#D4AF37]/40",
         name: "text-amber-200",
-        label: "Legendary (Gold)"
+        label: t ? t('rarity_gold') : "Legendary (Gold)"
       };
   }
 }
 
 export default function EquipmentGuide() {
+  const t = useTranslations('EquipmentGuide');
+
   const [activeClass, setActiveClass] = useState("infantry");
   const [activeTier, setActiveTier] = useState("early");
   const [isCritTalented, setIsCritTalented] = useState(true);
@@ -987,15 +1001,15 @@ export default function EquipmentGuide() {
       <div className="text-center max-w-4xl mx-auto mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 mb-4 shadow-[0_0_20px_rgba(212,175,55,0.15)]">
           <Crown size={14} className="text-[#D4AF37]" />
-          Armory & Tactical Forge • 100% Free Public Guide
+          {t('armory_badge')}
         </div>
         
         <h2 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-400 uppercase tracking-widest font-cinzel">
-          Ideal Equipment & Commander Pairings
+          {t('title')}
         </h2>
         
         <p className="text-sm sm:text-base text-slate-400 mt-3 font-mono leading-relaxed max-w-2xl mx-auto">
-          From Day 1 budget sets (63d, 135d, 43.75d craft times) to Season of Conquest Best-in-Slot meta gear. Toggle Special Talents to see exact combat math and synergy pairings.
+          {t('subtitle')}
         </p>
       </div>
 
@@ -1007,7 +1021,7 @@ export default function EquipmentGuide() {
         {/* Class Selection Tabs */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[#1e2433] pb-6">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-bold">1. Select Unit Class:</span>
+            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-bold">{t('lbl_select_class')}</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
@@ -1021,7 +1035,7 @@ export default function EquipmentGuide() {
               }`}
             >
               <Shield size={16} className={activeClass === "infantry" ? "text-amber-400" : "text-slate-500"} />
-              <span>Infantry</span>
+              <span>{t('class_infantry')}</span>
             </button>
 
             {/* Cavalry */}
@@ -1034,7 +1048,7 @@ export default function EquipmentGuide() {
               }`}
             >
               <Zap size={16} className={activeClass === "cavalry" ? "text-cyan-400" : "text-slate-500"} />
-              <span>Cavalry</span>
+              <span>{t('class_cavalry')}</span>
             </button>
 
             {/* Archer */}
@@ -1047,7 +1061,7 @@ export default function EquipmentGuide() {
               }`}
             >
               <Target size={16} className={activeClass === "archer" ? "text-emerald-400" : "text-slate-500"} />
-              <span>Archer</span>
+              <span>{t('class_archer')}</span>
             </button>
           </div>
         </div>
@@ -1057,7 +1071,7 @@ export default function EquipmentGuide() {
           
           {/* Progression Tiers */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-bold mr-2 hidden sm:inline">2. Game Era:</span>
+            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-bold mr-2 hidden sm:inline">{t('lbl_select_era')}</span>
             
             <button
               onClick={() => setActiveTier("early")}
@@ -1068,8 +1082,8 @@ export default function EquipmentGuide() {
               }`}
             >
               <Clock size={13} />
-              <span>Early Game (KvK 1 Budget)</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
+              <span>{t('tier_early')}</span>
+              <span dir="ltr" className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
                 {currentClassData.tiers.early.craftDays}
               </span>
             </button>
@@ -1083,7 +1097,7 @@ export default function EquipmentGuide() {
               }`}
             >
               <Sparkles size={13} />
-              <span>Mid Game (KvK 2-3 Epic Core)</span>
+              <span>{t('tier_mid')}</span>
             </button>
 
             <button
@@ -1095,7 +1109,7 @@ export default function EquipmentGuide() {
               }`}
             >
               <Crown size={13} />
-              <span>Endgame (SoC Best-in-Slot)</span>
+              <span>{t('tier_endgame')}</span>
             </button>
           </div>
 
@@ -1104,9 +1118,9 @@ export default function EquipmentGuide() {
             <div className="flex flex-col text-left">
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
                 <Sparkles size={13} className="text-[#D4AF37]" />
-                Special Talent (+30% Crit)
+                {t('special_talent_title')}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">Refinement stat multiplier</span>
+              <span className="text-[10px] text-slate-400 font-mono">{t('special_talent_desc')}</span>
             </div>
 
             <button
@@ -1137,14 +1151,14 @@ export default function EquipmentGuide() {
           <div className="relative z-10 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${currentClassData.accentBg}`}>
-                {currentClassData.name} Focus
+                {t('class_focus', { class: t(`class_${activeClass}`) })}
               </span>
               <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-slate-300">
                 {currentTierData.title}
               </span>
               {currentTierData.craftDays && (
-                <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center gap-1">
-                  <Clock size={12} /> Craft Time: {currentTierData.craftDays}
+                <span dir="ltr" className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center gap-1">
+                  <Clock size={12} /> {t('craft_time', { days: currentTierData.craftDays })}
                 </span>
               )}
             </div>
@@ -1161,9 +1175,9 @@ export default function EquipmentGuide() {
           {currentTierData.setBonus && (
             <div className="mt-4 pt-4 border-t border-[#1e2433] flex items-center justify-between relative z-10">
               <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
-                <Layers size={14} /> Active Synergy: {currentTierData.setBonus.name}
+                <Layers size={14} /> {t('active_synergy', { synergy: currentTierData.setBonus.name })}
               </span>
-              <span className="text-[11px] font-mono text-emerald-400 font-bold">
+              <span dir="ltr" className="text-[11px] font-mono text-emerald-400 font-bold">
                 +[ {currentTierData.setBonus.atk ? `Atk ${currentTierData.setBonus.atk}% ` : ''}
                 {currentTierData.setBonus.def ? `Def ${currentTierData.setBonus.def}% ` : ''}
                 {currentTierData.setBonus.hp ? `HP ${currentTierData.setBonus.hp}% ` : ''}
@@ -1178,10 +1192,10 @@ export default function EquipmentGuide() {
           <div className="flex items-center justify-between border-b border-[#1e2433] pb-3 mb-4">
             <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <TrendingUp size={14} className="text-cyan-400" />
-              Total Stat Output
+              {t('stat_output_title')}
             </span>
             <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold ${isCritTalented ? "bg-cyan-500/20 text-cyan-400" : "bg-slate-800 text-slate-400"}`}>
-              {isCritTalented ? "Special Talent (+30%)" : "Base Flat Stats"}
+              {isCritTalented ? t('badge_crit') : t('badge_base')}
             </span>
           </div>
 
@@ -1189,37 +1203,37 @@ export default function EquipmentGuide() {
             
             {/* Health */}
             <div className="bg-[#121723] p-3 rounded-xl border border-rose-500/20">
-              <span className="text-[10px] uppercase font-bold text-rose-400 font-mono tracking-wider">Troop Health</span>
-              <div className="text-2xl font-black text-rose-300 font-mono mt-0.5">+{totalStats.hp}%</div>
-              <span className="text-[9px] text-slate-400">#1 Stat for EHP</span>
+              <span className="text-[10px] uppercase font-bold text-rose-400 font-mono tracking-wider">{t('stat_hp')}</span>
+              <div dir="ltr" className="text-2xl font-black text-rose-300 font-mono mt-0.5">+{totalStats.hp}%</div>
+              <span className="text-[9px] text-slate-400">{t('stat_hp_sub')}</span>
             </div>
 
             {/* Defense */}
             <div className="bg-[#121723] p-3 rounded-xl border border-sky-500/20">
-              <span className="text-[10px] uppercase font-bold text-sky-400 font-mono tracking-wider">Troop Defense</span>
-              <div className="text-2xl font-black text-sky-300 font-mono mt-0.5">+{totalStats.def}%</div>
-              <span className="text-[9px] text-slate-400">Cuts Dead/Wounded</span>
+              <span className="text-[10px] uppercase font-bold text-sky-400 font-mono tracking-wider">{t('stat_def')}</span>
+              <div dir="ltr" className="text-2xl font-black text-sky-300 font-mono mt-0.5">+{totalStats.def}%</div>
+              <span className="text-[9px] text-slate-400">{t('stat_def_sub')}</span>
             </div>
 
             {/* Attack */}
             <div className="bg-[#121723] p-3 rounded-xl border border-amber-500/20">
-              <span className="text-[10px] uppercase font-bold text-amber-400 font-mono tracking-wider">Troop Attack</span>
-              <div className="text-2xl font-black text-amber-300 font-mono mt-0.5">+{totalStats.atk}%</div>
-              <span className="text-[9px] text-slate-400">Lowest EHP Value</span>
+              <span className="text-[10px] uppercase font-bold text-amber-400 font-mono tracking-wider">{t('stat_atk')}</span>
+              <div dir="ltr" className="text-2xl font-black text-amber-300 font-mono mt-0.5">+{totalStats.atk}%</div>
+              <span className="text-[9px] text-slate-400">{t('stat_atk_sub')}</span>
             </div>
 
             {/* March Speed */}
             <div className="bg-[#121723] p-3 rounded-xl border border-emerald-500/20">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 font-mono tracking-wider">March Speed</span>
-              <div className="text-2xl font-black text-emerald-300 font-mono mt-0.5">+{totalStats.mspd}%</div>
-              <span className="text-[9px] text-slate-400">Ball Positioning</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-400 font-mono tracking-wider">{t('stat_mspd')}</span>
+              <div dir="ltr" className="text-2xl font-black text-emerald-300 font-mono mt-0.5">+{totalStats.mspd}%</div>
+              <span className="text-[9px] text-slate-400">{t('stat_mspd_sub')}</span>
             </div>
 
           </div>
 
           <div className="mt-4 pt-3 border-t border-[#1e2433] text-[10px] font-mono text-slate-400 flex items-center justify-between">
-            <span>Effective EHP Formula:</span>
-            <span className="text-cyan-400 font-bold">Health &gt; Defense &gt;&gt; Attack</span>
+            <span>{t('ehp_formula_title')}</span>
+            <span dir="ltr" className="text-cyan-400 font-bold">{t('ehp_formula_val')}</span>
           </div>
         </div>
 
@@ -1232,16 +1246,16 @@ export default function EquipmentGuide() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <Swords size={18} className="text-[#D4AF37]" />
-            Active 8-Slot Equipment Configuration
+            {t('armory_matrix_title')}
           </h3>
           <span className="text-xs font-mono text-slate-400">
-            Click any piece to inspect crafting notes
+            {t('armory_matrix_sub')}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {currentTierData.items.map((item, index) => {
-            const style = getRarityStyle(item.rarity);
+            const style = getRarityStyle(item.rarity, t);
             const activeStats = isCritTalented ? item.critStats : item.baseStats;
 
             return (
@@ -1256,10 +1270,10 @@ export default function EquipmentGuide() {
                   {/* Top Bar: Slot + Rarity Badge */}
                   <div className="flex items-center justify-between mb-2.5">
                     <span className="text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">
-                      {item.slot}
+                      {SLOT_KEYS[item.slot] ? t(SLOT_KEYS[item.slot]) : item.slot}
                     </span>
                     <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${style.badge}`}>
-                      {style.label.split(' ')[0]}
+                      {style.label}
                     </span>
                   </div>
 
@@ -1272,32 +1286,32 @@ export default function EquipmentGuide() {
                   <div className="space-y-1.5 mb-3 bg-[#10141f] p-2.5 rounded-xl border border-[#1b2232]">
                     {activeStats.hp > 0 && (
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-400">Inf/Cav/Arc Health:</span>
-                        <span className="text-rose-400 font-bold">+{activeStats.hp}%</span>
+                        <span className="text-slate-400">{t('lbl_stat_hp')}</span>
+                        <span dir="ltr" className="text-rose-400 font-bold">+{activeStats.hp}%</span>
                       </div>
                     )}
                     {activeStats.def > 0 && (
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-400">Defense:</span>
-                        <span className="text-sky-400 font-bold">+{activeStats.def}%</span>
+                        <span className="text-slate-400">{t('lbl_stat_def')}</span>
+                        <span dir="ltr" className="text-sky-400 font-bold">+{activeStats.def}%</span>
                       </div>
                     )}
                     {activeStats.atk > 0 && (
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-400">Attack:</span>
-                        <span className="text-amber-400 font-bold">+{activeStats.atk}%</span>
+                        <span className="text-slate-400">{t('lbl_stat_atk')}</span>
+                        <span dir="ltr" className="text-amber-400 font-bold">+{activeStats.atk}%</span>
                       </div>
                     )}
                     {activeStats.mspd > 0 && (
                       <div className="flex justify-between text-xs font-mono">
-                        <span className="text-slate-400">March Speed:</span>
-                        <span className="text-emerald-400 font-bold">+{activeStats.mspd}%</span>
+                        <span className="text-slate-400">{t('lbl_stat_mspd')}</span>
+                        <span dir="ltr" className="text-emerald-400 font-bold">+{activeStats.mspd}%</span>
                       </div>
                     )}
                     {activeStats.proc && (
                       <div className="flex justify-between text-[11px] font-mono">
                         <span className="text-slate-400">Proc:</span>
-                        <span className="text-purple-300 font-bold">{activeStats.proc}</span>
+                        <span dir="ltr" className="text-purple-300 font-bold">{activeStats.proc}</span>
                       </div>
                     )}
                   </div>
@@ -1321,13 +1335,13 @@ export default function EquipmentGuide() {
         <div className="text-center max-w-3xl mx-auto mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30 mb-2">
             <Swords size={13} />
-            Battlefield Synergy
+            {t('lbl_battlefield_synergy')}
           </div>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-white uppercase tracking-wider font-cinzel">
-            Recommended Commander Pairings For This Setup
+            {t('lbl_recommended_pairings')}
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 font-mono mt-1">
-            Equipment stats only shine when combined with proper active skill ordering and talent trees.
+            {t('lbl_pairings_sub')}
           </p>
         </div>
 
@@ -1346,7 +1360,7 @@ export default function EquipmentGuide() {
                     {pairing.role}
                   </span>
                   <span className="text-[11px] font-mono text-slate-400">
-                    Talent Tree: <strong className="text-white">{pairing.talents}</strong>
+                    {t('lbl_talent_tree')} <strong className="text-white">{pairing.talents}</strong>
                   </span>
                 </div>
 
@@ -1356,7 +1370,7 @@ export default function EquipmentGuide() {
                   {/* Primary Commander */}
                   <div className="bg-[#10141f] border border-[#1d2435] rounded-xl p-3 flex flex-col items-center text-center">
                     <span className="text-[9px] font-mono uppercase text-amber-400 font-bold tracking-widest mb-1">
-                      [ Primary • Sets Talents ]
+                      {t('cmd_primary_label')}
                     </span>
                     <h5 className="font-extrabold text-white text-sm sm:text-base">{pairing.primary}</h5>
                   </div>
@@ -1364,7 +1378,7 @@ export default function EquipmentGuide() {
                   {/* Secondary Commander */}
                   <div className="bg-[#10141f] border border-[#1d2435] rounded-xl p-3 flex flex-col items-center text-center">
                     <span className="text-[9px] font-mono uppercase text-sky-400 font-bold tracking-widest mb-1">
-                      [ Secondary • Adds Skills ]
+                      {t('cmd_secondary_label')}
                     </span>
                     <h5 className="font-extrabold text-white text-sm sm:text-base">{pairing.secondary}</h5>
                   </div>
@@ -1373,8 +1387,8 @@ export default function EquipmentGuide() {
 
                 {/* Skill Minimums */}
                 <div className="mb-4 bg-[#141a27] px-3.5 py-2 rounded-lg border border-[#222a3e] flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-400">Skill Target:</span>
-                  <span className="text-emerald-400 font-bold">{pairing.skillsMin}</span>
+                  <span className="text-slate-400">{t('lbl_skill_target')}</span>
+                  <span dir="ltr" className="text-emerald-400 font-bold">{pairing.skillsMin}</span>
                 </div>
 
                 {/* Combat Synergy Breakdown */}
@@ -1384,8 +1398,8 @@ export default function EquipmentGuide() {
               </div>
 
               <div className="mt-5 pt-3 border-t border-[#1e2433] flex items-center justify-between text-[11px] font-mono text-slate-500">
-                <span>Pairing Archetype</span>
-                <span className="text-cyan-400 font-bold">100% Validated in Ark & KvK</span>
+                <span>{t('lbl_pairing_archetype')}</span>
+                <span className="text-cyan-400 font-bold">{t('val_ark_kvk')}</span>
               </div>
             </div>
           ))}
@@ -1399,13 +1413,13 @@ export default function EquipmentGuide() {
         <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 mb-3">
             <Award size={14} className="text-amber-400" />
-            Mathematical Rules of Blacksmithing
+            {t('cmd_badge')}
           </div>
           <h3 className="text-2xl sm:text-4xl font-extrabold text-white uppercase tracking-wider font-cinzel">
-            The 5 Golden Crafting Commandments
+            {t('cmd_title')}
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 font-mono mt-2">
-            Avoid wasting thousands of materials. These five cardinal rules separate casual spenders from tournament-grade governors.
+            {t('cmd_subtitle')}
           </p>
         </div>
 
@@ -1421,12 +1435,12 @@ export default function EquipmentGuide() {
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono font-bold text-amber-400">#0{cmd.id}</span>
+                <span dir="ltr" className="text-xs font-mono font-bold text-amber-400">#0{cmd.id}</span>
                 {activeCommandment === cmd.id && (
                   <Check size={14} className="text-amber-400" />
                 )}
               </div>
-              <h5 className="text-xs font-bold tracking-wide line-clamp-2">{cmd.title}</h5>
+              <h5 className="text-xs font-bold tracking-wide line-clamp-2">{t(`cmd_${cmd.id}_title`)}</h5>
             </button>
           ))}
         </div>
@@ -1439,19 +1453,19 @@ export default function EquipmentGuide() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1e2433] pb-4 mb-4">
                 <div>
                   <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-widest">
-                    Rule #{selected.id} Mandate
+                    {t('rule_mandate', { id: selected.id })}
                   </span>
                   <h4 className="text-xl sm:text-2xl font-bold text-white mt-0.5">
-                    {selected.title}
+                    {t(`cmd_${selected.id}_title`)}
                   </h4>
                 </div>
                 <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold">
-                  {selected.rule}
+                  {t(`cmd_${selected.id}_rule`)}
                 </div>
               </div>
 
               <p className="text-xs sm:text-base text-slate-300 font-mono leading-relaxed">
-                {selected.explanation}
+                {t(`cmd_${selected.id}_exp`)}
               </p>
             </div>
           );

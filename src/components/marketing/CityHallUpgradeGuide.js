@@ -6,37 +6,40 @@ import {
   Crown, Sparkles, BookOpen, Clock, Building, Compass, ArrowRight,
   Flame, CheckSquare, Layers, Award, Target
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // Master data for City Hall 1 to 25
 const CH_DATA = [
-  { level: 1, wall: 0, reqBuilding: "None", reqLevel: 0, depNote: "Starting point", perks: "Initial Governor Settlement", tier: "early" },
-  { level: 2, wall: 1, reqBuilding: "Farm", reqLevel: 1, depNote: "Free tutorial", perks: "Unlock Basic Gathering", tier: "early" },
-  { level: 3, wall: 2, reqBuilding: "Lumber Mill", reqLevel: 2, depNote: "Wood Gathering", perks: "Scout Camp Level 3", tier: "early" },
-  { level: 4, wall: 3, reqBuilding: "Archery Range", reqLevel: 3, depNote: "Lumber Mill 3", perks: "Archers & 2nd March Queue", tier: "early" },
-  { level: 5, wall: 4, reqBuilding: "Hospital", reqLevel: 4, depNote: "Stone/Wood", perks: "Severely Wounded Capacity up", tier: "early" },
-  { level: 6, wall: 5, reqBuilding: "Tavern", reqLevel: 5, depNote: "Quarry 5", perks: "Iron Age unlocked, +1 Scout Queue", tier: "early" },
-  { level: 7, wall: 6, reqBuilding: "Quarry", reqLevel: 6, depNote: "Stone mine", perks: "Stone resource tiles available", tier: "early" },
-  { level: 8, wall: 7, reqBuilding: "Barracks", reqLevel: 7, depNote: "Farm 7", perks: "Troop training capacity boost", tier: "early" },
-  { level: 9, wall: 8, reqBuilding: "Alliance Center", reqLevel: 8, depNote: "Crucial for helps", perks: "More helps from alliance mates", tier: "early" },
-  { level: 10, wall: 9, reqBuilding: "Academy", reqLevel: 9, depNote: "Barracks 9", perks: "Dark Age unlocked; Military Tech speed", tier: "early" },
-  { level: 11, wall: 10, reqBuilding: "Hospital", reqLevel: 10, depNote: "Tavern 10", perks: "3rd March Queue Unlocked", tier: "mid" },
-  { level: 12, wall: 11, reqBuilding: "Storehouse", reqLevel: 11, depNote: "Quarry 11", perks: "Plunder protection upgraded", tier: "mid" },
-  { level: 13, wall: 12, reqBuilding: "Archery Range", reqLevel: 12, depNote: "Lumber Mill 12", perks: "Troop training scale", tier: "mid" },
-  { level: 14, wall: 13, reqBuilding: "Trading Post", reqLevel: 13, depNote: "Alliance Center 13", perks: "Lower alliance resource transport tax", tier: "mid" },
-  { level: 15, wall: 14, reqBuilding: "Scout Camp", reqLevel: 14, depNote: "Fog Clearing Speed", perks: "Kingdom fog clearing efficiency", tier: "mid" },
-  { level: 16, wall: 15, reqBuilding: "Academy", reqLevel: 15, depNote: "Feudal Age", perks: "Feudal Age; Tier 3 (T3) Troops Unlocked", tier: "mid" },
-  { level: 17, wall: 16, reqBuilding: "Hospital", reqLevel: 16, depNote: "Hospital Bed Expansion", perks: "4th March Queue Unlocked", tier: "mid" },
-  { level: 18, wall: 17, reqBuilding: "Barracks", reqLevel: 17, depNote: "Farm 17", perks: "Higher power rating & troop queue", tier: "t4" },
-  { level: 19, wall: 18, reqBuilding: "Archery Range", reqLevel: 18, depNote: "Lumber Mill 18", perks: "Preparation for Tier 4 research", tier: "t4" },
-  { level: 20, wall: 19, reqBuilding: "Siege Workshop", reqLevel: 19, depNote: "Gold Mine 19", perks: "T4 Battering Ram access", tier: "t4" },
-  { level: 21, wall: 20, reqBuilding: "Academy", reqLevel: 20, depNote: "Hospital 20, Watchtower 20", perks: "Tier 4 (T4) Troops Unlocked (Major Power Spike)", tier: "t4" },
-  { level: 22, wall: 21, reqBuilding: "Hospital", reqLevel: 21, depNote: "Tavern 21", perks: "5th March Queue Unlocked (Maximum Regular Marches)", tier: "endgame" },
-  { level: 23, wall: 22, reqBuilding: "Storehouse", reqLevel: 22, depNote: "Quarry 22", perks: "Higher resource protection & troop pool", tier: "endgame" },
-  { level: 24, wall: 23, reqBuilding: "Archery Range", reqLevel: 23, depNote: "Lumber Mill 23", perks: "Training speed +20%, Final bridge to CH 25", tier: "endgame" },
-  { level: 25, wall: 24, reqBuilding: "Trading Post", reqLevel: 24, depNote: "Watchtower 24, Gold Mine 24", perks: "Academy 25 Prereq, T5 Troops Gate, Max Base Stats", tier: "endgame" }
+  { level: 1, wall: 0, reqBuildingKey: "b_none", reqLevel: 0, depKey: "dep_1", perkKey: "perk_1", tier: "early" },
+  { level: 2, wall: 1, reqBuildingKey: "b_farm", reqLevel: 1, depKey: "dep_2", perkKey: "perk_2", tier: "early" },
+  { level: 3, wall: 2, reqBuildingKey: "b_lumber_mill", reqLevel: 2, depKey: "dep_3", perkKey: "perk_3", tier: "early" },
+  { level: 4, wall: 3, reqBuildingKey: "b_archery_range", reqLevel: 3, depKey: "dep_4", perkKey: "perk_4", tier: "early" },
+  { level: 5, wall: 4, reqBuildingKey: "b_hospital", reqLevel: 4, depKey: "dep_5", perkKey: "perk_5", tier: "early" },
+  { level: 6, wall: 5, reqBuildingKey: "b_tavern", reqLevel: 5, depKey: "dep_6", perkKey: "perk_6", tier: "early" },
+  { level: 7, wall: 6, reqBuildingKey: "b_quarry", reqLevel: 6, depKey: "dep_7", perkKey: "perk_7", tier: "early" },
+  { level: 8, wall: 7, reqBuildingKey: "b_barracks", reqLevel: 7, depKey: "dep_8", perkKey: "perk_8", tier: "early" },
+  { level: 9, wall: 8, reqBuildingKey: "b_alliance_center", reqLevel: 8, depKey: "dep_9", perkKey: "perk_9", tier: "early" },
+  { level: 10, wall: 9, reqBuildingKey: "b_academy", reqLevel: 9, depKey: "dep_10", perkKey: "perk_10", tier: "early" },
+  { level: 11, wall: 10, reqBuildingKey: "b_hospital", reqLevel: 10, depKey: "dep_11", perkKey: "perk_11", tier: "mid" },
+  { level: 12, wall: 11, reqBuildingKey: "b_storehouse", reqLevel: 11, depKey: "dep_12", perkKey: "perk_12", tier: "mid" },
+  { level: 13, wall: 12, reqBuildingKey: "b_archery_range", reqLevel: 12, depKey: "dep_13", perkKey: "perk_13", tier: "mid" },
+  { level: 14, wall: 13, reqBuildingKey: "b_trading_post", reqLevel: 13, depKey: "dep_14", perkKey: "perk_14", tier: "mid" },
+  { level: 15, wall: 14, reqBuildingKey: "b_scout_camp", reqLevel: 14, depKey: "dep_15", perkKey: "perk_15", tier: "mid" },
+  { level: 16, wall: 15, reqBuildingKey: "b_academy", reqLevel: 15, depKey: "dep_16", perkKey: "perk_16", tier: "mid" },
+  { level: 17, wall: 16, reqBuildingKey: "b_hospital", reqLevel: 16, depKey: "dep_17", perkKey: "perk_17", tier: "mid" },
+  { level: 18, wall: 17, reqBuildingKey: "b_barracks", reqLevel: 17, depKey: "dep_18", perkKey: "perk_18", tier: "t4" },
+  { level: 19, wall: 18, reqBuildingKey: "b_archery_range", reqLevel: 18, depKey: "dep_19", perkKey: "perk_19", tier: "t4" },
+  { level: 20, wall: 19, reqBuildingKey: "b_siege_workshop", reqLevel: 19, depKey: "dep_20", perkKey: "perk_20", tier: "t4" },
+  { level: 21, wall: 20, reqBuildingKey: "b_academy", reqLevel: 20, depKey: "dep_21", perkKey: "perk_21", tier: "t4" },
+  { level: 22, wall: 21, reqBuildingKey: "b_hospital", reqLevel: 21, depKey: "dep_22", perkKey: "perk_22", tier: "endgame" },
+  { level: 23, wall: 22, reqBuildingKey: "b_storehouse", reqLevel: 22, depKey: "dep_23", perkKey: "perk_23", tier: "endgame" },
+  { level: 24, wall: 23, reqBuildingKey: "b_archery_range", reqLevel: 23, depKey: "dep_24", perkKey: "perk_24", tier: "endgame" },
+  { level: 25, wall: 24, reqBuildingKey: "b_trading_post", reqLevel: 24, depKey: "dep_25", perkKey: "perk_25", tier: "endgame" }
 ];
 
 export default function CityHallUpgradeGuide() {
+  const t = useTranslations('CityHallGuide');
+
   const [startLevel, setStartLevel] = useState(16);
   const [targetLevel, setTargetLevel] = useState(22);
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,10 +57,10 @@ export default function CityHallUpgradeGuide() {
   };
 
   const handleTargetChange = (val) => {
-    const t = parseInt(val, 10);
-    setTargetLevel(t);
-    if (t <= startLevel) {
-      const nextStart = Math.max(1, t - 1);
+    const tVal = parseInt(val, 10);
+    setTargetLevel(tVal);
+    if (tVal <= startLevel) {
+      const nextStart = Math.max(1, tVal - 1);
       setStartLevel(nextStart);
     }
   };
@@ -83,57 +86,60 @@ export default function CityHallUpgradeGuide() {
   const bottlenecks = useMemo(() => {
     const list = [];
     plannerSteps.forEach(s => {
-      if (s.level === 21) list.push("Academy 21 & Hospital 20");
-      if (s.level === 22) list.push("Hospital 21");
-      if (s.level === 25) list.push("Trading Post 24 + Master's Blueprints");
+      if (s.level === 21) list.push(t('bn_step_21'));
+      if (s.level === 22) list.push(t('bn_step_22'));
+      if (s.level === 25) list.push(t('bn_step_25'));
     });
-    return list.length ? list.join(", ") : "Standard resource progression";
-  }, [plannerSteps]);
+    return list.length ? list.join(", ") : t('bn_none');
+  }, [plannerSteps, t]);
 
   // Goal Title & Description
   const goalInfo = useMemo(() => {
     if (targetLevel >= 25) {
       return {
-        title: "The Pinnacle: Tier 5 Gateway (CH 25)",
-        desc: "Reaching CH 25 unlocks max building buffs, 200,000 baseline troop capacity, and qualifies you for Academy 25 (T5 Troops). Note the 3 Master's Blueprints requirement."
+        title: t('goal_25_title'),
+        desc: t('goal_25_desc')
       };
     } else if (targetLevel >= 22) {
       return {
-        title: "Maximum March Utility (CH 22)",
-        desc: "Unlocking your 5th march queue multiplies gathering income and battlefield influence by 25%. Rush straight here before maxing other production buildings."
+        title: t('goal_22_title'),
+        desc: t('goal_22_desc')
       };
     } else if (targetLevel >= 21) {
       return {
-        title: "Battlefield Spike: Tier 4 Troops (CH 21)",
-        desc: "T4 units have drastically higher base stats and are mandatory for Ark of Osiris, Expedition, and Kingdom defense."
+        title: t('goal_21_title'),
+        desc: t('goal_21_desc')
       };
     } else if (targetLevel >= 16) {
       return {
-        title: "Feudal Era: Tier 3 Unlock (CH 16)",
-        desc: "Reaching CH 16 gets you into the Feudal Age, unlocking T3 units and standard alliance center help scales."
+        title: t('goal_16_title'),
+        desc: t('goal_16_desc')
       };
     }
     return {
-      title: "Kingdom Foundations",
-      desc: "Early economy rush. Keep your 2nd builder active 24/7 with VIP 6."
+      title: t('goal_early_title'),
+      desc: t('goal_early_desc')
     };
-  }, [targetLevel]);
+  }, [targetLevel, t]);
 
   // Filtered table rows
   const filteredRows = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return CH_DATA.filter(item => {
       if (item.level === 1) return false;
+      const reqBuildingName = t(item.reqBuildingKey);
+      const perkText = t(item.perkKey);
+      const depText = t(item.depKey);
       const matchesTerm = (
         item.level.toString().includes(term) ||
-        item.reqBuilding.toLowerCase().includes(term) ||
-        item.perks.toLowerCase().includes(term) ||
-        item.depNote.toLowerCase().includes(term)
+        reqBuildingName.toLowerCase().includes(term) ||
+        perkText.toLowerCase().includes(term) ||
+        depText.toLowerCase().includes(term)
       );
       const matchesEra = (eraFilter === 'all') || (item.tier === eraFilter);
       return matchesTerm && matchesEra;
     });
-  }, [searchTerm, eraFilter]);
+  }, [searchTerm, eraFilter, t]);
 
   return (
     <div id="city-hall-guide" className="w-full bg-[#070a0f] text-slate-200 border-t border-[#1e222b] relative overflow-hidden font-sans">
@@ -151,21 +157,21 @@ export default function CityHallUpgradeGuide() {
               <Castle className="w-6 h-6 text-black" />
             </div>
             <div>
-              <span className="font-cinzel text-xl font-bold tracking-wider gold-gradient-text">ROK MASTERY</span>
+              <span className="font-cinzel text-xl font-bold tracking-wider gold-gradient-text">{t('brand_title')}</span>
               <span className="hidden sm:inline-block text-[11px] uppercase tracking-widest text-slate-400 ml-3 border-l border-slate-700 pl-3 font-mono">
-                City Hall Strategy Guide
+                {t('brand_sub')}
               </span>
             </div>
           </div>
           
           <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <a href="#ch-milestones" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">Milestones</a>
+            <a href="#ch-milestones" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">{t('nav_milestones')}</a>
             <a href="#ch-planner" className="px-3 py-1.5 rounded-lg text-[#D4AF37] bg-[#D4AF37]/10 border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 transition flex items-center gap-1.5">
-              <Sparkles size={12} /> Interactive Planner
+              <Sparkles size={12} /> {t('nav_planner')}
             </a>
-            <a href="#ch-roadmap" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">Full Tree (1-25)</a>
-            <a href="#ch-bottlenecks" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">Bottlenecks</a>
-            <a href="#ch-optimization" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">Speedup Rules</a>
+            <a href="#ch-roadmap" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">{t('nav_roadmap')}</a>
+            <a href="#ch-bottlenecks" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">{t('nav_bottlenecks')}</a>
+            <a href="#ch-optimization" className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-[#D4AF37] hover:bg-white/5 transition">{t('nav_optimization')}</a>
           </nav>
         </div>
 
@@ -173,36 +179,36 @@ export default function CityHallUpgradeGuide() {
         <div id="ch-milestones" className="text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 mb-5">
             <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping"></span>
-            Public Free Tool • No Login Required
+            {t('pill_free_tool')}
           </div>
           <h2 className="font-cinzel text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 text-white">
-            CITY HALL <span className="gold-gradient-text">UPGRADE BLUEPRINT</span>
+            {t('hero_title_prefix')}<span className="gold-gradient-text">{t('hero_title_highlight')}</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10">
-            Rushing City Hall is the single most vital meta-strategy in Rise of Kingdoms. Unlock higher march queues, T4/T5 troop tiers, maximized Alliance Help efficiency, and territory dominance.
+            {t('hero_desc')}
           </p>
 
           {/* 4 Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
             <div className="bg-[#121826]/90 p-5 rounded-2xl border border-[#1E293B] hover:border-[#D4AF37]/40 transition group">
-              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">Troop Breakthrough</span>
-              <div className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">CH 16 / 21</div>
-              <p className="text-xs text-slate-400 mt-1">T3 Troops at CH16; decisive T4 power spike at CH21.</p>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">{t('card_troop_title')}</span>
+              <div dir="ltr" className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">{t('card_troop_val')}</div>
+              <p className="text-xs text-slate-400 mt-1">{t('card_troop_desc')}</p>
             </div>
             <div className="bg-[#121826]/90 p-5 rounded-2xl border border-[#1E293B] hover:border-[#D4AF37]/40 transition group">
-              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">March Capacity</span>
-              <div className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">5 Marches</div>
-              <p className="text-xs text-slate-400 mt-1">CH 22 permanently grants 5th march for gathering & combat.</p>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">{t('card_march_title')}</span>
+              <div dir="ltr" className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">{t('card_march_val')}</div>
+              <p className="text-xs text-slate-400 mt-1">{t('card_march_desc')}</p>
             </div>
             <div className="bg-[#121826]/90 p-5 rounded-2xl border border-[#1E293B] hover:border-[#D4AF37]/40 transition group">
-              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">Speedup Mastery</span>
-              <div className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">30+ Helps</div>
-              <p className="text-xs text-slate-400 mt-1">High Alliance Center cuts hundreds of hours per build.</p>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">{t('card_speedup_title')}</span>
+              <div dir="ltr" className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">{t('card_speedup_val')}</div>
+              <p className="text-xs text-slate-400 mt-1">{t('card_speedup_desc')}</p>
             </div>
             <div className="bg-[#121826]/90 p-5 rounded-2xl border border-[#1E293B] hover:border-[#D4AF37]/40 transition group">
-              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">Ultimate Peak</span>
-              <div className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">CH 25</div>
-              <p className="text-xs text-slate-400 mt-1">Unlocks Academy 25 requirement for Tier 5 military tech.</p>
+              <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider block">{t('card_peak_title')}</span>
+              <div dir="ltr" className="text-2xl font-bold font-cinzel text-[#D4AF37] mt-1 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">{t('card_peak_val')}</div>
+              <p className="text-xs text-slate-400 mt-1">{t('card_peak_desc')}</p>
             </div>
           </div>
         </div>
@@ -216,16 +222,16 @@ export default function CityHallUpgradeGuide() {
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
               <span className="text-xs font-bold uppercase text-[#D4AF37] tracking-widest flex items-center gap-1.5">
-                <Target size={14} /> Interactive Rush Tool
+                <Target size={14} /> {t('planner_pill')}
               </span>
-              <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">City Hall Rush Planner</h3>
-              <p className="text-sm text-slate-400">Select your current level and target goal to discover the direct prerequisite chain.</p>
+              <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">{t('planner_title')}</h3>
+              <p className="text-sm text-slate-400">{t('planner_desc')}</p>
             </div>
             
             {/* Planner Controls */}
             <div className="flex flex-wrap items-center gap-3 bg-[#121826] p-3 rounded-2xl border border-[#1E293B] shadow-xl">
               <div>
-                <label className="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Current CH</label>
+                <label className="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">{t('lbl_current_ch')}</label>
                 <select 
                   value={startLevel} 
                   onChange={(e) => handleStartChange(e.target.value)}
@@ -238,7 +244,7 @@ export default function CityHallUpgradeGuide() {
               </div>
               <div className="text-slate-500 font-bold self-end pb-1.5">➔</div>
               <div>
-                <label className="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Target CH</label>
+                <label className="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">{t('lbl_target_ch')}</label>
                 <select 
                   value={targetLevel} 
                   onChange={(e) => handleTargetChange(e.target.value)}
@@ -260,7 +266,7 @@ export default function CityHallUpgradeGuide() {
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
                   }`}
                 >
-                  Rush 21 (T4)
+                  {t('btn_rush_21')}
                 </button>
                 <button 
                   onClick={() => handleQuickRush(16, 22)}
@@ -270,7 +276,7 @@ export default function CityHallUpgradeGuide() {
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
                   }`}
                 >
-                  Rush 22 (5Q)
+                  {t('btn_rush_22')}
                 </button>
                 <button 
                   onClick={() => handleQuickRush(21, 25)}
@@ -280,7 +286,7 @@ export default function CityHallUpgradeGuide() {
                       : 'bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#D4AF37] border-[#D4AF37]/40'
                   }`}
                 >
-                  Rush 25 (T5)
+                  {t('btn_rush_25')}
                 </button>
               </div>
             </div>
@@ -294,8 +300,8 @@ export default function CityHallUpgradeGuide() {
               <div className="lg:w-1/3 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800 pb-6 lg:pb-0 lg:pr-8">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Path Progression</span>
-                    <span className="px-3 py-1 text-xs font-mono font-bold rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">{t('lbl_path_progression')}</span>
+                    <span dir="ltr" className="px-3 py-1 text-xs font-mono font-bold rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
                       CH {startLevel} ➔ CH {targetLevel}
                     </span>
                   </div>
@@ -311,8 +317,8 @@ export default function CityHallUpgradeGuide() {
                           <Layers size={20} />
                         </span>
                         <div>
-                          <div className="text-[11px] text-slate-400">Total CH Stages</div>
-                          <div className="text-lg font-bold text-white font-mono">{plannerSteps.length} Upgrades</div>
+                          <div className="text-[11px] text-slate-400">{t('lbl_total_stages')}</div>
+                          <div dir="ltr" className="text-lg font-bold text-white font-mono">{plannerSteps.length} {t('lbl_upgrades_suffix')}</div>
                         </div>
                       </div>
                     </div>
@@ -323,7 +329,7 @@ export default function CityHallUpgradeGuide() {
                           <AlertTriangle size={20} />
                         </span>
                         <div>
-                          <div className="text-[11px] text-slate-400">Bottlenecks En Route</div>
+                          <div className="text-[11px] text-slate-400">{t('lbl_bottlenecks_route')}</div>
                           <div className="text-xs font-semibold text-amber-300 mt-0.5">{bottlenecks}</div>
                         </div>
                       </div>
@@ -334,10 +340,10 @@ export default function CityHallUpgradeGuide() {
                 {/* Golden Rule Callout */}
                 <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-[#D4AF37]/10 to-transparent border-l-4 border-[#D4AF37] text-xs">
                   <span className="font-bold text-[#D4AF37] uppercase block mb-1 flex items-center gap-1.5">
-                    <Crown size={14} /> Rushing Rule of Thumb
+                    <Crown size={14} /> {t('rushing_rule_title')}
                   </span>
                   <span className="text-slate-300 leading-relaxed">
-                    Only upgrade the exact mandatory secondary building required for the next CH. Do NOT level every farm or secondary barrack until your CH milestone is locked.
+                    {t('rushing_rule_desc')}
                   </span>
                 </div>
               </div>
@@ -346,9 +352,9 @@ export default function CityHallUpgradeGuide() {
               <div className="lg:w-2/3 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <CheckSquare size={16} className="text-[#D4AF37]" /> Required Upgrade Steps (Wall + Prerequisite)
+                    <CheckSquare size={16} className="text-[#D4AF37]" /> {t('lbl_required_steps')}
                   </span>
-                  <span className="text-xs text-slate-500 font-mono">Check off as you build in-game</span>
+                  <span className="text-xs text-slate-500 font-mono">{t('lbl_check_off')}</span>
                 </div>
                 
                 <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-2 custom-scrollbar">
@@ -373,17 +379,17 @@ export default function CityHallUpgradeGuide() {
                           <div>
                             <div className="text-sm font-bold flex items-center gap-2">
                               <span className={isChecked ? 'line-through text-slate-500' : 'text-white'}>
-                                Upgrade to CH {step.level}
+                                {t('upgrade_to', { level: step.level })}
                               </span>
-                              <span className="text-[11px] font-normal text-slate-400">({step.perks})</span>
+                              <span className="text-[11px] font-normal text-slate-400">({t(step.perkKey)})</span>
                             </div>
                             <div className="text-xs text-slate-400 mt-0.5">
-                              Build: <span className="text-[#D4AF37] font-semibold">Wall Lv. {step.wall}</span> + <span className="text-[#D4AF37] font-semibold">{step.reqBuilding} Lv. {step.reqLevel}</span>
+                              {t('build_label', { wall: step.wall, building: t(step.reqBuildingKey), reqLevel: step.reqLevel })}
                             </div>
                           </div>
                         </div>
-                        <span className="text-xs font-mono px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
-                          Step {step.level}
+                        <span dir="ltr" className="text-xs font-mono px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
+                          {t('step_num', { level: step.level })}
                         </span>
                       </div>
                     );
@@ -402,10 +408,10 @@ export default function CityHallUpgradeGuide() {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
             <span className="text-xs font-bold uppercase text-[#D4AF37] tracking-widest flex items-center gap-1.5">
-              <BookOpen size={14} /> Master Database
+              <BookOpen size={14} /> {t('tree_pill')}
             </span>
-            <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">Complete City Hall Upgrade Tree (1 - 25)</h3>
-            <p className="text-sm text-slate-400">Detailed requirements: Every City Hall level requires the Wall at the previous level plus one critical secondary building.</p>
+            <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">{t('tree_title')}</h3>
+            <p className="text-sm text-slate-400">{t('tree_desc')}</p>
           </div>
 
           {/* Filter Controls */}
@@ -415,7 +421,7 @@ export default function CityHallUpgradeGuide() {
                 type="text" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search (e.g. T4, Academy, Hospital)..." 
+                placeholder={t('search_placeholder')} 
                 className="bg-[#121826] border border-slate-700 text-sm rounded-xl px-4 py-2 w-64 text-white focus:outline-none focus:border-[#D4AF37] placeholder:text-slate-500"
               />
               <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
@@ -426,11 +432,11 @@ export default function CityHallUpgradeGuide() {
               onChange={(e) => setEraFilter(e.target.value)}
               className="bg-[#121826] border border-slate-700 text-sm rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-[#D4AF37] cursor-pointer"
             >
-              <option value="all">All Levels</option>
-              <option value="early">CH 1 - 10 (Early Age)</option>
-              <option value="mid">CH 11 - 17 (T3 Push)</option>
-              <option value="t4">CH 18 - 21 (T4 Unlock)</option>
-              <option value="endgame">CH 22 - 25 (Endgame & T5)</option>
+              <option value="all">{t('era_all')}</option>
+              <option value="early">{t('era_early')}</option>
+              <option value="mid">{t('era_mid')}</option>
+              <option value="t4">{t('era_t4')}</option>
+              <option value="endgame">{t('era_endgame')}</option>
             </select>
           </div>
         </div>
@@ -441,18 +447,18 @@ export default function CityHallUpgradeGuide() {
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-slate-900/90 text-slate-400 text-xs uppercase tracking-wider border-b border-[#1E293B]">
-                  <th className="py-4 px-4 font-semibold text-center w-24">Target CH</th>
-                  <th className="py-4 px-4 font-semibold">Wall Level</th>
-                  <th className="py-4 px-4 font-semibold">Secondary Prerequisite</th>
-                  <th className="py-4 px-4 font-semibold">Previous Chain Dep.</th>
-                  <th className="py-4 px-6 font-semibold">Major Unlocks & Advantages</th>
+                  <th className="py-4 px-4 font-semibold text-center w-24">{t('th_target_ch')}</th>
+                  <th className="py-4 px-4 font-semibold">{t('th_wall_lvl')}</th>
+                  <th className="py-4 px-4 font-semibold">{t('th_secondary_prereq')}</th>
+                  <th className="py-4 px-4 font-semibold">{t('th_chain_dep')}</th>
+                  <th className="py-4 px-6 font-semibold">{t('th_major_unlocks')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-sans">
                 {filteredRows.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-slate-500">
-                      No building requirements found matching your search.
+                      {t('no_results')}
                     </td>
                   </tr>
                 ) : (
@@ -466,22 +472,22 @@ export default function CityHallUpgradeGuide() {
                     return (
                       <tr key={row.level} className="hover:bg-slate-800/40 transition">
                         <td className="py-3.5 px-4 text-center">
-                          <span className={`inline-block px-3 py-1 rounded-lg text-xs font-mono font-bold border ${badgeColor}`}>
+                          <span dir="ltr" className={`inline-block px-3 py-1 rounded-lg text-xs font-mono font-bold border ${badgeColor}`}>
                             CH {row.level}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-slate-300">
+                        <td dir="ltr" className="py-3.5 px-4 font-mono text-slate-300">
                           Wall Lv. {row.wall}
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-semibold text-white">{row.reqBuilding}</span>
-                          <span className="text-xs text-[#D4AF37] font-mono ml-1.5 font-bold">Lv. {row.reqLevel}</span>
+                          <span className="font-semibold text-white">{t(row.reqBuildingKey)}</span>
+                          <span dir="ltr" className="text-xs text-[#D4AF37] font-mono ml-1.5 font-bold">Lv. {row.reqLevel}</span>
                         </td>
                         <td className="py-3.5 px-4 text-xs text-slate-400">
-                          {row.depNote}
+                          {t(row.depKey)}
                         </td>
                         <td className="py-3.5 px-6">
-                          <div className="text-xs font-medium text-slate-200">{row.perks}</div>
+                          <div className="text-xs font-medium text-slate-200">{t(row.perkKey)}</div>
                         </td>
                       </tr>
                     );
@@ -499,10 +505,10 @@ export default function CityHallUpgradeGuide() {
           
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-xs font-bold uppercase text-rose-500 tracking-widest flex items-center justify-center gap-1.5">
-              <AlertTriangle size={14} /> Critical Alert
+              <AlertTriangle size={14} /> {t('walls_pill')}
             </span>
-            <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">The 3 Great Progression Walls</h3>
-            <p className="text-sm text-slate-400 mt-2">Many governors get stuck for months by ignoring special items required for prerequisite structures. Prepare early.</p>
+            <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">{t('walls_title')}</h3>
+            <p className="text-sm text-slate-400 mt-2">{t('walls_desc')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -511,25 +517,25 @@ export default function CityHallUpgradeGuide() {
             <div className="bg-[#121826] rounded-3xl p-6 border border-slate-800 hover:border-[#D4AF37]/50 transition flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Watchtower Gate</span>
-                  <span className="text-xs text-slate-400 font-mono">10 Gems each</span>
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">{t('wall_1_gate')}</span>
+                  <span dir="ltr" className="text-xs text-slate-400 font-mono">{t('wall_1_cost')}</span>
                 </div>
-                <h4 className="text-lg font-bold font-cinzel text-white mb-2">Arrows of Resistance</h4>
+                <h4 className="text-lg font-bold font-cinzel text-white mb-2">{t('wall_1_title')}</h4>
                 <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Watchtower upgrades require Arrows of Resistance. Since Wall level is locked behind Watchtower at later levels, you cannot reach CH 25 without a Level 24 Watchtower.
+                  {t('wall_1_desc')}
                 </p>
               </div>
               <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-2">
                 <div className="flex justify-between text-slate-300">
-                  <span>Main Acquisition:</span>
-                  <span className="font-semibold text-white">Lohar & Barbs</span>
+                  <span>{t('wall_1_acq_lbl')}</span>
+                  <span className="font-semibold text-white">{t('wall_1_acq_val')}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Gem Cost:</span>
-                  <span className="font-semibold text-rose-400">10 Gems / Arrow</span>
+                  <span>{t('wall_1_gem_lbl')}</span>
+                  <span dir="ltr" className="font-semibold text-rose-400">{t('wall_1_gem_val')}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-800 leading-relaxed">
-                  Tip: Chain barbarian rallies during Lohar events to stockpile bone necklaces for free arrows without spending precious gems.
+                  {t('wall_1_tip')}
                 </p>
               </div>
             </div>
@@ -538,25 +544,25 @@ export default function CityHallUpgradeGuide() {
             <div className="bg-[#121826] rounded-3xl p-6 border border-slate-800 hover:border-[#D4AF37]/50 transition flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">T5 Tech Prerequisite</span>
-                  <span className="text-xs text-slate-400 font-mono">10 Gems each</span>
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">{t('wall_2_gate')}</span>
+                  <span dir="ltr" className="text-xs text-slate-400 font-mono">{t('wall_2_cost')}</span>
                 </div>
-                <h4 className="text-lg font-bold font-cinzel text-white mb-2">Books of Covenant</h4>
+                <h4 className="text-lg font-bold font-cinzel text-white mb-2">{t('wall_2_title')}</h4>
                 <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Required to upgrade your Castle. While not directly needed for CH 25, Castle 25 is an absolute requirement for Academy 25 (the gateway to Tier 5 troops).
+                  {t('wall_2_desc')}
                 </p>
               </div>
               <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-2">
                 <div className="flex justify-between text-slate-300">
-                  <span>Main Acquisition:</span>
-                  <span className="font-semibold text-white">Barbarian Forts</span>
+                  <span>{t('wall_2_acq_lbl')}</span>
+                  <span className="font-semibold text-white">{t('wall_2_acq_val')}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Gem Cost:</span>
-                  <span className="font-semibold text-rose-400">10 Gems / Book</span>
+                  <span>{t('wall_2_gem_lbl')}</span>
+                  <span dir="ltr" className="font-semibold text-rose-400">{t('wall_2_gem_val')}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-800 leading-relaxed">
-                  Tip: Constantly launch and join level 4/5 Barbarian Forts with alliance members to passively stack books without bleeding gems.
+                  {t('wall_2_tip')}
                 </p>
               </div>
             </div>
@@ -565,25 +571,25 @@ export default function CityHallUpgradeGuide() {
             <div className="bg-[#121826] rounded-3xl p-6 border border-slate-800 hover:border-[#D4AF37]/50 transition flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">Building 25 Token</span>
-                  <span className="text-xs text-slate-400 font-mono">2,000 Gems each</span>
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">{t('wall_3_gate')}</span>
+                  <span dir="ltr" className="text-xs text-slate-400 font-mono">{t('wall_3_cost')}</span>
                 </div>
-                <h4 className="text-lg font-bold font-cinzel text-white mb-2">Master's Blueprints</h4>
+                <h4 className="text-lg font-bold font-cinzel text-white mb-2">{t('wall_3_title')}</h4>
                 <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  Every building upgrade from Level 24 to 25 demands exactly 1 Master's Blueprint. To get CH 25, you need at least 3 blueprints (Trading Post, Wall, CH).
+                  {t('wall_3_desc')}
                 </p>
               </div>
               <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-2">
                 <div className="flex justify-between text-slate-300">
-                  <span>Cost Per Item:</span>
-                  <span className="font-semibold text-[#D4AF37]">2,000 Gems Flat</span>
+                  <span>{t('wall_3_acq_lbl')}</span>
+                  <span dir="ltr" className="font-semibold text-[#D4AF37]">{t('wall_3_acq_val')}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Location:</span>
-                  <span className="font-semibold text-white">Shop / VIP Shop</span>
+                  <span>{t('wall_3_gem_lbl')}</span>
+                  <span className="font-semibold text-white">{t('wall_3_gem_val')}</span>
                 </div>
                 <p className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-800 leading-relaxed">
-                  Tip: Buy these during "More Than Gems" (MTG) event to earn golden commander heads while fulfilling required purchases.
+                  {t('wall_3_tip')}
                 </p>
               </div>
             </div>
@@ -597,36 +603,36 @@ export default function CityHallUpgradeGuide() {
         
         <div className="text-center max-w-3xl mx-auto mb-12">
           <span className="text-xs font-bold uppercase text-[#D4AF37] tracking-widest flex items-center justify-center gap-1.5">
-            <Zap size={14} /> Efficiency Multipliers
+            <Zap size={14} /> {t('opt_pill')}
           </span>
-          <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">Speedup & Buff Stacking Protocol</h3>
-          <p className="text-sm text-slate-400 mt-2">Never start a multi-day building upgrade "raw". Applying buffs in correct order saves weeks of precious building speedups.</p>
+          <h3 className="text-2xl sm:text-3xl font-cinzel font-bold text-white mt-1">{t('opt_title')}</h3>
+          <p className="text-sm text-slate-400 mt-2">{t('opt_desc')}</p>
         </div>
 
         {/* 4 Step Stacking Workflow */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12">
           <div className="bg-[#121826] p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center">
             <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/40 flex items-center justify-center font-bold text-[#D4AF37] mb-3">1</div>
-            <h5 className="font-bold text-white text-sm mb-1">Building Rune</h5>
-            <p className="text-xs text-slate-400">Defeat Holy Site guardians. Pick up a 10% to 15% Building Speed Rune immediately before initiating.</p>
+            <h5 className="font-bold text-white text-sm mb-1">{t('step_1_title')}</h5>
+            <p className="text-xs text-slate-400">{t('step_1_desc')}</p>
           </div>
 
           <div className="bg-[#121826] p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center">
             <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/40 flex items-center justify-center font-bold text-[#D4AF37] mb-3">2</div>
-            <h5 className="font-bold text-white text-sm mb-1">Kingdom Titles</h5>
-            <p className="text-xs text-slate-400">Request the <strong>Architect</strong> title (+10% Speed) or <strong>Duke</strong> (+5% speed) via Kingdom chat queue.</p>
+            <h5 className="font-bold text-white text-sm mb-1">{t('step_2_title')}</h5>
+            <p className="text-xs text-slate-400">{t('step_2_desc')}</p>
           </div>
 
           <div className="bg-[#121826] p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center">
             <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/40 flex items-center justify-center font-bold text-[#D4AF37] mb-3">3</div>
-            <h5 className="font-bold text-white text-sm mb-1">Alliance Buff</h5>
-            <p className="text-xs text-slate-400">Ensure your city is rooted on Alliance territory. Ask officers to activate the alliance building skill.</p>
+            <h5 className="font-bold text-white text-sm mb-1">{t('step_3_title')}</h5>
+            <p className="text-xs text-slate-400">{t('step_3_desc')}</p>
           </div>
 
           <div className="bg-[#121826] p-6 rounded-2xl border border-slate-800 text-center flex flex-col items-center">
             <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/40 flex items-center justify-center font-bold text-rose-400 mb-3">4</div>
-            <h5 className="font-bold text-white text-sm mb-1">Helps First!</h5>
-            <p className="text-xs text-slate-400"><strong>NEVER</strong> apply speedups immediately. Wait until Alliance helps hit 100% capacity before burning items.</p>
+            <h5 className="font-bold text-white text-sm mb-1">{t('step_4_title')}</h5>
+            <p className="text-xs text-slate-400">{t('step_4_desc')}</p>
           </div>
         </div>
 
@@ -640,27 +646,27 @@ export default function CityHallUpgradeGuide() {
                 <Crown size={24} />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white font-cinzel">VIP Milestones Priority</h4>
-                <span className="text-xs text-slate-400">Where free gems should go early game</span>
+                <h4 className="text-base font-bold text-white font-cinzel">{t('vip_priorities_title')}</h4>
+                <span className="text-xs text-slate-400">{t('vip_priorities_sub')}</span>
               </div>
             </div>
             
             <ul className="space-y-3.5 text-xs text-slate-300">
               <li className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
                 <span className="text-[#D4AF37] font-bold font-mono">VIP 6:</span>
-                <span><strong>Permanent 2nd Builder Queue.</strong> RUSH THIS WITH GEMS IMMEDIATELY. Never spend gems on tavern keys; rush VIP 6 on day 1 to double construction velocity forever.</span>
+                <span>{t('vip_6_desc')}</span>
               </li>
               <li className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
                 <span className="text-[#D4AF37] font-bold font-mono">VIP 10:</span>
-                <span>Unlocks <strong>1 Free Legendary Commander Sculpture per day</strong> + 15% Building Speed buff.</span>
+                <span>{t('vip_10_desc')}</span>
               </li>
               <li className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
                 <span className="text-[#D4AF37] font-bold font-mono">VIP 12:</span>
-                <span>Grants <strong>2 Free Legendary Commander Sculptures per day</strong>. The staple benchmark for competitive low-spenders.</span>
+                <span>{t('vip_12_desc')}</span>
               </li>
               <li className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
                 <span className="text-[#D4AF37] font-bold font-mono">VIP 14:</span>
-                <span>Grants <strong>3 Free Legendary Commander Sculptures per day</strong>.</span>
+                <span>{t('vip_14_desc')}</span>
               </li>
             </ul>
           </div>
@@ -673,30 +679,28 @@ export default function CityHallUpgradeGuide() {
                   <Clock size={24} />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-white font-cinzel">Alliance Center Math</h4>
-                  <span className="text-xs text-slate-400">The hidden speedup engine</span>
+                  <h4 className="text-base font-bold text-white font-cinzel">{t('alliance_math_title')}</h4>
+                  <span className="text-xs text-slate-400">{t('alliance_math_sub')}</span>
                 </div>
               </div>
               
               <p className="text-xs text-slate-300 leading-relaxed mb-4">
-                Each Alliance Help reduces remaining time by <span className="text-[#D4AF37] font-semibold">1% of total duration or 1 minute</span> (whichever is greater).
+                {t('alliance_math_desc')}
               </p>
 
               <div className="space-y-3 bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">At CH 20 (Alliance Center 20):</span>
-                  <span className="font-bold text-white">24 Helps = ~21.5% reduction</span>
+                  <span className="text-slate-400">{t('alliance_math_ch20')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">At CH 25 (Alliance Center 25):</span>
-                  <span className="font-bold text-[#D4AF37]">30 Helps = ~26.0% reduction</span>
+                  <span className="text-slate-400">{t('alliance_math_ch25')}</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20 text-xs text-slate-300">
-              <span className="font-bold text-blue-400 block mb-1">Example in Practice:</span>
-              On a 10-day (240 hour) upgrade at level 25, 30 helps will automatically erase over <strong>62 hours of build time</strong> for free. If you use speedups first, you lose all that value!
+              <span className="font-bold text-blue-400 block mb-1">{t('alliance_example_title')}</span>
+              {t('alliance_example_desc')}
             </div>
           </div>
 
