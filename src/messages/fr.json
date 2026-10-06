@@ -1322,5 +1322,13 @@
     "casual_trigger": "Deltas de puissance, combat et économie sous les seuils",
     "era_dynamic_label": "Dynamique d'Âge du Serveur",
     "era_dynamic_desc": "Les seuils d'archétypes s'adaptent dynamiquement au pic du royaume actif, assurant une évaluation équitable pour les jeunes royaumes (ex: Jour 2) et les royaumes SoC."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "Gouverneurs ayant gagné <highlight>500k+</highlight> de puissance sur la période choisie. <new>[NOUVELLE ENTRÉE]</new> = Démarrage tardif, sauteur débutant ou émergence dans le scan (la migration est verrouillée sur les serveurs naissants).",
+    "badge_new_entry": "NOUVELLE ENTRÉE",
+    "badge_new_entry_tooltip": "Nouveau dans le scan (Début tardif, sauteur novice ou percée dans le classement)",
+    "badge_migrant_tooltip": "Migrant par passeport inter-royaumes",
+    "archetype_roster_emergence": "Émergence Roster",
+    "archetype_emergence_megalodon": "Mégalodon Émergent"
   }
 }

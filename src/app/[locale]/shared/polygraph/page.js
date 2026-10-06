@@ -351,9 +351,16 @@ export default function SharedPolygraph() {
                                                       WHALE
                                                     </span>
                                                   )}
-                                                  {g.isMigrant && (
-                                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                                                      NEW
+                                                  {(g.isMigrant || g.isLateStartOrEmergence || g.isNew) && (
+                                                    <span 
+                                                      className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${
+                                                        (kdd.serverAgeDays !== null && kdd.serverAgeDays < 90) || g.isLateStartOrEmergence
+                                                          ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+                                                          : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                                      }`}
+                                                      title={(kdd.serverAgeDays !== null && kdd.serverAgeDays < 90) || g.isLateStartOrEmergence ? t("badge_new_entry_tooltip") : "Migrant"}
+                                                    >
+                                                      {(kdd.serverAgeDays !== null && kdd.serverAgeDays < 90) || g.isLateStartOrEmergence ? t("badge_new_entry") : "NEW"}
                                                     </span>
                                                   )}
                                                 </div>
@@ -613,7 +620,7 @@ export default function SharedPolygraph() {
               <div
                 className="text-xs text-gray-500"
                 dangerouslySetInnerHTML={{
-                  __html: t.raw("spenders_desc")
+                  __html: (kdd.serverAgeDays !== null && kdd.serverAgeDays < 90 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc"))
                     .replace("<highlight>", '<span className="text-amber-400 font-bold">')
                     .replace("</highlight>", "</span>")
                     .replace("<new>", '<span className="text-blue-400">')

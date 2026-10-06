@@ -1322,5 +1322,13 @@
     "casual_trigger": "战力、战斗与经济各项增量均低于判定阈值",
     "era_dynamic_label": "服务器开服天数动态",
     "era_dynamic_desc": "原型判定阈值根据当前王国的实际活动峰值动态缩放，确保新王国（如第2天）与征服赛季王国均能获得符合其实际发展上限的公正评估。"
+  },
+  "Tools": {
+    "spenders_desc_nascent": "在选定周期内实力增长 <highlight>50万+</highlight> 的执政官。<new>[新增收录]</new> = 较晚建号、新手跳板或冲入高位扫描深度（新王国严格锁定移民通行证）。",
+    "badge_new_entry": "新增收录",
+    "badge_new_entry_tooltip": "扫描新增（晚进服、新手迁城跳板或从未上榜跃升至榜单深度）",
+    "badge_migrant_tooltip": "跨王国移民通行证迁入",
+    "archetype_roster_emergence": "黑马跃升",
+    "archetype_emergence_megalodon": "跃升巨齿鲨大帝"
   }
 }

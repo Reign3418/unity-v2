@@ -1322,5 +1322,13 @@
     "casual_trigger": "Unterdurchschnittliche Deltas in Macht, Kampf und Wirtschaft",
     "era_dynamic_label": "Serveralter-Dynamik",
     "era_dynamic_desc": "Schwellenwerte für Archetypen skalieren dynamisch mit dem Spitzenwert des Königreichs, sodass junge Reiche (z. B. Tag 2) und SoC-Reiche realistisch bewertet werden."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "Statthalter mit einem Zuwachs von <highlight>500k+</highlight> Macht im gewählten Zeitraum. <new>[NEUER EINTRAG]</new> = Spätzünder, Anfänger-Jumper oder Aufsteiger in die Scan-Tiefe (Pass-Migration ist in neuen Königreichen gesperrt).",
+    "badge_new_entry": "NEUER EINTRAG",
+    "badge_new_entry_tooltip": "Neu im Scan (Später Start, Anfänger-Jumper oder Aufstieg aus geringer Tiefe)",
+    "badge_migrant_tooltip": "Königreich-übergreifender Pass-Migrant",
+    "archetype_roster_emergence": "Kader-Aufsteiger",
+    "archetype_emergence_megalodon": "Aufsteiger-Megalodon"
   }
 }

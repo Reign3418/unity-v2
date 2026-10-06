@@ -1322,5 +1322,13 @@
     "casual_trigger": "전투력, 전투, 경제 증감치 기준치 미달",
     "era_dynamic_label": "서버 연령 동적 반영",
     "era_dynamic_desc": "아키타입 기준선은 활성 왕국의 최고 기록을 바탕으로 유동적으로 스케일링되어, 신생 서버(2일차 등)부터 정복의 시즌 서버까지 각 발달 단계에 맞게 정확히 평가됩니다."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "선택한 기간 동안 <highlight>50만+</highlight> 전투력을 획득한 지도자입니다. <new>[새 진입]</new> = 늦은 시작, 초보자 점퍼, 또는 스캔 상위권 진입 (신규 서버에서는 여권 이민이 잠겨 있습니다).",
+    "badge_new_entry": "새 진입",
+    "badge_new_entry_tooltip": "스캔 신규 진입 (늦은 시작, 초보 점퍼 또는 초기 스캔 범위 밖에서 급상승)",
+    "badge_migrant_tooltip": "여권 왕국 간 이민자",
+    "archetype_roster_emergence": "로스터 급부상",
+    "archetype_emergence_megalodon": "급부상 메갈로돈"
   }
 }

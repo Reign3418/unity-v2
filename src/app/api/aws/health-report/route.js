@@ -325,14 +325,21 @@ export async function GET(req) {
         const allianceSwitchers = [];
 
         for (const gov of sortedRoster) {
-            const isMigrant = gov.powerDelta === 'NEW' || gov.status === 'New';
-            const pDelta = isMigrant ? gov.powerEnd : (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0);
-            const troopDelta = gov.troopDelta || 0;
-            const cmdDelta = gov.cmdDelta || 0;
-            const techDelta = gov.techDelta || 0;
-            const buildDelta = gov.buildDelta || 0;
-            const kpDelta = gov.kpDelta || 0;
-            const deadsDelta = gov.deadDelta || 0;
+            const isNew = gov.powerDelta === 'NEW' || gov.status === 'New';
+            // In nascent/young servers (<90d, especially <10d), cross-kingdom passport migration is locked by game design.
+            // A "NEW" account is an internal emergence, late starter, or beginner jumper, NOT a passport immigrant.
+            const isYoungServer = serverAgeDays !== null && serverAgeDays < 90;
+            const isPassportMigrant = isNew && !isYoungServer;
+            const isLateStartOrEmergence = isNew && isYoungServer;
+
+            const pDelta = isNew ? gov.powerEnd : (typeof gov.powerDelta === 'number' ? gov.powerDelta : 0);
+            // Fallback to end-state power components if delta is 0 for new arrivals/late starters
+            const troopDelta = (typeof gov.troopDelta === 'number' && gov.troopDelta !== 0) ? gov.troopDelta : (isNew ? (gov.troopEnd || 0) : 0);
+            const cmdDelta = (typeof gov.cmdDelta === 'number' && gov.cmdDelta !== 0) ? gov.cmdDelta : (isNew ? (gov.cmdEnd || 0) : 0);
+            const techDelta = (typeof gov.techDelta === 'number' && gov.techDelta !== 0) ? gov.techDelta : (isNew ? (gov.techEnd || 0) : 0);
+            const buildDelta = (typeof gov.buildDelta === 'number' && gov.buildDelta !== 0) ? gov.buildDelta : (isNew ? (gov.buildEnd || 0) : 0);
+            const kpDelta = (typeof gov.kpDelta === 'number' && gov.kpDelta !== 0) ? gov.kpDelta : (isNew ? (gov.kpEnd || 0) : 0);
+            const deadsDelta = (typeof gov.deadDelta === 'number' && gov.deadDelta !== 0) ? gov.deadDelta : (isNew ? (gov.deadEnd || 0) : 0);
 
             totalPowerGained += pDelta;
             totalTroopPowerGained += troopDelta;
@@ -356,7 +363,9 @@ export async function GET(req) {
                     buildDelta,
                     kpDelta,
                     deadsDelta,
-                    isMigrant 
+                    isNew,
+                    isMigrant: isPassportMigrant,
+                    isLateStartOrEmergence
                 });
             }
 
@@ -402,7 +411,9 @@ export async function GET(req) {
                 techDelta,
                 kpDelta,
                 deadsDelta,
-                isMigrant,
+                isMigrant: isPassportMigrant,
+                isNew,
+                isLateStartOrEmergence,
                 isWhale: pDelta >= whaleThreshold || (gov.powerEnd || 0) >= 65000000
             });
         }
@@ -538,6 +549,7 @@ CRITICAL KINGDOM AGE & ERA CONTEXT:
 This kingdom is ${serverAgeDays !== null ? `${serverAgeDays} days old in ${era}` : 'of uncalibrated age'}.
 - Evaluate their stability and growth specifically through the lens of this age and game stage. A young kingdom (<150 days) naturally grows rapidly from building/tech development; an older kingdom (>300 days) grows primarily through troop training and KvK pass wars.
 - Consider whether their velocity (${velocityRatio ? `${velocityRatio}% of historical daily pace` : 'standard'}) represents a mobilization surge, healthy peacetime growth, or stagnation.
+- NASCENT KINGDOM MIGRATION RULE: If serverAgeDays < 90 (especially < 10 days), cross-kingdom passport migration is strictly LOCKED by RoK game mechanics. Any new accounts are late starters, beginner teleport jumpers (CH 7 cap), or unranked players who surged into top scan depth — NEVER passport migrants. Do NOT claim players migrated from other kingdoms.
 
 Assess stability, conflict patterns, and migration signals. Return ONLY raw JSON matching this exact schema:
 

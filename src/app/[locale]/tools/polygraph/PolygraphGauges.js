@@ -911,6 +911,8 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
   const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState("");
 
+  const isYoungServer = serverAgeDays !== null && serverAgeDays !== undefined && serverAgeDays < 90;
+
   const filteredWhales = whales.filter(w => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -952,10 +954,20 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     const buildPct = Math.round((buildD / baseDenom) * 100);
     const cmdPct = Math.round((cmdD / baseDenom) * 100);
 
+    const isEmergentEntry = isYoungServer && (w.isLateStartOrEmergence || w.isNew || w.isMigrant);
+
     let archetypeKey = "archetype_multi";
     let badgeColor = "text-amber-400 bg-amber-500/10 border-amber-500/30";
 
-    if (w.isMigrant) {
+    if (isEmergentEntry) {
+      if (pDelta >= 3000000) {
+        archetypeKey = "archetype_emergence_megalodon";
+        badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
+      } else {
+        archetypeKey = "archetype_roster_emergence";
+        badgeColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
+      }
+    } else if (w.isMigrant) {
       archetypeKey = "archetype_jumper";
       badgeColor = "text-blue-400 bg-blue-500/10 border-blue-500/30";
     } else if (pDelta >= 3000000) {
@@ -975,7 +987,12 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     let rationale = "";
     const ageText = (serverAgeDays !== null && serverAgeDays !== undefined) ? `on Day ${serverAgeDays} of the kingdom` : "in this scan interval";
 
-    if (w.isMigrant) {
+    if (isEmergentEntry) {
+      const breakdownText = (sumD > 0)
+        ? ` Roster distribution: ${troopPct}% Troops (+${fmt(troopD)}), ${techPct}% Tech (+${fmt(techD)}), ${buildPct}% Buildings (+${fmt(buildD)}).`
+        : "";
+      rationale = `Cross-kingdom passport migration is hard-locked in a ${serverAgeDays !== null && serverAgeDays !== undefined ? serverAgeDays : "young"}d-old nascent kingdom (passport migration unlocks only post-KvK 1). This governor did not immigrate from outside; they either started late (after Scan 1), emerged into the top scan depth from initial unranked obscurity, or landed via beginner teleport (CH 7 cap) before speed-rushing +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) in ${days * 24}h into [${w.alliance || "No Tag"}].${breakdownText}`;
+    } else if (w.isMigrant) {
       rationale = `Migrated into the kingdom during this window with ${fmt(w.powerEnd || pDelta)} power. Injects immediate external combat readiness and high-tier march capacity into [${w.alliance || "No Tag"}].`;
     } else if (serverAgeDays !== null && serverAgeDays <= 7) {
       rationale = `Gaining +${fmt(pDelta)} power in ${days * 24} hours (+${fmt(hourlyPace)}/hr) ${ageText} is mathematically impossible on baseline AP and free quest rewards. Generating this velocity requires extensive gem acceleration, VIP rank pushes, and premium bundles.`;
@@ -1042,9 +1059,16 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
                     <span className="text-gray-500 font-mono text-xs w-6 text-right font-bold">{i + 1}</span>
                     <span className="text-cyan-400 font-mono text-xs font-bold shrink-0">[{w.alliance}]</span>
                     <span className="text-gray-200 text-sm font-bold truncate">{w.name}</span>
-                    {w.isMigrant && (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
-                        NEW
+                    {(w.isMigrant || w.isLateStartOrEmergence || w.isNew) && (
+                      <span 
+                        className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 ${
+                          isYoungServer 
+                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" 
+                            : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                        }`}
+                        title={isYoungServer ? t("badge_new_entry_tooltip") : t("badge_migrant_tooltip")}
+                      >
+                        {isYoungServer ? t("badge_new_entry") : "NEW"}
                       </span>
                     )}
                   </div>

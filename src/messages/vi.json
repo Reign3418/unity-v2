@@ -1322,5 +1322,13 @@
     "casual_trigger": "Chỉ số sức mạnh, chiến đấu và kinh tế dưới ngưỡng",
     "era_dynamic_label": "Động Lực Tuổi Máy Chủ",
     "era_dynamic_desc": "Ngưỡng hình mẫu thay đổi linh hoạt theo mức đỉnh của vương quốc đang chọn, đảm bảo vương quốc non trẻ (như Ngày 2) và vương quốc Mùa Chinh Phục đều được đánh giá chuẩn xác."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "Thống đốc đã tăng <highlight>500k+</highlight> sức mạnh trong khoảng thời gian đã chọn. <new>[MỤC MỚI]</new> = Bắt đầu muộn, jumper tân thủ hoặc bứt phá vào độ sâu quét (di cư hộ chiếu bị khóa ở các máy chủ mới).",
+    "badge_new_entry": "MỤC MỚI",
+    "badge_new_entry_tooltip": "Mới trong bản quét (Bắt đầu muộn, jumper mới hoặc bứt phá từ ngoài phạm vi)",
+    "badge_migrant_tooltip": "Người di cư hộ chiếu liên vương quốc",
+    "archetype_roster_emergence": "Đột Phá Danh Sách",
+    "archetype_emergence_megalodon": "Megalodon Đột Phá"
   }
 }

@@ -1322,5 +1322,13 @@
     "casual_trigger": "Deltas de poder, combate y economía por debajo del umbral",
     "era_dynamic_label": "Dinámica de Edad del Servidor",
     "era_dynamic_desc": "Los umbrales de arquetipos se ajustan dinámicamente según el pico del reino activo, garantizando que reinos jóvenes (p. ej. Día 2) y veteranos de SoC se evalúen con precisión."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "Gobernadores con un aumento de <highlight>500k+</highlight> de poder en el periodo seleccionado. <new>[NUEVA ENTRADA]</new> = Inicio tardío, saltador principiante o ascenso a la profundidad de escaneo (la migración está bloqueada en servidores nacientes).",
+    "badge_new_entry": "NUEVA ENTRADA",
+    "badge_new_entry_tooltip": "Nuevo en el escaneo (Inicio tardío, saltador novato o emergió del rango inferior)",
+    "badge_migrant_tooltip": "Migrante con pasaporte entre reinos",
+    "archetype_roster_emergence": "Aparición en Roster",
+    "archetype_emergence_megalodon": "Megalodón Emergente"
   }
 }

@@ -1322,5 +1322,13 @@
     "casual_trigger": "Deltas de poder, combate e economia abaixo do limite",
     "era_dynamic_label": "Dinâmica de Idade do Servidor",
     "era_dynamic_desc": "Os limites dos arquétipos ajustam-se dinamicamente ao pico do reino ativo, garantindo avaliações realistas tanto para reinos jovens (ex: Dia 2) quanto para o SoC."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "Governadores que ganharam <highlight>500k+</highlight> de poder no período selecionado. <new>[NOVA ENTRADA]</new> = Início tardio, jumper iniciante ou ascensão na profundidade da varredura (a imigração por passaporte está bloqueada em reinos recentes).",
+    "badge_new_entry": "NOVA ENTRADA",
+    "badge_new_entry_tooltip": "Novo na varredura (Início tardio, jumper iniciante ou ascensão do anonimato)",
+    "badge_migrant_tooltip": "Imigrante por passaporte entre reinos",
+    "archetype_roster_emergence": "Emergência no Roster",
+    "archetype_emergence_megalodon": "Megalodonte Emergente"
   }
 }

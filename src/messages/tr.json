@@ -1322,5 +1322,13 @@
     "casual_trigger": "Eşik altı güç, savaş ve ekonomi deltaları",
     "era_dynamic_label": "Sunucu Yaşı Dinamiği",
     "era_dynamic_desc": "Arketip eşikleri aktif krallığın tarama zirvesine göre dinamik olarak ölçeklenir; hem genç krallıkların (ör. 2. Gün) hem de Fetih Sezonu krallıklarının gerçekçi değerlendirilmesini sağlar."
+  },
+  "Tools": {
+    "spenders_desc_nascent": "Seçilen zaman aralığında <highlight>500k+</highlight> güç kazanan valiler. <new>[YENİ GİRİŞ]</new> = Geç başlayan, acemi sıçrayıcı veya tarama derinliğine yükselen (yeni krallıklarda pasaport göçü kilitlidir).",
+    "badge_new_entry": "YENİ GİRİŞ",
+    "badge_new_entry_tooltip": "Taramada yeni (Geç başlangıç, acemi sıçrayıcı veya tarama dışından yükselen)",
+    "badge_migrant_tooltip": "Krallıklar arası pasaport göçmeni",
+    "archetype_roster_emergence": "Kadroya Yükseliş",
+    "archetype_emergence_megalodon": "Yükselen Megalodon"
   }
 }
