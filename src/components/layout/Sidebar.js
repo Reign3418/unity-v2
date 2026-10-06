@@ -88,26 +88,26 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
           <SectionTitle>{t('sec_analysis')}</SectionTitle>
           <NavItem href="/analysis/kingdom" icon={BarChart2} label={t('nav_kingdom_analysis')} />
-          <NavItem href="/analysis/kvk" icon={Target} label="KvK Hub" isAi={true} />
+          <NavItem href="/analysis/kvk" icon={Target} label={t('nav_kvk_hub')} isAi={true} />
           <NavItem href="/analysis/global" icon={TrendingUp} label={t('nav_global_analysis')} isAi={true} />
           <NavItem href="/rankings/pre-kvk" icon={Trophy} label={t('nav_pre_kvk')} />
           <NavItem href="/results/dkp" icon={Medal} label={t('nav_dkp')} />
           <NavItem href="/tools/tracker" icon={Timer} label={t('nav_activity_tracker')} />
           <NavItem href="/tools/hunter" icon={Crosshair} label={t('nav_player_hunter')} />
-          <NavItem href="/tools/polygraph" icon={Activity} label="EK Polygraph" isAi={true} />
+          <NavItem href="/tools/polygraph" icon={Activity} label={t('nav_ek_polygraph')} isAi={true} />
 
           <SectionTitle>{t('sec_community')}</SectionTitle>
-          <NavItem href="/guide" icon={FileText} label="User Guide" />
+          <NavItem href="/guide" icon={FileText} label={t('nav_user_guide')} />
           <NavItem href="/changelog" icon={BookOpen} label={t('nav_changelog')} />
           <NavItem href="/community" icon={MessageSquare} label={t('nav_community_hub')} />
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />
-          <NavItem href="/tools/ghost-hunter" icon={Ghost} label="Ghost Hunter" isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
-          <NavItem href="/tools/recruitment-hitlist" icon={Target} label="Recruit Hitlist" hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
+          <NavItem href="/tools/ghost-hunter" icon={Ghost} label={t('nav_ghost_hunter')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
+          <NavItem href="/tools/recruitment-hitlist" icon={Target} label={t('nav_recruit_hitlist')} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/map-planner" icon={MapIcon} label={t('nav_map_planner')} isAi={true} />
           <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
-          <NavItem href="/translator" icon={MessageSquare} label="Chat Translator" isAi={true} />
+          <NavItem href="/translator" icon={MessageSquare} label={t('nav_chat_translator')} isAi={true} />
 
           {effectiveIsSuperAdmin && (
               <>
@@ -132,7 +132,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         <div className="flex flex-col gap-4">
           <a href="https://ko-fi.com/ReignsPlace" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/60 px-4 py-3 rounded-lg transition-all duration-300 font-bold text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(16,185,129,0.1)] group">
             <Coffee size={16} className="group-hover:-rotate-12 group-hover:scale-110 transition-transform duration-300" />
-            <span>Support on Ko-fi</span>
+            <span>{t('btn_support_kofi')}</span>
           </a>
 
           {session ? (

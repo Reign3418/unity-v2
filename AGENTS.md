@@ -30,11 +30,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## 3. Internationalization (i18n) Rules
 - Supported locales: `en`, `ar`, `de`, `es`, `fr`, `id`, `ko`, `pt`, `ru`, `tr`, `vi`, `zh`.
 - All JSON files are located in `src/messages/<locale>.json`.
+- **Mandatory On-Creation Rule:** Whenever any new UI component, modal, banner, page, button, or user-facing element is created or modified, internationalization is a **strict prerequisite**. No hardcoded English copy may be left in JSX. All user-facing strings must use `useTranslations('<Namespace>')` and be synchronized across all 12 platform locales with contextual accuracy.
+- **RTL Support:** For Arabic (`ar`), ensure proper bidirectional handling (`dir="rtl"`) on the page while enforcing `dir="ltr"` on numeric identifiers (IDs, PINs, stats, phone inputs) and brand logos (`UN.TY 2.0`) to prevent character flipping.
 - **Pre-commit Gate:** Whenever editing translation keys or UI text, run:
   ```bash
-  npm run check:i18n
+  node scripts/check-i18n.js
   ```
-  All 12 languages must maintain 100% key parity.
+  All 12 languages must maintain 100% key parity before committing.
 
 ## 4. Telemetry & Event Logging Architecture
 - All user and system engagement must be tracked asynchronously without blocking responses:
