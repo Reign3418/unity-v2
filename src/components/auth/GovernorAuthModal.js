@@ -349,6 +349,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                 </label>
                 <input
                   type="text"
+                  dir="ltr"
                   value={loginGovId}
                   onChange={(e) => setLoginGovId(e.target.value.replace(/\D/g, ""))}
                   placeholder={t('placeholder_governor_id')}
@@ -363,6 +364,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                 </label>
                 <input
                   type="password"
+                  dir="ltr"
                   value={loginPin}
                   onChange={(e) => setLoginPin(e.target.value)}
                   maxLength={8}
@@ -575,6 +577,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       </label>
                       <input
                         type="password"
+                        dir="ltr"
                         value={registerPin}
                         onChange={(e) => setRegisterPin(e.target.value.replace(/\D/g, ""))}
                         maxLength={8}
@@ -589,6 +592,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       </label>
                       <input
                         type="password"
+                        dir="ltr"
                         value={registerPinConfirm}
                         onChange={(e) => setRegisterPinConfirm(e.target.value.replace(/\D/g, ""))}
                         maxLength={8}
@@ -606,7 +610,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                       id="ageCheck"
                       checked={isAgeConfirmed}
                       onChange={(e) => setIsAgeConfirmed(e.target.checked)}
-                      className="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
+                      className="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-0 cursor-pointer shrink-0"
                     />
                     <label htmlFor="ageCheck" className="cursor-pointer leading-relaxed">
                       {t('age_checkbox')}
@@ -705,6 +709,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
                     </label>
                     <input
                       type="text"
+                      dir="ltr"
                       value={helpGovIdentifier}
                       onChange={(e) => setHelpGovIdentifier(e.target.value)}
                       placeholder="e.g. 12345678"

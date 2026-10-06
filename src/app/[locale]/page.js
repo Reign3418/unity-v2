@@ -407,13 +407,13 @@ export default function Home() {
           <div className="text-center max-w-3xl mx-auto px-6 mb-16">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 mb-4 shadow-[0_0_20px_rgba(244,63,94,0.15)]">
               <Lock size={13} className="text-rose-400" />
-              Classified Intelligence • For Leaders & Hardcore Governors
+              {tLanding('hero_pill')}
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 uppercase tracking-widest mb-4">
-              War Room Command Portal
+              {tLanding('war_room_title')}
             </h2>
             <p className="text-sm md:text-base text-gray-400 font-mono leading-relaxed">
-              Automate your KvK DKP tracking, run mathematical player diagnostics with Google Gemini Vision OCR, and deploy interactive territory maps. Log in with Discord or enter your Kingdom Passcode below.
+              {tLanding('war_room_desc')}
             </p>
           </div>
 
@@ -421,22 +421,31 @@ export default function Home() {
           <div className="flex flex-col xl:flex-row items-center justify-center gap-12 w-full max-w-[1400px] mx-auto px-6 perspective-1000">
 
              {/* LEFT HOLOGRAPHIC PANEL */}
-             <div className="hidden xl:flex flex-col opacity-60 hover:opacity-100 transition-duration-700 hover:-translate-y-2 backdrop-blur-md border border-cyan-500/20 bg-cyan-500/5 p-8 rounded-3xl transform rotate-y-[15deg] rotate-z-[2deg] shadow-[-20px_0_50px_rgba(6,182,212,0.1)] w-[320px]">
+             <div dir="ltr" className="hidden xl:flex flex-col opacity-60 hover:opacity-100 transition-duration-700 hover:-translate-y-2 backdrop-blur-md border border-cyan-500/20 bg-cyan-500/5 p-8 rounded-3xl transform rotate-y-[15deg] rotate-z-[2deg] shadow-[-20px_0_50px_rgba(6,182,212,0.1)] w-[320px]">
                  <h3 className="text-cyan-400 font-bold tracking-widest uppercase mb-8 flex items-center gap-3 border-b border-cyan-500/20 pb-4 text-sm shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                   <Cpu size={18} className="animate-pulse"/> Scanner Array
+                   <Cpu size={18} className="animate-pulse"/> {tLanding('scanner_array_title')}
                  </h3>
                  
                  <div className="space-y-6 flex-1 flex flex-col justify-center">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500"><span>Optical Engine</span><span className="text-cyan-400">Online</span></div>
+                      <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500">
+                        <span>{tLanding('optical_engine')}</span>
+                        <span className="text-cyan-400">{tLanding('optical_engine_status')}</span>
+                      </div>
                       <div className="h-1 bg-[#1e222b] rounded overflow-hidden"><div className="h-full w-full bg-cyan-500 opacity-50 relative overflow-hidden"><div className="absolute inset-0 bg-white/30 animate-[translateX_2s_infinite]"></div></div></div>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500"><span>DKP Extractor</span><span className="text-emerald-400">Synced</span></div>
+                      <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500">
+                        <span>{tLanding('dkp_extractor')}</span>
+                        <span className="text-emerald-400">{tLanding('dkp_extractor_status')}</span>
+                      </div>
                       <div className="h-1 bg-[#1e222b] rounded overflow-hidden"><div className="h-full w-full bg-emerald-500 opacity-50 relative overflow-hidden"><div className="absolute inset-0 bg-white/30 animate-[translateX_3s_infinite]"></div></div></div>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500"><span>AWS Core Node</span><span className="text-amber-400">Stable</span></div>
+                      <div className="flex justify-between text-[10px] uppercase tracking-widest font-mono text-gray-500">
+                        <span>{tLanding('aws_core_node')}</span>
+                        <span className="text-amber-400">{tLanding('aws_core_node_status')}</span>
+                      </div>
                       <div className="h-1 bg-[#1e222b] rounded overflow-hidden"><div className="h-full w-[90%] bg-amber-500 opacity-50"></div></div>
                     </div>
                  </div>
@@ -460,7 +469,7 @@ export default function Home() {
                 </div>
                 
                 <div className="text-center group mb-8 flex flex-col items-center">
-                  <div className="font-black text-4xl sm:text-5xl tracking-[0.25em] mb-3 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.3em] flex flex-col items-center gap-1 cursor-default">
+                  <div dir="ltr" className="font-black text-4xl sm:text-5xl tracking-[0.25em] mb-3 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.3em] flex flex-col items-center gap-1 cursor-default">
                      <div className="grid grid-cols-[1fr_auto_1fr] gap-x-1 w-[260px]">
                        <div className="text-right text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">UN</div>
                        <div className="text-center text-sky-400 font-bold -translate-y-[1px]">.</div>
@@ -500,7 +509,7 @@ export default function Home() {
                     className="group relative flex items-center justify-center gap-2.5 w-full py-3.5 bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-400/30 border border-amber-500/50 hover:border-amber-400 text-amber-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(245,158,11,0.15)] cursor-pointer"
                   >
                     <Sparkles size={15} className="text-amber-400 group-hover:scale-110 transition-transform" />
-                    <span>Self-Register via RoK Profile</span>
+                    <span>{tLanding('btn_self_register')}</span>
                     <span className="text-[9px] font-mono bg-amber-500 text-black px-1.5 py-0.5 rounded font-black">AI</span>
                   </button>
 
@@ -512,7 +521,7 @@ export default function Home() {
                     className="w-full py-2.5 bg-[#121622] hover:bg-[#181f30] border border-[#232b3e] hover:border-cyan-500/40 text-slate-300 hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Key size={14} className="text-cyan-400" />
-                    <span>Governor ID &amp; PIN Login</span>
+                    <span>{tLanding('btn_gov_login')}</span>
                   </button>
                 </div>
 
@@ -553,28 +562,28 @@ export default function Home() {
              </div>
 
              {/* RIGHT HOLOGRAPHIC PANEL */}
-             <div className="hidden xl:flex flex-col opacity-60 hover:opacity-100 transition-duration-700 hover:-translate-y-2 backdrop-blur-md border border-indigo-500/20 bg-indigo-500/5 p-8 rounded-3xl transform -rotate-y-[15deg] -rotate-z-[2deg] shadow-[20px_0_50px_rgba(99,102,241,0.1)] w-[320px]">
+             <div dir="ltr" className="hidden xl:flex flex-col opacity-60 hover:opacity-100 transition-duration-700 hover:-translate-y-2 backdrop-blur-md border border-indigo-500/20 bg-indigo-500/5 p-8 rounded-3xl transform -rotate-y-[15deg] -rotate-z-[2deg] shadow-[20px_0_50px_rgba(99,102,241,0.1)] w-[320px]">
                  <h3 className="text-indigo-400 font-bold tracking-widest uppercase mb-6 flex items-center gap-3 border-b border-indigo-500/20 pb-4 text-sm shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                   <Database size={18} className="animate-pulse"/> Network Access
+                   <Database size={18} className="animate-pulse"/> {tLanding('network_access_title')}
                  </h3>
                  
                  <div className="space-y-4 flex-1 flex flex-col justify-center">
                     <div className="border border-indigo-500/10 bg-[#0a0c10]/50 rounded p-3 text-[10px] font-mono text-indigo-300">
                        <div>&gt; _Discord Handshake ...</div>
-                       <div className="text-indigo-500">Authorized.</div>
+                       <div className="text-indigo-500">{tLanding('handshake_status')}</div>
                     </div>
                     <div className="border border-indigo-500/10 bg-[#0a0c10]/50 rounded p-3 text-[10px] font-mono text-indigo-300">
                        <div>&gt; _Fetch Guild Topology ...</div>
-                       <div className="text-emerald-500">3 Nodes Discovered.</div>
+                       <div className="text-emerald-500">{tLanding('nodes_discovered')}</div>
                     </div>
                     <div className="border border-indigo-500/10 bg-[#0a0c10]/50 rounded p-3 text-[10px] font-mono text-indigo-300">
                        <div>&gt; _Awaiting Auth Payload ...</div>
-                       <div className="text-indigo-500 animate-pulse">Standby.</div>
+                       <div className="text-indigo-500 animate-pulse">{tLanding('awaiting_payload')}</div>
                     </div>
                  </div>
 
                  <div className="mt-8 pt-4 border-t border-indigo-500/20 flex items-center justify-between opacity-50 text-[10px] font-mono text-indigo-400">
-                    <span>SECURE PIPELINE</span>
+                    <span>{tLanding('secure_pipeline')}</span>
                     <Terminal size={12} />
                  </div>
              </div>
