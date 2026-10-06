@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment } from "react";
 import { Activity, AlertTriangle, Shield, Users, Zap, ChevronUp, ChevronDown, ChevronRight, Search, CheckCircle2, Crown, UserPlus, UserMinus, ArrowUp, Link2, Check, Sparkles, Clock, Send, Swords } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
-import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, KvKClashModal } from "./PolygraphGauges";
+import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, KvKClashModal, SpendersAccordionList } from "./PolygraphGauges";
 
 function Tooltip({ text, children }) {
   if (!text) return children;
@@ -1058,19 +1058,13 @@ export default function Polygraph() {
           {tab === "spenders" && (
             <div className="p-6 space-y-4">
               <div className="text-xs text-gray-500" dangerouslySetInnerHTML={{ __html: t.raw("spenders_desc").replace("<highlight>", '<span className="text-amber-400 font-bold">').replace("</highlight>", "</span>").replace("<new>", '<span className="text-blue-400">').replace("</new>", "</span>") }} />
-              {kdd.whales?.length === 0 && <div className="text-gray-600 text-sm italic text-center py-8">{t("no_spenders")}</div>}
-              <div className="grid grid-cols-1 gap-1.5">
-                {kdd.whales?.map((w,i)=>(
-                  <div key={i} className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2">
-                    <span className="text-gray-600 font-mono text-xs w-4 text-right">{i+1}</span>
-                    <span className="text-cyan-400 text-xs font-bold">[{w.alliance}]</span>
-                    <span className="text-gray-200 text-sm font-medium flex-1">{w.name}</span>
-                    {w.isMigrant && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">NEW</span>}
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded ${mb(w.powerDelta)}`}>{mbt(w.powerDelta)}</span>
-                    <span className="text-gray-300 font-mono text-xs">+{fmt(w.powerDelta)}</span>
-                  </div>
-                ))}
-              </div>
+              <SpendersAccordionList
+                whales={kdd.whales || []}
+                serverAgeDays={kdd.serverAgeDays}
+                era={kdd.era || kdd.kingdomProgress}
+                windowDays={kdd.velocityMetrics?.windowDays || 1}
+                t={t}
+              />
             </div>
           )}
 

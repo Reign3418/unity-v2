@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Zap, AlertTriangle, Scale, Swords, Check, Copy, ExternalLink, X, Shield, Crown, Sparkles, Activity } from "lucide-react";
+import { Zap, AlertTriangle, Scale, Swords, Check, Copy, ExternalLink, X, Shield, Crown, Sparkles, Activity, ChevronDown, ChevronUp, Search, TrendingUp, Cpu, UserPlus, Flame } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 // Formatter helper
@@ -903,3 +903,285 @@ export function KvKClashModal({ isOpen, onClose, primaryKd, initialOpponentKd, s
     </div>
   );
 }
+
+/**
+ * 7. Spenders Accordion List with J.A.R.V.I.S. Spending Diagnostics
+ */
+export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowDays = 1, t }) {
+  const [expandedId, setExpandedId] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const filteredWhales = whales.filter(w => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (w.name || "").toLowerCase().includes(q) || (w.alliance || "").toLowerCase().includes(q);
+  });
+
+  const mb = (d) => {
+    const m = Math.floor(d / 1e6);
+    return m >= 3
+      ? "bg-rose-600 text-white shadow-[0_0_10px_rgba(225,29,72,0.4)]"
+      : m >= 2
+      ? "bg-fuchsia-600 text-white shadow-[0_0_10px_rgba(192,38,211,0.3)]"
+      : m >= 1
+      ? "bg-amber-500 text-black font-black"
+      : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+  };
+
+  const mbt = (d) => {
+    const m = Math.floor(d / 1e6);
+    return m >= 1 ? `${m}M+` : "500k+";
+  };
+
+  const getProfile = (w) => {
+    const pDelta = w.powerDelta || 0;
+    const days = Math.max(1, windowDays || 1);
+    const hourlyPace = Math.round(pDelta / (days * 24));
+
+    const troopD = Math.max(0, w.troopDelta || 0);
+    const techD = Math.max(0, w.techDelta || 0);
+    const buildD = Math.max(0, w.buildDelta || 0);
+    const cmdD = Math.max(0, w.cmdDelta || 0);
+    const kpD = Math.max(0, w.kpDelta || 0);
+    const deadD = Math.max(0, w.deadsDelta || 0);
+
+    const sumD = troopD + techD + buildD + cmdD;
+    const baseDenom = sumD > 0 ? sumD : Math.max(1, pDelta);
+    const troopPct = Math.round((troopD / baseDenom) * 100);
+    const techPct = Math.round((techD / baseDenom) * 100);
+    const buildPct = Math.round((buildD / baseDenom) * 100);
+    const cmdPct = Math.round((cmdD / baseDenom) * 100);
+
+    let archetypeKey = "archetype_multi";
+    let badgeColor = "text-amber-400 bg-amber-500/10 border-amber-500/30";
+
+    if (w.isMigrant) {
+      archetypeKey = "archetype_jumper";
+      badgeColor = "text-blue-400 bg-blue-500/10 border-blue-500/30";
+    } else if (pDelta >= 3000000) {
+      archetypeKey = "archetype_megalodon";
+      badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
+    } else if (troopPct >= 45) {
+      archetypeKey = "archetype_troop_rusher";
+      badgeColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
+    } else if (techPct >= 40) {
+      archetypeKey = "archetype_tech_rusher";
+      badgeColor = "text-violet-400 bg-violet-500/10 border-violet-500/30";
+    } else if (buildPct >= 40) {
+      archetypeKey = "archetype_ch_rusher";
+      badgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+    }
+
+    let rationale = "";
+    const ageText = (serverAgeDays !== null && serverAgeDays !== undefined) ? `on Day ${serverAgeDays} of the kingdom` : "in this scan interval";
+
+    if (w.isMigrant) {
+      rationale = `Migrated into the kingdom during this window with ${fmt(w.powerEnd || pDelta)} power. Injects immediate external combat readiness and high-tier march capacity into [${w.alliance || "No Tag"}].`;
+    } else if (serverAgeDays !== null && serverAgeDays <= 7) {
+      rationale = `Gaining +${fmt(pDelta)} power in ${days * 24} hours (+${fmt(hourlyPace)}/hr) ${ageText} is mathematically impossible on baseline AP and free quest rewards. Generating this velocity requires extensive gem acceleration, VIP rank pushes, and premium bundles.`;
+    } else if (troopPct >= 45) {
+      rationale = `Surged +${fmt(troopD)} in troop power alone (${troopPct}% of delta), advancing at +${fmt(hourlyPace)} power/hr. Training this many battalions in ${days * 24}h requires dumping heavy reserves of training speedups and continuous gem-boosted queues.`;
+    } else if (techPct >= 40) {
+      rationale = `Invested +${fmt(techD)} power into Military & Economic Technology (${techPct}% of delta). High-tier research carries multi-week timers; instant completion confirms significant universal speedup and resource reserves.`;
+    } else if (buildPct >= 40) {
+      rationale = `Fast-tracked City Hall & prerequisite defensive structures for +${fmt(buildD)} building power (${buildPct}% of delta). Bypassed standard real-time construction bottlenecks using targeted construction speedups.`;
+    } else {
+      rationale = `Sustained aggressive multi-vector acceleration (+${fmt(hourlyPace)} power/hr pace) distributed across troops (+${fmt(troopD)}), tech (+${fmt(techD)}), and buildings (+${fmt(buildD)}). Growth velocity exceeds standard peacetime pace by more than 5x.`;
+    }
+
+    return {
+      hourlyPace,
+      troopD, techD, buildD, cmdD, kpD, deadD,
+      troopPct, techPct, buildPct, cmdPct,
+      archetypeKey, badgeColor,
+      rationale
+    };
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search Bar & Stats */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0d1017] border border-[#1e222b] rounded-xl p-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("search_spenders_placeholder")}
+            className="w-full bg-[#12151e] border border-[#232834] rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-amber-500/50"
+          />
+        </div>
+        <div className="text-[11px] font-mono text-gray-400">
+          {t("showing_spenders_count", { filtered: filteredWhales.length, total: whales.length })}
+        </div>
+      </div>
+
+      {whales.length === 0 ? (
+        <div className="text-gray-600 text-sm italic text-center py-8">{t("no_spenders")}</div>
+      ) : filteredWhales.length === 0 ? (
+        <div className="text-gray-600 text-xs italic text-center py-8">No spenders match &quot;{search}&quot;</div>
+      ) : (
+        <div className="space-y-2">
+          {filteredWhales.map((w, i) => {
+            const isExpanded = expandedId === (w.id || i);
+            const prof = getProfile(w);
+
+            return (
+              <div
+                key={w.id || i}
+                className="bg-[#0a0c0f] border border-[#1e222b] hover:border-[#2d323e] rounded-xl overflow-hidden transition-all duration-200 shadow-md"
+              >
+                {/* Clickable Header Row */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isExpanded ? null : (w.id || i))}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#11141c] transition-colors"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-gray-500 font-mono text-xs w-6 text-right font-bold">{i + 1}</span>
+                    <span className="text-cyan-400 font-mono text-xs font-bold shrink-0">[{w.alliance}]</span>
+                    <span className="text-gray-200 text-sm font-bold truncate">{w.name}</span>
+                    {w.isMigrant && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                        NEW
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded ${mb(w.powerDelta)}`}>
+                      {mbt(w.powerDelta)}
+                    </span>
+                    <span className="text-emerald-400 font-mono font-bold text-xs sm:text-sm">
+                      +{fmt(w.powerDelta)}
+                    </span>
+                    <div className={`text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded Dropdown Drawer: Why AI Thinks It's a Spender */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-2 border-t border-[#1e222b] bg-[#0d1017] space-y-4">
+                    {/* Top Diagnosis Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${prof.badgeColor}`}>
+                          {t(prof.archetypeKey)}
+                        </span>
+                        <span className="text-[11px] font-mono text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 flex items-center gap-1">
+                          <Zap size={11} className="text-amber-400" />
+                          {t("spender_pace_hourly", { pace: fmt(prof.hourlyPace) })}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono text-gray-400">
+                        Total Power: <span className="font-bold text-white">{fmt(w.powerEnd || w.powerDelta)}</span>
+                      </div>
+                    </div>
+
+                    {/* AI Assessment Callout Box */}
+                    <div className="bg-[#121520] border border-amber-500/20 rounded-xl p-4 space-y-1.5 shadow-inner">
+                      <div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
+                        <Sparkles size={12} className="text-amber-400" />
+                        {t("spender_ai_assessment")}
+                      </div>
+                      <p className="text-xs text-gray-300 leading-relaxed font-sans">
+                        {prof.rationale}
+                      </p>
+                    </div>
+
+                    {/* 4-Pillar Growth Matrix */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1">
+                        <Activity size={12} className="text-cyan-400" />
+                        {t("spender_growth_vectors")}
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {/* Troop Growth */}
+                        <div className="bg-[#090b10] border border-[#1e222b] rounded-lg p-2.5">
+                          <div className="text-[10px] text-gray-500 font-mono flex items-center justify-between mb-1">
+                            <span>{t("col_troops_delta")}</span>
+                            <span className="text-cyan-400 font-bold">{prof.troopPct}%</span>
+                          </div>
+                          <div className="text-sm font-bold font-mono text-cyan-300">
+                            {prof.troopD > 0 ? `+${fmt(prof.troopD)}` : "-"}
+                          </div>
+                        </div>
+
+                        {/* Tech Growth */}
+                        <div className="bg-[#090b10] border border-[#1e222b] rounded-lg p-2.5">
+                          <div className="text-[10px] text-gray-500 font-mono flex items-center justify-between mb-1">
+                            <span>{t("col_tech_delta")}</span>
+                            <span className="text-violet-400 font-bold">{prof.techPct}%</span>
+                          </div>
+                          <div className="text-sm font-bold font-mono text-violet-300">
+                            {prof.techD > 0 ? `+${fmt(prof.techD)}` : "-"}
+                          </div>
+                        </div>
+
+                        {/* Building Growth */}
+                        <div className="bg-[#090b10] border border-[#1e222b] rounded-lg p-2.5">
+                          <div className="text-[10px] text-gray-500 font-mono flex items-center justify-between mb-1">
+                            <span>{t("col_build_delta")}</span>
+                            <span className="text-emerald-400 font-bold">{prof.buildPct}%</span>
+                          </div>
+                          <div className="text-sm font-bold font-mono text-emerald-300">
+                            {prof.buildD > 0 ? `+${fmt(prof.buildD)}` : "-"}
+                          </div>
+                        </div>
+
+                        {/* Commander Growth */}
+                        <div className="bg-[#090b10] border border-[#1e222b] rounded-lg p-2.5">
+                          <div className="text-[10px] text-gray-500 font-mono flex items-center justify-between mb-1">
+                            <span>{t("col_cmd_delta")}</span>
+                            <span className="text-amber-400 font-bold">{prof.cmdPct}%</span>
+                          </div>
+                          <div className="text-sm font-bold font-mono text-amber-300">
+                            {prof.cmdD > 0 ? `+${fmt(prof.cmdD)}` : "-"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Combat & Field Footprint */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1b202c] text-xs font-mono">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <Swords size={12} className="text-orange-400" />
+                          <span className="text-gray-400">KP:</span>
+                          <span className={`font-bold ${prof.kpD > 0 ? "text-orange-400" : "text-gray-500"}`}>
+                            {prof.kpD > 0 ? `+${fmt(prof.kpD)}` : "0"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-rose-400 font-bold">☠</span>
+                          <span className="text-gray-400">Deads:</span>
+                          <span className={`font-bold ${prof.deadD > 0 ? "text-rose-400" : "text-gray-500"}`}>
+                            {prof.deadD > 0 ? `+${fmt(prof.deadD)}` : "0"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${
+                        prof.kpD > 5000 
+                          ? "bg-rose-500/10 text-rose-300 border-rose-500/30" 
+                          : "bg-[#141722] text-gray-400 border-[#232837]"
+                      }`}>
+                        {prof.kpD > 5000 ? t("posture_frontline") : t("posture_peacetime")}
+                      </span>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -301,7 +301,23 @@ export async function GET(req) {
             totalPowerGained += pDelta; totalTroopPowerGained += troopDelta; totalCmdPowerGained += cmdDelta;
             totalTechPowerGained += techDelta; totalBuildPowerGained += buildDelta;
             totalKPGained += kpDelta; totalDeadsGained += deadsDelta;
-            if (pDelta >= whaleThreshold) whales.push({ id: gov.id, name: gov.name, alliance: gov.alliance, powerDelta: pDelta, isMigrant });
+            if (pDelta >= whaleThreshold) {
+                whales.push({ 
+                    id: gov.id, 
+                    name: gov.name, 
+                    alliance: gov.alliance, 
+                    powerDelta: pDelta, 
+                    powerStart: gov.powerStart || 0,
+                    powerEnd: gov.powerEnd || 0,
+                    troopDelta,
+                    cmdDelta,
+                    techDelta,
+                    buildDelta,
+                    kpDelta,
+                    deadsDelta,
+                    isMigrant 
+                });
+            }
             if (gov.allianceStart && gov.alliance !== gov.allianceStart && gov.allianceStart !== 'None') {
                 allianceSwitchers.push({ id: gov.id, name: gov.name, from: gov.allianceStart, to: gov.alliance, power: gov.powerEnd });
             }
@@ -524,7 +540,7 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
             metrics: { totalPowerGained, totalTroopPowerGained, totalCmdPowerGained, totalTechPowerGained, totalBuildPowerGained, totalKPGained, totalDeadsGained, whalesCount: whales.length, switchersCount: allianceSwitchers.length },
             alliances: allianceList,
             switchers: allianceSwitchers.slice(0, 20),
-            whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 20),
+            whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 50),
             migration: { newArrivals, departed },
             behavioralSigs,
             followSignals: effectiveFollowSignals,

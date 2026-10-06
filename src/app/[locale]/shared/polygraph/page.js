@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { Activity, AlertTriangle, CheckCircle2, Crown, UserPlus, UserMinus, Zap, Clock, Send, Scale, ChevronRight, ChevronDown, Users, Search } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal } from '@/app/[locale]/tools/polygraph/PolygraphGauges';
+import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, SuspectsModal, MailDispatchModal, SpendersAccordionList } from '@/app/[locale]/tools/polygraph/PolygraphGauges';
 
 const fmt = (n) => {
   const abs = Math.abs(n);
@@ -608,22 +608,25 @@ export default function SharedPolygraph() {
           )}
 
           {/* Spenders */}
-          {tab==='spenders' && (
+          {tab === 'spenders' && (
             <div className="p-6 space-y-4">
-              <div className="text-xs text-gray-500">Governors who gained <span className="text-amber-400 font-bold">500k+</span> power in the selected window. <span className="text-blue-400">[NEW]</span> = migrated in.</div>
-              {kdd.whales?.length===0 && <div className="text-gray-600 text-sm italic text-center py-8">No high-velocity spenders detected.</div>}
-              <div className="grid grid-cols-1 gap-1.5">
-                {kdd.whales?.map((w,i)=>(
-                  <div key={i} className="flex items-center gap-3 bg-[#0a0c0f] border border-[#1e222b] rounded-md px-3 py-2">
-                    <span className="text-gray-600 font-mono text-xs w-4 text-right">{i+1}</span>
-                    <span className="text-cyan-400 text-xs font-bold">[{w.alliance}]</span>
-                    <span className="text-gray-200 text-sm font-medium flex-1">{w.name}</span>
-                    {w.isMigrant && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">NEW</span>}
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded ${mb(w.powerDelta)}`}>{mbt(w.powerDelta)}</span>
-                    <span className="text-gray-300 font-mono text-xs">+{fmt(w.powerDelta)}</span>
-                  </div>
-                ))}
-              </div>
+              <div
+                className="text-xs text-gray-500"
+                dangerouslySetInnerHTML={{
+                  __html: t.raw("spenders_desc")
+                    .replace("<highlight>", '<span className="text-amber-400 font-bold">')
+                    .replace("</highlight>", "</span>")
+                    .replace("<new>", '<span className="text-blue-400">')
+                    .replace("</new>", "</span>")
+                }}
+              />
+              <SpendersAccordionList
+                whales={kdd.whales || []}
+                serverAgeDays={kdd.serverAgeDays}
+                era={kdd.era || kdd.kingdomProgress}
+                windowDays={kdd.velocityMetrics?.windowDays || 1}
+                t={t}
+              />
             </div>
           )}
 

@@ -343,7 +343,21 @@ export async function GET(req) {
             totalDeadsGained += deadsDelta;
 
             if (pDelta >= whaleThreshold) {
-                whales.push({ id: gov.id, name: gov.name, alliance: gov.alliance, powerDelta: pDelta, isMigrant });
+                whales.push({ 
+                    id: gov.id, 
+                    name: gov.name, 
+                    alliance: gov.alliance, 
+                    powerDelta: pDelta, 
+                    powerStart: gov.powerStart || 0,
+                    powerEnd: gov.powerEnd || 0,
+                    troopDelta,
+                    cmdDelta,
+                    techDelta,
+                    buildDelta,
+                    kpDelta,
+                    deadsDelta,
+                    isMigrant 
+                });
             }
 
             if (gov.allianceStart && gov.alliance !== gov.allianceStart && gov.allianceStart !== 'None') {
@@ -609,7 +623,7 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
             metrics: { totalPowerGained, totalTroopPowerGained, totalCmdPowerGained, totalTechPowerGained, totalBuildPowerGained, totalKPGained, totalDeadsGained, whalesCount: whales.length, switchersCount: allianceSwitchers.length },
             alliances: allianceList,
             switchers: allianceSwitchers.slice(0, 20),
-            whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 20),
+            whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 50),
             migration: { newArrivals, departed },
             behavioralSigs,
             followSignals: effectiveFollowSignals,
