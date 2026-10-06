@@ -31,7 +31,7 @@ export async function POST(req) {
             return NextResponse.json({ error: "PIN must be between 4 and 8 digits (numbers only)." }, { status: 400 });
         }
 
-        if (isAgeConfirmed === false) {
+        if (!isAgeConfirmed) {
             return NextResponse.json({ error: "You must confirm you are at least 13 years of age to register." }, { status: 400 });
         }
 
