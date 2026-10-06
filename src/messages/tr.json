@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Discord / Web Afişi",
     "card_mode_album_badge": "Lilith Güvenli • URL Yok",
     "card_mode_discord_badge": "Doğrudan URL",
-    "card_mode_album_desc": "Resmi bir Krallık Savaş Pasaportu olarak kamufle edilmiştir. Lilith Games'in otomatik görsel denetimini geçmek için tüm URL'ler ve tetikleyici kelimeler kaldırılmıştır."
+    "card_mode_album_desc": "Resmi bir Krallık Savaş Pasaportu olarak kamufle edilmiştir. Lilith Games'in otomatik görsel denetimini geçmek için tüm URL'ler ve tetikleyici kelimeler kaldırılmıştır.",
+    "card_seal_style_title": "Gizli Mühür Kamuflajı",
+    "card_seal_morphed": "İmparatorluk Güneş Mührü (Albüm İçin Güvenli)",
+    "card_seal_cyber": "Siber Neon Mühür",
+    "card_seal_classic": "Klasik Barkod",
+    "card_seal_morphed_desc": "Yuvarlatılmış obsidyen taşları ve krallık telkari işlemeleriyle otantik bir güneş madalyonuna dönüştürüldü. Lilith'in otomatik albüm görsel denetimini atlatır.",
+    "card_seal_cyber_desc": "Web ve Discord paylaşımları için siber çerçeveli taktik şifre.",
+    "card_seal_classic_desc": "Discord alım duyuruları için yüksek kontrastlı kare QR kod."
   }
 }

@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Discord / Web Banner",
     "card_mode_album_badge": "Lilith Safe • Zero URLs",
     "card_mode_discord_badge": "Direct URL Printed",
-    "card_mode_album_desc": "Camouflaged as an official Kingdom Battle Passport. All URLs and advertising trigger words are removed to pass Lilith Games automated in-game image review. Governors screenshot and scan the Cypher Seal."
+    "card_mode_album_desc": "Camouflaged as an official Kingdom Battle Passport. All URLs and advertising trigger words are removed to pass Lilith Games automated in-game image review. Governors screenshot and scan the Cypher Seal.",
+    "card_seal_style_title": "Cypher Seal Disguise",
+    "card_seal_morphed": "Imperial Sun Seal (Album Safe)",
+    "card_seal_cyber": "Cyber Neon Seal",
+    "card_seal_classic": "Classic Barcode",
+    "card_seal_morphed_desc": "Morphed into an authentic Kingdom Sun Medallion with rounded obsidian tiles, sunburst filigree, and high-command crest. Bypasses Lilith's computer-vision photo album filter.",
+    "card_seal_cyber_desc": "Luminous tactical cypher with cyber-styled framing for web and social posts.",
+    "card_seal_classic_desc": "High-contrast square QR code for Discord recruitment posts and external media."
   }
 }

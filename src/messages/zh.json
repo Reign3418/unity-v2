@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Discord / 网页横幅",
     "card_mode_album_badge": "莉莉丝审核安全 • 零网址",
     "card_mode_discord_badge": "直印短链接",
-    "card_mode_album_desc": "已伪装成王国官方远征通行战报。彻底移除了所有外部网址及营销敏感词，确保100%通过莉莉丝游戏相册自动图像审核。执政官可在相册中截图并通过手机相册或扫码识别密印。"
+    "card_mode_album_desc": "已伪装成王国官方远征通行战报。彻底移除了所有外部网址及营销敏感词，确保100%通过莉莉丝游戏相册自动图像审核。执政官可在相册中截图并通过手机相册或扫码识别密印。",
+    "card_seal_style_title": "密印伪装系统",
+    "card_seal_morphed": "帝国日轮印章（相册过审防封）",
+    "card_seal_cyber": "赛博霓虹印章",
+    "card_seal_classic": "传统黑白二维码",
+    "card_seal_morphed_desc": "完美拟态为王国正统太阳勋章，采用圆角黑曜石铆钉与皇家金纹细工，彻底摆脱生硬的条码特征，助您轻松通过莉莉丝游戏相册图像AI审核。",
+    "card_seal_cyber_desc": "发光战术秘印，具备赛博机甲风格边框，适合Discord与网页分享。",
+    "card_seal_classic_desc": "高对比度方形二维码，适合Discord招募公告与外部社区。"
   }
 }

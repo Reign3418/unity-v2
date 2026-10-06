@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Discord / Web-Banner",
     "card_mode_album_badge": "Lilith-sicher • Keine URLs",
     "card_mode_discord_badge": "Direkte URL",
-    "card_mode_album_desc": "Als offizieller Königreichs-Schlachtpass getarnt. Alle URLs und Trigger-Wörter wurden entfernt, um die automatische Bildprüfung von Lilith Games sicher zu bestehen."
+    "card_mode_album_desc": "Als offizieller Königreichs-Schlachtpass getarnt. Alle URLs und Trigger-Wörter wurden entfernt, um die automatische Bildprüfung von Lilith Games sicher zu bestehen.",
+    "card_seal_style_title": "Tarnung des Geheimiegels",
+    "card_seal_morphed": "Kaiserliches Sonnensiegel (Album-Sicher)",
+    "card_seal_cyber": "Cyber-Neon-Siegel",
+    "card_seal_classic": "Klassischer Barcode",
+    "card_seal_morphed_desc": "In ein authentisches Sonnenmedaillon mit abgerundeten Obsidian-Nieten und Königsfiligran verwandelt. Umgeht Liliths automatische Bilderkennung für Fotoalben.",
+    "card_seal_cyber_desc": "Leuchtende taktische Chiffre mit Cyber-Rahmen für Web und Discord.",
+    "card_seal_classic_desc": "Kontrastreicher quadratischer QR-Code für Discord-Rekrutierungsnachrichten."
   }
 }

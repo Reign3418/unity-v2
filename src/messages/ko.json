@@ -1428,6 +1428,13 @@
     "card_mode_discord": "디스코드 / 웹 배너",
     "card_mode_album_badge": "릴리스 검열 통과 • URL 없음",
     "card_mode_discord_badge": "직접 URL 표기",
-    "card_mode_album_desc": "공식 왕국 전투 여권 형태로 위장되었습니다. 릴리스 게임즈의 자동 이미지 검열을 통과하기 위해 모든 외부 URL과 트리거 단어가 제거되었습니다."
+    "card_mode_album_desc": "공식 왕국 전투 여권 형태로 위장되었습니다. 릴리스 게임즈의 자동 이미지 검열을 통과하기 위해 모든 외부 URL과 트리거 단어가 제거되었습니다.",
+    "card_seal_style_title": "암호 인장 위장",
+    "card_seal_morphed": "제국 태양 인장 (앨범 안전)",
+    "card_seal_cyber": "사이버 네온 인장",
+    "card_seal_classic": "클래식 바코드",
+    "card_seal_morphed_desc": "둥근 흑요석 타일과 왕실 금빛 세공이 적용된 정통 왕국 태양 메달리온으로 위장되어 릴리스의 자동 사진 앨범 검열을 통과합니다.",
+    "card_seal_cyber_desc": "웹 및 디스코드 게시용 네온 사이버 프레임 암호 인장.",
+    "card_seal_classic_desc": "디스코드 모집 공지 및 외부 공유용 고대비 사각 QR 코드."
   }
 }

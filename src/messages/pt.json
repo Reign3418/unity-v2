@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Banner Discord / Web",
     "card_mode_album_badge": "Seguro contra Lilith • Sem URLs",
     "card_mode_discord_badge": "URL Direta",
-    "card_mode_album_desc": "Camuflado como um Passaporte de Batalha oficial do reino. Todas as URLs e palavras de gatilho foram removidas para aprovação na moderação automática de imagens da Lilith."
+    "card_mode_album_desc": "Camuflado como um Passaporte de Batalha oficial do reino. Todas as URLs e palavras de gatilho foram removidas para aprovação na moderação automática de imagens da Lilith.",
+    "card_seal_style_title": "Camuflagem do Selo Secreto",
+    "card_seal_morphed": "Selo Solar Imperial (Seguro para Álbum)",
+    "card_seal_cyber": "Selo Neon Cibernético",
+    "card_seal_classic": "Código Clássico",
+    "card_seal_morphed_desc": "Transformado em um autêntico medalhão solar do reino com tachas de obsidiana arredondadas e filigrana real. Bula a revisão automática de imagens da Lilith.",
+    "card_seal_cyber_desc": "Cifra tática luminosa com moldura cibernética para web e Discord.",
+    "card_seal_classic_desc": "Código QR quadrado de alto contraste para anúncios de recrutamento no Discord."
   }
 }

@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Bannière Discord / Web",
     "card_mode_album_badge": "Conforme Lilith • Zéro URL",
     "card_mode_discord_badge": "URL Directe",
-    "card_mode_album_desc": "Camouflé en passeport de combat officiel du royaume. Toutes les URLs et mots déclencheurs sont supprimés pour valider la modération automatique des images de Lilith."
+    "card_mode_album_desc": "Camouflé en passeport de combat officiel du royaume. Toutes les URLs et mots déclencheurs sont supprimés pour valider la modération automatique des images de Lilith.",
+    "card_seal_style_title": "Camouflage du Sceau Secret",
+    "card_seal_morphed": "Sceau Solaire Impérial (Sûr pour l'Album)",
+    "card_seal_cyber": "Sceau Néon Cyber",
+    "card_seal_classic": "Code-barres Classique",
+    "card_seal_morphed_desc": "Métamorphosé en un authentique médaillon solaire avec rivets d'obsidienne arrondis et filigrane royal. Contourne le filtre de vision automatique de Lilith.",
+    "card_seal_cyber_desc": "Chiffre tactique luminescent avec encadrement cybernétique pour le web et Discord.",
+    "card_seal_classic_desc": "Code QR carré à fort contraste pour les annonces de recrutement Discord."
   }
 }

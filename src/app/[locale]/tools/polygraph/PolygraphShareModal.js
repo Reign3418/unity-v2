@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import QRCode from "qrcode";
 import { 
   X, Copy, Check, Download, QrCode, Image as ImageIcon, 
-  Sparkles, Shield, ExternalLink, Send, Flame, Eye, Palette
+  Sparkles, Shield, ExternalLink, Send, Flame, Eye, Palette, Crown, Sun
 } from "lucide-react";
 
 export default function PolygraphShareModal({
@@ -19,11 +20,12 @@ export default function PolygraphShareModal({
 }) {
   const [activeTab, setActiveTab] = useState("card"); // 'card' | 'links' | 'bbcode'
   const [cardMode, setCardMode] = useState("album"); // 'album' (anti-ban camouflage) | 'discord' (social link)
+  const [sealStyle, setSealStyle] = useState("morphed"); // 'morphed' (Imperial Sun Seal) | 'cyber' | 'classic'
   const [theme, setTheme] = useState("gold"); // 'gold' | 'neon'
   const [copiedLink, setCopiedLink] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [qrBase64, setQrBase64] = useState("");
   const canvasRef = useRef(null);
+
 
   const tr = (k, fallback) => {
     try {
@@ -44,39 +46,8 @@ export default function PolygraphShareModal({
   const windowShortUrl = `${origin}/qr?k=${kd}&e=${endDate || ""}&t=${timeframe}`;
   const directFullUrl = `${origin}/${locale}/shared/polygraph?kd=${kd}${endDate ? `&end=${endDate}` : ""}&tf=${timeframe}&depth=${depth}`;
 
-  // Fetch Level-H QR code with fallback
-  useEffect(() => {
-    if (!isOpen || !kd) return;
-
-    // Use short redirect link as QR target for maximum scan density & readability
-    const qrTarget = shortUrl;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&ecc=H&margin=10&color=000000&bgcolor=ffffff&data=${encodeURIComponent(qrTarget)}`;
-
-    fetch(qrUrl)
-      .then(res => {
-        if (!res.ok) throw new Error("Primary QR fetch failed");
-        return res.blob();
-      })
-      .then(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => setQrBase64(reader.result);
-        reader.readAsDataURL(blob);
-      })
-      .catch(() => {
-        // Fallback to quickchart QR
-        const fallbackUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrTarget)}&size=450&ecLevel=H&margin=2`;
-        fetch(fallbackUrl)
-          .then(res => res.blob())
-          .then(blob => {
-            const reader = new FileReader();
-            reader.onloadend = () => setQrBase64(reader.result);
-            reader.readAsDataURL(blob);
-          })
-          .catch(e => console.error("QR load failed:", e));
-      });
-  }, [isOpen, kd, shortUrl]);
-
   // Number formatting helper
+
   const fmt = (n) => {
     const abs = Math.abs(n || 0);
     if (abs >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
@@ -85,7 +56,28 @@ export default function PolygraphShareModal({
     return String(n || 0);
   };
 
-  // Draw 1080x1080 RoK Photo Album Business Card
+  // Helper for drawing rounded rectangles with canvas fallback
+  const drawRoundRect = (ctx, x, y, w, h, radius, fill = true, stroke = false) => {
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y, w, h, radius);
+    } else {
+      const r = Math.min(radius, w / 2, h / 2);
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  };
+
   // Draw 1080x1080 RoK Photo Album Business Card
   const renderToCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -243,51 +235,236 @@ export default function PolygraphShareModal({
     drawDossierCard(550, 235, 215, 96, "📈", "Velocity", pace, "[ MOBILIZATION PACE ]", "#06B6D4");
     drawDossierCard(785, 235, 215, 96, "👑", "Spenders", `${whalesCount} Whales`, "[ 500k+ SPRINT ROSTER ]", "#F59E0B");
 
-    // 6. Central "Stealth" QR Seal Frame
-    const qrSize = 360;
-    const qrX = (1080 - qrSize) / 2;
-    const qrY = 370;
+    // 6. Central Stealth Morphed QR Seal / Medallion
+    const isMorphed = sealStyle === "morphed" || sealStyle === "cyber" || cardMode === "album";
+    const sealCx = 540;
+    const sealCy = 550;
 
-    // Outer Gilded Frame
-    ctx.fillStyle = "#070A12";
-    ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 3;
-    ctx.fillRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
-    ctx.strokeRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
+    if (isMorphed && sealStyle !== "classic") {
+      const medRadius = 205;
+      const isCyber = sealStyle === "cyber" || (!isGold && sealStyle !== "morphed");
+      const sealThemeColor = isCyber ? "#06B6D4" : "#D4AF37";
+      const sealAccentColor = isCyber ? "#D946EF" : "#F59E0B";
 
-    // Inner Pad (Clean soft ivory/titanium in album mode for elegant heraldic look)
-    ctx.fillStyle = cardMode === "album" ? "#F8FAFC" : "#FFFFFF";
-    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+      // 6a. Outer Sunburst Rays (16 golden rays radiating around the perimeter)
+      ctx.strokeStyle = isCyber ? "rgba(6, 182, 212, 0.45)" : "rgba(212, 175, 55, 0.45)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {
+        const angle = (i * Math.PI * 2) / 16;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const rayLen = (i % 2 === 0 ? 18 : 10);
+        ctx.beginPath();
+        ctx.moveTo(sealCx + cos * medRadius, sealCy + sin * medRadius);
+        ctx.lineTo(sealCx + cos * (medRadius + rayLen), sealCy + sin * (medRadius + rayLen));
+        ctx.stroke();
+      }
 
-    // Top Seal Ribbon in Album Mode
-    if (cardMode === "album") {
-      ctx.fillStyle = "#0B0F19";
-      ctx.fillRect(390, qrY - 26, 300, 24);
-      ctx.strokeStyle = primaryColor;
+      // 6b. Concentric Gilded Rims
+      // Outer bronze rim
+      ctx.strokeStyle = isCyber ? "#0E7490" : "#854D0E";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(sealCx, sealCy, medRadius + 6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Mid accent rim
+      ctx.strokeStyle = sealThemeColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sealCx, sealCy, medRadius + 3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Dark groove
+      ctx.strokeStyle = "#080C14";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(sealCx, sealCy, medRadius + 1, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 6c. Medallion Interior: Royal Vellum / Sun-Gilded Parchment with radial gradient
+      const vellumGrad = ctx.createRadialGradient(sealCx, sealCy, 20, sealCx, sealCy, medRadius);
+      if (isCyber) {
+        vellumGrad.addColorStop(0, "#F0FDF4");
+        vellumGrad.addColorStop(0.7, "#E0F2FE");
+        vellumGrad.addColorStop(1, "#BAE6FD");
+      } else {
+        vellumGrad.addColorStop(0, "#FCF8EC"); // warm luminous ivory
+        vellumGrad.addColorStop(0.7, "#F5EAD2"); // golden parchment
+        vellumGrad.addColorStop(1, "#E8D5AB"); // antique burnished edge
+      }
+      ctx.fillStyle = vellumGrad;
+      ctx.beginPath();
+      ctx.arc(sealCx, sealCy, medRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner filigree ring
+      ctx.strokeStyle = sealThemeColor;
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(390, qrY - 26, 300, 24);
+      ctx.beginPath();
+      ctx.arc(sealCx, sealCy, medRadius - 4, 0, Math.PI * 2);
+      ctx.stroke();
 
-      ctx.fillStyle = primaryColor;
+      // 4 Citadel Corner Brackets framing the circular medallion
+      ctx.strokeStyle = sealThemeColor;
+      ctx.lineWidth = 2;
+      const cornerOffsets = [
+        [-175, -175], [175, -175], [-175, 175], [175, 175]
+      ];
+      cornerOffsets.forEach(([ox, oy]) => {
+        const signX = Math.sign(ox);
+        const signY = Math.sign(oy);
+        ctx.beginPath();
+        ctx.moveTo(sealCx + ox, sealCy + oy - signY * 18);
+        ctx.lineTo(sealCx + ox, sealCy + oy);
+        ctx.lineTo(sealCx + ox - signX * 18, sealCy + oy);
+        ctx.stroke();
+      });
+
+      // Top Seal Ribbon
+      ctx.fillStyle = "#0B0F19";
+      ctx.fillRect(360, sealCy - medRadius - 32, 360, 24);
+      ctx.strokeStyle = sealThemeColor;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(360, sealCy - medRadius - 32, 360, 24);
+
+      ctx.fillStyle = sealThemeColor;
       ctx.font = "bold 10px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("⚜ ARCHIVAL CYPHER MATRIX ⚜", 540, qrY - 10);
-    }
+      if (cardMode === "album") {
+        ctx.fillText("⚜ IMPERIAL HIGH COMMAND WAR CREST ⚜", sealCx, sealCy - medRadius - 16);
+      } else {
+        ctx.fillText("⚜ STRATEGIC INTELLIGENCE CYPHER ⚜", sealCx, sealCy - medRadius - 16);
+      }
 
-    // Draw QR image
-    if (qrBase64) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        ctx.drawImage(img, qrX + 8, qrY + 8, qrSize - 16, qrSize - 16);
+      // 6d. Render Morphed QR Matrix
+      try {
+        const qr = QRCode.create(shortUrl, { errorCorrectionLevel: 'H' });
+        const modSize = qr.modules.size;
+        const cSize = 7; // Exact 7px integer modules
+        const qWidth = modSize * cSize; // ~259px
+        const qStartX = Math.floor(sealCx - qWidth / 2);
+        const qStartY = Math.floor(sealCy - qWidth / 2);
+        const darkColor = isCyber ? "#0A1120" : "#141724"; // Deep obsidian bronze
+        const lightColor = isCyber ? "#E0F2FE" : "#FCF8EC";
 
-        // Center Unity Heraldry Shield Overlay
+        const isFinderPattern = (r, c) => {
+          if (r < 7 && c < 7) return true;
+          if (r < 7 && c >= modSize - 7) return true;
+          if (r >= modSize - 7 && c < 7) return true;
+          return false;
+        };
+
+        const mid = Math.floor(modSize / 2);
+
+        // Draw data modules as smooth rounded tiles
+        ctx.fillStyle = darkColor;
+        for (let r = 0; r < modSize; r++) {
+          for (let c = 0; c < modSize; c++) {
+            // Reserve 5x5 center area for shield crest
+            if (Math.abs(r - mid) <= 2 && Math.abs(c - mid) <= 2) continue;
+            if (isFinderPattern(r, c)) continue;
+
+            if (qr.modules.get(r, c)) {
+              drawRoundRect(ctx, qStartX + c * cSize, qStartY + r * cSize, cSize, cSize, 1.8, true, false);
+            }
+          }
+        }
+
+        // Draw 3 Corner Citadels (Finder Patterns with 1:1:3:1:1 ratio)
+        const drawFinder = (cornerR, cornerC) => {
+          const fx = qStartX + cornerC * cSize;
+          const fy = qStartY + cornerR * cSize;
+          const fw = 7 * cSize;
+
+          // Outer 7x7 rounded rect
+          ctx.fillStyle = darkColor;
+          drawRoundRect(ctx, fx, fy, fw, fw, 3, true, false);
+          // Inner 5x5 vellum
+          ctx.fillStyle = lightColor;
+          drawRoundRect(ctx, fx + cSize, fy + cSize, 5 * cSize, 5 * cSize, 2, true, false);
+          // Center 3x3 core
+          ctx.fillStyle = darkColor;
+          drawRoundRect(ctx, fx + 2 * cSize, fy + 2 * cSize, 3 * cSize, 3 * cSize, 1.5, true, false);
+          // Gilded center micro-rivet
+          ctx.fillStyle = sealThemeColor;
+          ctx.beginPath();
+          ctx.arc(fx + 3.5 * cSize, fy + 3.5 * cSize, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        };
+
+        drawFinder(0, 0);
+        drawFinder(0, modSize - 7);
+        drawFinder(modSize - 7, 0);
+
+        // 6e. Center Imperial High Command Shield Crest
+        ctx.fillStyle = darkColor;
+        ctx.beginPath();
+        ctx.arc(sealCx, sealCy, 21, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = sealThemeColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(sealCx, sealCy, 21, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "#0B0F19";
+        ctx.beginPath();
+        ctx.arc(sealCx, sealCy, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = sealThemeColor;
+        ctx.font = "bold 9px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`KD ${kd}`, sealCx, sealCy - 3);
+
+        ctx.fillStyle = sealAccentColor;
+        ctx.font = "bold 7px monospace";
+        ctx.fillText(cardMode === "album" ? "★ SEAL ★" : "UN•TY", sealCx, sealCy + 7);
+
+      } catch (err) {
+        console.error("QR render error:", err);
+      }
+    } else {
+      // Classic Square Barcode (For Discord announcements & forum posts)
+      const qrSize = 340;
+      const qrX = (1080 - qrSize) / 2;
+      const qrY = 380;
+
+      ctx.fillStyle = "#070A12";
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 3;
+      ctx.fillRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
+      ctx.strokeRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(qrX, qrY, qrSize, qrSize);
+
+      try {
+        const qr = QRCode.create(shortUrl, { errorCorrectionLevel: 'H' });
+        const modSize = qr.modules.size;
+        const cSize = Math.floor(qrSize / modSize);
+        const pad = (qrSize - modSize * cSize) / 2;
+
+        ctx.fillStyle = "#000000";
+        for (let r = 0; r < modSize; r++) {
+          for (let c = 0; c < modSize; c++) {
+            if (qr.modules.get(r, c)) {
+              ctx.fillRect(qrX + pad + c * cSize, qrY + pad + r * cSize, cSize, cSize);
+            }
+          }
+        }
+
+        // Center emblem
         const cx = 540;
         const cy = qrY + qrSize / 2;
         ctx.fillStyle = "#070A0F";
         ctx.strokeStyle = primaryColor;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 32, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
@@ -298,15 +475,15 @@ export default function PolygraphShareModal({
 
         ctx.fillStyle = "#38BDF8";
         ctx.font = "bold 9px monospace";
-        ctx.fillText(cardMode === "album" ? "VERIFIED" : "UN•TY", cx, cy + 12);
-
-        finishCardDrawing(ctx, primaryColor, accentColor);
-      };
-      img.src = qrBase64;
-    } else {
-      finishCardDrawing(ctx, primaryColor, accentColor);
+        ctx.fillText("UN•TY", cx, cy + 12);
+      } catch (err) {
+        console.error("Classic QR error:", err);
+      }
     }
-  }, [theme, cardMode, kd, kdd, ai, me, depth, timeframe, qrBase64, shortUrl]);
+
+    finishCardDrawing(ctx, primaryColor, accentColor);
+  }, [theme, cardMode, sealStyle, kd, kdd, ai, me, depth, timeframe, shortUrl]);
+
 
   const finishCardDrawing = (ctx, primaryColor, accentColor) => {
     // 7. Camouflage Frame Label under QR
@@ -320,7 +497,7 @@ export default function PolygraphShareModal({
       ctx.fillStyle = primaryColor;
       ctx.font = "bold 13px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("★ IMPERIAL SEAL OF ARCHIVAL VERIFICATION ★", 540, 792);
+      ctx.fillText("★ OFFICIAL ALLIANCE ROYAL SEAL ★", 540, 792);
 
       ctx.fillStyle = "#94A3B8";
       ctx.font = "10px monospace";
@@ -553,7 +730,10 @@ export default function PolygraphShareModal({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setCardMode("album")}
+                      onClick={() => {
+                        setCardMode("album");
+                        if (sealStyle === "classic") setSealStyle("morphed");
+                      }}
                       className={`px-3 py-2.5 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors ${
                         cardMode === "album"
                           ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm"
@@ -579,6 +759,64 @@ export default function PolygraphShareModal({
                       ? tr("card_mode_album_desc", "Camouflaged as an official Kingdom Battle Passport. All URLs and advertising trigger words are removed to pass Lilith Games automated in-game image review. Governors screenshot and scan the Cypher Seal.")
                       : "Optimized for Discord announcements and WhatsApp groups with the direct shortlink printed on the card."
                     }
+                  </p>
+                </div>
+
+                {/* Cypher Seal Disguise Selector */}
+                <div className="bg-[#0f131d] border border-[#1e2434] rounded-xl p-4 space-y-3">
+                  <div className="text-xs font-bold uppercase text-gray-300 tracking-wider flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sun size={14} className="text-amber-400" />
+                      {tr("card_seal_style_title", "Cypher Seal Disguise")}
+                    </div>
+                    {sealStyle === "morphed" && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/30">
+                        Album Safe
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSealStyle("morphed")}
+                      className={`px-2 py-2 rounded-lg text-[11px] font-bold border flex flex-col items-center justify-center gap-1 transition-colors text-center ${
+                        sealStyle === "morphed"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
+                          : "bg-[#141824] text-gray-400 border-[#232a3c] hover:text-white"
+                      }`}
+                    >
+                      <span className="text-sm">👑</span>
+                      <span className="truncate w-full">{tr("card_seal_morphed", "Imperial Sun")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSealStyle("cyber")}
+                      className={`px-2 py-2 rounded-lg text-[11px] font-bold border flex flex-col items-center justify-center gap-1 transition-colors text-center ${
+                        sealStyle === "cyber"
+                          ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm"
+                          : "bg-[#141824] text-gray-400 border-[#232a3c] hover:text-white"
+                      }`}
+                    >
+                      <span className="text-sm">⚡</span>
+                      <span className="truncate w-full">{tr("card_seal_cyber", "Cyber Neon")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSealStyle("classic")}
+                      className={`px-2 py-2 rounded-lg text-[11px] font-bold border flex flex-col items-center justify-center gap-1 transition-colors text-center ${
+                        sealStyle === "classic"
+                          ? "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40 shadow-sm"
+                          : "bg-[#141824] text-gray-400 border-[#232a3c] hover:text-white"
+                      }`}
+                    >
+                      <span className="text-sm">⬛</span>
+                      <span className="truncate w-full">{tr("card_seal_classic", "Barcode")}</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed font-sans">
+                    {sealStyle === "morphed" && tr("card_seal_morphed_desc", "Morphed into an authentic Kingdom Sun Medallion with rounded obsidian tiles, sunburst filigree, and high-command crest. Bypasses Lilith's computer-vision photo album filter.")}
+                    {sealStyle === "cyber" && tr("card_seal_cyber_desc", "Luminous tactical cypher with cyber-styled framing for web and social posts.")}
+                    {sealStyle === "classic" && tr("card_seal_classic_desc", "High-contrast square QR code for Discord recruitment posts and external media.")}
                   </p>
                 </div>
 
@@ -613,6 +851,7 @@ export default function PolygraphShareModal({
                     </button>
                   </div>
                 </div>
+
 
                 {/* Primary Actions */}
                 <div className="space-y-2 pt-2">

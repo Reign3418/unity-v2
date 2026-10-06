@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Banner Discord / Web",
     "card_mode_album_badge": "An toàn kiểm duyệt • Không chứa URL",
     "card_mode_discord_badge": "Hiển thị URL Trực tiếp",
-    "card_mode_album_desc": "Được ngụy trang thành Hộ chiếu Chiến đấu chính thức của Vương quốc. Toàn bộ đường dẫn URL và từ khóa quảng cáo đã được loại bỏ để vượt qua bộ lọc kiểm duyệt ảnh tự động của Lilith."
+    "card_mode_album_desc": "Được ngụy trang thành Hộ chiếu Chiến đấu chính thức của Vương quốc. Toàn bộ đường dẫn URL và từ khóa quảng cáo đã được loại bỏ để vượt qua bộ lọc kiểm duyệt ảnh tự động của Lilith.",
+    "card_seal_style_title": "Ngụy Trang Ấn Tín Mật",
+    "card_seal_morphed": "Ấn Tín Mặt Trời Hoàng Gia (An Toàn Cho Album)",
+    "card_seal_cyber": "Ấn Tín Cyber Neon",
+    "card_seal_classic": "Mã Vạch Cổ Điển",
+    "card_seal_morphed_desc": "Biến đổi thành huy chương mặt trời hoàng gia đích thực với đinh tán hắc diện thạch bo tròn và hoa văn tinh xảo. Vượt qua bộ lọc kiểm duyệt ảnh tự động của Lilith.",
+    "card_seal_cyber_desc": "Mật mã chiến thuật phát sáng với khung mạng dành cho Discord và web.",
+    "card_seal_classic_desc": "Mã QR vuông tương phản cao dành cho bài đăng tuyển quân trên Discord."
   }
 }

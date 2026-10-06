@@ -1428,6 +1428,13 @@
     "card_mode_discord": "Banner Discord / Web",
     "card_mode_album_badge": "Aman dari Lilith • Tanpa URL",
     "card_mode_discord_badge": "URL Langsung",
-    "card_mode_album_desc": "Disamarkan sebagai Paspor Pertempuran Kerajaan resmi. Semua URL dan kata pemicu dihapus agar lolos inspeksi gambar otomatis Lilith Games."
+    "card_mode_album_desc": "Disamarkan sebagai Paspor Pertempuran Kerajaan resmi. Semua URL dan kata pemicu dihapus agar lolos inspeksi gambar otomatis Lilith Games.",
+    "card_seal_style_title": "Kamuflase Segel Rahasia",
+    "card_seal_morphed": "Segel Matahari Kekaisaran (Aman untuk Album)",
+    "card_seal_cyber": "Segel Siber Neon",
+    "card_seal_classic": "Kode Klasik",
+    "card_seal_morphed_desc": "Diubah menjadi medali matahari kerajaan autentik dengan ornamen obsidian membulat dan filigri emas. Melewati filter inspeksi otomatis album Lilith.",
+    "card_seal_cyber_desc": "Sandi taktis bercahaya dengan bingkai siber untuk posting web dan Discord.",
+    "card_seal_classic_desc": "Kode QR persegi kontras tinggi untuk pengumuman rekrutmen Discord."
   }
 }
