@@ -9,44 +9,45 @@ import {
   ChevronUp, Copy, Check, Terminal, Key, AlertCircle, CheckCircle2, XCircle
 } from "lucide-react";
 
+// Only known values from the URL are ever used. Anything else is ignored so crafted
+// links can't inject text onto this page.
+const SAFE_ERROR_TYPES = new Set(["Configuration", "AccessDenied", "Verification", "Default"]);
+const SAFE_DISCORD_ERRORS = new Set([
+  "invalid_client", "invalid_grant", "access_denied", "invalid_request",
+  "invalid_scope", "unauthorized_client", "server_error", "temporarily_unavailable",
+]);
+
 export default function AuthErrorClient({ locale, initialError }) {
   const t = useTranslations("AuthError");
-  const [errorType, setErrorType] = useState(initialError || "Configuration");
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [errorType, setErrorType] = useState(SAFE_ERROR_TYPES.has(initialError) ? initialError : "Configuration");
   const [discordError, setDiscordError] = useState(null);
-  const [discordDesc, setDiscordDesc] = useState(null);
+  // Populated only when /api/auth/diagnostics returns 200, which requires a super-admin session.
   const [diagData, setDiagData] = useState(null);
   const [showDiagnostics, setShowDiagnostics] = useState(true);
   const [copied, setCopied] = useState(false);
   const [currentOrigin, setCurrentOrigin] = useState("https://unity-v2-azure.vercel.app");
+
+  const isAdminView = Boolean(diagData);
+  // Free-text error detail comes only from the authenticated admin endpoint, never the URL.
+  const errorMessage = diagData?.lastError?.message || null;
+  const discordDesc = diagData?.lastError?.discordDesc || null;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setCurrentOrigin(window.location.origin);
       const params = new URLSearchParams(window.location.search);
       const err = params.get("error");
-      const eMsg = params.get("error_msg");
       const dErr = params.get("discord_error");
-      const dDesc = params.get("discord_desc");
-      if (err) setErrorType(err);
-      if (eMsg) setErrorMessage(eMsg);
-      if (dErr) setDiscordError(dErr);
-      if (dDesc) setDiscordDesc(dDesc);
+      if (err && SAFE_ERROR_TYPES.has(err)) setErrorType(err);
+      if (dErr && SAFE_DISCORD_ERRORS.has(dErr)) setDiscordError(dErr);
 
-      // Fetch live environment health check
-      fetch("/api/auth/diagnostics")
-        .then((r) => r.json())
+      fetch("/api/auth/diagnostics", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
+          if (!data) return; // Not an admin: diagnostics stay hidden.
           setDiagData(data);
-          if (data?.lastError?.discordError && !dErr) {
-            setDiscordError(data.lastError.discordError);
-          }
-          if (data?.lastError?.discordDesc && !dDesc) {
-            setDiscordDesc(data.lastError.discordDesc);
-          }
-          if (data?.lastError?.message && !eMsg) {
-            setErrorMessage(data.lastError.message);
-          }
+          const adminErr = data?.lastError?.discordError;
+          if (adminErr && SAFE_DISCORD_ERRORS.has(adminErr) && !dErr) setDiscordError(adminErr);
         })
         .catch(() => {});
     }
@@ -62,29 +63,27 @@ export default function AuthErrorClient({ locale, initialError }) {
     }
   };
 
+  // Technical setup guidance is for admins only.
   const getSpecificGuidance = () => {
-    if (diagData?.env) {
-      if (!diagData.env.hasClientId) {
-        return {
-          title: "Missing Discord Client ID",
-          desc: "Vercel is missing the DISCORD_CLIENT_ID environment variable for this deployment. Add it in Vercel Project Settings → Environment Variables.",
-          color: "text-rose-400"
-        };
-      }
-      if (!diagData.env.hasClientSecret) {
-        return {
-          title: "Missing Discord Client Secret",
-          desc: "Vercel is missing the DISCORD_CLIENT_SECRET environment variable for this deployment. Add it in Vercel Project Settings → Environment Variables.",
-          color: "text-rose-400"
-        };
-      }
+    if (!isAdminView) return null;
+
+    if (!diagData.env?.hasClientId) {
+      return {
+        title: "Missing Discord Client ID",
+        desc: "Vercel is missing the DISCORD_CLIENT_ID environment variable for this deployment. Add it in Vercel Project Settings → Environment Variables.",
+      };
+    }
+    if (!diagData.env?.hasClientSecret) {
+      return {
+        title: "Missing Discord Client Secret",
+        desc: "Vercel is missing the DISCORD_CLIENT_SECRET environment variable for this deployment. Add it in Vercel Project Settings → Environment Variables.",
+      };
     }
 
-    if (discordError === "invalid_client" || diagData?.discordProbe?.verified === false) {
+    if (discordError === "invalid_client" || diagData.discordProbe?.verified === false) {
       return {
         title: "Discord Rejected Secret (invalid_client)",
         desc: "Discord rejected the credentials. When resetting the secret in Discord Developer Portal, the old secret is invalidated. You must paste the NEW client secret into Vercel's DISCORD_CLIENT_SECRET and trigger a Redeploy in Vercel.",
-        color: "text-rose-400"
       };
     }
 
@@ -92,16 +91,11 @@ export default function AuthErrorClient({ locale, initialError }) {
       return {
         title: "Callback URL Mismatch (invalid_grant)",
         desc: `Discord rejected the redirect URL. Go to Discord Developer Portal → OAuth2 → Redirects and ensure "${callbackUrl}" is saved.`,
-        color: "text-amber-400"
       };
     }
 
     if (errorMessage) {
-      return {
-        title: "Auth Gateway Message",
-        desc: errorMessage,
-        color: "text-amber-400"
-      };
+      return { title: "Auth Gateway Message", desc: errorMessage };
     }
 
     return null;
@@ -113,6 +107,7 @@ export default function AuthErrorClient({ locale, initialError }) {
     if (specificGuidance) {
       return specificGuidance.desc;
     }
+    if (discordError === "access_denied") return t("err_access_denied");
     switch (errorType) {
       case "Configuration":
         return t("err_configuration");
@@ -198,7 +193,8 @@ export default function AuthErrorClient({ locale, initialError }) {
             </div>
           </div>
 
-          {/* Collapsible High Command Diagnostic Box */}
+          {/* Collapsible High Command Diagnostic Box — super admins only */}
+          {isAdminView && (
           <div className="w-full border-t border-slate-800/80 pt-5">
             <button
               onClick={() => setShowDiagnostics(!showDiagnostics)}
@@ -262,7 +258,7 @@ export default function AuthErrorClient({ locale, initialError }) {
                         {diagData?.env ? (
                           diagData.env.hasClientSecret ? (
                             <span className="text-emerald-400 flex items-center gap-1 text-[10px]">
-                              <CheckCircle2 size={12} /> LOADED ({diagData.env.clientSecretLength} chars)
+                              <CheckCircle2 size={12} /> LOADED
                             </span>
                           ) : (
                             <span className="text-rose-400 flex items-center gap-1 text-[10px] font-bold">
@@ -319,6 +315,7 @@ export default function AuthErrorClient({ locale, initialError }) {
               </div>
             )}
           </div>
+          )}
 
         </div>
       </div>

@@ -3,6 +3,14 @@ import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin } from "./awsDynamo";
 import { notifyAdmin } from "./notifyAdmin";
+import { createHash, timingSafeEqual } from "crypto";
+
+/** Constant-time string comparison (hash first so differing lengths don't leak or throw). */
+function safeEqual(a, b) {
+  const ha = createHash("sha256").update(String(a)).digest();
+  const hb = createHash("sha256").update(String(b)).digest();
+  return timingSafeEqual(ha, hb);
+}
 
 const discordClientId = (
   process.env.DISCORD_CLIENT_ID || 
@@ -36,8 +44,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Discord appends `iss=https://discord.com` to the OAuth callback (RFC 9207).
       // Auth.js validates it against provider.issuer, which otherwise defaults to https://authjs.dev.
       issuer: 'https://discord.com',
-      authorization: { params: { scope: 'identify email guilds guilds.members.read' } },
-      checks: [],
+      // `email` intentionally omitted — the app never uses it (data minimization).
+      authorization: { params: { scope: 'identify guilds guilds.members.read' } },
+      // PKCE blocks authorization-code injection; state blocks login CSRF. Discord supports both.
+      checks: ['pkce', 'state'],
       client: {
         token_endpoint_auth_method: 'client_secret_post'
       }
@@ -49,7 +59,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Offline Matrix Key", type: "password" }
       },
       async authorize(credentials) {
-        if (credentials.username === "reign3418" && credentials.password === process.env.UNITY_INTERNAL_SECRET) {
+        const expected = process.env.UNITY_INTERNAL_SECRET;
+        // Fail closed: if the secret is missing/weak, this login path is disabled entirely.
+        // (Previously `undefined === undefined` granted super admin with no password.)
+        if (!expected || expected.length < 16) return null;
+        if (typeof credentials?.password !== "string" || !credentials.password) return null;
+        if (credentials.username === "reign3418" && safeEqual(credentials.password, expected)) {
           return {
             id: "reign3418",
             name: "reign3418",
@@ -125,7 +140,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     error: '/auth/error',
   },
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
+  // No hardcoded fallback: a known secret would let anyone forge session tokens. Missing env = fail closed.
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
   logger: {
     error(error) {
       console.error("[NextAuth Server Error]:", error?.name || error?.type, error?.message);
