@@ -9,7 +9,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -106,6 +106,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <NavItem href="/tools/ghost-hunter" icon={Ghost} label={t('nav_ghost_hunter')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/recruitment-hitlist" icon={Target} label={t('nav_recruit_hitlist')} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/map-planner" icon={MapIcon} label={t('nav_map_planner')} isAi={true} />
+          <NavItem href="/tools/account-age" icon={Clock} label={t('nav_account_age')} isAi={true} />
           <NavItem href="/mail" icon={Mail} label={t('nav_mail')} />
           <NavItem href="/translator" icon={MessageSquare} label={t('nav_chat_translator')} isAi={true} />
 

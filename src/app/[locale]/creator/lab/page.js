@@ -95,6 +95,16 @@ const TOOLS = [
         desc: "In-browser OCR engine running zero-cost client extraction with optional Gemini Flash-Lite fast tracking.",
         badge: "PROTOTYPE",
     },
+    {
+        href: "/tools/account-age",
+        icon: Clock,
+        color: "text-cyan-400",
+        bg: "from-cyan-500/5",
+        border: "group-hover:border-cyan-500/50",
+        label: "Account Age & Epoch Audit",
+        desc: "Algorithmic character creation estimation, lifetime account age, and kingdom migration trajectories from Governor IDs.",
+        badge: "PROTOTYPE",
+    },
 ];
 
 export default function ExperimentalLab() {
