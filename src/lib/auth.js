@@ -33,8 +33,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Discord({
       clientId: discordClientId,
       clientSecret: discordClientSecret,
-      authorization: { params: { scope: 'identify guilds guilds.members.read' } },
+      authorization: { params: { scope: 'identify email guilds guilds.members.read' } },
       checks: [],
+      client: {
+        token_endpoint_auth_method: 'client_secret_post'
+      }
     }),
     CredentialsProvider({
       name: "Emergency Architecture Login",
@@ -127,26 +130,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         console.error("[NextAuth Cause]:", error.cause);
       }
 
+      const rawCause = error?.cause;
+      const innerErr = rawCause?.err || rawCause;
+
       let discordError = null;
       let discordDesc = null;
 
-      // Extract specific Discord OAuth response errors
-      if (error?.cause?.parameters?.error) {
-        discordError = error.cause.parameters.error;
-      } else if (error?.cause?.[0]?.parameters?.error) {
-        discordError = error.cause[0].parameters.error;
-      } else if (error?.cause?.error) {
-        discordError = error.cause.error;
+      const candidateCauses = [
+        innerErr?.cause,
+        innerErr?.cause?.[0],
+        rawCause?.cause,
+        rawCause?.parameters,
+        rawCause,
+        error
+      ];
+
+      for (const c of candidateCauses) {
+        if (!c) continue;
+        if (!discordError && c.error) discordError = String(c.error);
+        if (!discordDesc && c.error_description) discordDesc = String(c.error_description);
       }
-      if (error?.cause?.error_description) {
-        discordDesc = error.cause.error_description;
-      } else if (error?.cause?.[0]?.parameters?.error_description) {
-        discordDesc = error.cause[0].parameters.error_description;
+
+      let rootMessage = innerErr?.message || error?.message || 'Configuration error';
+      if (rootMessage.includes("Read more at")) {
+        const cleanMsg = rootMessage.split("Read more at")[0].trim().replace(/\.$/, "");
+        rootMessage = discordDesc || (discordError ? `Discord Error: ${discordError}` : "") || innerErr?.cause?.message || cleanMsg || 'Authentication callback failed';
       }
 
       lastAuthError = {
-        name: error?.name || error?.type || 'AuthError',
-        message: error?.message || 'Configuration error',
+        name: innerErr?.name || error?.name || error?.type || 'AuthError',
+        message: rootMessage,
         discordError,
         discordDesc,
         cause: typeof error?.cause === 'object' ? JSON.stringify(error.cause) : String(error?.cause || ''),
@@ -157,9 +170,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         notifyAdmin({
           type: "ERROR",
           title: "🚨 NextAuth Authentication Exception",
-          message: `Auth operation failed on Unity Gateway: ${discordError ? `${discordError} - ${discordDesc || ''}` : (error?.message || error?.name || 'Configuration Error')}`,
+          message: `Auth operation failed on Unity Gateway: ${discordError ? `${discordError} - ${discordDesc || ''}` : rootMessage}`,
           details: {
-            reason: `${error?.name || error?.type || 'AuthError'}: ${error?.message || 'Configuration error'}`,
+            reason: `${lastAuthError.name}: ${rootMessage}`,
             discordError: discordError || 'N/A',
             userMessage: lastAuthError.cause
           }
