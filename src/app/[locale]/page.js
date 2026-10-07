@@ -35,6 +35,20 @@ export default function Home() {
   const [guestPasscode, setGuestPasscode] = useState("");
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const authAction = searchParams.get("auth");
+      if (authAction === "governor" || authAction === "login") {
+        setGovModalTab("login");
+        setGovModalOpen(true);
+      } else if (authAction === "register") {
+        setGovModalTab("register");
+        setGovModalOpen(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (isExploding) {
       // Generate 50 random fullscreen fireworks
       const newFireworks = Array.from({ length: 50 }).map((_, i) => ({

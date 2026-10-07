@@ -1442,5 +1442,21 @@
     "rok_mail_title": "RoK 연맹/왕국 전체 우편 (Unity Rich Text)",
     "rok_note_title": "프로필 서명 / 연맹원 메모",
     "discord_md_title": "디스코드 지휘부 공지"
+  },
+  "AuthError": {
+    "badge": "게이트웨이 접속 알림",
+    "title": "인증 미완료",
+    "subtitle": "Discord를 통한 로그인을 완료하지 못했습니다.",
+    "err_configuration": "Discord OAuth 자격 증명 또는 리디렉션 설정을 사령부에서 동기화해야 합니다. RoK 영주 ID 및 PIN으로 즉시 워룸에 접속하실 수 있습니다.",
+    "err_access_denied": "Discord 승인이 취소되었거나 거부되었습니다. 다시 시도하거나 영주 ID를 사용하세요.",
+    "err_verification": "인증 세션 또는 토큰이 만료되었습니다. 다시 시도해 주세요.",
+    "err_default": "인증 중 예기치 않은 오류가 발생했습니다. 사령부에 자동 알림이 전송되었습니다.",
+    "btn_gov_login": "영주 ID & PIN으로 로그인",
+    "btn_retry_discord": "Discord 로그인 재시도",
+    "btn_free_academy": "공개 아카데미 (로그인 불필요)",
+    "admin_heading": "최고 사령부 진단 요약",
+    "admin_redirect_title": "Discord Developer Portal 콜백 URL",
+    "admin_env_title": "필수 Vercel 환경 변수",
+    "admin_help_tip": "Discord Developer Portal의 OAuth2 Redirects에 현재 배포 도메인을 등록했는지 확인하십시오."
   }
 }

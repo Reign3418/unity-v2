@@ -1442,5 +1442,21 @@
     "rok_mail_title": "RoK In-Game Mail Blast (Unity Rich Text)",
     "rok_note_title": "Player Profile Signature / Alliance Note",
     "discord_md_title": "Discord Leadership Announcement"
+  },
+  "AuthError": {
+    "badge": "Gateway Access Notice",
+    "title": "Authentication Incomplete",
+    "subtitle": "We could not complete your sign-in via Discord.",
+    "err_configuration": "Discord OAuth credentials or redirect settings need synchronization by High Command. You can access the war room right now using your RoK Governor ID & PIN.",
+    "err_access_denied": "Discord authorization was cancelled or access was declined. You can retry or use your RoK Governor ID.",
+    "err_verification": "Your authentication session or token has expired. Please try again.",
+    "err_default": "An unexpected challenge occurred during authentication. An automated alert has been dispatched to High Command.",
+    "btn_gov_login": "Login with Governor ID & PIN",
+    "btn_retry_discord": "Retry Discord Login",
+    "btn_free_academy": "Public Academy (No Login)",
+    "admin_heading": "High Command Diagnostic Summary",
+    "admin_redirect_title": "Discord Developer Portal Callback URL",
+    "admin_env_title": "Required Vercel Environment Variables",
+    "admin_help_tip": "Ensure this deployment domain is added to OAuth2 Redirects in your Discord Developer Portal."
   }
 }

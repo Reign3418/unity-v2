@@ -2,13 +2,17 @@ import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin } from "./awsDynamo";
+import { notifyAdmin } from "./notifyAdmin";
+
+const discordClientId = process.env.DISCORD_CLIENT_ID || process.env.AUTH_DISCORD_ID;
+const discordClientSecret = process.env.DISCORD_CLIENT_SECRET || process.env.AUTH_DISCORD_SECRET;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   providers: [
     Discord({
-      clientId: process.env.DISCORD_CLIENT_ID,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET,
+      clientId: discordClientId,
+      clientSecret: discordClientSecret,
       authorization: { params: { scope: 'identify guilds guilds.members.read' } },
       checks: ['state'],
     }),
@@ -92,7 +96,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
+  pages: {
+    error: '/auth/error',
+  },
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "super_secret_unity_key",
+  logger: {
+    error(error) {
+      console.error("[NextAuth Server Error]:", error?.name || error?.type, error?.message);
+      if (error?.cause) {
+        console.error("[NextAuth Cause]:", error.cause);
+      }
+      try {
+        notifyAdmin({
+          type: "ERROR",
+          title: "🚨 NextAuth Authentication Exception",
+          message: `Auth operation failed on Unity Gateway: ${error?.message || error?.name || 'Configuration Error'}`,
+          details: {
+            reason: `${error?.name || error?.type || 'AuthError'}: ${error?.message || 'Configuration error'}`,
+            userMessage: typeof error?.cause === 'object' ? JSON.stringify(error.cause) : String(error?.cause || '')
+          }
+        }).catch(() => {});
+      } catch {
+        // Non-blocking fail-safe
+      }
+    },
+    warn(code) {
+      console.warn(`[NextAuth Warn] ${code}`);
+    },
+  },
   callbacks: {
     async jwt({ token, user, account, profile }) {
       if (account?.provider === 'credentials' || account?.provider === 'guest' || account?.provider === 'freemode' || account?.provider === 'governor') {

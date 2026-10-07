@@ -1442,5 +1442,21 @@
     "rok_mail_title": "RoK Allianznachricht (Unity Rich Text)",
     "rok_note_title": "Profilsignatur / Allianznotiz",
     "discord_md_title": "Discord-Führungsankündigung"
+  },
+  "AuthError": {
+    "badge": "Gateway-Zugangshinweis",
+    "title": "Authentifizierung unvollständig",
+    "subtitle": "Die Anmeldung über Discord konnte nicht abgeschlossen werden.",
+    "err_configuration": "Discord-OAuth-Anmeldedaten oder Weiterleitungseinstellungen müssen vom Oberkommando synchronisiert werden. Sie können sofort mit Ihrer RoK-Gouverneurs-ID und PIN beitreten.",
+    "err_access_denied": "Die Discord-Autorisierung wurde abgebrochen oder abgelehnt. Sie können es erneut versuchen oder Ihre Gouverneurs-ID verwenden.",
+    "err_verification": "Ihre Authentifizierungssitzung oder Ihr Token ist abgelaufen. Bitte versuchen Sie es erneut.",
+    "err_default": "Bei der Authentifizierung ist ein unerwartetes Problem aufgetreten. Eine automatische Benachrichtigung wurde an das Oberkommando gesendet.",
+    "btn_gov_login": "Mit Gouverneurs-ID & PIN anmelden",
+    "btn_retry_discord": "Discord-Anmeldung wiederholen",
+    "btn_free_academy": "Öffentliche Akademie (Ohne Login)",
+    "admin_heading": "Diagnoseübersicht des Oberkommandos",
+    "admin_redirect_title": "Callback-URL im Discord Developer Portal",
+    "admin_env_title": "Erforderliche Vercel-Umgebungsvariablen",
+    "admin_help_tip": "Stellen Sie sicher, dass diese Bereitstellungsdomain in den OAuth2-Weiterleitungen im Discord Developer Portal eingetragen ist."
   }
 }

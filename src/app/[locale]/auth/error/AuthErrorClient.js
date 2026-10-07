@@ -1,0 +1,179 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
+import { 
+  ShieldAlert, Sparkles, RefreshCw, Castle, ChevronDown, 
+  ChevronUp, Copy, Check, Terminal, ExternalLink, Key
+} from "lucide-react";
+
+export default function AuthErrorClient({ locale, initialError }) {
+  const t = useTranslations("AuthError");
+  const [errorType, setErrorType] = useState(initialError || "Configuration");
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [currentOrigin, setCurrentOrigin] = useState("https://unity-v2-azure.vercel.app");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCurrentOrigin(window.location.origin);
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("error");
+      if (err) {
+        setErrorType(err);
+      }
+    }
+  }, []);
+
+  const callbackUrl = `${currentOrigin}/api/auth/callback/discord`;
+
+  const copyCallbackUrl = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(callbackUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
+  const getErrorMessage = () => {
+    switch (errorType) {
+      case "Configuration":
+        return t("err_configuration");
+      case "AccessDenied":
+        return t("err_access_denied");
+      case "Verification":
+        return t("err_verification");
+      default:
+        return t("err_default");
+    }
+  };
+
+  return (
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-xl bg-[#0c0f15]/95 border border-rose-500/25 rounded-3xl p-6 sm:p-10 shadow-[0_0_80px_rgba(244,63,94,0.12)] backdrop-blur-2xl relative overflow-hidden">
+        {/* Ambient Top Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-24 bg-gradient-to-b from-rose-500/15 via-rose-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          {/* Badge & Icon */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 mb-6 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+            <ShieldAlert size={14} className="text-rose-400 animate-pulse" />
+            <span className="tracking-wider uppercase">{t("badge")}</span>
+          </div>
+
+          {/* Heading */}
+          <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-gray-400 uppercase tracking-wider mb-2">
+            {t("title")}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-6 leading-relaxed">
+            {t("subtitle")}
+          </p>
+
+          {/* Error Banner */}
+          <div className="w-full bg-[#131722] border border-rose-500/30 rounded-2xl p-4 sm:p-5 mb-8 text-left">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-rose-400/90 flex items-center gap-1.5">
+                <Terminal size={12} />
+                <span>ERR_CODE: {errorType}</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-500">GATEWAY_V2</span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              {getErrorMessage()}
+            </p>
+          </div>
+
+          {/* Primary Action: Direct RoK Governor ID & PIN Fallback */}
+          <div className="w-full space-y-3 mb-8">
+            <Link
+              href={`/${locale}?auth=governor`}
+              className="group relative flex items-center justify-center gap-2.5 w-full py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-black rounded-xl font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] transition-all cursor-pointer"
+            >
+              <Key size={17} className="text-black group-hover:scale-110 transition-transform" />
+              <span>{t("btn_gov_login")}</span>
+              <Sparkles size={15} className="text-black animate-pulse" />
+            </Link>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                onClick={() => signIn("discord")}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 hover:border-[#5865F2] text-[#5865F2] hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                <RefreshCw size={14} />
+                <span>{t("btn_retry_discord")}</span>
+              </button>
+
+              <Link
+                href={`/${locale}#public-academy`}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500 text-cyan-400 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                <Castle size={14} />
+                <span>{t("btn_free_academy")}</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Collapsible High Command Diagnostic Box */}
+          <div className="w-full border-t border-slate-800/80 pt-5">
+            <button
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              className="w-full flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors py-1 cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <Terminal size={13} className="text-cyan-400" />
+                <span>{t("admin_heading")}</span>
+              </span>
+              {showDiagnostics ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            </button>
+
+            {showDiagnostics && (
+              <div className="mt-4 p-4 rounded-xl bg-[#090b10] border border-cyan-500/20 text-left font-mono text-xs space-y-4 animate-in fade-in duration-200">
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>{t("admin_redirect_title")}</span>
+                    <button
+                      onClick={copyCallbackUrl}
+                      className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 text-[10px] transition-colors cursor-pointer"
+                    >
+                      {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      <span>{copied ? "Copied!" : "Copy"}</span>
+                    </button>
+                  </div>
+                  <div dir="ltr" className="bg-black/60 border border-slate-800 rounded-lg p-2.5 text-[11px] text-cyan-300 break-all select-all font-mono">
+                    {callbackUrl}
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                    {t("admin_help_tip")}
+                  </p>
+                </div>
+
+                <div className="border-t border-slate-800 pt-3">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">
+                    {t("admin_env_title")}
+                  </div>
+                  <ul dir="ltr" className="space-y-1.5 text-[11px] text-slate-300 font-mono">
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1 rounded">
+                      <span className="text-slate-400">DISCORD_CLIENT_ID</span>
+                      <span className="text-emerald-400 text-[10px]">AUTH_DISCORD_ID</span>
+                    </li>
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1 rounded">
+                      <span className="text-slate-400">DISCORD_CLIENT_SECRET</span>
+                      <span className="text-emerald-400 text-[10px]">AUTH_DISCORD_SECRET</span>
+                    </li>
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1 rounded">
+                      <span className="text-slate-400">AUTH_SECRET</span>
+                      <span className="text-emerald-400 text-[10px]">NEXTAUTH_SECRET</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}

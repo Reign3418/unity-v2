@@ -1442,5 +1442,21 @@
     "rok_mail_title": "Correio de Aliança & Reino (Unity Rich Text)",
     "rok_note_title": "Assinatura de Perfil / Nota de Aliança",
     "discord_md_title": "Anúncio de Liderança no Discord"
+  },
+  "AuthError": {
+    "badge": "Aviso do Portal de Acesso",
+    "title": "Autenticação Incompleta",
+    "subtitle": "Não foi possível concluir o login via Discord.",
+    "err_configuration": "As credenciais do Discord OAuth ou as configurações de redirecionamento precisam ser sincronizadas pelo Alto Comando. Acesse a sala de guerra agora com seu ID de Governador RoK e PIN.",
+    "err_access_denied": "A autorização do Discord foi cancelada ou recusada. Tente novamente ou use seu ID de Governador.",
+    "err_verification": "Sua sessão de autenticação ou token expirou. Por favor, tente novamente.",
+    "err_default": "Ocorreu um erro inesperado durante a autenticação. Um alerta automático foi enviado ao Alto Comando.",
+    "btn_gov_login": "Entrar com ID de Governador e PIN",
+    "btn_retry_discord": "Tentar Discord Novamente",
+    "btn_free_academy": "Academia Pública (Sem Login)",
+    "admin_heading": "Diagnóstico do Alto Comando",
+    "admin_redirect_title": "URL de Callback no Discord Developer Portal",
+    "admin_env_title": "Variáveis de Ambiente Vercel Necessárias",
+    "admin_help_tip": "Certifique-se de adicionar este domínio de implantação aos Redirecionamentos OAuth2 no Discord Developer Portal."
   }
 }

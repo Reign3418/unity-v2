@@ -1442,5 +1442,21 @@
     "rok_mail_title": "Courrier d'Alliance & de Royaume (Unity Rich Text)",
     "rok_note_title": "Signature de Profil / Note d'Alliance",
     "discord_md_title": "Annonce de Commandement Discord"
+  },
+  "AuthError": {
+    "badge": "Avis de Passerelle d'Accès",
+    "title": "Authentification Incomplète",
+    "subtitle": "Impossible de finaliser la connexion via Discord.",
+    "err_configuration": "Les identifiants Discord OAuth ou les paramètres de redirection nécessitent une synchronisation par le Haut Commandement. Accédez immédiatement au QG avec votre ID de Gouverneur RoK et PIN.",
+    "err_access_denied": "L'autorisation Discord a été annulée ou refusée. Vous pouvez réessayer ou utiliser votre ID de Gouverneur.",
+    "err_verification": "Votre session d'authentification ou votre jeton a expiré. Veuillez réessayer.",
+    "err_default": "Un défi inattendu est survenu lors de l'authentification. Une alerte automatisée a été transmise au Haut Commandement.",
+    "btn_gov_login": "Connexion via ID Gouverneur & PIN",
+    "btn_retry_discord": "Réessayer avec Discord",
+    "btn_free_academy": "Académie Publique (Sans Connexion)",
+    "admin_heading": "Diagnostic du Haut Commandement",
+    "admin_redirect_title": "URL de Callback sur Discord Developer Portal",
+    "admin_env_title": "Variables d'Environnement Vercel Requises",
+    "admin_help_tip": "Assurez-vous que ce domaine de déploiement est ajouté aux Redirections OAuth2 du portail développeur Discord."
   }
 }

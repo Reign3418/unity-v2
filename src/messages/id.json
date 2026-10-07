@@ -1442,5 +1442,21 @@
     "rok_mail_title": "Surat Siaran Aliansi RoK (Unity Rich Text)",
     "rok_note_title": "Tanda Tangan Profil / Catatan Anggota",
     "discord_md_title": "Pengumuman Kepemimpinan Discord"
+  },
+  "AuthError": {
+    "badge": "Pemberitahuan Gerbang Akses",
+    "title": "Autentikasi Belum Selesai",
+    "subtitle": "Gagal menyelesaikan proses masuk melalui Discord.",
+    "err_configuration": "Kredensial Discord OAuth atau pengaturan pengalihan perlu disinkronkan oleh Komando Tinggi. Anda dapat mengakses war room menggunakan ID Gubernur & PIN RoK sekarang.",
+    "err_access_denied": "Otorisasi Discord dibatalkan atau ditolak. Anda dapat mencoba lagi atau menggunakan ID Gubernur Anda.",
+    "err_verification": "Sesi autentikasi atau token Anda telah kedaluwarsa. Silakan coba lagi.",
+    "err_default": "Terjadi kendala tak terduga selama autentikasi. Peringatan otomatis telah dikirim ke Komando Tinggi.",
+    "btn_gov_login": "Masuk dengan ID Gubernur & PIN",
+    "btn_retry_discord": "Coba Lagi Masuk Discord",
+    "btn_free_academy": "Akademi Publik (Tanpa Login)",
+    "admin_heading": "Ringkasan Diagnostik Komando Tinggi",
+    "admin_redirect_title": "URL Callback di Discord Developer Portal",
+    "admin_env_title": "Variabel Lingkungan Vercel yang Diperlukan",
+    "admin_help_tip": "Pastikan domain deployment ini ditambahkan ke OAuth2 Redirects di Discord Developer Portal."
   }
 }

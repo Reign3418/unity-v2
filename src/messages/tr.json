@@ -1442,5 +1442,21 @@
     "rok_mail_title": "RoK İttifak & Krallık Postası (Unity Rich Text)",
     "rok_note_title": "Profil İmzası / İttifak Notu",
     "discord_md_title": "Discord Liderlik Duyurusu"
+  },
+  "AuthError": {
+    "badge": "Erişim Geçidi Bildirimi",
+    "title": "Kimlik Doğrulama Tamamlanamadı",
+    "subtitle": "Discord üzerinden giriş işlemi tamamlanamadı.",
+    "err_configuration": "Discord OAuth kimlik bilgileri veya yönlendirme ayarlarının Yüksek Komuta tarafından senkronize edilmesi gerekiyor. RoK Vali Kimliği ve PIN ile hemen savaş odasına erişebilirsiniz.",
+    "err_access_denied": "Discord yetkilendirmesi iptal edildi veya reddedildi. Yeniden deneyebilir veya Vali Kimliğinizi kullanabilirsiniz.",
+    "err_verification": "Kimlik doğrulama oturumunuzun süresi doldu. Lütfen tekrar deneyin.",
+    "err_default": "Kimlik doğrulama sırasında beklenmeyen bir sorun oluştu. Yüksek Komuta'ya otomatik uyarı iletildi.",
+    "btn_gov_login": "Vali Kimliği & PIN ile Giriş Yap",
+    "btn_retry_discord": "Discord Girişini Tekrar Dene",
+    "btn_free_academy": "Açık Akademi (Girişsiz)",
+    "admin_heading": "Yüksek Komuta Teşhis Özeti",
+    "admin_redirect_title": "Discord Developer Portal Callback URL",
+    "admin_env_title": "Gerekli Vercel Ortam Değişkenleri",
+    "admin_help_tip": "Bu dağıtım alan adının Discord Developer Portal'daki OAuth2 Redirects listesine eklendiğinden emin olun."
   }
 }

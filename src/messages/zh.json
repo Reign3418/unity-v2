@@ -1442,5 +1442,21 @@
     "rok_mail_title": "游戏内王国/联盟全员通告信（Unity富文本）",
     "rok_note_title": "个人签名档 / 联盟成员备注",
     "discord_md_title": "Discord 指挥官公告"
+  },
+  "AuthError": {
+    "badge": "网关访问通知",
+    "title": "身份验证未完成",
+    "subtitle": "无法通过 Discord 完成登录。",
+    "err_configuration": "Discord OAuth 凭证或重定向设置需要最高指挥部同步。您现在可以使用万国觉醒（RoK）执政官 ID 和 PIN 码直接进入作战室。",
+    "err_access_denied": "Discord 授权已取消或被拒绝。您可以重试或使用执政官 ID 登录。",
+    "err_verification": "您的身份验证会话或令牌已过期，请重试。",
+    "err_default": "身份验证过程中遇到未知挑战，已向最高指挥部发送自动警报。",
+    "btn_gov_login": "使用执政官 ID 与 PIN 登录",
+    "btn_retry_discord": "重试 Discord 登录",
+    "btn_free_academy": "公共执政官学院（免登录）",
+    "admin_heading": "最高指挥部诊断摘要",
+    "admin_redirect_title": "Discord 开发者后台 Callback URL",
+    "admin_env_title": "必需的 Vercel 环境变量",
+    "admin_help_tip": "请确保将此部署域名添加到 Discord 开发者后台的 OAuth2 Redirects 列表中。"
   }
 }

@@ -1442,5 +1442,21 @@
     "rok_mail_title": "Thư Phát Sóng Liên Minh & Vương Quốc (Unity Rich Text)",
     "rok_note_title": "Chữ Ký Hồ Sơ / Ghi Chú Thành Viên",
     "discord_md_title": "Thông Báo Lãnh Đạo Discord"
+  },
+  "AuthError": {
+    "badge": "Thông Báo Cổng Truy Cập",
+    "title": "Xác Thực Chưa Hoàn Tất",
+    "subtitle": "Không thể hoàn tất đăng nhập qua Discord.",
+    "err_configuration": "Thông tin Discord OAuth hoặc cài đặt chuyển hướng cần được Bộ Chỉ Huy đồng bộ. Bạn có thể truy cập phòng tác chiến ngay bằng ID Thống Đốc RoK & mã PIN.",
+    "err_access_denied": "Ủy quyền Discord đã bị hủy hoặc từ chối. Bạn có thể thử lại hoặc dùng ID Thống Đốc.",
+    "err_verification": "Phiên xác thực hoặc mã bảo mật đã hết hạn. Vui lòng thử lại.",
+    "err_default": "Đã xảy ra sự cố ngoài dự kiến trong khi xác thực. Cảnh báo tự động đã được chuyển tới Bộ Chỉ Huy.",
+    "btn_gov_login": "Đăng nhập bằng ID Thống Đốc & PIN",
+    "btn_retry_discord": "Thử lại Đăng Nhập Discord",
+    "btn_free_academy": "Học Viện Công Cộng (Không Cần Đăng Nhập)",
+    "admin_heading": "Tóm Tắt Chẩn Đoán Bộ Chỉ Huy",
+    "admin_redirect_title": "URL Callback trên Discord Developer Portal",
+    "admin_env_title": "Biến Môi Trường Vercel Bắt Buộc",
+    "admin_help_tip": "Đảm bảo tên miền triển khai này đã được thêm vào OAuth2 Redirects trên Discord Developer Portal."
   }
 }
