@@ -912,6 +912,7 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
   const [search, setSearch] = useState("");
 
   const isNascentServer = serverAgeDays !== null && serverAgeDays !== undefined && serverAgeDays <= 10;
+  const isYoungServer = isNascentServer;
 
   const filteredWhales = whales.filter(w => {
     if (!search.trim()) return true;
@@ -978,6 +979,12 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     } else if (w.isMigrant && !isNascentServer) {
       archetypeKey = "archetype_jumper";
       badgeColor = "text-blue-400 bg-blue-500/10 border-blue-500/30";
+    } else if (isEmergentEntry && pDelta >= 3000000) {
+      archetypeKey = "archetype_emergence_megalodon";
+      badgeColor = "text-fuchsia-400 bg-fuchsia-500/20 border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.25)]";
+    } else if (isEmergentEntry) {
+      archetypeKey = "archetype_roster_emergence";
+      badgeColor = "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
     } else if (buildPct >= 45) {
       archetypeKey = "archetype_ch_rusher";
       badgeColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
@@ -1004,6 +1011,10 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
       rationale = `T5 Push in Progress: Actively sprinting towards the T5 threshold (${t5TechPct}% Tech / ${t5BuildPct}% Buildings). Fast-tracking prerequisite research and building upgrades indicates imminent Tier 5 unlock readiness.`;
     } else if (w.isMigrant && !isNascentServer) {
       rationale = `Migrated into the kingdom during this window with ${fmt(w.powerEnd || pDelta)} power. Injects immediate external combat readiness and high-tier march capacity into [${w.alliance || "No Tag"}].`;
+    } else if (isEmergentEntry && pDelta >= 3000000) {
+      rationale = `Surged into top kingdom rankings with +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}]. High-impact emergent whale establishing dominant early presence.${breakdownText}`;
+    } else if (isEmergentEntry) {
+      rationale = `Surged into top kingdom rankings with +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}]. Late starter or rapid emergence.${breakdownText}`;
     } else if (buildPct >= 45) {
       rationale = `Surged +${fmt(pDelta)} power (+${fmt(hourlyPace)}/hr pace) into [${w.alliance || "No Tag"}], heavily prioritizing City Hall & prerequisite structures (+${fmt(buildD)} building power, ${buildPct}% of delta). Fast-tracking base infrastructure and march capacity.${breakdownText}`;
     } else if (troopPct >= 45) {

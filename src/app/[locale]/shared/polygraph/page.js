@@ -666,7 +666,7 @@ export default function SharedPolygraph() {
               <div
                 className="text-xs text-gray-500"
                 dangerouslySetInnerHTML={{
-                  __html: (kdd.serverAgeDays !== null && kdd.serverAgeDays <= 10 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc"))
+                  __html: String((kdd.serverAgeDays !== null && kdd.serverAgeDays !== undefined && kdd.serverAgeDays <= 10 ? t.raw("spenders_desc_nascent") : t.raw("spenders_desc")) || "")
                     .replace("<highlight>", '<span class="text-amber-400 font-bold">')
                     .replace("</highlight>", "</span>")
                     .replace("<new>", '<span class="text-cyan-400 font-semibold">')
