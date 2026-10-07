@@ -33,6 +33,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Discord({
       clientId: discordClientId,
       clientSecret: discordClientSecret,
+      // Discord appends `iss=https://discord.com` to the OAuth callback (RFC 9207).
+      // Auth.js validates it against provider.issuer, which otherwise defaults to https://authjs.dev.
+      issuer: 'https://discord.com',
       authorization: { params: { scope: 'identify email guilds guilds.members.read' } },
       checks: [],
       client: {
