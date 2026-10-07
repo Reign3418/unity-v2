@@ -128,6 +128,8 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
           setLoginError(t('err_registration_cleared'));
         } else if (code === "locked") {
           setLoginError(t('err_account_locked'));
+        } else if (code === "rate_limited") {
+          setLoginError(t('err_rate_limited'));
         } else {
           setLoginError(t('err_invalid_credentials'));
         }

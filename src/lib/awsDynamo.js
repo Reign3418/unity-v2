@@ -4851,7 +4851,7 @@ export async function saveGovernorAuth({ governorId, governorName, kingdomId, al
     }
 }
 
-export async function getGovernorAuth(governorId) {
+export async function getGovernorAuth(governorId, { throwOnError = false } = {}) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) return null;
 
@@ -4886,6 +4886,7 @@ export async function getGovernorAuth(governorId) {
         return null;
     } catch (e) {
         console.error(`[AWS] Failed to get Governor Auth for ${governorId}:`, e);
+        if (throwOnError) throw e;
         return null;
     }
 }
@@ -4960,30 +4961,38 @@ export async function getAllGovernorAuths() {
     if (!tableName) return [];
 
     try {
-        const params = {
-            TableName: tableName,
-            KeyConditionExpression: "PK = :pk",
-            ExpressionAttributeValues: {
-                ":pk": { S: "AUTH_GOVERNOR" }
-            }
-        };
-        const result = await dbClient.send(new QueryCommand(params));
-        if (result.Items) {
-            return result.Items.map(item => {
-                const attrs = item.attributes?.M || {};
-                return {
-                    governorId: attrs.governorId?.S || '',
-                    governorName: attrs.governorName?.S || 'Governor',
-                    kingdomId: attrs.kingdomId?.S || '3418',
-                    allianceTag: attrs.allianceTag?.S || '',
-                    power: attrs.power?.N ? Number(attrs.power.N) : 0,
-                    killPoints: attrs.killPoints?.N ? Number(attrs.killPoints.N) : 0,
-                    role: attrs.role?.S || 'User',
-                    registeredAt: attrs.registeredAt?.S || null
-                };
-            });
-        }
-        return [];
+        const items = [];
+        let ExclusiveStartKey;
+        do {
+            const result = await dbClient.send(new QueryCommand({
+                TableName: tableName,
+                KeyConditionExpression: "PK = :pk",
+                ExpressionAttributeValues: {
+                    ":pk": { S: "AUTH_GOVERNOR" }
+                },
+                ExclusiveStartKey
+            }));
+            if (result.Items) items.push(...result.Items);
+            ExclusiveStartKey = result.LastEvaluatedKey;
+        } while (ExclusiveStartKey);
+
+        return items.map(item => {
+            const attrs = item.attributes?.M || {};
+            return {
+                governorId: attrs.governorId?.S || '',
+                governorName: attrs.governorName?.S || 'Governor',
+                kingdomId: attrs.kingdomId?.S || '3418',
+                allianceTag: attrs.allianceTag?.S || '',
+                power: attrs.power?.N ? Number(attrs.power.N) : 0,
+                killPoints: attrs.killPoints?.N ? Number(attrs.killPoints.N) : 0,
+                role: attrs.role?.S || 'User',
+                registeredAt: attrs.registeredAt?.S || null,
+                updatedAt: attrs.updatedAt?.S || null,
+                failedAttempts: attrs.failedAttempts?.N ? Number(attrs.failedAttempts.N) : 0,
+                lastFailedAt: attrs.lastFailedAt?.S || null,
+                lockedAt: attrs.lockedAt?.S || null
+            };
+        });
     } catch (e) {
         console.error("AWS GetAllGovernorAuths Error", e);
         return [];
@@ -5006,6 +5015,7 @@ export async function updateGovernorAuth(governorId, kingdomId, role) {
                 SK: { S: `GOV#${cleanId}` }
             },
             UpdateExpression: "SET #a.kingdomId = :k, #a.#r = :r, #a.updatedAt = :u",
+            ConditionExpression: "attribute_exists(SK)",
             ExpressionAttributeNames: {
                 "#a": "attributes",
                 "#r": "role"
@@ -5136,4 +5146,81 @@ export async function lockGovernorAuth(governorId) {
         console.error("AWS LockGovernorAuth Error", e);
         return false;
     }
+}
+
+/**
+ * Admin restore: clears the lock and the failed PIN counter so the owner gets 10 fresh attempts.
+ * Returns false if the governor doesn't exist.
+ */
+export async function unlockGovernorAuth(governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const cleanId = String(governorId).trim();
+        await dbClient.send(new UpdateItemCommand({
+            TableName: tableName,
+            Key: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` }
+            },
+            UpdateExpression: "SET #a.failedAttempts = :zero, #a.updatedAt = :now REMOVE #a.lockedAt",
+            ConditionExpression: "attribute_exists(SK)",
+            ExpressionAttributeNames: { "#a": "attributes" },
+            ExpressionAttributeValues: {
+                ":zero": { N: "0" },
+                ":now": { S: new Date().toISOString() }
+            }
+        }));
+        return true;
+    } catch (e) {
+        console.error("AWS UnlockGovernorAuth Error", e);
+        return false;
+    }
+}
+
+// ─── Per-network login throttle ────────────────────────────────────────────────
+// Caps failed governor PIN attempts per client IP per hour, so one person can't spray
+// guesses across many accounts. IPs are stored only as a truncated salted hash.
+
+const LOGIN_THROTTLE_WINDOW_SECONDS = 60 * 60;
+
+function loginThrottleKey(ip) {
+    const salt = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || '';
+    const ipHash = crypto.createHash('sha256').update(`login-throttle:${salt}:${ip}`).digest('hex').slice(0, 32);
+    const windowStart = Math.floor(Date.now() / 1000 / LOGIN_THROTTLE_WINDOW_SECONDS) * LOGIN_THROTTLE_WINDOW_SECONDS;
+    return {
+        Key: { PK: { S: 'AUTH_THROTTLE' }, SK: { S: `IP#${ipHash}#${windowStart}` } },
+        expiresAt: windowStart + LOGIN_THROTTLE_WINDOW_SECONDS * 2
+    };
+}
+
+/** Failed governor login attempts from this IP in the current hour. Throws on DB error. */
+export async function getLoginThrottleCount(ip) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName || !ip) return 0;
+
+    const { Key } = loginThrottleKey(ip);
+    const result = await dbClient.send(new GetItemCommand({ TableName: tableName, Key, ConsistentRead: true }));
+    return result.Item?.failures?.N ? Number(result.Item.failures.N) : 0;
+}
+
+/** Atomically records one failed governor login from this IP; returns the new hourly count. */
+export async function recordLoginThrottleFailure(ip) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName || !ip) return 0;
+
+    const { Key, expiresAt } = loginThrottleKey(ip);
+    const result = await dbClient.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key,
+        UpdateExpression: "ADD failures :one SET expiresAt = :exp, #ttl = :exp",
+        ExpressionAttributeNames: { "#ttl": "ttl" },
+        ExpressionAttributeValues: {
+            ":one": { N: "1" },
+            ":exp": { N: String(expiresAt) }
+        },
+        ReturnValues: "UPDATED_NEW"
+    }));
+    return result.Attributes?.failures?.N ? Number(result.Attributes.failures.N) : 0;
 }

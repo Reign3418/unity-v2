@@ -1,9 +1,10 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin, recordGovernorLoginFailure, resetGovernorLoginFailures, lockGovernorAuth, deleteGovernorAuth } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin, recordGovernorLoginFailure, resetGovernorLoginFailures, lockGovernorAuth, deleteGovernorAuth, getLoginThrottleCount, recordLoginThrottleFailure } from "./awsDynamo";
 import { notifyAdmin } from "./notifyAdmin";
 import { logEvent } from "./eventLogger";
+import { governorRoleFlags, isElevatedGovernorRole } from "./governorRoles";
 import { createHash, timingSafeEqual } from "crypto";
 
 /** Constant-time string comparison (hash first so differing lengths don't leak or throw). */
@@ -22,6 +23,93 @@ class GovernorLoginError extends CredentialsSignin {
     super();
     this.code = code;
   }
+}
+
+/** Max failed governor PIN attempts per client IP per hour (across all accounts). */
+const GOVERNOR_IP_MAX_FAILURES_PER_HOUR = 25;
+
+/** How often a governor session is re-checked against the database. */
+const GOVERNOR_SESSION_RECHECK_MS = 5 * 60 * 1000;
+
+/**
+ * Client network key as reported by Vercel's edge (x-real-ip / first x-forwarded-for hop).
+ * IPv6 is bucketed to its /64, since one connection typically controls a whole /64.
+ */
+function clientIpFrom(request) {
+  const h = request?.headers;
+  if (!h?.get) return null;
+  let ip = String(h.get("x-real-ip") || (h.get("x-forwarded-for") || "").split(",")[0] || "").trim().toLowerCase();
+  if (!ip) return null;
+  if (!ip.includes(":")) return ip;
+  if (ip.startsWith("::ffff:") && ip.includes(".")) return ip.slice(7); // IPv4-mapped
+  ip = ip.split("%")[0];
+  const [head, tail] = ip.split("::");
+  const h1 = head ? head.split(":") : [];
+  const t1 = tail ? tail.split(":") : [];
+  const groups = ip.includes("::") ? [...h1, ...Array(Math.max(0, 8 - h1.length - t1.length)).fill("0"), ...t1] : h1;
+  return groups.slice(0, 4).map(g => (g || "0").padStart(4, "0")).join(":") + "::/64";
+}
+
+/** Counts a failed governor login against the caller's IP. Never blocks the response on errors. */
+async function noteFailedGovernorLogin(ip) {
+  if (!ip) return;
+  try {
+    await recordLoginThrottleFailure(ip);
+  } catch (e) {
+    console.error("[GovernorLogin] Throttle record failed:", e?.message);
+  }
+}
+
+/** Applies a governor's current role/kingdom to the JWT. */
+function applyGovernorClaims(token, govData) {
+  const flags = governorRoleFlags(govData?.role);
+  token.isMember = true;
+  token.isAnalyst = flags.isAnalyst;
+  token.isLeader = flags.isLeader;
+  token.isSuperAdmin = flags.isSuperAdmin;
+  token.isSupporter = true;
+  token.role = flags.role;
+
+  const kd = String(govData?.kingdomId || "3418");
+  token.tenant = {
+    guildId: "kingdom_" + kd,
+    kingdomId: kd,
+    allianceTag: govData?.allianceTag || "",
+    leadershipRoleId: "member",
+    allowedKingdoms: [kd]
+  };
+  token.governorConfig = {
+    governorId: govData?.governorId,
+    governorName: govData?.governorName
+  };
+  token.ownedGuilds = [];
+  token.govRegisteredAt = govData?.registeredAt || null;
+  token.govCheckedAt = Date.now();
+  return token;
+}
+
+/**
+ * Re-validates an existing governor session every few minutes so admin actions take effect
+ * without waiting for the 30-day cookie to expire: deleted/locked/re-registered accounts are
+ * signed out, and role or kingdom changes are applied. Returning null clears the session cookie.
+ * Never throws (a throw here would surface as a session error); on a DB outage the token is kept.
+ */
+async function refreshGovernorToken(token) {
+  if (token.govCheckedAt && Date.now() - token.govCheckedAt < GOVERNOR_SESSION_RECHECK_MS) return token;
+
+  const governorId = String(token.id).slice(4);
+  let govAuth;
+  try {
+    govAuth = await getGovernorAuth(governorId, { throwOnError: true });
+  } catch {
+    return token;
+  }
+
+  if (!govAuth || govAuth.lockedAt) return null;
+  // Account was cleared and registered again (possibly by someone else): old sessions die.
+  if (token.govRegisteredAt && govAuth.registeredAt && token.govRegisteredAt !== govAuth.registeredAt) return null;
+
+  return applyGovernorClaims(token, govAuth);
 }
 
 const discordClientId = (
@@ -128,25 +216,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         governorId: { label: "Governor ID", type: "text" },
         pin: { label: "4-Digit PIN", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.governorId || !credentials?.pin) return null;
         const cleanId = String(credentials.governorId).replace(/\D/g, '');
         const pin = String(credentials.pin).trim();
         if (!cleanId || !/^\d{4,8}$/.test(pin)) return null;
 
+        // Per-network limit first, so blocked guesses never touch (or count against) any account.
+        // Fails open on DB errors: the per-account 10-strike limit still applies.
+        const ip = clientIpFrom(request);
+        try {
+          if (ip && await getLoginThrottleCount(ip) >= GOVERNOR_IP_MAX_FAILURES_PER_HOUR) {
+            throw new GovernorLoginError("rate_limited");
+          }
+        } catch (e) {
+          if (e instanceof GovernorLoginError) throw e;
+          console.error("[GovernorLogin] Throttle check failed:", e?.message);
+        }
+
         const govAuth = await getGovernorAuth(cleanId);
-        if (!govAuth) return null;
+        if (!govAuth) {
+          await noteFailedGovernorLogin(ip);
+          return null;
+        }
 
         // Elevated accounts that hit the limit are locked until an admin restores them.
         if (govAuth.lockedAt) throw new GovernorLoginError("locked");
 
         if (!safeEqual(govAuth.pinHash, hashGovernorPin(pin))) {
-          const attempts = await recordGovernorLoginFailure(cleanId);
+          const [attempts] = await Promise.all([
+            recordGovernorLoginFailure(cleanId),
+            noteFailedGovernorLogin(ip)
+          ]);
           if (attempts === null) return null; // Record vanished mid-request.
 
           if (attempts >= GOVERNOR_MAX_PIN_ATTEMPTS) {
-            const isElevated = (govAuth.role || 'User') !== 'User';
-            if (isElevated) {
+            if (isElevatedGovernorRole(govAuth.role)) {
               await lockGovernorAuth(cleanId);
               notifyAdmin({
                 type: "ERROR",
@@ -253,6 +358,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user, account, profile }) {
+      // Existing governor session (no fresh sign-in): re-check deletions, locks and role changes.
+      if (!account && typeof token?.id === "string" && token.id.startsWith("GOV_")) {
+        return refreshGovernorToken(token);
+      }
+
       if (account?.provider === 'credentials' || account?.provider === 'guest' || account?.provider === 'freemode' || account?.provider === 'governor') {
           // ==========================================
           // EMERGENCY OFFLINE LOGIN BYPASS (DISCORD DOWN)
@@ -349,28 +459,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.username = user.name;
               token.avatar = user.image;
               token.accessToken = "GOV_MODE";
-              
-              token.isMember = true;
-              token.isAnalyst = user.govData?.role === "Data Analyst" || user.govData?.role === "analyst" || user.govData?.role === "Leader" || user.govData?.role === "Admin";
-              token.isLeader = user.govData?.role === "Leader" || user.govData?.role === "Admin";
-              token.isSuperAdmin = user.govData?.role === "Admin";
-              token.isSupporter = true;
-              token.role = user.govData?.role || "User";
-              
-              const kd = String(user.govData?.kingdomId || "3418");
-              token.tenant = {
-                  guildId: "kingdom_" + kd,
-                  kingdomId: kd,
-                  allianceTag: user.govData?.allianceTag || "",
-                  leadershipRoleId: "member",
-                  allowedKingdoms: [kd]
-              };
-              token.governorConfig = {
-                  governorId: user.govData?.governorId,
-                  governorName: user.govData?.governorName
-              };
-              token.ownedGuilds = [];
-              return token;
+              return applyGovernorClaims(token, user.govData);
           }
       }
 
