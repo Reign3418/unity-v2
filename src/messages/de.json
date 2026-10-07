@@ -908,7 +908,13 @@
     "btn_sending_sos": "SOS wird übertragen...",
     "help_success_title": "SOS-Signal gesendet!",
     "help_success_desc": "Königreichsführung wurde benachrichtigt. Ein Offizier wird sich melden.",
-    "link_officers": "Probleme bei der Aktivierung? Offiziere rufen →"
+    "link_officers": "Probleme bei der Aktivierung? Offiziere rufen →",
+    "err_invalid_credentials": "Ungültige Gouverneurs-ID oder PIN. Falls du noch nicht registriert bist, nutze den Tab „Selbstregistrierung“.",
+    "err_pin_attempts_left": "Falsche PIN. Noch {count, plural, one {# Versuch} other {# Versuche}}, bevor diese Registrierung gelöscht wird und neu erfolgen muss.",
+    "err_registration_cleared": "Zu viele falsche PINs. Diese Registrierung wurde gelöscht – bitte registriere dich über den Tab „Selbstregistrierung“ erneut.",
+    "err_account_locked": "Dieses Konto wurde nach zu vielen falschen PINs gesperrt. Bitte wende dich an die Führung deines Königreichs, um den Zugang wiederherzustellen.",
+    "err_already_registered": "Diese Gouverneurs-ID ist bereits registriert. Bitte melde dich mit deiner PIN an. Vergessen? Nach 10 Fehlversuchen wird die Registrierung gelöscht und du kannst dich neu registrieren.",
+    "err_login_failed": "Verbindung zur Authentifizierung fehlgeschlagen. Bitte versuche es erneut."
   },
   "AccessMatrix": {
     "pill_architecture": "Plattform-Zugriffsarchitektur • Transparenzprotokoll",

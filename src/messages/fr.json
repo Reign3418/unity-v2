@@ -908,7 +908,13 @@
     "btn_sending_sos": "Transmission du SOS...",
     "help_success_title": "Alerte SOS transmise !",
     "help_success_desc": "Les officiers du royaume ont été prévenus. Un officier prendra contact avec vous.",
-    "link_officers": "Problème d'activation ? Alerter les officiers →"
+    "link_officers": "Problème d'activation ? Alerter les officiers →",
+    "err_invalid_credentials": "ID de Gouverneur ou code PIN invalide. Si vous n'êtes pas encore inscrit, utilisez l'onglet Auto-inscription.",
+    "err_pin_attempts_left": "Code PIN incorrect. Encore {count, plural, one {# tentative} other {# tentatives}} avant que cette inscription soit effacée et doive être refaite.",
+    "err_registration_cleared": "Trop de codes PIN incorrects. Cette inscription a été effacée — veuillez vous réinscrire via l'onglet Auto-inscription.",
+    "err_account_locked": "Ce compte est verrouillé après trop de codes PIN incorrects. Contactez la direction de votre royaume pour rétablir l'accès.",
+    "err_already_registered": "Cet ID de Gouverneur est déjà inscrit. Connectez-vous avec votre code PIN. Oublié ? Après 10 tentatives erronées, l'inscription est effacée et vous pouvez vous réinscrire.",
+    "err_login_failed": "Échec de la connexion d'authentification. Veuillez réessayer."
   },
   "AccessMatrix": {
     "pill_architecture": "Architecture d'Accès • Protocole de Transparence",

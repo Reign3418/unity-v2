@@ -38,24 +38,13 @@ export async function POST(req) {
         // Check if governor already registered
         const existingAuth = await getGovernorAuth(cleanId);
         if (existingAuth) {
-            // If already registered, update their PIN if verified
-            const pinHash = hashGovernorPin(pin);
-            await saveGovernorAuth({
-                governorId: cleanId,
-                governorName: governorName || existingAuth.governorName,
-                kingdomId: kingdomNumber || existingAuth.kingdomId || "3418",
-                allianceTag: allianceTag || existingAuth.allianceTag || "",
-                pinHash,
-                power: power || existingAuth.power || 0,
-                killPoints: killPoints || existingAuth.killPoints || 0,
-                role: existingAuth.role || "User"
-            });
-
+            // SECURITY: never overwrite an existing registration. This endpoint has no proof of
+            // ownership, so overwriting would let anyone take over any account (and its role).
+            // Forgotten PIN: after 10 failed logins a regular account is cleared and can re-register.
             return NextResponse.json({
-                success: true,
-                message: "Governor credentials updated successfully! You can now log in.",
-                governorId: cleanId
-            });
+                error: "This Governor ID is already registered.",
+                code: existingAuth.lockedAt ? "ACCOUNT_LOCKED" : "ALREADY_REGISTERED"
+            }, { status: 409 });
         }
 
         // New Governor Registration
@@ -72,6 +61,10 @@ export async function POST(req) {
             killPoints: Number(killPoints) || 0,
             role: "User"
         });
+
+        if (saved === 'exists') {
+            return NextResponse.json({ error: "This Governor ID is already registered.", code: "ALREADY_REGISTERED" }, { status: 409 });
+        }
 
         if (!saved) {
             notifyAdmin({

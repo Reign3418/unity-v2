@@ -908,7 +908,13 @@
     "btn_sending_sos": "Đang truyền tín hiệu SOS...",
     "help_success_title": "Đã Gửi Tín Hiệu SOS!",
     "help_success_desc": "Ban lãnh đạo vương quốc đã nhận được thông báo. Vui lòng chờ sĩ quan phản hồi.",
-    "link_officers": "Gặp sự cố kích hoạt? Báo Sĩ Quan Vương Quốc →"
+    "link_officers": "Gặp sự cố kích hoạt? Báo Sĩ Quan Vương Quốc →",
+    "err_invalid_credentials": "ID Thống đốc hoặc mã PIN không hợp lệ. Nếu bạn chưa đăng ký, hãy dùng thẻ Tự đăng ký.",
+    "err_pin_attempts_left": "Sai mã PIN. Còn {count} lần thử trước khi đăng ký này bị xóa và phải làm lại.",
+    "err_registration_cleared": "Nhập sai PIN quá nhiều lần. Đăng ký này đã bị xóa — vui lòng đăng ký lại ở thẻ Tự đăng ký.",
+    "err_account_locked": "Tài khoản này đã bị khóa do nhập sai PIN quá nhiều lần. Vui lòng liên hệ ban lãnh đạo vương quốc để khôi phục quyền truy cập.",
+    "err_already_registered": "ID Thống đốc này đã được đăng ký. Vui lòng đăng nhập bằng mã PIN. Quên mã? Sau 10 lần sai, đăng ký sẽ bị xóa và bạn có thể đăng ký lại.",
+    "err_login_failed": "Kết nối xác thực thất bại. Vui lòng thử lại."
   },
   "AccessMatrix": {
     "pill_architecture": "Kiến Trúc Truy Cập Nền Tảng • Giao Thức Minh Bạch",

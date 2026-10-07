@@ -1,8 +1,9 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Discord from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin } from "./awsDynamo";
+import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin, recordGovernorLoginFailure, resetGovernorLoginFailures, lockGovernorAuth, deleteGovernorAuth } from "./awsDynamo";
 import { notifyAdmin } from "./notifyAdmin";
+import { logEvent } from "./eventLogger";
 import { createHash, timingSafeEqual } from "crypto";
 
 /** Constant-time string comparison (hash first so differing lengths don't leak or throw). */
@@ -10,6 +11,17 @@ function safeEqual(a, b) {
   const ha = createHash("sha256").update(String(a)).digest();
   const hb = createHash("sha256").update(String(b)).digest();
   return timingSafeEqual(ha, hb);
+}
+
+/** After this many wrong PINs a regular governor account is cleared (owner re-registers). */
+const GOVERNOR_MAX_PIN_ATTEMPTS = 10;
+
+/** Governor login failure with a client-visible code (attempts left / cleared / locked). */
+class GovernorLoginError extends CredentialsSignin {
+  constructor(code) {
+    super();
+    this.code = code;
+  }
 }
 
 const discordClientId = (
@@ -118,21 +130,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.governorId || !credentials?.pin) return null;
-        const cleanId = String(credentials.governorId).trim();
+        const cleanId = String(credentials.governorId).replace(/\D/g, '');
+        const pin = String(credentials.pin).trim();
+        if (!cleanId || !/^\d{4,8}$/.test(pin)) return null;
+
         const govAuth = await getGovernorAuth(cleanId);
         if (!govAuth) return null;
 
-        const hashed = hashGovernorPin(credentials.pin);
-        if (govAuth.pinHash !== hashed) {
-          return null;
+        // Elevated accounts that hit the limit are locked until an admin restores them.
+        if (govAuth.lockedAt) throw new GovernorLoginError("locked");
+
+        if (!safeEqual(govAuth.pinHash, hashGovernorPin(pin))) {
+          const attempts = await recordGovernorLoginFailure(cleanId);
+          if (attempts === null) return null; // Record vanished mid-request.
+
+          if (attempts >= GOVERNOR_MAX_PIN_ATTEMPTS) {
+            const isElevated = (govAuth.role || 'User') !== 'User';
+            if (isElevated) {
+              await lockGovernorAuth(cleanId);
+              notifyAdmin({
+                type: "ERROR",
+                title: `🔒 Governor Account Locked: ${cleanId}`,
+                message: `${govAuth.governorName || cleanId} (${govAuth.role}) hit ${GOVERNOR_MAX_PIN_ATTEMPTS} failed PIN attempts and was locked instead of cleared because it holds an elevated role. Verify the owner before restoring.`,
+                details: { governorId: cleanId, governorName: govAuth.governorName, kingdomNumber: govAuth.kingdomId, reason: "PIN attempt limit reached on elevated account" }
+              }).catch(() => {});
+              throw new GovernorLoginError("locked");
+            }
+            await deleteGovernorAuth(cleanId);
+            logEvent('AUTH_GOVERNOR_CLEARED', { governorId: cleanId, kingdomNumber: govAuth.kingdomId, reason: 'pin_attempt_limit' }).catch(() => {});
+            throw new GovernorLoginError("cleared");
+          }
+
+          throw new GovernorLoginError(`pin_attempts_${GOVERNOR_MAX_PIN_ATTEMPTS - attempts}`);
         }
 
+        if (govAuth.failedAttempts > 0) await resetGovernorLoginFailures(cleanId);
+
+        // Never carry the PIN hash into the JWT/session pipeline.
+        const { pinHash: _omit, ...safeGovData } = govAuth;
         return {
           id: `GOV_${cleanId}`,
           name: govAuth.governorName || `Governor ${cleanId}`,
           email: `${cleanId}@unity.rok`,
           image: "https://cdn.discordapp.com/embed/avatars/2.png",
-          govData: govAuth
+          govData: safeGovData
         };
       }
     }),
@@ -144,6 +185,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
   logger: {
     error(error) {
+      // Wrong PIN / passcode is a normal user error, not a system fault. Don't alert admins
+      // (anyone could flood the Discord webhook) and don't clobber the last real auth error.
+      if (error?.type === "CredentialsSignin" || error instanceof CredentialsSignin) {
+        console.warn("[NextAuth] Credentials sign-in rejected:", error?.code || "credentials");
+        return;
+      }
       console.error("[NextAuth Server Error]:", error?.name || error?.type, error?.message);
       if (error?.cause) {
         console.error("[NextAuth Cause]:", error.cause);

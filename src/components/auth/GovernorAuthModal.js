@@ -119,13 +119,24 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
       });
 
       if (res?.error) {
-        setLoginError("Invalid Governor ID or PIN. If you have not registered yet, use the Self-Register tab.");
+        const code = String(res.code || "");
+        const attemptsMatch = code.match(/^pin_attempts_(\d{1,2})$/);
+        if (attemptsMatch) {
+          setLoginError(t('err_pin_attempts_left', { count: Number(attemptsMatch[1]) }));
+        } else if (code === "cleared") {
+          setLoginPin("");
+          setLoginError(t('err_registration_cleared'));
+        } else if (code === "locked") {
+          setLoginError(t('err_account_locked'));
+        } else {
+          setLoginError(t('err_invalid_credentials'));
+        }
         setLoginLoading(false);
       } else {
         window.location.reload();
       }
     } catch {
-      setLoginError("Authentication uplink failed. Please try again.");
+      setLoginError(t('err_login_failed'));
       setLoginLoading(false);
     }
   };
@@ -218,6 +229,10 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
       });
 
       const data = await res.json();
+      if (res.status === 409) {
+        setRegisterError(data.code === "ACCOUNT_LOCKED" ? t('err_account_locked') : t('err_already_registered'));
+        return;
+      }
       if (!res.ok || data.error) {
         throw new Error(data.error || "Registration failed.");
       }

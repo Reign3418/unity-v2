@@ -908,7 +908,13 @@
     "btn_sending_sos": "Transmitiendo SOS...",
     "help_success_title": "¡Alerta SOS Enviada!",
     "help_success_desc": "El liderazgo y oficiales han sido notificados. Por favor espera su contacto.",
-    "link_officers": "¿Problemas para activar? Avisar a oficiales →"
+    "link_officers": "¿Problemas para activar? Avisar a oficiales →",
+    "err_invalid_credentials": "ID de Gobernador o PIN incorrectos. Si aún no te has registrado, usa la pestaña de Autorregistro.",
+    "err_pin_attempts_left": "PIN incorrecto. {count, plural, one {Queda # intento} other {Quedan # intentos}} antes de que este registro se borre y deba repetirse.",
+    "err_registration_cleared": "Demasiados PIN incorrectos. Este registro ha sido borrado; vuelve a registrarte desde la pestaña de Autorregistro.",
+    "err_account_locked": "Esta cuenta se ha bloqueado tras demasiados PIN incorrectos. Contacta con el liderazgo de tu reino para recuperar el acceso.",
+    "err_already_registered": "Este ID de Gobernador ya está registrado. Inicia sesión con tu PIN. ¿Lo olvidaste? Tras 10 intentos fallidos el registro se borra y podrás registrarte de nuevo.",
+    "err_login_failed": "Falló la conexión de autenticación. Inténtalo de nuevo."
   },
   "AccessMatrix": {
     "pill_architecture": "Arquitectura de Acceso • Protocolo de Transparencia",

@@ -908,7 +908,13 @@
     "btn_sending_sos": "Mengirimkan SOS...",
     "help_success_title": "Sinyal SOS Terkirim!",
     "help_success_desc": "Pimpinan kerajaan telah diberitahu. Harap tunggu perwira menghubungi Anda.",
-    "link_officers": "Kendala aktivasi? Hubungi Perwira Kerajaan →"
+    "link_officers": "Kendala aktivasi? Hubungi Perwira Kerajaan →",
+    "err_invalid_credentials": "ID Gubernur atau PIN tidak valid. Jika belum terdaftar, gunakan tab Daftar Mandiri.",
+    "err_pin_attempts_left": "PIN salah. Tersisa {count} percobaan sebelum pendaftaran ini dihapus dan harus diulang.",
+    "err_registration_cleared": "Terlalu banyak PIN salah. Pendaftaran ini telah dihapus — silakan daftar ulang melalui tab Daftar Mandiri.",
+    "err_account_locked": "Akun ini dikunci setelah terlalu banyak PIN salah. Silakan hubungi pimpinan kerajaan Anda untuk memulihkan akses.",
+    "err_already_registered": "ID Gubernur ini sudah terdaftar. Silakan masuk dengan PIN Anda. Lupa? Setelah 10 percobaan salah, pendaftaran dihapus dan Anda dapat mendaftar lagi.",
+    "err_login_failed": "Koneksi autentikasi gagal. Silakan coba lagi."
   },
   "AccessMatrix": {
     "pill_architecture": "Arsitektur Akses Platform • Protokol Transparansi",

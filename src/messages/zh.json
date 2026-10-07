@@ -908,7 +908,13 @@
     "btn_sending_sos": "正在发送 SOS 信号...",
     "help_success_title": "SOS 呼叫已发出！",
     "help_success_desc": "王国领导层与数据军官已收到通知。请等待军官与您取得联系。",
-    "link_officers": "激活遇到困难？呼叫王国军官 →"
+    "link_officers": "激活遇到困难？呼叫王国军官 →",
+    "err_invalid_credentials": "总督 ID 或 PIN 无效。如果您尚未注册，请使用“自助注册”标签页。",
+    "err_pin_attempts_left": "PIN 错误。还剩 {count} 次机会，之后此注册将被清除，需要重新注册。",
+    "err_registration_cleared": "PIN 错误次数过多。此注册已被清除——请通过“自助注册”标签页重新注册。",
+    "err_account_locked": "由于 PIN 错误次数过多，此账户已被锁定。请联系您的王国领导层恢复访问。",
+    "err_already_registered": "此总督 ID 已注册。请使用您的 PIN 登录。忘记了？错误 10 次后注册将被清除，您可以重新注册。",
+    "err_login_failed": "认证连接失败，请重试。"
   },
   "AccessMatrix": {
     "pill_architecture": "平台访问架构 • 权限透明协议",

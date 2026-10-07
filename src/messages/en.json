@@ -908,7 +908,13 @@
     "btn_sending_sos": "Transmitting SOS...",
     "help_success_title": "SOS Ping Dispatched!",
     "help_success_desc": "Kingdom leadership and data officers have been notified. Please wait for an officer to reach out.",
-    "link_officers": "Having trouble activating? Ping Kingdom Officers →"
+    "link_officers": "Having trouble activating? Ping Kingdom Officers →",
+    "err_invalid_credentials": "Invalid Governor ID or PIN. If you have not registered yet, use the Self-Register tab.",
+    "err_pin_attempts_left": "Wrong PIN. {count, plural, one {# attempt} other {# attempts}} left before this registration is cleared and must be redone.",
+    "err_registration_cleared": "Too many wrong PINs. This registration has been cleared — please register again using the Self-Register tab.",
+    "err_account_locked": "This account is locked after too many wrong PINs. Please contact your kingdom leadership to restore access.",
+    "err_already_registered": "This Governor ID is already registered. Please log in with your PIN. Forgot it? After 10 wrong attempts the registration is cleared and you can register again.",
+    "err_login_failed": "Authentication uplink failed. Please try again."
   },
   "AccessMatrix": {
     "pill_architecture": "Platform Access Architecture • Transparency Protocol",

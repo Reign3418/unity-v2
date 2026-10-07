@@ -908,7 +908,13 @@
     "btn_sending_sos": "SOS İletiliyor...",
     "help_success_title": "SOS Bildirimi Gönderildi!",
     "help_success_desc": "Krallık liderliği bilgilendirildi. Lütfen bir subayın ulaşmasını bekleyin.",
-    "link_officers": "Aktivasyon sorunu mu var? Subayları Çağır →"
+    "link_officers": "Aktivasyon sorunu mu var? Subayları Çağır →",
+    "err_invalid_credentials": "Geçersiz Vali Kimliği veya PIN. Henüz kayıt olmadıysanız Kendi Kaydını Yap sekmesini kullanın.",
+    "err_pin_attempts_left": "Yanlış PIN. Bu kayıt silinip yeniden yapılması gerekmeden önce {count} deneme hakkınız kaldı.",
+    "err_registration_cleared": "Çok fazla yanlış PIN. Bu kayıt silindi — lütfen Kendi Kaydını Yap sekmesinden yeniden kayıt olun.",
+    "err_account_locked": "Bu hesap çok fazla yanlış PIN nedeniyle kilitlendi. Erişimi geri almak için krallık liderliğinizle iletişime geçin.",
+    "err_already_registered": "Bu Vali Kimliği zaten kayıtlı. Lütfen PIN'inizle giriş yapın. Unuttunuz mu? 10 yanlış denemeden sonra kayıt silinir ve yeniden kayıt olabilirsiniz.",
+    "err_login_failed": "Kimlik doğrulama bağlantısı başarısız oldu. Lütfen tekrar deneyin."
   },
   "AccessMatrix": {
     "pill_architecture": "Platform Erişim Mimarisi • Şeffaflık Protokolü",

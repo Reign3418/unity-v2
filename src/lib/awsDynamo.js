@@ -4840,9 +4840,12 @@ export async function saveGovernorAuth({ governorId, governorName, kingdomId, al
                 }
             }
         };
+        // Create-only: refuse to overwrite an existing registration even under concurrent requests.
+        params.ConditionExpression = 'attribute_not_exists(SK)';
         await dbClient.send(new PutItemCommand(params));
         return true;
     } catch (e) {
+        if (e?.name === 'ConditionalCheckFailedException') return 'exists';
         console.error(`[AWS] Failed to save Governor Auth for ${governorId}:`, e);
         return false;
     }
@@ -4875,7 +4878,9 @@ export async function getGovernorAuth(governorId) {
                 power: attrs.power?.N ? Number(attrs.power.N) : 0,
                 killPoints: attrs.killPoints?.N ? Number(attrs.killPoints.N) : 0,
                 role: attrs.role?.S || 'User',
-                registeredAt: attrs.registeredAt?.S || null
+                registeredAt: attrs.registeredAt?.S || null,
+                failedAttempts: attrs.failedAttempts?.N ? Number(attrs.failedAttempts.N) : 0,
+                lockedAt: attrs.lockedAt?.S || null
             };
         }
         return null;
@@ -5040,6 +5045,95 @@ export async function deleteGovernorAuth(governorId) {
         return true;
     } catch (e) {
         console.error("AWS DeleteGovernorAuth Error", e);
+        return false;
+    }
+}
+
+
+/**
+ * Atomically increments a governor's failed PIN attempt counter and returns the new count.
+ * Atomic so parallel guesses can't race past the limit. Returns null if the record is gone.
+ */
+export async function recordGovernorLoginFailure(governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return null;
+
+    try {
+        const cleanId = String(governorId).trim();
+        const result = await dbClient.send(new UpdateItemCommand({
+            TableName: tableName,
+            Key: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` }
+            },
+            UpdateExpression: "SET #a.failedAttempts = if_not_exists(#a.failedAttempts, :zero) + :one, #a.lastFailedAt = :now",
+            ConditionExpression: "attribute_exists(SK)",
+            ExpressionAttributeNames: { "#a": "attributes" },
+            ExpressionAttributeValues: {
+                ":zero": { N: "0" },
+                ":one": { N: "1" },
+                ":now": { S: new Date().toISOString() }
+            },
+            ReturnValues: "UPDATED_NEW"
+        }));
+        const n = result.Attributes?.attributes?.M?.failedAttempts?.N;
+        return n ? Number(n) : null;
+    } catch (e) {
+        if (e?.name === 'ConditionalCheckFailedException') return null;
+        console.error("AWS RecordGovernorLoginFailure Error", e);
+        throw e; // Fail closed: caller must not treat an unknown error as a successful check.
+    }
+}
+
+/** Clears the failed PIN attempt counter after a successful login. */
+export async function resetGovernorLoginFailures(governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const cleanId = String(governorId).trim();
+        await dbClient.send(new UpdateItemCommand({
+            TableName: tableName,
+            Key: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` }
+            },
+            UpdateExpression: "SET #a.failedAttempts = :zero",
+            ConditionExpression: "attribute_exists(SK)",
+            ExpressionAttributeNames: { "#a": "attributes" },
+            ExpressionAttributeValues: { ":zero": { N: "0" } }
+        }));
+        return true;
+    } catch (e) {
+        console.error("AWS ResetGovernorLoginFailures Error", e);
+        return false;
+    }
+}
+
+/**
+ * Locks a governor account (used for elevated-role accounts instead of deletion, so a
+ * stranger can't wipe a Leader/Admin by deliberately entering wrong PINs).
+ */
+export async function lockGovernorAuth(governorId) {
+    const tableName = process.env.AWS_TABLE_NAME;
+    if (!tableName) return false;
+
+    try {
+        const cleanId = String(governorId).trim();
+        await dbClient.send(new UpdateItemCommand({
+            TableName: tableName,
+            Key: {
+                PK: { S: 'AUTH_GOVERNOR' },
+                SK: { S: `GOV#${cleanId}` }
+            },
+            UpdateExpression: "SET #a.lockedAt = :now",
+            ConditionExpression: "attribute_exists(SK)",
+            ExpressionAttributeNames: { "#a": "attributes" },
+            ExpressionAttributeValues: { ":now": { S: new Date().toISOString() } }
+        }));
+        return true;
+    } catch (e) {
+        console.error("AWS LockGovernorAuth Error", e);
         return false;
     }
 }
