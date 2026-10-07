@@ -32,18 +32,59 @@ export async function GET(request) {
     ""
   ).trim();
 
+  const callbackUrl = `${origin}/api/auth/callback/discord`;
+
+  // Real-time live credential probe with Discord OAuth token endpoint
+  let discordSecretVerified = null;
+  let discordApiMessage = null;
+
+  if (clientId && clientSecret) {
+    try {
+      const probeRes = await fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          grant_type: "authorization_code",
+          code: "diagnostic_probe_test",
+          redirect_uri: callbackUrl,
+        }),
+      });
+
+      const data = await probeRes.json().catch(() => ({}));
+      if (probeRes.status === 401 && data.error === "invalid_client") {
+        discordSecretVerified = false;
+        discordApiMessage = "Discord rejected the credentials (invalid_client). The client secret in Vercel does not match your Discord Application.";
+      } else if (probeRes.status === 400 && data.error === "invalid_grant") {
+        // Discord validated client credentials! It only rejected the fake code.
+        discordSecretVerified = true;
+        discordApiMessage = "Discord verified the client credentials successfully (client_id and client_secret match).";
+      } else {
+        discordSecretVerified = probeRes.status !== 401;
+        discordApiMessage = `Discord response: ${data.error || probeRes.status} ${data.error_description || ''}`;
+      }
+    } catch (e) {
+      discordApiMessage = `Discord probe error: ${e.message}`;
+    }
+  }
+
   const lastError = getLastAuthError();
 
   return NextResponse.json({
-    status: (!clientId || !clientSecret) ? "CONFIG_MISSING" : "CONFIGURED",
+    status: (!clientId || !clientSecret) ? "CONFIG_MISSING" : (discordSecretVerified ? "HEALTHY" : "CREDENTIALS_INVALID"),
     origin,
-    callbackUrl: `${origin}/api/auth/callback/discord`,
+    callbackUrl,
     env: {
       hasClientId: Boolean(clientId),
       clientIdMasked: clientId ? `${clientId.slice(0, 4)}...${clientId.slice(-4)}` : null,
       hasClientSecret: Boolean(clientSecret),
       clientSecretLength: clientSecret ? clientSecret.length : 0,
       hasAuthSecret: Boolean(authSecret),
+    },
+    discordProbe: {
+      verified: discordSecretVerified,
+      message: discordApiMessage,
     },
     lastError: lastError ? {
       name: lastError.name,

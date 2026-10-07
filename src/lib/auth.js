@@ -34,7 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: discordClientId,
       clientSecret: discordClientSecret,
       authorization: { params: { scope: 'identify guilds guilds.members.read' } },
-      checks: ['state'],
+      checks: [],
     }),
     CredentialsProvider({
       name: "Emergency Architecture Login",

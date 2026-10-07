@@ -12,6 +12,7 @@ import {
 export default function AuthErrorClient({ locale, initialError }) {
   const t = useTranslations("AuthError");
   const [errorType, setErrorType] = useState(initialError || "Configuration");
+  const [errorMessage, setErrorMessage] = useState(null);
   const [discordError, setDiscordError] = useState(null);
   const [discordDesc, setDiscordDesc] = useState(null);
   const [diagData, setDiagData] = useState(null);
@@ -24,9 +25,11 @@ export default function AuthErrorClient({ locale, initialError }) {
       setCurrentOrigin(window.location.origin);
       const params = new URLSearchParams(window.location.search);
       const err = params.get("error");
+      const eMsg = params.get("error_msg");
       const dErr = params.get("discord_error");
       const dDesc = params.get("discord_desc");
       if (err) setErrorType(err);
+      if (eMsg) setErrorMessage(eMsg);
       if (dErr) setDiscordError(dErr);
       if (dDesc) setDiscordDesc(dDesc);
 
@@ -40,6 +43,9 @@ export default function AuthErrorClient({ locale, initialError }) {
           }
           if (data?.lastError?.discordDesc && !dDesc) {
             setDiscordDesc(data.lastError.discordDesc);
+          }
+          if (data?.lastError?.message && !eMsg) {
+            setErrorMessage(data.lastError.message);
           }
         })
         .catch(() => {});
@@ -74,11 +80,11 @@ export default function AuthErrorClient({ locale, initialError }) {
       }
     }
 
-    if (discordError === "invalid_client") {
+    if (discordError === "invalid_client" || diagData?.discordProbe?.verified === false) {
       return {
         title: "Discord Rejected Secret (invalid_client)",
         desc: "Discord rejected the credentials. When resetting the secret in Discord Developer Portal, the old secret is invalidated. You must paste the NEW client secret into Vercel's DISCORD_CLIENT_SECRET and trigger a Redeploy in Vercel.",
-        color: "text-amber-400"
+        color: "text-rose-400"
       };
     }
 
@@ -86,6 +92,14 @@ export default function AuthErrorClient({ locale, initialError }) {
       return {
         title: "Callback URL Mismatch (invalid_grant)",
         desc: `Discord rejected the redirect URL. Go to Discord Developer Portal → OAuth2 → Redirects and ensure "${callbackUrl}" is saved.`,
+        color: "text-amber-400"
+      };
+    }
+
+    if (errorMessage) {
+      return {
+        title: "Auth Gateway Message",
+        desc: errorMessage,
         color: "text-amber-400"
       };
     }
@@ -257,6 +271,28 @@ export default function AuthErrorClient({ locale, initialError }) {
                           )
                         ) : (
                           <span className="text-slate-500 text-[10px]">Checking...</span>
+                        )}
+                      </span>
+                    </li>
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1.5 rounded">
+                      <span className="text-slate-400">DISCORD_TOKEN_HANDSHAKE</span>
+                      <span className="flex items-center gap-1">
+                        {diagData?.discordProbe ? (
+                          diagData.discordProbe.verified === true ? (
+                            <span className="text-emerald-400 flex items-center gap-1 text-[10px] font-bold">
+                              <CheckCircle2 size={12} /> MATCHED WITH DISCORD
+                            </span>
+                          ) : diagData.discordProbe.verified === false ? (
+                            <span className="text-rose-400 flex items-center gap-1 text-[10px] font-bold">
+                              <XCircle size={12} /> REJECTED BY DISCORD
+                            </span>
+                          ) : (
+                            <span className="text-amber-400 flex items-center gap-1 text-[10px]">
+                              <AlertCircle size={12} /> {diagData.discordProbe.message || "TESTING"}
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-500 text-[10px]">Probing...</span>
                         )}
                       </span>
                     </li>
