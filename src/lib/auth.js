@@ -4,8 +4,28 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin } from "./awsDynamo";
 import { notifyAdmin } from "./notifyAdmin";
 
-const discordClientId = process.env.DISCORD_CLIENT_ID || process.env.AUTH_DISCORD_ID;
-const discordClientSecret = process.env.DISCORD_CLIENT_SECRET || process.env.AUTH_DISCORD_SECRET;
+const discordClientId = (
+  process.env.DISCORD_CLIENT_ID || 
+  process.env.AUTH_DISCORD_ID || 
+  process.env.DISCORD_ID || 
+  process.env.DISCORD_APP_ID || 
+  process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ||
+  ""
+).trim();
+
+const discordClientSecret = (
+  process.env.DISCORD_CLIENT_SECRET || 
+  process.env.AUTH_DISCORD_SECRET || 
+  process.env.DISCORD_SECRET || 
+  process.env.DISCORD_BOT_SECRET || 
+  ""
+).trim();
+
+let lastAuthError = null;
+
+export function getLastAuthError() {
+  return lastAuthError;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -106,14 +126,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (error?.cause) {
         console.error("[NextAuth Cause]:", error.cause);
       }
+
+      let discordError = null;
+      let discordDesc = null;
+
+      // Extract specific Discord OAuth response errors
+      if (error?.cause?.parameters?.error) {
+        discordError = error.cause.parameters.error;
+      } else if (error?.cause?.[0]?.parameters?.error) {
+        discordError = error.cause[0].parameters.error;
+      } else if (error?.cause?.error) {
+        discordError = error.cause.error;
+      }
+      if (error?.cause?.error_description) {
+        discordDesc = error.cause.error_description;
+      } else if (error?.cause?.[0]?.parameters?.error_description) {
+        discordDesc = error.cause[0].parameters.error_description;
+      }
+
+      lastAuthError = {
+        name: error?.name || error?.type || 'AuthError',
+        message: error?.message || 'Configuration error',
+        discordError,
+        discordDesc,
+        cause: typeof error?.cause === 'object' ? JSON.stringify(error.cause) : String(error?.cause || ''),
+        timestamp: new Date().toISOString()
+      };
+
       try {
         notifyAdmin({
           type: "ERROR",
           title: "🚨 NextAuth Authentication Exception",
-          message: `Auth operation failed on Unity Gateway: ${error?.message || error?.name || 'Configuration Error'}`,
+          message: `Auth operation failed on Unity Gateway: ${discordError ? `${discordError} - ${discordDesc || ''}` : (error?.message || error?.name || 'Configuration Error')}`,
           details: {
             reason: `${error?.name || error?.type || 'AuthError'}: ${error?.message || 'Configuration error'}`,
-            userMessage: typeof error?.cause === 'object' ? JSON.stringify(error.cause) : String(error?.cause || '')
+            discordError: discordError || 'N/A',
+            userMessage: lastAuthError.cause
           }
         }).catch(() => {});
       } catch {

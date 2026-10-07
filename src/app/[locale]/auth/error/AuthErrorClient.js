@@ -6,13 +6,16 @@ import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { 
   ShieldAlert, Sparkles, RefreshCw, Castle, ChevronDown, 
-  ChevronUp, Copy, Check, Terminal, ExternalLink, Key
+  ChevronUp, Copy, Check, Terminal, Key, AlertCircle, CheckCircle2, XCircle
 } from "lucide-react";
 
 export default function AuthErrorClient({ locale, initialError }) {
   const t = useTranslations("AuthError");
   const [errorType, setErrorType] = useState(initialError || "Configuration");
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [discordError, setDiscordError] = useState(null);
+  const [discordDesc, setDiscordDesc] = useState(null);
+  const [diagData, setDiagData] = useState(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(true);
   const [copied, setCopied] = useState(false);
   const [currentOrigin, setCurrentOrigin] = useState("https://unity-v2-azure.vercel.app");
 
@@ -21,9 +24,25 @@ export default function AuthErrorClient({ locale, initialError }) {
       setCurrentOrigin(window.location.origin);
       const params = new URLSearchParams(window.location.search);
       const err = params.get("error");
-      if (err) {
-        setErrorType(err);
-      }
+      const dErr = params.get("discord_error");
+      const dDesc = params.get("discord_desc");
+      if (err) setErrorType(err);
+      if (dErr) setDiscordError(dErr);
+      if (dDesc) setDiscordDesc(dDesc);
+
+      // Fetch live environment health check
+      fetch("/api/auth/diagnostics")
+        .then((r) => r.json())
+        .then((data) => {
+          setDiagData(data);
+          if (data?.lastError?.discordError && !dErr) {
+            setDiscordError(data.lastError.discordError);
+          }
+          if (data?.lastError?.discordDesc && !dDesc) {
+            setDiscordDesc(data.lastError.discordDesc);
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -37,7 +56,49 @@ export default function AuthErrorClient({ locale, initialError }) {
     }
   };
 
+  const getSpecificGuidance = () => {
+    if (diagData?.env) {
+      if (!diagData.env.hasClientId) {
+        return {
+          title: "Missing Discord Client ID",
+          desc: "Vercel is missing the DISCORD_CLIENT_ID environment variable for this deployment. Add it in Vercel Project Settings → Environment Variables.",
+          color: "text-rose-400"
+        };
+      }
+      if (!diagData.env.hasClientSecret) {
+        return {
+          title: "Missing Discord Client Secret",
+          desc: "Vercel is missing the DISCORD_CLIENT_SECRET environment variable for this deployment. Add it in Vercel Project Settings → Environment Variables.",
+          color: "text-rose-400"
+        };
+      }
+    }
+
+    if (discordError === "invalid_client") {
+      return {
+        title: "Discord Rejected Secret (invalid_client)",
+        desc: "Discord rejected the credentials. When resetting the secret in Discord Developer Portal, the old secret is invalidated. You must paste the NEW client secret into Vercel's DISCORD_CLIENT_SECRET and trigger a Redeploy in Vercel.",
+        color: "text-amber-400"
+      };
+    }
+
+    if (discordError === "invalid_grant" || discordDesc?.toLowerCase().includes("redirect_uri")) {
+      return {
+        title: "Callback URL Mismatch (invalid_grant)",
+        desc: `Discord rejected the redirect URL. Go to Discord Developer Portal → OAuth2 → Redirects and ensure "${callbackUrl}" is saved.`,
+        color: "text-amber-400"
+      };
+    }
+
+    return null;
+  };
+
+  const specificGuidance = getSpecificGuidance();
+
   const getErrorMessage = () => {
+    if (specificGuidance) {
+      return specificGuidance.desc;
+    }
     switch (errorType) {
       case "Configuration":
         return t("err_configuration");
@@ -76,10 +137,18 @@ export default function AuthErrorClient({ locale, initialError }) {
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-rose-400/90 flex items-center gap-1.5">
                 <Terminal size={12} />
-                <span>ERR_CODE: {errorType}</span>
+                <span>ERR_CODE: {discordError ? `DISCORD_${discordError.toUpperCase()}` : errorType}</span>
               </span>
               <span className="text-[10px] font-mono text-slate-500">GATEWAY_V2</span>
             </div>
+            
+            {specificGuidance && (
+              <div className="mb-2 text-xs font-bold font-mono flex items-center gap-1.5 text-amber-400">
+                <AlertCircle size={14} />
+                <span>{specificGuidance.title}</span>
+              </div>
+            )}
+
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
               {getErrorMessage()}
             </p>
@@ -99,7 +168,7 @@ export default function AuthErrorClient({ locale, initialError }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 onClick={() => signIn("discord")}
-                className="flex items-center justify-center gap-2 w-full py-3 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 hover:border-[#5865F2] text-[#5865F2] hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/50 hover:border-[#5865F2] text-[#5865F2] hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
               >
                 <RefreshCw size={14} />
                 <span>{t("btn_retry_discord")}</span>
@@ -150,21 +219,64 @@ export default function AuthErrorClient({ locale, initialError }) {
                 </div>
 
                 <div className="border-t border-slate-800 pt-3">
-                  <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">
-                    {t("admin_env_title")}
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>{t("admin_env_title")}</span>
+                    <span className="text-[9px] text-slate-500 font-mono">LIVE RUNTIME CHECK</span>
                   </div>
                   <ul dir="ltr" className="space-y-1.5 text-[11px] text-slate-300 font-mono">
-                    <li className="flex items-center justify-between bg-black/40 px-2 py-1 rounded">
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1.5 rounded">
                       <span className="text-slate-400">DISCORD_CLIENT_ID</span>
-                      <span className="text-emerald-400 text-[10px]">AUTH_DISCORD_ID</span>
+                      <span className="flex items-center gap-1">
+                        {diagData?.env ? (
+                          diagData.env.hasClientId ? (
+                            <span className="text-emerald-400 flex items-center gap-1 text-[10px]">
+                              <CheckCircle2 size={12} /> {diagData.env.clientIdMasked}
+                            </span>
+                          ) : (
+                            <span className="text-rose-400 flex items-center gap-1 text-[10px] font-bold">
+                              <XCircle size={12} /> MISSING IN VERCEL
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-500 text-[10px]">Checking...</span>
+                        )}
+                      </span>
                     </li>
-                    <li className="flex items-center justify-between bg-black/40 px-2 py-1 rounded">
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1.5 rounded">
                       <span className="text-slate-400">DISCORD_CLIENT_SECRET</span>
-                      <span className="text-emerald-400 text-[10px]">AUTH_DISCORD_SECRET</span>
+                      <span className="flex items-center gap-1">
+                        {diagData?.env ? (
+                          diagData.env.hasClientSecret ? (
+                            <span className="text-emerald-400 flex items-center gap-1 text-[10px]">
+                              <CheckCircle2 size={12} /> LOADED ({diagData.env.clientSecretLength} chars)
+                            </span>
+                          ) : (
+                            <span className="text-rose-400 flex items-center gap-1 text-[10px] font-bold">
+                              <XCircle size={12} /> MISSING IN VERCEL
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-500 text-[10px]">Checking...</span>
+                        )}
+                      </span>
                     </li>
-                    <li className="flex items-center justify-between bg-black/40 px-2 py-1 rounded">
+                    <li className="flex items-center justify-between bg-black/40 px-2 py-1.5 rounded">
                       <span className="text-slate-400">AUTH_SECRET</span>
-                      <span className="text-emerald-400 text-[10px]">NEXTAUTH_SECRET</span>
+                      <span className="flex items-center gap-1">
+                        {diagData?.env ? (
+                          diagData.env.hasAuthSecret ? (
+                            <span className="text-emerald-400 flex items-center gap-1 text-[10px]">
+                              <CheckCircle2 size={12} /> LOADED
+                            </span>
+                          ) : (
+                            <span className="text-amber-400 flex items-center gap-1 text-[10px]">
+                              <AlertCircle size={12} /> FALLBACK ACTIVE
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-500 text-[10px]">Checking...</span>
+                        )}
+                      </span>
                     </li>
                   </ul>
                 </div>
