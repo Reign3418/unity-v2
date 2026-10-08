@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { 
     Orbit, RotateCcw, Compass, Sparkles, Eye, Shield, Users, 
     Layers, Zap, Play, Pause, Maximize2, Minimize2, Tag,
-    Search, X, Crosshair, ZoomIn, ZoomOut, ChevronDown, ChevronUp
+    Search, X, Crosshair, ZoomIn, ZoomOut, ChevronDown, ChevronUp,
+    BookOpen, HelpCircle, Activity
 } from "lucide-react";
 
 export default function CerberusGalaxyCanvas({ galaxyData }) {
@@ -15,6 +16,10 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
 
     // Fullscreen Immersive State
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Codex Modal & Dimension Hover State
+    const [showCodex, setShowCodex] = useState(false);
+    const [activeTooltipDim, setActiveTooltipDim] = useState(null);
 
     // Camera and Interactive Controls State
     const [yaw, setYaw] = useState(0.4);        // Horizontal 3D rotation
@@ -253,35 +258,42 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
             screenNodesRef.current = projectedStars;
 
             // 3. Draw Constellation Filaments (Dim 5: Alliance or Naming Nebulae)
+            const focusStar = hoveredStar || selectedStar;
             if (dim5Mode === "alliance" && galaxyData.allianceFilaments?.length) {
                 ctx.save();
+                const activeAlliance = focusStar?.alliance;
                 galaxyData.allianceFilaments.forEach(fil => {
                     const s1 = starMap.get(fil.sourceId);
                     const s2 = starMap.get(fil.targetId);
                     if (!s1 || !s2) return;
 
+                    const isFocusFilament = activeAlliance && activeAlliance !== "None" && fil.alliance === activeAlliance;
+
                     ctx.beginPath();
                     ctx.moveTo(s1.screenX, s1.screenY);
                     ctx.lineTo(s2.screenX, s2.screenY);
                     ctx.strokeStyle = fil.color || "#06b6d4";
-                    ctx.globalAlpha = 0.28;
-                    ctx.lineWidth = 1.2;
+                    ctx.globalAlpha = isFocusFilament ? 0.90 : (focusStar ? 0.12 : 0.28);
+                    ctx.lineWidth = isFocusFilament ? 2.4 : 1.2;
                     ctx.stroke();
                 });
                 ctx.restore();
             } else if (dim5Mode === "naming" && galaxyData.namingFilaments?.length) {
                 ctx.save();
+                const activeClan = (focusStar?.isRecognizedClan && focusStar?.namingClan !== "Solitary") ? focusStar.namingClan : null;
                 galaxyData.namingFilaments.forEach(fil => {
                     const s1 = starMap.get(fil.sourceId);
                     const s2 = starMap.get(fil.targetId);
                     if (!s1 || !s2) return;
 
+                    const isFocusFilament = activeClan && fil.clan === activeClan;
+
                     ctx.beginPath();
                     ctx.moveTo(s1.screenX, s1.screenY);
                     ctx.lineTo(s2.screenX, s2.screenY);
                     ctx.strokeStyle = fil.color || "#a855f7";
-                    ctx.globalAlpha = 0.42;
-                    ctx.lineWidth = 1.5;
+                    ctx.globalAlpha = isFocusFilament ? 0.95 : (focusStar ? 0.14 : 0.42);
+                    ctx.lineWidth = isFocusFilament ? 2.5 : 1.5;
                     ctx.setLineDash([2, 4]);
                     ctx.stroke();
                 });
@@ -681,6 +693,16 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                         {isAutoOrbit ? <Pause size={13} /> : <Play size={13} />}
                     </button>
 
+                    {/* Codex & Legend Guide Button */}
+                    <button
+                        onClick={() => setShowCodex(true)}
+                        className="px-2.5 py-1.5 rounded-xl bg-[#10161f] border border-cyan-500/40 text-cyan-400 hover:text-white hover:bg-cyan-500/10 hover:border-cyan-400 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                        title={t("legend_btn_title")}
+                    >
+                        <BookOpen size={13} />
+                        <span className="hidden sm:inline">{t("legend_btn_title")}</span>
+                    </button>
+
                     {/* Reset View */}
                     <button
                         onClick={() => {
@@ -829,6 +851,143 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                         </span>
                                     </div>
                                 </div>
+
+                                {/* Constellation Filaments Context */}
+                                <div className="space-y-1 pt-1">
+                                    {selectedStar.isRecognizedClan && selectedStar.namingClan !== "Solitary" ? (
+                                        <div className="text-[10px] text-purple-300 flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/30 px-2.5 py-1 rounded-lg">
+                                            <Layers size={11} className="text-purple-400 shrink-0" />
+                                            <span className="truncate">
+                                                Connected to {galaxyData.stars?.filter(s => s.namingClan === selectedStar.namingClan).length} in [{selectedStar.namingClan}] nebula via constellation filaments
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="text-[10px] text-gray-400 flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                            <Sparkles size={11} className="text-gray-400 shrink-0" />
+                                            <span className="truncate">Solitary Node — Independent operator (No shared clan prefix)</span>
+                                        </div>
+                                    )}
+                                    {selectedStar.alliance && selectedStar.alliance !== "None" && (
+                                        <div className="text-[10px] text-cyan-300 flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded-lg">
+                                            <Shield size={11} className="text-cyan-400 shrink-0" />
+                                            <span className="truncate">Alliance [{selectedStar.alliance}] — Gravitational link to rally anchors</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Bottom Left Dimension Guide with Interactive Hover Tooltips */}
+                <div className="absolute bottom-4 left-4 z-20 hidden sm:flex items-center gap-1.5 bg-[#090d12]/90 backdrop-blur-md border border-white/10 rounded-xl p-1.5 text-[9px] shadow-2xl font-mono">
+                    <div 
+                        onMouseEnter={() => setActiveTooltipDim("dim1")}
+                        onMouseLeave={() => setActiveTooltipDim(null)}
+                        className="px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-400 cursor-help transition-all flex items-center gap-1 font-bold"
+                    >
+                        <span>X: {t("dim1_label").split(":")[1]?.trim() || "War Orbit"}</span>
+                    </div>
+
+                    <div 
+                        onMouseEnter={() => setActiveTooltipDim("dim2")}
+                        onMouseLeave={() => setActiveTooltipDim(null)}
+                        className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-400 cursor-help transition-all flex items-center gap-1 font-bold"
+                    >
+                        <span>Y: {t("dim2_label").split(":")[1]?.trim() || "Power Altitude"}</span>
+                    </div>
+
+                    <div 
+                        onMouseEnter={() => setActiveTooltipDim("dim3")}
+                        onMouseLeave={() => setActiveTooltipDim(null)}
+                        className="px-2 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400 cursor-help transition-all flex items-center gap-1 font-bold"
+                    >
+                        <span>Z: {t("dim3_label").split(":")[1]?.trim() || "Social Gravity"}</span>
+                    </div>
+
+                    <div 
+                        onMouseEnter={() => setActiveTooltipDim("dim4")}
+                        onMouseLeave={() => setActiveTooltipDim(null)}
+                        className="px-2 py-1 rounded bg-pink-500/10 text-pink-400 border border-pink-500/30 hover:bg-pink-500/20 hover:border-pink-400 cursor-help transition-all flex items-center gap-1 font-bold"
+                    >
+                        <span>W: {t("dim4_label").split(":")[1]?.trim() || "Combat Purity"}</span>
+                    </div>
+
+                    <div 
+                        onMouseEnter={() => setActiveTooltipDim("dim5")}
+                        onMouseLeave={() => setActiveTooltipDim(null)}
+                        className="px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-400 cursor-help transition-all flex items-center gap-1 font-bold"
+                    >
+                        <span>5D: {t("dim5_label").split(":")[1]?.trim() || "Spectral/Clan"}</span>
+                    </div>
+
+                    {/* Codex / Legend Quick Button */}
+                    <button
+                        onClick={() => setShowCodex(true)}
+                        className="px-2 py-1 rounded bg-white/10 hover:bg-cyan-500/20 text-gray-300 hover:text-cyan-400 border border-white/10 hover:border-cyan-400 transition-all cursor-pointer flex items-center gap-1 font-bold"
+                        title={t("legend_btn_title")}
+                    >
+                        <BookOpen size={11} />
+                        <span>{t("legend_btn_title")}</span>
+                    </button>
+                </div>
+
+                {/* Floating Dimension Tooltip Card */}
+                {activeTooltipDim && (
+                    <div className="absolute bottom-16 left-4 z-30 max-w-sm bg-[#090d12]/95 backdrop-blur-xl border border-cyan-500/50 rounded-2xl p-4 shadow-[0_0_30px_rgba(6,182,212,0.3)] font-mono text-xs pointer-events-none transition-all">
+                        {activeTooltipDim === "dim1" && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                                    <Activity size={14} />
+                                    <span>{t("tooltip_dim1_title")}</span>
+                                </div>
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("tooltip_dim1_desc")}
+                                </p>
+                            </div>
+                        )}
+                        {activeTooltipDim === "dim2" && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                                    <Layers size={14} />
+                                    <span>{t("tooltip_dim2_title")}</span>
+                                </div>
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("tooltip_dim2_desc")}
+                                </p>
+                            </div>
+                        )}
+                        {activeTooltipDim === "dim3" && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
+                                    <Users size={14} />
+                                    <span>{t("tooltip_dim3_title")}</span>
+                                </div>
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("tooltip_dim3_desc")}
+                                </p>
+                            </div>
+                        )}
+                        {activeTooltipDim === "dim4" && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-pink-400 font-bold text-sm">
+                                    <Zap size={14} />
+                                    <span>{t("tooltip_dim4_title")}</span>
+                                </div>
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("tooltip_dim4_desc")}
+                                </p>
+                            </div>
+                        )}
+                        {activeTooltipDim === "dim5" && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                                    <Sparkles size={14} />
+                                    <span>{t("tooltip_dim5_title")}</span>
+                                </div>
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("tooltip_dim5_desc")}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -875,6 +1034,26 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                 War Contribution: <strong className="text-cyan-400">{selectedStar.warRatio}%</strong> • 
                                 T1 Duel Padding: <strong className={selectedStar.t1Ratio > 60 ? "text-rose-400" : "text-emerald-400"}>{selectedStar.t1Ratio}%</strong>
                             </p>
+
+                            <div className="flex items-center gap-2 pt-2 flex-wrap">
+                                {selectedStar.isRecognizedClan && selectedStar.namingClan !== "Solitary" ? (
+                                    <span className="text-[10px] text-purple-300 flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-lg">
+                                        <Layers size={11} className="text-purple-400" />
+                                        Connected to {galaxyData.stars?.filter(s => s.namingClan === selectedStar.namingClan).length} in [{selectedStar.namingClan}] nebula via filaments
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] text-gray-400 flex items-center gap-1.5 bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg">
+                                        <Sparkles size={11} className="text-gray-400" />
+                                        Solitary Node (No shared clan)
+                                    </span>
+                                )}
+                                {selectedStar.alliance && selectedStar.alliance !== "None" && (
+                                    <span className="text-[10px] text-cyan-300 flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-lg">
+                                        <Shield size={11} className="text-cyan-400" />
+                                        Alliance [{selectedStar.alliance}] Rally Link
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         {/* 5D Hologram Tensor Coordinates */}
@@ -897,6 +1076,165 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                     ({selectedStar.x.toFixed(0)}, {selectedStar.y.toFixed(0)}, {selectedStar.z.toFixed(0)}, {selectedStar.w.toFixed(0)})
                                 </span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── GALACTIC CODEX & CELESTIAL LEGEND MODAL ──────────────── */}
+            {showCodex && (
+                <div 
+                    onClick={() => setShowCodex(false)}
+                    className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-6 animate-in fade-in"
+                >
+                    <div 
+                        onClick={e => e.stopPropagation()}
+                        className="bg-[#090d12] border border-cyan-500/40 rounded-2xl max-w-3xl w-full max-h-[88vh] overflow-y-auto p-5 md:p-7 shadow-[0_0_60px_rgba(6,182,212,0.3)] font-mono space-y-6 text-xs"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-[#1a2332] pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+                                    <BookOpen size={20} className="text-cyan-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                                        {t("legend_modal_title")}
+                                    </h2>
+                                    <p className="text-gray-400 text-[11px]">
+                                        {t("legend_modal_subtitle")}
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setShowCodex(false)}
+                                className="p-1.5 rounded-lg bg-[#10161f] border border-[#1a2332] text-gray-400 hover:text-white cursor-pointer"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Section 1: Constellation Filaments (Connecting Lines) */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                                <Layers size={14} />
+                                <span>{t("legend_sec_filaments_title")}</span>
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="bg-[#10161f] border border-purple-500/30 rounded-xl p-3.5 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-8 h-0 border-t-2 border-dashed border-purple-400 inline-block"></span>
+                                        <span className="font-bold text-purple-300 text-xs">Dashed Lines (Naming Nebulae)</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[11px] leading-relaxed">
+                                        {t("legend_sec_filaments_naming")}
+                                    </p>
+                                </div>
+
+                                <div className="bg-[#10161f] border border-cyan-500/30 rounded-xl p-3.5 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-8 h-0 border-t-2 border-solid border-cyan-400 inline-block"></span>
+                                        <span className="font-bold text-cyan-300 text-xs">Solid Lines (Alliance Constellations)</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[11px] leading-relaxed">
+                                        {t("legend_sec_filaments_alliance")}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="bg-[#10161f] border border-amber-500/20 rounded-xl p-3">
+                                <p className="text-gray-400 text-[11px]">
+                                    <strong className="text-amber-400">Spectral Mode:</strong> {t("legend_sec_filaments_spectral")}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Section 2: The 5 Dimensions */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                <Compass size={14} className="text-emerald-400" />
+                                <span>{t("legend_sec_dims_title")}</span>
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                <div className="bg-[#10161f] border border-cyan-500/30 rounded-xl p-3">
+                                    <span className="text-cyan-400 font-bold block mb-1">{t("tooltip_dim1_title")}</span>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("tooltip_dim1_desc")}</p>
+                                </div>
+                                <div className="bg-[#10161f] border border-emerald-500/30 rounded-xl p-3">
+                                    <span className="text-emerald-400 font-bold block mb-1">{t("tooltip_dim2_title")}</span>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("tooltip_dim2_desc")}</p>
+                                </div>
+                                <div className="bg-[#10161f] border border-purple-500/30 rounded-xl p-3">
+                                    <span className="text-purple-400 font-bold block mb-1">{t("tooltip_dim3_title")}</span>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("tooltip_dim3_desc")}</p>
+                                </div>
+                                <div className="bg-[#10161f] border border-pink-500/30 rounded-xl p-3">
+                                    <span className="text-pink-400 font-bold block mb-1">{t("tooltip_dim4_title")}</span>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("tooltip_dim4_desc")}</p>
+                                </div>
+                                <div className="bg-[#10161f] border border-amber-500/30 rounded-xl p-3 sm:col-span-2">
+                                    <span className="text-amber-400 font-bold block mb-1">{t("tooltip_dim5_title")}</span>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("tooltip_dim5_desc")}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Stellar Spectral Classes */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                                <Sparkles size={14} />
+                                <span>{t("legend_sec_spectral_title")}</span>
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div className="bg-[#10161f] border border-cyan-500/40 rounded-xl p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f0ff]"></span>
+                                        <span className="font-bold text-white text-xs">{t("legend_star_o_title")}</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("legend_star_o_desc")}</p>
+                                </div>
+
+                                <div className="bg-[#10161f] border border-purple-500/40 rounded-xl p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-purple-400 shadow-[0_0_8px_#a855f7]"></span>
+                                        <span className="font-bold text-white text-xs">{t("legend_star_b_title")}</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("legend_star_b_desc")}</p>
+                                </div>
+
+                                <div className="bg-[#10161f] border border-amber-500/40 rounded-xl p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b]"></span>
+                                        <span className="font-bold text-white text-xs">{t("legend_star_g_title")}</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("legend_star_g_desc")}</p>
+                                </div>
+
+                                <div className="bg-[#10161f] border border-rose-500/40 rounded-xl p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]"></span>
+                                        <span className="font-bold text-white text-xs">{t("legend_star_m_title")}</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("legend_star_m_desc")}</p>
+                                </div>
+
+                                <div className="bg-[#10161f] border border-slate-500/40 rounded-xl p-3 sm:col-span-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-[0_0_8px_#94a3b8]"></span>
+                                        <span className="font-bold text-white text-xs">{t("legend_star_d_title")}</span>
+                                    </div>
+                                    <p className="text-gray-400 text-[10px] leading-relaxed">{t("legend_star_d_desc")}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex justify-end pt-3 border-t border-[#1a2332]">
+                            <button
+                                onClick={() => setShowCodex(false)}
+                                className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-black font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                            >
+                                {t("legend_close")}
+                            </button>
                         </div>
                     </div>
                 </div>
