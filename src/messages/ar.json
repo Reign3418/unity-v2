@@ -2014,6 +2014,11 @@
     "th_credits": "الاعتمادات",
     "th_troops": "القوات",
     "th_status": "الحالة",
-    "btn_back_to_unity": "العودة إلى Unity"
+    "btn_back_to_unity": "العودة إلى Unity",
+    "th_infantry": "مشاة",
+    "th_cavalry": "فرسان",
+    "th_archer": "رماة",
+    "th_siege": "حصار",
+    "label_structure_capacity": "سعة التعزيزات"
   }
 }

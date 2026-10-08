@@ -46,34 +46,46 @@ Analyze this screenshot. The screen can be ONE OF TWO MAIN TYPES:
 TYPE 1: EVENT RANKINGS / LEADERBOARD (e.g. Master Builder, Zenith of Power, Mightiest Governor, Karuak, Pre-KvK, Alliance Tech Contribution, Resource Assistance).
 - Contains explicit ranks (#1, #2, #3, medals 🥇, 🥈, 🥉), player name, alliance tag, score/points.
 
-TYPE 2: ALLIANCE STRUCTURE / BUILDING / GARRISON / REINFORCEMENTS (e.g. Alliance Flag, Alliance Fortress, Pass, Garrison list, Reinforcement Capacity list).
+TYPE 2: ALLIANCE STRUCTURE / BUILDING / GARRISON / REINFORCEMENTS (e.g. Alliance Flag, Alliance Fortress, Alliance Stone Pit, Alliance Wood/Crop/Gold, Pass, Garrison list, Reinforcement Capacity list).
 - Contains list cards of reinforcing/building players with NO explicit rank numbers!
+- If an open modal/window is visible (e.g. "Alliance Stone Pit", "Alliance Flag", "BUILD"), extract that exact title as 'eventName' (do NOT use generic background text like 'City View'!).
+- Look for header Reinforcement Capacity: e.g. "Reinforcement Capacity: 110,688 / 1,500,000", "Progress: 29% Time Left: 01:28:40".
 - Each card shows:
-  * Player Avatar and Governor Name (e.g. '幺Khan', '幺Shiro', '幺Kerrapi', 'BLACK', 'MAKER', 'Lìght', 'Zippo')
-  * Primary Commander name and level (e.g. 'Lvl 1 Baibars', 'Lvl 20 Dragon Lancer', 'Lvl 1 Eulji Mundeok', 'Lvl 16 Tomoe Gozen', 'Lvl 22 Cao Cao')
-  * Building / March Time (e.g. 'Time: 03:15:38', 'Time: 02:21:57', 'Time: 03:10:11')
-  * Building Credits Reward next to a Silver Coin icon (e.g. 11,738, 8,517, 11,398, 11,411, 11,686, 11,749, 11,443)
-  * Troops Count (e.g. 'Troops: 1' -> 1, or 'Troops: 200,000' -> 200000)
+  * Player Avatar and Governor Name (e.g. 'WhySoRude', 'Shiro', 'RemusSB', '幺Khan')
+  * Primary Commander name and level (e.g. 'Lvl 19 Joan of Arc / Lvl 23 Gaius Marius')
+  * Building / March Time (e.g. 'Time: 01:58:13', 'Time: 01:11:34')
+  * Building Credits Reward next to a Silver Coin icon (e.g. 6,613, 4,294)
+  * Troops Count (e.g. 'Troops: 72,500', 'Troops: 21,750', 'Troops: 16,438')
+  * Troop Type Breakdown if displayed underneath the commander or player row:
+    - Infantry count next to blue shield icon (e.g. 4,138)
+    - Cavalry count next to green horse icon (e.g. 18,138)
+    - Archer count next to yellow bow icon (e.g. 12,414)
+    - Siege count next to orange catapult icon (e.g. 37,810)
   * Arrival Status (e.g. 'Arrived', 'Marching')
 
 TARGET METRIC REQUESTED BY USER: "${targetMetric || 'Auto-detect'}"
 EVENT TITLE HINT: "${eventNameHint || 'Auto-detect'}"
 
 CRITICAL RULE FOR MAPPING TO 'score':
-- Do NOT confuse Building Credits (silver coin e.g. 11,738) with Troops count (e.g. 1)!
-- If the user specified target metric 'Troops' (or contains 'troop'), 'score' MUST be the troop count number (e.g. 1), NOT the credits!
-- If the user specified target metric 'Credits' (or contains 'credit' or 'coin'), 'score' MUST be the building credits number (e.g. 11738)!
+- Do NOT confuse Building Credits (silver coin e.g. 6,613) with Troops count (e.g. 72,500)!
+- If the user specified target metric 'Troops' (or contains 'troop'), 'score' MUST be the total troop count number (e.g. 72500), NOT the credits!
+- If the user specified target metric 'Credits' (or contains 'credit' or 'coin'), 'score' MUST be the building credits number (e.g. 6613)!
 - If the user specified target metric 'Time' (or 'building time'), 'score' MUST be the time duration or seconds!
-- If no target metric is specified, for Type 2 Building screens default 'score' to the credits or troops as appropriate.
-- In ALL cases, populate the dedicated discrete fields so NO data is lost: 'troops', 'credits', 'time', 'commander', 'status'!
+- In ALL cases, populate the discrete fields: 'troops', 'infantry', 'cavalry', 'archer', 'siege', 'credits', 'time', 'commander', 'status'!
 
 Extract the following data in strict JSON format:
 {
   "screenType": "FLAG_BUILDING" | "LEADERBOARD" | "REINFORCEMENTS" | "DONATION" | "GENERIC",
   "hasExplicitRanks": false (set to true ONLY if the screen actually shows explicit #1, #2 rank numbers or medals; set to false if it is an unranked queue or building list),
-  "eventName": "Event or screen title displayed at header (e.g. 'Alliance Flag', 'Master Builder Rankings', etc.)",
-  "metricLabel": "Primary metric label (e.g. 'Troops', 'Building Credits', 'Building Time', 'Score', etc.)",
-  "detectedColumns": ["rank", "governorName", "commander", "time", "credits", "troops", "status"],
+  "eventName": "Event or screen title displayed at header (e.g. 'Alliance Stone Pit', 'Alliance Flag', 'Master Builder', etc.)",
+  "metricLabel": "Primary metric label (e.g. 'Troops', 'Building Credits', 'Score', etc.)",
+  "detectedColumns": ["rank", "governorName", "commander", "time", "credits", "troops", "infantry", "cavalry", "archer", "siege", "status"],
+  "structureCapacity": {
+    "current": integer current reinforcing troops if visible (e.g. 110688), or null,
+    "max": integer maximum capacity if visible (e.g. 1500000), or null,
+    "progress": "progress string if visible (e.g. '29%'), or null",
+    "timeLeft": "time left string if visible (e.g. '01:28:40'), or null"
+  },
   "selfRankBanner": {
     "rank": numeric rank or null,
     "governorName": "viewer governor name or null",
@@ -82,12 +94,16 @@ Extract the following data in strict JSON format:
   "rankings": [
     {
       "rank": integer (explicit rank number if on screen; otherwise sequential 1, 2, 3 in order of appearance),
-      "governorName": "exact player name including special font characters and symbols (e.g. '幺Khan', '幺 Shiro')",
+      "governorName": "exact player name including special font characters and symbols (e.g. 'WhySoRude', 'Shiro')",
       "allianceTag": "alliance tag if visible without brackets, or null",
-      "commander": "commander name and level if visible (e.g. 'Lvl 1 Baibars'), or null",
-      "time": "time duration string if visible (e.g. '03:15:38'), or null",
-      "credits": integer building credit rewards if visible (e.g. 11738), or null,
-      "troops": integer troop count if visible (e.g. 1), or null,
+      "commander": "commander name and level if visible (e.g. 'Lvl 19 Joan of Arc / Lvl 23 Gaius Marius'), or null",
+      "time": "time duration string if visible (e.g. '01:58:13'), or null",
+      "credits": integer building credit rewards if visible (e.g. 6613), or null,
+      "troops": integer total troop count if visible (e.g. 72500), or null,
+      "infantry": integer infantry troops if visible under card (e.g. 4138), or null,
+      "cavalry": integer cavalry troops if visible under card (e.g. 18138), or null,
+      "archer": integer archer troops if visible under card (e.g. 12414), or null,
+      "siege": integer siege troops if visible under card (e.g. 37810), or null,
       "status": "status string if visible (e.g. 'Arrived', 'Marching'), or null",
       "score": integer (the primary score value corresponding to the requested target metric),
       "rawScore": "verbatim string of the primary score value"
@@ -97,9 +113,9 @@ Extract the following data in strict JSON format:
 
 STRICT PARSING RULES:
 1. Extract ALL visible rows in the card list or table.
-2. If the screen is an Alliance Flag / Fortress screen, 'hasExplicitRanks' MUST be false.
+2. If the screen is an Alliance Structure / Stone Pit / Flag screen, 'hasExplicitRanks' MUST be false.
 3. Keep governor names verbatim (preserve special prefixes like '幺', 'ᴳˣ', '★', etc.).
-4. Parse numeric credits and troops as integers (clean commas, e.g. '11,738' -> 11738, 'Troops: 1' -> 1).
+4. Parse numeric credits and troops as integers (clean commas, e.g. '72,500' -> 72500, '6,613' -> 6613).
 5. Return ONLY valid JSON with no markdown formatting.`;
 
         const response = await fetch(apiUrl, {
@@ -158,9 +174,30 @@ STRICT PARSING RULES:
                 ? r.credits
                 : (r.credits ? parseInt(String(r.credits).replace(/\D/g, ''), 10) || null : null);
 
-            const cleanTroops = typeof r.troops === 'number'
+            const cleanInfantry = typeof r.infantry === 'number'
+                ? r.infantry
+                : (r.infantry ? parseInt(String(r.infantry).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanCavalry = typeof r.cavalry === 'number'
+                ? r.cavalry
+                : (r.cavalry ? parseInt(String(r.cavalry).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanArcher = typeof r.archer === 'number'
+                ? r.archer
+                : (r.archer ? parseInt(String(r.archer).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanSiege = typeof r.siege === 'number'
+                ? r.siege
+                : (r.siege ? parseInt(String(r.siege).replace(/\D/g, ''), 10) || null : null);
+
+            let cleanTroops = typeof r.troops === 'number'
                 ? r.troops
                 : (r.troops ? parseInt(String(r.troops).replace(/\D/g, ''), 10) || null : null);
+
+            // If troops count was omitted or obscured but breakdown was visible, auto-sum
+            if (cleanTroops === null && (cleanInfantry !== null || cleanCavalry !== null || cleanArcher !== null || cleanSiege !== null)) {
+                cleanTroops = (cleanInfantry || 0) + (cleanCavalry || 0) + (cleanArcher || 0) + (cleanSiege || 0);
+            }
 
             let cleanScore = typeof r.score === 'number' 
                 ? r.score 
@@ -182,11 +219,30 @@ STRICT PARSING RULES:
                 time: r.time ? String(r.time).trim() : null,
                 credits: cleanCredits,
                 troops: cleanTroops,
+                infantry: cleanInfantry,
+                cavalry: cleanCavalry,
+                archer: cleanArcher,
+                siege: cleanSiege,
                 status: r.status ? String(r.status).trim() : null,
                 score: cleanScore,
                 rawScore: String(r.rawScore || cleanScore)
             };
         }).filter(r => r.governorName && r.governorName !== 'null');
+
+        // Clean structure capacity header if present
+        let structureCapacity = null;
+        if (parsed.structureCapacity && (parsed.structureCapacity.current || parsed.structureCapacity.max || parsed.structureCapacity.progress)) {
+            structureCapacity = {
+                current: typeof parsed.structureCapacity.current === 'number'
+                    ? parsed.structureCapacity.current
+                    : parseInt(String(parsed.structureCapacity.current || '').replace(/\D/g, ''), 10) || null,
+                max: typeof parsed.structureCapacity.max === 'number'
+                    ? parsed.structureCapacity.max
+                    : parseInt(String(parsed.structureCapacity.max || '').replace(/\D/g, ''), 10) || null,
+                progress: parsed.structureCapacity.progress ? String(parsed.structureCapacity.progress).trim() : null,
+                timeLeft: parsed.structureCapacity.timeLeft ? String(parsed.structureCapacity.timeLeft).trim() : null
+            };
+        }
 
         logEvent('VISION_RANKING_SCAN', {
             model: apiModel,
@@ -204,6 +260,7 @@ STRICT PARSING RULES:
             detectedColumns: Array.isArray(parsed.detectedColumns) ? parsed.detectedColumns : [],
             eventName: parsed.eventName || null,
             metricLabel: targetMetric || parsed.metricLabel || "Score",
+            structureCapacity: structureCapacity,
             selfRankBanner: parsed.selfRankBanner || null,
             rankings: cleanRankings,
             data: cleanRankings // backward-compatibility

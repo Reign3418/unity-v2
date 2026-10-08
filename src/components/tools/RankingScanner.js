@@ -8,7 +8,7 @@ import {
     Trash2, Edit3, Plus, Sparkles, AlertCircle, CheckCircle, 
     ExternalLink, RefreshCw, FileSpreadsheet, MessageSquare, 
     Layers, Zap, Search, Settings, ChevronDown, ChevronUp, X, Check, Eye,
-    ChevronLeft, Home
+    ChevronLeft, Home, Shield
 } from 'lucide-react';
 import { downloadExcelFile } from '@/lib/excelHelper';
 
@@ -27,8 +27,9 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
     const [metricLabel, setMetricLabel] = useState('Score');
     const [primaryMetricMode, setPrimaryMetricMode] = useState('auto'); // 'auto' | 'troops' | 'credits' | 'time'
     const [selfBanner, setSelfBanner] = useState(null);
+    const [structureCapacity, setStructureCapacity] = useState(null); // { current, max, progress, timeLeft }
     const [frames, setFrames] = useState([]); // { id, number, thumbnail, timestamp, rowCount }
-    const [rankings, setRankings] = useState([]); // { id, rank, governorName, allianceTag, commander, time, credits, troops, status, score, rawScore, frameNumber, verified }
+    const [rankings, setRankings] = useState([]); // { id, rank, governorName, allianceTag, commander, time, credits, troops, infantry, cavalry, archer, siege, status, score, rawScore, frameNumber, verified }
     
     // Column depiction state (toggle which columns are displayed and exported)
     const [depictedColumns, setDepictedColumns] = useState({
@@ -39,6 +40,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         time: false,
         credits: false,
         troops: false,
+        infantry: false,
+        cavalry: false,
+        archer: false,
+        siege: false,
         status: false
     });
 
@@ -98,6 +103,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         time: '', 
         credits: '', 
         troops: '', 
+        infantry: '',
+        cavalry: '',
+        archer: '',
+        siege: '',
         status: '', 
         score: '' 
     });
@@ -178,6 +187,9 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         if (newData.selfRankBanner) {
             setSelfBanner(newData.selfRankBanner);
         }
+        if (newData.structureCapacity) {
+            setStructureCapacity(newData.structureCapacity);
+        }
 
         const incomingRows = Array.isArray(newData.rankings) ? newData.rankings : [];
         if (incomingRows.length === 0) {
@@ -192,11 +204,15 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             if (r.time) detectedCols.time = true;
             if (r.credits !== null && r.credits !== undefined) detectedCols.credits = true;
             if (r.troops !== null && r.troops !== undefined) detectedCols.troops = true;
+            if (r.infantry !== null && r.infantry !== undefined) detectedCols.infantry = true;
+            if (r.cavalry !== null && r.cavalry !== undefined) detectedCols.cavalry = true;
+            if (r.archer !== null && r.archer !== undefined) detectedCols.archer = true;
+            if (r.siege !== null && r.siege !== undefined) detectedCols.siege = true;
             if (r.status) detectedCols.status = true;
         });
         if (Array.isArray(newData.detectedColumns)) {
             newData.detectedColumns.forEach(c => {
-                if (c && ['commander', 'time', 'credits', 'troops', 'status'].includes(c)) {
+                if (c && ['commander', 'time', 'credits', 'troops', 'infantry', 'cavalry', 'archer', 'siege', 'status'].includes(c)) {
                     detectedCols[c] = true;
                 }
             });
@@ -250,6 +266,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         time: newRow.time || current.time,
                         credits: (newRow.credits !== null && newRow.credits !== undefined) ? newRow.credits : current.credits,
                         troops: (newRow.troops !== null && newRow.troops !== undefined) ? newRow.troops : current.troops,
+                        infantry: (newRow.infantry !== null && newRow.infantry !== undefined) ? newRow.infantry : current.infantry,
+                        cavalry: (newRow.cavalry !== null && newRow.cavalry !== undefined) ? newRow.cavalry : current.cavalry,
+                        archer: (newRow.archer !== null && newRow.archer !== undefined) ? newRow.archer : current.archer,
+                        siege: (newRow.siege !== null && newRow.siege !== undefined) ? newRow.siege : current.siege,
                         status: newRow.status || current.status,
                         score: rowScore !== undefined ? rowScore : current.score,
                         rawScore: rowRawScore || current.rawScore,
@@ -270,6 +290,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         time: newRow.time || null,
                         credits: (newRow.credits !== null && newRow.credits !== undefined) ? newRow.credits : null,
                         troops: (newRow.troops !== null && newRow.troops !== undefined) ? newRow.troops : null,
+                        infantry: (newRow.infantry !== null && newRow.infantry !== undefined) ? newRow.infantry : null,
+                        cavalry: (newRow.cavalry !== null && newRow.cavalry !== undefined) ? newRow.cavalry : null,
+                        archer: (newRow.archer !== null && newRow.archer !== undefined) ? newRow.archer : null,
+                        siege: (newRow.siege !== null && newRow.siege !== undefined) ? newRow.siege : null,
                         status: newRow.status || null,
                         score: rowScore,
                         rawScore: rowRawScore,
@@ -555,6 +579,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             time: row.time || '',
             credits: row.credits !== null && row.credits !== undefined ? row.credits : '',
             troops: row.troops !== null && row.troops !== undefined ? row.troops : '',
+            infantry: row.infantry !== null && row.infantry !== undefined ? row.infantry : '',
+            cavalry: row.cavalry !== null && row.cavalry !== undefined ? row.cavalry : '',
+            archer: row.archer !== null && row.archer !== undefined ? row.archer : '',
+            siege: row.siege !== null && row.siege !== undefined ? row.siege : '',
             status: row.status || '',
             score: row.score
         });
@@ -574,6 +602,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         time: editForm.time.trim() || null,
                         credits: editForm.credits !== '' ? Number(editForm.credits) : null,
                         troops: editForm.troops !== '' ? Number(editForm.troops) : null,
+                        infantry: editForm.infantry !== '' ? Number(editForm.infantry) : null,
+                        cavalry: editForm.cavalry !== '' ? Number(editForm.cavalry) : null,
+                        archer: editForm.archer !== '' ? Number(editForm.archer) : null,
+                        siege: editForm.siege !== '' ? Number(editForm.siege) : null,
                         status: editForm.status.trim() || null,
                         score: cleanScore,
                         rawScore: cleanScore.toLocaleString()
@@ -601,6 +633,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             time: '',
             credits: null,
             troops: null,
+            infantry: null,
+            cavalry: null,
+            archer: null,
+            siege: null,
             status: '',
             score: 0,
             rawScore: '0',
@@ -616,6 +652,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             setRankings([]);
             setFrames([]);
             setSelfBanner(null);
+            setStructureCapacity(null);
             frameCounterRef.current = 1;
             showToast(t('toast_cleared'), 'info');
         }
@@ -644,6 +681,13 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
     const avgScore = totalGovernors > 0 ? Math.round(totalScore / totalGovernors) : 0;
     const topLeader = rankings.length > 0 ? rankings[0] : null;
 
+    // Check if displaying the generic Score column is redundant with an active depicted column
+    const isDuplicateScoreColumn = Boolean(
+        (depictedColumns.troops && (primaryMetricMode === 'troops' || (metricLabel || '').trim().toLowerCase() === 'troops')) ||
+        (depictedColumns.credits && (primaryMetricMode === 'credits' || (metricLabel || '').trim().toLowerCase().includes('credit'))) ||
+        (depictedColumns.time && (primaryMetricMode === 'time' || (metricLabel || '').trim().toLowerCase().includes('time')))
+    );
+
     // Export Handlers (incorporating all depicted columns)
     const exportExcel = () => {
         if (rankings.length === 0) {
@@ -660,8 +704,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             if (depictedColumns.time) rowObj['Building Time'] = r.time || '';
             if (depictedColumns.credits) rowObj['Building Credits'] = (r.credits !== null && r.credits !== undefined) ? r.credits : '';
             if (depictedColumns.troops) rowObj['Troops'] = (r.troops !== null && r.troops !== undefined) ? r.troops : '';
+            if (depictedColumns.infantry) rowObj['Infantry'] = (r.infantry !== null && r.infantry !== undefined) ? r.infantry : '';
+            if (depictedColumns.cavalry) rowObj['Cavalry'] = (r.cavalry !== null && r.cavalry !== undefined) ? r.cavalry : '';
+            if (depictedColumns.archer) rowObj['Archer'] = (r.archer !== null && r.archer !== undefined) ? r.archer : '';
+            if (depictedColumns.siege) rowObj['Siege'] = (r.siege !== null && r.siege !== undefined) ? r.siege : '';
             if (depictedColumns.status) rowObj['Status'] = r.status || '';
-            rowObj[metricLabel || 'Score'] = r.score;
+            if (!isDuplicateScoreColumn) {
+                rowObj[metricLabel || 'Score'] = r.score;
+            }
             rowObj['Frame Source'] = r.frameNumber ? `Frame #${r.frameNumber}` : 'Manual';
             return rowObj;
         });
@@ -683,8 +733,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         if (depictedColumns.time) cols.push({ header: 'Time', get: r => `"${(r.time || '').replace(/"/g, '""')}"` });
         if (depictedColumns.credits) cols.push({ header: 'Credits', get: r => (r.credits !== null && r.credits !== undefined) ? r.credits : '' });
         if (depictedColumns.troops) cols.push({ header: 'Troops', get: r => (r.troops !== null && r.troops !== undefined) ? r.troops : '' });
+        if (depictedColumns.infantry) cols.push({ header: 'Infantry', get: r => (r.infantry !== null && r.infantry !== undefined) ? r.infantry : '' });
+        if (depictedColumns.cavalry) cols.push({ header: 'Cavalry', get: r => (r.cavalry !== null && r.cavalry !== undefined) ? r.cavalry : '' });
+        if (depictedColumns.archer) cols.push({ header: 'Archer', get: r => (r.archer !== null && r.archer !== undefined) ? r.archer : '' });
+        if (depictedColumns.siege) cols.push({ header: 'Siege', get: r => (r.siege !== null && r.siege !== undefined) ? r.siege : '' });
         if (depictedColumns.status) cols.push({ header: 'Status', get: r => `"${(r.status || '').replace(/"/g, '""')}"` });
-        cols.push({ header: metricLabel || 'Score', get: r => r.score });
+        if (!isDuplicateScoreColumn) {
+            cols.push({ header: metricLabel || 'Score', get: r => r.score });
+        }
         cols.push({ header: 'Frame', get: r => r.frameNumber || 1 });
 
         const headers = cols.map(c => c.header).join(',');
@@ -710,8 +766,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         if (depictedColumns.time) cols.push({ header: 'Time', get: r => r.time || '' });
         if (depictedColumns.credits) cols.push({ header: 'Credits', get: r => (r.credits !== null && r.credits !== undefined) ? r.credits : '' });
         if (depictedColumns.troops) cols.push({ header: 'Troops', get: r => (r.troops !== null && r.troops !== undefined) ? r.troops : '' });
+        if (depictedColumns.infantry) cols.push({ header: 'Infantry', get: r => (r.infantry !== null && r.infantry !== undefined) ? r.infantry : '' });
+        if (depictedColumns.cavalry) cols.push({ header: 'Cavalry', get: r => (r.cavalry !== null && r.cavalry !== undefined) ? r.cavalry : '' });
+        if (depictedColumns.archer) cols.push({ header: 'Archer', get: r => (r.archer !== null && r.archer !== undefined) ? r.archer : '' });
+        if (depictedColumns.siege) cols.push({ header: 'Siege', get: r => (r.siege !== null && r.siege !== undefined) ? r.siege : '' });
         if (depictedColumns.status) cols.push({ header: 'Status', get: r => r.status || '' });
-        cols.push({ header: metricLabel || 'Score', get: r => r.score });
+        if (!isDuplicateScoreColumn) {
+            cols.push({ header: metricLabel || 'Score', get: r => r.score });
+        }
 
         const headers = cols.map(c => c.header).join('\t');
         const rows = rankings.map(r => cols.map(c => c.get(r)).join('\t'));
@@ -725,6 +787,12 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         const medalEmojis = { 1: '🥇', 2: '🥈', 3: '🥉' };
         
         let msg = `🏆 **${(eventName || 'ALLIANCE EVENT RANKINGS').toUpperCase()}**\n`;
+        if (structureCapacity) {
+            msg += `🏰 **Structure Capacity**: ${structureCapacity.current ? structureCapacity.current.toLocaleString() : '—'} / ${structureCapacity.max ? structureCapacity.max.toLocaleString() : '—'}`;
+            if (structureCapacity.progress) msg += ` (${structureCapacity.progress})`;
+            if (structureCapacity.timeLeft) msg += ` • ⏱️ ${structureCapacity.timeLeft}`;
+            msg += `\n`;
+        }
         msg += `📊 *Metric: ${metricLabel}* • Total Participants: **${rankings.length}**\n\n`;
 
         rankings.forEach(r => {
@@ -733,11 +801,20 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             let extra = [];
             if (r.commander) extra.push(`*${r.commander}*`);
             if (r.troops !== null && r.troops !== undefined) extra.push(`⚔️ **${r.troops.toLocaleString()}**`);
+
+            const troopBreakdown = [];
+            if (r.infantry) troopBreakdown.push(`🛡️${r.infantry.toLocaleString()}`);
+            if (r.cavalry) troopBreakdown.push(`🐎${r.cavalry.toLocaleString()}`);
+            if (r.archer) troopBreakdown.push(`🏹${r.archer.toLocaleString()}`);
+            if (r.siege) troopBreakdown.push(`🚜${r.siege.toLocaleString()}`);
+            if (troopBreakdown.length > 0) extra.push(troopBreakdown.join(' '));
+
             if (r.credits !== null && r.credits !== undefined) extra.push(`🪙 **${r.credits.toLocaleString()}**`);
             if (r.time) extra.push(`⏱️ ${r.time}`);
 
             const detailsStr = extra.length > 0 ? ` (${extra.join(' • ')})` : '';
-            msg += `${medal} ${tag}**${r.governorName}** — \`${(r.score || 0).toLocaleString()}\`${detailsStr}\n`;
+            const scoreDisplay = isDuplicateScoreColumn ? '' : ` — \`${(r.score || 0).toLocaleString()}\``;
+            msg += `${medal} ${tag}**${r.governorName}**${scoreDisplay}${detailsStr}\n`;
         });
 
         msg += `\n*Recorded with Unity AI Ranking Scanner*`;
@@ -1209,6 +1286,46 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         </div>
                     </div>
 
+                    {/* Structure Reinforcement Capacity Banner (if detected on Alliance structure/stone pit/flag) */}
+                    {structureCapacity && (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-cyan-500/30 bg-cyan-950/20 backdrop-blur-md shadow-lg">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300">
+                                    <Shield size={18} />
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
+                                        {t('label_structure_capacity')}
+                                    </div>
+                                    <div className="text-sm font-black font-mono text-white flex items-center gap-1.5 mt-0.5">
+                                        <span className="text-cyan-300">{(structureCapacity.current || 0).toLocaleString()}</span>
+                                        <span className="text-slate-500">/</span>
+                                        <span className="text-slate-300">{(structureCapacity.max || 0).toLocaleString()}</span>
+                                        {structureCapacity.max > 0 && (
+                                            <span className="text-xs text-cyan-400/90 font-semibold ml-1">
+                                                ({Math.round(((structureCapacity.current || 0) / structureCapacity.max) * 100)}%)
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs font-mono">
+                                {structureCapacity.progress && (
+                                    <div className="flex items-center gap-1.5 bg-[#0d1017] px-2.5 py-1 rounded-lg border border-slate-800">
+                                        <span className="text-slate-500 uppercase text-[10px]">Progress:</span>
+                                        <span className="font-bold text-amber-300">{structureCapacity.progress}</span>
+                                    </div>
+                                )}
+                                {structureCapacity.timeLeft && (
+                                    <div className="flex items-center gap-1.5 bg-[#0d1017] px-2.5 py-1 rounded-lg border border-slate-800">
+                                        <span className="text-slate-500 uppercase text-[10px]">Time Left:</span>
+                                        <span className="font-bold text-emerald-300">{structureCapacity.timeLeft}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Sequence Continuity Warning if Gaps Exist */}
                     {missingRanks.length > 0 && (
                         <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 flex items-start gap-2.5 text-xs animate-pulse">
@@ -1337,6 +1454,42 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                 <span>⚔️ {t('th_troops')}</span>
                             </button>
                             <button
+                                onClick={() => toggleColumn('infantry')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.infantry ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.infantry && <Check size={12} />}
+                                <span>🛡️ {t('th_infantry')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('cavalry')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.cavalry ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.cavalry && <Check size={12} />}
+                                <span>🐎 {t('th_cavalry')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('archer')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.archer ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.archer && <Check size={12} />}
+                                <span>🏹 {t('th_archer')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('siege')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.siege ? 'bg-purple-600/30 border border-purple-500/50 text-purple-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.siege && <Check size={12} />}
+                                <span>🚜 {t('th_siege')}</span>
+                            </button>
+                            <button
                                 onClick={() => toggleColumn('status')}
                                 className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
                                     depictedColumns.status ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
@@ -1402,8 +1555,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                         {depictedColumns.time && <th className="py-2.5 px-3 text-center">{t('th_time')}</th>}
                                         {depictedColumns.credits && <th className="py-2.5 px-3 text-right">🪙 {t('th_credits')}</th>}
                                         {depictedColumns.troops && <th className="py-2.5 px-3 text-right">⚔️ {t('th_troops')}</th>}
+                                        {depictedColumns.infantry && <th className="py-2.5 px-3 text-right">🛡️ {t('th_infantry')}</th>}
+                                        {depictedColumns.cavalry && <th className="py-2.5 px-3 text-right">🐎 {t('th_cavalry')}</th>}
+                                        {depictedColumns.archer && <th className="py-2.5 px-3 text-right">🏹 {t('th_archer')}</th>}
+                                        {depictedColumns.siege && <th className="py-2.5 px-3 text-right">🚜 {t('th_siege')}</th>}
                                         {depictedColumns.status && <th className="py-2.5 px-3 text-center">{t('th_status')}</th>}
-                                        <th className="py-2.5 px-3 text-right">{metricLabel || t('th_score')}</th>
+                                        {!isDuplicateScoreColumn && (
+                                            <th className="py-2.5 px-3 text-right">{metricLabel || t('th_score')}</th>
+                                        )}
                                         <th className="py-2.5 px-3 w-20 text-center">{t('th_source')}</th>
                                         <th className="py-2.5 px-3 w-20 text-center">{t('th_actions')}</th>
                                     </tr>
@@ -1411,7 +1570,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                 <tbody className="divide-y divide-slate-800/60 font-sans">
                                     {filteredRankings.length === 0 ? (
                                         <tr>
-                                            <td colSpan={11} className="py-12 text-center text-slate-500">
+                                            <td colSpan={16} className="py-12 text-center text-slate-500">
                                                 <div className="flex flex-col items-center justify-center space-y-2">
                                                     <Camera size={28} className="opacity-30" />
                                                     <p className="text-xs uppercase tracking-wider font-mono">
@@ -1568,6 +1727,82 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                         </td>
                                                     )}
 
+                                                    {/* Infantry Cell */}
+                                                    {depictedColumns.infantry && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.infantry}
+                                                                    onChange={(e) => setEditForm({ ...editForm, infantry: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-blue-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.infantry !== null && row.infantry !== undefined) ? (
+                                                                    <span>🛡️ {Number(row.infantry).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Cavalry Cell */}
+                                                    {depictedColumns.cavalry && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.cavalry}
+                                                                    onChange={(e) => setEditForm({ ...editForm, cavalry: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-amber-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.cavalry !== null && row.cavalry !== undefined) ? (
+                                                                    <span>🐎 {Number(row.cavalry).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Archer Cell */}
+                                                    {depictedColumns.archer && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.archer}
+                                                                    onChange={(e) => setEditForm({ ...editForm, archer: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-emerald-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.archer !== null && row.archer !== undefined) ? (
+                                                                    <span>🏹 {Number(row.archer).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Siege Cell */}
+                                                    {depictedColumns.siege && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.siege}
+                                                                    onChange={(e) => setEditForm({ ...editForm, siege: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-purple-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.siege !== null && row.siege !== undefined) ? (
+                                                                    <span>🚜 {Number(row.siege).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
                                                     {/* Status Cell */}
                                                     {depictedColumns.status && (
                                                         <td className="py-2.5 px-3 text-center">
@@ -1593,19 +1828,21 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                         </td>
                                                     )}
 
-                                                    {/* Score Cell */}
-                                                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
-                                                        {isEditing ? (
-                                                            <input
-                                                                type="number"
-                                                                value={editForm.score}
-                                                                onChange={(e) => setEditForm({ ...editForm, score: e.target.value })}
-                                                                className="w-24 bg-black border border-slate-700 rounded px-2 py-0.5 text-right text-xs text-emerald-400"
-                                                            />
-                                                        ) : (
-                                                            <span>{(Number(row.score) || 0).toLocaleString()}</span>
-                                                        )}
-                                                    </td>
+                                                    {/* Score Cell (omitted if duplicate) */}
+                                                    {!isDuplicateScoreColumn && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.score}
+                                                                    onChange={(e) => setEditForm({ ...editForm, score: e.target.value })}
+                                                                    className="w-24 bg-black border border-slate-700 rounded px-2 py-0.5 text-right text-xs text-emerald-400"
+                                                                />
+                                                            ) : (
+                                                                <span>{(Number(row.score) || 0).toLocaleString()}</span>
+                                                            )}
+                                                        </td>
+                                                    )}
 
                                                     {/* Source Frame Cell */}
                                                     <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-500">

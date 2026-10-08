@@ -2014,6 +2014,11 @@
     "th_credits": "Créditos",
     "th_troops": "Tropas",
     "th_status": "Estado",
-    "btn_back_to_unity": "Volver a Unity"
+    "btn_back_to_unity": "Volver a Unity",
+    "th_infantry": "Infantería",
+    "th_cavalry": "Caballería",
+    "th_archer": "Arqueros",
+    "th_siege": "Asedio",
+    "label_structure_capacity": "Capacidad de refuerzo"
   }
 }

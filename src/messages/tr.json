@@ -2014,6 +2014,11 @@
     "th_credits": "Kredi",
     "th_troops": "Birlik",
     "th_status": "Durum",
-    "btn_back_to_unity": "Unity'ye Dön"
+    "btn_back_to_unity": "Unity'ye Dön",
+    "th_infantry": "Piyade",
+    "th_cavalry": "Süvari",
+    "th_archer": "Okçu",
+    "th_siege": "Kuşatma",
+    "label_structure_capacity": "Takviye Kapasitesi"
   }
 }

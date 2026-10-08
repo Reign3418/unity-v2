@@ -2014,6 +2014,11 @@
     "th_credits": "Điểm cống hiến",
     "th_troops": "Quân lính",
     "th_status": "Trạng thái",
-    "btn_back_to_unity": "Quay lại Unity"
+    "btn_back_to_unity": "Quay lại Unity",
+    "th_infantry": "Bộ binh",
+    "th_cavalry": "Kỵ binh",
+    "th_archer": "Cung thủ",
+    "th_siege": "Xe công thành",
+    "label_structure_capacity": "Sức chứa viện binh"
   }
 }

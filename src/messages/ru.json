@@ -2014,6 +2014,11 @@
     "th_credits": "Кредиты",
     "th_troops": "Войска",
     "th_status": "Статус",
-    "btn_back_to_unity": "Назад в Unity"
+    "btn_back_to_unity": "Назад в Unity",
+    "th_infantry": "Пехота",
+    "th_cavalry": "Кавалерия",
+    "th_archer": "Стрелки",
+    "th_siege": "Осадные",
+    "label_structure_capacity": "Вместимость подкреплений"
   }
 }

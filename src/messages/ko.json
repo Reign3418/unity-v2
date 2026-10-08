@@ -2014,6 +2014,11 @@
     "th_credits": "크레딧",
     "th_troops": "병력",
     "th_status": "상태",
-    "btn_back_to_unity": "Unity로 돌아가기"
+    "btn_back_to_unity": "Unity로 돌아가기",
+    "th_infantry": "보병",
+    "th_cavalry": "기병",
+    "th_archer": "궁병",
+    "th_siege": "공성",
+    "label_structure_capacity": "지원군 수용량"
   }
 }

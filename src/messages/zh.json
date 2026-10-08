@@ -2014,6 +2014,11 @@
     "th_credits": "联盟积分",
     "th_troops": "部队数",
     "th_status": "状态",
-    "btn_back_to_unity": "返回 Unity"
+    "btn_back_to_unity": "返回 Unity",
+    "th_infantry": "步兵",
+    "th_cavalry": "骑兵",
+    "th_archer": "弓兵",
+    "th_siege": "攻城",
+    "label_structure_capacity": "援军容量"
   }
 }

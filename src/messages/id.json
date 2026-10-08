@@ -2014,6 +2014,11 @@
     "th_credits": "Kredit",
     "th_troops": "Pasukan",
     "th_status": "Status",
-    "btn_back_to_unity": "Kembali ke Unity"
+    "btn_back_to_unity": "Kembali ke Unity",
+    "th_infantry": "Infanteri",
+    "th_cavalry": "Kavaleri",
+    "th_archer": "Pemanah",
+    "th_siege": "Pengepungan",
+    "label_structure_capacity": "Kapasitas Bala Bantuan"
   }
 }
