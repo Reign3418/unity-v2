@@ -16,6 +16,7 @@ import {
     testBenfordsLaw, 
     simulateLanchesterBattle,
     compute5DGalacticManifold,
+    extractGovernorMetrics,
     BENFORD_THEORETICAL
 } from "@/lib/cerberusIntelligence";
 import CerberusGalaxyCanvas from "@/components/cerberus/CerberusGalaxyCanvas";
@@ -211,28 +212,32 @@ export default function ProjectCerberusPage() {
     // 3. Scale-Invariant Benford's Law Fraud Forensics
     const benford = useMemo(() => {
         if (!rosterData || rosterData.length === 0) return null;
+        const parsed = rosterData.map((g, i) => extractGovernorMetrics(g, i + 1));
         let numbers = [];
         if (benfordMetric === "combat") {
             // Granular combat casualties (Scale-invariant, true natural distribution)
-            numbers = rosterData.flatMap(g => [
-                g.t1Kills || g.t1,
-                g.t4Kills || g.t4,
-                g.t5Kills || g.t5,
-                g.deads || g.deadTroops,
-                g.killPoints || g.killpoints,
-                g.helps,
+            numbers = parsed.flatMap(p => [
+                p.t1Kills,
+                p.t4Kills,
+                p.t5Kills,
+                p.deads,
+                p.killPoints,
+                p.rssAssisted,
+                p.gathered,
+                p.helps,
             ]).filter(n => n && n > 0);
         } else {
             // Complete transactional field tensor
-            numbers = rosterData.flatMap(g => [
-                g.power,
-                g.t1Kills || g.t1,
-                g.t4Kills || g.t4,
-                g.t5Kills || g.t5,
-                g.deads || g.deadTroops,
-                g.killPoints || g.killpoints,
-                g.rssAssisted || g.assisted,
-                g.helps,
+            numbers = parsed.flatMap(p => [
+                p.power,
+                p.t1Kills,
+                p.t4Kills,
+                p.t5Kills,
+                p.deads,
+                p.killPoints,
+                p.rssAssisted,
+                p.gathered,
+                p.helps,
             ]).filter(n => n && n > 0);
         }
         return testBenfordsLaw(numbers);
@@ -395,7 +400,10 @@ export default function ProjectCerberusPage() {
                             </div>
                         </div>
 
-                        <CerberusGalaxyCanvas galaxyData={galaxy} />
+                        <CerberusGalaxyCanvas 
+                            key={dataSource + '_' + (dataSource === 'live' ? liveKd : 'syn')} 
+                            galaxyData={galaxy} 
+                        />
                     </div>
                 )}
 

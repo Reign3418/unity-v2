@@ -47,10 +47,13 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
         return bg;
     }, []);
 
-    // Set initial selected star
+    // Synchronize selected star with active galaxy dataset
     useEffect(() => {
-        if (galaxyData?.stars?.length > 0 && !selectedStar) {
-            setSelectedStar(galaxyData.stars[0]);
+        if (galaxyData?.stars?.length > 0) {
+            const exists = selectedStar && galaxyData.stars.some(s => String(s.id) === String(selectedStar.id));
+            if (!exists) {
+                setSelectedStar(galaxyData.stars[0]);
+            }
         }
     }, [galaxyData, selectedStar]);
 

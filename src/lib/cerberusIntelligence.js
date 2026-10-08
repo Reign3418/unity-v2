@@ -61,15 +61,65 @@ function getQuantileRanks(arr) {
 }
 
 /**
- * Standardizes an array with Log10 + Z-Score (Mean=0, Std=1)
+ * Standardizes an array with Log10 + Z-Score (Mean=0, Std=1) with zero-variance guard
  */
 function logZScoreStandardize(values) {
     if (!values || values.length === 0) return [];
     const logVals = values.map(v => Math.log10(Math.max(1, Number(v) || 0)));
     const mean = logVals.reduce((sum, v) => sum + v, 0) / logVals.length;
     const variance = logVals.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / logVals.length;
-    const std = Math.sqrt(variance) || 1;
+    const std = Math.sqrt(variance);
+    // If variance is 0 (all values identical or 0), inject slight dispersion to prevent PCA RangeError
+    if (!std || std < 1e-6) {
+        return logVals.map((_, i) => ((i % 11) - 5) * 0.02);
+    }
     return logVals.map(v => (v - mean) / std);
+}
+
+/**
+ * Universally extracts comprehensive combat & economy metrics from either live DynamoDB scans or benchmark rosters
+ */
+export function extractGovernorMetrics(g, fallbackIdx = 0) {
+    const power = Number(g.power || g.Power) || 0;
+    const kp = Number(g.killPoints || g.killpoints || g.KillPoints || g.kp || g.KP) || 0;
+    const t4 = Number(g.t4Kills || g.t4 || g['T4 Kills']) || 0;
+    const t5 = Number(g.t5Kills || g.t5 || g['T5 Kills']) || 0;
+    const warKills = t4 + t5;
+    const warPoints = (t4 * 10) + (t5 * 20);
+
+    // Derived or explicit T1 duel padding: in RoK, non-T4/T5 kill points reflect lower-tier kills
+    let t1 = Number(g.t1Kills || g.t1 || g['T1 Kills']) || 0;
+    if (t1 === 0 && kp > warPoints) {
+        t1 = kp - warPoints;
+    }
+
+    const deads = Number(g.deads ?? g.dead ?? g.Deads ?? g.Dead ?? g.deadTroops ?? g.defeats ?? g['Dead(s)']) || 0;
+    const rssAssisted = Number(g.rssAssisted ?? g.assistance ?? g.assisted ?? g.Assistance) || 0;
+    const gathered = Number(g.gathered ?? g.resourcesGathered ?? g['Resources Gathered']) || 0;
+    const helps = Number(g.helps ?? g.allianceHelps ?? 0);
+    const totalKills = Math.max(1, t1 + warKills);
+
+    return {
+        id: String(g.id || g.governorId || g['Governor ID'] || fallbackIdx),
+        name: String(g.name || g.governorName || g['Governor Name'] || `Governor_${fallbackIdx}`),
+        alliance: String(g.alliance || g['Alliance Tag'] || 'None'),
+        power,
+        killPoints: kp,
+        t1Kills: t1,
+        t4Kills: t4,
+        t5Kills: t5,
+        warKills,
+        deads,
+        rssAssisted,
+        gathered,
+        helps,
+        totalKills,
+        t1Ratio: Number(((t1 / totalKills) * 100).toFixed(1)),
+        warRatio: Number(((warKills / totalKills) * 100).toFixed(1)),
+        deadToPower: power > 0 ? deads / power : 0,
+        kpToPower: power > 0 ? kp / power : 0,
+        assistToPower: power > 0 ? rssAssisted / power : 0,
+    };
 }
 
 // ============================================================================
@@ -81,23 +131,18 @@ export function computeCombatDnaManifold(governors = []) {
     }
 
     const n = governors.length;
-    const powers = governors.map(g => Number(g.power) || 0);
-    const t1Kills = governors.map(g => Number(g.t1Kills || g.t1) || 0);
-    const t4Kills = governors.map(g => Number(g.t4Kills || g.t4) || 0);
-    const t5Kills = governors.map(g => Number(g.t5Kills || g.t5) || 0);
-    const warKills = t4Kills.map((t4, i) => t4 + t5Kills[i]);
-    const totalKills = governors.map((g, i) => Math.max(1, t1Kills[i] + warKills[i] + Number(g.t2 || 0) + Number(g.t3 || 0)));
-    const deads = governors.map(g => Number(g.deads || g.deadTroops) || 0);
-    const kps = governors.map(g => Number(g.killPoints || g.killpoints) || 0);
-    const rssAssisted = governors.map(g => Number(g.rssAssisted || g.assisted) || 0);
-    const helps = governors.map(g => Number(g.helps) || 0);
+    const parsed = governors.map((g, i) => extractGovernorMetrics(g, i + 1));
 
-    // Feature ratios
-    const t1Ratios = t1Kills.map((t1, i) => t1 / totalKills[i]);
-    const warRatios = warKills.map((wk, i) => wk / totalKills[i]);
-    const deadToPower = deads.map((d, i) => powers[i] > 0 ? d / powers[i] : 0);
-    const kpToPower = kps.map((kp, i) => powers[i] > 0 ? kp / powers[i] : 0);
-    const assistToPower = rssAssisted.map((ra, i) => powers[i] > 0 ? ra / powers[i] : 0);
+    const powers = parsed.map(p => p.power);
+    const warKills = parsed.map(p => p.warKills);
+    const deads = parsed.map(p => p.deads);
+    const kps = parsed.map(p => p.killPoints);
+    const rssAssisted = parsed.map(p => p.rssAssisted);
+    const gathered = parsed.map(p => p.gathered);
+    const t1Ratios = parsed.map(p => p.t1Ratio / 100);
+    const warRatios = parsed.map(p => p.warRatio / 100);
+    const deadToPower = parsed.map(p => p.deadToPower);
+    const kpToPower = parsed.map(p => p.kpToPower);
 
     // Dynamic Quantile Percentiles across this kingdom's population
     const powerRanks = getQuantileRanks(powers);
@@ -112,17 +157,17 @@ export function computeCombatDnaManifold(governors = []) {
     const zDeads = logZScoreStandardize(deads);
     const zKP = logZScoreStandardize(kps);
     const zAssists = logZScoreStandardize(rssAssisted);
-    const zHelps = logZScoreStandardize(helps);
-    const zT1 = t1Ratios.map(r => (r - 0.5) * 2); // Linear scale for ratio
+    const zGathered = logZScoreStandardize(gathered);
+    const zT1 = t1Ratios.map(r => (r - 0.5) * 2);
 
     // Construct feature matrix
-    const featureMatrix = governors.map((_, i) => [
+    const featureMatrix = parsed.map((_, i) => [
         zPower[i],
         zWarKills[i],
         zDeads[i],
         zKP[i],
         zAssists[i],
-        zHelps[i],
+        zGathered[i],
         zT1[i]
     ]);
 
@@ -213,16 +258,19 @@ export function computeSyndicateGraph(governors = []) {
         .sort((a, b) => (b.power || 0) - (a.power || 0))
         .slice(0, sampleSize);
 
-    const nodes = sampleGovs.map(g => ({
-        id: String(g.id || g.governorId),
-        name: g.name || g.governorName || `Gov ${g.id}`,
-        alliance: g.alliance || "None",
-        power: Number(g.power) || 0,
-        killPoints: Number(g.killPoints || g.killpoints) || 0,
-        rssAssisted: Number(g.rssAssisted || g.assisted) || 0,
-        centralityScore: 0,
-        isInfiltratorRisk: false,
-    }));
+    const nodes = sampleGovs.map((g, i) => {
+        const m = extractGovernorMetrics(g, i + 1);
+        return {
+            id: m.id,
+            name: m.name,
+            alliance: m.alliance,
+            power: m.power,
+            killPoints: m.killPoints,
+            rssAssisted: m.rssAssisted,
+            centralityScore: 0,
+            isInfiltratorRisk: false,
+        };
+    });
 
     const edges = [];
     const edgeKeySet = new Set();
@@ -449,21 +497,22 @@ export function compute5DGalacticManifold(governors = []) {
     if (!governors || governors.length < 4) return null;
 
     const n = governors.length;
-    const powers = governors.map(g => Number(g.power) || 0);
-    const t1Kills = governors.map(g => Number(g.t1Kills || g.t1) || 0);
-    const t4Kills = governors.map(g => Number(g.t4Kills || g.t4) || 0);
-    const t5Kills = governors.map(g => Number(g.t5Kills || g.t5) || 0);
-    const warKills = t4Kills.map((t4, i) => t4 + t5Kills[i]);
-    const totalKills = governors.map((g, i) => Math.max(1, t1Kills[i] + warKills[i] + Number(g.t2 || 0) + Number(g.t3 || 0)));
-    const deads = governors.map(g => Number(g.deads || g.deadTroops) || 0);
-    const kps = governors.map(g => Number(g.killPoints || g.killpoints) || 0);
-    const rssAssisted = governors.map(g => Number(g.rssAssisted || g.assisted) || 0);
-    const helps = governors.map(g => Number(g.helps) || 0);
+    const parsed = governors.map((g, i) => extractGovernorMetrics(g, i + 1));
+
+    const powers = parsed.map(p => p.power);
+    const warKills = parsed.map(p => p.warKills);
+    const deads = parsed.map(p => p.deads);
+    const kps = parsed.map(p => p.killPoints);
+    const rssAssisted = parsed.map(p => p.rssAssisted);
+    const gathered = parsed.map(p => p.gathered);
+    const t1Ratios = parsed.map(p => p.t1Ratio / 100);
+    const warRatios = parsed.map(p => p.warRatio / 100);
+    const deadToPower = parsed.map(p => p.deadToPower);
 
     // Dynamic Quantile Percentiles
     const powerRanks = getQuantileRanks(powers);
-    const warRanks = getQuantileRanks(warKills.map((wk, i) => wk / totalKills[i]));
-    const deadRanks = getQuantileRanks(deads.map((d, i) => powers[i] > 0 ? d / powers[i] : 0));
+    const warRanks = getQuantileRanks(warRatios);
+    const deadRanks = getQuantileRanks(deadToPower);
 
     // Standardized tensors for 4D PCA
     const zPower = logZScoreStandardize(powers);
@@ -471,16 +520,16 @@ export function compute5DGalacticManifold(governors = []) {
     const zDeads = logZScoreStandardize(deads);
     const zKP = logZScoreStandardize(kps);
     const zAssists = logZScoreStandardize(rssAssisted);
-    const zHelps = logZScoreStandardize(helps);
-    const zT1 = governors.map((_, i) => (t1Kills[i] / totalKills[i] - 0.5) * 2);
+    const zGathered = logZScoreStandardize(gathered);
+    const zT1 = t1Ratios.map(r => (r - 0.5) * 2);
 
-    const featureMatrix = governors.map((_, i) => [
+    const featureMatrix = parsed.map((_, i) => [
         zPower[i],
         zWarKills[i],
         zDeads[i],
         zKP[i],
         zAssists[i],
-        zHelps[i],
+        zGathered[i],
         zT1[i]
     ]);
 
@@ -500,10 +549,7 @@ export function compute5DGalacticManifold(governors = []) {
 
     // 5th Dimension: Naming Convention Clusterizer
     const nameClanMap = {};
-    const rawClans = governors.map(g => {
-        const name = g.name || g.governorName || `Gov_${g.id}`;
-        return extractNamingClan(name);
-    });
+    const rawClans = parsed.map(p => extractNamingClan(p.name));
 
     rawClans.forEach(c => {
         if (c.clan !== 'Independent') {
@@ -538,8 +584,8 @@ export function compute5DGalacticManifold(governors = []) {
     ];
     const allianceColorMap = {};
     let allIdx = 0;
-    governors.forEach(g => {
-        const tag = g.alliance || 'None';
+    parsed.forEach(p => {
+        const tag = p.alliance || 'None';
         if (tag !== 'None' && !allianceColorMap[tag]) {
             allianceColorMap[tag] = ALLIANCE_PALETTES[allIdx % ALLIANCE_PALETTES.length];
             allIdx++;
@@ -547,20 +593,18 @@ export function compute5DGalacticManifold(governors = []) {
     });
 
     // Build Astrodynamic Nodes
-    const stars = governors.map((g, i) => {
-        const name = g.name || g.governorName || `Gov_${g.id}`;
-        const alliance = g.alliance || 'None';
+    const stars = parsed.map((p, i) => {
         const clanInfo = rawClans[i];
         const isRecognizedClan = recognizedClans.has(clanInfo.clan);
         const namingClan = isRecognizedClan ? clanInfo.clan : 'Solitary';
         const nebulaColor = isRecognizedClan ? clanColorMap[clanInfo.clan] : '#475569';
-        const allianceColor = allianceColorMap[alliance] || '#334155';
+        const allianceColor = allianceColorMap[p.alliance] || '#334155';
 
         // Spectral Class (Stellar Type by Combat Personality)
         const wr = warRanks[i];
         const dr = deadRanks[i];
         const pr = powerRanks[i];
-        const tr = t1Kills[i] / totalKills[i];
+        const tr = p.t1Ratio / 100;
 
         let spectralType = 'G-Dwarf';
         let spectralColor = '#f59e0b'; // Golden yellow
@@ -609,18 +653,19 @@ export function compute5DGalacticManifold(governors = []) {
         const spiralY = Number(((pr - 0.5) * 110 + (dr - 0.5) * 50).toFixed(2));
 
         return {
-            id: g.id || g.governorId,
-            name,
-            alliance,
-            power: powers[i],
-            killPoints: kps[i],
-            t4Kills: t4Kills[i],
-            t5Kills: t5Kills[i],
-            deads: deads[i],
-            rssAssisted: rssAssisted[i],
-            helps: helps[i],
-            t1Ratio: Number((tr * 100).toFixed(1)),
-            warRatio: Number(((warKills[i] / totalKills[i]) * 100).toFixed(1)),
+            id: p.id,
+            name: p.name,
+            alliance: p.alliance,
+            power: p.power,
+            killPoints: p.killPoints,
+            t4Kills: p.t4Kills,
+            t5Kills: p.t5Kills,
+            deads: p.deads,
+            rssAssisted: p.rssAssisted,
+            gathered: p.gathered,
+            helps: p.helps,
+            t1Ratio: p.t1Ratio,
+            warRatio: p.warRatio,
             
             // 5D Dimensions
             x, // Dim 1: War Orbit (X)
