@@ -32,6 +32,11 @@ export default function ResellerHunterPage() {
     const [sortBy, setSortBy] = useState("confidence"); // 'confidence' | 'gathered' | 'ratio' | 'power' | 'kp'
     const [copiedId, setCopiedId] = useState(null);
     const [toastMessage, setToastMessage] = useState(null);
+    const [pendingChanges, setPendingChanges] = useState(false);
+
+    // Alliance Hive Expansion & Inspector Modal States
+    const [expandedHives, setExpandedHives] = useState(new Set());
+    const [inspectedHive, setInspectedHive] = useState(null);
 
     // Initial load: trigger synthetic benchmark demo so user sees instant value
     useEffect(() => {
@@ -42,6 +47,31 @@ export default function ResellerHunterPage() {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(null), 3000);
     }, []);
+
+    const toggleExpandHive = (tag) => {
+        setExpandedHives(prev => {
+            const next = new Set(prev);
+            if (next.has(tag)) next.delete(tag);
+            else next.add(tag);
+            return next;
+        });
+    };
+
+    const handleApplyFilters = () => {
+        setPendingChanges(false);
+        showToast(t("toast_tweaks_applied", { count: filteredResellers.length }));
+    };
+
+    const handleResetFilters = () => {
+        setMaxPower(75_000_000);
+        setMinGathered(50_000_000);
+        setMaxKp(25_000_000);
+        setMinConfidence(35);
+        setSearchQuery("");
+        setSelectedAlliance(null);
+        setPendingChanges(false);
+        showToast(t("toast_filters_reset"));
+    };
 
     const runScan = async (useDemo = false) => {
         setLoading(true);
@@ -86,7 +116,7 @@ export default function ResellerHunterPage() {
 
     // Client-side dynamic recalculation: re-analyzes candidates instantly when sliders shift
     const dynamicAnalysis = useMemo(() => {
-        const pool = data?.allCandidates || data?.rawRoster;
+        const pool = data?.rawRoster || data?.allCandidates;
         if (!pool || pool.length === 0) {
             return {
                 resellers: data?.resellers || [],
@@ -514,83 +544,156 @@ export default function ResellerHunterPage() {
                         </div>
 
                         {/* Tuner Sliders & Global Filters */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 p-4 bg-[#090d12] border border-[#1a2332] rounded-2xl text-xs font-mono">
-                            <div className="relative col-span-1 sm:col-span-2 lg:col-span-2">
-                                <Search size={14} className="absolute left-3 top-2.5 text-gray-500" />
-                                <input
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    placeholder={t("filter_search_placeholder")}
-                                    className="w-full bg-[#0c1017] border border-[#1a2332] rounded-lg pl-9 pr-3 py-1.5 text-white placeholder-gray-600 focus:outline-none focus:border-rose-500/50"
-                                />
+                        <div 
+                            onKeyDown={e => e.key === "Enter" && handleApplyFilters()}
+                            className="p-4 bg-[#090d12] border border-[#1a2332] rounded-2xl text-xs font-mono space-y-3"
+                        >
+                            {/* Top Row: Search and Action Buttons */}
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="relative w-full sm:max-w-md">
+                                    <Search size={14} className="absolute left-3 top-2.5 text-gray-500" />
+                                    <input
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && handleApplyFilters()}
+                                        placeholder={t("filter_search_placeholder")}
+                                        className="w-full bg-[#0c1017] border border-[#1a2332] rounded-xl pl-9 pr-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-rose-500/50"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                                    <button
+                                        onClick={handleResetFilters}
+                                        className="px-3 py-2 bg-[#10161f] border border-[#1a2332] hover:border-gray-500 text-gray-400 hover:text-white rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                                        title="Reset all filters to defaults"
+                                    >
+                                        <RefreshCw size={12} />
+                                        <span>{t("btn_reset_filters")}</span>
+                                    </button>
+
+                                    <button
+                                        onClick={handleApplyFilters}
+                                        className={`px-4 py-2 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+                                            pendingChanges
+                                                ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.6)] animate-pulse"
+                                                : "bg-rose-500/20 border border-rose-500/50 hover:bg-rose-500/30 text-rose-300"
+                                        }`}
+                                    >
+                                        <Check size={14} className="text-white" />
+                                        <span>{t("btn_apply_tweaks")}</span>
+                                        <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px] text-white font-mono">
+                                            {filteredResellers.length}
+                                        </span>
+                                        <kbd className="hidden md:inline-block text-[9px] bg-black/40 px-1.5 py-0.5 rounded text-gray-400">↵ Enter</kbd>
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-1" dir="ltr">
-                                <div className="flex justify-between text-[10px] text-gray-400">
-                                    <span>{t("filter_max_power")}</span>
-                                    <span className="font-bold text-white">
-                                        {maxPower >= 150_000_000 ? t("label_no_limit") : fmtCompact(maxPower)}
-                                    </span>
+                            {/* Sliders Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-[#141a24]">
+                                {/* Max Power */}
+                                <div className="flex flex-col gap-1.5 bg-[#0c1017] p-2.5 rounded-xl border border-[#1a2332]" dir="ltr">
+                                    <div className="flex justify-between text-[10px] text-gray-400">
+                                        <span>{t("filter_max_power")}</span>
+                                        <span className="font-bold text-white font-mono">
+                                            {maxPower >= 150_000_000 ? t("label_no_limit") : fmtCompact(maxPower)}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={2_000_000}
+                                        max={150_000_000}
+                                        step={2_000_000}
+                                        value={maxPower}
+                                        onChange={e => {
+                                            setMaxPower(Number(e.target.value));
+                                            setPendingChanges(true);
+                                        }}
+                                        className="accent-rose-500 h-1 bg-[#1a2332] rounded cursor-pointer"
+                                    />
+                                    <div className="flex justify-between text-[8px] text-gray-600 font-mono">
+                                        <span>2M</span>
+                                        <span>50M</span>
+                                        <span>{t("label_no_limit")}</span>
+                                    </div>
                                 </div>
-                                <input
-                                    type="range"
-                                    min={5_000_000}
-                                    max={150_000_000}
-                                    step={5_000_000}
-                                    value={maxPower}
-                                    onChange={e => setMaxPower(Number(e.target.value))}
-                                    className="accent-rose-500 h-1 bg-[#1a2332] rounded cursor-pointer"
-                                />
-                            </div>
 
-                            <div className="flex flex-col gap-1" dir="ltr">
-                                <div className="flex justify-between text-[10px] text-gray-400">
-                                    <span>{t("filter_min_rss")}</span>
-                                    <span className="font-bold text-amber-400">{fmtCompact(minGathered)}</span>
+                                {/* Min Gathered RSS */}
+                                <div className="flex flex-col gap-1.5 bg-[#0c1017] p-2.5 rounded-xl border border-[#1a2332]" dir="ltr">
+                                    <div className="flex justify-between text-[10px] text-gray-400">
+                                        <span>{t("filter_min_rss")}</span>
+                                        <span className="font-bold text-amber-400 font-mono">{fmtCompact(minGathered)}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={50_000_000}
+                                        max={6_000_000_000}
+                                        step={50_000_000}
+                                        value={minGathered}
+                                        onChange={e => {
+                                            setMinGathered(Number(e.target.value));
+                                            setPendingChanges(true);
+                                        }}
+                                        className="accent-amber-400 h-1 bg-[#1a2332] rounded cursor-pointer"
+                                    />
+                                    <div className="flex justify-between text-[8px] text-gray-600 font-mono">
+                                        <span>50M</span>
+                                        <span>2B</span>
+                                        <span>6B</span>
+                                    </div>
                                 </div>
-                                <input
-                                    type="range"
-                                    min={10_000_000}
-                                    max={1_000_000_000}
-                                    step={25_000_000}
-                                    value={minGathered}
-                                    onChange={e => setMinGathered(Number(e.target.value))}
-                                    className="accent-amber-400 h-1 bg-[#1a2332] rounded cursor-pointer"
-                                />
-                            </div>
 
-                            <div className="flex flex-col gap-1" dir="ltr">
-                                <div className="flex justify-between text-[10px] text-gray-400">
-                                    <span>{t("filter_max_kp")}</span>
-                                    <span className="font-bold text-cyan-400">
-                                        {maxKp >= 100_000_000 ? t("label_no_limit") : fmtCompact(maxKp)}
-                                    </span>
+                                {/* Max Kill Points */}
+                                <div className="flex flex-col gap-1.5 bg-[#0c1017] p-2.5 rounded-xl border border-[#1a2332]" dir="ltr">
+                                    <div className="flex justify-between text-[10px] text-gray-400">
+                                        <span>{t("filter_max_kp")}</span>
+                                        <span className="font-bold text-cyan-400 font-mono">
+                                            {maxKp >= 100_000_000 ? t("label_no_limit") : fmtCompact(maxKp)}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={10_000}
+                                        max={100_000_000}
+                                        step={250_000}
+                                        value={maxKp}
+                                        onChange={e => {
+                                            setMaxKp(Number(e.target.value));
+                                            setPendingChanges(true);
+                                        }}
+                                        className="accent-cyan-400 h-1 bg-[#1a2332] rounded cursor-pointer"
+                                    />
+                                    <div className="flex justify-between text-[8px] text-gray-600 font-mono">
+                                        <span>10k</span>
+                                        <span>25M</span>
+                                        <span>{t("label_no_limit")}</span>
+                                    </div>
                                 </div>
-                                <input
-                                    type="range"
-                                    min={1_000_000}
-                                    max={100_000_000}
-                                    step={5_000_000}
-                                    value={maxKp}
-                                    onChange={e => setMaxKp(Number(e.target.value))}
-                                    className="accent-cyan-400 h-1 bg-[#1a2332] rounded cursor-pointer"
-                                />
-                            </div>
 
-                            <div className="flex flex-col gap-1" dir="ltr">
-                                <div className="flex justify-between text-[10px] text-gray-400">
-                                    <span>{t("filter_confidence")}</span>
-                                    <span className="font-bold text-purple-400">{minConfidence}%+</span>
+                                {/* Min Confidence */}
+                                <div className="flex flex-col gap-1.5 bg-[#0c1017] p-2.5 rounded-xl border border-[#1a2332]" dir="ltr">
+                                    <div className="flex justify-between text-[10px] text-gray-400">
+                                        <span>{t("filter_confidence")}</span>
+                                        <span className="font-bold text-purple-400 font-mono">{minConfidence}%+</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={20}
+                                        max={95}
+                                        step={5}
+                                        value={minConfidence}
+                                        onChange={e => {
+                                            setMinConfidence(Number(e.target.value));
+                                            setPendingChanges(true);
+                                        }}
+                                        className="accent-purple-400 h-1 bg-[#1a2332] rounded cursor-pointer"
+                                    />
+                                    <div className="flex justify-between text-[8px] text-gray-600 font-mono">
+                                        <span>20%</span>
+                                        <span>60%</span>
+                                        <span>95%</span>
+                                    </div>
                                 </div>
-                                <input
-                                    type="range"
-                                    min={20}
-                                    max={90}
-                                    step={5}
-                                    value={minConfidence}
-                                    onChange={e => setMinConfidence(Number(e.target.value))}
-                                    className="accent-purple-400 h-1 bg-[#1a2332] rounded cursor-pointer"
-                                />
                             </div>
                         </div>
 
@@ -653,8 +756,11 @@ export default function ResellerHunterPage() {
                                                         }`}
                                                     >
                                                         <div className="flex items-center justify-between gap-2 mb-2.5">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-mono text-base font-black text-white">
+                                                            <div 
+                                                                onClick={() => setInspectedHive(h)}
+                                                                className="flex items-center gap-2 cursor-pointer group"
+                                                            >
+                                                                <span className="font-mono text-base font-black text-white group-hover:text-purple-300 transition-colors">
                                                                     [{h.tag}]
                                                                 </span>
                                                                 <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${
@@ -666,16 +772,27 @@ export default function ResellerHunterPage() {
                                                                 </span>
                                                             </div>
 
-                                                            <button
-                                                                onClick={() => setSelectedAlliance(isSelected ? null : h.tag)}
-                                                                className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
-                                                                    isSelected
-                                                                        ? "bg-purple-500 text-black border-purple-400"
-                                                                        : "bg-[#10161f] text-gray-300 border-[#1a2332] hover:border-purple-400/50 hover:text-white"
-                                                                }`}
-                                                            >
-                                                                {isSelected ? t("btn_clear_filter") : t("btn_filter_hive")}
-                                                            </button>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <button
+                                                                    onClick={() => setInspectedHive(h)}
+                                                                    className="px-2.5 py-1 text-[10px] font-bold rounded-lg border bg-[#10161f] text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10 transition-all cursor-pointer flex items-center gap-1"
+                                                                >
+                                                                    <Search size={11} />
+                                                                    <span>{t("btn_filter_hive")}</span>
+                                                                </button>
+
+                                                                <button
+                                                                    onClick={() => setSelectedAlliance(isSelected ? null : h.tag)}
+                                                                    className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                                                                        isSelected
+                                                                            ? "bg-purple-500 text-black border-purple-400"
+                                                                            : "bg-[#10161f] text-gray-400 border-[#1a2332] hover:border-purple-400/50 hover:text-white"
+                                                                    }`}
+                                                                    title={isSelected ? t("btn_clear_filter") : `Filter table below to [${h.tag}]`}
+                                                                >
+                                                                    <Filter size={11} />
+                                                                </button>
+                                                            </div>
                                                         </div>
 
                                                         <div className="grid grid-cols-3 gap-2 text-[10px] font-mono text-center mb-3" dir="ltr">
@@ -693,17 +810,44 @@ export default function ResellerHunterPage() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Sample Bot Accounts Pill Preview */}
-                                                        <div className="flex items-center gap-1 flex-wrap">
-                                                            {h.bots.slice(0, 3).map(b => (
-                                                                <span key={b.id} className="text-[9px] bg-[#10161f] border border-[#1a2332] px-2 py-0.5 rounded text-gray-400 font-mono truncate max-w-[120px]">
-                                                                    {b.name}
-                                                                </span>
-                                                            ))}
-                                                            {h.bots.length > 3 && (
-                                                                <span className="text-[9px] text-gray-500 font-mono">
-                                                                    +{h.bots.length - 3} more
-                                                                </span>
+                                                        {/* Bot Accounts Pill Preview with Expand / Collapse */}
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex items-center gap-1 flex-wrap">
+                                                                {(expandedHives.has(h.tag) ? h.bots : h.bots.slice(0, 3)).map(b => (
+                                                                    <button
+                                                                        key={b.id}
+                                                                        onClick={() => handleCopyId(b.id)}
+                                                                        title={`Governor: ${b.name} (ID: ${b.id}) • Power: ${fmtCompact(b.power)} • RSS: ${fmtCompact(b.gathered)} • Click to Copy ID`}
+                                                                        className="text-[9px] bg-[#10161f] hover:bg-rose-500/20 border border-[#1a2332] hover:border-rose-500/40 px-2 py-0.5 rounded text-gray-300 hover:text-white font-mono transition-all flex items-center gap-1 cursor-pointer group"
+                                                                    >
+                                                                        <span className="truncate max-w-[120px]">{b.name}</span>
+                                                                        {expandedHives.has(h.tag) && (
+                                                                            <span className="text-[8px] text-gray-500 group-hover:text-amber-400">[{fmtCompact(b.gathered)}]</span>
+                                                                        )}
+                                                                        {copiedId === b.id && <Check size={10} className="text-emerald-400 shrink-0" />}
+                                                                    </button>
+                                                                ))}
+
+                                                                {h.bots.length > 3 && !expandedHives.has(h.tag) && (
+                                                                    <button
+                                                                        onClick={() => toggleExpandHive(h.tag)}
+                                                                        className="text-[9px] text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 px-2 py-0.5 rounded font-mono font-bold transition-all cursor-pointer flex items-center gap-1"
+                                                                    >
+                                                                        {t("btn_view_all_bots", { count: h.bots.length - 3, total: h.bots.length })}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            {expandedHives.has(h.tag) && (
+                                                                <div className="flex items-center justify-between pt-1.5 border-t border-[#141a24] text-[10px] font-mono">
+                                                                    <span className="text-gray-500">Showing all {h.bots.length} accounts</span>
+                                                                    <button
+                                                                        onClick={() => toggleExpandHive(h.tag)}
+                                                                        className="text-rose-400 hover:text-rose-300 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                                                                    >
+                                                                        ▲ {t("btn_show_less")}
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1084,10 +1228,16 @@ export default function ResellerHunterPage() {
                                                             <td className="py-3 px-4 whitespace-nowrap">
                                                                 <button
                                                                     onClick={() => {
-                                                                        setSelectedAlliance(a.tag);
-                                                                        setActiveTab("gatherers");
+                                                                        const h = hives.find(x => x.tag === a.tag);
+                                                                        if (h) {
+                                                                            setInspectedHive(h);
+                                                                        } else {
+                                                                            setSelectedAlliance(a.tag);
+                                                                            setActiveTab("gatherers");
+                                                                        }
                                                                     }}
                                                                     className="px-2.5 py-1 rounded bg-[#10161f] border border-[#1a2332] text-white hover:border-purple-400/50 text-xs font-bold cursor-pointer"
+                                                                    title="Inspect alliance"
                                                                 >
                                                                     [{a.tag}]
                                                                 </button>
@@ -1116,15 +1266,25 @@ export default function ResellerHunterPage() {
                                                             </td>
 
                                                             <td className="py-3 px-4 text-center whitespace-nowrap">
-                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                                                    isHive
-                                                                        ? "bg-rose-500/20 border-rose-500/50 text-rose-400"
-                                                                        : isOutpost
-                                                                        ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
-                                                                        : "bg-white/5 border-white/10 text-gray-400"
-                                                                }`}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const h = hives.find(x => x.tag === a.tag);
+                                                                        if (h) setInspectedHive(h);
+                                                                        else {
+                                                                            setSelectedAlliance(a.tag);
+                                                                            setActiveTab("gatherers");
+                                                                        }
+                                                                    }}
+                                                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${
+                                                                        isHive
+                                                                            ? "bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500/30"
+                                                                            : isOutpost
+                                                                            ? "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30"
+                                                                            : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                                                                    }`}
+                                                                >
                                                                     {isHive ? t("badge_confirmed_hive") : isOutpost ? t("badge_outpost") : t("badge_standard_alliance")}
-                                                                </span>
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     );
@@ -1136,6 +1296,154 @@ export default function ResellerHunterPage() {
                             </div>
                         )}
                     </>
+                )}
+
+                {/* Alliance Hive Inspector Modal */}
+                {inspectedHive && (
+                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-200">
+                        <div className="bg-[#090d12] border border-[#1a2332] rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden">
+                            {/* Modal Header */}
+                            <div className="p-4 md:p-5 border-b border-[#1a2332] flex items-center justify-between gap-4 bg-[#0c1017]">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <div className="p-2 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-400">
+                                        <Building2 size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-lg font-black text-white font-mono">
+                                                [{inspectedHive.tag}]
+                                            </h2>
+                                            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded border bg-rose-500/10 border-rose-500/30 text-rose-400">
+                                                {inspectedHive.status === "CONFIRMED_HIVE" ? t("badge_confirmed_hive") : t("badge_outpost")}
+                                            </span>
+                                        </div>
+                                        <p className="text-gray-400 text-xs mt-0.5">
+                                            {t("modal_inspect_title", { alliance: inspectedHive.tag })}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setInspectedHive(null)}
+                                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+                                    title={t("modal_close")}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Stats Bar */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 p-4 border-b border-[#1a2332] bg-[#070a0e] text-xs font-mono" dir="ltr">
+                                <div className="p-2.5 bg-[#090d12] border border-[#1a2332] rounded-xl text-center">
+                                    <span className="text-[9px] text-gray-500 block uppercase">{t("label_density")}</span>
+                                    <span className="text-base font-black text-rose-400">{inspectedHive.botCount} ({inspectedHive.botDensity}%)</span>
+                                </div>
+                                <div className="p-2.5 bg-[#090d12] border border-[#1a2332] rounded-xl text-center">
+                                    <span className="text-[9px] text-gray-500 block uppercase">{t("label_total_rss")}</span>
+                                    <span className="text-base font-black text-amber-400">{fmtCompact(inspectedHive.totalBotRss)}</span>
+                                </div>
+                                <div className="p-2.5 bg-[#090d12] border border-[#1a2332] rounded-xl text-center">
+                                    <span className="text-[9px] text-gray-500 block uppercase">{t("col_power")}</span>
+                                    <span className="text-base font-black text-white">{fmtCompact(inspectedHive.totalBotPower)}</span>
+                                </div>
+                                <div className="p-2.5 bg-[#090d12] border border-[#1a2332] rounded-xl text-center">
+                                    <span className="text-[9px] text-gray-500 block uppercase">{t("label_avg_ratio")}</span>
+                                    <span className="text-base font-black text-cyan-400">{inspectedHive.avgFarmingRatio}x</span>
+                                </div>
+                            </div>
+
+                            {/* Modal Action Bar */}
+                            <div className="px-4 py-2.5 border-b border-[#1a2332] flex items-center justify-between gap-3 bg-[#0a0e14] flex-wrap">
+                                <span className="text-xs text-gray-400 font-mono">
+                                    {inspectedHive.bots.length} Suspected Bot Governors Identified
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const ids = inspectedHive.bots.map(b => b.id).join(", ");
+                                            navigator.clipboard.writeText(ids);
+                                            showToast(t("toast_copied"));
+                                        }}
+                                        className="px-3 py-1.5 bg-[#10161f] border border-[#1a2332] hover:border-cyan-500/50 text-cyan-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <Copy size={13} />
+                                        <span>{t("modal_copy_all_ids", { count: inspectedHive.bots.length })}</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setSelectedAlliance(inspectedHive.tag);
+                                            setActiveTab("bots");
+                                            setInspectedHive(null);
+                                        }}
+                                        className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-black text-xs font-black rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                                    >
+                                        <Filter size={13} />
+                                        <span>{t("modal_filter_table", { alliance: inspectedHive.tag })}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Roster Table */}
+                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                                <table className="w-full text-left text-xs font-mono">
+                                    <thead className="bg-[#0c1017] text-gray-400 uppercase text-[9px] tracking-wider border-b border-[#1a2332] sticky top-0">
+                                        <tr>
+                                            <th className="py-2.5 px-3 w-10 text-center">{t("col_rank")}</th>
+                                            <th className="py-2.5 px-3">{t("col_governor")}</th>
+                                            <th className="py-2.5 px-3 text-right">{t("col_power")}</th>
+                                            <th className="py-2.5 px-3 text-right">{t("col_gathered")}</th>
+                                            <th className="py-2.5 px-3 text-right">{t("col_ratio")}</th>
+                                            <th className="py-2.5 px-3 text-right">{t("col_combat")}</th>
+                                            <th className="py-2.5 px-3 text-center">{t("col_confidence")}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#141a24]">
+                                        {inspectedHive.bots.map((b, idx) => (
+                                            <tr key={b.id} className="hover:bg-[#0e141e] transition-colors">
+                                                <td className="py-2.5 px-3 text-center font-bold text-gray-500 whitespace-nowrap" dir="ltr">
+                                                    #{idx + 1}
+                                                </td>
+                                                <td className="py-2.5 px-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-white text-xs truncate max-w-[140px]">{b.name}</span>
+                                                        <button
+                                                            onClick={() => handleCopyId(b.id)}
+                                                            className="p-1 rounded hover:bg-white/10 text-gray-500 hover:text-white transition-colors cursor-pointer"
+                                                            title="Copy ID"
+                                                        >
+                                                            {copiedId === b.id ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                                                        </button>
+                                                        <span className="text-[10px] text-gray-600 font-mono" dir="ltr">[{b.id}]</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-2.5 px-3 text-right whitespace-nowrap font-bold text-white" dir="ltr">
+                                                    {fmtCompact(b.power)}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-right whitespace-nowrap font-black text-amber-400" dir="ltr">
+                                                    {fmtCompact(b.gathered)}
+                                                </td>
+                                                <td className="py-2.5 px-3 text-right whitespace-nowrap" dir="ltr">
+                                                    <span className="font-black text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                                                        {Math.round(b.farmingRatio)}x
+                                                    </span>
+                                                </td>
+                                                <td className="py-2.5 px-3 text-right whitespace-nowrap text-gray-400 text-[10px]" dir="ltr">
+                                                    <span className="text-cyan-400 font-bold">{fmtCompact(b.killPoints)} KP</span>
+                                                    <span className="text-gray-500 block text-[9px]">{b.deads || 0} deads</span>
+                                                </td>
+                                                <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-black border bg-rose-500/20 border-rose-500/50 text-rose-300">
+                                                        {b.confidence}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Initial Empty State before scan */}

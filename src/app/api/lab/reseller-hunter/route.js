@@ -70,6 +70,7 @@ export async function GET(req) {
             allCandidates: analysis.allCandidates,
             topGatherers: analysis.topGatherers,
             allAllianceHarvest: analysis.allAllianceHarvest,
+            rawRoster: roster,
         });
 
     } catch (e) {

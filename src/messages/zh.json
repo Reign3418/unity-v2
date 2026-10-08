@@ -1864,7 +1864,17 @@
     "label_no_limit": "不限",
     "empty_gatherers_title": "未找到采集数据",
     "empty_gatherers_desc": "本次扫描中未发现具备采集统计记录的账号。",
-    "flag_high_power_farm": "高战力农场"
+    "flag_high_power_farm": "高战力农场",
+    "btn_apply_tweaks": "应用筛选微调",
+    "btn_reset_filters": "重置为默认值",
+    "toast_tweaks_applied": "微调已应用：成功识别 {count} 个疑似账号",
+    "toast_filters_reset": "筛选器已重置为基准默认值",
+    "btn_view_all_bots": "+{count} 个更多 (查看全部 {total} 个)",
+    "btn_show_less": "收起名单",
+    "modal_inspect_title": "联盟蜂巢稽查面板：[{alliance}]",
+    "modal_copy_all_ids": "复制全部 {count} 个 ID",
+    "modal_filter_table": "在主表中仅筛选 [{alliance}]",
+    "modal_close": "关闭"
   },
   "KingdomRollup": {
     "page_title": "王国行政综合大盘",

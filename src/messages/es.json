@@ -1864,7 +1864,17 @@
     "label_no_limit": "Sin Límite",
     "empty_gatherers_title": "No se encontraron datos de recolección",
     "empty_gatherers_desc": "No hay cuentas con estadísticas de recolección en este escaneo.",
-    "flag_high_power_farm": "Granja de Alto Poder"
+    "flag_high_power_farm": "Granja de Alto Poder",
+    "btn_apply_tweaks": "Aplicar Ajustes",
+    "btn_reset_filters": "Restablecer Filtros",
+    "toast_tweaks_applied": "Ajustes aplicados: {count} cuentas sospechosas identificadas",
+    "toast_filters_reset": "Filtros restablecidos a valores iniciales",
+    "btn_view_all_bots": "+{count} más (Ver los {total})",
+    "btn_show_less": "Mostrar menos",
+    "modal_inspect_title": "Inspector de Colmena de Alianza: [{alliance}]",
+    "modal_copy_all_ids": "Copiar los {count} IDs",
+    "modal_filter_table": "Filtrar tabla a [{alliance}]",
+    "modal_close": "Cerrar"
   },
   "KingdomRollup": {
     "page_title": "Resumen Ejecutivo de Reino",

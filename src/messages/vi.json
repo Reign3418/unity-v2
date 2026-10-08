@@ -1864,7 +1864,17 @@
     "label_no_limit": "Không Giới Hạn",
     "empty_gatherers_title": "Không Tìm Thấy Dữ Liệu Thu Thập",
     "empty_gatherers_desc": "Không có tài khoản nào có số liệu thu thập trong lần quét này.",
-    "flag_high_power_farm": "Nông Trại Lực Chiến Cao"
+    "flag_high_power_farm": "Nông Trại Lực Chiến Cao",
+    "btn_apply_tweaks": "Áp dụng Bộ lọc",
+    "btn_reset_filters": "Đặt lại Mặc định",
+    "toast_tweaks_applied": "Đã áp dụng bộ lọc: xác định được {count} tài khoản khả nghi",
+    "toast_filters_reset": "Đã khôi phục bộ lọc về mặc định ban đầu",
+    "btn_view_all_bots": "+{count} tài khoản khác (Xem tất cả {total})",
+    "btn_show_less": "Thu gọn",
+    "modal_inspect_title": "Chi tiết Ổ Bot Liên minh: [{alliance}]",
+    "modal_copy_all_ids": "Sao chép toàn bộ {count} ID",
+    "modal_filter_table": "Lọc bảng theo [{alliance}]",
+    "modal_close": "Đóng"
   },
   "KingdomRollup": {
     "page_title": "Tổng kết Điều hành Vương quốc",

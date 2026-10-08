@@ -1864,7 +1864,17 @@
     "label_no_limit": "Без лимита",
     "empty_gatherers_title": "Данные сбора не найдены",
     "empty_gatherers_desc": "В этом сканировании нет аккаунтов с записанной статистикой сбора.",
-    "flag_high_power_farm": "Ферма с высокой мощью"
+    "flag_high_power_farm": "Ферма с высокой мощью",
+    "btn_apply_tweaks": "Применить настройки",
+    "btn_reset_filters": "Сбросить фильтры",
+    "toast_tweaks_applied": "Настройки применены: обнаружено {count} подозрительных аккаунтов",
+    "toast_filters_reset": "Фильтры сброшены к исходным значениям",
+    "btn_view_all_bots": "+еще {count} (Показать все {total})",
+    "btn_show_less": "Свернуть",
+    "modal_inspect_title": "Инспектор кластера альянса: [{alliance}]",
+    "modal_copy_all_ids": "Скопировать все {count} ID",
+    "modal_filter_table": "Фильтровать таблицу по [{alliance}]",
+    "modal_close": "Закрыть"
   },
   "KingdomRollup": {
     "page_title": "Исполнительная сводка королевства",

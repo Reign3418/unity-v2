@@ -1864,7 +1864,17 @@
     "label_no_limit": "제한 없음",
     "empty_gatherers_title": "채집 데이터 없음",
     "empty_gatherers_desc": "이번 스캔에서 기록된 채집 통계가 있는 계정이 없습니다.",
-    "flag_high_power_farm": "고전투력 파밍 계정"
+    "flag_high_power_farm": "고전투력 파밍 계정",
+    "btn_apply_tweaks": "설정 적용하기",
+    "btn_reset_filters": "기본값 초기화",
+    "toast_tweaks_applied": "필터 적용 완료: 의심 계정 {count}개 탐지됨",
+    "toast_filters_reset": "필터가 기본값으로 초기화되었습니다",
+    "btn_view_all_bots": "+{count}개 더보기 (전체 {total}개 확인)",
+    "btn_show_less": "접기",
+    "modal_inspect_title": "연맹 봇 클러스터 분석: [{alliance}]",
+    "modal_copy_all_ids": "전체 {count}개 ID 복사",
+    "modal_filter_table": "[{alliance}] 연맹만 테이블 필터링",
+    "modal_close": "닫기"
   },
   "KingdomRollup": {
     "page_title": "왕국 경영진 롤업",

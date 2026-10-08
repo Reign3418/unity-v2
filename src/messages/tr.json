@@ -1864,7 +1864,17 @@
     "label_no_limit": "Limitsiz",
     "empty_gatherers_title": "Toplama Verisi Bulunamadı",
     "empty_gatherers_desc": "Bu taramada toplama istatistiği kaydedilmiş hesap bulunamadı.",
-    "flag_high_power_farm": "Yüksek Güçlü Çiftlik"
+    "flag_high_power_farm": "Yüksek Güçlü Çiftlik",
+    "btn_apply_tweaks": "Ayarları Uygula",
+    "btn_reset_filters": "Varsayılana Sıfırla",
+    "toast_tweaks_applied": "Filtreler uygulandı: {count} şüpheli hesap tespit edildi",
+    "toast_filters_reset": "Filtreler varsayılan ayarlara sıfırlandı",
+    "btn_view_all_bots": "+{count} daha (Tüm {total} hesabı gör)",
+    "btn_show_less": "Daha Az Göster",
+    "modal_inspect_title": "İttifak Kovanı Denetçisi: [{alliance}]",
+    "modal_copy_all_ids": "Tüm {count} ID’yi Kopyala",
+    "modal_filter_table": "Tabloyu [{alliance}] ile Filtrele",
+    "modal_close": "Kapat"
   },
   "KingdomRollup": {
     "page_title": "Krallık Yönetici Özeti",

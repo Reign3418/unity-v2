@@ -1864,7 +1864,17 @@
     "label_no_limit": "Kein Limit",
     "empty_gatherers_title": "Keine Sammlerdaten gefunden",
     "empty_gatherers_desc": "Keine Accounts mit erfassten Sammelwerten in diesem Scan vorhanden.",
-    "flag_high_power_farm": "Hochmachts-Farm"
+    "flag_high_power_farm": "Hochmachts-Farm",
+    "btn_apply_tweaks": "Anpassungen anwenden",
+    "btn_reset_filters": "Standard wiederherstellen",
+    "toast_tweaks_applied": "Filter angewendet: {count} verdächtige Konten identifiziert",
+    "toast_filters_reset": "Filter auf Standardwerte zurückgesetzt",
+    "btn_view_all_bots": "+{count} weitere (Alle {total} anzeigen)",
+    "btn_show_less": "Weniger anzeigen",
+    "modal_inspect_title": "Allianz-Schwarm-Inspektor: [{alliance}]",
+    "modal_copy_all_ids": "Alle {count} IDs kopieren",
+    "modal_filter_table": "Tabelle nach [{alliance}] filtern",
+    "modal_close": "Schließen"
   },
   "KingdomRollup": {
     "page_title": "Königreich-Vorstands-Rollup",

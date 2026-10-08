@@ -292,7 +292,8 @@ export function detectResellers(roster = [], options = {}) {
         const totalPower = grp.members.reduce((s, m) => s + m.power, 0);
         const avgGathered = grp.members.length > 0 ? Math.round(totalGathered / grp.members.length) : 0;
         const avgRatio = totalPower > 0 ? (totalGathered / totalPower) : 0;
-        const botCount = grp.suspects.length;
+        const botsInAlliance = filteredResellers.filter(r => r.alliance === grp.tag);
+        const botCount = botsInAlliance.length;
         const botDensity = grp.members.length > 0 ? (botCount / grp.members.length) : 0;
 
         allAllianceHarvest.push({
@@ -352,17 +353,44 @@ export function detectResellers(roster = [], options = {}) {
 export function generateSyntheticResellerBenchmark() {
     const roster = [];
 
-    // 1. Core Reseller Syndicate: Alliance [RSS1] — 32 accounts, 4M to 14M power, massive RSS, zero combat
+    // 1. Core Reseller Syndicate: Alliance [RSS1] — 32 accounts distributed across 4 forensic tiers
     for (let i = 1; i <= 32; i++) {
-        const power = 3_500_000 + Math.floor(Math.random() * 9_000_000);
-        const gathered = 1_500_000_000 + Math.floor(Math.random() * 4_200_000_000); // 1.5B to 5.7B RSS!
-        const assistance = Math.random() > 0.4 ? (300_000_000 + Math.floor(Math.random() * 1_200_000_000)) : 0;
-        const kp = Math.floor(Math.random() * 25_000); // minimal kp
-        const deads = Math.floor(Math.random() * 500);
+        let power, gathered, kp, deads, assistance;
+        const name = i < 10 ? `rss_harvester_0${i}` : (i < 20 ? `rss_harvester_${i}` : `kd_miner_${i}`);
+
+        if (i <= 10) {
+            // Tier 1: Extreme mega harvesters (100% confidence, 3.5B-5.7B RSS, 3M-6M power, ~5k KP)
+            power = 3_200_000 + Math.floor(Math.random() * 2_800_000);
+            gathered = 3_800_000_000 + Math.floor(Math.random() * 1_900_000_000);
+            assistance = 600_000_000 + Math.floor(Math.random() * 1_500_000_000);
+            kp = Math.floor(Math.random() * 9_000);
+            deads = Math.floor(Math.random() * 250);
+        } else if (i <= 20) {
+            // Tier 2: Heavy volume harvesters (95-100% confidence, 2.0B-3.4B RSS, 6M-12M power, ~18k KP)
+            power = 6_000_000 + Math.floor(Math.random() * 6_000_000);
+            gathered = 2_000_000_000 + Math.floor(Math.random() * 1_400_000_000);
+            assistance = 300_000_000 + Math.floor(Math.random() * 700_000_000);
+            kp = 8_000 + Math.floor(Math.random() * 25_000);
+            deads = Math.floor(Math.random() * 500);
+        } else if (i <= 28) {
+            // Tier 3: Medium farm bots (85-90% confidence, 1.1B-1.9B RSS, 10M-19M power, ~45k KP)
+            power = 10_000_000 + Math.floor(Math.random() * 9_000_000);
+            gathered = 1_100_000_000 + Math.floor(Math.random() * 800_000_000);
+            assistance = 100_000_000 + Math.floor(Math.random() * 400_000_000);
+            kp = 20_000 + Math.floor(Math.random() * 50_000);
+            deads = Math.floor(Math.random() * 800);
+        } else {
+            // Tier 4: Starter bot accounts (70-80% confidence, 600M-950M RSS, 18M-28M power, ~120k KP)
+            power = 18_000_000 + Math.floor(Math.random() * 10_000_000);
+            gathered = 600_000_000 + Math.floor(Math.random() * 350_000_000);
+            assistance = Math.random() > 0.5 ? 80_000_000 : 0;
+            kp = 50_000 + Math.floor(Math.random() * 150_000);
+            deads = Math.floor(Math.random() * 1_500);
+        }
 
         roster.push({
             id: 20000000 + i * 1421,
-            name: i < 10 ? `rss_harvester_0${i}` : (i < 20 ? `rss_harvester_${i}` : `kd_miner_${i}`),
+            name,
             alliance: "RSS1",
             power,
             killPoints: kp,
@@ -374,17 +402,37 @@ export function generateSyntheticResellerBenchmark() {
         });
     }
 
-    // 2. Secondary Bot Outpost: Alliance [MINE] — 12 accounts, 8M to 18M power, 800M to 2.5B gathered
+    // 2. Secondary Bot Outpost: Alliance [MINE] — 12 accounts across 3 tiers
     for (let i = 1; i <= 12; i++) {
-        const power = 6_000_000 + Math.floor(Math.random() * 12_000_000);
-        const gathered = 850_000_000 + Math.floor(Math.random() * 1_800_000_000);
-        const assistance = 100_000_000 + Math.floor(Math.random() * 600_000_000);
-        const kp = Math.floor(Math.random() * 80_000);
-        const deads = Math.floor(Math.random() * 1_200);
+        let power, gathered, kp, deads, assistance;
+        const name = `supply_carrier_${i}`;
+
+        if (i <= 6) {
+            // High supply carriers (85-95% confidence, 1.2B-2.4B RSS, 8M-16M power)
+            power = 8_000_000 + Math.floor(Math.random() * 8_000_000);
+            gathered = 1_200_000_000 + Math.floor(Math.random() * 1_200_000_000);
+            assistance = 200_000_000 + Math.floor(Math.random() * 500_000_000);
+            kp = 15_000 + Math.floor(Math.random() * 60_000);
+            deads = Math.floor(Math.random() * 800);
+        } else if (i <= 10) {
+            // Farm outposts (70-80% confidence, 650M-1.1B RSS, 15M-32M power)
+            power = 15_000_000 + Math.floor(Math.random() * 17_000_000);
+            gathered = 650_000_000 + Math.floor(Math.random() * 450_000_000);
+            assistance = 50_000_000 + Math.floor(Math.random() * 150_000_000);
+            kp = 50_000 + Math.floor(Math.random() * 180_000);
+            deads = Math.floor(Math.random() * 1_200);
+        } else {
+            // Auxiliary farms (50-65% confidence, 350M-600M RSS, 32M-48M power)
+            power = 32_000_000 + Math.floor(Math.random() * 16_000_000);
+            gathered = 350_000_000 + Math.floor(Math.random() * 250_000_000);
+            assistance = 0;
+            kp = 150_000 + Math.floor(Math.random() * 600_000);
+            deads = 1_000 + Math.floor(Math.random() * 3_000);
+        }
 
         roster.push({
             id: 21000000 + i * 2911,
-            name: `supply_carrier_${i}`,
+            name,
             alliance: "MINE",
             power,
             killPoints: kp,
@@ -419,21 +467,35 @@ export function generateSyntheticResellerBenchmark() {
         });
     }
 
-    // 4. Normal mid-level active players [ELITE] — 16 accounts
+    // 4. Normal mid-level active players & slight farm alts [ELITE] — 16 accounts
     for (let i = 1; i <= 16; i++) {
-        const power = 20_000_000 + Math.floor(Math.random() * 25_000_000);
-        const kp = 20_000_000 + Math.floor(Math.random() * 80_000_000);
-        const gathered = 300_000_000 + Math.floor(Math.random() * 600_000_000);
-        const deads = 150_000 + Math.floor(Math.random() * 800_000);
+        let power, kp, gathered, deads, assistance;
+        const name = `Defender_${i}`;
+
+        if (i <= 4) {
+            // Borderline farm accounts (40-55% confidence, 450M-750M RSS, 25M-42M power, 1M-5M KP)
+            power = 25_000_000 + Math.floor(Math.random() * 17_000_000);
+            kp = 1_200_000 + Math.floor(Math.random() * 4_000_000);
+            gathered = 450_000_000 + Math.floor(Math.random() * 300_000_000);
+            assistance = 40_000_000;
+            deads = 25_000 + Math.floor(Math.random() * 50_000);
+        } else {
+            // Normal active fighters
+            power = 20_000_000 + Math.floor(Math.random() * 25_000_000);
+            kp = 20_000_000 + Math.floor(Math.random() * 80_000_000);
+            gathered = 150_000_000 + Math.floor(Math.random() * 400_000_000);
+            assistance = 20_000_000;
+            deads = 150_000 + Math.floor(Math.random() * 800_000);
+        }
 
         roster.push({
             id: 15000000 + i * 4921,
-            name: `Defender_${i}`,
+            name,
             alliance: "ELITE",
             power,
             killPoints: kp,
             gathered,
-            assistance: 50_000_000,
+            assistance,
             deads,
             t4Kills: Math.floor(kp * 0.02),
             t5Kills: Math.floor(kp * 0.005),

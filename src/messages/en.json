@@ -1864,7 +1864,17 @@
     "label_no_limit": "No Limit",
     "empty_gatherers_title": "No Gatherer Data Found",
     "empty_gatherers_desc": "No accounts with recorded gathering stats found in this scan.",
-    "flag_high_power_farm": "High Power Farm"
+    "flag_high_power_farm": "High Power Farm",
+    "btn_apply_tweaks": "Apply Tweaks",
+    "btn_reset_filters": "Reset Defaults",
+    "toast_tweaks_applied": "Applied forensic tweaks: {count} accounts identified",
+    "toast_filters_reset": "Filters reset to default baseline",
+    "btn_view_all_bots": "+{count} more (View all {total})",
+    "btn_show_less": "Show Less",
+    "modal_inspect_title": "Alliance Hive Inspector: [{alliance}]",
+    "modal_copy_all_ids": "Copy All {count} IDs",
+    "modal_filter_table": "Filter Table to [{alliance}]",
+    "modal_close": "Close"
   },
   "KingdomRollup": {
     "page_title": "Kingdom Executive Rollup",

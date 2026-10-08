@@ -1864,7 +1864,17 @@
     "label_no_limit": "بلا حد",
     "empty_gatherers_title": "لم يتم العثور على بيانات جمع",
     "empty_gatherers_desc": "لا توجد حسابات بإحصائيات جمع مسجلة في هذا المسح.",
-    "flag_high_power_farm": "مزرعة بقوة عالية"
+    "flag_high_power_farm": "مزرعة بقوة عالية",
+    "btn_apply_tweaks": "تطبيق التعديلات",
+    "btn_reset_filters": "إعادة التعيين",
+    "toast_tweaks_applied": "تم تطبيق التعديلات: تم رصد {count} حساب مشبوه",
+    "toast_filters_reset": "تمت إعادة تعيين الفلاتر إلى الإعدادات الافتراضية",
+    "btn_view_all_bots": "+{count} إضافي (عرض الكل {total})",
+    "btn_show_less": "عرض أقل",
+    "modal_inspect_title": "فاحص خلية التحالف: [{alliance}]",
+    "modal_copy_all_ids": "نسخ كافة المعرفات ({count})",
+    "modal_filter_table": "تصفية الجدول على [{alliance}]",
+    "modal_close": "إغلاق"
   },
   "KingdomRollup": {
     "page_title": "تقرير المملكة التنفيذي المجمع",

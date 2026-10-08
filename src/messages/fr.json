@@ -1864,7 +1864,17 @@
     "label_no_limit": "Sans Limite",
     "empty_gatherers_title": "Aucune donnée de récolte trouvée",
     "empty_gatherers_desc": "Aucun compte avec des statistiques de récolte enregistrées dans ce scan.",
-    "flag_high_power_farm": "Ferme Haut Pouvoir"
+    "flag_high_power_farm": "Ferme Haut Pouvoir",
+    "btn_apply_tweaks": "Appliquer les Réglages",
+    "btn_reset_filters": "Réinitialiser",
+    "toast_tweaks_applied": "Réglages appliqués : {count} comptes suspects identifiés",
+    "toast_filters_reset": "Filtres réinitialisés aux valeurs par défaut",
+    "btn_view_all_bots": "+{count} de plus (Voir les {total})",
+    "btn_show_less": "Afficher moins",
+    "modal_inspect_title": "Inspecteur d’Essaim d’Alliance : [{alliance}]",
+    "modal_copy_all_ids": "Copier les {count} identifiants",
+    "modal_filter_table": "Filtrer le tableau sur [{alliance}]",
+    "modal_close": "Fermer"
   },
   "KingdomRollup": {
     "page_title": "Bilan Exécutif du Royaume",

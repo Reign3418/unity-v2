@@ -1864,7 +1864,17 @@
     "label_no_limit": "Tanpa Batas",
     "empty_gatherers_title": "Data Pengumpul Tidak Ditemukan",
     "empty_gatherers_desc": "Tidak ada akun dengan statistik pengumpulan dalam pemindaian ini.",
-    "flag_high_power_farm": "Farm Power Tinggi"
+    "flag_high_power_farm": "Farm Power Tinggi",
+    "btn_apply_tweaks": "Terapkan Pengaturan",
+    "btn_reset_filters": "Reset Default",
+    "toast_tweaks_applied": "Pengaturan diterapkan: {count} akun terduga teridentifikasi",
+    "toast_filters_reset": "Filter direset ke nilai default",
+    "btn_view_all_bots": "+{count} lagi (Lihat semua {total})",
+    "btn_show_less": "Tampilkan Lebih Sedikit",
+    "modal_inspect_title": "Inspektur Sarang Aliansi: [{alliance}]",
+    "modal_copy_all_ids": "Salin Semua {count} ID",
+    "modal_filter_table": "Filter Tabel ke [{alliance}]",
+    "modal_close": "Tutup"
   },
   "KingdomRollup": {
     "page_title": "Ringkasan Eksekutif Kerajaan",
