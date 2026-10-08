@@ -9,7 +9,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock, Atom, Bot
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock, Atom, Bot, Zap
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -103,6 +103,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />
+          <NavItem href="/tools/kingdom-rollup" icon={Zap} label={t('nav_kingdom_rollup')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/reseller-hunter" icon={Bot} label={t('nav_reseller_hunter')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/ghost-hunter" icon={Ghost} label={t('nav_ghost_hunter')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/recruitment-hitlist" icon={Target} label={t('nav_recruit_hitlist')} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />

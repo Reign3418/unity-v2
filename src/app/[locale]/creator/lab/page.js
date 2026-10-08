@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { FlaskConical, AlertTriangle, Crosshair, Ghost, Target, Dna, Trophy, Swords, Clock, AlertOctagon, Camera, Bot } from "lucide-react";
+import { FlaskConical, AlertTriangle, Crosshair, Ghost, Target, Dna, Trophy, Swords, Clock, AlertOctagon, Camera, Bot, Zap } from "lucide-react";
 import Link from "next/link";
 
 const TOOLS = [
@@ -113,6 +113,16 @@ const TOOLS = [
         border: "group-hover:border-rose-500/50",
         label: "Reseller & Farm Bot Radar",
         desc: "Detect illicit commercial resource sellers, automated bot hives, and shell farm alliances farming billions of RSS.",
+        badge: "NEW",
+    },
+    {
+        href: "/creator/lab/kingdom-rollup",
+        icon: Zap,
+        color: "text-cyan-400",
+        bg: "from-cyan-500/5",
+        border: "group-hover:border-cyan-500/50",
+        label: "Kingdom Executive Rollup",
+        desc: "Instant 24-48h macro telemetry: Net Power Flow, War KP, Casualties, Farmed RSS, Alliance Momentum, and Migration Drift.",
         badge: "NEW",
     },
 ];
