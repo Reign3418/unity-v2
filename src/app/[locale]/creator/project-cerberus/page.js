@@ -8,7 +8,7 @@ import {
     Atom, ShieldAlert, Terminal, Lock, Sparkles, RefreshCw, 
     Layers, Cpu, Activity, Skull, Zap, ChevronRight, Eye, 
     AlertTriangle, CheckCircle2, TrendingDown, Users, Flame,
-    Network, Compass, Filter
+    Network, Compass, Filter, Info
 } from "lucide-react";
 import { 
     computeCombatDnaManifold, 
