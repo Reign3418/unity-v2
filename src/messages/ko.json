@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "하위 티어"
+    "badge_low_tier_warning": "하위 티어",
+    "preset_compact": "컴팩트",
+    "preset_classes": "병종별 (보/기/궁/공)",
+    "preset_tiers": "티어별 (T1–T5)",
+    "preset_structure": "건물 및 행군",
+    "preset_all": "모든 열",
+    "table_scroll_hint": "가로 스크롤 가능 • 지도자 및 순위 고정"
   }
 }

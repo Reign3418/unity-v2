@@ -60,6 +60,116 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         }));
     };
 
+    // Preset configurations for column views
+    const applyPreset = (presetName) => {
+        if (presetName === 'compact') {
+            setDepictedColumns({
+                rank: true,
+                governorName: true,
+                allianceTag: true,
+                commander: false,
+                time: false,
+                credits: true,
+                troops: true,
+                infantry: false,
+                cavalry: false,
+                archer: false,
+                siege: false,
+                t1: false,
+                t2: false,
+                t3: false,
+                t4: false,
+                t5: false,
+                status: false
+            });
+            showToast('Applied Compact view preset ⚡', 'info');
+        } else if (presetName === 'tiers') {
+            setDepictedColumns({
+                rank: true,
+                governorName: true,
+                allianceTag: true,
+                commander: false,
+                time: false,
+                credits: false,
+                troops: true,
+                infantry: false,
+                cavalry: false,
+                archer: false,
+                siege: false,
+                t1: true,
+                t2: true,
+                t3: true,
+                t4: true,
+                t5: true,
+                status: false
+            });
+            showToast('Applied Unit Tiers (T1–T5) preset 👑', 'info');
+        } else if (presetName === 'classes') {
+            setDepictedColumns({
+                rank: true,
+                governorName: true,
+                allianceTag: true,
+                commander: false,
+                time: false,
+                credits: false,
+                troops: true,
+                infantry: true,
+                cavalry: true,
+                archer: true,
+                siege: true,
+                t1: false,
+                t2: false,
+                t3: false,
+                t4: false,
+                t5: false,
+                status: false
+            });
+            showToast('Applied Troop Classes preset ⚔️', 'info');
+        } else if (presetName === 'structure') {
+            setDepictedColumns({
+                rank: true,
+                governorName: true,
+                allianceTag: true,
+                commander: true,
+                time: true,
+                credits: true,
+                troops: true,
+                infantry: false,
+                cavalry: false,
+                archer: false,
+                siege: false,
+                t1: false,
+                t2: false,
+                t3: false,
+                t4: false,
+                t5: false,
+                status: true
+            });
+            showToast('Applied Structure & March preset 🏛️', 'info');
+        } else if (presetName === 'all') {
+            setDepictedColumns({
+                rank: true,
+                governorName: true,
+                allianceTag: true,
+                commander: true,
+                time: true,
+                credits: true,
+                troops: true,
+                infantry: true,
+                cavalry: true,
+                archer: true,
+                siege: true,
+                t1: true,
+                t2: true,
+                t3: true,
+                t4: true,
+                t5: true,
+                status: true
+            });
+            showToast('Showing all columns 🌐', 'info');
+        }
+    };
+
     // Switch primary metric mode (Troops vs Credits vs Time vs Auto)
     const handlePrimaryMetricChange = (mode) => {
         setPrimaryMetricMode(mode);
@@ -210,24 +320,25 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         // Auto-detect and depict columns present in this screen
         const detectedCols = {};
         incomingRows.forEach(r => {
+            if (r.allianceTag) detectedCols.allianceTag = true;
             if (r.commander) detectedCols.commander = true;
             if (r.time) detectedCols.time = true;
             if (r.credits !== null && r.credits !== undefined) detectedCols.credits = true;
             if (r.troops !== null && r.troops !== undefined) detectedCols.troops = true;
-            if (r.infantry !== null && r.infantry !== undefined) detectedCols.infantry = true;
-            if (r.cavalry !== null && r.cavalry !== undefined) detectedCols.cavalry = true;
-            if (r.archer !== null && r.archer !== undefined) detectedCols.archer = true;
-            if (r.siege !== null && r.siege !== undefined) detectedCols.siege = true;
-            if (r.t1 !== null && r.t1 !== undefined) detectedCols.t1 = true;
-            if (r.t2 !== null && r.t2 !== undefined) detectedCols.t2 = true;
-            if (r.t3 !== null && r.t3 !== undefined) detectedCols.t3 = true;
-            if (r.t4 !== null && r.t4 !== undefined) detectedCols.t4 = true;
-            if (r.t5 !== null && r.t5 !== undefined) detectedCols.t5 = true;
+            if (r.infantry > 0) detectedCols.infantry = true;
+            if (r.cavalry > 0) detectedCols.cavalry = true;
+            if (r.archer > 0) detectedCols.archer = true;
+            if (r.siege > 0) detectedCols.siege = true;
+            if (r.t1 > 0) detectedCols.t1 = true;
+            if (r.t2 > 0) detectedCols.t2 = true;
+            if (r.t3 > 0) detectedCols.t3 = true;
+            if (r.t4 > 0) detectedCols.t4 = true;
+            if (r.t5 > 0) detectedCols.t5 = true;
             if (r.status) detectedCols.status = true;
         });
         if (Array.isArray(newData.detectedColumns)) {
             newData.detectedColumns.forEach(c => {
-                if (c && ['commander', 'time', 'credits', 'troops', 'infantry', 'cavalry', 'archer', 'siege', 't1', 't2', 't3', 't4', 't5', 'status'].includes(c)) {
+                if (c && ['allianceTag', 'commander', 'time', 'credits', 'troops', 'infantry', 'cavalry', 'archer', 'siege', 't1', 't2', 't3', 't4', 't5', 'status'].includes(c)) {
                     detectedCols[c] = true;
                 }
             });
@@ -1475,7 +1586,88 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                     </div>
 
                     {/* Interactive Column Depiction & Primary Metric Bar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-800 bg-[#0d1017]">
+                    <div className="flex flex-col gap-3 p-3 rounded-2xl border border-slate-800 bg-[#0d1017]">
+                        {/* Quick View Presets */}
+                        <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mr-1">
+                                    Presets:
+                                </span>
+                                <button
+                                    onClick={() => applyPreset('compact')}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center gap-1 shadow-sm"
+                                >
+                                    <span>⚡ {t('preset_compact')}</span>
+                                </button>
+                                <button
+                                    onClick={() => applyPreset('tiers')}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border border-amber-600/50 transition-all flex items-center gap-1 shadow-sm"
+                                >
+                                    <span>👑 {t('preset_tiers')}</span>
+                                </button>
+                                <button
+                                    onClick={() => applyPreset('classes')}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 border border-blue-600/50 transition-all flex items-center gap-1 shadow-sm"
+                                >
+                                    <span>⚔️ {t('preset_classes')}</span>
+                                </button>
+                                <button
+                                    onClick={() => applyPreset('structure')}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-600/50 transition-all flex items-center gap-1 shadow-sm"
+                                >
+                                    <span>🏛️ {t('preset_structure')}</span>
+                                </button>
+                                <button
+                                    onClick={() => applyPreset('all')}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-950/40 hover:bg-purple-900/50 text-purple-300 border border-purple-600/50 transition-all flex items-center gap-1 shadow-sm"
+                                >
+                                    <span>🌐 {t('preset_all')}</span>
+                                </button>
+                            </div>
+
+                            {/* Primary Metric Selector */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                                    {t('label_primary_metric')}:
+                                </span>
+                                <div className="flex bg-[#13161f] border border-slate-800 rounded-lg p-0.5 text-xs font-mono">
+                                    <button
+                                        onClick={() => handlePrimaryMetricChange('auto')}
+                                        className={`px-2 py-1 rounded-md transition-all ${
+                                            primaryMetricMode === 'auto' ? 'bg-fuchsia-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {t('metric_option_auto')}
+                                    </button>
+                                    <button
+                                        onClick={() => handlePrimaryMetricChange('troops')}
+                                        className={`px-2 py-1 rounded-md transition-all ${
+                                            primaryMetricMode === 'troops' ? 'bg-rose-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {t('metric_option_troops')}
+                                    </button>
+                                    <button
+                                        onClick={() => handlePrimaryMetricChange('credits')}
+                                        className={`px-2 py-1 rounded-md transition-all ${
+                                            primaryMetricMode === 'credits' ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {t('metric_option_credits')}
+                                    </button>
+                                    <button
+                                        onClick={() => handlePrimaryMetricChange('time')}
+                                        className={`px-2 py-1 rounded-md transition-all ${
+                                            primaryMetricMode === 'time' ? 'bg-amber-500/40 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {t('metric_option_time')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Individual Column Toggles */}
                         <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mr-1">
                                 {t('label_depicted_columns')}:
@@ -1625,59 +1817,35 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                 <span>{t('th_status')}</span>
                             </button>
                         </div>
-
-                        {/* Primary Metric Selector */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                                {t('label_primary_metric')}:
-                            </span>
-                            <div className="flex bg-[#13161f] border border-slate-800 rounded-lg p-0.5 text-xs font-mono">
-                                <button
-                                    onClick={() => handlePrimaryMetricChange('auto')}
-                                    className={`px-2 py-1 rounded-md transition-all ${
-                                        primaryMetricMode === 'auto' ? 'bg-fuchsia-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                                    }`}
-                                >
-                                    {t('metric_option_auto')}
-                                </button>
-                                <button
-                                    onClick={() => handlePrimaryMetricChange('troops')}
-                                    className={`px-2 py-1 rounded-md transition-all ${
-                                        primaryMetricMode === 'troops' ? 'bg-rose-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                                    }`}
-                                >
-                                    {t('metric_option_troops')}
-                                </button>
-                                <button
-                                    onClick={() => handlePrimaryMetricChange('credits')}
-                                    className={`px-2 py-1 rounded-md transition-all ${
-                                        primaryMetricMode === 'credits' ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                                    }`}
-                                >
-                                    {t('metric_option_credits')}
-                                </button>
-                                <button
-                                    onClick={() => handlePrimaryMetricChange('time')}
-                                    className={`px-2 py-1 rounded-md transition-all ${
-                                        primaryMetricMode === 'time' ? 'bg-amber-500/40 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
-                                    }`}
-                                >
-                                    {t('metric_option_time')}
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Master Leaderboard Table */}
                     <div className="rounded-2xl border border-slate-800 bg-[#0d1017] overflow-hidden shadow-xl">
+                        {/* Horizontal Scroll Hint Banner */}
+                        <div className="px-3 py-1.5 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                            <span className="flex items-center gap-1.5">
+                                <span>↔️</span>
+                                <span>{t('table_scroll_hint')}</span>
+                            </span>
+                            <span className="text-[10px] text-slate-500">
+                                {filteredRankings.length} {t('kpi_governors')}
+                            </span>
+                        </div>
+
                         <div className="overflow-x-auto max-h-[520px] scrollbar-thin scrollbar-thumb-slate-700">
-                            <table className="w-full text-left border-collapse text-xs font-sans">
+                            <table className="w-full text-left border-collapse text-xs font-sans min-w-max">
                                 <thead>
-                                    <tr className="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10 backdrop-blur-md font-mono text-[11px] text-slate-400 uppercase tracking-wider">
-                                        {depictedColumns.rank && <th className="py-2.5 px-3 w-16 text-center">{t('th_rank')}</th>}
-                                        <th className="py-2.5 px-3">{t('th_governor')}</th>
+                                    <tr className="border-b border-slate-800 bg-slate-900 sticky top-0 z-30 font-mono text-[11px] text-slate-400 uppercase tracking-wider">
+                                        {depictedColumns.rank && (
+                                            <th className="py-2.5 px-3 w-16 text-center sticky left-0 bg-slate-900 z-40 border-r border-slate-800">
+                                                {t('th_rank')}
+                                            </th>
+                                        )}
+                                        <th className={`py-2.5 px-3 sticky ${depictedColumns.rank ? 'left-16' : 'left-0'} bg-slate-900 z-40 border-r border-slate-800 shadow-[4px_0_10px_rgba(0,0,0,0.5)]`}>
+                                            {t('th_governor')}
+                                        </th>
                                         {depictedColumns.allianceTag && <th className="py-2.5 px-3 w-20 text-center">{t('th_alliance')}</th>}
-                                        {depictedColumns.commander && <th className="py-2.5 px-3">{t('th_commander')}</th>}
+                                        {depictedColumns.commander && <th className="py-2.5 px-3 max-w-[180px]">{t('th_commander')}</th>}
                                         {depictedColumns.time && <th className="py-2.5 px-3 text-center">{t('th_time')}</th>}
                                         {depictedColumns.credits && <th className="py-2.5 px-3 text-right">🪙 {t('th_credits')}</th>}
                                         {depictedColumns.troops && <th className="py-2.5 px-3 text-right">⚔️ {t('th_troops')}</th>}
@@ -1725,7 +1893,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                 >
                                                     {/* Rank Cell */}
                                                     {depictedColumns.rank && (
-                                                        <td className="py-2.5 px-3 text-center font-mono font-bold">
+                                                        <td className="py-2.5 px-3 text-center font-mono font-bold sticky left-0 bg-[#0d1017] group-hover:bg-[#161a23] z-20 border-r border-slate-800/60">
                                                             {isEditing ? (
                                                                 <input
                                                                     type="number"
@@ -1745,7 +1913,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                     )}
 
                                                     {/* Governor Name Cell */}
-                                                    <td className="py-2.5 px-3 font-medium text-white">
+                                                    <td className={`py-2.5 px-3 font-medium text-white sticky ${depictedColumns.rank ? 'left-16' : 'left-0'} bg-[#0d1017] group-hover:bg-[#161a23] z-20 border-r border-slate-800/60 shadow-[4px_0_10px_rgba(0,0,0,0.5)]`}>
                                                         {isEditing ? (
                                                             <input
                                                                 type="text"
@@ -1754,11 +1922,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                                 className="w-full bg-black border border-slate-700 rounded px-2 py-0.5 text-xs text-white"
                                                             />
                                                         ) : (
-                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
                                                                 <span className="font-semibold">{row.governorName}</span>
                                                                 {(row.hasLowTierWarning || (row.t1 > 0 || row.t2 > 0 || row.t3 > 0)) && (
                                                                     <span 
-                                                                        className="px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[9px] font-mono font-bold flex items-center gap-0.5" 
+                                                                        className="px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[9px] font-mono font-bold flex items-center gap-0.5 whitespace-nowrap" 
                                                                         title={`Sent ${((row.t1 || 0) + (row.t2 || 0) + (row.t3 || 0)).toLocaleString()} low-tier T1-T3 troops`}
                                                                     >
                                                                         ⚠️ {t('badge_low_tier_warning')}
@@ -1770,7 +1938,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
 
                                                     {/* Alliance Tag Cell */}
                                                     {depictedColumns.allianceTag && (
-                                                        <td className="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400">
+                                                        <td className="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 whitespace-nowrap">
                                                             {isEditing ? (
                                                                 <input
                                                                     type="text"
@@ -1790,7 +1958,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
 
                                                     {/* Commander Cell */}
                                                     {depictedColumns.commander && (
-                                                        <td className="py-2.5 px-3 font-medium">
+                                                        <td className="py-2.5 px-3 font-medium max-w-[180px]">
                                                             {isEditing ? (
                                                                 <input
                                                                     type="text"
@@ -1801,7 +1969,10 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                                 />
                                                             ) : (
                                                                 row.commander ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono text-[11px]">
+                                                                    <span 
+                                                                        className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] block truncate"
+                                                                        title={row.commander}
+                                                                    >
                                                                         {row.commander}
                                                                     </span>
                                                                 ) : '—'

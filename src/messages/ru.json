@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "Низкий тир"
+    "badge_low_tier_warning": "Низкий тир",
+    "preset_compact": "Компактный",
+    "preset_classes": "Классы войск",
+    "preset_tiers": "Уровни войск (T1–T5)",
+    "preset_structure": "Постройка и марш",
+    "preset_all": "Все колонки",
+    "table_scroll_hint": "Горизонтальная прокрутка активна • Правитель и ранг закреплены"
   }
 }

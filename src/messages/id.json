@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "Tingkat Rendah"
+    "badge_low_tier_warning": "Tingkat Rendah",
+    "preset_compact": "Ringkas",
+    "preset_classes": "Kelas Pasukan",
+    "preset_tiers": "Tingkat Unit (T1–T5)",
+    "preset_structure": "Struktur & Barisan",
+    "preset_all": "Semua Kolom",
+    "table_scroll_hint": "Gulir horizontal aktif • Gubernur & Peringkat disematkan"
   }
 }

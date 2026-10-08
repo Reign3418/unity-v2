@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "Low Tier"
+    "badge_low_tier_warning": "Low Tier",
+    "preset_compact": "Compact",
+    "preset_classes": "Troop Classes",
+    "preset_tiers": "Unit Tiers (T1–T5)",
+    "preset_structure": "Structure & March",
+    "preset_all": "All Columns",
+    "table_scroll_hint": "Horizontal scroll enabled • Governor & Rank pinned"
   }
 }

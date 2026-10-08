@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "Niveau bas"
+    "badge_low_tier_warning": "Niveau bas",
+    "preset_compact": "Compact",
+    "preset_classes": "Classes de troupes",
+    "preset_tiers": "Niveaux d’unités (T1–T5)",
+    "preset_structure": "Bâtiment & marche",
+    "preset_all": "Toutes les colonnes",
+    "table_scroll_hint": "Défilement horizontal activé • Gouverneur & rang verrouillés"
   }
 }

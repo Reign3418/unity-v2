@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "Bậc thấp"
+    "badge_low_tier_warning": "Bậc thấp",
+    "preset_compact": "Thu gọn",
+    "preset_classes": "Chủng binh",
+    "preset_tiers": "Bậc quân (T1–T5)",
+    "preset_structure": "Công trình & Hành quân",
+    "preset_all": "Tất cả các cột",
+    "table_scroll_hint": "Cuộn ngang được bật • Đã ghim Thống đốc & Xếp hạng"
   }
 }

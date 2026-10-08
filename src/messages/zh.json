@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "低阶兵种"
+    "badge_low_tier_warning": "低阶兵种",
+    "preset_compact": "精简",
+    "preset_classes": "兵种明细",
+    "preset_tiers": "兵级阶梯 (T1–T5)",
+    "preset_structure": "建筑与行军",
+    "preset_all": "全部列",
+    "table_scroll_hint": "已启用横向滚动 • 执政官与排名已锁定固定"
   }
 }

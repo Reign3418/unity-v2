@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "Nível baixo"
+    "badge_low_tier_warning": "Nível baixo",
+    "preset_compact": "Compacto",
+    "preset_classes": "Classes de tropas",
+    "preset_tiers": "Níveis de unidade (T1–T5)",
+    "preset_structure": "Estrutura e marcha",
+    "preset_all": "Todas as colunas",
+    "table_scroll_hint": "Rolagem horizontal ativa • Governador e classificação fixados"
   }
 }

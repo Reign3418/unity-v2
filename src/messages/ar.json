@@ -2025,6 +2025,12 @@
     "th_t3": "T3",
     "th_t4": "T4",
     "th_t5": "T5",
-    "badge_low_tier_warning": "مستوى منخفض"
+    "badge_low_tier_warning": "مستوى منخفض",
+    "preset_compact": "موجز",
+    "preset_classes": "أنواع القوات",
+    "preset_tiers": "مستويات القوات (T1–T5)",
+    "preset_structure": "البناء والمسيرة",
+    "preset_all": "جميع الأعمدة",
+    "table_scroll_hint": "التمرير الأفقي مفعّل • تم تثبيت الحاكم والرتبة"
   }
 }
