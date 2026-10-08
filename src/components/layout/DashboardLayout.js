@@ -23,6 +23,15 @@ export default function DashboardLayout({ children }) {
   } = useRolePreview();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [gatesCache, setGatesCache] = useState(null);
+  const pathname = usePathname();
+  const [isAppletParam, setIsAppletParam] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      setIsAppletParam(sp.get('applet') === 'true' || sp.get('applet') === '1');
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (session) {
@@ -38,6 +47,8 @@ export default function DashboardLayout({ children }) {
     }
   }, [session]);
 
+  const isExperimentalApplet = pathname?.includes('/experimental/ocr') || isAppletParam;
+
   // Show a full-screen loading state while NextAuth bootstraps the session from the backend
   // Or while we are resolving the initial topography matrix
   if (status === "loading" || (session && gatesCache === null)) {
@@ -50,23 +61,6 @@ export default function DashboardLayout({ children }) {
       </div>
     );
   }
-
-  // Hide the shell entirely if the user is unauthenticated
-  if (!session) {
-    return <>{children}</>;
-  }
-
-  const pathname = usePathname();
-  const [isAppletParam, setIsAppletParam] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const sp = new URLSearchParams(window.location.search);
-      setIsAppletParam(sp.get('applet') === 'true' || sp.get('applet') === '1');
-    }
-  }, [pathname]);
-
-  const isExperimentalApplet = pathname?.includes('/experimental/ocr') || isAppletParam;
 
   // Strip all shell rendering if we are in an isolated desktop applet
   if (isExperimentalApplet) {
@@ -84,6 +78,11 @@ export default function DashboardLayout({ children }) {
             {children}
         </div>
       );
+  }
+
+  // Hide the shell entirely if the user is unauthenticated
+  if (!session) {
+    return <>{children}</>;
   }
 
   // Evaluate Network Gate Clearance

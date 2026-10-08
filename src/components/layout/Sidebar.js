@@ -25,11 +25,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     const isActive = pathname === href || pathname === `/en${href}` || pathname.includes(`${href}`); // fuzzy match over locale
     
     return (
-      <div className="relative group">
+      <div className="relative group flex items-center">
         <Link 
           href={href} 
           onClick={() => setIsOpen && setIsOpen(false)}
-          className={`flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200
+          className={`flex-1 flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200
             ${isActive 
               ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)]' 
               : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}
@@ -42,22 +42,22 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               {isAi && <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />}
             </span>
           </div>
-          {appletHref && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open(appletHref, 'Unity Applet', 'width=620,height=900,toolbar=0,menubar=0,location=0,resizable=1');
-              }}
-              title="Launch Floating Applet"
-              className="opacity-0 group-hover:opacity-100 text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/30 transition-all flex items-center gap-1 shrink-0"
-            >
-              <span>Applet</span>
-              <ExternalLink size={9} />
-            </button>
-          )}
         </Link>
+        {appletHref && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(appletHref, 'Unity Applet', 'width=620,height=900,toolbar=0,menubar=0,location=0,resizable=1');
+            }}
+            title="Launch Floating Applet"
+            className="absolute right-3 opacity-0 group-hover:opacity-100 text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/30 transition-all flex items-center gap-1 shrink-0 z-10"
+          >
+            <span>Applet</span>
+            <ExternalLink size={9} />
+          </button>
+        )}
       </div>
     );
   };
