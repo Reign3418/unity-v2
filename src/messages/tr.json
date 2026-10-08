@@ -1563,6 +1563,9 @@
     "status_confirmed_migrant": "Onaylanmış Geriye Göçmen",
     "status_native_jumper": "Yerli / Jumper Grubu",
     "status_late_created": "Krallık Kurulduktan Sonra Oluşturulmuş",
-    "status_unknown_kd": "Krallık Belirtilmedi"
+    "status_unknown_kd": "Krallık Belirtilmedi",
+    "card_spawn_kd": "Tahmini Başlangıç Krallığı",
+    "card_spawn_kd_desc": "Bu karakter oluşturulduğunda aktif olan yeni krallıklar kümesi",
+    "label_continent": "Kıta"
   }
 }

@@ -1563,6 +1563,9 @@
     "status_confirmed_migrant": "확인된 이전 서버 역이민자",
     "status_native_jumper": "원주민 / 점퍼 그룹",
     "status_late_created": "왕국 창설 후 생성된 계정",
-    "status_unknown_kd": "왕국 미지정"
+    "status_unknown_kd": "왕국 미지정",
+    "card_spawn_kd": "추정 시작 왕국",
+    "card_spawn_kd_desc": "이 캐릭터 생성 당시 신규 생성되던 왕국 군집",
+    "label_continent": "대륙"
   }
 }

@@ -211,6 +211,26 @@ export function estimateGovernorAge(rawId, targetKingdom = null) {
         };
     }
 
+    // Starting Kingdom Spawn Horizon Estimation
+    const K1001_TIME = new Date('2018-09-21T00:00:00Z').getTime();
+    const daysSinceK1001 = (estimatedTimestamp - K1001_TIME) / (1000 * 60 * 60 * 24);
+    const rawStartingKd = Math.round(1001 + (daysSinceK1001 / 0.9149));
+    const estimatedStartingKd = Math.max(1001, rawStartingKd);
+    const bracketMin = Math.max(1001, estimatedStartingKd - 15);
+    const bracketMax = estimatedStartingKd + 15;
+    const continentNumber = Math.max(1, Math.floor((estimatedStartingKd - 1001) / 8) + 1);
+    const continentStart = 1001 + (continentNumber - 1) * 8;
+    const continentEnd = continentStart + 7;
+
+    const spawnHorizon = {
+        estimatedKd: estimatedStartingKd,
+        bracketMin,
+        bracketMax,
+        bracketDisplay: `KD ${bracketMin} – ${bracketMax}`,
+        continentNumber,
+        continentRange: `KD ${continentStart} – ${continentEnd}`,
+    };
+
     const windowStart = new Date(estimatedTimestamp - 45 * 24 * 60 * 60 * 1000);
     const windowEnd = new Date(estimatedTimestamp + 45 * 24 * 60 * 60 * 1000);
 
@@ -231,6 +251,7 @@ export function estimateGovernorAge(rawId, targetKingdom = null) {
         ageFormatted,
         generation,
         bracket,
+        spawnHorizon,
         migrationAnalysis,
     };
 }

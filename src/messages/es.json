@@ -1563,6 +1563,9 @@
     "status_confirmed_migrant": "Migrante Hacia Atrás Confirmado",
     "status_native_jumper": "Cohorte Nativa / Jumper",
     "status_late_created": "Creado Tras Fundación del Reino",
-    "status_unknown_kd": "Reino No Definido"
+    "status_unknown_kd": "Reino No Definido",
+    "card_spawn_kd": "Reino de Inicio Estimado",
+    "card_spawn_kd_desc": "Grupo de reinos nuevos activos al crearse este personaje",
+    "label_continent": "Continente"
   }
 }

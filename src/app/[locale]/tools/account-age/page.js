@@ -85,6 +85,8 @@ export default function AccountAgeAuditPage() {
             "Account Age (Days)": p.ageDays,
             "Generation": p.generation.label,
             "Era Details": p.generation.era,
+            "Estimated Starting Horizon": `KD ~${p.spawnHorizon?.estimatedKd || "N/A"} (${p.spawnHorizon?.bracketDisplay || ""})`,
+            "Spawn Continent": p.spawnHorizon?.continentNumber ? `Continent #${p.spawnHorizon.continentNumber} (${p.spawnHorizon.continentRange})` : "N/A",
             "Observed Kingdom": p.migrationAnalysis?.targetKingdom || "N/A",
             "Kingdom Estimated Launch": p.migrationAnalysis?.kdEstimatedLaunchDate || "N/A",
             "Migration Verdict": p.migrationAnalysis?.statusLabel || "N/A",
@@ -325,6 +327,40 @@ export default function AccountAgeAuditPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Starting Kingdom Horizon */}
+                                {singleResult.spawnHorizon && (
+                                    <div className="bg-[#0f1115] border border-cyan-500/20 rounded-2xl p-5 relative overflow-hidden">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 flex items-center gap-1.5">
+                                                    <Compass size={13} />
+                                                    <span>{t("card_spawn_kd")}</span>
+                                                </div>
+                                                <div className="text-xl md:text-2xl font-black text-white font-mono flex items-center gap-3 flex-wrap">
+                                                    <span>KD ~{singleResult.spawnHorizon.estimatedKd}</span>
+                                                    <span className="text-xs text-gray-400 font-normal font-sans bg-white/5 border border-white/5 px-2.5 py-0.5 rounded">
+                                                        Bracket: {singleResult.spawnHorizon.bracketDisplay}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-400 leading-relaxed max-w-2xl pt-1">
+                                                    {t("card_spawn_kd_desc")}.
+                                                </p>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <div className="bg-[#13161c] border border-[#1e222b] rounded-xl px-4 py-2.5 text-left md:text-right font-mono">
+                                                    <span className="text-[9px] uppercase tracking-widest text-gray-500 block">
+                                                        {t("label_continent")}
+                                                    </span>
+                                                    <span className="text-sm font-bold text-cyan-400">
+                                                        #{singleResult.spawnHorizon.continentNumber} ({singleResult.spawnHorizon.continentRange})
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Historical Timeline Track */}
                                 <div className="bg-[#0f1115] border border-[#1e222b] rounded-2xl p-6 space-y-4">

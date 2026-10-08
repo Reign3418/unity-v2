@@ -1563,6 +1563,9 @@
     "status_confirmed_migrant": "Migrant Rétrograde Confirmé",
     "status_native_jumper": "Cohorte Native / Jumper",
     "status_late_created": "Créé Après la Fondation du Royaume",
-    "status_unknown_kd": "Royaume Non Spécifié"
+    "status_unknown_kd": "Royaume Non Spécifié",
+    "card_spawn_kd": "Royaume de Départ Estimé",
+    "card_spawn_kd_desc": "Grappe de nouveaux royaumes actifs lors de la création de ce personnage",
+    "label_continent": "Continent"
   }
 }

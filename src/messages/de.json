@@ -1563,6 +1563,9 @@
     "status_confirmed_migrant": "Bestätigter Rückwärts-Migrant",
     "status_native_jumper": "Einheimische / Jumper-Kohorte",
     "status_late_created": "Nach Königreichsgründung erstellt",
-    "status_unknown_kd": "Königreich nicht angegeben"
+    "status_unknown_kd": "Königreich nicht angegeben",
+    "card_spawn_kd": "Geschätztes Start-Königreich",
+    "card_spawn_kd_desc": "Gruppe aktiver neuer Königreiche bei Erstellung dieses Charakters",
+    "label_continent": "Kontinent"
   }
 }
