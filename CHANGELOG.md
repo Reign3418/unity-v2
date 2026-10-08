@@ -2,6 +2,16 @@
 
 All notable changes to the Unity V2 platform are documented in this file.
 
+## [2.6.0] — 2026-10-08
+
+### Added & Fixed
+- **Reseller & Farm Bot Radar (`/tools/reseller-hunter`, `/creator/lab/reseller-hunter`):**
+  - Multivariate forensic intelligence engine detecting commercial resource sellers and automated farm bot hives.
+  - Dedicated **Top Gatherers Leaderboard** tab ranking top 100 governors across the kingdom by total gathered resources.
+  - Dedicated **Alliance Harvest Totals** tab ranking all alliances by cumulative resources, average per member, and bot concentration.
+  - Dynamic client-side re-analysis allowing instant slider tuning without roundtrips.
+  - Resilient DynamoDB parsing supporting strings, numbers with commas, and all schema casings for Kingdom scans.
+
 ## [2.5.0] — 2026-10-05
 
 ### Added
