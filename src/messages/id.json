@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Bintang Terisolasi Liar",
     "label_spectral_type": "Tipe Spektral",
     "label_naming_clan": "Klan Nama",
-    "label_coordinates_tensor": "Koordinat Tensor 5D"
+    "label_coordinates_tensor": "Koordinat Tensor 5D",
+    "btn_fullscreen": "Penerbangan Bintang Layar Penuh",
+    "btn_exit_fullscreen": "Keluar dari Layar Penuh",
+    "search_placeholder_galaxy": "Cari komandan, aliansi, atau klan nama...",
+    "label_mode_hover": "Label: Hanya Fokus",
+    "label_mode_all": "Label: Semua Bintang",
+    "label_mode_leaders": "Label: Garda Depan Utama",
+    "flight_controls_hint": "Penerbangan: Geser untuk Orbit • Klik Kanan/Shift untuk Geser • Roda untuk Warp • Klik untuk Kunci"
   }
 }

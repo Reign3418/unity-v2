@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Étoiles Isolées Non Alignées",
     "label_spectral_type": "Type Spectral",
     "label_naming_clan": "Clan de Nom",
-    "label_coordinates_tensor": "Coordonnées du Tenseur 5D"
+    "label_coordinates_tensor": "Coordonnées du Tenseur 5D",
+    "btn_fullscreen": "Vol Stellaire Plein Écran",
+    "btn_exit_fullscreen": "Quitter le Plein Écran",
+    "search_placeholder_galaxy": "Rechercher commandant, alliance ou clan...",
+    "label_mode_hover": "Noms : Focus uniquement",
+    "label_mode_all": "Noms : Toutes les étoiles",
+    "label_mode_leaders": "Noms : Avant-garde principale",
+    "flight_controls_hint": "Vol : Glisser pour orbiter • Clic droit/Maj pour panoramique • Molette pour voyager • Clic pour cibler"
   }
 }

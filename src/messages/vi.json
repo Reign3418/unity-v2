@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Sao Đơn độc Chưa liên kết",
     "label_spectral_type": "Loại Quang phổ",
     "label_naming_clan": "Bang phái Tên",
-    "label_coordinates_tensor": "Tọa độ Tenxơ 5D"
+    "label_coordinates_tensor": "Tọa độ Tenxơ 5D",
+    "btn_fullscreen": "Chuyến bay Toàn màn hình Giữa các Vì sao",
+    "btn_exit_fullscreen": "Thoát Toàn màn hình",
+    "search_placeholder_galaxy": "Tìm chỉ huy, liên minh hoặc bang phái tên...",
+    "label_mode_hover": "Nhãn: Chỉ mục tiêu",
+    "label_mode_all": "Nhãn: Tất cả các sao",
+    "label_mode_leaders": "Nhãn: Tiên phong Hàng đầu",
+    "flight_controls_hint": "Bay: Kéo để Quay • Chuột phải/Shift để Di chuyển • Cuộn để Dịch chuyển • Nhấp để Khóa"
   }
 }

@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "نجوم مارقة غير منحازة",
     "label_spectral_type": "النوع الطيفي",
     "label_naming_clan": "عشيرة التسمية",
-    "label_coordinates_tensor": "إحداثيات موتر 5D"
+    "label_coordinates_tensor": "إحداثيات موتر 5D",
+    "btn_fullscreen": "رحلة النجوم في ملء الشاشة",
+    "btn_exit_fullscreen": "الخروج من ملء الشاشة",
+    "search_placeholder_galaxy": "ابحث عن قائد أو تحالف أو عشيرة التسمية...",
+    "label_mode_hover": "التسميات: التركيز فقط",
+    "label_mode_all": "التسميات: جميع النجوم",
+    "label_mode_leaders": "التسميات: الطليعة والحيتان",
+    "flight_controls_hint": "الطيران: سحب للمدار • سحب أيمن أو Shift للتحريك • تمرير للحرب • انقر للقفل"
   }
 }

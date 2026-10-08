@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Одиночные блуждающие звезды",
     "label_spectral_type": "Спектральный тип",
     "label_naming_clan": "Клановый префикс",
-    "label_coordinates_tensor": "Координаты 5D тензора"
+    "label_coordinates_tensor": "Координаты 5D тензора",
+    "btn_fullscreen": "Полноэкранный звездный полет",
+    "btn_exit_fullscreen": "Выйти из полноэкранного режима",
+    "search_placeholder_galaxy": "Поиск командира, альянса или кланового префикса...",
+    "label_mode_hover": "Метки: Только фокус",
+    "label_mode_all": "Метки: Все звезды",
+    "label_mode_leaders": "Метки: Главный авангард",
+    "flight_controls_hint": "Полет: Перетащите для вращения • Правая кнопка/Shift для смещения • Колесо для варпа • Клик для захвата"
   }
 }

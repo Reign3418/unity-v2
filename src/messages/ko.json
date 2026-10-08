@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "미소속 방랑 항성",
     "label_spectral_type": "분광형",
     "label_naming_clan": "작명 클랜",
-    "label_coordinates_tensor": "5D 텐서 좌표"
+    "label_coordinates_tensor": "5D 텐서 좌표",
+    "btn_fullscreen": "전체 화면 항성 비행",
+    "btn_exit_fullscreen": "전체 화면 종료",
+    "search_placeholder_galaxy": "사령관, 연맹 또는 작명 클랜 검색...",
+    "label_mode_hover": "이름표: 조준 대상만",
+    "label_mode_all": "이름표: 모든 항성",
+    "label_mode_leaders": "이름표: 최상위 선봉대",
+    "flight_controls_hint": "비행: 드래그 회전 • 우클릭/Shift 이동 • 휠 워프 줌 • 클릭 조준"
   }
 }

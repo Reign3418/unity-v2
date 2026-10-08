@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Estrelas Solitárias Não Alinhadas",
     "label_spectral_type": "Tipo Espectral",
     "label_naming_clan": "Clã de Nomes",
-    "label_coordinates_tensor": "Coordenadas do Tensor 5D"
+    "label_coordinates_tensor": "Coordenadas do Tensor 5D",
+    "btn_fullscreen": "Voo Estelar em Tela Cheia",
+    "btn_exit_fullscreen": "Sair da Tela Cheia",
+    "search_placeholder_galaxy": "Buscar comandante, aliança ou clã...",
+    "label_mode_hover": "Rótulos: Apenas Foco",
+    "label_mode_all": "Rótulos: Todas as Estrelas",
+    "label_mode_leaders": "Rótulos: Vanguarda Principal",
+    "flight_controls_hint": "Voo: Arrastar para orbitar • Clique direito/Shift para mover • Roda para warp • Clique para travar"
   }
 }

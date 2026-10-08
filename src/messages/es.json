@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Estrellas Rebeldes No Alineadas",
     "label_spectral_type": "Tipo Espectral",
     "label_naming_clan": "Clan de Nombres",
-    "label_coordinates_tensor": "Coordenadas del Tensor 5D"
+    "label_coordinates_tensor": "Coordenadas del Tensor 5D",
+    "btn_fullscreen": "Vuelo Estelar en Pantalla Completa",
+    "btn_exit_fullscreen": "Salir de Pantalla Completa",
+    "search_placeholder_galaxy": "Buscar comandante, alianza o clan de nombre...",
+    "label_mode_hover": "Etiquetas: Solo Foco",
+    "label_mode_all": "Etiquetas: Todas las Estrellas",
+    "label_mode_leaders": "Etiquetas: Vanguardia Principal",
+    "flight_controls_hint": "Vuelo: Arrastrar para orbitar • Clic derecho/Shift para desplazar • Rueda para avanzar • Clic para fijar"
   }
 }

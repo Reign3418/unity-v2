@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Bağlantısız Başıboş Yıldızlar",
     "label_spectral_type": "Spektral Tip",
     "label_naming_clan": "İsim Klanı",
-    "label_coordinates_tensor": "5D Tensör Koordinatları"
+    "label_coordinates_tensor": "5D Tensör Koordinatları",
+    "btn_fullscreen": "Tam Ekran Yıldız Uçuşu",
+    "btn_exit_fullscreen": "Tam Ekrandan Çık",
+    "search_placeholder_galaxy": "Komutan, ittifak veya adlandırma klanı ara...",
+    "label_mode_hover": "Etiketler: Yalnızca Odak",
+    "label_mode_all": "Etiketler: Tüm Yıldızlar",
+    "label_mode_leaders": "Etiketler: En Güçlü Öncüler",
+    "flight_controls_hint": "Uçuş: Yörünge için Sürükle • Kaydırmak için Sağ Tık/Shift • Hızlı Geçiş için Tekerlek • Kilitlemek için Tıkla"
   }
 }

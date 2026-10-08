@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Unalignierte Einzelgänger-Sterne",
     "label_spectral_type": "Spektraltyp",
     "label_naming_clan": "Namens-Clan",
-    "label_coordinates_tensor": "5D-Tensor-Koordinaten"
+    "label_coordinates_tensor": "5D-Tensor-Koordinaten",
+    "btn_fullscreen": "Vollbild-Sternenflug",
+    "btn_exit_fullscreen": "Vollbild beenden",
+    "search_placeholder_galaxy": "Kommandant, Allianz oder Namens-Clan suchen...",
+    "label_mode_hover": "Beschriftung: Nur Fokus",
+    "label_mode_all": "Beschriftung: Alle Sterne",
+    "label_mode_leaders": "Beschriftung: Top-Vorhut",
+    "flight_controls_hint": "Flug: Ziehen zum Orbiten • Rechtsklick/Shift zum Schwenken • Rad zum Warpen • Klick zum Fixieren"
   }
 }

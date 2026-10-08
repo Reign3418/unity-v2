@@ -1623,6 +1623,13 @@
     "stat_rogue_stars": "Rogue Unaligned Stars",
     "label_spectral_type": "Spectral Type",
     "label_naming_clan": "Naming Clan",
-    "label_coordinates_tensor": "5D Tensor Coordinates"
+    "label_coordinates_tensor": "5D Tensor Coordinates",
+    "btn_fullscreen": "Fullscreen Star Flight",
+    "btn_exit_fullscreen": "Exit Fullscreen",
+    "search_placeholder_galaxy": "Search commander, alliance, or naming clan...",
+    "label_mode_hover": "Labels: Focus Only",
+    "label_mode_all": "Labels: All Stars",
+    "label_mode_leaders": "Labels: Top Vanguard",
+    "flight_controls_hint": "Flight: Drag to Orbit • Right-Drag or Shift to Pan • Scroll to Warp • Click to Lock"
   }
 }
