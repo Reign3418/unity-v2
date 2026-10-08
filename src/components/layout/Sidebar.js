@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   <NavItem href="/creator/lab" icon={FlaskConical} label={t('nav_lab')} />
                   <NavItem href="/creator/matchmaker" icon={Target} label={t('nav_matchmaker')} />
                   <NavItem href="/creator/usage" icon={Activity} label={t('nav_usage')} />
-                  <NavItem href="/creator/area-51" icon={Atom} label={t('nav_area_51')} isAi={true} />
+                  <NavItem href="/creator/project-cerberus" icon={Atom} label={t('nav_project_cerberus')} isAi={true} />
               </>
           )}
 

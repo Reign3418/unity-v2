@@ -43,7 +43,7 @@
     "nav_chat_translator": "实时聊天翻译",
     "btn_support_kofi": "在 Ko-fi 上赞助",
     "nav_account_age": "账号年份审计",
-    "nav_area_51": "51区 (绝密黑匣)"
+    "nav_project_cerberus": "地狱犬计划 (Project Cerberus)"
   },
   "HomePage": {
     "subtitle_prefix": "因为团队里没有",
@@ -1569,20 +1569,20 @@
     "card_spawn_kd_desc": "该角色创角时由系统自动分配的新服集群",
     "label_continent": "大洲/赛区"
   },
-  "Area51": {
-    "nav_area_51": "51区 (绝密黑匣)",
-    "page_title": "AREA 51 // 绝密量化情报设施",
-    "page_subtitle": "绝密高维流形学习(PCA)、迁徙辛迪加图拓扑网络、本福特定律审计取证与兰彻斯特战力损耗模拟物理引擎。",
-    "clearance_badge": "绝密 // 仅限5级最高指挥权限",
-    "clearance_denied_title": "黑域访问受阻",
-    "clearance_denied_desc": "该核心设施严格限制为最高建筑师及王国最高统帅专用。未经授权的潜入尝试已记入审计金库。",
-    "btn_return_dashboard": "返回安全控制台",
+  "ProjectCerberus": {
+    "nav_project_cerberus": "地狱犬计划 (Project Cerberus)",
+    "page_title": "PROJECT CERBERUS // 量子战术取证与动态网络拓扑",
+    "page_subtitle": "高维流形学习(PCA)、迁徙辛迪加图拓扑网络、本福特定律第一位法证审计与兰彻斯特战力损耗模拟物理引擎。",
+    "clearance_badge": "绝密 // 5级最高指挥权限",
+    "clearance_denied_title": "核心访问受阻：地狱犬计划",
+    "clearance_denied_desc": "该核心量化情报设施严格限制为最高建筑师及王国最高统帅专用。未经授权的潜入尝试已记入审计金库。",
+    "btn_return_dashboard": "返回控制台",
     "tab_manifold": "战斗 DNA 流形 (PCA)",
     "tab_syndicate": "辛迪加集团网络拓扑",
     "tab_benford": "本福特欺诈取证矩阵",
     "tab_lanchester": "兰彻斯特血池消耗",
     "load_live_data": "载入本王国真实扫描名册",
-    "load_sample_data": "载入合成 100 节点高维样本",
+    "load_sample_data": "载入基准 100 节点高维样本",
     "manifold_title": "高维特征特征向量投影",
     "manifold_desc": "为每名执政官抽取7维战斗张量，利用主成分分析(PCA)将肉眼看不见的隐蔽行为原型清晰投射于空间中。",
     "syndicate_title": "拓扑辛迪加集团图谱与间谍渗透雷达",

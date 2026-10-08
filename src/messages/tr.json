@@ -43,7 +43,7 @@
     "nav_chat_translator": "Sohbet Çevirmeni",
     "btn_support_kofi": "Ko-fi üzerinden Destekle",
     "nav_account_age": "Hesap Yaşı Denetimi",
-    "nav_area_51": "51. Bölge (Çok Gizli)"
+    "nav_project_cerberus": "Proje Cerberus"
   },
   "HomePage": {
     "subtitle_prefix": "Çünkü takımda",
@@ -1569,13 +1569,13 @@
     "card_spawn_kd_desc": "Bu karakter oluşturulduğunda aktif olan yeni krallıklar kümesi",
     "label_continent": "Kıta"
   },
-  "Area51": {
-    "nav_area_51": "51. Bölge (Çok Gizli)",
-    "page_title": "51. BÖLGE // Çok Gizli İstihbarat Tesisi",
+  "ProjectCerberus": {
+    "nav_project_cerberus": "Proje Cerberus",
+    "page_title": "PROJE CERBERUS // Kuantum Adli Tıp ve Taktik Haritalandırma",
     "page_subtitle": "Çok boyutlu manifold analizi (PCA), sendika ağ topolojisi, Benford sahtekarlık analizi ve Lanchester askeri yıpratma fiziği.",
-    "clearance_badge": "ÇOK GİZLİ // 5. SEVİYE ERİŞİM",
-    "clearance_denied_title": "GİZLİ TESİSE ERİŞİM ENGELLENDİ",
-    "clearance_denied_desc": "Bu tesise yalnızca yetkili Yüksek Komuta erişebilir. Yetkisiz erişim girişiminiz denetim günlüğüne kaydedildi.",
+    "clearance_badge": "GİZLİ // 5. SEVİYE ERİŞİM",
+    "clearance_denied_title": "ERİŞİM ENGELLENDİ: PROJE CERBERUS",
+    "clearance_denied_desc": "Bu istihbarat modülü yalnızca yetkili Yüksek Komuta içindir. Yetkisiz erişim girişiminiz günlüğe kaydedildi.",
     "btn_return_dashboard": "Kontrol Paneline Dön",
     "tab_manifold": "Savaş DNA Manifoldu (PCA)",
     "tab_syndicate": "Sendika Kartel Grafiği",

@@ -43,7 +43,7 @@
     "nav_chat_translator": "Penerjemah Obrolan",
     "btn_support_kofi": "Dukung di Ko-fi",
     "nav_account_age": "Audit Usia Akun",
-    "nav_area_51": "Area 51 (Rahasia)"
+    "nav_project_cerberus": "Proyek Cerberus"
   },
   "HomePage": {
     "subtitle_prefix": "Karena tidak ada",
@@ -1569,20 +1569,20 @@
     "card_spawn_kd_desc": "Gugusan kerajaan baru yang aktif saat karakter ini dibuat",
     "label_continent": "Benua"
   },
-  "Area51": {
-    "nav_area_51": "Area 51 (Rahasia)",
-    "page_title": "AREA 51 // Fasilitas Intelijen Sangat Rahasia",
-    "page_subtitle": "Manifold learning dimensi tinggi rahasia (PCA), topologi graf sindikat, forensik penipuan Benford, dan fisika atrisi militer Lanchester.",
-    "clearance_badge": "SANGAT RAHASIA // AKSES LEVEL 5",
-    "clearance_denied_title": "AKSES SITUS GELAP DITOLAK",
-    "clearance_denied_desc": "Fasilitas ini hanya diperuntukkan bagi Komando Tertinggi. Upaya akses tanpa izin telah dicatat dalam log audit.",
+  "ProjectCerberus": {
+    "nav_project_cerberus": "Proyek Cerberus",
+    "page_title": "PROYEK CERBERUS // Forensik Kuantum & Kartografi Taktis",
+    "page_subtitle": "Manifold learning dimensi tinggi (PCA), topologi graf sindikat, forensik penipuan Benford, dan fisika atrisi militer Lanchester.",
+    "clearance_badge": "RAHASIA // AKSES TINGKAT 5",
+    "clearance_denied_title": "AKSES DITOLAK: PROYEK CERBERUS",
+    "clearance_denied_desc": "Modul intelijen ini hanya diperuntukkan bagi Komando Tertinggi. Upaya akses tanpa izin telah dicatat.",
     "btn_return_dashboard": "Kembali ke Dashboard",
     "tab_manifold": "Manifold DNA Tempur (PCA)",
     "tab_syndicate": "Graf Kartel Sindikat",
     "tab_benford": "Matriks Penipuan Benford",
     "tab_lanchester": "Tangki Darah Lanchester",
     "load_live_data": "Muat Pindaian Kerajaan",
-    "load_sample_data": "Muat Sampel Sintetis (100 Node)",
+    "load_sample_data": "Muat Populasi Tolok Ukur (100 Node)",
     "manifold_title": "Proyeksi Eigenvektor Dimensi Tinggi",
     "manifold_desc": "Mengekstrak tensor tempur 7 dimensi untuk memetakan arketipe perilaku tersembunyi menggunakan PCA.",
     "syndicate_title": "Graf Topologi Sindikat & Radar Infiltrasi",

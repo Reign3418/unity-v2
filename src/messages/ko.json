@@ -43,7 +43,7 @@
     "nav_chat_translator": "채팅 번역기",
     "btn_support_kofi": "Ko-fi 후원하기",
     "nav_account_age": "계정 연식 감사",
-    "nav_area_51": "51구역 (극비 구역)"
+    "nav_project_cerberus": "프로젝트 케르베로스"
   },
   "HomePage": {
     "subtitle_prefix": "팀에는",
@@ -1569,20 +1569,20 @@
     "card_spawn_kd_desc": "이 캐릭터 생성 당시 신규 생성되던 왕국 군집",
     "label_continent": "대륙"
   },
-  "Area51": {
-    "nav_area_51": "51구역 (극비 구역)",
-    "page_title": "AREA 51 // 극비 인텔리전스 시설",
+  "ProjectCerberus": {
+    "nav_project_cerberus": "프로젝트 케르베로스",
+    "page_title": "PROJECT CERBERUS // 양자 포렌식 & 전술 지형 분석",
     "page_subtitle": "고차원 다양체 학습(PCA), 신디케이트 그래프 위상수학, 벤포드 법칙 사기 포렌식 및 란체스터 전투 소모 물리학 모듈입니다.",
-    "clearance_badge": "일급 기밀 // 레벨 5 인가 전용",
-    "clearance_denied_title": "비인가 블랙 사이트 접근 차단",
-    "clearance_denied_desc": "본 시설은 최고 사령부 승인자에게만 엄격히 제한됩니다. 비인가 접근 시도가 감사 기록에 저장되었습니다.",
-    "btn_return_dashboard": "안전 구역(대시보드)으로 복귀",
+    "clearance_badge": "기밀 // 레벨 5 인가 전용",
+    "clearance_denied_title": "접근 제한: 프로젝트 케르베로스",
+    "clearance_denied_desc": "본 인텔리전스 모듈은 최고 사령부 승인자에게만 엄격히 제한됩니다. 비인가 접근 시도가 감사 기록에 저장되었습니다.",
+    "btn_return_dashboard": "대시보드로 복귀",
     "tab_manifold": "전투 DNA 매니폴드 (PCA)",
     "tab_syndicate": "신디케이트 카르텔 그래프",
     "tab_benford": "벤포드 사기 포렌식",
     "tab_lanchester": "란체스터 블러드 탱크",
     "load_live_data": "왕국 스캔 데이터 로드",
-    "load_sample_data": "합성 100노드 데이터 로드",
+    "load_sample_data": "기준 100노드 군집 로드",
     "manifold_title": "고차원 고유벡터(Eigenvector) 사상",
     "manifold_desc": "총독별 7차원 전투 텐서를 추출하고 주성분 분석(PCA)을 통해 숨겨진 행동 원형 군집을 가시화합니다.",
     "syndicate_title": "위상수학 신디케이트 그래프 & 스파이 탐지",

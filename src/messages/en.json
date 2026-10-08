@@ -43,7 +43,7 @@
     "nav_chat_translator": "Chat Translator",
     "btn_support_kofi": "Support on Ko-fi",
     "nav_account_age": "Account Age Audit",
-    "nav_area_51": "Area 51 (Classified)"
+    "nav_project_cerberus": "Project Cerberus"
   },
   "HomePage": {
     "subtitle_prefix": "Because there is no",
@@ -1569,20 +1569,20 @@
     "card_spawn_kd_desc": "The cluster of active new kingdoms when this character was created",
     "label_continent": "Continent"
   },
-  "Area51": {
-    "nav_area_51": "Area 51 (Classified)",
-    "page_title": "AREA 51 // Classified Intelligence Facility",
-    "page_subtitle": "Top-secret high-dimensional manifold learning, syndicate graph topology, Benford fraud forensics, and Lanchester military attrition physics.",
-    "clearance_badge": "TOP SECRET // LEVEL 5 CLEARANCE",
-    "clearance_denied_title": "RESTRICTED BLACK-SITE ACCESS",
-    "clearance_denied_desc": "This facility is strictly restricted to authorized high command. Your unauthorized access attempt has been logged.",
+  "ProjectCerberus": {
+    "nav_project_cerberus": "Project Cerberus",
+    "page_title": "PROJECT CERBERUS // Quantum Forensics & Tactical Cartography",
+    "page_subtitle": "High-dimensional manifold learning (PCA), syndicate graph topology, Benford fraud forensics, and Lanchester military attrition physics.",
+    "clearance_badge": "CLASSIFIED // LEVEL 5 CLEARANCE",
+    "clearance_denied_title": "RESTRICTED ACCESS: PROJECT CERBERUS",
+    "clearance_denied_desc": "This intelligence module is strictly restricted to authorized high command. Your unauthorized access attempt has been logged.",
     "btn_return_dashboard": "Return to Dashboard",
     "tab_manifold": "Combat DNA Manifold (PCA)",
     "tab_syndicate": "Syndicate Cartel Graph",
     "tab_benford": "Benford Fraud Matrix",
     "tab_lanchester": "Lanchester Blood Tank",
     "load_live_data": "Load Kingdom Scan Roster",
-    "load_sample_data": "Load Synthetic 100-Node Dataset",
+    "load_sample_data": "Load Benchmark Population (100 Nodes)",
     "manifold_title": "High-Dimensional Eigenvector Projection",
     "manifold_desc": "Extracts a 7-dimensional combat tensor for each governor and uses Principal Component Analysis (PCA) to map unseen behavioral archetypes.",
     "syndicate_title": "Topological Syndicate Graph & Infiltration Detection",

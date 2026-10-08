@@ -43,7 +43,7 @@
     "nav_chat_translator": "Tradutor de Chat",
     "btn_support_kofi": "Apoiar no Ko-fi",
     "nav_account_age": "Auditoria de Idade da Conta",
-    "nav_area_51": "Área 51 (Classificado)"
+    "nav_project_cerberus": "Projeto Cerberus"
   },
   "HomePage": {
     "subtitle_prefix": "Porque não existe",
@@ -1569,20 +1569,20 @@
     "card_spawn_kd_desc": "Grupo de novos reinos ativos quando este personagem foi criado",
     "label_continent": "Continente"
   },
-  "Area51": {
-    "nav_area_51": "Área 51 (Classificado)",
-    "page_title": "ÁREA 51 // Instalação de Inteligência Classificada",
-    "page_subtitle": "Projeção dimensional PCA ultrassecreta, topologia de grafos de sindicatos, perícia de Benford e física de atrito militar de Lanchester.",
-    "clearance_badge": "ULTRASSECRETO // AUTORIZAÇÃO NÍVEL 5",
-    "clearance_denied_title": "ACESSO NEGADO A INSTALAÇÃO CLANDESTINA",
-    "clearance_denied_desc": "Esta instalação é restrita ao Alto Comando. Sua tentativa de acesso não autorizada foi registrada.",
+  "ProjectCerberus": {
+    "nav_project_cerberus": "Projeto Cerberus",
+    "page_title": "PROJETO CERBERUS // Perícia Quântica e Cartografia Tática",
+    "page_subtitle": "Projeção dimensional PCA, topologia de grafos de sindicatos, perícia de Benford e física de atrito militar de Lanchester.",
+    "clearance_badge": "CLASSIFICADO // NÍVEL 5",
+    "clearance_denied_title": "ACESSO RESTRITO: PROJETO CERBERUS",
+    "clearance_denied_desc": "Este módulo de inteligência é restrito ao Alto Comando. Sua tentativa de acesso não autorizada foi registrada.",
     "btn_return_dashboard": "Retornar ao Painel",
     "tab_manifold": "Variedade de DNA de Combate (PCA)",
     "tab_syndicate": "Grafo de Cartel do Sindicato",
     "tab_benford": "Matriz de Fraude de Benford",
     "tab_lanchester": "Tanque de Sangue de Lanchester",
     "load_live_data": "Carregar Varredura do Reino",
-    "load_sample_data": "Carregar Amostra Sintética (100 Nós)",
+    "load_sample_data": "Carregar População Padrão (100 Nós)",
     "manifold_title": "Projeção de Autovetores Multidimensional",
     "manifold_desc": "Extrai um tensor de combate de 7 dimensões e aplica PCA para mapear arquétipos comportamentais invisíveis.",
     "syndicate_title": "Grafo Topológico de Sindicatos e Radar de Espiões",
