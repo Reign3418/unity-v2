@@ -444,11 +444,13 @@ export function simulateLanchesterBattle({
         t5B = Math.max(0, t5B - lossB);
     }
 
-    const winner = t5A > t5B ? "Kingdom A (Garrison)" : "Kingdom B (Rallies)";
+    const winnerSide = t5A > t5B ? 'A' : 'B';
+    const winner = winnerSide === 'A' ? "Kingdom A (Garrison)" : "Kingdom B (Rallies)";
     const exhaustionMinute = depletionTimeA || depletionTimeB || durationMinutes;
 
     return {
         winner,
+        winnerSide,
         exhaustionTimeHours: Number((exhaustionMinute / 60).toFixed(1)),
         depletionTimeA: depletionTimeA ? `${(depletionTimeA / 60).toFixed(1)} Hours` : "Sustained",
         depletionTimeB: depletionTimeB ? `${(depletionTimeB / 60).toFixed(1)} Hours` : "Sustained",
@@ -486,12 +488,84 @@ export function extractNamingClan(name) {
 }
 
 /**
- * Computes 5-dimensional Astrodynamic Galaxy Manifold
- * Dim 1: War Orbit (X)
- * Dim 2: Hierarchy / Altitude (Y)
- * Dim 3: Social Gravity / Depth (Z)
- * Dim 4: Hyperplane Tesseract Tensor (W)
- * Dim 5: Stellar Spectral Classification, Alliance Constellations & Naming Nebulae
+ * Feature order for the galaxy PCA. Keys map to i18n `feature_<key>` labels.
+ * "lowTierShare" = share of kill points NOT explained by T4/T5 kills (i.e. T1–T3 trades).
+ */
+export const GALAXY_FEATURES = ['power', 'warKills', 'deads', 'killPoints', 'assists', 'gathered', 'lowTierShare'];
+
+/** Log10 + Z-score, or null when the column has no variance (instead of injecting fake noise). */
+function logZScoreOrNull(values) {
+    const logVals = values.map(v => Math.log10(Math.max(1, Number(v) || 0)));
+    const mean = logVals.reduce((s, v) => s + v, 0) / logVals.length;
+    const std = Math.sqrt(logVals.reduce((s, v) => s + (v - mean) ** 2, 0) / logVals.length);
+    if (!std || std < 1e-6) return null;
+    return logVals.map(v => (v - mean) / std);
+}
+
+function zScoreOrNull(values) {
+    const mean = values.reduce((s, v) => s + v, 0) / values.length;
+    const std = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length);
+    if (!std || std < 1e-6) return null;
+    return values.map(v => (v - mean) / std);
+}
+
+/**
+ * Runs PCA and returns 4D scores plus per-axis metadata describing what each axis is made of.
+ * - Zero-variance features are dropped (and reported as excluded) rather than faked.
+ * - Each component's sign is fixed so its largest-magnitude loading is positive, which keeps
+ *   axis direction stable across kingdoms (PCA signs are otherwise arbitrary).
+ */
+function computeGalaxyAxes(columns, n) {
+    const kept = GALAXY_FEATURES
+        .map((key, idx) => ({ key, idx, values: columns[idx] }))
+        .filter(c => c.values !== null);
+    const excluded = GALAXY_FEATURES.filter((_, idx) => columns[idx] === null);
+    const axisNames = ['x', 'y', 'z', 'w'];
+    const emptyScores = Array.from({ length: n }, () => [0, 0, 0, 0]);
+
+    if (kept.length < 2 || n < 4) {
+        return { scores: emptyScores, axes: [], excluded, source: 'none' };
+    }
+
+    try {
+        const matrix = Array.from({ length: n }, (_, i) => kept.map(c => c.values[i]));
+        const pca = new PCA(matrix, { center: true, scale: true });
+        const U = pca.getEigenvectors().to2DArray(); // rows = kept features, cols = components
+        const explained = pca.getExplainedVariance();
+        const nComp = Math.min(4, U[0]?.length || 0);
+        const raw = pca.predict(matrix, { nComponents: nComp }).to2DArray();
+
+        const signs = [];
+        const axes = [];
+        for (let c = 0; c < nComp; c++) {
+            let dominant = 0;
+            for (let f = 1; f < kept.length; f++) {
+                if (Math.abs(U[f][c]) > Math.abs(U[dominant][c])) dominant = f;
+            }
+            const sign = U[dominant][c] < 0 ? -1 : 1;
+            signs.push(sign);
+            axes.push({
+                axis: axisNames[c],
+                component: c + 1,
+                explained: Number((explained[c] || 0).toFixed(4)),
+                loadings: kept
+                    .map((col, f) => ({ feature: col.key, weight: Number((U[f][c] * sign).toFixed(3)) }))
+                    .sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)),
+            });
+        }
+
+        const scores = raw.map(row => [0, 1, 2, 3].map(c => (c < nComp ? row[c] * signs[c] : 0)));
+        return { scores, axes, excluded, source: 'pca' };
+    } catch {
+        return { scores: emptyScores, axes: [], excluded, source: 'none' };
+    }
+}
+
+/**
+ * Computes the 5D galaxy manifold.
+ * X/Y/Z/W are principal components 1–4 of this kingdom's stats; their meaning is data-driven
+ * and reported in `axes` (loadings + explained variance) rather than assumed.
+ * Dim 5: stellar class, alliance constellations and naming-clan nebulae.
  */
 export function compute5DGalacticManifold(governors = []) {
     if (!governors || governors.length < 4) return null;
@@ -500,52 +574,25 @@ export function compute5DGalacticManifold(governors = []) {
     const parsed = governors.map((g, i) => extractGovernorMetrics(g, i + 1));
 
     const powers = parsed.map(p => p.power);
-    const warKills = parsed.map(p => p.warKills);
-    const deads = parsed.map(p => p.deads);
-    const kps = parsed.map(p => p.killPoints);
-    const rssAssisted = parsed.map(p => p.rssAssisted);
-    const gathered = parsed.map(p => p.gathered);
-    const t1Ratios = parsed.map(p => p.t1Ratio / 100);
     const warRatios = parsed.map(p => p.warRatio / 100);
     const deadToPower = parsed.map(p => p.deadToPower);
 
-    // Dynamic Quantile Percentiles
+    // Dynamic quantile percentiles (relative to this kingdom)
     const powerRanks = getQuantileRanks(powers);
     const warRanks = getQuantileRanks(warRatios);
     const deadRanks = getQuantileRanks(deadToPower);
 
-    // Standardized tensors for 4D PCA
-    const zPower = logZScoreStandardize(powers);
-    const zWarKills = logZScoreStandardize(warKills);
-    const zDeads = logZScoreStandardize(deads);
-    const zKP = logZScoreStandardize(kps);
-    const zAssists = logZScoreStandardize(rssAssisted);
-    const zGathered = logZScoreStandardize(gathered);
-    const zT1 = t1Ratios.map(r => (r - 0.5) * 2);
+    const columns = [
+        logZScoreOrNull(powers),
+        logZScoreOrNull(parsed.map(p => p.warKills)),
+        logZScoreOrNull(parsed.map(p => p.deads)),
+        logZScoreOrNull(parsed.map(p => p.killPoints)),
+        logZScoreOrNull(parsed.map(p => p.rssAssisted)),
+        logZScoreOrNull(parsed.map(p => p.gathered)),
+        zScoreOrNull(parsed.map(p => p.t1Ratio / 100)),
+    ];
 
-    const featureMatrix = parsed.map((_, i) => [
-        zPower[i],
-        zWarKills[i],
-        zDeads[i],
-        zKP[i],
-        zAssists[i],
-        zGathered[i],
-        zT1[i]
-    ]);
-
-    // 4-Component PCA for 4D Coordinates (PC1, PC2, PC3, PC4)
-    let pca4D = [];
-    try {
-        const pca = new PCA(featureMatrix, { center: true, scale: true });
-        pca4D = pca.predict(featureMatrix, { nComponents: 4 }).to2DArray();
-    } catch {
-        pca4D = featureMatrix.map(row => [
-            Number((row[1] * 1.8 + row[2] * 1.5 - row[6] * 1.2).toFixed(3)),
-            Number((row[0] * 1.5 - row[4] * 0.8).toFixed(3)),
-            Number((row[4] * 1.5 + row[5] * 1.2).toFixed(3)),
-            Number((row[1] * 1.2 - row[0] * 0.8).toFixed(3))
-        ]);
-    }
+    const { scores: pca4D, axes, excluded: excludedFeatures, source: axesSource } = computeGalaxyAxes(columns, n);
 
     // 5th Dimension: Naming Convention Clusterizer
     const nameClanMap = {};
@@ -600,6 +647,12 @@ export function compute5DGalacticManifold(governors = []) {
         const nebulaColor = isRecognizedClan ? clanColorMap[clanInfo.clan] : '#475569';
         const allianceColor = allianceColorMap[p.alliance] || '#334155';
 
+        // Per-governor percentile ranks within this kingdom (0..1)
+        const wr = warRanks[i];
+        const dr = deadRanks[i];
+        const pr = powerRanks[i];
+        const tr = p.t1Ratio / 100; // share of KP from T1–T3 trades (absolute, not a rank)
+
         // 1. Black Hole Gravitational Collapse Check (Massive Dead Casualties)
         // Governors who sustained catastrophic troop sacrifice in battle
         const isBlackHole = (p.deads >= 2_000_000) || (dr >= 0.96 && p.deads >= 800_000);
@@ -624,44 +677,45 @@ export function compute5DGalacticManifold(governors = []) {
             pulseAmp = 0.06;
         }
 
-        // 4. Stellar Spectral Classification
-        let spectralType = 'G-Dwarf';
-        let spectralColor = '#f59e0b'; // Golden yellow
+        // 4. Stellar Spectral Classification (B-Pulsar = catch-all for profiles matching no other class)
+        let spectralType = 'B-Pulsar';
+        let spectralColor = '#a855f7';
 
+        let spectralCode = 'B';
         if (isBlackHole) {
             spectralType = 'Supermassive Black Hole';
+            spectralCode = 'BH';
             spectralColor = '#00f0ff'; // Relativistic jet color
             luminosity = 1.0;
             pulseSpeed = 2.4;
             pulseAmp = 0.25;
         } else if (wr >= 0.65 && dr >= 0.55 && tr <= 0.60) {
-            spectralType = 'O-Hypergiant'; // Frontline Blood Martyr
-            spectralColor = '#00f0ff';     // Brilliant cyan-blue
+            spectralType = 'O-Hypergiant';
+            spectralCode = 'O';
+            spectralColor = '#00f0ff';
         } else if (pr >= 0.60 && tr >= 0.65 && dr <= 0.40) {
-            spectralType = 'M-Red Supergiant'; // Padded Whale
-            spectralColor = '#f43f5e';        // Red
+            spectralType = 'M-Red Supergiant';
+            spectralCode = 'M';
+            spectralColor = '#f43f5e';
         } else if (wr <= 0.25 && dr <= 0.25 && pr <= 0.50) {
-            spectralType = 'D-White Dwarf';  // Farm Bot
-            spectralColor = '#94a3b8';       // Silver-white
+            spectralType = 'D-White Dwarf';
+            spectralCode = 'D';
+            spectralColor = '#94a3b8';
             luminosity = Math.min(luminosity, 0.35);
-        } else {
-            spectralType = 'B-Pulsar';       // Tactical Mercenary
-            spectralColor = '#a855f7';       // Electric Purple
         }
 
-        // 3D PCA coordinates (scaled for celestial canvas viewing radius [-220, +220])
+        // PCA coordinates (scaled for the canvas viewing radius)
         const rawX = pca4D[i]?.[0] || 0;
         const rawY = pca4D[i]?.[1] || 0;
         const rawZ = pca4D[i]?.[2] || 0;
         const rawW = pca4D[i]?.[3] || 0;
 
-        // Astrodynamic coordinate amplification
         const x = Number((rawX * 55).toFixed(2));
         const y = Number((rawY * 45).toFixed(2));
         const z = Number((rawZ * 50).toFixed(2));
         const w = Number((rawW * 40).toFixed(2));
 
-        // Spiral Galaxy alternative coordinates (logarithmic spiral r = a * e^(b * theta))
+        // Spiral layout alternative: radius = power rank, height = power + dead rank, angle = roster order
         const angle = (i / n) * Math.PI * 8 + (pr * Math.PI * 2);
         const radius = 30 + Math.pow(pr, 0.7) * 220;
         const spiralX = Number((radius * Math.cos(angle)).toFixed(2));
@@ -682,14 +736,14 @@ export function compute5DGalacticManifold(governors = []) {
             helps: p.helps,
             t1Ratio: p.t1Ratio,
             warRatio: p.warRatio,
-            
-            // 5D Dimensions
-            x, // Dim 1: War Orbit (X)
-            y, // Dim 2: Hierarchy / Altitude (Y)
-            z, // Dim 3: Social Gravity / Depth (Z)
-            w, // Dim 4: Hyperplane Tesseract (W)
-            
-            // Spiral coordinates alternative
+
+            // Principal components 1–4 (meaning described by `axes` in the result)
+            x,
+            y,
+            z,
+            w,
+            pc: [rawX, rawY, rawZ, rawW].map(v => Number(v.toFixed(2))),
+
             spiralX,
             spiralY,
             spiralZ,
@@ -697,6 +751,7 @@ export function compute5DGalacticManifold(governors = []) {
             // Dim 5: Topology & Stellar Physics
             isBlackHole,
             spectralType,
+            spectralCode,
             spectralColor,
             starSize,
             luminosity,
@@ -777,6 +832,9 @@ export function compute5DGalacticManifold(governors = []) {
         totalStars: stars.length,
         stars,
         blackHolesCount: stars.filter(s => s.isBlackHole).length,
+        axes,
+        axesSource,
+        excludedFeatures,
         allianceFilaments,
         namingFilaments,
         recognizedClansCount: recognizedClans.size,
