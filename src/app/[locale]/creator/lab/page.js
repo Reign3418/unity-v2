@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { FlaskConical, AlertTriangle, Crosshair, Ghost, Target, Dna, Trophy, Swords, Clock, AlertOctagon, Camera } from "lucide-react";
+import { FlaskConical, AlertTriangle, Crosshair, Ghost, Target, Dna, Trophy, Swords, Clock, AlertOctagon, Camera, Bot } from "lucide-react";
 import Link from "next/link";
 
 const TOOLS = [
@@ -104,6 +104,16 @@ const TOOLS = [
         label: "Account Age & Epoch Audit",
         desc: "Algorithmic character creation estimation, lifetime account age, and kingdom migration trajectories from Governor IDs.",
         badge: "PROTOTYPE",
+    },
+    {
+        href: "/tools/reseller-hunter",
+        icon: Bot,
+        color: "text-rose-400",
+        bg: "from-rose-500/5",
+        border: "group-hover:border-rose-500/50",
+        label: "Reseller & Farm Bot Radar",
+        desc: "Detect illicit commercial resource sellers, automated bot hives, and shell farm alliances farming billions of RSS.",
+        badge: "NEW",
     },
 ];
 
