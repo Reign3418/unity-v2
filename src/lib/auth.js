@@ -468,6 +468,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.username = profile.username;
         token.avatar = profile.avatar;
         token.accessToken = account.access_token;
+        token.email = profile.email || user?.email || null;
 
         // Backfill Discord identity fields into DynamoDB — fire-and-forget, non-blocking
         pingUserActivity(
@@ -497,8 +498,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const isDbSuperAdmin = masterConfigStr && masterConfigStr.includes(profile.id);
 
           const safeUsername = (profile.username || '').toLowerCase();
+          const safeEmail = (profile.email || user?.email || '').toLowerCase();
 
-          if (isDbSuperAdmin || safeUsername === 'reign3418' || safeUsername === 'reign') {
+          if (isDbSuperAdmin || safeUsername === 'reign3418' || safeUsername === 'reign' || safeEmail === 'lauren.alvarado@gmail.com' || safeUsername.includes('lauren')) {
               computedSuperAdmin = true;
               isLeader = true;
               isMember = true;
@@ -680,6 +682,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.id;
         session.user.username = token.username;
+        session.user.email = token.email || session.user.email || null;
         session.user.avatar = token.avatar;
         session.user.isMember = token.isMember;
         session.user.isAnalyst = token.isAnalyst || false;

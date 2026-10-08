@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "Recruit Hitlist",
     "nav_chat_translator": "Chat Translator",
     "btn_support_kofi": "Support on Ko-fi",
-    "nav_account_age": "Account Age Audit"
+    "nav_account_age": "Account Age Audit",
+    "nav_area_51": "Area 51 (Classified)"
   },
   "HomePage": {
     "subtitle_prefix": "Because there is no",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "Estimated Starting Horizon",
     "card_spawn_kd_desc": "The cluster of active new kingdoms when this character was created",
     "label_continent": "Continent"
+  },
+  "Area51": {
+    "nav_area_51": "Area 51 (Classified)",
+    "page_title": "AREA 51 // Classified Intelligence Facility",
+    "page_subtitle": "Top-secret high-dimensional manifold learning, syndicate graph topology, Benford fraud forensics, and Lanchester military attrition physics.",
+    "clearance_badge": "TOP SECRET // LEVEL 5 CLEARANCE",
+    "clearance_denied_title": "RESTRICTED BLACK-SITE ACCESS",
+    "clearance_denied_desc": "This facility is strictly restricted to authorized high command. Your unauthorized access attempt has been logged.",
+    "btn_return_dashboard": "Return to Dashboard",
+    "tab_manifold": "Combat DNA Manifold (PCA)",
+    "tab_syndicate": "Syndicate Cartel Graph",
+    "tab_benford": "Benford Fraud Matrix",
+    "tab_lanchester": "Lanchester Blood Tank",
+    "load_live_data": "Load Kingdom Scan Roster",
+    "load_sample_data": "Load Synthetic 100-Node Dataset",
+    "manifold_title": "High-Dimensional Eigenvector Projection",
+    "manifold_desc": "Extracts a 7-dimensional combat tensor for each governor and uses Principal Component Analysis (PCA) to map unseen behavioral archetypes.",
+    "syndicate_title": "Topological Syndicate Graph & Infiltration Detection",
+    "syndicate_desc": "Maps hidden co-migration cartels, multi-kingdom network ties, and detects isolated spy nodes.",
+    "benford_title": "Benford's Law Forensic Fraud Matrix",
+    "benford_desc": "Tests logarithmic first-digit distributions across combat metrics to detect scripted farm bot transactions and fabricated T1 duels.",
+    "lanchester_title": "Lanchester N-Square Attrition Simulator",
+    "lanchester_desc": "Military differential equations calculating the exact hour of T5 reinforcement exhaustion during pass clashes.",
+    "btn_run_simulation": "Simulate Pass Clash",
+    "archetype_martyr": "Blood Martyrs",
+    "archetype_parasite": "Parasitic Whales",
+    "archetype_farmbot": "Scripted Bots",
+    "archetype_mercenary": "Tactical Mercenaries",
+    "puppetmaster_label": "Highest Influence Node (Puppetmaster)",
+    "infiltrator_label": "Isolated Spy / Infiltrator Risks",
+    "exhaustion_label": "Hour of Bleedout Exhaustion"
   }
 }

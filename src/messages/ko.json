@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "영입 타겟 리스트",
     "nav_chat_translator": "채팅 번역기",
     "btn_support_kofi": "Ko-fi 후원하기",
-    "nav_account_age": "계정 연식 감사"
+    "nav_account_age": "계정 연식 감사",
+    "nav_area_51": "51구역 (극비 구역)"
   },
   "HomePage": {
     "subtitle_prefix": "팀에는",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "추정 시작 왕국",
     "card_spawn_kd_desc": "이 캐릭터 생성 당시 신규 생성되던 왕국 군집",
     "label_continent": "대륙"
+  },
+  "Area51": {
+    "nav_area_51": "51구역 (극비 구역)",
+    "page_title": "AREA 51 // 극비 인텔리전스 시설",
+    "page_subtitle": "고차원 다양체 학습(PCA), 신디케이트 그래프 위상수학, 벤포드 법칙 사기 포렌식 및 란체스터 전투 소모 물리학 모듈입니다.",
+    "clearance_badge": "일급 기밀 // 레벨 5 인가 전용",
+    "clearance_denied_title": "비인가 블랙 사이트 접근 차단",
+    "clearance_denied_desc": "본 시설은 최고 사령부 승인자에게만 엄격히 제한됩니다. 비인가 접근 시도가 감사 기록에 저장되었습니다.",
+    "btn_return_dashboard": "안전 구역(대시보드)으로 복귀",
+    "tab_manifold": "전투 DNA 매니폴드 (PCA)",
+    "tab_syndicate": "신디케이트 카르텔 그래프",
+    "tab_benford": "벤포드 사기 포렌식",
+    "tab_lanchester": "란체스터 블러드 탱크",
+    "load_live_data": "왕국 스캔 데이터 로드",
+    "load_sample_data": "합성 100노드 데이터 로드",
+    "manifold_title": "고차원 고유벡터(Eigenvector) 사상",
+    "manifold_desc": "총독별 7차원 전투 텐서를 추출하고 주성분 분석(PCA)을 통해 숨겨진 행동 원형 군집을 가시화합니다.",
+    "syndicate_title": "위상수학 신디케이트 그래프 & 스파이 탐지",
+    "syndicate_desc": "비밀 동반 이민 카르텔을 매핑하고 네트워크에서 고립된 스파이 노드를 색출합니다.",
+    "benford_title": "벤포드 법칙 포렌식 매트릭스",
+    "benford_desc": "전투 데이터의 첫 자리수 로그 분포를 검증하여 봇 매크로 및 조작된 T1 작을 통계적으로 적발합니다.",
+    "lanchester_title": "란체스터 제곱 법칙 소모 시뮬레이터",
+    "lanchester_desc": "관문 및 관문 방어전 시 T5 지원군 고갈 시점을 분 단위로 계산하는 군사 미분방정식입니다.",
+    "btn_run_simulation": "관문 격돌 시뮬레이션",
+    "archetype_martyr": "최전선 전사 (순교자)",
+    "archetype_parasite": "기생형 가짜 고래",
+    "archetype_farmbot": "매크로 봇",
+    "archetype_mercenary": "전술 용병",
+    "puppetmaster_label": "최대 영향력 노드 (막후 실세)",
+    "infiltrator_label": "고립형 잠입 스파이 위험군",
+    "exhaustion_label": "T5 전력 소진 시점"
   }
 }

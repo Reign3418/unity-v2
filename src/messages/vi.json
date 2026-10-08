@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "Danh Sách Tuyển Mộ",
     "nav_chat_translator": "Dịch Trò Chuyện",
     "btn_support_kofi": "Ủng hộ qua Ko-fi",
-    "nav_account_age": "Kiểm tra Tuổi Tài khoản"
+    "nav_account_age": "Kiểm tra Tuổi Tài khoản",
+    "nav_area_51": "Khu vực 51 (Tuyệt mật)"
   },
   "HomePage": {
     "subtitle_prefix": "Bởi vì không có chữ",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "Vương quốc Bắt đầu Ước tính",
     "card_spawn_kd_desc": "Cụm vương quốc mới mở khi nhân vật này được tạo",
     "label_continent": "Châu lục"
+  },
+  "Area51": {
+    "nav_area_51": "Khu vực 51 (Tuyệt mật)",
+    "page_title": "KHU VỰC 51 // Cơ sở Tình báo Tuyệt mật",
+    "page_subtitle": "Học đa tạp nhiều chiều (PCA), cấu trúc đồ thị nghiệp đoàn, giám định gian lận Benford và vật lý tiêu hao quân sự Lanchester.",
+    "clearance_badge": "TUYỆT MẬT // ĐẶC QUYỀN CẤP 5",
+    "clearance_denied_title": "TRUY CẬP ĐỊA ĐIỂM ĐEN BỊ TỪ CHỐI",
+    "clearance_denied_desc": "Cơ sở này chỉ dành riêng cho Bộ Chỉ huy Tối cao được ủy quyền. Nỗ lực truy cập trái phép đã được ghi lại.",
+    "btn_return_dashboard": "Quay lại Bảng điều khiển",
+    "tab_manifold": "Đa tạp DNA Chiến đấu (PCA)",
+    "tab_syndicate": "Đồ thị Băng đảng Nghiệp đoàn",
+    "tab_benford": "Ma trận Gian lận Benford",
+    "tab_lanchester": "Bể Máu Lanchester",
+    "load_live_data": "Tải Dữ liệu Quét Vương quốc",
+    "load_sample_data": "Tải Tập dữ liệu 100 Điểm Tổng hợp",
+    "manifold_title": "Phép chiếu Vector riêng Nhiều chiều",
+    "manifold_desc": "Trích xuất tensor chiến đấu 7 chiều cho mỗi thống đốc và dùng PCA để vẽ nên các nguyên mẫu hành vi ẩn.",
+    "syndicate_title": "Đồ thị Cấu trúc Nghiệp đoàn & Radar Gián điệp",
+    "syndicate_desc": "Lập bản đồ các nhóm di cư ngầm và phát hiện các nút gián điệp bị cô lập.",
+    "benford_title": "Ma trận Pháp y Định luật Benford",
+    "benford_desc": "Kiểm tra phân phối logarit của chữ số đầu tiên để phát hiện bot cày tài nguyên và dàn xếp điểm hạ gục T1.",
+    "lanchester_title": "Trình mô phỏng Tiêu hao Quân sự Lanchester",
+    "lanchester_desc": "Phương trình vi phân quân sự tính toán chính xác giờ cạn kiệt quân tiếp viện T5 tại các cửa ải.",
+    "btn_run_simulation": "Mô phỏng Đụng độ Cửa ải",
+    "archetype_martyr": "Cảm tử quân Tiền tuyến",
+    "archetype_parasite": "Cá voi Ký sinh",
+    "archetype_farmbot": "Bot Tự động hóa",
+    "archetype_mercenary": "Lính đánh thuê Chiến thuật",
+    "puppetmaster_label": "Nút Ảnh hưởng Lớn nhất (Kẻ giật dây)",
+    "infiltrator_label": "Nguy cơ Gián điệp Cô lập",
+    "exhaustion_label": "Giờ Cạn kiệt Sinh lực"
   }
 }

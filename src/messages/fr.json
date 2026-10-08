@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "Liste de Recrues",
     "nav_chat_translator": "Traducteur de Chat",
     "btn_support_kofi": "Soutenir sur Ko-fi",
-    "nav_account_age": "Audit Âge du Compte"
+    "nav_account_age": "Audit Âge du Compte",
+    "nav_area_51": "Zone 51 (Classifié)"
   },
   "HomePage": {
     "subtitle_prefix": "Parce qu'il n'y a pas de",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "Royaume de Départ Estimé",
     "card_spawn_kd_desc": "Grappe de nouveaux royaumes actifs lors de la création de ce personnage",
     "label_continent": "Continent"
+  },
+  "Area51": {
+    "nav_area_51": "Zone 51 (Classifié)",
+    "page_title": "ZONE 51 // Complexe de Renseignement Classifié",
+    "page_subtitle": "Apprentissage de variétés haute dimension (PCA), topologie de graphe de syndicats, criminalistique de Benford et physique d'attrition de Lanchester.",
+    "clearance_badge": "TOP SECRET // HABILITATION NIVEAU 5",
+    "clearance_denied_title": "ACCÈS REFUSÉ AU SITE CLANDESTIN",
+    "clearance_denied_desc": "Cette installation est strictement réservée au Haut Commandement. Votre tentative d'accès a été consignée.",
+    "btn_return_dashboard": "Retour au Tableau de Bord",
+    "tab_manifold": "Variété ADN de Combat (PCA)",
+    "tab_syndicate": "Graphe de Cartel de Syndicat",
+    "tab_benford": "Matrice de Fraude de Benford",
+    "tab_lanchester": "Réservoir de Sang Lanchester",
+    "load_live_data": "Charger le Scan du Royaume",
+    "load_sample_data": "Charger Échantillon Synthétique (100 Nœuds)",
+    "manifold_title": "Projection d'Espace Propre Haute Dimension",
+    "manifold_desc": "Extrait un tenseur de combat à 7 dimensions et applique une PCA pour révéler les archétypes invisibles.",
+    "syndicate_title": "Graphe Topologique et Radar d'Infiltration",
+    "syndicate_desc": "Cartographie les cartels de co-migration secrets et identifie les nœuds espions isolés.",
+    "benford_title": "Matrice Légale de Loi de Benford",
+    "benford_desc": "Contrôle la distribution logarithmique du premier chiffre pour repérer les faux combats de fermes.",
+    "lanchester_title": "Simulateur d'Attrition Militaire de Lanchester",
+    "lanchester_desc": "Équations différentielles militaires calculant l'heure exacte d'épuisement des renforts T5.",
+    "btn_run_simulation": "Simuler Choc de Passe",
+    "archetype_martyr": "Martyrs de Première Ligne",
+    "archetype_parasite": "Baleines Parasites",
+    "archetype_farmbot": "Bots Scriptés",
+    "archetype_mercenary": "Mercenaires Tactiques",
+    "puppetmaster_label": "Nœud de Plus Haute Influence (Marionnettiste)",
+    "infiltrator_label": "Espions / Nœuds Isolés",
+    "exhaustion_label": "Heure d'Épuisement Sanguin"
   }
 }

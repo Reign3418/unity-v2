@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "Rekruten-Hitliste",
     "nav_chat_translator": "Chat-Übersetzer",
     "btn_support_kofi": "Unterstützen auf Ko-fi",
-    "nav_account_age": "Account-Altersprüfung"
+    "nav_account_age": "Account-Altersprüfung",
+    "nav_area_51": "Area 51 (Streng geheim)"
   },
   "HomePage": {
     "subtitle_prefix": "Denn es gibt kein",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "Geschätztes Start-Königreich",
     "card_spawn_kd_desc": "Gruppe aktiver neuer Königreiche bei Erstellung dieses Charakters",
     "label_continent": "Kontinent"
+  },
+  "Area51": {
+    "nav_area_51": "Area 51 (Streng geheim)",
+    "page_title": "AREA 51 // Geheimdienst-Forschungskomplex",
+    "page_subtitle": "Hochdimensionale Mannigfaltigkeits-Analyse (PCA), Syndikats-Graphentopologie, Benford-Betrugsforensik und Lanchester-Kriegsattritionsphysik.",
+    "clearance_badge": "STRENG GEHEIM // SICHERHEITSSTUFE 5",
+    "clearance_denied_title": "ZUTRITT ZUR BLACK-SITE VERWEIGERT",
+    "clearance_denied_desc": "Diese Einrichtung ist streng dem Oberkommando vorbehalten. Ihr unautorisierter Zugriffsversuch wurde protokolliert.",
+    "btn_return_dashboard": "Zurück zum Dashboard",
+    "tab_manifold": "Kampf-DNA-Mannigfaltigkeit (PCA)",
+    "tab_syndicate": "Syndikats-Kartell-Graph",
+    "tab_benford": "Benford-Betrugsmatrix",
+    "tab_lanchester": "Lanchester-Bluttank",
+    "load_live_data": "Königreichs-Scan laden",
+    "load_sample_data": "Synthetischen 100-Knoten-Datensatz laden",
+    "manifold_title": "Hochdimensionale Eigenvektor-Projektion",
+    "manifold_desc": "Extrahiert einen 7-dimensionalen Kampftensor pro Gouverneur und nutzt PCA zur Aufdeckung verborgener Verhaltensmuster.",
+    "syndicate_title": "Topologischer Syndikatsgraph & Spionage-Radar",
+    "syndicate_desc": "Kartiert geheime Migrationskartelle und erkennt isolierte Spionageknoten.",
+    "benford_title": "Benford-Gesetz Betrugsforensik",
+    "benford_desc": "Prüft logarithmische Ziffernverteilung zur Erkennung geskripteter Farmbot-Aktivitäten.",
+    "lanchester_title": "Lanchester-Attritions-Simulator",
+    "lanchester_desc": "Militärische Differentialgleichungen zur exakten Berechnung der T5-Erschöpfungsstunde.",
+    "btn_run_simulation": "Pass-Schlacht simulieren",
+    "archetype_martyr": "Front-Blutmärtyrer",
+    "archetype_parasite": "Parasitäre Wale",
+    "archetype_farmbot": "Geskriptete Bots",
+    "archetype_mercenary": "Taktische Söldner",
+    "puppetmaster_label": "Einflussreichster Knoten (Strippenzieher)",
+    "infiltrator_label": "Isolierte Spionagerisiken",
+    "exhaustion_label": "Stunde der Truppenerschöpfung"
   }
 }

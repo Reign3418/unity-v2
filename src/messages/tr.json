@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "Acemi Hedef Listesi",
     "nav_chat_translator": "Sohbet Çevirmeni",
     "btn_support_kofi": "Ko-fi üzerinden Destekle",
-    "nav_account_age": "Hesap Yaşı Denetimi"
+    "nav_account_age": "Hesap Yaşı Denetimi",
+    "nav_area_51": "51. Bölge (Çok Gizli)"
   },
   "HomePage": {
     "subtitle_prefix": "Çünkü takımda",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "Tahmini Başlangıç Krallığı",
     "card_spawn_kd_desc": "Bu karakter oluşturulduğunda aktif olan yeni krallıklar kümesi",
     "label_continent": "Kıta"
+  },
+  "Area51": {
+    "nav_area_51": "51. Bölge (Çok Gizli)",
+    "page_title": "51. BÖLGE // Çok Gizli İstihbarat Tesisi",
+    "page_subtitle": "Çok boyutlu manifold analizi (PCA), sendika ağ topolojisi, Benford sahtekarlık analizi ve Lanchester askeri yıpratma fiziği.",
+    "clearance_badge": "ÇOK GİZLİ // 5. SEVİYE ERİŞİM",
+    "clearance_denied_title": "GİZLİ TESİSE ERİŞİM ENGELLENDİ",
+    "clearance_denied_desc": "Bu tesise yalnızca yetkili Yüksek Komuta erişebilir. Yetkisiz erişim girişiminiz denetim günlüğüne kaydedildi.",
+    "btn_return_dashboard": "Kontrol Paneline Dön",
+    "tab_manifold": "Savaş DNA Manifoldu (PCA)",
+    "tab_syndicate": "Sendika Kartel Grafiği",
+    "tab_benford": "Benford Sahtekarlık Matrisi",
+    "tab_lanchester": "Lanchester Kan Tankı",
+    "load_live_data": "Krallık Taramasını Yükle",
+    "load_sample_data": "Sentetik 100 Düğümlü Veri Yükle",
+    "manifold_title": "Çok Boyutlu Özvektör İzdüşümü",
+    "manifold_desc": "Her vali için 7 boyutlu bir savaş tensörü çıkarır ve PCA ile gizli davranış arketiplerini haritalandırır.",
+    "syndicate_title": "Topolojik Sendika Grafiği ve Casus Radarı",
+    "syndicate_desc": "Gizli göç kartellerini haritalandırır ve izole casus düğümlerini tespit eder.",
+    "benford_title": "Benford Kanunu Adli Tıp Matrisi",
+    "benford_desc": "Botları ve sahte T1 düellolarını belirlemek için ilk basamak logaritmik dağılımını test eder.",
+    "lanchester_title": "Lanchester Askeri Yıpratma Simülatörü",
+    "lanchester_desc": "Geçit savaşlarında T5 takviyelerinin tükenme saatini hesaplayan askeri diferansiyel denklemler.",
+    "btn_run_simulation": "Geçit Çatışmasını Simüle Et",
+    "archetype_martyr": "Ön Cephe Fedaileri",
+    "archetype_parasite": "Parazit Balinalar",
+    "archetype_farmbot": "Programlanmış Botlar",
+    "archetype_mercenary": "Taktik Paralı Askerler",
+    "puppetmaster_label": "En Yüksek Etki Düğümü (Kuklacı)",
+    "infiltrator_label": "İzole Casus / Sızma Riskleri",
+    "exhaustion_label": "Kan Tükenme Saati"
   }
 }

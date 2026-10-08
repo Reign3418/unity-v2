@@ -9,7 +9,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock, Atom
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -117,6 +117,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   <NavItem href="/creator/lab" icon={FlaskConical} label={t('nav_lab')} />
                   <NavItem href="/creator/matchmaker" icon={Target} label={t('nav_matchmaker')} />
                   <NavItem href="/creator/usage" icon={Activity} label={t('nav_usage')} />
+                  <NavItem href="/creator/area-51" icon={Atom} label={t('nav_area_51')} isAi={true} />
               </>
           )}
 

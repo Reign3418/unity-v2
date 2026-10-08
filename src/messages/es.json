@@ -42,7 +42,8 @@
     "nav_recruit_hitlist": "Lista de Reclutas",
     "nav_chat_translator": "Traductor de Chat",
     "btn_support_kofi": "Apoyar en Ko-fi",
-    "nav_account_age": "Auditoría de Edad de Cuenta"
+    "nav_account_age": "Auditoría de Edad de Cuenta",
+    "nav_area_51": "Área 51 (Clasificado)"
   },
   "HomePage": {
     "subtitle_prefix": "Porque no hay un",
@@ -1567,5 +1568,36 @@
     "card_spawn_kd": "Reino de Inicio Estimado",
     "card_spawn_kd_desc": "Grupo de reinos nuevos activos al crearse este personaje",
     "label_continent": "Continente"
+  },
+  "Area51": {
+    "nav_area_51": "Área 51 (Clasificado)",
+    "page_title": "ÁREA 51 // Instalación de Inteligencia Clasificada",
+    "page_subtitle": "Proyección dimensional PCA ultrasecreta, topología de grafos de sindicatos, análisis forense de Benford y física de desgaste militar de Lanchester.",
+    "clearance_badge": "ALTO SECRETO // NIVEL 5 DE ACCESO",
+    "clearance_denied_title": "ACCESO DENEGADO A INSTALACIÓN CLANDESTINA",
+    "clearance_denied_desc": "Esta instalación está estrictamente reservada al Alto Mando. Su intento de acceso no autorizado ha sido registrado.",
+    "btn_return_dashboard": "Regresar al Panel",
+    "tab_manifold": "Variedad de ADN de Combate (PCA)",
+    "tab_syndicate": "Grafo del Cartel / Sindicato",
+    "tab_benford": "Matriz de Fraude de Benford",
+    "tab_lanchester": "Tanque de Sangre de Lanchester",
+    "load_live_data": "Cargar Escaneo del Reino",
+    "load_sample_data": "Cargar Muestra Sintética (100 Nodos)",
+    "manifold_title": "Proyección de Autovectores Multidimensional",
+    "manifold_desc": "Extrae un tensor de combate de 7 dimensiones y aplica PCA para mapear arquetipos de comportamiento ocultos.",
+    "syndicate_title": "Grafo Topológico de Sindicatos y Radar de Espías",
+    "syndicate_desc": "Mapea carteles de migración secreta y detecta nodos espías aislados.",
+    "benford_title": "Matriz Forense de Ley de Benford",
+    "benford_desc": "Evalúa distribuciones logarítmicas del primer dígito para detectar bots y duelos T1 manipulados.",
+    "lanchester_title": "Simulador de Desgaste Militar de Lanchester",
+    "lanchester_desc": "Ecuaciones diferenciales que calculan la hora exacta de agotamiento de refuerzos T5.",
+    "btn_run_simulation": "Simular Batalla en Paso",
+    "archetype_martyr": "Mártires de Primera Línea",
+    "archetype_parasite": "Ballenas Parásitas",
+    "archetype_farmbot": "Bots Automatizados",
+    "archetype_mercenary": "Mercenarios Tácticos",
+    "puppetmaster_label": "Nodo de Máxima Influencia (Titiritero)",
+    "infiltrator_label": "Riesgos de Infiltración / Espías Aislados",
+    "exhaustion_label": "Hora de Agotamiento de Sangre"
   }
 }
