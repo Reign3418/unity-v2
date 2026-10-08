@@ -8,15 +8,17 @@ import {
     Atom, ShieldAlert, Terminal, Lock, Sparkles, RefreshCw, 
     Layers, Cpu, Activity, Skull, Zap, ChevronRight, Eye, 
     AlertTriangle, CheckCircle2, TrendingDown, Users, Flame,
-    Network, Compass, Filter, Info
+    Network, Compass, Filter, Info, Orbit
 } from "lucide-react";
 import { 
     computeCombatDnaManifold, 
     computeSyndicateGraph, 
     testBenfordsLaw, 
     simulateLanchesterBattle,
+    compute5DGalacticManifold,
     BENFORD_THEORETICAL
 } from "@/lib/cerberusIntelligence";
+import CerberusGalaxyCanvas from "@/components/cerberus/CerberusGalaxyCanvas";
 
 // ============================================================================
 // REALISTIC ORGANIC BENCHMARK GENERATOR (100 NODES, NO DIGIT/SCALE BIAS)
@@ -118,7 +120,7 @@ export default function ProjectCerberusPage() {
     const t = useTranslations("ProjectCerberus");
     const { data: session, status } = useSession();
 
-    const [activeTab, setActiveTab] = useState("manifold"); // 'manifold' | 'syndicate' | 'benford' | 'lanchester'
+    const [activeTab, setActiveTab] = useState("galaxy"); // 'galaxy' | 'manifold' | 'syndicate' | 'benford' | 'lanchester'
     const [rosterData, setRosterData] = useState([]);
     const [selectedNode, setSelectedNode] = useState(null);
     const [dataSource, setDataSource] = useState("synthetic"); // 'synthetic' | 'live'
@@ -170,6 +172,11 @@ export default function ProjectCerberusPage() {
             setIsLoadingLive(false);
         }
     };
+
+    // 0. 5D Astrodynamic Galaxy Manifold
+    const galaxy = useMemo(() => {
+        return compute5DGalacticManifold(rosterData);
+    }, [rosterData]);
 
     // 1. Manifold Computation (PCA + K-Means)
     const manifold = useMemo(() => {
@@ -341,6 +348,7 @@ export default function ProjectCerberusPage() {
                     {/* Operational Tabs */}
                     <div className="flex items-center gap-2 mt-6 pt-4 border-t border-[#1a2332] overflow-x-auto pb-1">
                         {[
+                            { id: "galaxy", label: t("tab_galaxy"), icon: Orbit },
                             { id: "manifold", label: t("tab_manifold"), icon: Layers },
                             { id: "syndicate", label: t("tab_syndicate"), icon: Network },
                             { id: "benford", label: t("tab_benford"), icon: Activity },
@@ -361,6 +369,35 @@ export default function ProjectCerberusPage() {
                         ))}
                     </div>
                 </div>
+
+                {/* ── MODULE 0: 5D ASTRODYNAMIC GALAXY MANIFOLD ──────────────── */}
+                {activeTab === "galaxy" && galaxy && (
+                    <div className="space-y-6">
+                        <div className="bg-[#090d12] border border-[#1a2332] rounded-2xl p-6 space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h2 className="text-base font-mono font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                                        <Orbit size={18} className="text-cyan-400" />
+                                        <span>{t("galaxy_title")}</span>
+                                    </h2>
+                                    <p className="text-gray-400 text-xs font-mono mt-1 max-w-4xl leading-relaxed">
+                                        {t("galaxy_desc")}
+                                    </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <span className="text-[10px] font-mono text-gray-500 block uppercase">
+                                        DIMENSIONAL TENSOR
+                                    </span>
+                                    <span className="text-sm font-mono font-black text-cyan-400">
+                                        5D ASTRODYNAMICS
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <CerberusGalaxyCanvas galaxyData={galaxy} />
+                    </div>
+                )}
 
                 {/* ── MODULE 1: COMBAT DNA MANIFOLD (PCA + K-MEANS) ──────────────── */}
                 {activeTab === "manifold" && manifold && (

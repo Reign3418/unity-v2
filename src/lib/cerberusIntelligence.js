@@ -408,3 +408,315 @@ export function simulateLanchesterBattle({
         timeline,
     };
 }
+
+// ============================================================================
+// 5. 5D ASTRODYNAMIC GALAXY MANIFOLD (3D Spatial + 4D Tesseract + 5D Topology)
+// ============================================================================
+
+/**
+ * Extracts naming convention clans based on prefixes, bracketed tags, and delimiter patterns
+ */
+export function extractNamingClan(name) {
+    if (!name || typeof name !== 'string') return { clan: 'Independent', prefix: '' };
+    const cleaned = name.trim();
+    // 1. Bracket tags e.g. [WAR], (VII), {DK}, <IM>
+    const bracketMatch = cleaned.match(/^(\[[^\]]+\]|\([^)]+\)|\{[^}]+\}|<[^>]+>)/);
+    if (bracketMatch) {
+        return { clan: bracketMatch[1].toUpperCase(), prefix: bracketMatch[1] };
+    }
+    // 2. Delimiter prefixes e.g. 3418_Name, VII-Name, War|Name, DK Name, VK•Name
+    const delimiterMatch = cleaned.match(/^([A-Za-z0-9\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]{2,16})[_\-\|\s•~]/);
+    if (delimiterMatch) {
+        return { clan: delimiterMatch[1].toUpperCase(), prefix: delimiterMatch[1] };
+    }
+    // 3. Fallback: first 3-4 uppercase characters/digits
+    const prefixMatch = cleaned.match(/^([A-Z0-9]{3,4})/);
+    if (prefixMatch) {
+        return { clan: prefixMatch[1], prefix: prefixMatch[1] };
+    }
+    return { clan: 'Independent', prefix: '' };
+}
+
+/**
+ * Computes 5-dimensional Astrodynamic Galaxy Manifold
+ * Dim 1: War Orbit (X)
+ * Dim 2: Hierarchy / Altitude (Y)
+ * Dim 3: Social Gravity / Depth (Z)
+ * Dim 4: Hyperplane Tesseract Tensor (W)
+ * Dim 5: Stellar Spectral Classification, Alliance Constellations & Naming Nebulae
+ */
+export function compute5DGalacticManifold(governors = []) {
+    if (!governors || governors.length < 4) return null;
+
+    const n = governors.length;
+    const powers = governors.map(g => Number(g.power) || 0);
+    const t1Kills = governors.map(g => Number(g.t1Kills || g.t1) || 0);
+    const t4Kills = governors.map(g => Number(g.t4Kills || g.t4) || 0);
+    const t5Kills = governors.map(g => Number(g.t5Kills || g.t5) || 0);
+    const warKills = t4Kills.map((t4, i) => t4 + t5Kills[i]);
+    const totalKills = governors.map((g, i) => Math.max(1, t1Kills[i] + warKills[i] + Number(g.t2 || 0) + Number(g.t3 || 0)));
+    const deads = governors.map(g => Number(g.deads || g.deadTroops) || 0);
+    const kps = governors.map(g => Number(g.killPoints || g.killpoints) || 0);
+    const rssAssisted = governors.map(g => Number(g.rssAssisted || g.assisted) || 0);
+    const helps = governors.map(g => Number(g.helps) || 0);
+
+    // Dynamic Quantile Percentiles
+    const powerRanks = getQuantileRanks(powers);
+    const warRanks = getQuantileRanks(warKills.map((wk, i) => wk / totalKills[i]));
+    const deadRanks = getQuantileRanks(deads.map((d, i) => powers[i] > 0 ? d / powers[i] : 0));
+
+    // Standardized tensors for 4D PCA
+    const zPower = logZScoreStandardize(powers);
+    const zWarKills = logZScoreStandardize(warKills);
+    const zDeads = logZScoreStandardize(deads);
+    const zKP = logZScoreStandardize(kps);
+    const zAssists = logZScoreStandardize(rssAssisted);
+    const zHelps = logZScoreStandardize(helps);
+    const zT1 = governors.map((_, i) => (t1Kills[i] / totalKills[i] - 0.5) * 2);
+
+    const featureMatrix = governors.map((_, i) => [
+        zPower[i],
+        zWarKills[i],
+        zDeads[i],
+        zKP[i],
+        zAssists[i],
+        zHelps[i],
+        zT1[i]
+    ]);
+
+    // 4-Component PCA for 4D Coordinates (PC1, PC2, PC3, PC4)
+    let pca4D = [];
+    try {
+        const pca = new PCA(featureMatrix, { center: true, scale: true });
+        pca4D = pca.predict(featureMatrix, { nComponents: 4 }).to2DArray();
+    } catch {
+        pca4D = featureMatrix.map(row => [
+            Number((row[1] * 1.8 + row[2] * 1.5 - row[6] * 1.2).toFixed(3)),
+            Number((row[0] * 1.5 - row[4] * 0.8).toFixed(3)),
+            Number((row[4] * 1.5 + row[5] * 1.2).toFixed(3)),
+            Number((row[1] * 1.2 - row[0] * 0.8).toFixed(3))
+        ]);
+    }
+
+    // 5th Dimension: Naming Convention Clusterizer
+    const nameClanMap = {};
+    const rawClans = governors.map(g => {
+        const name = g.name || g.governorName || `Gov_${g.id}`;
+        return extractNamingClan(name);
+    });
+
+    rawClans.forEach(c => {
+        if (c.clan !== 'Independent') {
+            nameClanMap[c.clan] = (nameClanMap[c.clan] || 0) + 1;
+        }
+    });
+
+    // Clans with 2+ members qualify as a true Naming Nebula
+    const recognizedClans = new Set(
+        Object.entries(nameClanMap)
+            .filter(([_, count]) => count >= 2)
+            .map(([clan]) => clan)
+    );
+
+    // Color palettes for Naming Nebulae
+    const NEBULA_PALETTES = [
+        '#38bdf8', '#a855f7', '#ec4899', '#10b981', '#f59e0b', 
+        '#06b6d4', '#6366f1', '#14b8a6', '#f43f5e', '#84cc16'
+    ];
+
+    const clanColorMap = {};
+    let colorIdx = 0;
+    recognizedClans.forEach(clan => {
+        clanColorMap[clan] = NEBULA_PALETTES[colorIdx % NEBULA_PALETTES.length];
+        colorIdx++;
+    });
+
+    // Alliance Palette
+    const ALLIANCE_PALETTES = [
+        '#00f0ff', '#ff007f', '#ffe600', '#00ff66', '#7928ca', 
+        '#ff5500', '#00b4d8', '#f72585', '#7209b7', '#4cc9f0'
+    ];
+    const allianceColorMap = {};
+    let allIdx = 0;
+    governors.forEach(g => {
+        const tag = g.alliance || 'None';
+        if (tag !== 'None' && !allianceColorMap[tag]) {
+            allianceColorMap[tag] = ALLIANCE_PALETTES[allIdx % ALLIANCE_PALETTES.length];
+            allIdx++;
+        }
+    });
+
+    // Build Astrodynamic Nodes
+    const stars = governors.map((g, i) => {
+        const name = g.name || g.governorName || `Gov_${g.id}`;
+        const alliance = g.alliance || 'None';
+        const clanInfo = rawClans[i];
+        const isRecognizedClan = recognizedClans.has(clanInfo.clan);
+        const namingClan = isRecognizedClan ? clanInfo.clan : 'Solitary';
+        const nebulaColor = isRecognizedClan ? clanColorMap[clanInfo.clan] : '#475569';
+        const allianceColor = allianceColorMap[alliance] || '#334155';
+
+        // Spectral Class (Stellar Type by Combat Personality)
+        const wr = warRanks[i];
+        const dr = deadRanks[i];
+        const pr = powerRanks[i];
+        const tr = t1Kills[i] / totalKills[i];
+
+        let spectralType = 'G-Dwarf';
+        let spectralColor = '#f59e0b'; // Golden yellow
+        let starSize = 3;
+        let luminosity = 0.8;
+
+        if (wr >= 0.65 && dr >= 0.55 && tr <= 0.60) {
+            spectralType = 'O-Hypergiant'; // Frontline Blood Martyr
+            spectralColor = '#00f0ff';     // Brilliant cyan-blue
+            starSize = 5.5;
+            luminosity = 1.0;
+        } else if (pr >= 0.60 && tr >= 0.65 && dr <= 0.40) {
+            spectralType = 'M-Red Supergiant'; // Padded Whale
+            spectralColor = '#f43f5e';        // Red
+            starSize = 4.8;
+            luminosity = 0.7;
+        } else if (wr <= 0.25 && dr <= 0.25 && pr <= 0.50) {
+            spectralType = 'D-White Dwarf';  // Farm Bot
+            spectralColor = '#94a3b8';       // Silver-white
+            starSize = 2.0;
+            luminosity = 0.4;
+        } else {
+            spectralType = 'B-Pulsar';       // Tactical Mercenary
+            spectralColor = '#a855f7';       // Electric Purple
+            starSize = 3.8;
+            luminosity = 0.9;
+        }
+
+        // 3D PCA coordinates (scaled for celestial canvas viewing radius [-220, +220])
+        const rawX = pca4D[i]?.[0] || 0;
+        const rawY = pca4D[i]?.[1] || 0;
+        const rawZ = pca4D[i]?.[2] || 0;
+        const rawW = pca4D[i]?.[3] || 0;
+
+        // Astrodynamic coordinate amplification
+        const x = Number((rawX * 55).toFixed(2));
+        const y = Number((rawY * 45).toFixed(2));
+        const z = Number((rawZ * 50).toFixed(2));
+        const w = Number((rawW * 40).toFixed(2));
+
+        // Spiral Galaxy alternative coordinates (logarithmic spiral r = a * e^(b * theta))
+        const angle = (i / n) * Math.PI * 8 + (pr * Math.PI * 2);
+        const radius = 30 + Math.pow(pr, 0.7) * 220;
+        const spiralX = Number((radius * Math.cos(angle)).toFixed(2));
+        const spiralZ = Number((radius * Math.sin(angle)).toFixed(2));
+        const spiralY = Number(((pr - 0.5) * 110 + (dr - 0.5) * 50).toFixed(2));
+
+        return {
+            id: g.id || g.governorId,
+            name,
+            alliance,
+            power: powers[i],
+            killPoints: kps[i],
+            t4Kills: t4Kills[i],
+            t5Kills: t5Kills[i],
+            deads: deads[i],
+            rssAssisted: rssAssisted[i],
+            helps: helps[i],
+            t1Ratio: Number((tr * 100).toFixed(1)),
+            warRatio: Number(((warKills[i] / totalKills[i]) * 100).toFixed(1)),
+            
+            // 5D Dimensions
+            x, // Dim 1: War Orbit (X)
+            y, // Dim 2: Hierarchy / Altitude (Y)
+            z, // Dim 3: Social Gravity / Depth (Z)
+            w, // Dim 4: Hyperplane Tesseract (W)
+            
+            // Spiral coordinates alternative
+            spiralX,
+            spiralY,
+            spiralZ,
+
+            // Dim 5: Topology & Stellar Physics
+            spectralType,
+            spectralColor,
+            starSize,
+            luminosity,
+            namingClan,
+            nebulaColor,
+            allianceColor,
+            isRecognizedClan,
+        };
+    });
+
+    // Build Constellation Filaments for Alliances
+    const allianceFilaments = [];
+    const allianceBuckets = {};
+    stars.forEach(s => {
+        if (s.alliance !== 'None') {
+            if (!allianceBuckets[s.alliance]) allianceBuckets[s.alliance] = [];
+            allianceBuckets[s.alliance].push(s);
+        }
+    });
+
+    Object.entries(allianceBuckets).forEach(([tag, members]) => {
+        if (members.length < 2) return;
+        const sorted = [...members].sort((a, b) => b.power - a.power);
+        const anchors = sorted.slice(0, Math.min(3, sorted.length));
+        
+        sorted.forEach((m, idx) => {
+            if (idx === 0) return;
+            allianceFilaments.push({
+                sourceId: m.id,
+                targetId: anchors[0].id,
+                color: m.allianceColor,
+                alliance: tag,
+            });
+            if (anchors[1] && idx % 2 === 0) {
+                allianceFilaments.push({
+                    sourceId: m.id,
+                    targetId: anchors[1].id,
+                    color: m.allianceColor,
+                    alliance: tag,
+                });
+            }
+        });
+    });
+
+    // Build Naming Convention Nebulae Filaments
+    const namingFilaments = [];
+    const clanBuckets = {};
+    stars.forEach(s => {
+        if (s.isRecognizedClan) {
+            if (!clanBuckets[s.namingClan]) clanBuckets[s.namingClan] = [];
+            clanBuckets[s.namingClan].push(s);
+        }
+    });
+
+    Object.entries(clanBuckets).forEach(([clan, members]) => {
+        if (members.length < 2) return;
+        for (let i = 0; i < members.length - 1; i++) {
+            namingFilaments.push({
+                sourceId: members[i].id,
+                targetId: members[i + 1].id,
+                color: members[0].nebulaColor,
+                clan,
+            });
+        }
+        if (members.length > 2) {
+            namingFilaments.push({
+                sourceId: members[members.length - 1].id,
+                targetId: members[0].id,
+                color: members[0].nebulaColor,
+                clan,
+            });
+        }
+    });
+
+    return {
+        totalStars: stars.length,
+        stars,
+        allianceFilaments,
+        namingFilaments,
+        recognizedClansCount: recognizedClans.size,
+        recognizedClansList: Array.from(recognizedClans),
+        alliancesCount: Object.keys(allianceBuckets).length,
+    };
+}
+
