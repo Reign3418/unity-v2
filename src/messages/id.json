@@ -2002,6 +2002,17 @@
     "th_source": "Sumber",
     "th_actions": "Tindakan",
     "table_empty_state": "Belum Ada Peringkat yang Tercatat",
-    "table_empty_hint": "Mulai dengan mengambil bingkai dari jendela game Anda, menempel dengan Ctrl+V, atau mengunggah gambar."
+    "table_empty_hint": "Mulai dengan mengambil bingkai dari jendela game Anda, menempel dengan Ctrl+V, atau mengunggah gambar.",
+    "label_depicted_columns": "Kolom Ditampilkan",
+    "label_primary_metric": "Metrik Skor Utama",
+    "metric_option_auto": "Skor Otomatis",
+    "metric_option_troops": "Pasukan (⚔️)",
+    "metric_option_credits": "Kredit (🪙)",
+    "metric_option_time": "Waktu (⏱️)",
+    "th_commander": "Komandan",
+    "th_time": "Waktu",
+    "th_credits": "Kredit",
+    "th_troops": "Pasukan",
+    "th_status": "Status"
   }
 }

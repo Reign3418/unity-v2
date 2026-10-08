@@ -2002,6 +2002,17 @@
     "th_source": "소스",
     "th_actions": "작업",
     "table_empty_state": "아직 기록된 순위가 없습니다",
-    "table_empty_hint": "게임 창에서 프레임을 캡처하거나, Ctrl+V로 붙여넣거나, 스크린샷을 업로드하여 시작하세요."
+    "table_empty_hint": "게임 창에서 프레임을 캡처하거나, Ctrl+V로 붙여넣거나, 스크린샷을 업로드하여 시작하세요.",
+    "label_depicted_columns": "표시된 열",
+    "label_primary_metric": "기본 점수 지표",
+    "metric_option_auto": "자동 감지",
+    "metric_option_troops": "병력 (⚔️)",
+    "metric_option_credits": "크레딧 (🪙)",
+    "metric_option_time": "시간 (⏱️)",
+    "th_commander": "사령관",
+    "th_time": "시간",
+    "th_credits": "크레딧",
+    "th_troops": "병력",
+    "th_status": "상태"
   }
 }

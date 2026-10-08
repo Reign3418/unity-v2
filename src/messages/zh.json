@@ -2002,6 +2002,17 @@
     "th_source": "帧来源",
     "th_actions": "操作",
     "table_empty_state": "尚未记录任何排行数据",
-    "table_empty_hint": "从连接游戏窗口取景、按 Ctrl+V 粘贴或批量上传截图开始。"
+    "table_empty_hint": "从连接游戏窗口取景、按 Ctrl+V 粘贴或批量上传截图开始。",
+    "label_depicted_columns": "显示的列",
+    "label_primary_metric": "主要评分指标",
+    "metric_option_auto": "自动评分",
+    "metric_option_troops": "部队数 (⚔️)",
+    "metric_option_credits": "个人荣誉/积分 (🪙)",
+    "metric_option_time": "建造时间 (⏱️)",
+    "th_commander": "统帅",
+    "th_time": "建造时间",
+    "th_credits": "联盟积分",
+    "th_troops": "部队数",
+    "th_status": "状态"
   }
 }

@@ -37,37 +37,70 @@ export async function POST(req) {
         const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
+        const targetMetric = (body.targetMetric || body.metricLabel || '').trim();
+        const eventNameHint = (body.eventName || '').trim();
+
         const prompt = `You are a specialized OCR parser for the mobile strategy game Rise of Kingdoms (RoK).
-Analyze this screenshot of an in-game Event Ranking or Leaderboard screen (e.g. Master Builder Rankings, Alliance Resource Assistance, Zenith of Power, Mightiest Governor, Alliance Tech Contribution, Karuak, etc.).
+Analyze this screenshot. The screen can be ONE OF TWO MAIN TYPES:
+
+TYPE 1: EVENT RANKINGS / LEADERBOARD (e.g. Master Builder, Zenith of Power, Mightiest Governor, Karuak, Pre-KvK, Alliance Tech Contribution, Resource Assistance).
+- Contains explicit ranks (#1, #2, #3, medals 🥇, 🥈, 🥉), player name, alliance tag, score/points.
+
+TYPE 2: ALLIANCE STRUCTURE / BUILDING / GARRISON / REINFORCEMENTS (e.g. Alliance Flag, Alliance Fortress, Pass, Garrison list, Reinforcement Capacity list).
+- Contains list cards of reinforcing/building players with NO explicit rank numbers!
+- Each card shows:
+  * Player Avatar and Governor Name (e.g. '幺Khan', '幺Shiro', '幺Kerrapi', 'BLACK', 'MAKER', 'Lìght', 'Zippo')
+  * Primary Commander name and level (e.g. 'Lvl 1 Baibars', 'Lvl 20 Dragon Lancer', 'Lvl 1 Eulji Mundeok', 'Lvl 16 Tomoe Gozen', 'Lvl 22 Cao Cao')
+  * Building / March Time (e.g. 'Time: 03:15:38', 'Time: 02:21:57', 'Time: 03:10:11')
+  * Building Credits Reward next to a Silver Coin icon (e.g. 11,738, 8,517, 11,398, 11,411, 11,686, 11,749, 11,443)
+  * Troops Count (e.g. 'Troops: 1' -> 1, or 'Troops: 200,000' -> 200000)
+  * Arrival Status (e.g. 'Arrived', 'Marching')
+
+TARGET METRIC REQUESTED BY USER: "${targetMetric || 'Auto-detect'}"
+EVENT TITLE HINT: "${eventNameHint || 'Auto-detect'}"
+
+CRITICAL RULE FOR MAPPING TO 'score':
+- Do NOT confuse Building Credits (silver coin e.g. 11,738) with Troops count (e.g. 1)!
+- If the user specified target metric 'Troops' (or contains 'troop'), 'score' MUST be the troop count number (e.g. 1), NOT the credits!
+- If the user specified target metric 'Credits' (or contains 'credit' or 'coin'), 'score' MUST be the building credits number (e.g. 11738)!
+- If the user specified target metric 'Time' (or 'building time'), 'score' MUST be the time duration or seconds!
+- If no target metric is specified, for Type 2 Building screens default 'score' to the credits or troops as appropriate.
+- In ALL cases, populate the dedicated discrete fields so NO data is lost: 'troops', 'credits', 'time', 'commander', 'status'!
 
 Extract the following data in strict JSON format:
 {
-  "eventName": "Event title displayed at the top header (e.g. 'Master Builder Rankings', 'Resource Assistance', or null)",
-  "metricLabel": "The metric or column header title (e.g. 'Building Time (Seconds)', 'Score', 'Points', 'Power', 'Donations' or 'Score')",
+  "screenType": "FLAG_BUILDING" | "LEADERBOARD" | "REINFORCEMENTS" | "DONATION" | "GENERIC",
+  "hasExplicitRanks": false (set to true ONLY if the screen actually shows explicit #1, #2 rank numbers or medals; set to false if it is an unranked queue or building list),
+  "eventName": "Event or screen title displayed at header (e.g. 'Alliance Flag', 'Master Builder Rankings', etc.)",
+  "metricLabel": "Primary metric label (e.g. 'Troops', 'Building Credits', 'Building Time', 'Score', etc.)",
+  "detectedColumns": ["rank", "governorName", "commander", "time", "credits", "troops", "status"],
   "selfRankBanner": {
-    "rank": numeric rank number or null (from the golden/ribbon banner at the top showing the viewer's own rank, if visible),
-    "governorName": "viewer governor name string or null",
-    "score": numeric score number or null
+    "rank": numeric rank or null,
+    "governorName": "viewer governor name or null",
+    "score": numeric score or null
   },
   "rankings": [
     {
-      "rank": integer rank number (1, 2, 3, etc. NOTE: Medals with wreath 1st = 1, 2nd = 2, 3rd = 3),
-      "governorName": "exact player name including special font characters, symbols (like 么, ᴳˣ, clan tags) and accents",
+      "rank": integer (explicit rank number if on screen; otherwise sequential 1, 2, 3 in order of appearance),
+      "governorName": "exact player name including special font characters and symbols (e.g. '幺Khan', '幺 Shiro')",
       "allianceTag": "alliance tag if visible without brackets, or null",
-      "score": integer (clean all commas, 's' suffixes, spaces, or words; e.g. '80,000' -> 80000),
-      "rawScore": "verbatim score string as displayed in the row (e.g. '80,000')"
+      "commander": "commander name and level if visible (e.g. 'Lvl 1 Baibars'), or null",
+      "time": "time duration string if visible (e.g. '03:15:38'), or null",
+      "credits": integer building credit rewards if visible (e.g. 11738), or null,
+      "troops": integer troop count if visible (e.g. 1), or null,
+      "status": "status string if visible (e.g. 'Arrived', 'Marching'), or null",
+      "score": integer (the primary score value corresponding to the requested target metric),
+      "rawScore": "verbatim string of the primary score value"
     }
   ]
 }
 
 STRICT PARSING RULES:
-1. Extract ALL visible leaderboard rows in the scrollable list.
-2. The top 3 ranks often display Gold (#1), Silver (#2), and Bronze (#3) laurel wreath medals instead of plain numbers. Recognize these as rank 1, 2, 3.
-3. Preserve non-English and special Unicode characters in governor names verbatim (e.g., '么WhySoRude', '么skye', '么LUFFY', '么Kerrapi', '么Cflx', '么BankBCAA', '么Lâm07', '么Damz', '么REDLER', '么SKIPMe', '么Valthyr', '么Pªin').
-4. The golden ribbon banner across the top showing the viewing player (e.g. '29 Shiro Building Time: 20,000') is the 'selfRankBanner'. Do NOT insert it as a duplicate in the 'rankings' list unless it naturally appears in the sequential list order.
-5. If the bottom row is cut off or only half visible, still extract it if the rank and name/score are identifiable; otherwise omit incomplete cutoffs.
-6. Clean numeric scores of commas, periods, or time units (e.g., '80,000' -> 80000).
-7. Return ONLY valid JSON matching the schema, with no markdown backticks, no code fence, and no extra prose.`;
+1. Extract ALL visible rows in the card list or table.
+2. If the screen is an Alliance Flag / Fortress screen, 'hasExplicitRanks' MUST be false.
+3. Keep governor names verbatim (preserve special prefixes like '幺', 'ᴳˣ', '★', etc.).
+4. Parse numeric credits and troops as integers (clean commas, e.g. '11,738' -> 11738, 'Troops: 1' -> 1).
+5. Return ONLY valid JSON with no markdown formatting.`;
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -117,37 +150,63 @@ STRICT PARSING RULES:
         // Clean and normalize rankings array
         const rawRankings = Array.isArray(parsed.rankings) ? parsed.rankings : [];
         const cleanRankings = rawRankings.map((r, idx) => {
-            const cleanScore = typeof r.score === 'number' 
-                ? r.score 
-                : parseInt(String(r.rawScore || r.score || '0').replace(/\D/g, ''), 10) || 0;
             const cleanRank = typeof r.rank === 'number' 
                 ? r.rank 
                 : parseInt(String(r.rank || '').replace(/\D/g, ''), 10) || (idx + 1);
+
+            const cleanCredits = typeof r.credits === 'number'
+                ? r.credits
+                : (r.credits ? parseInt(String(r.credits).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanTroops = typeof r.troops === 'number'
+                ? r.troops
+                : (r.troops ? parseInt(String(r.troops).replace(/\D/g, ''), 10) || null : null);
+
+            let cleanScore = typeof r.score === 'number' 
+                ? r.score 
+                : parseInt(String(r.rawScore || r.score || '0').replace(/\D/g, ''), 10) || 0;
+
+            // Target metric remapping override safeguard
+            const tmLower = targetMetric.toLowerCase();
+            if (tmLower.includes('troop') && cleanTroops !== null) {
+                cleanScore = cleanTroops;
+            } else if ((tmLower.includes('credit') || tmLower.includes('coin')) && cleanCredits !== null) {
+                cleanScore = cleanCredits;
+            }
 
             return {
                 rank: cleanRank,
                 governorName: String(r.governorName || 'Unknown').trim(),
                 allianceTag: r.allianceTag ? String(r.allianceTag).trim() : null,
+                commander: r.commander ? String(r.commander).trim() : null,
+                time: r.time ? String(r.time).trim() : null,
+                credits: cleanCredits,
+                troops: cleanTroops,
+                status: r.status ? String(r.status).trim() : null,
                 score: cleanScore,
-                rawScore: String(r.rawScore || r.score || cleanScore)
+                rawScore: String(r.rawScore || cleanScore)
             };
         }).filter(r => r.governorName && r.governorName !== 'null');
 
         logEvent('VISION_RANKING_SCAN', {
             model: apiModel,
             rowsExtracted: cleanRankings.length,
-            eventName: parsed.eventName || 'unknown'
+            eventName: parsed.eventName || 'unknown',
+            screenType: parsed.screenType || 'GENERIC'
         }, {
             userAgent: req.headers.get('user-agent') || ''
         }).catch(() => {});
 
         return NextResponse.json({
             success: true,
+            screenType: parsed.screenType || "GENERIC",
+            hasExplicitRanks: Boolean(parsed.hasExplicitRanks),
+            detectedColumns: Array.isArray(parsed.detectedColumns) ? parsed.detectedColumns : [],
             eventName: parsed.eventName || null,
-            metricLabel: parsed.metricLabel || "Score",
+            metricLabel: targetMetric || parsed.metricLabel || "Score",
             selfRankBanner: parsed.selfRankBanner || null,
             rankings: cleanRankings,
-            data: cleanRankings // backward-compatibility for legacy experimental scan consumers
+            data: cleanRankings // backward-compatibility
         });
 
     } catch (err) {

@@ -2002,6 +2002,17 @@
     "th_source": "Источник",
     "th_actions": "Действия",
     "table_empty_state": "Рейтинги пока не записаны",
-    "table_empty_hint": "Начните с захвата кадра из окна игры, вставки по Ctrl+V или загрузки скриншотов."
+    "table_empty_hint": "Начните с захвата кадра из окна игры, вставки по Ctrl+V или загрузки скриншотов.",
+    "label_depicted_columns": "Отображаемые столбцы",
+    "label_primary_metric": "Основная метрика очков",
+    "metric_option_auto": "Авто-очки",
+    "metric_option_troops": "Войска (⚔️)",
+    "metric_option_credits": "Кредиты (🪙)",
+    "metric_option_time": "Время (⏱️)",
+    "th_commander": "Командир",
+    "th_time": "Время",
+    "th_credits": "Кредиты",
+    "th_troops": "Войска",
+    "th_status": "Статус"
   }
 }

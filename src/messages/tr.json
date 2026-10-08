@@ -2002,6 +2002,17 @@
     "th_source": "Kaynak",
     "th_actions": "İşlemler",
     "table_empty_state": "Henüz Hiçbir Sıralama Kaydedilmedi",
-    "table_empty_hint": "Oyun pencerenizden bir kare yakalayarak, Ctrl+V ile yapıştırarak veya dosya yükleyerek başlayın."
+    "table_empty_hint": "Oyun pencerenizden bir kare yakalayarak, Ctrl+V ile yapıştırarak veya dosya yükleyerek başlayın.",
+    "label_depicted_columns": "Görüntülenen Sütunlar",
+    "label_primary_metric": "Birincil Puan Metriği",
+    "metric_option_auto": "Otomatik Puan",
+    "metric_option_troops": "Birlikler (⚔️)",
+    "metric_option_credits": "Krediler (🪙)",
+    "metric_option_time": "Süre (⏱️)",
+    "th_commander": "Komutan",
+    "th_time": "Süre",
+    "th_credits": "Kredi",
+    "th_troops": "Birlik",
+    "th_status": "Durum"
   }
 }

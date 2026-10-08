@@ -2002,6 +2002,17 @@
     "th_source": "Nguồn",
     "th_actions": "Hành Động",
     "table_empty_state": "Chưa Có Bảng Xếp Hạng Nào Được Ghi",
-    "table_empty_hint": "Bắt đầu bằng cách chụp một khung hình từ cửa sổ game, dán bằng Ctrl+V hoặc tải ảnh lên."
+    "table_empty_hint": "Bắt đầu bằng cách chụp một khung hình từ cửa sổ game, dán bằng Ctrl+V hoặc tải ảnh lên.",
+    "label_depicted_columns": "Các cột hiển thị",
+    "label_primary_metric": "Chỉ số điểm chính",
+    "metric_option_auto": "Điểm tự động",
+    "metric_option_troops": "Quân lính (⚔️)",
+    "metric_option_credits": "Điểm cống hiến (🪙)",
+    "metric_option_time": "Thời gian (⏱️)",
+    "th_commander": "Chỉ huy",
+    "th_time": "Thời gian",
+    "th_credits": "Điểm cống hiến",
+    "th_troops": "Quân lính",
+    "th_status": "Trạng thái"
   }
 }

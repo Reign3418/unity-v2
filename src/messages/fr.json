@@ -2002,6 +2002,17 @@
     "th_source": "Source",
     "th_actions": "Actions",
     "table_empty_state": "Aucun classement enregistré pour le moment",
-    "table_empty_hint": "Commencez en capturant une image depuis votre fenêtre de jeu, en collant avec Ctrl+V ou en important des images."
+    "table_empty_hint": "Commencez en capturant une image depuis votre fenêtre de jeu, en collant avec Ctrl+V ou en important des images.",
+    "label_depicted_columns": "Colonnes affichées",
+    "label_primary_metric": "Métrique principale",
+    "metric_option_auto": "Automatique",
+    "metric_option_troops": "Troupes (⚔️)",
+    "metric_option_credits": "Crédits (🪙)",
+    "metric_option_time": "Temps (⏱️)",
+    "th_commander": "Commandant",
+    "th_time": "Temps",
+    "th_credits": "Crédits",
+    "th_troops": "Troupes",
+    "th_status": "Statut"
   }
 }

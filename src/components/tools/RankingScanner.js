@@ -22,15 +22,83 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
 
     // Scanned data state
     const [eventName, setEventName] = useState('Event Rankings');
-    const [metricLabel, setMetricLabel] = useState('Building Time (Seconds)');
+    const [metricLabel, setMetricLabel] = useState('Score');
+    const [primaryMetricMode, setPrimaryMetricMode] = useState('auto'); // 'auto' | 'troops' | 'credits' | 'time'
     const [selfBanner, setSelfBanner] = useState(null);
     const [frames, setFrames] = useState([]); // { id, number, thumbnail, timestamp, rowCount }
-    const [rankings, setRankings] = useState([]); // { id, rank, governorName, allianceTag, score, rawScore, frameNumber, verified }
+    const [rankings, setRankings] = useState([]); // { id, rank, governorName, allianceTag, commander, time, credits, troops, status, score, rawScore, frameNumber, verified }
+    
+    // Column depiction state (toggle which columns are displayed and exported)
+    const [depictedColumns, setDepictedColumns] = useState({
+        rank: true,
+        governorName: true,
+        allianceTag: true,
+        commander: false,
+        time: false,
+        credits: false,
+        troops: false,
+        status: false
+    });
+
+    // Toggle individual column visibility
+    const toggleColumn = (colKey) => {
+        setDepictedColumns(prev => ({
+            ...prev,
+            [colKey]: !prev[colKey]
+        }));
+    };
+
+    // Switch primary metric mode (Troops vs Credits vs Time vs Auto)
+    const handlePrimaryMetricChange = (mode) => {
+        setPrimaryMetricMode(mode);
+        if (mode === 'troops') {
+            setMetricLabel('Troops');
+            setDepictedColumns(prev => ({ ...prev, troops: true }));
+            setRankings(prev => prev.map(r => {
+                const troopVal = (r.troops !== null && r.troops !== undefined) ? Number(r.troops) : r.score;
+                return {
+                    ...r,
+                    score: troopVal,
+                    rawScore: String(troopVal)
+                };
+            }));
+            showToast('Primary metric switched to Troops ⚔️', 'info');
+        } else if (mode === 'credits') {
+            setMetricLabel('Building Credits');
+            setDepictedColumns(prev => ({ ...prev, credits: true }));
+            setRankings(prev => prev.map(r => {
+                const credVal = (r.credits !== null && r.credits !== undefined) ? Number(r.credits) : r.score;
+                return {
+                    ...r,
+                    score: credVal,
+                    rawScore: Number(credVal).toLocaleString()
+                };
+            }));
+            showToast('Primary metric switched to Credits 🪙', 'info');
+        } else if (mode === 'time') {
+            setMetricLabel('Building Time');
+            setDepictedColumns(prev => ({ ...prev, time: true }));
+            showToast('Primary metric switched to Time ⏱️', 'info');
+        } else {
+            setMetricLabel('Score');
+            showToast('Primary metric switched to Auto Score', 'info');
+        }
+    };
 
     // Search and filter
     const [searchQuery, setSearchQuery] = useState('');
     const [editingRowId, setEditingRowId] = useState(null);
-    const [editForm, setEditForm] = useState({ rank: '', governorName: '', allianceTag: '', score: '' });
+    const [editForm, setEditForm] = useState({ 
+        rank: '', 
+        governorName: '', 
+        allianceTag: '', 
+        commander: '', 
+        time: '', 
+        credits: '', 
+        troops: '', 
+        status: '', 
+        score: '' 
+    });
 
     // Personal API Settings modal / toggle
     const [showSettings, setShowSettings] = useState(false);
@@ -93,15 +161,17 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         } catch (e) {}
     };
 
-    // Smart De-Duplication & Accumulator Engine
+    // Smart De-Duplication & Accumulator Engine (Auto-adds rows across scroll frames)
     const mergeExtractedData = useCallback((newData, frameId, frameNum) => {
         if (!newData) return;
 
-        if (newData.eventName && eventName === 'Event Rankings') {
+        if (newData.eventName && (eventName === 'Event Rankings' || !eventName)) {
             setEventName(newData.eventName);
         }
-        if (newData.metricLabel && metricLabel === 'Building Time (Seconds)') {
-            setMetricLabel(newData.metricLabel);
+        if (newData.metricLabel && (metricLabel === 'Building Time (Seconds)' || !metricLabel || metricLabel === 'Score')) {
+            if (primaryMetricMode === 'auto') {
+                setMetricLabel(newData.metricLabel);
+            }
         }
         if (newData.selfRankBanner) {
             setSelfBanner(newData.selfRankBanner);
@@ -113,50 +183,94 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             return;
         }
 
+        // Auto-detect and depict columns present in this screen
+        const detectedCols = {};
+        incomingRows.forEach(r => {
+            if (r.commander) detectedCols.commander = true;
+            if (r.time) detectedCols.time = true;
+            if (r.credits !== null && r.credits !== undefined) detectedCols.credits = true;
+            if (r.troops !== null && r.troops !== undefined) detectedCols.troops = true;
+            if (r.status) detectedCols.status = true;
+        });
+        if (Array.isArray(newData.detectedColumns)) {
+            newData.detectedColumns.forEach(c => {
+                if (c && ['commander', 'time', 'credits', 'troops', 'status'].includes(c)) {
+                    detectedCols[c] = true;
+                }
+            });
+        }
+        if (Object.keys(detectedCols).length > 0) {
+            setDepictedColumns(prev => ({ ...prev, ...detectedCols }));
+        }
+
+        const isExplicit = Boolean(newData.hasExplicitRanks);
+
         setRankings(prev => {
             const updated = [...prev];
 
             incomingRows.forEach(newRow => {
-                if (!newRow.rank && !newRow.governorName) return;
+                if (!newRow.governorName && !newRow.rank) return;
 
-                const cleanRank = Number(newRow.rank);
                 const cleanName = (newRow.governorName || '').trim().toLowerCase();
+                const cleanRank = Number(newRow.rank);
 
-                // Match by rank
-                const matchRankIdx = updated.findIndex(r => Number(r.rank) === cleanRank);
-                // Match by name
-                const matchNameIdx = updated.findIndex(r => (r.governorName || '').trim().toLowerCase() === cleanName);
+                // Deduplication strategy:
+                // 1. Normalized governor name matching (vital across scroll snapshots)
+                let matchIdx = -1;
+                if (cleanName && cleanName !== 'unknown') {
+                    matchIdx = updated.findIndex(r => (r.governorName || '').trim().toLowerCase() === cleanName);
+                }
 
-                if (matchRankIdx !== -1) {
-                    // Update existing rank row
-                    const current = updated[matchRankIdx];
-                    updated[matchRankIdx] = {
+                // 2. Only match by rank if explicit rank leaderboard numbers (#1, #2) are present on-screen
+                if (matchIdx === -1 && isExplicit && cleanRank > 0) {
+                    matchIdx = updated.findIndex(r => Number(r.rank) === cleanRank);
+                }
+
+                // Target score mapping
+                let rowScore = Number(newRow.score) || 0;
+                let rowRawScore = newRow.rawScore || String(newRow.score || '0');
+                if (primaryMetricMode === 'troops' && newRow.troops !== null && newRow.troops !== undefined) {
+                    rowScore = Number(newRow.troops);
+                    rowRawScore = String(newRow.troops);
+                } else if (primaryMetricMode === 'credits' && newRow.credits !== null && newRow.credits !== undefined) {
+                    rowScore = Number(newRow.credits);
+                    rowRawScore = Number(newRow.credits).toLocaleString();
+                }
+
+                if (matchIdx !== -1) {
+                    // Update existing row
+                    const current = updated[matchIdx];
+                    updated[matchIdx] = {
                         ...current,
                         governorName: newRow.governorName || current.governorName,
-                        score: newRow.score !== undefined ? newRow.score : current.score,
-                        rawScore: newRow.rawScore || current.rawScore,
                         allianceTag: newRow.allianceTag || current.allianceTag,
-                        verified: true
-                    };
-                } else if (matchNameIdx !== -1) {
-                    // Governor found at shifted rank
-                    const current = updated[matchNameIdx];
-                    updated[matchNameIdx] = {
-                        ...current,
-                        rank: cleanRank || current.rank,
-                        score: newRow.score !== undefined ? newRow.score : current.score,
-                        rawScore: newRow.rawScore || current.rawScore,
+                        commander: newRow.commander || current.commander,
+                        time: newRow.time || current.time,
+                        credits: (newRow.credits !== null && newRow.credits !== undefined) ? newRow.credits : current.credits,
+                        troops: (newRow.troops !== null && newRow.troops !== undefined) ? newRow.troops : current.troops,
+                        status: newRow.status || current.status,
+                        score: rowScore !== undefined ? rowScore : current.score,
+                        rawScore: rowRawScore || current.rawScore,
                         verified: true
                     };
                 } else {
-                    // New governor row
+                    // Auto-Add: append new row from this scroll frame
+                    const assignedRank = (isExplicit && cleanRank > 0) 
+                        ? cleanRank 
+                        : (updated.length + 1);
+
                     updated.push({
                         id: `gov-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-                        rank: cleanRank || updated.length + 1,
+                        rank: assignedRank,
                         governorName: newRow.governorName || 'Unknown',
                         allianceTag: newRow.allianceTag || '',
-                        score: Number(newRow.score) || 0,
-                        rawScore: newRow.rawScore || String(newRow.score || '0'),
+                        commander: newRow.commander || null,
+                        time: newRow.time || null,
+                        credits: (newRow.credits !== null && newRow.credits !== undefined) ? newRow.credits : null,
+                        troops: (newRow.troops !== null && newRow.troops !== undefined) ? newRow.troops : null,
+                        status: newRow.status || null,
+                        score: rowScore,
+                        rawScore: rowRawScore,
                         frameId,
                         frameNumber: frameNum,
                         verified: false
@@ -164,13 +278,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                 }
             });
 
-            // Sort ascending by rank
-            updated.sort((a, b) => (Number(a.rank) || 999999) - (Number(b.rank) || 999999));
+            if (isExplicit) {
+                updated.sort((a, b) => (Number(a.rank) || 999999) - (Number(b.rank) || 999999));
+            }
             return updated;
         });
 
         showToast(`${t('toast_extracted_prefix')} ${incomingRows.length} ${t('toast_extracted_suffix')} #${frameNum}`, 'success');
-    }, [eventName, metricLabel, t]);
+    }, [eventName, metricLabel, primaryMetricMode, t]);
 
     // Send encoded image to backend AI Vision route
     const transmitToAi = useCallback(async (base64, mimeType, frameThumbnail) => {
@@ -197,10 +312,23 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             if (geminiKey) headers['x-gemini-key'] = geminiKey;
             if (geminiModel) headers['x-gemini-model'] = geminiModel;
 
+            const effectiveTargetMetric = primaryMetricMode === 'troops' 
+                ? 'Troops' 
+                : primaryMetricMode === 'credits' 
+                ? 'Building Credits' 
+                : primaryMetricMode === 'time'
+                ? 'Building Time'
+                : metricLabel;
+
             const res = await fetch('/api/tools/screen-grabber', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ base64, mimeType })
+                body: JSON.stringify({ 
+                    base64, 
+                    mimeType,
+                    targetMetric: effectiveTargetMetric,
+                    eventName
+                })
             });
 
             const data = await res.json();
@@ -226,7 +354,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             setIsProcessing(false);
             setStatusMessage('');
         }
-    }, [geminiKey, geminiModel, mergeExtractedData, t]);
+    }, [geminiKey, geminiModel, metricLabel, primaryMetricMode, eventName, mergeExtractedData, t]);
 
     // Process and scale image via canvas before sending to AI
     const processImagePayload = useCallback((imageSource) => {
@@ -421,6 +549,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             rank: row.rank,
             governorName: row.governorName,
             allianceTag: row.allianceTag || '',
+            commander: row.commander || '',
+            time: row.time || '',
+            credits: row.credits !== null && row.credits !== undefined ? row.credits : '',
+            troops: row.troops !== null && row.troops !== undefined ? row.troops : '',
+            status: row.status || '',
             score: row.score
         });
     };
@@ -429,18 +562,23 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         setRankings(prev => {
             const updated = prev.map(r => {
                 if (r.id === rowId) {
+                    const cleanScore = Number(editForm.score) || 0;
                     return {
                         ...r,
                         rank: Number(editForm.rank) || r.rank,
                         governorName: editForm.governorName.trim() || r.governorName,
                         allianceTag: editForm.allianceTag.trim(),
-                        score: Number(editForm.score) || 0,
-                        rawScore: Number(editForm.score).toLocaleString()
+                        commander: editForm.commander.trim() || null,
+                        time: editForm.time.trim() || null,
+                        credits: editForm.credits !== '' ? Number(editForm.credits) : null,
+                        troops: editForm.troops !== '' ? Number(editForm.troops) : null,
+                        status: editForm.status.trim() || null,
+                        score: cleanScore,
+                        rawScore: cleanScore.toLocaleString()
                     };
                 }
                 return r;
             });
-            updated.sort((a, b) => (Number(a.rank) || 999999) - (Number(b.rank) || 999999));
             return updated;
         });
         setEditingRowId(null);
@@ -457,6 +595,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             rank: nextRank,
             governorName: 'New Governor',
             allianceTag: '',
+            commander: '',
+            time: '',
+            credits: null,
+            troops: null,
+            status: '',
             score: 0,
             rawScore: '0',
             frameNumber: 0,
@@ -499,20 +642,27 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
     const avgScore = totalGovernors > 0 ? Math.round(totalScore / totalGovernors) : 0;
     const topLeader = rankings.length > 0 ? rankings[0] : null;
 
-    // Export Handlers
+    // Export Handlers (incorporating all depicted columns)
     const exportExcel = () => {
         if (rankings.length === 0) {
             showToast(t('alert_no_data_to_export'), 'warning');
             return;
         }
 
-        const exportData = rankings.map(r => ({
-            'Rank': r.rank,
-            'Governor Name': r.governorName,
-            'Alliance': r.allianceTag || '',
-            [metricLabel || 'Score']: r.score,
-            'Frame Source': r.frameNumber ? `Frame #${r.frameNumber}` : 'Manual'
-        }));
+        const exportData = rankings.map(r => {
+            const rowObj = {};
+            if (depictedColumns.rank) rowObj['Rank'] = r.rank;
+            rowObj['Governor Name'] = r.governorName;
+            if (depictedColumns.allianceTag) rowObj['Alliance'] = r.allianceTag || '';
+            if (depictedColumns.commander) rowObj['Commander'] = r.commander || '';
+            if (depictedColumns.time) rowObj['Building Time'] = r.time || '';
+            if (depictedColumns.credits) rowObj['Building Credits'] = (r.credits !== null && r.credits !== undefined) ? r.credits : '';
+            if (depictedColumns.troops) rowObj['Troops'] = (r.troops !== null && r.troops !== undefined) ? r.troops : '';
+            if (depictedColumns.status) rowObj['Status'] = r.status || '';
+            rowObj[metricLabel || 'Score'] = r.score;
+            rowObj['Frame Source'] = r.frameNumber ? `Frame #${r.frameNumber}` : 'Manual';
+            return rowObj;
+        });
 
         const cleanEventName = (eventName || 'Event_Rankings').replace(/[^a-zA-Z0-9_-]/g, '_');
         const filename = `${cleanEventName}_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -523,15 +673,21 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
 
     const exportCsv = () => {
         if (rankings.length === 0) return;
-        const headers = ['Rank', 'Governor Name', 'Alliance', metricLabel || 'Score', 'Frame'];
-        const rows = rankings.map(r => [
-            r.rank,
-            `"${(r.governorName || '').replace(/"/g, '""')}"`,
-            `"${(r.allianceTag || '').replace(/"/g, '""')}"`,
-            r.score,
-            r.frameNumber || 1
-        ]);
-        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        const cols = [];
+        if (depictedColumns.rank) cols.push({ header: 'Rank', get: r => r.rank });
+        cols.push({ header: 'Governor Name', get: r => `"${(r.governorName || '').replace(/"/g, '""')}"` });
+        if (depictedColumns.allianceTag) cols.push({ header: 'Alliance', get: r => `"${(r.allianceTag || '').replace(/"/g, '""')}"` });
+        if (depictedColumns.commander) cols.push({ header: 'Commander', get: r => `"${(r.commander || '').replace(/"/g, '""')}"` });
+        if (depictedColumns.time) cols.push({ header: 'Time', get: r => `"${(r.time || '').replace(/"/g, '""')}"` });
+        if (depictedColumns.credits) cols.push({ header: 'Credits', get: r => (r.credits !== null && r.credits !== undefined) ? r.credits : '' });
+        if (depictedColumns.troops) cols.push({ header: 'Troops', get: r => (r.troops !== null && r.troops !== undefined) ? r.troops : '' });
+        if (depictedColumns.status) cols.push({ header: 'Status', get: r => `"${(r.status || '').replace(/"/g, '""')}"` });
+        cols.push({ header: metricLabel || 'Score', get: r => r.score });
+        cols.push({ header: 'Frame', get: r => r.frameNumber || 1 });
+
+        const headers = cols.map(c => c.header).join(',');
+        const rows = rankings.map(r => cols.map(c => c.get(r)).join(','));
+        const csvContent = [headers, ...rows].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -544,9 +700,20 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
 
     const copyTsv = () => {
         if (rankings.length === 0) return;
-        const headers = ['Rank', 'Governor Name', 'Alliance', metricLabel || 'Score'];
-        const rows = rankings.map(r => [r.rank, r.governorName, r.allianceTag || '', r.score]);
-        const tsv = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
+        const cols = [];
+        if (depictedColumns.rank) cols.push({ header: 'Rank', get: r => r.rank });
+        cols.push({ header: 'Governor Name', get: r => r.governorName });
+        if (depictedColumns.allianceTag) cols.push({ header: 'Alliance', get: r => r.allianceTag || '' });
+        if (depictedColumns.commander) cols.push({ header: 'Commander', get: r => r.commander || '' });
+        if (depictedColumns.time) cols.push({ header: 'Time', get: r => r.time || '' });
+        if (depictedColumns.credits) cols.push({ header: 'Credits', get: r => (r.credits !== null && r.credits !== undefined) ? r.credits : '' });
+        if (depictedColumns.troops) cols.push({ header: 'Troops', get: r => (r.troops !== null && r.troops !== undefined) ? r.troops : '' });
+        if (depictedColumns.status) cols.push({ header: 'Status', get: r => r.status || '' });
+        cols.push({ header: metricLabel || 'Score', get: r => r.score });
+
+        const headers = cols.map(c => c.header).join('\t');
+        const rows = rankings.map(r => cols.map(c => c.get(r)).join('\t'));
+        const tsv = [headers, ...rows].join('\n');
         navigator.clipboard.writeText(tsv);
         showToast(t('toast_copied_tsv'), 'success');
     };
@@ -561,7 +728,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         rankings.forEach(r => {
             const medal = medalEmojis[r.rank] || `**#${r.rank}**`;
             const tag = r.allianceTag ? `[${r.allianceTag}] ` : '';
-            msg += `${medal} ${tag}**${r.governorName}** — \`${(r.score || 0).toLocaleString()}\`\n`;
+            let extra = [];
+            if (r.commander) extra.push(`*${r.commander}*`);
+            if (r.troops !== null && r.troops !== undefined) extra.push(`⚔️ **${r.troops.toLocaleString()}**`);
+            if (r.credits !== null && r.credits !== undefined) extra.push(`🪙 **${r.credits.toLocaleString()}**`);
+            if (r.time) extra.push(`⏱️ ${r.time}`);
+
+            const detailsStr = extra.length > 0 ? ` (${extra.join(' • ')})` : '';
+            msg += `${medal} ${tag}**${r.governorName}** — \`${(r.score || 0).toLocaleString()}\`${detailsStr}\n`;
         });
 
         msg += `\n*Recorded with Unity AI Ranking Scanner*`;
@@ -1080,15 +1254,133 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         </div>
                     </div>
 
+                    {/* Interactive Column Depiction & Primary Metric Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-800 bg-[#0d1017]">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mr-1">
+                                {t('label_depicted_columns')}:
+                            </span>
+                            <button
+                                onClick={() => toggleColumn('rank')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.rank ? 'bg-fuchsia-600/30 border border-fuchsia-500/50 text-fuchsia-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.rank && <Check size={12} />}
+                                <span>{t('th_rank')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('allianceTag')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.allianceTag ? 'bg-fuchsia-600/30 border border-fuchsia-500/50 text-fuchsia-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.allianceTag && <Check size={12} />}
+                                <span>{t('th_alliance')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('commander')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.commander ? 'bg-indigo-600/30 border border-indigo-500/50 text-indigo-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.commander && <Check size={12} />}
+                                <span>{t('th_commander')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('time')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.time ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.time && <Check size={12} />}
+                                <span>{t('th_time')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('credits')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.credits ? 'bg-yellow-600/30 border border-yellow-500/50 text-yellow-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.credits && <Check size={12} />}
+                                <span>🪙 {t('th_credits')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('troops')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.troops ? 'bg-rose-600/30 border border-rose-500/50 text-rose-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.troops && <Check size={12} />}
+                                <span>⚔️ {t('th_troops')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('status')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.status ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.status && <Check size={12} />}
+                                <span>{t('th_status')}</span>
+                            </button>
+                        </div>
+
+                        {/* Primary Metric Selector */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                                {t('label_primary_metric')}:
+                            </span>
+                            <div className="flex bg-[#13161f] border border-slate-800 rounded-lg p-0.5 text-xs font-mono">
+                                <button
+                                    onClick={() => handlePrimaryMetricChange('auto')}
+                                    className={`px-2 py-1 rounded-md transition-all ${
+                                        primaryMetricMode === 'auto' ? 'bg-fuchsia-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {t('metric_option_auto')}
+                                </button>
+                                <button
+                                    onClick={() => handlePrimaryMetricChange('troops')}
+                                    className={`px-2 py-1 rounded-md transition-all ${
+                                        primaryMetricMode === 'troops' ? 'bg-rose-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {t('metric_option_troops')}
+                                </button>
+                                <button
+                                    onClick={() => handlePrimaryMetricChange('credits')}
+                                    className={`px-2 py-1 rounded-md transition-all ${
+                                        primaryMetricMode === 'credits' ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {t('metric_option_credits')}
+                                </button>
+                                <button
+                                    onClick={() => handlePrimaryMetricChange('time')}
+                                    className={`px-2 py-1 rounded-md transition-all ${
+                                        primaryMetricMode === 'time' ? 'bg-amber-500/40 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {t('metric_option_time')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Master Leaderboard Table */}
                     <div className="rounded-2xl border border-slate-800 bg-[#0d1017] overflow-hidden shadow-xl">
-                        <div className="overflow-x-auto max-h-[460px] scrollbar-thin scrollbar-thumb-slate-700">
+                        <div className="overflow-x-auto max-h-[520px] scrollbar-thin scrollbar-thumb-slate-700">
                             <table className="w-full text-left border-collapse text-xs font-sans">
                                 <thead>
                                     <tr className="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10 backdrop-blur-md font-mono text-[11px] text-slate-400 uppercase tracking-wider">
-                                        <th className="py-2.5 px-3 w-16 text-center">{t('th_rank')}</th>
+                                        {depictedColumns.rank && <th className="py-2.5 px-3 w-16 text-center">{t('th_rank')}</th>}
                                         <th className="py-2.5 px-3">{t('th_governor')}</th>
-                                        <th className="py-2.5 px-3 w-24 text-center">{t('th_alliance')}</th>
+                                        {depictedColumns.allianceTag && <th className="py-2.5 px-3 w-20 text-center">{t('th_alliance')}</th>}
+                                        {depictedColumns.commander && <th className="py-2.5 px-3">{t('th_commander')}</th>}
+                                        {depictedColumns.time && <th className="py-2.5 px-3 text-center">{t('th_time')}</th>}
+                                        {depictedColumns.credits && <th className="py-2.5 px-3 text-right">🪙 {t('th_credits')}</th>}
+                                        {depictedColumns.troops && <th className="py-2.5 px-3 text-right">⚔️ {t('th_troops')}</th>}
+                                        {depictedColumns.status && <th className="py-2.5 px-3 text-center">{t('th_status')}</th>}
                                         <th className="py-2.5 px-3 text-right">{metricLabel || t('th_score')}</th>
                                         <th className="py-2.5 px-3 w-20 text-center">{t('th_source')}</th>
                                         <th className="py-2.5 px-3 w-20 text-center">{t('th_actions')}</th>
@@ -1097,7 +1389,7 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                 <tbody className="divide-y divide-slate-800/60 font-sans">
                                     {filteredRankings.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-12 text-center text-slate-500">
+                                            <td colSpan={11} className="py-12 text-center text-slate-500">
                                                 <div className="flex flex-col items-center justify-center space-y-2">
                                                     <Camera size={28} className="opacity-30" />
                                                     <p className="text-xs uppercase tracking-wider font-mono">
@@ -1120,23 +1412,25 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                     className="hover:bg-slate-800/40 transition-colors group"
                                                 >
                                                     {/* Rank Cell */}
-                                                    <td className="py-2.5 px-3 text-center font-mono font-bold">
-                                                        {isEditing ? (
-                                                            <input
-                                                                type="number"
-                                                                value={editForm.rank}
-                                                                onChange={(e) => setEditForm({ ...editForm, rank: e.target.value })}
-                                                                className="w-12 bg-black border border-slate-700 rounded px-1 py-0.5 text-center text-xs"
-                                                            />
-                                                        ) : (
-                                                            <span className="flex items-center justify-center gap-1">
-                                                                {medal && <span>{medal}</span>}
-                                                                <span className={row.rank <= 3 ? 'text-amber-300 font-black' : 'text-slate-300'}>
-                                                                    #{row.rank}
+                                                    {depictedColumns.rank && (
+                                                        <td className="py-2.5 px-3 text-center font-mono font-bold">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.rank}
+                                                                    onChange={(e) => setEditForm({ ...editForm, rank: e.target.value })}
+                                                                    className="w-12 bg-black border border-slate-700 rounded px-1 py-0.5 text-center text-xs"
+                                                                />
+                                                            ) : (
+                                                                <span className="flex items-center justify-center gap-1">
+                                                                    {medal && <span>{medal}</span>}
+                                                                    <span className={row.rank <= 3 ? 'text-amber-300 font-black' : 'text-slate-300'}>
+                                                                        #{row.rank}
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                        )}
-                                                    </td>
+                                                            )}
+                                                        </td>
+                                                    )}
 
                                                     {/* Governor Name Cell */}
                                                     <td className="py-2.5 px-3 font-medium text-white">
@@ -1155,22 +1449,127 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                     </td>
 
                                                     {/* Alliance Tag Cell */}
-                                                    <td className="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400">
-                                                        {isEditing ? (
-                                                            <input
-                                                                type="text"
-                                                                value={editForm.allianceTag}
-                                                                onChange={(e) => setEditForm({ ...editForm, allianceTag: e.target.value })}
-                                                                className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-center text-xs"
-                                                            />
-                                                        ) : (
-                                                            row.allianceTag ? (
-                                                                <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-bold">
-                                                                    [{row.allianceTag}]
-                                                                </span>
-                                                            ) : '—'
-                                                        )}
-                                                    </td>
+                                                    {depictedColumns.allianceTag && (
+                                                        <td className="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.allianceTag}
+                                                                    onChange={(e) => setEditForm({ ...editForm, allianceTag: e.target.value })}
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-center text-xs"
+                                                                />
+                                                            ) : (
+                                                                row.allianceTag ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-bold">
+                                                                        [{row.allianceTag}]
+                                                                    </span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Commander Cell */}
+                                                    {depictedColumns.commander && (
+                                                        <td className="py-2.5 px-3 font-medium">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.commander}
+                                                                    onChange={(e) => setEditForm({ ...editForm, commander: e.target.value })}
+                                                                    placeholder="e.g. Lvl 1 Baibars"
+                                                                    className="w-full bg-black border border-slate-700 rounded px-1.5 py-0.5 text-xs text-indigo-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                row.commander ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono text-[11px]">
+                                                                        {row.commander}
+                                                                    </span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Building Time Cell */}
+                                                    {depictedColumns.time && (
+                                                        <td className="py-2.5 px-3 text-center font-mono text-slate-300">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.time}
+                                                                    onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
+                                                                    placeholder="03:15:38"
+                                                                    className="w-20 bg-black border border-slate-700 rounded px-1 py-0.5 text-center text-xs text-amber-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                row.time ? (
+                                                                    <span className="text-amber-300/90">{row.time}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Building Credits Cell */}
+                                                    {depictedColumns.credits && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-yellow-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.credits}
+                                                                    onChange={(e) => setEditForm({ ...editForm, credits: e.target.value })}
+                                                                    placeholder="11738"
+                                                                    className="w-20 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-yellow-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.credits !== null && row.credits !== undefined) ? (
+                                                                    <span>🪙 {Number(row.credits).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Troops Cell */}
+                                                    {depictedColumns.troops && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.troops}
+                                                                    onChange={(e) => setEditForm({ ...editForm, troops: e.target.value })}
+                                                                    placeholder="1"
+                                                                    className="w-20 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-rose-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.troops !== null && row.troops !== undefined) ? (
+                                                                    <span>⚔️ {Number(row.troops).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Status Cell */}
+                                                    {depictedColumns.status && (
+                                                        <td className="py-2.5 px-3 text-center">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.status}
+                                                                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                                                                    placeholder="Arrived"
+                                                                    className="w-18 bg-black border border-slate-700 rounded px-1 py-0.5 text-center text-xs text-white"
+                                                                />
+                                                            ) : (
+                                                                row.status ? (
+                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold ${
+                                                                        row.status.toLowerCase().includes('arrived') 
+                                                                            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' 
+                                                                            : 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-300'
+                                                                    }`}>
+                                                                        {row.status}
+                                                                    </span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
 
                                                     {/* Score Cell */}
                                                     <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">

@@ -2002,6 +2002,17 @@
     "th_source": "Quelle",
     "th_actions": "Aktionen",
     "table_empty_state": "Noch keine Ränge erfasst",
-    "table_empty_hint": "Verbinden Sie ein Spielfenster, drücken Sie Strg+V oder laden Sie Screenshots hoch."
+    "table_empty_hint": "Verbinden Sie ein Spielfenster, drücken Sie Strg+V oder laden Sie Screenshots hoch.",
+    "label_depicted_columns": "Dargestellte Spalten",
+    "label_primary_metric": "Haupt-Punktemetrik",
+    "metric_option_auto": "Automatisch",
+    "metric_option_troops": "Truppen (⚔️)",
+    "metric_option_credits": "Credits (🪙)",
+    "metric_option_time": "Zeit (⏱️)",
+    "th_commander": "Kommandant",
+    "th_time": "Zeit",
+    "th_credits": "Credits",
+    "th_troops": "Truppen",
+    "th_status": "Status"
   }
 }

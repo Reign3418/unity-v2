@@ -2002,6 +2002,17 @@
     "th_source": "المصدر",
     "th_actions": "إجراءات",
     "table_empty_state": "لم يتم تسجيل أي تصنيفات بعد",
-    "table_empty_hint": "ابدأ بالتقاط إطار من نافذة لعبتك، أو الضغط على Ctrl+V للصق، أو رفع لقطات الشاشة."
+    "table_empty_hint": "ابدأ بالتقاط إطار من نافذة لعبتك، أو الضغط على Ctrl+V للصق، أو رفع لقطات الشاشة.",
+    "label_depicted_columns": "الأعمدة المعروضة",
+    "label_primary_metric": "المقياس الأساسي للنقاط",
+    "metric_option_auto": "تلقائي",
+    "metric_option_troops": "القوات (⚔️)",
+    "metric_option_credits": "الاعتمادات (🪙)",
+    "metric_option_time": "الوقت (⏱️)",
+    "th_commander": "القائد",
+    "th_time": "الوقت",
+    "th_credits": "الاعتمادات",
+    "th_troops": "القوات",
+    "th_status": "الحالة"
   }
 }

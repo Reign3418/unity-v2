@@ -2002,6 +2002,17 @@
     "th_source": "Source",
     "th_actions": "Actions",
     "table_empty_state": "No Rankings Recorded Yet",
-    "table_empty_hint": "Start by capturing a frame from your game window, pressing Ctrl+V to paste, or uploading screenshots."
+    "table_empty_hint": "Start by capturing a frame from your game window, pressing Ctrl+V to paste, or uploading screenshots.",
+    "label_depicted_columns": "Depicted Columns",
+    "label_primary_metric": "Primary Score Metric",
+    "metric_option_auto": "Auto Score",
+    "metric_option_troops": "Troops (⚔️)",
+    "metric_option_credits": "Credits (🪙)",
+    "metric_option_time": "Time (⏱️)",
+    "th_commander": "Commander",
+    "th_time": "Time",
+    "th_credits": "Credits",
+    "th_troops": "Troops",
+    "th_status": "Status"
   }
 }
