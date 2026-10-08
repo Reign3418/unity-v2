@@ -2019,6 +2019,12 @@
     "th_cavalry": "Кавалерия",
     "th_archer": "Стрелки",
     "th_siege": "Осадные",
-    "label_structure_capacity": "Вместимость подкреплений"
+    "label_structure_capacity": "Вместимость подкреплений",
+    "th_t1": "T1",
+    "th_t2": "T2",
+    "th_t3": "T3",
+    "th_t4": "T4",
+    "th_t5": "T5",
+    "badge_low_tier_warning": "Низкий тир"
   }
 }

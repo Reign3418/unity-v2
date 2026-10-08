@@ -44,6 +44,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         cavalry: false,
         archer: false,
         siege: false,
+        t1: false,
+        t2: false,
+        t3: false,
+        t4: false,
+        t5: false,
         status: false
     });
 
@@ -107,6 +112,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         cavalry: '',
         archer: '',
         siege: '',
+        t1: '',
+        t2: '',
+        t3: '',
+        t4: '',
+        t5: '',
         status: '', 
         score: '' 
     });
@@ -208,11 +218,16 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             if (r.cavalry !== null && r.cavalry !== undefined) detectedCols.cavalry = true;
             if (r.archer !== null && r.archer !== undefined) detectedCols.archer = true;
             if (r.siege !== null && r.siege !== undefined) detectedCols.siege = true;
+            if (r.t1 !== null && r.t1 !== undefined) detectedCols.t1 = true;
+            if (r.t2 !== null && r.t2 !== undefined) detectedCols.t2 = true;
+            if (r.t3 !== null && r.t3 !== undefined) detectedCols.t3 = true;
+            if (r.t4 !== null && r.t4 !== undefined) detectedCols.t4 = true;
+            if (r.t5 !== null && r.t5 !== undefined) detectedCols.t5 = true;
             if (r.status) detectedCols.status = true;
         });
         if (Array.isArray(newData.detectedColumns)) {
             newData.detectedColumns.forEach(c => {
-                if (c && ['commander', 'time', 'credits', 'troops', 'infantry', 'cavalry', 'archer', 'siege', 'status'].includes(c)) {
+                if (c && ['commander', 'time', 'credits', 'troops', 'infantry', 'cavalry', 'archer', 'siege', 't1', 't2', 't3', 't4', 't5', 'status'].includes(c)) {
                     detectedCols[c] = true;
                 }
             });
@@ -255,6 +270,9 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                     rowRawScore = Number(newRow.credits).toLocaleString();
                 }
 
+                const lowTierCount = (newRow.t1 || 0) + (newRow.t2 || 0) + (newRow.t3 || 0);
+                const hasLowTierWarning = lowTierCount > 0;
+
                 if (matchIdx !== -1) {
                     // Update existing row
                     const current = updated[matchIdx];
@@ -270,6 +288,13 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         cavalry: (newRow.cavalry !== null && newRow.cavalry !== undefined) ? newRow.cavalry : current.cavalry,
                         archer: (newRow.archer !== null && newRow.archer !== undefined) ? newRow.archer : current.archer,
                         siege: (newRow.siege !== null && newRow.siege !== undefined) ? newRow.siege : current.siege,
+                        t1: (newRow.t1 !== null && newRow.t1 !== undefined) ? newRow.t1 : current.t1,
+                        t2: (newRow.t2 !== null && newRow.t2 !== undefined) ? newRow.t2 : current.t2,
+                        t3: (newRow.t3 !== null && newRow.t3 !== undefined) ? newRow.t3 : current.t3,
+                        t4: (newRow.t4 !== null && newRow.t4 !== undefined) ? newRow.t4 : current.t4,
+                        t5: (newRow.t5 !== null && newRow.t5 !== undefined) ? newRow.t5 : current.t5,
+                        hasLowTierWarning: hasLowTierWarning || current.hasLowTierWarning,
+                        lowTierCount: Math.max(lowTierCount, current.lowTierCount || 0),
                         status: newRow.status || current.status,
                         score: rowScore !== undefined ? rowScore : current.score,
                         rawScore: rowRawScore || current.rawScore,
@@ -294,6 +319,13 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         cavalry: (newRow.cavalry !== null && newRow.cavalry !== undefined) ? newRow.cavalry : null,
                         archer: (newRow.archer !== null && newRow.archer !== undefined) ? newRow.archer : null,
                         siege: (newRow.siege !== null && newRow.siege !== undefined) ? newRow.siege : null,
+                        t1: (newRow.t1 !== null && newRow.t1 !== undefined) ? newRow.t1 : null,
+                        t2: (newRow.t2 !== null && newRow.t2 !== undefined) ? newRow.t2 : null,
+                        t3: (newRow.t3 !== null && newRow.t3 !== undefined) ? newRow.t3 : null,
+                        t4: (newRow.t4 !== null && newRow.t4 !== undefined) ? newRow.t4 : null,
+                        t5: (newRow.t5 !== null && newRow.t5 !== undefined) ? newRow.t5 : null,
+                        hasLowTierWarning,
+                        lowTierCount,
                         status: newRow.status || null,
                         score: rowScore,
                         rawScore: rowRawScore,
@@ -583,6 +615,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             cavalry: row.cavalry !== null && row.cavalry !== undefined ? row.cavalry : '',
             archer: row.archer !== null && row.archer !== undefined ? row.archer : '',
             siege: row.siege !== null && row.siege !== undefined ? row.siege : '',
+            t1: row.t1 !== null && row.t1 !== undefined ? row.t1 : '',
+            t2: row.t2 !== null && row.t2 !== undefined ? row.t2 : '',
+            t3: row.t3 !== null && row.t3 !== undefined ? row.t3 : '',
+            t4: row.t4 !== null && row.t4 !== undefined ? row.t4 : '',
+            t5: row.t5 !== null && row.t5 !== undefined ? row.t5 : '',
             status: row.status || '',
             score: row.score
         });
@@ -593,6 +630,13 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             const updated = prev.map(r => {
                 if (r.id === rowId) {
                     const cleanScore = Number(editForm.score) || 0;
+                    const cleanT1 = editForm.t1 !== '' ? Number(editForm.t1) : null;
+                    const cleanT2 = editForm.t2 !== '' ? Number(editForm.t2) : null;
+                    const cleanT3 = editForm.t3 !== '' ? Number(editForm.t3) : null;
+                    const cleanT4 = editForm.t4 !== '' ? Number(editForm.t4) : null;
+                    const cleanT5 = editForm.t5 !== '' ? Number(editForm.t5) : null;
+                    const lowTierCount = (cleanT1 || 0) + (cleanT2 || 0) + (cleanT3 || 0);
+
                     return {
                         ...r,
                         rank: Number(editForm.rank) || r.rank,
@@ -606,6 +650,13 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                         cavalry: editForm.cavalry !== '' ? Number(editForm.cavalry) : null,
                         archer: editForm.archer !== '' ? Number(editForm.archer) : null,
                         siege: editForm.siege !== '' ? Number(editForm.siege) : null,
+                        t1: cleanT1,
+                        t2: cleanT2,
+                        t3: cleanT3,
+                        t4: cleanT4,
+                        t5: cleanT5,
+                        hasLowTierWarning: lowTierCount > 0,
+                        lowTierCount,
                         status: editForm.status.trim() || null,
                         score: cleanScore,
                         rawScore: cleanScore.toLocaleString()
@@ -637,6 +688,13 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             cavalry: null,
             archer: null,
             siege: null,
+            t1: null,
+            t2: null,
+            t3: null,
+            t4: null,
+            t5: null,
+            hasLowTierWarning: false,
+            lowTierCount: 0,
             status: '',
             score: 0,
             rawScore: '0',
@@ -708,6 +766,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             if (depictedColumns.cavalry) rowObj['Cavalry'] = (r.cavalry !== null && r.cavalry !== undefined) ? r.cavalry : '';
             if (depictedColumns.archer) rowObj['Archer'] = (r.archer !== null && r.archer !== undefined) ? r.archer : '';
             if (depictedColumns.siege) rowObj['Siege'] = (r.siege !== null && r.siege !== undefined) ? r.siege : '';
+            if (depictedColumns.t1) rowObj['T1 Troops'] = (r.t1 !== null && r.t1 !== undefined) ? r.t1 : '';
+            if (depictedColumns.t2) rowObj['T2 Troops'] = (r.t2 !== null && r.t2 !== undefined) ? r.t2 : '';
+            if (depictedColumns.t3) rowObj['T3 Troops'] = (r.t3 !== null && r.t3 !== undefined) ? r.t3 : '';
+            if (depictedColumns.t4) rowObj['T4 Troops'] = (r.t4 !== null && r.t4 !== undefined) ? r.t4 : '';
+            if (depictedColumns.t5) rowObj['T5 Troops'] = (r.t5 !== null && r.t5 !== undefined) ? r.t5 : '';
             if (depictedColumns.status) rowObj['Status'] = r.status || '';
             if (!isDuplicateScoreColumn) {
                 rowObj[metricLabel || 'Score'] = r.score;
@@ -737,6 +800,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         if (depictedColumns.cavalry) cols.push({ header: 'Cavalry', get: r => (r.cavalry !== null && r.cavalry !== undefined) ? r.cavalry : '' });
         if (depictedColumns.archer) cols.push({ header: 'Archer', get: r => (r.archer !== null && r.archer !== undefined) ? r.archer : '' });
         if (depictedColumns.siege) cols.push({ header: 'Siege', get: r => (r.siege !== null && r.siege !== undefined) ? r.siege : '' });
+        if (depictedColumns.t1) cols.push({ header: 'T1', get: r => (r.t1 !== null && r.t1 !== undefined) ? r.t1 : '' });
+        if (depictedColumns.t2) cols.push({ header: 'T2', get: r => (r.t2 !== null && r.t2 !== undefined) ? r.t2 : '' });
+        if (depictedColumns.t3) cols.push({ header: 'T3', get: r => (r.t3 !== null && r.t3 !== undefined) ? r.t3 : '' });
+        if (depictedColumns.t4) cols.push({ header: 'T4', get: r => (r.t4 !== null && r.t4 !== undefined) ? r.t4 : '' });
+        if (depictedColumns.t5) cols.push({ header: 'T5', get: r => (r.t5 !== null && r.t5 !== undefined) ? r.t5 : '' });
         if (depictedColumns.status) cols.push({ header: 'Status', get: r => `"${(r.status || '').replace(/"/g, '""')}"` });
         if (!isDuplicateScoreColumn) {
             cols.push({ header: metricLabel || 'Score', get: r => r.score });
@@ -770,6 +838,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
         if (depictedColumns.cavalry) cols.push({ header: 'Cavalry', get: r => (r.cavalry !== null && r.cavalry !== undefined) ? r.cavalry : '' });
         if (depictedColumns.archer) cols.push({ header: 'Archer', get: r => (r.archer !== null && r.archer !== undefined) ? r.archer : '' });
         if (depictedColumns.siege) cols.push({ header: 'Siege', get: r => (r.siege !== null && r.siege !== undefined) ? r.siege : '' });
+        if (depictedColumns.t1) cols.push({ header: 'T1', get: r => (r.t1 !== null && r.t1 !== undefined) ? r.t1 : '' });
+        if (depictedColumns.t2) cols.push({ header: 'T2', get: r => (r.t2 !== null && r.t2 !== undefined) ? r.t2 : '' });
+        if (depictedColumns.t3) cols.push({ header: 'T3', get: r => (r.t3 !== null && r.t3 !== undefined) ? r.t3 : '' });
+        if (depictedColumns.t4) cols.push({ header: 'T4', get: r => (r.t4 !== null && r.t4 !== undefined) ? r.t4 : '' });
+        if (depictedColumns.t5) cols.push({ header: 'T5', get: r => (r.t5 !== null && r.t5 !== undefined) ? r.t5 : '' });
         if (depictedColumns.status) cols.push({ header: 'Status', get: r => r.status || '' });
         if (!isDuplicateScoreColumn) {
             cols.push({ header: metricLabel || 'Score', get: r => r.score });
@@ -808,6 +881,14 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
             if (r.archer) troopBreakdown.push(`🏹${r.archer.toLocaleString()}`);
             if (r.siege) troopBreakdown.push(`🚜${r.siege.toLocaleString()}`);
             if (troopBreakdown.length > 0) extra.push(troopBreakdown.join(' '));
+
+            const tierBreakdown = [];
+            if (r.t5) tierBreakdown.push(`👑${r.t5.toLocaleString()} T5`);
+            if (r.t4) tierBreakdown.push(`⚔️${r.t4.toLocaleString()} T4`);
+            if (r.t3) tierBreakdown.push(`${r.t3.toLocaleString()} T3`);
+            if (r.t2) tierBreakdown.push(`${r.t2.toLocaleString()} T2`);
+            if (r.t1) tierBreakdown.push(`⚠️${r.t1.toLocaleString()} T1`);
+            if (tierBreakdown.length > 0) extra.push(tierBreakdown.join(' '));
 
             if (r.credits !== null && r.credits !== undefined) extra.push(`🪙 **${r.credits.toLocaleString()}**`);
             if (r.time) extra.push(`⏱️ ${r.time}`);
@@ -1490,6 +1571,51 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                 <span>🚜 {t('th_siege')}</span>
                             </button>
                             <button
+                                onClick={() => toggleColumn('t1')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.t1 ? 'bg-slate-700/60 border border-slate-500/80 text-slate-200' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.t1 && <Check size={12} />}
+                                <span>🔘 {t('th_t1')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('t2')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.t2 ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.t2 && <Check size={12} />}
+                                <span>🟢 {t('th_t2')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('t3')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.t3 ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.t3 && <Check size={12} />}
+                                <span>🔵 {t('th_t3')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('t4')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.t4 ? 'bg-purple-600/30 border border-purple-500/50 text-purple-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.t4 && <Check size={12} />}
+                                <span>🟣 {t('th_t4')}</span>
+                            </button>
+                            <button
+                                onClick={() => toggleColumn('t5')}
+                                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                    depictedColumns.t5 ? 'bg-amber-500/30 border border-amber-400/60 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.25)]' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                {depictedColumns.t5 && <Check size={12} />}
+                                <span>👑 {t('th_t5')}</span>
+                            </button>
+                            <button
                                 onClick={() => toggleColumn('status')}
                                 className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
                                     depictedColumns.status ? 'bg-emerald-600/30 border border-emerald-500/50 text-emerald-300' : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-300'
@@ -1559,6 +1685,11 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                         {depictedColumns.cavalry && <th className="py-2.5 px-3 text-right">🐎 {t('th_cavalry')}</th>}
                                         {depictedColumns.archer && <th className="py-2.5 px-3 text-right">🏹 {t('th_archer')}</th>}
                                         {depictedColumns.siege && <th className="py-2.5 px-3 text-right">🚜 {t('th_siege')}</th>}
+                                        {depictedColumns.t1 && <th className="py-2.5 px-3 text-right">🔘 {t('th_t1')}</th>}
+                                        {depictedColumns.t2 && <th className="py-2.5 px-3 text-right">🟢 {t('th_t2')}</th>}
+                                        {depictedColumns.t3 && <th className="py-2.5 px-3 text-right">🔵 {t('th_t3')}</th>}
+                                        {depictedColumns.t4 && <th className="py-2.5 px-3 text-right">🟣 {t('th_t4')}</th>}
+                                        {depictedColumns.t5 && <th className="py-2.5 px-3 text-right">👑 {t('th_t5')}</th>}
                                         {depictedColumns.status && <th className="py-2.5 px-3 text-center">{t('th_status')}</th>}
                                         {!isDuplicateScoreColumn && (
                                             <th className="py-2.5 px-3 text-right">{metricLabel || t('th_score')}</th>
@@ -1623,9 +1754,17 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                                 className="w-full bg-black border border-slate-700 rounded px-2 py-0.5 text-xs text-white"
                                                             />
                                                         ) : (
-                                                            <span className="flex items-center gap-1.5 font-semibold">
-                                                                <span>{row.governorName}</span>
-                                                            </span>
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <span className="font-semibold">{row.governorName}</span>
+                                                                {(row.hasLowTierWarning || (row.t1 > 0 || row.t2 > 0 || row.t3 > 0)) && (
+                                                                    <span 
+                                                                        className="px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[9px] font-mono font-bold flex items-center gap-0.5" 
+                                                                        title={`Sent ${((row.t1 || 0) + (row.t2 || 0) + (row.t3 || 0)).toLocaleString()} low-tier T1-T3 troops`}
+                                                                    >
+                                                                        ⚠️ {t('badge_low_tier_warning')}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </td>
 
@@ -1798,6 +1937,103 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                                                             ) : (
                                                                 (row.siege !== null && row.siege !== undefined) ? (
                                                                     <span>🚜 {Number(row.siege).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* T1 Cell */}
+                                                    {depictedColumns.t1 && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.t1}
+                                                                    onChange={(e) => setEditForm({ ...editForm, t1: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-slate-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.t1 !== null && row.t1 !== undefined) ? (
+                                                                    <span className={row.t1 > 0 ? 'text-rose-400' : 'text-slate-400'}>
+                                                                        🔘 {Number(row.t1).toLocaleString()}
+                                                                    </span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* T2 Cell */}
+                                                    {depictedColumns.t2 && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.t2}
+                                                                    onChange={(e) => setEditForm({ ...editForm, t2: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-emerald-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.t2 !== null && row.t2 !== undefined) ? (
+                                                                    <span>🟢 {Number(row.t2).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* T3 Cell */}
+                                                    {depictedColumns.t3 && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.t3}
+                                                                    onChange={(e) => setEditForm({ ...editForm, t3: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-blue-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.t3 !== null && row.t3 !== undefined) ? (
+                                                                    <span>🔵 {Number(row.t3).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* T4 Cell */}
+                                                    {depictedColumns.t4 && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-400">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.t4}
+                                                                    onChange={(e) => setEditForm({ ...editForm, t4: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-purple-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.t4 !== null && row.t4 !== undefined) ? (
+                                                                    <span>🟣 {Number(row.t4).toLocaleString()}</span>
+                                                                ) : '—'
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* T5 Cell */}
+                                                    {depictedColumns.t5 && (
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-300">
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.t5}
+                                                                    onChange={(e) => setEditForm({ ...editForm, t5: e.target.value })}
+                                                                    placeholder="0"
+                                                                    className="w-16 bg-black border border-slate-700 rounded px-1 py-0.5 text-right text-xs text-amber-300 font-mono"
+                                                                />
+                                                            ) : (
+                                                                (row.t5 !== null && row.t5 !== undefined) ? (
+                                                                    <span className="font-black text-amber-300">👑 {Number(row.t5).toLocaleString()}</span>
                                                                 ) : '—'
                                                             )}
                                                         </td>

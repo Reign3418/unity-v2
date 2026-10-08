@@ -2019,6 +2019,12 @@
     "th_cavalry": "骑兵",
     "th_archer": "弓兵",
     "th_siege": "攻城",
-    "label_structure_capacity": "援军容量"
+    "label_structure_capacity": "援军容量",
+    "th_t1": "T1",
+    "th_t2": "T2",
+    "th_t3": "T3",
+    "th_t4": "T4",
+    "th_t5": "T5",
+    "badge_low_tier_warning": "低阶兵种"
   }
 }

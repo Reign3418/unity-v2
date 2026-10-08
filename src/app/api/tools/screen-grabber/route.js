@@ -63,6 +63,16 @@ TYPE 2: ALLIANCE STRUCTURE / BUILDING / GARRISON / REINFORCEMENTS (e.g. Alliance
     - Siege count next to orange catapult icon (e.g. 37,810)
   * Arrival Status (e.g. 'Arrived', 'Marching')
 
+ROK TROOP TIER RECOGNITION GUIDE (T1–T5):
+Every unit card in Rise of Kingdoms strictly adheres to standard tier rarity colors and Roman numeral medallions:
+- T1: GREY background + bottom bronze circle 'I'. Units: Swordsman (Inf), Lancer (Cav), Bowman (Arch), Battering Ram (Siege).
+- T2: GREEN background + bottom bronze circle 'II'. Units: Spearman (Inf), Light Cav (Cav), Crossbowman (Arch), Ballista (Siege).
+- T3: BLUE background + bottom bronze circle 'III'. Units: Heavy Inf (Inf), Heavy Cav (Cav), Longbowman (Arch), Catapult (Siege).
+- T4: PURPLE background + bottom bronze circle 'IV' with golden laurel leaf wings. Units: Longswordsman (Inf), Knight in Great Helm (Cav), Elite Crossbowman in kettle hat (Arch), Trebuchet (Siege).
+- T5: RADIANT ORANGE/GOLD background with glowing aura + bottom circle 'V' with golden laurel leaf wings. Units: Legionary in gold centurion helm (Inf), Royal Knight in horned gold helm (Cav), Royal Crossbowman in full gold visor helm (Arch), Heavy Siege Cannon (Siege).
+
+If tier breakdown or specific unit tiers (T1, T2, T3, T4, T5 or I, II, III, IV, V) are visible, extract discrete counts into 't1', 't2', 't3', 't4', 't5'!
+
 TARGET METRIC REQUESTED BY USER: "${targetMetric || 'Auto-detect'}"
 EVENT TITLE HINT: "${eventNameHint || 'Auto-detect'}"
 
@@ -71,7 +81,7 @@ CRITICAL RULE FOR MAPPING TO 'score':
 - If the user specified target metric 'Troops' (or contains 'troop'), 'score' MUST be the total troop count number (e.g. 72500), NOT the credits!
 - If the user specified target metric 'Credits' (or contains 'credit' or 'coin'), 'score' MUST be the building credits number (e.g. 6613)!
 - If the user specified target metric 'Time' (or 'building time'), 'score' MUST be the time duration or seconds!
-- In ALL cases, populate the discrete fields: 'troops', 'infantry', 'cavalry', 'archer', 'siege', 'credits', 'time', 'commander', 'status'!
+- In ALL cases, populate the discrete fields: 'troops', 'infantry', 'cavalry', 'archer', 'siege', 't1', 't2', 't3', 't4', 't5', 'credits', 'time', 'commander', 'status'!
 
 Extract the following data in strict JSON format:
 {
@@ -79,7 +89,7 @@ Extract the following data in strict JSON format:
   "hasExplicitRanks": false (set to true ONLY if the screen actually shows explicit #1, #2 rank numbers or medals; set to false if it is an unranked queue or building list),
   "eventName": "Event or screen title displayed at header (e.g. 'Alliance Stone Pit', 'Alliance Flag', 'Master Builder', etc.)",
   "metricLabel": "Primary metric label (e.g. 'Troops', 'Building Credits', 'Score', etc.)",
-  "detectedColumns": ["rank", "governorName", "commander", "time", "credits", "troops", "infantry", "cavalry", "archer", "siege", "status"],
+  "detectedColumns": ["rank", "governorName", "commander", "time", "credits", "troops", "infantry", "cavalry", "archer", "siege", "t1", "t2", "t3", "t4", "t5", "status"],
   "structureCapacity": {
     "current": integer current reinforcing troops if visible (e.g. 110688), or null,
     "max": integer maximum capacity if visible (e.g. 1500000), or null,
@@ -104,6 +114,11 @@ Extract the following data in strict JSON format:
       "cavalry": integer cavalry troops if visible under card (e.g. 18138), or null,
       "archer": integer archer troops if visible under card (e.g. 12414), or null,
       "siege": integer siege troops if visible under card (e.g. 37810), or null,
+      "t1": integer total T1 troops if visible, or null,
+      "t2": integer total T2 troops if visible, or null,
+      "t3": integer total T3 troops if visible, or null,
+      "t4": integer total T4 troops if visible, or null,
+      "t5": integer total T5 troops if visible, or null,
       "status": "status string if visible (e.g. 'Arrived', 'Marching'), or null",
       "score": integer (the primary score value corresponding to the requested target metric),
       "rawScore": "verbatim string of the primary score value"
@@ -190,13 +205,37 @@ STRICT PARSING RULES:
                 ? r.siege
                 : (r.siege ? parseInt(String(r.siege).replace(/\D/g, ''), 10) || null : null);
 
+            const cleanT1 = typeof r.t1 === 'number'
+                ? r.t1
+                : (r.t1 ? parseInt(String(r.t1).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanT2 = typeof r.t2 === 'number'
+                ? r.t2
+                : (r.t2 ? parseInt(String(r.t2).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanT3 = typeof r.t3 === 'number'
+                ? r.t3
+                : (r.t3 ? parseInt(String(r.t3).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanT4 = typeof r.t4 === 'number'
+                ? r.t4
+                : (r.t4 ? parseInt(String(r.t4).replace(/\D/g, ''), 10) || null : null);
+
+            const cleanT5 = typeof r.t5 === 'number'
+                ? r.t5
+                : (r.t5 ? parseInt(String(r.t5).replace(/\D/g, ''), 10) || null : null);
+
             let cleanTroops = typeof r.troops === 'number'
                 ? r.troops
                 : (r.troops ? parseInt(String(r.troops).replace(/\D/g, ''), 10) || null : null);
 
             // If troops count was omitted or obscured but breakdown was visible, auto-sum
-            if (cleanTroops === null && (cleanInfantry !== null || cleanCavalry !== null || cleanArcher !== null || cleanSiege !== null)) {
-                cleanTroops = (cleanInfantry || 0) + (cleanCavalry || 0) + (cleanArcher || 0) + (cleanSiege || 0);
+            if (cleanTroops === null) {
+                if (cleanInfantry !== null || cleanCavalry !== null || cleanArcher !== null || cleanSiege !== null) {
+                    cleanTroops = (cleanInfantry || 0) + (cleanCavalry || 0) + (cleanArcher || 0) + (cleanSiege || 0);
+                } else if (cleanT1 !== null || cleanT2 !== null || cleanT3 !== null || cleanT4 !== null || cleanT5 !== null) {
+                    cleanTroops = (cleanT1 || 0) + (cleanT2 || 0) + (cleanT3 || 0) + (cleanT4 || 0) + (cleanT5 || 0);
+                }
             }
 
             let cleanScore = typeof r.score === 'number' 
@@ -211,6 +250,9 @@ STRICT PARSING RULES:
                 cleanScore = cleanCredits;
             }
 
+            const lowTierCount = (cleanT1 || 0) + (cleanT2 || 0) + (cleanT3 || 0);
+            const hasLowTierWarning = lowTierCount > 0;
+
             return {
                 rank: cleanRank,
                 governorName: String(r.governorName || 'Unknown').trim(),
@@ -223,6 +265,13 @@ STRICT PARSING RULES:
                 cavalry: cleanCavalry,
                 archer: cleanArcher,
                 siege: cleanSiege,
+                t1: cleanT1,
+                t2: cleanT2,
+                t3: cleanT3,
+                t4: cleanT4,
+                t5: cleanT5,
+                hasLowTierWarning,
+                lowTierCount,
                 status: r.status ? String(r.status).trim() : null,
                 score: cleanScore,
                 rawScore: String(r.rawScore || cleanScore)

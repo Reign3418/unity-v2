@@ -2019,6 +2019,12 @@
     "th_cavalry": "기병",
     "th_archer": "궁병",
     "th_siege": "공성",
-    "label_structure_capacity": "지원군 수용량"
+    "label_structure_capacity": "지원군 수용량",
+    "th_t1": "T1",
+    "th_t2": "T2",
+    "th_t3": "T3",
+    "th_t4": "T4",
+    "th_t5": "T5",
+    "badge_low_tier_warning": "하위 티어"
   }
 }

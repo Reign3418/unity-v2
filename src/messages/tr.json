@@ -2019,6 +2019,12 @@
     "th_cavalry": "Süvari",
     "th_archer": "Okçu",
     "th_siege": "Kuşatma",
-    "label_structure_capacity": "Takviye Kapasitesi"
+    "label_structure_capacity": "Takviye Kapasitesi",
+    "th_t1": "T1",
+    "th_t2": "T2",
+    "th_t3": "T3",
+    "th_t4": "T4",
+    "th_t5": "T5",
+    "badge_low_tier_warning": "Düşük Aşama"
   }
 }
