@@ -77,6 +77,31 @@ function logZScoreStandardize(values) {
 }
 
 /**
+ * Formats numeric metrics (KP, Power, Deads) compactly from units up to billions:
+ *   - < 1,000: raw integer ("0", "850")
+ *   - 1k to 999k: thousands with "k" ("11k", "11.4k", "450k")
+ *   - 1M to 999M: millions with "M" ("1.7M", "24M")
+ *   - 1B+: billions with "B" ("1B", "1.25B", "15.2B")
+ */
+export function fmtCompact(v, digits = 1) {
+    const num = Number(v) || 0;
+    const abs = Math.abs(num);
+    const sign = num < 0 ? "-" : "";
+
+    if (abs >= 999_500_000) {
+        const d = abs < 10e9 ? Math.max(digits, 2) : digits;
+        return `${sign}${(abs / 1e9).toFixed(d).replace(/\.?0+$/, "")}B`;
+    }
+    if (abs >= 999_500) {
+        return `${sign}${(abs / 1e6).toFixed(digits).replace(/\.?0+$/, "")}M`;
+    }
+    if (abs >= 995) {
+        return `${sign}${(abs / 1e3).toFixed(digits).replace(/\.?0+$/, "")}k`;
+    }
+    return `${sign}${Math.round(abs)}`;
+}
+
+/**
  * Universally extracts comprehensive combat & economy metrics from either live DynamoDB scans or benchmark rosters
  */
 export function extractGovernorMetrics(g, fallbackIdx = 0) {

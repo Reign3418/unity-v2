@@ -9,6 +9,7 @@ import {
 import CerberusAxisGuide from "@/components/cerberus/CerberusAxisGuide";
 import CerberusGalaxyCodex from "@/components/cerberus/CerberusGalaxyCodex";
 import { StarHudCard, StarDetailPanel } from "@/components/cerberus/CerberusStarDetails";
+import { fmtCompact } from "@/lib/cerberusIntelligence";
 
 // Camera defaults & tuning
 const DEFAULT_YAW = 0.4;
@@ -518,7 +519,7 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     const clanText = star.namingClan === "Solitary" ? text.solitary : star.namingClan;
                     const subtext = star.isBlackHole
                         ? (text.bhSub.get(star.id) || "")
-                        : `${((star.power || 0) / 1e6).toFixed(1)}M • ${clanText}`;
+                        : `${fmtCompact(star.power)} • ${clanText}`;
 
                     ctx.font = isSelected || isHovered ? "bold 11px monospace" : "10px monospace";
                     const mainWidth = ctx.measureText(fullLabel).width;
@@ -817,7 +818,7 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                     >
                                         <span className="font-bold truncate">{m.name}</span>
                                         <span className="text-[9px] text-gray-500 shrink-0">
-                                            <span dir="ltr">{(m.power / 1e6).toFixed(1)}M</span> • {m.alliance !== "None" ? m.alliance : t("no_alliance")}
+                                            <span dir="ltr">{fmtCompact(m.power)}</span> • {m.alliance !== "None" ? m.alliance : t("no_alliance")}
                                         </span>
                                     </button>
                                 ))}

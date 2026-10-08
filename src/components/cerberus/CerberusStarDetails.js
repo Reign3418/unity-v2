@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl";
 import { Crosshair, ChevronDown, ChevronUp, Layers, Sparkles, Shield } from "lucide-react";
 import { classLabel } from "@/components/cerberus/CerberusAxisGuide";
+import { fmtCompact } from "@/lib/cerberusIntelligence";
 
-const fmtM = (v, digits = 1) => `${((Number(v) || 0) / 1e6).toFixed(digits)}M`;
+export { fmtCompact };
 
 function getStarText(t, star, galaxyData) {
     const hasClan = star.isRecognizedClan && star.namingClan !== "Solitary";
@@ -82,15 +83,15 @@ export function StarHudCard({ star, galaxyData, expanded, onToggle, onCenter }) 
                     <div className="grid grid-cols-4 gap-2 text-center text-[10px]" dir="ltr">
                         <div className="bg-[#10161f] border border-[#1a2332] rounded-lg p-1.5">
                             <span className="text-gray-500 text-[8px] block uppercase">{t("stat_power")}</span>
-                            <span className="text-white font-bold">{fmtM(star.power)}</span>
+                            <span className="text-white font-bold">{fmtCompact(star.power)}</span>
                         </div>
                         <div className="bg-[#10161f] border border-[#1a2332] rounded-lg p-1.5">
                             <span className="text-gray-500 text-[8px] block uppercase">{t("stat_kp_short")}</span>
-                            <span className="text-cyan-400 font-bold">{fmtM(star.killPoints)}</span>
+                            <span className="text-cyan-400 font-bold">{fmtCompact(star.killPoints)}</span>
                         </div>
                         <div className="bg-[#10161f] border border-[#1a2332] rounded-lg p-1.5">
                             <span className="text-gray-500 text-[8px] block uppercase">{t("stat_deads")}</span>
-                            <span className="text-amber-400 font-bold">{((star.deads || 0) / 1e3).toFixed(0)}k</span>
+                            <span className="text-amber-400 font-bold">{fmtCompact(star.deads)}</span>
                         </div>
                         <div className="bg-[#10161f] border border-[#1a2332] rounded-lg p-1.5">
                             <span className="text-gray-500 text-[8px] block uppercase">{t("stat_pc_xy")}</span>
@@ -208,11 +209,11 @@ export function StarDetailPanel({ star, galaxyData }) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-right shrink-0" dir="ltr">
                     <div className="bg-[#10161f] border border-[#1a2332] rounded-xl p-2.5">
                         <span className="text-gray-500 text-[9px] block uppercase">{t("stat_power")}</span>
-                        <span className="text-white font-bold text-sm">{fmtM(star.power)}</span>
+                        <span className="text-white font-bold text-sm">{fmtCompact(star.power)}</span>
                     </div>
                     <div className="bg-[#10161f] border border-[#1a2332] rounded-xl p-2.5">
                         <span className="text-gray-500 text-[9px] block uppercase">{t("stat_kill_points")}</span>
-                        <span className="text-cyan-400 font-bold text-sm">{fmtM(star.killPoints)}</span>
+                        <span className="text-cyan-400 font-bold text-sm">{fmtCompact(star.killPoints)}</span>
                     </div>
                     <div className="bg-[#10161f] border border-[#1a2332] rounded-xl p-2.5">
                         <span className="text-gray-500 text-[9px] block uppercase">{t("stat_dead_troops")}</span>

@@ -13,6 +13,7 @@ import {
     simulateLanchesterBattle,
     compute5DGalacticManifold,
     extractGovernorMetrics,
+    fmtCompact,
     BENFORD_THEORETICAL
 } from "@/lib/cerberusIntelligence";
 import CerberusGalaxyCanvas from "@/components/cerberus/CerberusGalaxyCanvas";
@@ -506,11 +507,11 @@ export default function ProjectCerberusClient() {
                                     <div className="flex items-center gap-4 flex-wrap text-right" dir="ltr">
                                         <div>
                                             <span className="text-gray-500 text-[9px] block uppercase">{t("stat_power")}</span>
-                                            <span className="text-white font-bold">{(selectedNode.power / 1e6).toFixed(1)}M</span>
+                                            <span className="text-white font-bold">{fmtCompact(selectedNode.power)}</span>
                                         </div>
                                         <div>
                                             <span className="text-gray-500 text-[9px] block uppercase">{t("stat_kill_points")}</span>
-                                            <span className="text-cyan-400 font-bold">{(selectedNode.killPoints / 1e6).toFixed(1)}M</span>
+                                            <span className="text-cyan-400 font-bold">{fmtCompact(selectedNode.killPoints)}</span>
                                         </div>
                                         <div>
                                             <span className="text-gray-500 text-[9px] block uppercase">{t("stat_low_tier_share")}</span>
