@@ -1843,6 +1843,26 @@
     "hitlist_summary": "تم كشف: {count} حساب بوت | إجمالي الموارد: {rss}",
     "hitlist_item": "{index}. {name} [المعرف: {id}] - {power} قوة | {rss} موارد | {kp} نقاط قتل | [{alliance}]",
     "mail_template_subject": "[تنبيه] أمر إغارة على بوتات المزارع وبائعي الموارد",
-    "mail_template_body": "إلى جميع الحكام: رصدت القيادة شبكات بوتات مزارع غير قانونية تجمع موارد مملكتنا. استهدفوا تحالفات: {alliances} للتصفية واسترداد الموارد مجاناً قبل حرب الممالك!"
+    "mail_template_body": "إلى جميع الحكام: رصدت القيادة شبكات بوتات مزارع غير قانونية تجمع موارد مملكتنا. استهدفوا تحالفات: {alliances} للتصفية واسترداد الموارد مجاناً قبل حرب الممالك!",
+    "tab_reseller_bots": "بوتات المزارع والموزعين",
+    "tab_top_gatherers": "أفضل الجامعين",
+    "tab_alliance_harvest": "حصاد التحالفات",
+    "stat_total_kingdom_rss": "إجمالي حصاد المملكة",
+    "section_gatherers_title": "لوحة صدارة أفضل جامعي الموارد",
+    "section_gatherers_desc": "ترتيب حسب إجمالي الموارد المجموعة لكشف بوتات التجميع والمزارعين النشطين.",
+    "section_alliance_harvest_title": "إجمالي حصاد التحالفات",
+    "section_alliance_harvest_desc": "الموارد التراكمية المجمعة لكل تحالف لكشف خلايا البوتات ومزارع التخزين.",
+    "filter_max_kp": "الحد الأقصى لنقاط القتل",
+    "col_rank": "الترتيب",
+    "col_members": "الأعضاء",
+    "col_avg_gathered": "المعدل / العضو",
+    "col_bot_density": "كثافة البوتات",
+    "badge_gatherer": "جامع موارد",
+    "badge_bot_suspect": "مشتبه كبوت",
+    "badge_standard_alliance": "عادي",
+    "label_no_limit": "بلا حد",
+    "empty_gatherers_title": "لم يتم العثور على بيانات جمع",
+    "empty_gatherers_desc": "لا توجد حسابات بإحصائيات جمع مسجلة في هذا المسح.",
+    "flag_high_power_farm": "مزرعة بقوة عالية"
   }
 }

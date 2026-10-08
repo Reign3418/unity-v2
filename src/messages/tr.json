@@ -1843,6 +1843,26 @@
     "hitlist_summary": "Tespit Edilen: {count} Bot Hesabı | Toplam Kaynak: {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - {power} Güç | {rss} Kaynak | {kp} KP | [{alliance}]",
     "mail_template_subject": "[ALARM] Çiftlik Botu ve Satıcıları Yağmalama Emri",
-    "mail_template_body": "Tüm Valilere: Yönetim krallığımızda kaynak sömüren yasadışı bot şebekelerini tespit etmiştir. Sıfırlanacak hedef ittifaklar: {alliances}. KvK öncesi bedava kaynakları toplayın!"
+    "mail_template_body": "Tüm Valilere: Yönetim krallığımızda kaynak sömüren yasadışı bot şebekelerini tespit etmiştir. Sıfırlanacak hedef ittifaklar: {alliances}. KvK öncesi bedava kaynakları toplayın!",
+    "tab_reseller_bots": "Satıcı ve Çiftlik Botları",
+    "tab_top_gatherers": "En Çok Toplayanlar",
+    "tab_alliance_harvest": "İttifak Hasadı",
+    "stat_total_kingdom_rss": "Toplam Krallık Hasadı",
+    "section_gatherers_title": "Krallık En İyi Toplayıcılar Sıralaması",
+    "section_gatherers_desc": "Bot toplayıcıları ve aktif çiftçileri belirlemek için toplanan kaynaklara göre sıralanmıştır.",
+    "section_alliance_harvest_title": "İttifak Hasat Toplamları",
+    "section_alliance_harvest_desc": "Bot kovanlarını ve çiftlik ittifaklarını vurgulayan kümülatif toplanan kaynaklar.",
+    "filter_max_kp": "Maksimum Öldürme Puanı",
+    "col_rank": "Sıra",
+    "col_members": "Üyeler",
+    "col_avg_gathered": "Ort. / Üye",
+    "col_bot_density": "Bot Yoğunluğu",
+    "badge_gatherer": "Toplayıcı",
+    "badge_bot_suspect": "Bot Şüphesi",
+    "badge_standard_alliance": "Standart",
+    "label_no_limit": "Limitsiz",
+    "empty_gatherers_title": "Toplama Verisi Bulunamadı",
+    "empty_gatherers_desc": "Bu taramada toplama istatistiği kaydedilmiş hesap bulunamadı.",
+    "flag_high_power_farm": "Yüksek Güçlü Çiftlik"
   }
 }

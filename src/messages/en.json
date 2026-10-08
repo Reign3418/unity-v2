@@ -1843,6 +1843,26 @@
     "hitlist_summary": "Detected: {count} Bot Accounts | Total Farmed RSS: {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - {power} Power | {rss} RSS | {kp} KP | [{alliance}]",
     "mail_template_subject": "[ALERT] Kingdom Farm Bot & Reseller Raid Order",
-    "mail_template_body": "All Governors: Leadership has detected active illegal farm bot syndicates harvesting resources in our kingdom. Target the following alliances for zeroing: {alliances}. Claim free RSS before KvK!"
+    "mail_template_body": "All Governors: Leadership has detected active illegal farm bot syndicates harvesting resources in our kingdom. Target the following alliances for zeroing: {alliances}. Claim free RSS before KvK!",
+    "tab_reseller_bots": "Reseller & Farm Bots",
+    "tab_top_gatherers": "Top Gatherers",
+    "tab_alliance_harvest": "Alliance Harvest",
+    "stat_total_kingdom_rss": "Total Kingdom Harvest",
+    "section_gatherers_title": "Kingdom Top Gatherers Leaderboard",
+    "section_gatherers_desc": "Ranked by total resources gathered across the kingdom, uncovering bot harvesters and top active farmers.",
+    "section_alliance_harvest_title": "Alliance Harvest Totals",
+    "section_alliance_harvest_desc": "Cumulative resources gathered by alliance, highlighting bot hives and heavy farming shells.",
+    "filter_max_kp": "Max Kill Points",
+    "col_rank": "Rank",
+    "col_members": "Members",
+    "col_avg_gathered": "Avg / Member",
+    "col_bot_density": "Bot Density",
+    "badge_gatherer": "Gatherer",
+    "badge_bot_suspect": "Bot Suspect",
+    "badge_standard_alliance": "Standard",
+    "label_no_limit": "No Limit",
+    "empty_gatherers_title": "No Gatherer Data Found",
+    "empty_gatherers_desc": "No accounts with recorded gathering stats found in this scan.",
+    "flag_high_power_farm": "High Power Farm"
   }
 }

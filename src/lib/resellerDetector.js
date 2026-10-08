@@ -9,10 +9,10 @@
 
 export function detectResellers(roster = [], options = {}) {
     const {
-        maxPower = 35_000_000,
-        minGathered = 250_000_000,
-        maxKp = 3_000_000,
-        minConfidence = 55,
+        maxPower = 75_000_000,
+        minGathered = 50_000_000,
+        maxKp = 25_000_000,
+        minConfidence = 35,
     } = options;
 
     if (!roster || roster.length === 0) {
@@ -25,9 +25,14 @@ export function detectResellers(roster = [], options = {}) {
                 averageFarmingRatio: 0,
                 hiveAllianceCount: 0,
                 syndicateThreatLevel: "CLEAR",
+                totalKingdomGathered: 0,
+                totalFarmers: 0,
             },
             allianceHives: [],
             resellers: [],
+            allCandidates: [],
+            topGatherers: [],
+            allAllianceHarvest: [],
         };
     }
 
@@ -36,10 +41,10 @@ export function detectResellers(roster = [], options = {}) {
         const id = String(g.id || g.governorId || g['Governor ID'] || `gov_${idx}`);
         const name = String(g.name || g.governorName || g['Governor Name'] || 'Unknown');
         const alliance = String(g.alliance || g['Alliance Tag'] || 'None').trim();
-        const power = Number(g.power || g.Power) || 0;
-        const kp = Number(g.killPoints || g.killpoints || g.KillPoints || g.kp || g.KP) || 0;
-        const gathered = Number(g.gathered ?? g.resourcesGathered ?? g['Resources Gathered']) || 0;
-        const assistance = Number(g.assistance ?? g.rssAssisted ?? g['Assistance']) || 0;
+        const power = Number(g.power ?? g.Power) || 0;
+        const kp = Number(g.killPoints ?? g.killpoints ?? g.KillPoints ?? g.kp ?? g.KP) || 0;
+        const gathered = Number(g.gathered ?? g.resourcesGathered ?? g.ResourcesGathered ?? g['Resources Gathered'] ?? g['Gathered'] ?? g['RSS Gathered']) || 0;
+        const assistance = Number(g.assistance ?? g.rssAssisted ?? g['Assistance'] ?? g['Resources Given']) || 0;
         const deads = Number(g.deads ?? g.dead ?? g.Deads ?? g.Dead ?? g.deadTroops) || 0;
         const t4 = Number(g.t4Kills || g.t4 || g['T4 Kills']) || 0;
         const t5 = Number(g.t5Kills || g.t5 || g['T5 Kills']) || 0;
@@ -52,64 +57,74 @@ export function detectResellers(roster = [], options = {}) {
         let score = 0;
 
         // Vector 1: Farming Overdrive (Gathered to Power Ratio)
-        if (farmingRatio >= 200) {
+        if (farmingRatio >= 150) {
             score += 35;
             flags.push({ code: "FARMING_OVERDRIVE", weight: 35, val: `${Math.round(farmingRatio)}x power` });
-        } else if (farmingRatio >= 80) {
+        } else if (farmingRatio >= 60) {
             score += 25;
             flags.push({ code: "HIGH_FARM_OUTPUT", weight: 25, val: `${Math.round(farmingRatio)}x power` });
-        } else if (farmingRatio >= 35) {
+        } else if (farmingRatio >= 25) {
             score += 15;
             flags.push({ code: "ELEVATED_FARMING", weight: 15, val: `${Math.round(farmingRatio)}x power` });
         }
 
         // Vector 2: Pure Gathering Volume
         if (gathered >= 3_000_000_000) {
-            score += 20;
-            flags.push({ code: "GIGANTIC_STOCKPILE", weight: 20, val: `${(gathered / 1e9).toFixed(1)}B RSS` });
+            score += 25;
+            flags.push({ code: "GIGANTIC_STOCKPILE", weight: 25, val: `${(gathered / 1e9).toFixed(1)}B RSS` });
         } else if (gathered >= 1_000_000_000) {
-            score += 15;
-            flags.push({ code: "BILLION_GATHERED", weight: 15, val: `${(gathered / 1e9).toFixed(1)}B RSS` });
+            score += 20;
+            flags.push({ code: "BILLION_GATHERED", weight: 20, val: `${(gathered / 1e9).toFixed(1)}B RSS` });
+        } else if (gathered >= 250_000_000) {
+            score += 12;
+            flags.push({ code: "HIGH_GATHERED", weight: 12, val: `${(gathered / 1e6).toFixed(0)}M RSS` });
         } else if (gathered >= minGathered) {
-            score += 10;
-            flags.push({ code: "HIGH_GATHERED", weight: 10, val: `${(gathered / 1e6).toFixed(0)}M RSS` });
+            score += 6;
+            flags.push({ code: "HIGH_GATHERED", weight: 6, val: `${(gathered / 1e6).toFixed(0)}M RSS` });
         }
 
         // Vector 3: Combat Pacifism (Zero War Footprint)
-        if (kp < 50_000 && warKills === 0 && deads < 1_000) {
+        if (kp < 100_000 && warKills === 0 && deads < 2_000) {
             score += 30;
-            flags.push({ code: "ZERO_WAR_FOOTPRINT", weight: 30, val: "0 War Kills, <1k Deads" });
-        } else if (kpToPower < 0.05 && warKills < 20_000) {
+            flags.push({ code: "ZERO_WAR_FOOTPRINT", weight: 30, val: "0 War Kills, <2k Deads" });
+        } else if (kpToPower < 0.08 && warKills < 50_000) {
             score += 20;
             flags.push({ code: "PACIFIST_COMBAT_RATIO", weight: 20, val: `${(kpToPower).toFixed(2)}x KP/Power` });
-        } else if (kpToPower < 0.15) {
+        } else if (kpToPower < 0.20) {
             score += 10;
             flags.push({ code: "LOW_WAR_ACTIVITY", weight: 10, val: `${(kpToPower).toFixed(2)}x KP/Power` });
         }
 
-        // Vector 4: Power Sweet Spot (CH17 - CH24 Farm Bracket)
-        if (power >= 1_500_000 && power <= 22_000_000) {
+        // Vector 4: Power Brackets (Low-level bots vs senior farm accounts)
+        if (power >= 1_500_000 && power <= 25_000_000) {
             score += 15;
             flags.push({ code: "FARM_POWER_TIER", weight: 15, val: `${(power / 1e6).toFixed(1)}M Power` });
-        } else if (power > 22_000_000 && power <= maxPower) {
-            score += 8;
-            flags.push({ code: "SENIOR_FARM_TIER", weight: 8, val: `${(power / 1e6).toFixed(1)}M Power` });
+        } else if (power > 25_000_000 && power <= 65_000_000) {
+            score += 10;
+            flags.push({ code: "SENIOR_FARM_TIER", weight: 10, val: `${(power / 1e6).toFixed(1)}M Senior Farm` });
         }
 
         // Vector 5: Heavy Resource Export Velocity (Caravan Assistance)
         if (assistance >= 1_000_000_000) {
             score += 25;
             flags.push({ code: "MASSIVE_RSS_EXPORTER", weight: 25, val: `${(assistance / 1e9).toFixed(1)}B Assisted` });
-        } else if (assistance >= 300_000_000) {
+        } else if (assistance >= 200_000_000) {
             score += 15;
             flags.push({ code: "HIGH_RSS_ASSIST", weight: 15, val: `${(assistance / 1e6).toFixed(0)}M Assisted` });
         }
 
-        // Negative Penalties (Combatants / High Power / Legitimate accounts)
-        if (power > 50_000_000) score -= 35;
-        if (warKills > 200_000) score -= 40;
-        if (kpToPower > 1.0) score -= 30;
-        if (deads > 50_000) score -= 25;
+        // Negative Penalties (Combatants / Legitimate Fighters)
+        // Only heavily penalize players with genuine high combat footprint
+        if (warKills > 500_000) score -= 40;
+        else if (warKills > 200_000) score -= 25;
+
+        if (kpToPower > 2.0) score -= 35;
+        else if (kpToPower > 1.0) score -= 20;
+
+        if (deads > 250_000) score -= 30;
+        else if (deads > 100_000) score -= 15;
+
+        if (power > 100_000_000 && kpToPower > 0.4) score -= 35;
 
         return {
             id,
@@ -143,7 +158,7 @@ export function detectResellers(roster = [], options = {}) {
         }
         const grp = allianceMap.get(tag);
         grp.members.push(c);
-        if (c.initialScore >= 35 && c.power <= maxPower && c.killPoints <= maxKp) {
+        if (c.initialScore >= 30 && c.power <= maxPower && c.killPoints <= maxKp) {
             grp.suspects.push(c);
         }
     });
@@ -159,15 +174,15 @@ export function detectResellers(roster = [], options = {}) {
         const botDensity = totalMembers > 0 ? (suspectCount / totalMembers) : 0;
 
         // Alliance Hive Multiplier
-        if (c.alliance !== "None" && suspectCount >= 4) {
-            if (botDensity >= 0.60) {
+        if (c.alliance !== "None" && suspectCount >= 3) {
+            if (botDensity >= 0.50) {
                 finalScore += 25;
                 updatedFlags.push({
                     code: "CONFIRMED_HIVE_CLUSTER",
                     weight: 25,
                     val: `${suspectCount}/${totalMembers} (${Math.round(botDensity * 100)}%) Bots in [${c.alliance}]`
                 });
-            } else if (botDensity >= 0.30 || suspectCount >= 8) {
+            } else if (botDensity >= 0.25 || suspectCount >= 6) {
                 finalScore += 15;
                 updatedFlags.push({
                     code: "SUSPECTED_HIVE_CLUSTER",
@@ -181,7 +196,6 @@ export function detectResellers(roster = [], options = {}) {
         if (grp && grp.members.length > 2) {
             const hasSequentialName = grp.members.some(other => {
                 if (other.id === c.id) return false;
-                // Check common prefix of 4+ characters or trailing digits
                 const prefixA = c.name.slice(0, 4).toLowerCase();
                 const prefixB = other.name.slice(0, 4).toLowerCase();
                 const matchPrefix = prefixA.length >= 4 && prefixA === prefixB;
@@ -203,8 +217,8 @@ export function detectResellers(roster = [], options = {}) {
         const confidence = Math.min(100, Math.max(0, Math.round(finalScore)));
 
         let classification = "SUSPECTED_FARM";
-        if (confidence >= 85) classification = "CRITICAL_CONFIRMED";
-        else if (confidence >= 70) classification = "HIGH_PROBABILITY";
+        if (confidence >= 80) classification = "CRITICAL_CONFIRMED";
+        else if (confidence >= 60) classification = "HIGH_PROBABILITY";
 
         return {
             ...c,
@@ -214,24 +228,21 @@ export function detectResellers(roster = [], options = {}) {
         };
     });
 
-    // Step 4: Filter to qualifying resellers
+    // Step 4: Filter to qualifying resellers (forensic bot list)
     const filteredResellers = scoredResellers
         .filter(r => (
             r.confidence >= minConfidence &&
             r.power <= maxPower &&
             r.killPoints <= maxKp &&
-            r.gathered >= (minGathered * 0.5) // allow accounts close to threshold if confidence is high
+            r.gathered >= (minGathered * 0.4) // soft floor allows high-confidence bots slightly below strict threshold
         ))
         .sort((a, b) => b.confidence - a.confidence || b.gathered - a.gathered);
 
     // Step 5: Rank & summarize Alliance Hives
     const allianceHives = [];
     allianceMap.forEach(grp => {
-        if (grp.tag === "None" && grp.members.length > 20) {
-            // Group unallied bots as a special category
-        }
         const bots = filteredResellers.filter(r => r.alliance === grp.tag);
-        if (bots.length >= 2 || (bots.length >= 1 && grp.tag !== "None" && bots[0].confidence >= 85)) {
+        if (bots.length >= 2 || (bots.length >= 1 && grp.tag !== "None" && bots[0].confidence >= 75)) {
             const totalBotRss = bots.reduce((s, b) => s + b.gathered, 0);
             const totalBotPower = bots.reduce((s, b) => s + b.power, 0);
             const avgFarmingRatio = bots.length > 0 ? (bots.reduce((s, b) => s + b.farmingRatio, 0) / bots.length) : 0;
@@ -245,7 +256,7 @@ export function detectResellers(roster = [], options = {}) {
                 totalBotRss,
                 totalBotPower,
                 avgFarmingRatio: Number(avgFarmingRatio.toFixed(1)),
-                status: density >= 0.50 && bots.length >= 4 ? "CONFIRMED_HIVE" : (density >= 0.25 || bots.length >= 5 ? "OUTPOST" : "INCIDENTAL"),
+                status: density >= 0.40 && bots.length >= 3 ? "CONFIRMED_HIVE" : (density >= 0.20 || bots.length >= 4 ? "OUTPOST" : "INCIDENTAL"),
                 bots,
             });
         }
@@ -253,16 +264,64 @@ export function detectResellers(roster = [], options = {}) {
 
     allianceHives.sort((a, b) => b.botCount - a.botCount || b.totalBotRss - a.totalBotRss);
 
-    // Step 6: Summary Metrics
+    // Step 6: Top Gatherers across the entire Kingdom (Top 100 governors ranked by RSS gathered)
+    const topGatherers = [...scoredResellers]
+        .sort((a, b) => b.gathered - a.gathered)
+        .slice(0, 100)
+        .map((g, idx) => ({
+            rank: idx + 1,
+            id: g.id,
+            name: g.name,
+            alliance: g.alliance,
+            power: g.power,
+            killPoints: g.killPoints,
+            gathered: g.gathered,
+            farmingRatio: Number(g.farmingRatio.toFixed(1)),
+            deads: g.deads,
+            assistance: g.assistance,
+            confidence: g.confidence,
+            isSuspectedReseller: g.confidence >= minConfidence && g.power <= maxPower && g.killPoints <= maxKp,
+            classification: g.classification,
+            flags: g.flags,
+        }));
+
+    // Step 7: Alliance Harvest Totals across all alliances
+    const allAllianceHarvest = [];
+    allianceMap.forEach(grp => {
+        const totalGathered = grp.members.reduce((s, m) => s + m.gathered, 0);
+        const totalPower = grp.members.reduce((s, m) => s + m.power, 0);
+        const avgGathered = grp.members.length > 0 ? Math.round(totalGathered / grp.members.length) : 0;
+        const avgRatio = totalPower > 0 ? (totalGathered / totalPower) : 0;
+        const botCount = grp.suspects.length;
+        const botDensity = grp.members.length > 0 ? (botCount / grp.members.length) : 0;
+
+        allAllianceHarvest.push({
+            tag: grp.tag,
+            totalMembers: grp.members.length,
+            totalGathered,
+            avgGathered,
+            totalPower,
+            avgRatio: Number(avgRatio.toFixed(1)),
+            botCount,
+            botDensity: Number((botDensity * 100).toFixed(1)),
+            status: botDensity >= 0.40 && botCount >= 3 ? "CONFIRMED_HIVE" : (botCount >= 3 ? "OUTPOST" : "STANDARD"),
+        });
+    });
+
+    allAllianceHarvest.sort((a, b) => b.totalGathered - a.totalGathered);
+
+    // Step 8: Summary Metrics
     const totalSuspected = filteredResellers.length;
     const totalIllicitRss = filteredResellers.reduce((s, r) => s + r.gathered, 0);
     const averagePower = totalSuspected > 0 ? Math.round(filteredResellers.reduce((s, r) => s + r.power, 0) / totalSuspected) : 0;
     const averageFarmingRatio = totalSuspected > 0 ? Number((filteredResellers.reduce((s, r) => s + r.farmingRatio, 0) / totalSuspected).toFixed(1)) : 0;
     const hiveAllianceCount = allianceHives.filter(h => h.status === "CONFIRMED_HIVE").length;
+    const totalKingdomGathered = candidates.reduce((s, c) => s + c.gathered, 0);
+    const totalFarmers = candidates.filter(c => c.gathered >= 50_000_000).length;
 
     let syndicateThreatLevel = "CLEAR";
-    if (totalSuspected >= 30 || hiveAllianceCount >= 2) syndicateThreatLevel = "CRITICAL";
-    else if (totalSuspected >= 10 || hiveAllianceCount >= 1) syndicateThreatLevel = "HIGH";
+    if (totalSuspected >= 25 || hiveAllianceCount >= 2) syndicateThreatLevel = "CRITICAL";
+    else if (totalSuspected >= 8 || hiveAllianceCount >= 1) syndicateThreatLevel = "HIGH";
     else if (totalSuspected > 0) syndicateThreatLevel = "MODERATE";
 
     return {
@@ -274,15 +333,20 @@ export function detectResellers(roster = [], options = {}) {
             averageFarmingRatio,
             hiveAllianceCount,
             syndicateThreatLevel,
+            totalKingdomGathered,
+            totalFarmers,
         },
         allianceHives,
         resellers: filteredResellers,
+        allCandidates: scoredResellers,
+        topGatherers,
+        allAllianceHarvest,
     };
 }
 
 /**
  * Generates an organic synthetic benchmark roster (100 accounts) containing
- * a realistic underground reseller bot network [RSS1] (35 bots), a secondary farm shell [MINE] (12 bots),
+ * a realistic underground reseller bot network [RSS1] (32 bots), a secondary farm shell [MINE] (12 bots),
  * and legitimate fighters and whales. Perfect for offline testing and demonstration.
  */
 export function generateSyntheticResellerBenchmark() {

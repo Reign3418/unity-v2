@@ -1843,6 +1843,26 @@
     "hitlist_summary": "已定位：{count} 个脚本账号 | 采集资源总量：{rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - 战力 {power} | 资源 {rss} | 击杀分 {kp} | [{alliance}]",
     "mail_template_subject": "[全服警报] 农场脚本与非法资源贩子突击清剿令",
-    "mail_template_body": "致全体执政官：管理层已侦测到非法脚本团伙在王国境内非法盗采资源。清剿目标联盟：{alliances}。请全员集结零封，在 KvK 前收取巨额免费资源！"
+    "mail_template_body": "致全体执政官：管理层已侦测到非法脚本团伙在王国境内非法盗采资源。清剿目标联盟：{alliances}。请全员集结零封，在 KvK 前收取巨额免费资源！",
+    "tab_reseller_bots": "商贩与农场脚本",
+    "tab_top_gatherers": "采集先锋榜",
+    "tab_alliance_harvest": "联盟采集总量",
+    "stat_total_kingdom_rss": "全王国采集总量",
+    "section_gatherers_title": "全王国顶级采集者排行榜",
+    "section_gatherers_desc": "按王国采集资源总量排序，全面揭示商贩采集脚本与主力农场账号。",
+    "section_alliance_harvest_title": "联盟采集总量汇总",
+    "section_alliance_harvest_desc": "统计各联盟累计采集资源量与平均值，锁定脚本蜂巢与仓库空壳盟。",
+    "filter_max_kp": "最高击杀积分",
+    "col_rank": "排名",
+    "col_members": "成员数",
+    "col_avg_gathered": "人均采集",
+    "col_bot_density": "脚本浓度",
+    "badge_gatherer": "主力采集",
+    "badge_bot_suspect": "疑似脚本",
+    "badge_standard_alliance": "常规联盟",
+    "label_no_limit": "不限",
+    "empty_gatherers_title": "未找到采集数据",
+    "empty_gatherers_desc": "本次扫描中未发现具备采集统计记录的账号。",
+    "flag_high_power_farm": "高战力农场"
   }
 }

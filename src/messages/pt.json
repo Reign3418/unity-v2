@@ -1843,6 +1843,26 @@
     "hitlist_summary": "Detectados: {count} Bots | Total RSS Colhido: {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - {power} Poder | {rss} RSS | {kp} KP | [{alliance}]",
     "mail_template_subject": "[ALERTA] Ordem de Ataque a Bots de Farm e Revendedores",
-    "mail_template_body": "A todos os Governadores: O comando detectou redes ilegais de bots de coleta em nosso reino. Alianças-alvo para zerar: {alliances}. Coletem RSS gratuito antes do KvK!"
+    "mail_template_body": "A todos os Governadores: O comando detectou redes ilegais de bots de coleta em nosso reino. Alianças-alvo para zerar: {alliances}. Coletem RSS gratuito antes do KvK!",
+    "tab_reseller_bots": "Bots de Revenda e Farm",
+    "tab_top_gatherers": "Melhores Coletores",
+    "tab_alliance_harvest": "Colheita das Alianças",
+    "stat_total_kingdom_rss": "Colheita Total do Reino",
+    "section_gatherers_title": "Classificação dos Melhores Coletores do Reino",
+    "section_gatherers_desc": "Classificados por recursos totais coletados para identificar bots e fazendeiros ativos.",
+    "section_alliance_harvest_title": "Totais de Colheita por Aliança",
+    "section_alliance_harvest_desc": "Recursos acumulados por aliança, destacando colmeias de bots e alianças de farm.",
+    "filter_max_kp": "Máx. Pontos de Morte",
+    "col_rank": "Classificação",
+    "col_members": "Membros",
+    "col_avg_gathered": "Média / Membro",
+    "col_bot_density": "Densidade de Bots",
+    "badge_gatherer": "Coletor",
+    "badge_bot_suspect": "Suspeito de Bot",
+    "badge_standard_alliance": "Padrão",
+    "label_no_limit": "Sem Limite",
+    "empty_gatherers_title": "Nenhum dado de coleta encontrado",
+    "empty_gatherers_desc": "Nenhuma conta com estatísticas de coleta registradas neste escaneamento.",
+    "flag_high_power_farm": "Farm de Alto Poder"
   }
 }

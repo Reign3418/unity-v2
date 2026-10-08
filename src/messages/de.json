@@ -1843,6 +1843,26 @@
     "hitlist_summary": "Erkannt: {count} Bot-Accounts | Gesamte Farm-RSS: {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - {power} Macht | {rss} RSS | {kp} KP | [{alliance}]",
     "mail_template_subject": "[ALARM] Befehl zum Raid illegaler Farm-Bots & Reseller",
-    "mail_template_body": "An alle Statthalter: Die Führung hat aktive illegale Farm-Bot-Syndikate in unserem Königreich lokalisiert. Zielallianzen zum Nullen: {alliances}. Holt euch kostenlose RSS vor dem KvK!"
+    "mail_template_body": "An alle Statthalter: Die Führung hat aktive illegale Farm-Bot-Syndikate in unserem Königreich lokalisiert. Zielallianzen zum Nullen: {alliances}. Holt euch kostenlose RSS vor dem KvK!",
+    "tab_reseller_bots": "Reseller & Farm-Bots",
+    "tab_top_gatherers": "Top-Sammler",
+    "tab_alliance_harvest": "Allianz-Ernte",
+    "stat_total_kingdom_rss": "Gesamte Königreichsernte",
+    "section_gatherers_title": "Königreichs-Rangliste der Top-Sammler",
+    "section_gatherers_desc": "Rangliste nach gesammelten Ressourcen, um Bot-Sammler und Top-Farmer zu identifizieren.",
+    "section_alliance_harvest_title": "Allianz-Ernteübersicht",
+    "section_alliance_harvest_desc": "Gesammelte Ressourcen nach Allianz, hebt Bot-Schwärme und Scheinfarmen hervor.",
+    "filter_max_kp": "Max. Kill-Punkte",
+    "col_rank": "Rang",
+    "col_members": "Mitglieder",
+    "col_avg_gathered": "Ø / Mitglied",
+    "col_bot_density": "Bot-Dichte",
+    "badge_gatherer": "Sammler",
+    "badge_bot_suspect": "Bot-Verdacht",
+    "badge_standard_alliance": "Standard",
+    "label_no_limit": "Kein Limit",
+    "empty_gatherers_title": "Keine Sammlerdaten gefunden",
+    "empty_gatherers_desc": "Keine Accounts mit erfassten Sammelwerten in diesem Scan vorhanden.",
+    "flag_high_power_farm": "Hochmachts-Farm"
   }
 }

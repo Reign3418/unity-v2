@@ -1843,6 +1843,26 @@
     "hitlist_summary": "Terdeteksi: {count} Akun Bot | Total Panen RSS: {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - {power} Power | {rss} RSS | {kp} KP | [{alliance}]",
     "mail_template_subject": "[PERINGATAN] Perintah Penyerbuan Bot Farm & Penjual RSS",
-    "mail_template_body": "Kepada Seluruh Governor: Petinggi telah menemukan sindikat bot ilegal yang memanen sumber daya kingdom kita. Target aliansi untuk dihabisi: {alliances}. Ambil RSS gratis sebelum KvK!"
+    "mail_template_body": "Kepada Seluruh Governor: Petinggi telah menemukan sindikat bot ilegal yang memanen sumber daya kingdom kita. Target aliansi untuk dihabisi: {alliances}. Ambil RSS gratis sebelum KvK!",
+    "tab_reseller_bots": "Bot Reseller & Farm",
+    "tab_top_gatherers": "Pengumpul Teratas",
+    "tab_alliance_harvest": "Panen Aliansi",
+    "stat_total_kingdom_rss": "Total Panen Kerajaan",
+    "section_gatherers_title": "Papan Peringkat Pengumpul Teratas Kerajaan",
+    "section_gatherers_desc": "Peringkat berdasarkan total sumber daya yang dikumpulkan untuk mendeteksi bot dan petani aktif.",
+    "section_alliance_harvest_title": "Total Panen Aliansi",
+    "section_alliance_harvest_desc": "Akumulasi sumber daya yang dikumpulkan per aliansi, menyoroti sarang bot dan cangkang farm.",
+    "filter_max_kp": "Maks Kill Points",
+    "col_rank": "Peringkat",
+    "col_members": "Anggota",
+    "col_avg_gathered": "Rata-rata / Anggota",
+    "col_bot_density": "Kepadatan Bot",
+    "badge_gatherer": "Pengumpul",
+    "badge_bot_suspect": "Diduga Bot",
+    "badge_standard_alliance": "Standar",
+    "label_no_limit": "Tanpa Batas",
+    "empty_gatherers_title": "Data Pengumpul Tidak Ditemukan",
+    "empty_gatherers_desc": "Tidak ada akun dengan statistik pengumpulan dalam pemindaian ini.",
+    "flag_high_power_farm": "Farm Power Tinggi"
   }
 }

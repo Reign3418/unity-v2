@@ -1843,6 +1843,26 @@
     "hitlist_summary": "Détectés : {count} Bots | Total RSS Moissonnées : {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - {power} Puissance | {rss} RSS | {kp} KP | [{alliance}]",
     "mail_template_subject": "[ALERTE] Ordre de Raid contre les Bots et Revendeurs",
-    "mail_template_body": "À tous les Gouverneurs : Le commandement a repéré des réseaux de bots clandestins sur nos terres. Ciblez les alliances {alliances} pour les raser et récupérer les RSS avant le KvK !"
+    "mail_template_body": "À tous les Gouverneurs : Le commandement a repéré des réseaux de bots clandestins sur nos terres. Ciblez les alliances {alliances} pour les raser et récupérer les RSS avant le KvK !",
+    "tab_reseller_bots": "Bots Revendeurs & Fermes",
+    "tab_top_gatherers": "Meilleurs Récolteurs",
+    "tab_alliance_harvest": "Récolte des Alliances",
+    "stat_total_kingdom_rss": "Récolte Totale du Royaume",
+    "section_gatherers_title": "Classement des Meilleurs Récolteurs",
+    "section_gatherers_desc": "Classés par ressources totales récoltées pour identifier bots et fermiers actifs.",
+    "section_alliance_harvest_title": "Totaux de Récolte des Alliances",
+    "section_alliance_harvest_desc": "Ressources cumulées par alliance, mettant en évidence les nids de bots et fermes de stockage.",
+    "filter_max_kp": "Points de Neutralisation Max",
+    "col_rank": "Rang",
+    "col_members": "Membres",
+    "col_avg_gathered": "Moy. / Membre",
+    "col_bot_density": "Densité de Bots",
+    "badge_gatherer": "Récolteur",
+    "badge_bot_suspect": "Suspect de Bot",
+    "badge_standard_alliance": "Standard",
+    "label_no_limit": "Sans Limite",
+    "empty_gatherers_title": "Aucune donnée de récolte trouvée",
+    "empty_gatherers_desc": "Aucun compte avec des statistiques de récolte enregistrées dans ce scan.",
+    "flag_high_power_farm": "Ferme Haut Pouvoir"
   }
 }

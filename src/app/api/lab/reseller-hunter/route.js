@@ -17,10 +17,10 @@ export async function GET(req) {
         const kingdomId = searchParams.get("kd");
         const isDemo = searchParams.get("demo") === "true";
 
-        const maxPower = parseInt(searchParams.get("maxPower") || "35000000");
-        const minGathered = parseInt(searchParams.get("minGathered") || "250000000");
-        const maxKp = parseInt(searchParams.get("maxKp") || "3000000");
-        const minConfidence = parseInt(searchParams.get("minConfidence") || "55");
+        const maxPower = parseInt(searchParams.get("maxPower") || "75000000");
+        const minGathered = parseInt(searchParams.get("minGathered") || "50000000");
+        const maxKp = parseInt(searchParams.get("maxKp") || "25000000");
+        const minConfidence = parseInt(searchParams.get("minConfidence") || "35");
 
         if (isDemo || kingdomId === "DEMO") {
             const demoRoster = generateSyntheticResellerBenchmark();
@@ -32,6 +32,9 @@ export async function GET(req) {
                 summary: analysis.summary,
                 allianceHives: analysis.allianceHives,
                 resellers: analysis.resellers,
+                allCandidates: analysis.allCandidates,
+                topGatherers: analysis.topGatherers,
+                allAllianceHarvest: analysis.allAllianceHarvest,
             });
         }
 
@@ -52,6 +55,7 @@ export async function GET(req) {
             totalIllicitRss: analysis.summary.totalIllicitRss,
             hiveAllianceCount: analysis.summary.hiveAllianceCount,
             threatLevel: analysis.summary.syndicateThreatLevel,
+            totalGathered: analysis.summary.totalKingdomGathered,
         }, {
             userEmail: session?.user?.email || "anonymous"
         }).catch(() => {});
@@ -63,6 +67,9 @@ export async function GET(req) {
             summary: analysis.summary,
             allianceHives: analysis.allianceHives,
             resellers: analysis.resellers,
+            allCandidates: analysis.allCandidates,
+            topGatherers: analysis.topGatherers,
+            allAllianceHarvest: analysis.allAllianceHarvest,
         });
 
     } catch (e) {

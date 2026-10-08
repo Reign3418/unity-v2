@@ -1843,6 +1843,26 @@
     "hitlist_summary": "탐지: {count}개 봇 계정 | 총 수확 자원: {rss}",
     "hitlist_item": "{index}. {name} [ID: {id}] - 투력 {power} | 자원 {rss} | 킬포 {kp} | [{alliance}]",
     "mail_template_subject": "[경보] 왕국 파밍 봇 및 자원 판매상 레이드 명령",
-    "mail_template_body": "모든 지도자 여러분: 지도부에서 왕국 내 자원을 착취하는 불법 봇 조직을 포착했습니다. 다음 연맹을 제로 타겟으로 삼으십시오: {alliances}. KvK 전 무료 자원을 회수하십시오!"
+    "mail_template_body": "모든 지도자 여러분: 지도부에서 왕국 내 자원을 착취하는 불법 봇 조직을 포착했습니다. 다음 연맹을 제로 타겟으로 삼으십시오: {alliances}. KvK 전 무료 자원을 회수하십시오!",
+    "tab_reseller_bots": "리셀러 및 파밍 봇",
+    "tab_top_gatherers": "최고 채집자",
+    "tab_alliance_harvest": "연맹 수확 현황",
+    "stat_total_kingdom_rss": "왕국 총 수확량",
+    "section_gatherers_title": "왕국 최고 채집자 순위",
+    "section_gatherers_desc": "왕국 전체의 총 채집 자원 순위로 자동 봇과 활성 파밍 계정을 식별합니다.",
+    "section_alliance_harvest_title": "연맹별 총 수확량",
+    "section_alliance_harvest_desc": "연맹별 누적 채집 자원으로 봇 군집과 파밍 연맹을 감지합니다.",
+    "filter_max_kp": "최대 킬포인트",
+    "col_rank": "순위",
+    "col_members": "멤버 수",
+    "col_avg_gathered": "멤버당 평균",
+    "col_bot_density": "봇 밀도",
+    "badge_gatherer": "채집자",
+    "badge_bot_suspect": "봇 의심 계정",
+    "badge_standard_alliance": "일반",
+    "label_no_limit": "제한 없음",
+    "empty_gatherers_title": "채집 데이터 없음",
+    "empty_gatherers_desc": "이번 스캔에서 기록된 채집 통계가 있는 계정이 없습니다.",
+    "flag_high_power_farm": "고전투력 파밍 계정"
   }
 }

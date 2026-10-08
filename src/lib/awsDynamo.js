@@ -362,6 +362,47 @@ export async function getGovernorStats(queryParam) {
     }
 }
 
+// Robust DynamoDB attribute value extractors (handles {N: '...'}, {S: '...'}, comma separators, and raw values)
+export function parseAttrNum(val) {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (typeof val === 'object') {
+        if (val.N !== undefined) {
+            const cleaned = String(val.N).replace(/,/g, '').trim();
+            const n = Number(cleaned);
+            return isNaN(n) ? 0 : n;
+        }
+        if (val.S !== undefined) {
+            const cleaned = String(val.S).replace(/,/g, '').trim();
+            const n = Number(cleaned);
+            return isNaN(n) ? 0 : n;
+        }
+    }
+    const cleaned = String(val).replace(/,/g, '').trim();
+    const n = Number(cleaned);
+    return isNaN(n) ? 0 : n;
+}
+
+export function parseAttrStr(val, fallback = '') {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') {
+        if (val.S !== undefined) return String(val.S);
+        if (val.N !== undefined) return String(val.N);
+    }
+    return String(val || fallback);
+}
+
+export function getAttrVal(attrs, keys, isNum = false, fallback = '') {
+    if (!attrs) return isNum ? 0 : fallback;
+    for (const k of keys) {
+        if (attrs[k] !== undefined) {
+            return isNum ? parseAttrNum(attrs[k]) : parseAttrStr(attrs[k], fallback);
+        }
+    }
+    return isNum ? 0 : fallback;
+}
+
 /**
  * Searches the Unity global AWS DynamoDB table for all records matching a specific Kingdom
  */
@@ -415,33 +456,36 @@ export async function getKingdomRoster(kingdomId) {
             
             if (result.Items) {
                 for (const item of result.Items) {
-                    const attrs = item.attributes?.M || {};
-                    // Raw payload from Unity uses exact capitalized strings in the Roster / Scan dumps
+                    const attrs = item.attributes?.M || item;
+                    const id = getAttrVal(attrs, ['Governor ID', 'id', 'Id', 'ID', 'Character ID', 'CharacterID']) || (item.SK?.S ? item.SK.S.replace('GOV#', '') : '');
+                    const name = getAttrVal(attrs, ['Governor Name', 'name', 'Name', 'NAME', 'GovernorName', 'Username', 'username'], false, 'Unknown');
+                    const alliance = getAttrVal(attrs, ['Alliance Tag', 'alliance', 'Alliance', 'ALLIANCE', 'alliance Tag', 'Alliance Name'], false, 'None');
+
                     roster.push({
-                        id: attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', ''),
-                        name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
-                        alliance: attrs['Alliance Tag']?.S || 'None',
+                        id,
+                        name,
+                        alliance,
                         
                         // Stats
-                        power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
-                        killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N) || 0,
-                        dead: parseInt(attrs['Deads']?.N || attrs['dead']?.N) || 0,
-                        t4Kills: parseInt(attrs['T4 Kills']?.N || attrs['t4Kills']?.N) || 0,
-                        t5Kills: parseInt(attrs['T5 Kills']?.N || attrs['t5Kills']?.N) || 0,
-                         gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
-                        assistance: parseInt(attrs['Assistance']?.N || attrs['assistance']?.N) || 0,
+                        power: getAttrVal(attrs, ['Power', 'power', 'POWER'], true),
+                        killPoints: getAttrVal(attrs, ['Kill Points', 'killPoints', 'KillPoints', 'killpoints', 'Total KP', 'KP', 'kp'], true),
+                        dead: getAttrVal(attrs, ['Deads', 'dead', 'Dead', 'DEAD', 'DEADS', 'Defeat', 'DEFEAT', 'defeats', 'Dead(s)'], true),
+                        t4Kills: getAttrVal(attrs, ['T4 Kills', 't4Kills', 'T4Kills', 'Tier 4 Kills'], true),
+                        t5Kills: getAttrVal(attrs, ['T5 Kills', 't5Kills', 'T5Kills', 'Tier 5 Kills'], true),
+                        gathered: getAttrVal(attrs, ['Resources Gathered', 'Gathered', 'gathered', 'ResourcesGathered', 'resourcesGathered', 'RSS Gathered', 'rss gathered', 'resources', 'Resources', 'rss', 'RSS'], true),
+                        assistance: getAttrVal(attrs, ['Assistance', 'assistance', 'Resources Given', 'resources given', 'ResourcesGiven', 'RSS Assistance', 'rss assistance', 'rssAssisted', 'RssAssisted', 'helps'], true),
                         
                         // Sub-Power Metrics
-                        troopPower: parseInt(attrs['Troop Power']?.N || attrs['troop power']?.N || attrs['troopPower']?.N) || 0,
-                        techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
-                        commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
-                        buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0,
+                        troopPower: getAttrVal(attrs, ['Troop Power', 'troop power', 'troopPower', 'TroopPower'], true),
+                        techPower: getAttrVal(attrs, ['Tech Power', 'tech power', 'techPower', 'TechPower'], true),
+                        commanderPower: getAttrVal(attrs, ['Commander Power', 'commander power', 'commanderPower', 'CommanderPower'], true),
+                        buildingPower: getAttrVal(attrs, ['Building Power', 'building power', 'buildingPower', 'BuildingPower'], true),
                         
                         // Deltas
-                        powerDelta: parseInt(attrs['powerDelta']?.N) || 0,
-                        kpDelta: parseInt(attrs['kpDelta']?.N) || 0,
-                        deadsDelta: parseInt(attrs['deadsDelta']?.N) || 0,
-                        gatheredDelta: parseInt(attrs['gatheredDelta']?.N) || 0
+                        powerDelta: getAttrVal(attrs, ['powerDelta'], true),
+                        kpDelta: getAttrVal(attrs, ['kpDelta'], true),
+                        deadsDelta: getAttrVal(attrs, ['deadsDelta'], true),
+                        gatheredDelta: getAttrVal(attrs, ['gatheredDelta'], true)
                     });
                 }
             }
@@ -750,20 +794,20 @@ export async function getOverviewDeltas(kingdomId, startIso, endIso) {
                 const result = await dbClient.send(new QueryCommand(params));
                 if (result.Items) {
                     for (const item of result.Items) {
-                        const attrs = item.attributes?.M || {};
-                        const id = attrs['Governor ID']?.S || attrs['id']?.S || item.SK.S.replace('GOV#', '');
+                        const attrs = item.attributes?.M || item;
+                        const id = getAttrVal(attrs, ['Governor ID', 'id', 'Id', 'ID', 'Character ID', 'CharacterID']) || (item.SK?.S ? item.SK.S.replace('GOV#', '') : '');
                         snapshot[id] = {
-                            name: attrs['Governor Name']?.S || attrs['name']?.S || 'Unknown',
-                            alliance: attrs['Alliance Tag']?.S || 'None',
-                            power: parseInt(attrs['Power']?.N || attrs['power']?.N) || 0,
-                            killPoints: parseInt(attrs['Kill Points']?.N || attrs['killPoints']?.N || attrs['KillPoints']?.N) || 0,
-                            dead: parseInt(attrs['Deads']?.N || attrs['Dead']?.N || attrs['dead']?.N || attrs['Dead(s)']?.N || attrs['Defeat']?.N) || 0,
-                            troopPower: parseInt(attrs['Troop Power']?.N || attrs['troop power']?.N || attrs['troopPower']?.N) || 0,
-                            commanderPower: parseInt(attrs['Commander Power']?.N || attrs['commander power']?.N || attrs['commanderPower']?.N) || 0,
-                            techPower: parseInt(attrs['Tech Power']?.N || attrs['tech power']?.N || attrs['techPower']?.N) || 0,
-                            buildingPower: parseInt(attrs['Building Power']?.N || attrs['building power']?.N || attrs['buildingPower']?.N) || 0,
-                            gathered: parseInt(attrs['Resources Gathered']?.N || attrs['gathered']?.N) || 0,
-                            townHall: parseInt(attrs['Town Hall']?.N || attrs['CH Level']?.N || attrs['townHall']?.N) || 0
+                            name: getAttrVal(attrs, ['Governor Name', 'name', 'Name', 'NAME', 'GovernorName', 'Username', 'username'], false, 'Unknown'),
+                            alliance: getAttrVal(attrs, ['Alliance Tag', 'alliance', 'Alliance', 'ALLIANCE', 'alliance Tag', 'Alliance Name'], false, 'None'),
+                            power: getAttrVal(attrs, ['Power', 'power', 'POWER'], true),
+                            killPoints: getAttrVal(attrs, ['Kill Points', 'killPoints', 'KillPoints', 'killpoints', 'Total KP', 'KP', 'kp'], true),
+                            dead: getAttrVal(attrs, ['Deads', 'Dead', 'dead', 'DEAD', 'DEADS', 'Defeat', 'DEFEAT', 'defeats', 'Dead(s)'], true),
+                            troopPower: getAttrVal(attrs, ['Troop Power', 'troop power', 'troopPower', 'TroopPower'], true),
+                            commanderPower: getAttrVal(attrs, ['Commander Power', 'commander power', 'commanderPower', 'CommanderPower'], true),
+                            techPower: getAttrVal(attrs, ['Tech Power', 'tech power', 'techPower', 'TechPower'], true),
+                            buildingPower: getAttrVal(attrs, ['Building Power', 'building power', 'buildingPower', 'BuildingPower'], true),
+                            gathered: getAttrVal(attrs, ['Resources Gathered', 'Gathered', 'gathered', 'ResourcesGathered', 'resourcesGathered', 'RSS Gathered', 'rss gathered', 'resources', 'Resources', 'rss', 'RSS'], true),
+                            townHall: getAttrVal(attrs, ['Town Hall', 'CH Level', 'townHall', 'City Hall', 'CityHall'], true)
                         };
                     }
                 }
