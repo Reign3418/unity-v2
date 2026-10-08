@@ -57,11 +57,20 @@ export default function DashboardLayout({ children }) {
   }
 
   const pathname = usePathname();
-  const isExperimentalApplet = pathname?.includes('/experimental/ocr');
+  const [isAppletParam, setIsAppletParam] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      setIsAppletParam(sp.get('applet') === 'true' || sp.get('applet') === '1');
+    }
+  }, [pathname]);
+
+  const isExperimentalApplet = pathname?.includes('/experimental/ocr') || isAppletParam;
 
   // Strip all shell rendering if we are in an isolated desktop applet
   if (isExperimentalApplet) {
-      if (session && session.accessToken === "FREE_MODE") {
+      if (session && session.accessToken === "FREE_MODE" && pathname?.includes('/experimental/ocr')) {
          return (
              <div className="flex flex-col bg-[#0a0c0f] min-h-screen text-slate-300 items-center justify-center font-sans p-6 text-center">
                  <ShieldAlert className="text-red-500 w-12 h-12 mb-4" />
@@ -71,7 +80,7 @@ export default function DashboardLayout({ children }) {
          );
       }
       return (
-        <div className="flex bg-[#0a0c0f] min-h-screen text-slate-300 overflow-hidden font-sans">
+        <div className="flex bg-[#0a0c0f] min-h-screen text-slate-300 overflow-x-hidden font-sans w-full">
             {children}
         </div>
       );

@@ -9,7 +9,7 @@ import {
   LayoutDashboard, User, UploadCloud, Building2, BarChart2, 
   TrendingUp, Trophy, Medal, FileText, Smartphone, Timer, 
   Crosshair, BookOpen, Shield, MessageSquare, CalendarDays, 
-  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock, Atom, Bot, Zap
+  Mail, Settings, Lock, LogOut, CheckSquare, Map as MapIcon, Database, Coffee, Heart, FlaskConical, Target, Activity, Sparkles, Ghost, Eye, Clock, Atom, Bot, Zap, Camera, ExternalLink
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -20,26 +20,45 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   const isLeader = effectiveIsLeader;
 
-  const NavItem = ({ href, icon: Icon, label, hidden, isAi }) => {
+  const NavItem = ({ href, icon: Icon, label, hidden, isAi, appletHref }) => {
     if (hidden) return null;
     const isActive = pathname === href || pathname === `/en${href}` || pathname.includes(`${href}`); // fuzzy match over locale
     
     return (
-      <Link 
-        href={href} 
-        onClick={() => setIsOpen && setIsOpen(false)}
-        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative
-          ${isActive 
-            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)]' 
-            : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}
-        `}
-      >
-        <Icon size={18} className={isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400 transition-colors'} />
-        <span className="text-sm font-medium flex items-center gap-1.5">
-          {label}
-          {isAi && <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />}
-        </span>
-      </Link>
+      <div className="relative group">
+        <Link 
+          href={href} 
+          onClick={() => setIsOpen && setIsOpen(false)}
+          className={`flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200
+            ${isActive 
+              ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[inset_4px_0_0_0_rgba(6,182,212,1)]' 
+              : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}
+          `}
+        >
+          <div className="flex items-center gap-3">
+            <Icon size={18} className={isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400 transition-colors'} />
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              {label}
+              {isAi && <Sparkles size={12} className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" />}
+            </span>
+          </div>
+          {appletHref && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(appletHref, 'Unity Applet', 'width=620,height=900,toolbar=0,menubar=0,location=0,resizable=1');
+              }}
+              title="Launch Floating Applet"
+              className="opacity-0 group-hover:opacity-100 text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/30 transition-all flex items-center gap-1 shrink-0"
+            >
+              <span>Applet</span>
+              <ExternalLink size={9} />
+            </button>
+          )}
+        </Link>
+      </div>
     );
   };
 
@@ -103,6 +122,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
           <SectionTitle>{t('sec_tools')}</SectionTitle>
           <NavItem href="/calculators" icon={CheckSquare} label={t('nav_calculators')} isAi={true} />
+          <NavItem href="/tools/ranking-scanner" icon={Camera} label={t('nav_ranking_scanner')} isAi={true} appletHref="/en/tools/ranking-scanner?applet=true" />
           <NavItem href="/tools/kingdom-rollup" icon={Zap} label={t('nav_kingdom_rollup')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/reseller-hunter" icon={Bot} label={t('nav_reseller_hunter')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
           <NavItem href="/tools/ghost-hunter" icon={Ghost} label={t('nav_ghost_hunter')} isAi={true} hidden={!effectiveIsLeader && !effectiveIsSuperAdmin} />
