@@ -2013,6 +2013,7 @@
     "th_time": "Thời gian",
     "th_credits": "Điểm cống hiến",
     "th_troops": "Quân lính",
-    "th_status": "Trạng thái"
+    "th_status": "Trạng thái",
+    "btn_back_to_unity": "Quay lại Unity"
   }
 }

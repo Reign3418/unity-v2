@@ -2,11 +2,13 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { 
     Camera, Play, Square, Video, Upload, Copy, Download, 
     Trash2, Edit3, Plus, Sparkles, AlertCircle, CheckCircle, 
     ExternalLink, RefreshCw, FileSpreadsheet, MessageSquare, 
-    Layers, Zap, Search, Settings, ChevronDown, ChevronUp, X, Check, Eye
+    Layers, Zap, Search, Settings, ChevronDown, ChevronUp, X, Check, Eye,
+    ChevronLeft, Home
 } from 'lucide-react';
 import { downloadExcelFile } from '@/lib/excelHelper';
 
@@ -783,7 +785,17 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
 
             {/* Top Tactical Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-fuchsia-500/20 gap-3">
-                <div>
+                <div className="flex items-center gap-3">
+                    {/* Back to Unity Main Hub Link */}
+                    <Link
+                        href={`/${locale}`}
+                        className="px-3 py-2 rounded-xl border border-slate-800 bg-[#0d1017] hover:bg-slate-800 hover:border-fuchsia-500/50 text-slate-300 hover:text-white text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-sm group shrink-0"
+                        title="Return to Unity Main Dashboard"
+                    >
+                        <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform text-fuchsia-400" />
+                        <span>{t('btn_back_to_unity')}</span>
+                    </Link>
+
                     <div className="flex items-center gap-2.5">
                         <div className="p-2 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.15)]">
                             <Camera size={22} className="animate-pulse" />
@@ -805,6 +817,16 @@ export default function RankingScanner({ isAppletMode = false, locale = 'en' }) 
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                    {/* Unity Hub Shortcut */}
+                    <Link
+                        href={`/${locale}`}
+                        title="Unity Home Dashboard"
+                        className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-all"
+                    >
+                        <Home size={14} className="text-cyan-400" />
+                        <span className="hidden sm:inline">Unity Hub</span>
+                    </Link>
+
                     {/* Settings Button */}
                     <button
                         onClick={() => setShowSettings(!showSettings)}

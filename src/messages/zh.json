@@ -2013,6 +2013,7 @@
     "th_time": "建造时间",
     "th_credits": "联盟积分",
     "th_troops": "部队数",
-    "th_status": "状态"
+    "th_status": "状态",
+    "btn_back_to_unity": "返回 Unity"
   }
 }

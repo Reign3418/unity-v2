@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }) {
     }
   }, [session]);
 
-  const isExperimentalApplet = pathname?.includes('/experimental/ocr') || isAppletParam;
+  const isExperimentalApplet = isAppletParam;
 
   // Show a full-screen loading state while NextAuth bootstraps the session from the backend
   // Or while we are resolving the initial topography matrix
@@ -62,9 +62,9 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Strip all shell rendering if we are in an isolated desktop applet
+  // Strip all shell rendering if we are in an isolated desktop applet popout
   if (isExperimentalApplet) {
-      if (session && session.accessToken === "FREE_MODE" && pathname?.includes('/experimental/ocr')) {
+      if (session && session.accessToken === "FREE_MODE" && (pathname?.includes('/experimental/ocr') || pathname?.includes('/tools/ranking-scanner'))) {
          return (
              <div className="flex flex-col bg-[#0a0c0f] min-h-screen text-slate-300 items-center justify-center font-sans p-6 text-center">
                  <ShieldAlert className="text-red-500 w-12 h-12 mb-4" />

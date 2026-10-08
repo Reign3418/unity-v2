@@ -1,10 +1,14 @@
-'use client';
-
-import React from 'react';
 import RankingScanner from '@/components/tools/RankingScanner';
-import { useLocale } from 'next-intl';
 
-export default function ExperimentalApplet() {
-    const locale = useLocale();
-    return <RankingScanner isAppletMode={true} locale={locale} />;
+export const metadata = {
+  title: 'AI Ranking & Leaderboard Scanner — Unity',
+  description: 'Capture sequential RoK event rankings, auto-stitch overlapping frames, and export weekly alliance stats.',
+};
+
+export default async function ExperimentalApplet({ params, searchParams }) {
+  const { locale } = await params;
+  const sParams = await searchParams;
+  const isApplet = sParams?.applet === 'true' || sParams?.applet === '1';
+
+  return <RankingScanner isAppletMode={isApplet} locale={locale} />;
 }

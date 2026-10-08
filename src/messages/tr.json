@@ -2013,6 +2013,7 @@
     "th_time": "Süre",
     "th_credits": "Kredi",
     "th_troops": "Birlik",
-    "th_status": "Durum"
+    "th_status": "Durum",
+    "btn_back_to_unity": "Unity'ye Dön"
   }
 }

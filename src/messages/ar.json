@@ -2013,6 +2013,7 @@
     "th_time": "الوقت",
     "th_credits": "الاعتمادات",
     "th_troops": "القوات",
-    "th_status": "الحالة"
+    "th_status": "الحالة",
+    "btn_back_to_unity": "العودة إلى Unity"
   }
 }

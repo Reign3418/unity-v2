@@ -2013,6 +2013,7 @@
     "th_time": "Waktu",
     "th_credits": "Kredit",
     "th_troops": "Pasukan",
-    "th_status": "Status"
+    "th_status": "Status",
+    "btn_back_to_unity": "Kembali ke Unity"
   }
 }

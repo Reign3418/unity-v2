@@ -2013,6 +2013,7 @@
     "th_time": "시간",
     "th_credits": "크레딧",
     "th_troops": "병력",
-    "th_status": "상태"
+    "th_status": "상태",
+    "btn_back_to_unity": "Unity로 돌아가기"
   }
 }

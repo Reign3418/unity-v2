@@ -2013,6 +2013,7 @@
     "th_time": "Tempo",
     "th_credits": "Créditos",
     "th_troops": "Tropas",
-    "th_status": "Status"
+    "th_status": "Status",
+    "btn_back_to_unity": "Voltar para o Unity"
   }
 }

@@ -2013,6 +2013,7 @@
     "th_time": "Время",
     "th_credits": "Кредиты",
     "th_troops": "Войска",
-    "th_status": "Статус"
+    "th_status": "Статус",
+    "btn_back_to_unity": "Назад в Unity"
   }
 }
