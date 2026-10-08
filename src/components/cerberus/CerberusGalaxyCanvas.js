@@ -317,8 +317,10 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     baseColor = star.nebulaColor;
                 }
 
-                // Supernova / Corona Pulsation
-                const pulse = Math.sin(time * 3 + star.id) * 0.15 + 1.0;
+                // Supernova / Corona Pulsation (Speed and Amplitude driven by War Exertion)
+                const pulseSpeed = star.pulseSpeed || 3.0;
+                const pulseAmp = star.pulseAmp || 0.15;
+                const pulse = Math.sin(time * pulseSpeed + star.id) * pulseAmp + 1.0;
                 const r = (isHovered || isSelected || isSearchMatch ? star.screenR * 1.8 : star.screenR) * pulse;
 
                 // Search Highlight Beacon
@@ -333,22 +335,97 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     ctx.restore();
                 }
 
-                // Outer Radiant Halo
-                const glow = ctx.createRadialGradient(star.screenX, star.screenY, 0, star.screenX, star.screenY, r * 4.2);
-                glow.addColorStop(0, baseColor);
-                glow.addColorStop(0.35, baseColor + "66");
-                glow.addColorStop(1, "transparent");
+                if (star.isBlackHole) {
+                    // ── RENDER SUPERMASSIVE BLACK HOLE (GRAVITATIONAL SINGULARITY) ──
+                    ctx.save();
 
-                ctx.beginPath();
-                ctx.arc(star.screenX, star.screenY, r * 4.2, 0, Math.PI * 2);
-                ctx.fillStyle = glow;
-                ctx.fill();
+                    // 1. Spacetime Gravitational Lensing Distortion Waves (expanding ripple)
+                    const lensWave = (time * 1.8 + star.id * 0.7) % 3;
+                    ctx.strokeStyle = `rgba(0, 240, 255, ${Math.max(0, 0.4 - lensWave * 0.12)})`;
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.arc(star.screenX, star.screenY, r * (1.8 + lensWave * 1.1), 0, Math.PI * 2);
+                    ctx.stroke();
 
-                // Bright Incandescent Core
-                ctx.beginPath();
-                ctx.arc(star.screenX, star.screenY, r, 0, Math.PI * 2);
-                ctx.fillStyle = isHovered || isSelected || isSearchMatch ? "#ffffff" : baseColor;
-                ctx.fill();
+                    // 2. Relativistic Rotating Accretion Disk
+                    ctx.save();
+                    ctx.translate(star.screenX, star.screenY);
+                    ctx.rotate(0.38); // Tilted accretion plane
+                    
+                    const diskGrad = ctx.createLinearGradient(-r * 3.6, 0, r * 3.6, 0);
+                    diskGrad.addColorStop(0, "rgba(0, 240, 255, 0.95)");   // Doppler blue-shifted approaching front
+                    diskGrad.addColorStop(0.3, "rgba(168, 85, 247, 0.85)"); // Relativistic violet
+                    diskGrad.addColorStop(0.7, "rgba(244, 63, 94, 0.75)");   // Doppler red-shifted receding rear
+                    diskGrad.addColorStop(1, "rgba(0, 240, 255, 0.95)");
+
+                    ctx.strokeStyle = diskGrad;
+                    ctx.lineWidth = Math.max(2.5, r * 0.55);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r * 3.4, r * 1.15, time * 0.5, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // 3. Photon Sphere Ring (Ultra-bright razor-thin photon orbit)
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 2.0;
+                    ctx.shadowColor = "#00f0ff";
+                    ctx.shadowBlur = 14;
+                    ctx.beginPath();
+                    ctx.arc(star.screenX, star.screenY, r * 1.25, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // 4. The Event Horizon Void (Pure Obsidian Pitch-Black Core)
+                    ctx.fillStyle = "#000000";
+                    ctx.beginPath();
+                    ctx.arc(star.screenX, star.screenY, r * 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 5. Relativistic Polar Plasma Jets (Hawking Radiation Beams shooting along spin axis)
+                    const jetLen = r * (2.8 + Math.sin(time * 6 + star.id) * 0.6);
+                    ctx.strokeStyle = "rgba(0, 240, 255, 0.85)";
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.moveTo(star.screenX, star.screenY - r * 1.2);
+                    ctx.lineTo(star.screenX, star.screenY - r * 1.2 - jetLen);
+                    ctx.moveTo(star.screenX, star.screenY + r * 1.2);
+                    ctx.lineTo(star.screenX, star.screenY + r * 1.2 + jetLen);
+                    ctx.stroke();
+
+                    ctx.restore();
+                } else {
+                    // ── RENDER RADIANT STELLAR BODY WITH DYNAMIC LUMINOSITY & GLOW ──
+                    const starLum = star.luminosity || 0.8;
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0.2, starLum);
+
+                    // Outer Radiant Corona / Solar Flares
+                    const glowRadius = r * (2.5 + starLum * 2.2);
+                    const glow = ctx.createRadialGradient(star.screenX, star.screenY, 0, star.screenX, star.screenY, glowRadius);
+                    glow.addColorStop(0, baseColor);
+                    glow.addColorStop(0.35, baseColor + (starLum > 0.7 ? "88" : "33"));
+                    glow.addColorStop(1, "transparent");
+
+                    ctx.beginPath();
+                    ctx.arc(star.screenX, star.screenY, glowRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = glow;
+                    ctx.fill();
+
+                    // Bright Incandescent Core (whiter for high-luminosity stars, darker for dimmed stars)
+                    ctx.beginPath();
+                    ctx.arc(star.screenX, star.screenY, r, 0, Math.PI * 2);
+                    if (isHovered || isSelected || isSearchMatch) {
+                        ctx.fillStyle = "#ffffff";
+                    } else if (starLum >= 0.82) {
+                        ctx.fillStyle = "#ffffff"; // Blazing white-hot fusion core
+                    } else if (starLum <= 0.35) {
+                        ctx.fillStyle = "#475569"; // Dimmed cold corpse
+                    } else {
+                        ctx.fillStyle = baseColor;
+                    }
+                    ctx.fill();
+                    ctx.restore();
+                }
 
                 // Dynamic Floating Nameplate (See people!)
                 const shouldShowLabel = 
@@ -356,7 +433,7 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     isSelected || 
                     isSearchMatch ||
                     labelMode === "all" || 
-                    (labelMode === "leaders" && (star.power >= 70_000_000 || star.spectralType === "O-Hypergiant"));
+                    (labelMode === "leaders" && (star.power >= 70_000_000 || star.spectralType === "O-Hypergiant" || star.isBlackHole));
 
                 if (shouldShowLabel) {
                     // Alpha falloff based on camera distance
@@ -367,7 +444,7 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
 
                     const nameText = star.name;
                     const allianceTag = star.alliance !== "None" ? `[${star.alliance}] ` : "";
-                    const fullLabel = `${allianceTag}${nameText}`;
+                    const fullLabel = star.isBlackHole ? `[SINGULARITY] ${nameText}` : `${allianceTag}${nameText}`;
                     const powerText = `${(star.power / 1e6).toFixed(1)}M`;
 
                     ctx.font = isSelected || isHovered ? "bold 11px monospace" : "10px monospace";
@@ -377,8 +454,12 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     // Holographic Pill Background
                     const pillX = star.screenX + r + 6;
                     const pillY = star.screenY - 14;
-                    ctx.fillStyle = isSelected ? "rgba(6, 182, 212, 0.4)" : "rgba(9, 13, 18, 0.78)";
-                    ctx.strokeStyle = isSelected ? "#00f0ff" : (isSearchMatch ? "#38bdf8" : "rgba(255, 255, 255, 0.2)");
+                    ctx.fillStyle = star.isBlackHole 
+                        ? (isSelected ? "rgba(0, 0, 0, 0.9)" : "rgba(0, 0, 0, 0.8)")
+                        : (isSelected ? "rgba(6, 182, 212, 0.4)" : "rgba(9, 13, 18, 0.78)");
+                    ctx.strokeStyle = star.isBlackHole 
+                        ? "#00f0ff" 
+                        : (isSelected ? "#00f0ff" : (isSearchMatch ? "#38bdf8" : "rgba(255, 255, 255, 0.2)"));
                     ctx.lineWidth = 1;
 
                     ctx.beginPath();
@@ -387,13 +468,16 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     ctx.stroke();
 
                     // Commander Name
-                    ctx.fillStyle = isSelected ? "#ffffff" : (isHovered ? "#38bdf8" : "#e2e8f0");
+                    ctx.fillStyle = isSelected ? "#ffffff" : (isHovered ? "#38bdf8" : (star.isBlackHole ? "#00f0ff" : "#e2e8f0"));
                     ctx.fillText(fullLabel, pillX + 6, pillY + 11);
 
                     // Power & Clan Subtext
                     ctx.font = "8px monospace";
-                    ctx.fillStyle = baseColor;
-                    ctx.fillText(`${powerText} • ${star.namingClan}`, pillX + 6, pillY + 21);
+                    ctx.fillStyle = star.isBlackHole ? "#a855f7" : baseColor;
+                    const subtext = star.isBlackHole 
+                        ? `BLACK HOLE • ${(star.deads / 1e6).toFixed(1)}M DEADS`
+                        : `${powerText} • ${star.namingClan}`;
+                    ctx.fillText(subtext, pillX + 6, pillY + 21);
 
                     ctx.restore();
                 }
@@ -770,6 +854,12 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                     <div className="text-emerald-400 font-bold">
                         {galaxyData.totalStars} CELESTIAL BODIES
                     </div>
+                    {galaxyData.blackHolesCount > 0 && (
+                        <div className="text-cyan-400 font-bold flex items-center justify-end gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-black border border-cyan-400 shadow-[0_0_8px_#00f0ff] inline-block animate-ping"></span>
+                            <span>{galaxyData.blackHolesCount} SINGULARITIES (BLACK HOLES)</span>
+                        </div>
+                    )}
                     <div>{galaxyData.recognizedClansCount} Naming Nebulae</div>
                     <div>{galaxyData.alliancesCount} Alliance Constellations</div>
                     <div className="text-[9px] text-gray-500 pt-1 border-t border-white/10">
@@ -871,6 +961,21 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                         <div className="text-[10px] text-cyan-300 flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded-lg">
                                             <Shield size={11} className="text-cyan-400 shrink-0" />
                                             <span className="truncate">Alliance [{selectedStar.alliance}] — Gravitational link to rally anchors</span>
+                                        </div>
+                                    )}
+
+                                    {/* Black Hole Singularity Callout */}
+                                    {selectedStar.isBlackHole && (
+                                        <div className="bg-cyan-500/10 border border-cyan-500/40 rounded-xl p-2 flex items-center gap-2.5 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+                                            <div className="w-3.5 h-3.5 rounded-full bg-black border-2 border-cyan-400 shadow-[0_0_8px_#00f0ff] shrink-0 animate-pulse" />
+                                            <div>
+                                                <span className="text-cyan-400 font-bold block text-[9px] uppercase tracking-wider">
+                                                    {t("hud_black_hole_warning")}
+                                                </span>
+                                                <span className="text-gray-300 text-[8px] block">
+                                                    {(selectedStar.deads / 1e6).toFixed(2)}M dead casualties collapsed past Schwarzschild radius into an event horizon.
+                                                </span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1054,6 +1159,21 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                     </span>
                                 )}
                             </div>
+
+                            {/* Black Hole Singularity Callout */}
+                            {selectedStar.isBlackHole && (
+                                <div className="mt-2.5 bg-cyan-500/10 border border-cyan-500/40 rounded-xl p-2.5 flex items-center gap-3 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+                                    <div className="w-4 h-4 rounded-full bg-black border-2 border-cyan-400 shadow-[0_0_10px_#00f0ff] shrink-0 animate-pulse" />
+                                    <div>
+                                        <span className="text-cyan-400 font-bold block text-[10px] uppercase tracking-wider">
+                                            {t("hud_black_hole_warning")}
+                                        </span>
+                                        <span className="text-gray-300 text-[9px] block">
+                                            Catastrophic troop sacrifice: {(selectedStar.deads / 1e6).toFixed(2)}M dead soldiers collapsed past Schwarzschild radius into an event horizon.
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* 5D Hologram Tensor Coordinates */}
@@ -1224,6 +1344,32 @@ export default function CerberusGalaxyCanvas({ galaxyData }) {
                                     </div>
                                     <p className="text-gray-400 text-[10px] leading-relaxed">{t("legend_star_d_desc")}</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Section 4: Supermassive Black Holes */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-black border-2 border-cyan-400 shadow-[0_0_8px_#00f0ff] inline-block animate-pulse"></span>
+                                <span>{t("legend_sec_blackhole_title")}</span>
+                            </h3>
+                            <div className="bg-[#10161f] border border-cyan-500/30 rounded-xl p-4 space-y-2">
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("legend_sec_blackhole_desc")}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Section 5: Dynamic Size & Luminosity Metrics */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                                <Zap size={14} />
+                                <span>{t("legend_sec_sizing_title")}</span>
+                            </h3>
+                            <div className="bg-[#10161f] border border-emerald-500/30 rounded-xl p-4 space-y-2">
+                                <p className="text-gray-300 text-[11px] leading-relaxed">
+                                    {t("legend_sec_sizing_desc")}
+                                </p>
                             </div>
                         </div>
 

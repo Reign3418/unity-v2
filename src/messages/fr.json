@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Baleines Gonflées : Puissance brute élevée mais ratios de duels T1 gonflés et pertes anormalement basses. Poids mort.",
     "legend_star_d_title": "D-Naine Blanche (Étoile Argentée)",
     "legend_star_d_desc": "Récolteurs Automatisés / Bots de Ferme : Forte récolte et transferts de ressources sans quasi aucune perte au combat.",
-    "legend_close": "Fermer le Codex"
+    "legend_close": "Fermer le Codex",
+    "legend_sec_blackhole_title": "Singularités Gravitationnelles (Trous Noirs Supermassifs)",
+    "legend_sec_blackhole_desc": "Lorsqu'un gouverneur subit un sacrifice héroïque massif (millions de troupes mortes), son étoile s'effondre en un Trou Noir Supermassif. Un horizon des événements noir entouré d'un disque d'accrétion ardent et de jets de plasma.",
+    "legend_sec_sizing_title": "Métriques Dynamiques de Taille et Luminosité",
+    "legend_sec_sizing_desc": "La taille stellaire varie avec la puissance (naines 2px à hypergéantes 9px). La luminosité et pulsations reflètent l'effort de guerre : combattants ardents et éclatants vs fermiers inactifs estompés en braises froides.",
+    "hud_black_hole_warning": "SINGULARITÉ GRAVITATIONNELLE // TROU NOIR SUPERMASSIF"
   }
 }

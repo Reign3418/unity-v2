@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Paus Menggembung: Kekuatan besar dengan rasio duel T1 tinggi dan pasukan gugur sangat rendah. Beban pasif.",
     "legend_star_d_title": "D-Katai Putih (Bintang Perak)",
     "legend_star_d_desc": "Pengumpul Otomatis / Bot Ladang: Pengumpulan dan bantuan sumber daya tinggi dengan hampir nol korban tempur.",
-    "legend_close": "Tutup Kodeks"
+    "legend_close": "Tutup Kodeks",
+    "legend_sec_blackhole_title": "Singularitas Gravitasi (Lubang Hitam Supermasif)",
+    "legend_sec_blackhole_desc": "Ketika seorang komandan melakukan pengorbanan medan perang masif (jutaan pasukan gugur), bintangnya runtuh menjadi Lubang Hitam Supermasif. Inti kehampaan hitam dikelilingi cakram akresi relativistik menyala dan semburan plasma polar.",
+    "legend_sec_sizing_title": "Metrik Ukuran & Luminositas Dinamis",
+    "legend_sec_sizing_desc": "Ukuran bintang diskalakan oleh Kekuatan Gubernur (katai 2px hingga hiperaksasa 9px). Luminositas & denyut mencerminkan Upaya Perang: prajurit aktif bersinar pijar putih dengan denyut cepat, sementara akun pasif meredup jadi bara dingin.",
+    "hud_black_hole_warning": "SINGULARITAS GRAVITASI // LUBANG HITAM SUPERMASIF"
   }
 }

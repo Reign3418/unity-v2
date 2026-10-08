@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Aufgeblähte Wale: Hohe Macht mit übermäßig vielen T1-Duellen und unverhältnismäßig wenigen Toten. Totes Gewicht.",
     "legend_star_d_title": "D-Weißer Zwerg (Silberner Stern)",
     "legend_star_d_desc": "Automatisierte Sammler / Farm-Bots: Hohe Ressourcensammlung und Unterstützung, jedoch praktisch keine Kampfverluste.",
-    "legend_close": "Kodex schließen"
+    "legend_close": "Kodex schließen",
+    "legend_sec_blackhole_title": "Gravitative Singularitäten (Supermassereiche Schwarze Löcher)",
+    "legend_sec_blackhole_desc": "Wenn ein Kommandant katastrophale Schlachtfeldopfer erbringt (Millionen gefallene Truppen), kollabiert sein Stern gravitativ zu einem Schwarzen Loch. Ein pechschwarzer Ereignishorizont umgeben von einer relativistischen Akkretionsscheibe und Polarjets.",
+    "legend_sec_sizing_title": "Dynamische Größen- und Helligkeitsmetriken",
+    "legend_sec_sizing_desc": "Die Sterngröße skaliert mit der Macht (2px Zwerg bis 9px Hyperriese). Helligkeit & Pulsieren spiegeln den Kriegseinsatz wider: Aktive Krieger leuchten weißglühend mit schnellen Fackeln; inaktive Farmer verblassen zu kalter Asche.",
+    "hud_black_hole_warning": "GRAVITATIVE SINGULARITÄT // SUPERMASSEREICHES SCHWARZES LOCH"
   }
 }

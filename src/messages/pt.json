@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Baleias Infladas: Poder bruto alto com muitos duelos T1 e pouquíssimas tropas mortas. Peso morto no reino.",
     "legend_star_d_title": "D-Anã Branca (Estrela Prateada)",
     "legend_star_d_desc": "Coletores Automatizados / Bots de Farm: Alta coleta e assistência de recursos com quase nenhuma perda em batalha.",
-    "legend_close": "Fechar Códice"
+    "legend_close": "Fechar Códice",
+    "legend_sec_blackhole_title": "Singularidades Gravitacionais (Buracos Negros Supermassivos)",
+    "legend_sec_blackhole_desc": "Quando um governador sofre sacrifício catastrófico em batalha (milhões de tropas mortas), sua estrela colapsa em um Buraco Negro Supermassivo. Um horizonte de eventos negro cercado por um disco de acreção incandescente e jatos polares.",
+    "legend_sec_sizing_title": "Métricas de Tamanho e Luminosidade Dinâmica",
+    "legend_sec_sizing_desc": "O tamanho da estrela escala com o poder do governador (anãs de 2px a hipergigantes de 9px). A luminosidade e pulso refletem o esforço de guerra: combatentes ativos brilham intensamente; fazendeiros inativos diminuem como brasas frias.",
+    "hud_black_hole_warning": "SINGULARIDADE GRAVITACIONAL // BURACO NEGRO SUPERMASSIVO"
   }
 }

@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Şişirilmiş Balinalar: Yüksek güç, ancak aşırı T1 düellosu ve orantısız derecede az ölen asker. Ağır ama verimsiz.",
     "legend_star_d_title": "D-Beyaz Cüce (Gümüş Yıldız)",
     "legend_star_d_desc": "Otomatik Toplayıcılar / Çiftlik Botları: Yüksek kaynak toplama ve yardım hacmi, sıfıra yakın savaş kaybı.",
-    "legend_close": "Kodeksi Kapat"
+    "legend_close": "Kodeksi Kapat",
+    "legend_sec_blackhole_title": "Kütleçekimsel Tekillikler (Süper Kütleli Kara Delikler)",
+    "legend_sec_blackhole_desc": "Bir komutan savaş alanında muazzam bir fedakarlık gösterdiğinde (milyonlarca ölen asker), yıldızı kütleçekimsel çöküş yaşayarak Süper Kütleli Kara Deliğe dönüşür. Akresyon diski ve kutup jetleriyle çevrili zifiri karanlık bir olay ufku.",
+    "legend_sec_sizing_title": "Dinamik Boyut ve Parlaklık Metrikleri",
+    "legend_sec_sizing_desc": "Yıldız boyutu Komutan Gücü ile ölçeklenir (2px cüceden 9px hiperdeve). Parlaklık ve nabız hızı savaş eforunu yansıtır: Aktif savaşçılar parıldayan akkor ışıkla yanarken, pasif çiftçiler soğuk közlere dönüşür.",
+    "hud_black_hole_warning": "KÜTLEÇEKİMSEL TEKİLLİK // SÜPER KÜTLELİ KARA DELİK"
   }
 }

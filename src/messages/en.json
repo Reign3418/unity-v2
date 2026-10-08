@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Padded Whales: High raw power with elevated T1 duel ratios and disproportionately low dead troops. High structural weight, questionable war output.",
     "legend_star_d_title": "D-White Dwarf (Silver/Slate Star)",
     "legend_star_d_desc": "Automated Gatherers / Farm Bots: High resource gathering and assistance volume with virtually zero combat casualties.",
-    "legend_close": "Close Codex"
+    "legend_close": "Close Codex",
+    "legend_sec_blackhole_title": "Gravitational Singularities (Supermassive Black Holes)",
+    "legend_sec_blackhole_desc": "When a governor sustains catastrophic battlefield sacrifice (millions of dead troops), their star undergoes gravitational collapse into a Supermassive Black Hole. An obsidian void core (event horizon) surrounded by a blazing relativistic accretion disk and polar plasma jets.",
+    "legend_sec_sizing_title": "Dynamic Size & Luminosity Metrics",
+    "legend_sec_sizing_desc": "Star Size is scaled by Governor Power (2px dwarf to 9px hypergiant). Star Luminosity & Pulse Speed reflect War Exertion: high-activity warriors burn with radiant white incandescence and rapid solar flares, while inactive farmers and stat-padders dim into cold embers.",
+    "hud_black_hole_warning": "GRAVITATIONAL SINGULARITY // SUPERMASSIVE BLACK HOLE"
   }
 }

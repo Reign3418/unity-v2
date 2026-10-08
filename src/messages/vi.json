@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Cá voi Điểm ảo: Lực chiến cao nhưng cày T1 nhiều và tỷ lệ tử trận thấp bất thường. Tải trọng chết.",
     "legend_star_d_title": "D-Sao lùn Trắng (Sao Bạc)",
     "legend_star_d_desc": "Thu thập Tự động / Bot Nông trại: Thu hoạch và viện trợ tài nguyên cao với thương vong chiến đấu gần như bằng không.",
-    "legend_close": "Đóng Bộ quy tắc"
+    "legend_close": "Đóng Bộ quy tắc",
+    "legend_sec_blackhole_title": "Điểm kỳ dị Trọng lực (Lỗ đen Siêu khối lượng)",
+    "legend_sec_blackhole_desc": "Khi một chỉ huy chịu tổn thất chiến trường khổng lồ (hàng triệu lính tử trận), ngôi sao của họ sẽ suy sụp hấp dẫn thành Lỗ đen Siêu khối lượng. Một vùng chân không đen kịt bao quanh bởi đĩa bồi tụ rực lửa và tia plasma cực.",
+    "legend_sec_sizing_title": "Số liệu Kích thước & Độ sáng Động",
+    "legend_sec_sizing_desc": "Kích thước sao tỷ lệ theo Lực chiến (từ sao lùn 2px đến siêu khổng lồ 9px). Độ sáng và nhịp đập phản ánh Mức độ tham chiến: chiến binh tiền tuyến phát sáng chói lọi, trong khi tài khoản thụ động mờ dần thành tàn tro lạnh.",
+    "hud_black_hole_warning": "ĐIỂM KỲ DỊ TRỌNG LỰC // LỖ ĐEN SIÊU KHỐI LƯỢNG"
   }
 }

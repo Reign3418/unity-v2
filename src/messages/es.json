@@ -1658,6 +1658,11 @@
     "legend_star_m_desc": "Ballenas Rellenas: Gran poder bruto con alto porcentaje de duelos T1 y bajas tropas muertas. Peso sin aporte real.",
     "legend_star_d_title": "D-Enana Blanca (Estrella Plateada)",
     "legend_star_d_desc": "Recolectores Automatizados / Bots de Granja: Gran volumen de recolección y asistencia sin bajas de combate.",
-    "legend_close": "Cerrar Códice"
+    "legend_close": "Cerrar Códice",
+    "legend_sec_blackhole_title": "Singularidades Gravitacionales (Agujeros Negros Supermasivos)",
+    "legend_sec_blackhole_desc": "Cuando un gobernador sufre un sacrificio catastrófico en batalla (millones de tropas muertas), su estrella colapsa en un Agujero Negro Supermasivo. Un horizonte de sucesos de vacío rodeado por un disco de acreción ardiente y chorros polares.",
+    "legend_sec_sizing_title": "Métricas de Tamaño y Luminosidad Dinámica",
+    "legend_sec_sizing_desc": "El tamaño estelar escala con el poder del gobernador (enanas de 2px a hipergigantes de 9px). La luminosidad y pulsación reflejan el esfuerzo bélico: guerreros activos arden incandescentes; granjeros inactivos se apagan como brasas frías.",
+    "hud_black_hole_warning": "SINGULARIDAD GRAVITACIONAL // AGUJERO NEGRO SUPERMASIVO"
   }
 }

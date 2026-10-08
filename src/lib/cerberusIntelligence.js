@@ -600,37 +600,53 @@ export function compute5DGalacticManifold(governors = []) {
         const nebulaColor = isRecognizedClan ? clanColorMap[clanInfo.clan] : '#475569';
         const allianceColor = allianceColorMap[p.alliance] || '#334155';
 
-        // Spectral Class (Stellar Type by Combat Personality)
-        const wr = warRanks[i];
-        const dr = deadRanks[i];
-        const pr = powerRanks[i];
-        const tr = p.t1Ratio / 100;
+        // 1. Black Hole Gravitational Collapse Check (Massive Dead Casualties)
+        // Governors who sustained catastrophic troop sacrifice in battle
+        const isBlackHole = (p.deads >= 2_000_000) || (dr >= 0.96 && p.deads >= 800_000);
 
+        // 2. Dynamic Star Size Scaling (Power-based expansion from 2.2px to 9.0px)
+        const powerNorm = Math.max(0.08, Math.min(1.0, p.power / 130_000_000));
+        let starSize = Number((2.2 + Math.pow(powerNorm, 0.55) * 6.8).toFixed(2));
+        if (isBlackHole) {
+            starSize = Math.max(starSize, 6.2);
+        }
+
+        // 3. Dynamic Luminosity & Pulsation (War Exertion & Purity)
+        // High war ratio: blinding white-hot brilliance (1.0), fast pulse (4.2), wide flares
+        // Low war ratio / farm bots / padded: dimmed down to 0.22 cold fading embers, slow pulse (1.0)
+        let luminosity = Number((0.25 + (p.warRatio / 100) * 0.75).toFixed(2));
+        let pulseSpeed = 1.8 + (p.warRatio / 100) * 3.2;
+        let pulseAmp = 0.08 + (p.warRatio / 100) * 0.18;
+
+        if (tr >= 0.60) {
+            // Heavily padded with T1 duels - dim down the radiance
+            luminosity = Math.max(0.22, Number((luminosity * 0.55).toFixed(2)));
+            pulseAmp = 0.06;
+        }
+
+        // 4. Stellar Spectral Classification
         let spectralType = 'G-Dwarf';
         let spectralColor = '#f59e0b'; // Golden yellow
-        let starSize = 3;
-        let luminosity = 0.8;
 
-        if (wr >= 0.65 && dr >= 0.55 && tr <= 0.60) {
+        if (isBlackHole) {
+            spectralType = 'Supermassive Black Hole';
+            spectralColor = '#00f0ff'; // Relativistic jet color
+            luminosity = 1.0;
+            pulseSpeed = 2.4;
+            pulseAmp = 0.25;
+        } else if (wr >= 0.65 && dr >= 0.55 && tr <= 0.60) {
             spectralType = 'O-Hypergiant'; // Frontline Blood Martyr
             spectralColor = '#00f0ff';     // Brilliant cyan-blue
-            starSize = 5.5;
-            luminosity = 1.0;
         } else if (pr >= 0.60 && tr >= 0.65 && dr <= 0.40) {
             spectralType = 'M-Red Supergiant'; // Padded Whale
             spectralColor = '#f43f5e';        // Red
-            starSize = 4.8;
-            luminosity = 0.7;
         } else if (wr <= 0.25 && dr <= 0.25 && pr <= 0.50) {
             spectralType = 'D-White Dwarf';  // Farm Bot
             spectralColor = '#94a3b8';       // Silver-white
-            starSize = 2.0;
-            luminosity = 0.4;
+            luminosity = Math.min(luminosity, 0.35);
         } else {
             spectralType = 'B-Pulsar';       // Tactical Mercenary
             spectralColor = '#a855f7';       // Electric Purple
-            starSize = 3.8;
-            luminosity = 0.9;
         }
 
         // 3D PCA coordinates (scaled for celestial canvas viewing radius [-220, +220])
@@ -679,10 +695,13 @@ export function compute5DGalacticManifold(governors = []) {
             spiralZ,
 
             // Dim 5: Topology & Stellar Physics
+            isBlackHole,
             spectralType,
             spectralColor,
             starSize,
             luminosity,
+            pulseSpeed,
+            pulseAmp,
             namingClan,
             nebulaColor,
             allianceColor,
@@ -757,6 +776,7 @@ export function compute5DGalacticManifold(governors = []) {
     return {
         totalStars: stars.length,
         stars,
+        blackHolesCount: stars.filter(s => s.isBlackHole).length,
         allianceFilaments,
         namingFilaments,
         recognizedClansCount: recognizedClans.size,
