@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Dna, RefreshCw, Search, Zap } from "lucide-react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 const ARCHETYPE_META = {
     Researcher:   { color: "#6366f1", emoji: "🔬" },
@@ -12,23 +14,31 @@ const ARCHETYPE_META = {
 };
 
 export default function SpendingSignatureLab() {
-    const [kd, setKd] = useState("");
+    const { data: session } = useSession();
+    const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [days, setDays] = useState(30);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const run = async () => {
-        if (!kd.trim()) return;
+    const run = async (targetKd = kd, targetDays = days) => {
+        const queryKd = (targetKd || kd || "").trim();
+        if (!queryKd) return;
         setLoading(true); setError(null); setData(null);
         try {
-            const res = await fetch(`/api/lab/spending-signature?kd=${kd}&days=${days}`);
+            const res = await fetch(`/api/lab/spending-signature?kd=${encodeURIComponent(queryKd)}&days=${targetDays}`);
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error);
+            if (!res.ok) throw new Error(json.error || `No spending signature data found for Kingdom ${queryKd}.`);
             setData(json);
         } catch (e) { setError(e.message); }
         finally { setLoading(false); }
     };
+
+    useEffect(() => {
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKd(activeKd);
+        run(activeKd, days);
+    }, [session]);
 
     return (
         <div className="min-h-screen bg-[#06080a] p-6 text-white font-sans">
@@ -41,11 +51,28 @@ export default function SpendingSignatureLab() {
                 <p className="text-gray-500 text-sm mb-6">Decode a kingdom's army DNA — how each governor spends, classified by dominant growth vector.</p>
 
                 <div className="flex gap-3 mb-8 flex-wrap">
-                    <input value={kd} onChange={e => setKd(e.target.value)} onKeyDown={e => e.key === "Enter" && run()} placeholder="Kingdom ID" className="bg-[#0f1115] border border-[#1e222b] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 w-52"/>
+                    <input 
+                        value={kd} 
+                        onChange={e => setKd(e.target.value)} 
+                        onKeyDown={e => e.key === "Enter" && run(kd, days)} 
+                        placeholder="Kingdom ID" 
+                        dir="ltr"
+                        className="bg-[#0f1115] border border-[#1e222b] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 w-52 font-mono"
+                    />
                     {[7, 14, 30, 60].map(d => (
-                        <button key={d} onClick={() => setDays(d)} className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${days === d ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" : "bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-gray-300"}`}>{d}d</button>
+                        <button 
+                            key={d} 
+                            onClick={() => { setDays(d); run(kd, d); }} 
+                            className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${days === d ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" : "bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-gray-300"}`}
+                        >
+                            {d}d
+                        </button>
                     ))}
-                    <button onClick={run} disabled={loading || !kd} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all">
+                    <button 
+                        onClick={() => run(kd, days)} 
+                        disabled={loading || !kd} 
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
+                    >
                         {loading ? <RefreshCw size={14} className="animate-spin"/> : <Search size={14}/>} Analyze DNA
                     </button>
                 </div>

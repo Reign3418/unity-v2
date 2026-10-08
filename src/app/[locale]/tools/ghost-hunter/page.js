@@ -1,28 +1,38 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Ghost, RefreshCw, AlertTriangle, Search, TrendingDown, Skull, Shield, CheckCircle2 } from "lucide-react";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 const GRADE_COLOR = { A: "text-emerald-400", B: "text-cyan-400", C: "text-yellow-400", D: "text-orange-400", F: "text-rose-500" };
 const GRADE_BG = { A: "bg-emerald-500/10 border-emerald-500/30", B: "bg-cyan-500/10 border-cyan-500/30", C: "bg-yellow-500/10 border-yellow-500/30", D: "bg-orange-500/10 border-orange-500/30", F: "bg-rose-500/10 border-rose-500/30" };
 
 export default function GhostHunter() {
-    const [kd, setKd] = useState("3418");
+    const { data: session } = useSession();
+    const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [days, setDays] = useState(30);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const run = async () => {
-        if (!kd.trim()) return;
+    const run = async (targetKd = kd, targetDays = days) => {
+        const queryKd = (targetKd || kd || "").trim();
+        if (!queryKd) return;
         setLoading(true); setError(null); setData(null);
         try {
-            const res = await fetch(`/api/lab/ghost-hunter?kd=${kd}&days=${days}`);
+            const res = await fetch(`/api/lab/ghost-hunter?kd=${encodeURIComponent(queryKd)}&days=${targetDays}`);
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error || "Failed to load ghost data");
+            if (!res.ok) throw new Error(json.error || `No ghost data found for Kingdom ${queryKd}`);
             setData(json);
         } catch (e) { setError(e.message); }
         finally { setLoading(false); }
     };
+
+    useEffect(() => {
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKd(activeKd);
+        run(activeKd, days);
+    }, [session]);
 
     const s = data?.summary;
 
@@ -48,14 +58,15 @@ export default function GhostHunter() {
                     <input 
                         value={kd} 
                         onChange={e => setKd(e.target.value)} 
-                        onKeyDown={e => e.key === "Enter" && run()} 
-                        placeholder="Kingdom ID (e.g. 3418)" 
+                        onKeyDown={e => e.key === "Enter" && run(kd, days)} 
+                        placeholder="Kingdom ID" 
+                        dir="ltr"
                         className="bg-[#0f1115] border border-[#1e222b] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/50 w-52 font-mono"
                     />
                     {[7, 14, 30, 60].map(d => (
                         <button 
                             key={d} 
-                            onClick={() => setDays(d)} 
+                            onClick={() => { setDays(d); run(kd, d); }} 
                             className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                                 days === d 
                                     ? "bg-violet-500/20 border-violet-500/40 text-violet-300" 
@@ -66,7 +77,7 @@ export default function GhostHunter() {
                         </button>
                     ))}
                     <button 
-                        onClick={run} 
+                        onClick={() => run(kd, days)} 
                         disabled={loading || !kd} 
                         className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
                     >

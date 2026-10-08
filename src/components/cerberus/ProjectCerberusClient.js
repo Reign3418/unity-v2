@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { 
     Atom, Layers, Activity, Zap, AlertTriangle, Flame,
-    Network, Info, Orbit
+    Network, Info, Orbit, RefreshCw
 } from "lucide-react";
 import { 
     computeCombatDnaManifold, 
@@ -17,113 +18,20 @@ import {
     BENFORD_THEORETICAL
 } from "@/lib/cerberusIntelligence";
 import CerberusGalaxyCanvas from "@/components/cerberus/CerberusGalaxyCanvas";
-
-// ============================================================================
-// REALISTIC ORGANIC BENCHMARK GENERATOR (100 NODES, NO DIGIT/SCALE BIAS)
-// ============================================================================
-function generateBalancedBenchmarkRoster() {
-    const roster = [];
-    const alliances = ["3418_WAR", "3418_ELITE", "3418_VET", "FARM_CLAN"];
-
-    for (let i = 1; i <= 100; i++) {
-        // Natural power distribution (25M to 95M)
-        const powerBase = 25_000_000 + Math.floor(Math.pow(Math.random(), 1.5) * 70_000_000);
-        const alliance = i <= 6 ? "3418_WAR" : alliances[i % alliances.length];
-
-        let t1 = 0, t4 = 0, t5 = 0, deads = 0, kp = 0, rssAssisted = 0, helps = 0;
-
-        if (i <= 20) {
-            // Frontline Blood Martyrs (High war kills, high deads, high assists)
-            t4 = Math.floor(powerBase * (0.20 + Math.random() * 0.15));
-            t5 = Math.floor(powerBase * (0.25 + Math.random() * 0.20));
-            t1 = Math.floor(powerBase * (0.01 + Math.random() * 0.03));
-            deads = Math.floor(powerBase * (0.035 + Math.random() * 0.03));
-            rssAssisted = Math.floor(powerBase * (10 + Math.random() * 15));
-            helps = 10_000 + Math.floor(Math.random() * 15_000);
-        } else if (i <= 40) {
-            // Parasitic Whales (High power, 70%+ T1 duels, low deads, greedy assists)
-            t1 = Math.floor(powerBase * (0.70 + Math.random() * 0.30));
-            t4 = Math.floor(powerBase * (0.02 + Math.random() * 0.03));
-            t5 = Math.floor(powerBase * (0.01 + Math.random() * 0.02));
-            deads = Math.floor(powerBase * (0.001 + Math.random() * 0.003)); // Near zero deads
-            rssAssisted = Math.floor(powerBase * (0.05 + Math.random() * 0.1));
-            helps = 1_000 + Math.floor(Math.random() * 1_500);
-        } else if (i <= 65) {
-            // Automated Gatherers / Inactive Farms (Low kills, minimal deads)
-            t1 = Math.floor(10_000 + Math.random() * 50_000);
-            t4 = 0;
-            t5 = 0;
-            deads = Math.floor(200 + Math.random() * 1_000);
-            rssAssisted = Math.floor(500_000 + Math.random() * 2_000_000);
-            helps = 300 + Math.floor(Math.random() * 500);
-        } else {
-            // Tactical Mercenaries (High KvK T5 kills, moderate deads)
-            t4 = Math.floor(powerBase * (0.15 + Math.random() * 0.10));
-            t5 = Math.floor(powerBase * (0.30 + Math.random() * 0.25));
-            t1 = Math.floor(powerBase * (0.02 + Math.random() * 0.04));
-            deads = Math.floor(powerBase * (0.012 + Math.random() * 0.015));
-            rssAssisted = Math.floor(powerBase * (1.0 + Math.random() * 2.0));
-            helps = 4_000 + Math.floor(Math.random() * 3_000);
-        }
-
-        kp = (t1 * 1) + (t4 * 10) + (t5 * 20);
-
-        roster.push({
-            id: 10000000 + i * 18741,
-            name: i === 1 ? "Syndicate_Alpha" : (i <= 20 ? `Vanguard_${i}` : (i <= 40 ? `PaddedWhale_${i}` : `Governor_${i}`)),
-            alliance,
-            power: powerBase,
-            t1Kills: t1,
-            t4Kills: t4,
-            t5Kills: t5,
-            deads,
-            killPoints: kp,
-            rssAssisted,
-            helps,
-        });
-    }
-
-    // Two isolated high-power nodes (Spy/Infiltrator profiles)
-    roster.push({
-        id: 172901112,
-        name: "Shadow_Operative_1",
-        alliance: "None",
-        power: 82_000_000,
-        t1Kills: 200_000,
-        t4Kills: 12_000_000,
-        t5Kills: 14_000_000,
-        deads: 90_000,
-        killPoints: 400_000_000,
-        rssAssisted: 0,
-        helps: 40,
-    });
-    roster.push({
-        id: 184501239,
-        name: "Ghost_Recon_2",
-        alliance: "None",
-        power: 76_000_000,
-        t1Kills: 150_000,
-        t4Kills: 9_000_000,
-        t5Kills: 11_000_000,
-        deads: 45_000,
-        killPoints: 310_000_000,
-        rssAssisted: 0,
-        helps: 20,
-    });
-
-    return roster;
-}
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 export default function ProjectCerberusClient() {
     const t = useTranslations("ProjectCerberus");
+    const { data: session } = useSession();
 
     const [activeTab, setActiveTab] = useState("galaxy"); // 'galaxy' | 'manifold' | 'syndicate' | 'benford' | 'lanchester'
     const [rosterData, setRosterData] = useState([]);
     const [selectedNode, setSelectedNode] = useState(null);
-    const [dataSource, setDataSource] = useState("synthetic"); // 'synthetic' | 'live'
-    const [liveKd, setLiveKd] = useState("3155");
+    const [dataSource, setDataSource] = useState("live");
+    const [liveKd, setLiveKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [loadedKd, setLoadedKd] = useState(null); // kingdom currently displayed (separate from the input box)
     const [isLoadingLive, setIsLoadingLive] = useState(false);
+    const [liveError, setLiveError] = useState(null);
     const [benfordMetric, setBenfordMetric] = useState("combat"); // 'combat' | 'all'
 
     // Lanchester battle simulation inputs
@@ -132,16 +40,12 @@ export default function ProjectCerberusClient() {
     const [kdABuff, setKdABuff] = useState(1.15);
     const [kdB_Buff, setKdB_Buff] = useState(1.00);
 
-    // Initial load
-    useEffect(() => {
-        setRosterData(generateBalancedBenchmarkRoster());
-    }, []);
-
     // Fetch live roster
-    const handleLoadLiveRoster = async () => {
-        const kd = liveKd.trim();
+    const handleLoadLiveRoster = useCallback(async (targetKd = liveKd) => {
+        const kd = (targetKd || liveKd || "").trim();
         if (!kd) return;
         setIsLoadingLive(true);
+        setLiveError(null);
         try {
             const res = await fetch(`/api/aws/roster?kd=${encodeURIComponent(kd)}`);
             const data = await res.json();
@@ -151,14 +55,26 @@ export default function ProjectCerberusClient() {
                 setLoadedKd(kd);
                 setSelectedNode(null);
             } else {
-                alert(t("alert_no_live_data", { kd }));
+                setRosterData([]);
+                setDataSource("live");
+                setLoadedKd(kd);
+                setSelectedNode(null);
+                setLiveError(t("alert_no_live_data", { kd }));
             }
         } catch {
-            alert(t("alert_live_error"));
+            setRosterData([]);
+            setLiveError(t("alert_live_error"));
         } finally {
             setIsLoadingLive(false);
         }
-    };
+    }, [liveKd, t]);
+
+    // Initial load & target kingdom change: pull live scan roster for active target kingdom
+    useEffect(() => {
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setLiveKd(activeKd);
+        handleLoadLiveRoster(activeKd);
+    }, [session, handleLoadLiveRoster]);
 
     // 0. 5D Astrodynamic Galaxy Manifold
     const galaxy = useMemo(() => {
@@ -279,37 +195,30 @@ export default function ProjectCerberusClient() {
 
                         {/* Data Source Controls */}
                         <div className="flex items-center gap-2 flex-wrap shrink-0">
-                            <button
-                                onClick={() => {
-                                    setRosterData(generateBalancedBenchmarkRoster());
-                                    setDataSource("synthetic");
-                                    setLoadedKd(null);
-                                    setSelectedNode(null);
-                                }}
-                                className={`px-3 py-2 rounded-xl text-xs font-mono font-bold uppercase transition-all cursor-pointer border ${
-                                    dataSource === "synthetic"
-                                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                                        : "bg-[#10161f] text-gray-400 border-[#1a2332] hover:text-white"
-                                }`}
-                            >
-                                {t("load_sample_data")}
-                            </button>
-
-                            <div className="flex items-center gap-1.5 bg-[#10161f] border border-[#1a2332] rounded-xl p-1">
+                            <div className="flex items-center gap-1.5 bg-[#10161f] border border-[#1a2332] rounded-xl p-1.5">
+                                <span className="text-[10px] font-mono text-gray-400 pl-2 pr-1 uppercase">KD</span>
                                 <input
                                     type="text"
                                     value={liveKd}
                                     onChange={e => setLiveKd(e.target.value)}
+                                    onKeyDown={e => e.key === "Enter" && handleLoadLiveRoster(liveKd)}
                                     placeholder={t("kd_placeholder")}
                                     dir="ltr"
-                                    className="w-16 bg-transparent px-2 py-1 text-xs font-mono text-white focus:outline-none"
+                                    className="w-20 bg-transparent px-2 py-1 text-xs font-mono text-white focus:outline-none"
                                 />
                                 <button
-                                    onClick={handleLoadLiveRoster}
-                                    disabled={isLoadingLive}
-                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-black text-[11px] font-mono font-bold uppercase rounded-lg transition-colors cursor-pointer"
+                                    onClick={() => handleLoadLiveRoster(liveKd)}
+                                    disabled={isLoadingLive || !liveKd.trim()}
+                                    className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black text-xs font-mono font-bold uppercase rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                                 >
-                                    {isLoadingLive ? t("btn_loading") : t("btn_load_live")}
+                                    {isLoadingLive ? (
+                                        <>
+                                            <RefreshCw size={12} className="animate-spin" />
+                                            <span>{t("btn_loading")}</span>
+                                        </>
+                                    ) : (
+                                        t("btn_load_live")
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -339,6 +248,14 @@ export default function ProjectCerberusClient() {
                         ))}
                     </div>
                 </div>
+
+                {/* Live Error Banner */}
+                {liveError && (
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3 text-amber-400 text-xs font-mono">
+                        <AlertTriangle size={18} className="shrink-0" />
+                        <span>{liveError}</span>
+                    </div>
+                )}
 
                 {/* ── MODULE 0: 5D ASTRODYNAMIC GALAXY MANIFOLD ──────────────── */}
                 {activeTab === "galaxy" && galaxy && (

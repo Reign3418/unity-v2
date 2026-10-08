@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { 
     Bot, RefreshCw, Search, ShieldAlert, AlertTriangle, 
     Download, Copy, Check, Filter, Layers, Zap, 
@@ -10,16 +11,17 @@ import {
 } from "lucide-react";
 import { downloadExcelFile } from "@/lib/excelHelper";
 import { fmtCompact } from "@/lib/cerberusIntelligence";
-import { detectResellers, generateSyntheticResellerBenchmark } from "@/lib/resellerDetector";
+import { detectResellers } from "@/lib/resellerDetector";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 export default function ResellerHunterPage() {
     const t = useTranslations("ResellerHunter");
+    const { data: session } = useSession();
 
-    const [kd, setKd] = useState("4194");
+    const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [data, setData] = useState(null);
-    const [isDemo, setIsDemo] = useState(false);
     const [activeTab, setActiveTab] = useState("bots"); // 'bots' | 'gatherers' | 'alliances'
 
     // Forensic Filter Tuners
@@ -38,10 +40,12 @@ export default function ResellerHunterPage() {
     const [expandedHives, setExpandedHives] = useState(new Set());
     const [inspectedHive, setInspectedHive] = useState(null);
 
-    // Initial load: trigger synthetic benchmark demo so user sees instant value
+    // Initial load & target kingdom change: pull live data for target kingdom selected at top
     useEffect(() => {
-        runScan(true);
-    }, []);
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKd(activeKd);
+        runScan(activeKd);
+    }, [session]);
 
     const showToast = useCallback((msg) => {
         setToastMessage(msg);
@@ -73,40 +77,23 @@ export default function ResellerHunterPage() {
         showToast(t("toast_filters_reset"));
     };
 
-    const runScan = async (useDemo = false) => {
+    const runScan = async (targetKd = kd) => {
+        const queryKd = (targetKd || kd || "").trim();
+        if (!queryKd) return;
+
         setLoading(true);
         setError(null);
         setSelectedAlliance(null);
 
         try {
-            if (useDemo || kd.toUpperCase() === "DEMO") {
-                // Client-side instant zero-cost demo
-                const demoRoster = generateSyntheticResellerBenchmark();
-                const analysis = detectResellers(demoRoster, { maxPower, minGathered, maxKp, minConfidence });
-                setData({
-                    kingdomId: "DEMO-SYNDICATE",
-                    isDemo: true,
-                    summary: analysis.summary,
-                    allianceHives: analysis.allianceHives,
-                    resellers: analysis.resellers,
-                    allCandidates: analysis.allCandidates,
-                    topGatherers: analysis.topGatherers,
-                    allAllianceHarvest: analysis.allAllianceHarvest,
-                    rawRoster: demoRoster,
-                });
-                setIsDemo(true);
-            } else {
-                if (!kd.trim()) return;
-                const effectivePower = maxPower >= 150_000_000 ? 999_999_999 : maxPower;
-                const effectiveKp = maxKp >= 100_000_000 ? 999_999_999 : maxKp;
-                const res = await fetch(`/api/lab/reseller-hunter?kd=${encodeURIComponent(kd)}&maxPower=${effectivePower}&minGathered=${minGathered}&maxKp=${effectiveKp}&minConfidence=${minConfidence}`);
-                const json = await res.json();
-                if (!res.ok) {
-                    throw new Error(json.error || "Failed to scan kingdom for reseller syndicates.");
-                }
-                setData(json);
-                setIsDemo(false);
+            const effectivePower = maxPower >= 150_000_000 ? 999_999_999 : maxPower;
+            const effectiveKp = maxKp >= 100_000_000 ? 999_999_999 : maxKp;
+            const res = await fetch(`/api/lab/reseller-hunter?kd=${encodeURIComponent(queryKd)}&maxPower=${effectivePower}&minGathered=${minGathered}&maxKp=${effectiveKp}&minConfidence=${minConfidence}`);
+            const json = await res.json();
+            if (!res.ok) {
+                throw new Error(json.error || `No scan data found for Kingdom ${queryKd}.`);
             }
+            setData(json);
         } catch (e) {
             setError(e.message);
         } finally {
@@ -379,7 +366,7 @@ export default function ResellerHunterPage() {
                             <input
                                 value={kd}
                                 onChange={e => setKd(e.target.value)}
-                                onKeyDown={e => e.key === "Enter" && runScan(false)}
+                                onKeyDown={e => e.key === "Enter" && runScan(kd)}
                                 placeholder={t("input_kd_placeholder")}
                                 className="bg-[#090d12] border border-[#1a2332] rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-rose-500/50 w-36 font-mono"
                                 dir="ltr"
@@ -387,21 +374,12 @@ export default function ResellerHunterPage() {
                         </div>
 
                         <button
-                            onClick={() => runScan(false)}
+                            onClick={() => runScan(kd)}
                             disabled={loading || !kd.trim()}
                             className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer flex items-center gap-1.5"
                         >
                             <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
                             <span>{loading ? t("btn_scanning") : t("btn_scan")}</span>
-                        </button>
-
-                        <button
-                            onClick={() => runScan(true)}
-                            disabled={loading}
-                            className="px-3.5 py-2 bg-[#10161f] border border-[#1a2332] hover:border-cyan-500/40 text-cyan-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-                        >
-                            <Database size={13} />
-                            <span>{t("btn_demo")}</span>
                         </button>
                     </div>
                 </div>
@@ -490,7 +468,7 @@ export default function ResellerHunterPage() {
                                     </span>
                                 </div>
                                 <span className="text-[10px] text-gray-500 block mt-1">
-                                    {isDemo ? "Synthetic Benchmark" : `Kingdom ${data?.kingdomId}`}
+                                    Kingdom {data?.kingdomId || kd}
                                 </span>
                             </div>
                         </div>

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { 
     AlertOctagon, RefreshCw, Search, ShieldCheck, 
     Bot, Skull, UserX, Download, Zap, AlertTriangle 
 } from "lucide-react";
 import { downloadExcelFile } from "@/lib/excelHelper";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 const CLASSIFICATION_BADGES = {
     STAT_PADDER: {
@@ -31,21 +33,23 @@ const CLASSIFICATION_BADGES = {
 };
 
 export default function AnomalyDetectorPage() {
-    const [kd, setKd] = useState("");
+    const { data: session } = useSession();
+    const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [days, setDays] = useState(30);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const run = async () => {
-        if (!kd.trim()) return;
+    const run = async (targetKd = kd, targetDays = days) => {
+        const queryKd = (targetKd || kd || "").trim();
+        if (!queryKd) return;
         setLoading(true);
         setError(null);
         setData(null);
         try {
-            const res = await fetch(`/api/lab/anomaly-detector?kd=${kd}&days=${days}`);
+            const res = await fetch(`/api/lab/anomaly-detector?kd=${encodeURIComponent(queryKd)}&days=${targetDays}`);
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error || "Failed to analyze kingdom.");
+            if (!res.ok) throw new Error(json.error || `No scan data found for Kingdom ${queryKd}.`);
             setData(json);
         } catch (e) {
             setError(e.message);
@@ -53,6 +57,12 @@ export default function AnomalyDetectorPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKd(activeKd);
+        run(activeKd, days);
+    }, [session]);
 
     const handleExport = () => {
         if (!data?.topAnomalies?.length) return;
@@ -111,15 +121,16 @@ export default function AnomalyDetectorPage() {
                     <input
                         value={kd}
                         onChange={e => setKd(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && run()}
-                        placeholder="Kingdom ID (e.g. 3155)"
+                        onKeyDown={e => e.key === "Enter" && run(kd, days)}
+                        placeholder="Kingdom ID"
+                        dir="ltr"
                         className="bg-[#0f1115] border border-[#1e222b] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500/50 w-52 font-mono"
                     />
                     {[7, 14, 30, 60].map(d => (
                         <button
                             key={d}
-                            onClick={() => setDays(d)}
-                            className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
+                            onClick={() => { setDays(d); run(kd, d); }}
+                            className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                                 days === d 
                                     ? "bg-rose-500/20 border-rose-500/40 text-rose-300" 
                                     : "bg-[#0f1115] border-[#1e222b] text-gray-500 hover:text-gray-300"
@@ -129,9 +140,9 @@ export default function AnomalyDetectorPage() {
                         </button>
                     ))}
                     <button
-                        onClick={run}
+                        onClick={() => run(kd, days)}
                         disabled={loading || !kd.trim()}
-                        className="px-6 py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-40 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-rose-950/40"
+                        className="px-6 py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-40 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-rose-950/40 cursor-pointer"
                     >
                         {loading ? <RefreshCw size={14} className="animate-spin" /> : <Search size={14} />}
                         <span>Audit Kingdom</span>

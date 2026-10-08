@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { 
     Zap, RefreshCw, Copy, Download, Check, AlertTriangle, 
     TrendingUp, Swords, Skull, Wheat, Users, Building2, 
@@ -10,12 +11,14 @@ import {
 } from "lucide-react";
 import { downloadExcelFile } from "@/lib/excelHelper";
 import { fmtCompact } from "@/lib/cerberusIntelligence";
-import { formatDiscordRollupBrief, generateSyntheticRollupBenchmark } from "@/lib/kingdomRollupEngine";
+import { formatDiscordRollupBrief } from "@/lib/kingdomRollupEngine";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 export default function KingdomRollupPage() {
     const t = useTranslations("KingdomRollup");
+    const { data: session } = useSession();
 
-    const [kd, setKd] = useState("4194");
+    const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [hours, setHours] = useState(24);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -24,49 +27,33 @@ export default function KingdomRollupPage() {
     const [copiedId, setCopiedId] = useState(null);
     const [toastMessage, setToastMessage] = useState(null);
 
-    // Initial load: trigger instant synthetic benchmark demo so user immediately sees UI
+    // Initial load & target kingdom change: pull live scan delta for active target kingdom
     useEffect(() => {
-        runRollup(true, 24);
-    }, []);
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKd(activeKd);
+        runRollup(activeKd, 24);
+    }, [session]);
 
     const showToast = useCallback((msg) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(null), 3000);
     }, []);
 
-    const runRollup = async (useDemo = false, targetHours = hours) => {
+    const runRollup = async (targetKd = kd, targetHours = hours) => {
+        const queryKd = (targetKd || kd || "").trim();
+        if (!queryKd) return;
+
         setLoading(true);
         setError(null);
         setHours(targetHours);
 
         try {
-            if (useDemo || kd.toUpperCase() === "DEMO") {
-                const benchmark = generateSyntheticRollupBenchmark(targetHours);
-                setData({
-                    success: true,
-                    kingdomId: "4194-DEMO",
-                    isDemo: true,
-                    meta: benchmark.meta,
-                    summary: benchmark.summary,
-                    alliances: benchmark.alliances,
-                    topPowerGainers: benchmark.topPowerGainers,
-                    topPowerDroppers: benchmark.topPowerDroppers,
-                    topKpGainers: benchmark.topKpGainers,
-                    topCasualties: benchmark.topCasualties,
-                    topGatherers: benchmark.topGatherers,
-                    newArrivals: benchmark.newArrivals,
-                    departures: benchmark.departures,
-                    rawRoster: benchmark.rawRoster,
-                });
-            } else {
-                if (!kd.trim()) return;
-                const res = await fetch(`/api/lab/kingdom-rollup?kd=${encodeURIComponent(kd)}&hours=${targetHours}`);
-                const json = await res.json();
-                if (!res.ok) {
-                    throw new Error(json.error || "Failed to compile Kingdom Rollup.");
-                }
-                setData(json);
+            const res = await fetch(`/api/lab/kingdom-rollup?kd=${encodeURIComponent(queryKd)}&hours=${targetHours}`);
+            const json = await res.json();
+            if (!res.ok) {
+                throw new Error(json.error || `No scan differential data found for Kingdom ${queryKd}.`);
             }
+            setData(json);
         } catch (e) {
             setError(e.message);
         } finally {
@@ -200,7 +187,7 @@ export default function KingdomRollupPage() {
                         <input
                             value={kd}
                             onChange={e => setKd(e.target.value)}
-                            onKeyDown={e => e.key === "Enter" && runRollup(false, hours)}
+                            onKeyDown={e => e.key === "Enter" && runRollup(kd, hours)}
                             placeholder={t("input_kd_placeholder")}
                             className="bg-[#090d12] border border-[#1a2332] rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 w-36 font-mono"
                             dir="ltr"
@@ -211,11 +198,11 @@ export default function KingdomRollupPage() {
                             {[24, 48, 72].map(h => (
                                 <button
                                     key={h}
-                                    onClick={() => runRollup(false, h)}
+                                    onClick={() => runRollup(kd, h)}
                                     className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
                                         hours === h 
                                             ? "bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.4)]" 
-                                            : "text-gray-400 hover:text-white"
+                                             : "text-gray-400 hover:text-white"
                                     }`}
                                 >
                                     {h}h
@@ -224,21 +211,12 @@ export default function KingdomRollupPage() {
                         </div>
 
                         <button
-                            onClick={() => runRollup(false, hours)}
+                            onClick={() => runRollup(kd, hours)}
                             disabled={loading || !kd.trim()}
                             className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer flex items-center gap-1.5"
                         >
                             <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
                             <span>{loading ? t("btn_compiling") : t("btn_run_rollup")}</span>
-                        </button>
-
-                        <button
-                            onClick={() => runRollup(true, hours)}
-                            disabled={loading}
-                            className="px-3.5 py-2 bg-[#10161f] border border-[#1a2332] hover:border-emerald-500/40 text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-                        >
-                            <Database size={13} />
-                            <span>{t("btn_demo")}</span>
                         </button>
                     </div>
                 </div>

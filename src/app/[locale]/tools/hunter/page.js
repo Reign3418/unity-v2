@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Crosshair, Search, ShieldAlert, Fingerprint, MapPin, FileText, Activity, Users, Download, Target, Table } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 export default function PlayerHunter() {
   const t = useTranslations('Hunter');
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState("trajectory"); // "trajectory" or "talent"
 
   // Tab A State (Global Trajectory)
@@ -15,13 +18,20 @@ export default function PlayerHunter() {
   const [hunterResults, setHunterResults] = useState([]);
 
   // Tab B State (Talent Acquisition)
-  const [targetKingdoms, setTargetKingdoms] = useState("");
+  const [targetKingdoms, setTargetKingdoms] = useState(() => getActiveTargetKingdom(null, "3418"));
   const [minPower, setMinPower] = useState(0);
   const [maxPower, setMaxPower] = useState(200000000);
   const [allianceTag, setAllianceTag] = useState("");
   const [isHunting, setIsHunting] = useState(false);
   const [talentResults, setTalentResults] = useState([]);
   const [hasTalentResults, setHasTalentResults] = useState(false);
+
+  useEffect(() => {
+    const activeKd = getActiveTargetKingdom(session, "3418");
+    if (!targetKingdoms || targetKingdoms === "3418") {
+      setTargetKingdoms(activeKd);
+    }
+  }, [session]);
 
   // Tab A: Trajectory Handler
   const handleSearch = async (e) => {

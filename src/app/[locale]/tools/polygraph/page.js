@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 import { MomentumTachometer, SeismicTensionGauge, DeceptionRadarCard, CombatCausalityCard, SuspectsModal, MailDispatchModal, KvKClashModal, SpendersAccordionList } from "./PolygraphGauges";
 import PolygraphShareModal from "./PolygraphShareModal";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 function Tooltip({ text, children }) {
   if (!text) return children;
@@ -23,8 +24,7 @@ export default function Polygraph() {
   const { data: session } = useSession();
   const t = useTranslations("Polygraph");
   const locale = useLocale();
-  const defaultKd = session?.user?.allowedKingdoms?.[0] || "2648";
-  const [kd, setKd] = useState(defaultKd);
+  const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
   const [endDate, setEndDate] = useState("");
   const [timeframe, setTimeframe] = useState("48");
   const [depth, setDepth] = useState(300);
@@ -57,10 +57,11 @@ export default function Polygraph() {
   const [sweepPhase, setSweepPhase] = useState("discovery"); // "discovery" | "analysis"
 
   useEffect(() => {
-    if (defaultKd && !startKd) {
-      setStartKd(defaultKd);
+    const active = getActiveTargetKingdom(session, "3418");
+    if (!startKd) {
+      setStartKd(active);
     }
-  }, [defaultKd, startKd]);
+  }, [session, startKd]);
 
   const shareLink = () => {
     const url = `${window.location.origin}/${locale}/shared/polygraph?kd=${kd}&end=${endDate}&tf=${timeframe}&depth=${depth}`;

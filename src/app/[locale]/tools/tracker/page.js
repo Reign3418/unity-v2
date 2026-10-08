@@ -4,12 +4,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Download, RefreshCw, AlertTriangle, ShieldAlert, Zap, UserMinus, UserPlus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
+
 export default function ActivityTracker() {
   const { data: session } = useSession();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasResults, setHasResults] = useState(false);
 
-  const [targetKd, setTargetKd] = useState("3155");
+  const [targetKd, setTargetKd] = useState(() => getActiveTargetKingdom(null, "3418"));
   const [trends, setTrends] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -30,17 +32,8 @@ export default function ActivityTracker() {
   };
 
   useEffect(() => {
-    let activeKd = targetKd;
-    if (typeof window !== 'undefined') {
-        const storedKd = localStorage.getItem('unty_active_kd');
-        if (storedKd) {
-            activeKd = storedKd;
-            setTargetKd(storedKd);
-        } else if (session?.user?.tenant?.kingdomId) {
-            activeKd = session.user.tenant.kingdomId;
-            setTargetKd(activeKd);
-        }
-    }
+    const activeKd = getActiveTargetKingdom(session, "3418");
+    setTargetKd(activeKd);
   }, [session]);
 
   // Load Cached Results on Mount

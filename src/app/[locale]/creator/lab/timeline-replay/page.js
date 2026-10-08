@@ -1,9 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { Clock, RefreshCw, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 export default function TimelineReplay() {
-    const [kd, setKd] = useState("");
+    const { data: session } = useSession();
+    const [kd, setKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [dates, setDates] = useState([]);
     const [currentIdx, setCurrentIdx] = useState(0);
     const [roster, setRoster] = useState([]);
@@ -14,30 +17,32 @@ export default function TimelineReplay() {
     const [playing, setPlaying] = useState(false);
 
     // Load date index for kingdom
-    const loadDates = async () => {
-        if (!kd.trim()) return;
+    const loadDates = useCallback(async (targetKd = kd) => {
+        const queryKd = (targetKd || kd || "").trim();
+        if (!queryKd) return;
         setLoadingDates(true); setError(null); setDates([]); setRoster([]); setPrevRoster({});
         try {
-            const res = await fetch(`/api/lab/timeline-replay?kd=${kd}&mode=dates`);
+            const res = await fetch(`/api/lab/timeline-replay?kd=${encodeURIComponent(queryKd)}&mode=dates`);
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error);
+            if (!res.ok) throw new Error(json.error || `No scan history found for Kingdom ${queryKd}.`);
             setDates(json.dates || []);
             setCurrentIdx(0);
         } catch (e) { setError(e.message); }
         finally { setLoadingDates(false); }
-    };
+    }, [kd]);
 
     // Load a specific snapshot
-    const loadSnapshot = async (idx) => {
+    const loadSnapshot = async (idx, targetKd = kd) => {
         const d = dates[idx];
         if (!d) return;
+        const queryKd = (targetKd || kd || "").trim();
         setLoadingSnap(true);
         // Save previous for rank change tracking
         const prevMap = {};
         roster.forEach(p => { prevMap[p.id] = p.rank; });
         setPrevRoster(prevMap);
         try {
-            const res = await fetch(`/api/lab/timeline-replay?kd=${kd}&mode=snapshot&dateKey=${encodeURIComponent(d.dateKey)}`);
+            const res = await fetch(`/api/lab/timeline-replay?kd=${encodeURIComponent(queryKd)}&mode=snapshot&dateKey=${encodeURIComponent(d.dateKey)}`);
             const json = await res.json();
             if (!res.ok) throw new Error(json.error);
             setRoster(json.roster || []);
@@ -46,7 +51,13 @@ export default function TimelineReplay() {
     };
 
     useEffect(() => {
-        if (dates.length && currentIdx >= 0) loadSnapshot(currentIdx);
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKd(activeKd);
+        loadDates(activeKd);
+    }, [session, loadDates]);
+
+    useEffect(() => {
+        if (dates.length && currentIdx >= 0) loadSnapshot(currentIdx, kd);
     }, [currentIdx, dates]);
 
     // Auto-play
@@ -75,8 +86,19 @@ export default function TimelineReplay() {
 
                 {/* Kingdom Input */}
                 <div className="flex gap-3 mb-6">
-                    <input value={kd} onChange={e => setKd(e.target.value)} onKeyDown={e => e.key === "Enter" && loadDates()} placeholder="Kingdom ID" className="bg-[#0f1115] border border-[#1e222b] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500/50 w-52"/>
-                    <button onClick={loadDates} disabled={loadingDates || !kd} className="px-5 py-2.5 bg-teal-700 hover:bg-teal-600 disabled:opacity-40 text-white rounded-xl text-sm font-black flex items-center gap-2 transition-all">
+                    <input 
+                        value={kd} 
+                        onChange={e => setKd(e.target.value)} 
+                        onKeyDown={e => e.key === "Enter" && loadDates(kd)} 
+                        placeholder="Kingdom ID" 
+                        dir="ltr"
+                        className="bg-[#0f1115] border border-[#1e222b] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500/50 w-52 font-mono"
+                    />
+                    <button 
+                        onClick={() => loadDates(kd)} 
+                        disabled={loadingDates || !kd} 
+                        className="px-5 py-2.5 bg-teal-700 hover:bg-teal-600 disabled:opacity-40 text-white rounded-xl text-sm font-black flex items-center gap-2 transition-all cursor-pointer"
+                    >
                         {loadingDates ? <RefreshCw size={14} className="animate-spin"/> : <Clock size={14}/>} Load History
                     </button>
                 </div>

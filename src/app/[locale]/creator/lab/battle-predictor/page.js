@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Swords, RefreshCw, Zap, Plus, X } from "lucide-react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from "recharts";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 // Per-kingdom color palette
 const KD_COLORS = ["#f43f5e", "#06b6d4", "#f59e0b", "#8b5cf6"];
@@ -21,13 +23,25 @@ const FMT = (v, fmt) => {
 const TOP_OPTIONS = [300, 400, 650, 1000];
 
 export default function BattlePredictor() {
-    const [kingdoms, setKingdoms] = useState(["", ""]);
+    const { data: session } = useSession();
+    const [kingdoms, setKingdoms] = useState(() => [getActiveTargetKingdom(null, "3418"), ""]);
     const [topN, setTopN] = useState(300);
     const [days, setDays] = useState(30);
     const [selectedModel, setSelectedModel] = useState("gemini-3.1-flash-lite");
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setKingdoms(prev => {
+            const copy = [...prev];
+            if (!copy[0] || copy[0] === "3418") {
+                copy[0] = activeKd;
+            }
+            return copy;
+        });
+    }, [session]);
 
     const addKingdom = () => {
         if (kingdoms.length < 4) setKingdoms(prev => [...prev, ""]);

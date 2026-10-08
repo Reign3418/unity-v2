@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { 
     Clock, Calendar, Sparkles, ShieldAlert, CheckCircle2, 
     AlertTriangle, Download, RefreshCw, Info, HelpCircle, 
@@ -14,6 +15,7 @@ import {
     HISTORICAL_MILESTONES 
 } from "@/lib/governorAgeEstimator";
 import { downloadExcelFile } from "@/lib/excelHelper";
+import { getActiveTargetKingdom } from "@/lib/activeKingdom";
 
 const BENCHMARK_SAMPLES = [
     { label: "sample_og", id: 2481902, kd: 1001 },
@@ -25,12 +27,13 @@ const BENCHMARK_SAMPLES = [
 
 export default function AccountAgeAuditPage() {
     const t = useTranslations("AccountAgeAudit");
+    const { data: session } = useSession();
 
     const [activeTab, setActiveTab] = useState("single"); // 'single' | 'batch' | 'verify' | 'milestones'
     
     // Single mode states
     const [singleId, setSingleId] = useState("165000000");
-    const [singleKd, setSingleKd] = useState("3418");
+    const [singleKd, setSingleKd] = useState(() => getActiveTargetKingdom(null, "3418"));
 
     // Verification mode states
     const [verifyId, setVerifyId] = useState("218877479");
@@ -40,8 +43,14 @@ export default function AccountAgeAuditPage() {
     const [batchText, setBatchText] = useState(
         "2481902\n38450119\n62810404\n104892100\n142805120\n165000000\n188450122\n218877479"
     );
-    const [batchKd, setBatchKd] = useState("3418");
+    const [batchKd, setBatchKd] = useState(() => getActiveTargetKingdom(null, "3418"));
     const [batchResults, setBatchResults] = useState(null);
+
+    useEffect(() => {
+        const activeKd = getActiveTargetKingdom(session, "3418");
+        setSingleKd(activeKd);
+        setBatchKd(activeKd);
+    }, [session]);
 
     // Single evaluation result (memoized)
     const singleResult = useMemo(() => {
