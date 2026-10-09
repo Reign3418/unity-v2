@@ -117,10 +117,10 @@ export default function PublicDkpResults() {
             } else if (config.dkpSystem === "hoh") {
                 let estT4Deads, estT5Deads;
                 
-                if (g.hohT4Deads !== undefined && g.hohT5Deads !== undefined) {
+                if (p.hohT4Deads !== undefined && p.hohT5Deads !== undefined) {
                     // Use exact parsed HOH Deads if they exist for this governor
-                    estT4Deads = g.hohT4Deads;
-                    estT5Deads = g.hohT5Deads;
+                    estT4Deads = p.hohT4Deads;
+                    estT5Deads = p.hohT5Deads;
                 } else {
                     // Fallback: estimate ratio based on kills
                     const totalKills = t4Diff + t5Diff;

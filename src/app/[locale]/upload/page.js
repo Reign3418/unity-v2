@@ -120,6 +120,7 @@ function CloudExtractor() {
   const [targetKd, setTargetKd] = useState("3155");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle");
+  const [downloadedRows, setDownloadedRows] = useState(0);
   const [syncResult, setSyncResult] = useState(null);
 
   useEffect(() => {

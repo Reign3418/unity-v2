@@ -93,14 +93,15 @@ export default function Polygraph() {
   }, [kd, endDate, timeframe, depth, data, restored]);
 
   useEffect(() => {
-    if (!defaultKd || !restored || sessionStorage.getItem("pg_end")) return;
-    fetch(`/api/aws/trends?kd=${defaultKd}`).then(r => r.json()).then(d => {
+    const targetKd = kd || getActiveTargetKingdom(session, "3418");
+    if (!targetKd || !restored || sessionStorage.getItem("pg_end")) return;
+    fetch(`/api/aws/trends?kd=${targetKd}`).then(r => r.json()).then(d => {
       if (d.trends?.length) {
         const sorted = d.trends.sort((a,b) => new Date(a.scanDate)-new Date(b.scanDate));
         setEndDate(sorted[sorted.length-1].scanDate.split("T")[0].split(" ")[0]);
       }
     }).catch(() => {});
-  }, [defaultKd, restored]);
+  }, [kd, session, restored]);
 
   const getAiHeaders = () => {
     if (typeof window === "undefined") return {};

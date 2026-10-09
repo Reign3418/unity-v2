@@ -120,6 +120,7 @@ export async function GET(req) {
         // AI per-kingdom narrative verdict — harsh, specific, no sugar coating
         let verdict = null;
         let verdictSections = null; // parsed per-kingdom sections for UI cards
+        let apiModel = 'gemini-3.1-flash-lite';
         try {
             const kdSummaries = kingdoms.map((kd, i) => {
                 const s = kd.stats;
@@ -158,7 +159,7 @@ export async function GET(req) {
             const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
             const customModel = req.headers.get('x-gemini-model');
             const requestedModel = searchParams.get('model');
-            const apiModel = customModel || requestedModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+            apiModel = customModel || requestedModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
             if (apiKey) {
                 const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`, {
                     method: "POST",

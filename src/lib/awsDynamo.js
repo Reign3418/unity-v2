@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { DynamoDBClient, ScanCommand, QueryCommand, PutItemCommand, UpdateItemCommand, GetItemCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, ScanCommand, QueryCommand, PutItemCommand, UpdateItemCommand, GetItemCommand, BatchGetItemCommand, DeleteItemCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
 
 // Initialize the DynamoDB Client
 const dbClient = new DynamoDBClient({
