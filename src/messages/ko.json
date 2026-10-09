@@ -533,7 +533,8 @@
     "bp_large": "대형",
     "bp_medium": "중형",
     "bp_small": "소형",
-    "bp_legend_suffix": "병"
+    "bp_legend_suffix": "병",
+    "tab_flag": "연맹 깃발"
   },
   "Polygraph": {
     "stability_note": "상위 20위 유지율",

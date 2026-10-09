@@ -533,7 +533,8 @@
     "bp_large": "Büyük",
     "bp_medium": "Orta",
     "bp_small": "Küçük",
-    "bp_legend_suffix": "şişe"
+    "bp_legend_suffix": "şişe",
+    "tab_flag": "İttifak Bayrağı"
   },
   "Polygraph": {
     "stability_note": "İlk 20'nin elde tutulması",

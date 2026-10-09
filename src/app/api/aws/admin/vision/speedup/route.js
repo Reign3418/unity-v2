@@ -26,7 +26,9 @@ export async function POST(req) {
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${apiModel}:generateContent?key=${apiKey}`;
 
         const prompt = `This is a screenshot of the YOUR RESOURCES & SPEEDUPS tab in Rise of Kingdoms. Ignore the RESOURCES tab, focus only on SPEEDUPS. 
-Extract the Total Duration exactly as shown for each category. Look for the numbers ending in 'm', 'h', or 'd'. Return ONLY a valid JSON object matching this structure using the raw numbers you see extracted as pure integers. If any category is missing, use "0".
+Extract the Total Duration shown for each category (Building, Research, Training, Healing, Universal). Look for the durations ending in 'd' (days), 'h' (hours), and 'm' (minutes).
+Convert each category's total duration into TOTAL MINUTES (1 day = 1440 minutes, 1 hour = 60 minutes). For example, if Building shows "10d 5h 30m", calculate 10*1440 + 5*60 + 30 = 14730. If a category is missing or zero, use 0.
+Return ONLY a valid JSON object matching this structure using pure integers representing total minutes:
 {
   "building": 0,
   "research": 0,

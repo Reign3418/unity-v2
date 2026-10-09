@@ -554,7 +554,7 @@
     "ap_clear": "Clear Form Math",
     "ap_total": "Total Reserves",
     "ap_strategy": "AP Strategy Allocation",
-    "ap_pct_note": "% allocated Â· adjusts automatically",
+    "ap_pct_note": "% allocated · adjusts automatically",
     "bp_title": "Your AP Battle Plan",
     "bp_subtitle": "Open these bottles in order. Use ALL of each step before moving to the next.",
     "bp_bottle": "bottle",
@@ -566,7 +566,8 @@
     "bp_large": "Large",
     "bp_medium": "Medium",
     "bp_small": "Small",
-    "bp_legend_suffix": "bottle"
+    "bp_legend_suffix": "bottle",
+    "tab_flag": "Alliance Flag"
   },
   "Polygraph": {
     "stability_note": "Top 20 retention",

@@ -533,7 +533,8 @@
     "bp_large": "Groß",
     "bp_medium": "Mittel",
     "bp_small": "Klein",
-    "bp_legend_suffix": "Fläschchen"
+    "bp_legend_suffix": "Fläschchen",
+    "tab_flag": "Allianzflagge"
   },
   "Polygraph": {
     "stability_note": "Top 20 Bindung",

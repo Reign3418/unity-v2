@@ -533,7 +533,8 @@
     "bp_large": "Grande",
     "bp_medium": "Médio",
     "bp_small": "Pequeno",
-    "bp_legend_suffix": "garrafa"
+    "bp_legend_suffix": "garrafa",
+    "tab_flag": "Bandeira da Aliança"
   },
   "Polygraph": {
     "stability_note": "Retenção dos 20 Melhores",

@@ -533,7 +533,8 @@
     "bp_large": "大型",
     "bp_medium": "中型",
     "bp_small": "小型",
-    "bp_legend_suffix": "瓶"
+    "bp_legend_suffix": "瓶",
+    "tab_flag": "联盟旗帜"
   },
   "Polygraph": {
     "stability_note": "前20名留存率",

@@ -533,7 +533,8 @@
     "bp_large": "Besar",
     "bp_medium": "Sedang",
     "bp_small": "Kecil",
-    "bp_legend_suffix": "botol"
+    "bp_legend_suffix": "botol",
+    "tab_flag": "Bendera Aliansi"
   },
   "Polygraph": {
     "stability_note": "Retensi 20 Teratas",

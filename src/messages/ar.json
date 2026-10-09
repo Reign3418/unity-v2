@@ -533,7 +533,8 @@
     "bp_large": "كبير",
     "bp_medium": "متوسط",
     "bp_small": "صغير",
-    "bp_legend_suffix": "زجاجة"
+    "bp_legend_suffix": "زجاجة",
+    "tab_flag": "راية التحالف"
   },
   "Polygraph": {
     "stability_note": "احتفاظ أفضل 20",

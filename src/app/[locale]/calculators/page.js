@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Timer, Wheat, Zap, Crown, BookOpen, Clock, AlertCircle, Trash2, Shield, Upload, X, Check, Loader2, ShieldAlert, Crosshair, Map, RefreshCw, UploadCloud, Target, BrainCircuit, Activity, Eye, Users, CheckCircle2, Image as ImageIcon, FileText, Sparkles, Filter, Play } from "lucide-react";
 
@@ -16,9 +16,20 @@ const FLAG_RESOURCES = [
   { key: 'crystal', label: 'Alliance Crystal', emoji: '💎', color: 'text-cyan-400'   },
 ];
 
+const TAB_COLORS = {
+  indigo: 'border-indigo-500 text-indigo-400 bg-indigo-500/5',
+  amber: 'border-amber-500 text-amber-400 bg-amber-500/5',
+  cyan: 'border-cyan-500 text-cyan-400 bg-cyan-500/5',
+  rose: 'border-rose-500 text-rose-400 bg-rose-500/5',
+  blue: 'border-blue-500 text-blue-400 bg-blue-500/5',
+  teal: 'border-teal-500 text-teal-400 bg-teal-500/5',
+  fuchsia: 'border-fuchsia-500 text-fuchsia-400 bg-fuchsia-500/5',
+};
+
 export default function CalculatorsPage() {
   const { data: session } = useSession();
   const t = useTranslations('Calculators');
+  const locale = useLocale();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("speedups");
 
@@ -652,7 +663,7 @@ export default function CalculatorsPage() {
       ].filter(line => line !== null).join('\n');
 
       localStorage.setItem('unty_mail_roster', JSON.stringify([{ customText: mailText }]));
-      router.push('/mail');
+      router.push(`/${locale}/mail`);
   };
 
   const sendFillTimeToMail = () => {
@@ -676,7 +687,7 @@ export default function CalculatorsPage() {
       ].join('\n');
 
       localStorage.setItem('unty_mail_roster', JSON.stringify([{ customText: mailText }]));
-      router.push('/mail');
+      router.push(`/${locale}/mail`);
   };
 
   // Flag readiness calculations
@@ -1113,7 +1124,7 @@ export default function CalculatorsPage() {
       onClick={() => handleTabChange(id)}
       className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold transition-all duration-200 whitespace-nowrap cursor-pointer ${
         activeTab === id 
-        ? `border-${color}-500 text-${color}-400 bg-${color}-500/5` 
+        ? (TAB_COLORS[color] || 'border-indigo-500 text-indigo-400 bg-indigo-500/5')
         : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
       }`}
     >
@@ -1148,7 +1159,7 @@ export default function CalculatorsPage() {
         <TabButton id="speedups" icon={Timer} label={t('tab_speedups')} color="indigo" isAi={true} />
         <TabButton id="resources" icon={Wheat} label={t('tab_resources')} color="amber" isAi={true} />
         <TabButton id="ap" icon={Zap} label={t('tab_ap')} color="cyan" isAi={true} />
-        <TabButton id="flag" icon={Shield} label="Alliance Flag" color="rose" isAi={true} />
+        <TabButton id="flag" icon={Shield} label={t('tab_flag')} color="rose" isAi={true} />
         <TabButton id="forge" icon={Shield} label={t('tab_forge')} color="blue" isAi={true} />
         <TabButton id="realestate" icon={Map} label={t('tab_realestate')} color="teal" isAi={true} />
         <TabButton id="deadeye" icon={Eye} label={t('tab_deadeye')} color="fuchsia" isAi={true} />
@@ -1316,6 +1327,22 @@ export default function CalculatorsPage() {
                   </div>
                 </div>
               ))}
+              <div className="pt-2">
+                <button 
+                  onClick={() => {
+                    setResources({
+                      food: { "1K": 0, "10K": 0, "50K": 0, "150K": 0, "500K": 0, "1.5M": 0, "5M": 0 },
+                      wood: { "1K": 0, "10K": 0, "50K": 0, "150K": 0, "500K": 0, "1.5M": 0, "5M": 0 },
+                      stone: { "750": 0, "7.5K": 0, "37.5K": 0, "112.5K": 0, "375K": 0, "1.125M": 0, "3.75M": 0 },
+                      gold: { "500": 0, "5K": 0, "15K": 0, "50K": 0, "200K": 0, "600K": 0, "2M": 0 }
+                    });
+                    setResourceStatus("");
+                  }}
+                  className="w-full py-3 bg-[#1e222b] hover:bg-gray-800 text-rose-500 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={14} /> Clear Form Math
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1923,8 +1950,24 @@ export default function CalculatorsPage() {
                           </div>
                       </div>
                   ))}
+                </div>
+                <div className="pt-2">
+                  <button 
+                    onClick={() => {
+                      setForgeData({
+                        leather: { legendary: 0, epic: 0, elite: 0, advanced: 0, normal: 0 },
+                        ebony: { legendary: 0, epic: 0, elite: 0, advanced: 0, normal: 0 },
+                        iron: { legendary: 0, epic: 0, elite: 0, advanced: 0, normal: 0 },
+                        bone: { legendary: 0, epic: 0, elite: 0, advanced: 0, normal: 0 }
+                      });
+                      setOcrStatus("");
+                    }}
+                    className="w-full py-3 bg-[#1e222b] hover:bg-gray-800 text-rose-500 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Trash2 size={14} /> Clear Form Math
+                  </button>
+                </div>
               </div>
-            </div>
 
             <div className="bg-[#13161c] border-x border-b border-t-2 border-t-blue-500 rounded-xl p-6 shadow-xl sticky top-6">
                 <h2 className="text-blue-400 font-black text-xl mb-6 uppercase tracking-widest text-center">Synthesized Math</h2>
@@ -2250,7 +2293,7 @@ export default function CalculatorsPage() {
                   </div>
                   <button 
                      onClick={() => {
-                         const txt = getProcessedDeadeyeNames().join('\\n');
+                         const txt = getProcessedDeadeyeNames().join('\n');
                          if(txt) {
                              navigator.clipboard.writeText(txt);
                              setDeadeyeCopied(true);

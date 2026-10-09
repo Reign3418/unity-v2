@@ -533,7 +533,8 @@
     "bp_large": "Grand",
     "bp_medium": "Moyen",
     "bp_small": "Petit",
-    "bp_legend_suffix": "bouteille"
+    "bp_legend_suffix": "bouteille",
+    "tab_flag": "Bannière d'Alliance"
   },
   "Polygraph": {
     "stability_note": "Rétention du Top 20",

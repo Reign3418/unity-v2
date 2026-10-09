@@ -533,7 +533,8 @@
     "bp_large": "Lớn",
     "bp_medium": "Vừa",
     "bp_small": "Nhỏ",
-    "bp_legend_suffix": "lọ"
+    "bp_legend_suffix": "lọ",
+    "tab_flag": "Cờ Liên minh"
   },
   "Polygraph": {
     "stability_note": "Duy trì Top 20",

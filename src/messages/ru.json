@@ -533,7 +533,8 @@
     "bp_large": "Большой",
     "bp_medium": "Средний",
     "bp_small": "Маленький",
-    "bp_legend_suffix": "флакон"
+    "bp_legend_suffix": "флакон",
+    "tab_flag": "Флаг альянса"
   },
   "Polygraph": {
     "stability_note": "Удержание топ-20",
