@@ -965,7 +965,8 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     const isT5Eligible = currentTech >= t5TechFloor && currentBuild >= t5BuildFloor;
     const t5TechPct = Math.min(100, Math.round((currentTech / t5TechFloor) * 100));
     const t5BuildPct = Math.min(100, Math.round((currentBuild / t5BuildFloor) * 100));
-    const isT5Pushing = !isT5Eligible && (techD > 0 || buildD > 0) && (t5TechPct >= 40 || t5BuildPct >= 40);
+    // A true T5 push requires both advanced tech (>=55% of floor, ~12.3M+) and late-stage buildings (>=75% of floor, CH24/25)
+    const isT5Pushing = !isT5Eligible && (techD > 0 || buildD > 0) && (t5TechPct >= 55 && t5BuildPct >= 75);
 
     let archetypeKey = "archetype_multi";
     let badgeColor = "text-amber-400 bg-amber-500/10 border-amber-500/30";
@@ -1008,7 +1009,7 @@ export function SpendersAccordionList({ whales = [], serverAgeDays, era, windowD
     if (isT5Eligible) {
       rationale = `T5 Sovereign Whale: Surpassed both the 22.3M Tech Floor and 14.8M Building Floor requirements. Unlocked or immediately eligible for Tier 5 legion recruitment, establishing dominant battlefield firepower.`;
     } else if (isT5Pushing) {
-      rationale = `T5 Push in Progress: Actively sprinting towards the T5 threshold (${t5TechPct}% Tech / ${t5BuildPct}% Buildings). Fast-tracking prerequisite research and building upgrades indicates imminent Tier 5 unlock readiness.`;
+      rationale = `T5 Push in Progress: Actively sprinting towards the T5 threshold (${t5TechPct}% Tech / ${t5BuildPct}% Buildings). Researching late-stage Academy prerequisites and upgrading key structures toward Tier 5 unlock.`;
     } else if (w.isMigrant && !isNascentServer) {
       rationale = `Migrated into the kingdom during this window with ${fmt(w.powerEnd || pDelta)} power. Injects immediate external combat readiness and high-tier march capacity into [${w.alliance || "No Tag"}].`;
     } else if (isEmergentEntry && pDelta >= 3000000) {
