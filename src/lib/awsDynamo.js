@@ -2442,64 +2442,109 @@ export async function getAllUsers() {
 export async function purgeKingdomDatabase(kingdomId) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
-    const { BatchWriteItemCommand } = await import('@aws-sdk/client-dynamodb');
 
     try {
         console.log(`[AWS DANGER] Initiating full purge sweep for Kingdom ${kingdomId}...`);
-        
-        const params = {
-            TableName: tableName,
-            FilterExpression: 'begins_with(PK, :prefix) OR PK = :datesPk',
-            ExpressionAttributeValues: {
-                ':prefix': { S: `SCAN#${kingdomId}#` },
-                ':datesPk': { S: `DATES#${kingdomId}` }
-            }
-        };
 
         let keysToDelete = [];
-        let lastEvaluatedKey = null;
 
-        // 1. Scan and collect every single Partition Key related to the Kingdom
+        // 1. Fast Path: Query DATES#<kingdomId> to discover all scan date partitions in O(1) without scanning the table
+        let dateLastKey = null;
+        const scanPartitions = [];
         do {
-            if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
-            
-            // We only need PK/SK keys
-            const scanParams = { ...params, ProjectionExpression: 'PK, SK' };
-            const result = await dbClient.send(new ScanCommand(scanParams));
-            
-            if (result.Items) {
-                result.Items.forEach(item => {
+            const dateRes = await dbClient.send(new QueryCommand({
+                TableName: tableName,
+                KeyConditionExpression: 'PK = :pk',
+                ProjectionExpression: 'PK, SK',
+                ExpressionAttributeValues: {
+                    ':pk': { S: `DATES#${kingdomId}` }
+                },
+                ...(dateLastKey ? { ExclusiveStartKey: dateLastKey } : {})
+            }));
+            if (dateRes.Items) {
+                for (const item of dateRes.Items) {
                     keysToDelete.push({
-                        DeleteRequest: {
-                            Key: {
-                                'PK': item.PK,
-                                'SK': item.SK
-                            }
-                        }
+                        DeleteRequest: { Key: { PK: item.PK, SK: item.SK } }
                     });
-                });
+                    if (item.SK?.S?.startsWith('SCAN#')) {
+                        const dateKey = item.SK.S.replace('SCAN#', '');
+                        scanPartitions.push(`SCAN#${kingdomId}#${dateKey}`);
+                    }
+                }
             }
-            lastEvaluatedKey = result.LastEvaluatedKey;
-        } while (lastEvaluatedKey);
+            dateLastKey = dateRes.LastEvaluatedKey;
+        } while (dateLastKey);
+
+        if (scanPartitions.length > 0) {
+            // Query each known SCAN#<kingdomId>#<dateKey> partition directly via QueryCommand
+            await Promise.all(scanPartitions.map(async (scanPk) => {
+                let scanLastKey = null;
+                do {
+                    const scanRes = await dbClient.send(new QueryCommand({
+                        TableName: tableName,
+                        KeyConditionExpression: 'PK = :pk',
+                        ProjectionExpression: 'PK, SK',
+                        ExpressionAttributeValues: {
+                            ':pk': { S: scanPk }
+                        },
+                        ...(scanLastKey ? { ExclusiveStartKey: scanLastKey } : {})
+                    }));
+                    if (scanRes.Items) {
+                        for (const item of scanRes.Items) {
+                            keysToDelete.push({
+                                DeleteRequest: { Key: { PK: item.PK, SK: item.SK } }
+                            });
+                        }
+                    }
+                    scanLastKey = scanRes.LastEvaluatedKey;
+                } while (scanLastKey);
+            }));
+        } else {
+            // Fallback: If DATES#<kingdomId> had no pointers (e.g., orphaned scan records), scan for any remaining items
+            const params = {
+                TableName: tableName,
+                FilterExpression: 'begins_with(PK, :prefix) OR PK = :datesPk',
+                ProjectionExpression: 'PK, SK',
+                ExpressionAttributeValues: {
+                    ':prefix': { S: `SCAN#${kingdomId}#` },
+                    ':datesPk': { S: `DATES#${kingdomId}` }
+                }
+            };
+            let lastEvaluatedKey = null;
+            do {
+                if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+                const result = await dbClient.send(new ScanCommand(params));
+                if (result.Items) {
+                    result.Items.forEach(item => {
+                        keysToDelete.push({
+                            DeleteRequest: { Key: { PK: item.PK, SK: item.SK } }
+                        });
+                    });
+                }
+                lastEvaluatedKey = result.LastEvaluatedKey;
+            } while (lastEvaluatedKey);
+        }
 
         if (keysToDelete.length === 0) return 0;
 
         console.log(`[AWS DANGER] Found ${keysToDelete.length} records. Commencing BatchWrite Deletions...`);
 
-        // 2. Chunk deletions by 25 and multi-thread
+        // 2. Chunk deletions by 25 and execute in controlled concurrency waves of 20
         const chunkSize = 25;
         const blocks_25 = [];
         for (let i = 0; i < keysToDelete.length; i += chunkSize) {
             blocks_25.push(keysToDelete.slice(i, i + chunkSize));
         }
 
-        const promises = blocks_25.map(async (chunk) => {
-            const batchParams = { RequestItems: { [tableName]: chunk } };
-            await dbClient.send(new BatchWriteItemCommand(batchParams));
-        });
+        const waveSize = 20;
+        for (let w = 0; w < blocks_25.length; w += waveSize) {
+            const wave = blocks_25.slice(w, w + waveSize);
+            await Promise.all(wave.map(async (chunk) => {
+                const batchParams = { RequestItems: { [tableName]: chunk } };
+                await dbClient.send(new BatchWriteItemCommand(batchParams));
+            }));
+        }
 
-        await Promise.all(promises);
-        
         console.log(`[AWS DANGER] Purge Sweep Complete. ${keysToDelete.length} items permanently deleted.`);
         return keysToDelete.length;
 
@@ -4527,17 +4572,30 @@ export async function getSupporterKingdoms() {
         const params = {
             TableName: tableName,
             FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk AND supporterStatus = :ss',
+            ProjectionExpression: 'PK',
             ExpressionAttributeValues: {
                 ':prefix': { S: 'KINGDOM#' },
                 ':sk': { S: 'CONFIG' },
                 ':ss': { BOOL: true }
             }
         };
-        const res = await dbClient.send(new ScanCommand(params));
-        
-        return res.Items ? res.Items.map(item => {
-            return item.PK.S.replace('KINGDOM#', '');
-        }) : [];
+        const supporterIds = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
+            const res = await dbClient.send(new ScanCommand(params));
+            if (res.Items) {
+                res.Items.forEach(item => {
+                    if (item.PK?.S) {
+                        supporterIds.push(item.PK.S.replace('KINGDOM#', ''));
+                    }
+                });
+            }
+            lastEvaluatedKey = res.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+
+        return supporterIds;
     } catch (e) {
         console.error('AWS Get Supporter Kingdoms Error:', e);
         return [];

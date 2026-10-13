@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getGlobalConfig } from "@/lib/awsDynamo";
 import { logEvent } from "@/lib/eventLogger";
+import { auth } from "@/lib/auth";
 
 export const maxDuration = 300;
 
 export async function POST(req) {
     try {
+        const session = await auth();
+        const customKey = req.headers.get('x-gemini-key');
+        if (!session?.user && !customKey) {
+            return NextResponse.json({ error: "Unauthorized access. Please sign in or supply a Gemini API key." }, { status: 401 });
+        }
+
         const body = await req.json();
         // Support either base64/mimeType or legacy image payload
         let base64 = body.base64 || body.image;
@@ -25,7 +32,6 @@ export async function POST(req) {
             }
         }
 
-        const customKey = req.headers.get('x-gemini-key');
         const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) {
             return NextResponse.json({ 

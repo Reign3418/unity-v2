@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 export const maxDuration = 300;
 
 
 export async function POST(req) {
     try {
-        const authHeader = req.headers.get('authorization');
-        // Very basic initial gating, in a fully robust system we verify the user session.
-        // Assuming the frontend passed the necessary headers or we verify Server Session here.
-        
-        // Since Vercel Edge doesn't have passport-discord, we rely on standard session middleware
-        // Actually, the frontend admin/page.js is already secured by a layout guard!
+        const session = await auth();
+        if (!session?.user || (session.user.role !== 'Admin' && !session.user.isLeader)) {
+            return NextResponse.json({ error: 'Unauthorized broadcast access.' }, { status: 401 });
+        }
         
         const { message, targetKingdom } = await req.json();
 

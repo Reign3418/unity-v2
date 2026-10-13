@@ -2,15 +2,21 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 300;
 
 import { getGlobalConfig } from "@/lib/awsDynamo";
+import { auth } from "@/lib/auth";
 
 
 export async function POST(req) {
     try {
+        const session = await auth();
+        const customKey = req.headers.get('x-gemini-key');
+        if (!session?.user && !customKey) {
+            return NextResponse.json({ error: "Unauthorized access. Please sign in or supply a Gemini API key." }, { status: 401 });
+        }
+
         const body = await req.json();
         const { base64, mimeType, targetLanguage = 'English' } = body;
         if (!base64 || !mimeType) return NextResponse.json({ error: "Missing image data." }, { status: 400 });
 
-        const customKey = req.headers.get('x-gemini-key');
         const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) return NextResponse.json({ error: "Gemini API Key missing." }, { status: 500 });
 

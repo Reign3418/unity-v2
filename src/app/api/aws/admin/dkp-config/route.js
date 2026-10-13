@@ -1,4 +1,5 @@
 import { getKingdomDkpMatrix, setKingdomDkpMatrix } from '@/lib/awsDynamo';
+import { auth } from '@/lib/auth';
 export const maxDuration = 300;
 
 import { NextResponse } from 'next/server';
@@ -23,11 +24,25 @@ export async function GET(req) {
 
 export async function POST(req) {
     try {
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const body = await req.json();
         const { kd, configData } = body;
         
         if (!kd || !configData) {
             return NextResponse.json({ error: "Missing Parameters" }, { status: 400 });
+        }
+
+        const isAdmin = session.user.role === 'Admin';
+        const isAuthorizedLeader = session.user.isLeader && (
+            String(session.user.tenant?.kingdomId) === String(kd) ||
+            (Array.isArray(session.user.allowedKingdoms) && session.user.allowedKingdoms.map(String).includes(String(kd)))
+        );
+        if (!isAdmin && !isAuthorizedLeader) {
+            return NextResponse.json({ error: "Insufficient clearance for this kingdom" }, { status: 403 });
         }
         
         const success = await setKingdomDkpMatrix(kd, configData);

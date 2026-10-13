@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getGlobalConfig } from '@/lib/awsDynamo';
+import { auth } from '@/lib/auth';
 
 export const maxDuration = 300;
 
 export async function POST(req) {
     try {
+        const session = await auth();
+        const customKey = req.headers.get('x-gemini-key');
+        if (!session?.user && !customKey) {
+            return NextResponse.json({ error: 'Unauthorized access. Please sign in or supply a Gemini API key.' }, { status: 401 });
+        }
+
         const body = await req.json();
         const {
             mapName,
@@ -18,7 +25,6 @@ export async function POST(req) {
             return NextResponse.json({ error: 'No coalition data provided.' }, { status: 400 });
         }
 
-        const customKey = req.headers.get('x-gemini-key');
         const apiKey    = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
         if (!apiKey) {
             return NextResponse.json({ error: 'Gemini API Key missing.' }, { status: 500 });
