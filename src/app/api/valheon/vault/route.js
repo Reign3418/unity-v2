@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 /**
  * Server-Side Zero-Trust Gate for the Valheon 95-Dossier Knowledge Vault
  * ----------------------------------------------------------------------
- * Prevents the "Roknut Academy Vulnerability" (client-side-only paywall/gate).
  * The 95 synthesized dossiers and tactical meta JSON live in `src/data/private-vault/`
  * (outside Next.js `public/`) and are ONLY served after cryptographic NextAuth
  * session verification confirms the caller is the Principal Systems Architect.
@@ -47,7 +46,7 @@ export async function GET(req) {
     const fileName =
       type === 'meta'
         ? 'valheon_tactical_meta.json'
-        : 'roknut_95_guides_scrubbed.json';
+        : 'valheon_95_sovereign_dossiers.json';
 
     const vaultPath = path.join(
       process.cwd(),
