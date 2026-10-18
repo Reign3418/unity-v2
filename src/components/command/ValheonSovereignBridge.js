@@ -48,15 +48,15 @@ export default function ValheonSovereignBridge() {
   const [activePillarHover, setActivePillarHover] = useState(0);
 
   useEffect(() => {
-    fetch('/data/roknut_95_guides_scrubbed.json')
-      .then((r) => r.json())
+    fetch('/api/valheon/vault')
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.guides) {
           setGuideStats({
-            total: d.totalGuides || 95,
-            published: d.publishedGuides || 66,
-            comingSoon: d.comingSoonGuides || 29,
-            featured: d.guides.filter((g) => !g.isComingSoon).slice(0, 6),
+            total: d.total_guides || d.guides.length || 95,
+            published: d.guides.length || 95,
+            comingSoon: 0,
+            featured: d.guides.slice(0, 6),
           });
         }
       })

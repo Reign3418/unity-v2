@@ -81,8 +81,12 @@ export default function ValheonFieldGuideVault({ initialSection = 'tiers' }) {
   useEffect(() => {
     let mounted = true;
     Promise.all([
-      fetch('/data/roknut_95_guides_scrubbed.json').then((r) => r.json()).catch(() => null),
-      fetch('/data/valheon_tactical_meta.json').then((r) => r.json()).catch(() => null),
+      fetch('/api/valheon/vault?type=guides')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch('/api/valheon/vault?type=meta')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
     ]).then(([guidesJson, metaJson]) => {
       if (mounted) {
         setVaultData(guidesJson);

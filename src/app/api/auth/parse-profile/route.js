@@ -1,17 +1,57 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 export const maxDuration = 300;
 
 import { getGlobalConfig, getGovernorStats, getGovernorAuth } from "@/lib/awsDynamo";
 import { notifyAdmin } from "@/lib/notifyAdmin";
 import { logEvent } from "@/lib/eventLogger";
 
+// In-memory IP rate-limiter to block automated Gemini Vision credit-draining attacks
+const ocrRateLimitMap = new Map();
+const OCR_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const OCR_MAX_REQUESTS = 6;
+
 export async function POST(req) {
     try {
+        const session = await auth();
+        const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+        const host = req.headers.get('host') || '';
+        const isSameOrigin = host && origin.includes(host);
+
+        if (!session && !isSameOrigin) {
+            return NextResponse.json(
+                { error: "Forbidden. Cross-origin unauthenticated OCR requests are blocked." },
+                { status: 403 }
+            );
+        }
+
+        const clientIp =
+            req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+            req.headers.get('x-real-ip') ||
+            'unknown';
+        const now = Date.now();
+        const bucket = ocrRateLimitMap.get(clientIp) || { count: 0, resetAt: now + OCR_WINDOW_MS };
+        if (now > bucket.resetAt) {
+            bucket.count = 0;
+            bucket.resetAt = now + OCR_WINDOW_MS;
+        }
+        bucket.count += 1;
+        ocrRateLimitMap.set(clientIp, bucket);
+        if (bucket.count > OCR_MAX_REQUESTS && !session?.user?.isSuperAdmin) {
+            return NextResponse.json(
+                { error: "Rate limit exceeded for profile OCR scans. Please wait 10 minutes." },
+                { status: 429 }
+            );
+        }
+
         const body = await req.json();
         const { base64, mimeType } = body;
 
         if (!base64 || !mimeType) {
             return NextResponse.json({ error: "Missing screenshot image payload." }, { status: 400 });
+        }
+        if (base64.length > 8_000_000) {
+            return NextResponse.json({ error: "Image payload exceeds 6MB security threshold." }, { status: 413 });
         }
 
         const apiKey = process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');

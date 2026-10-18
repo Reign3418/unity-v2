@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 export const maxDuration = 300;
 
 import fs from 'fs';
-
 import path from 'path';
-
 
 export async function GET(request) {
     try {
+        const session = await auth();
+        if (!session || !session.user) {
+            return NextResponse.json({ success: false, error: 'Unauthorized. Server session required.' }, { status: 401 });
+        }
         const { searchParams } = new URL(request.url);
         const query = searchParams.get('q'); // name or alliance
 

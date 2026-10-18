@@ -65,7 +65,7 @@ export default function UserGuidePage() {
             </p>
           </div>
           <a 
-            href="/docs/Unity_V2_System_Architecture_Guide.pdf" 
+            href="/api/valheon/docs?file=Unity_V2_System_Architecture_Guide.pdf" 
             download="Unity_V2_System_Architecture_Guide.pdf"
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/25 shrink-0 border border-indigo-400/30 hover:scale-105"
           >
