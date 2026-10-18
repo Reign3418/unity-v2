@@ -60,3 +60,81 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ============================================================================
+   VALHEON SOVEREIGN OS — IMPERIAL GOLD, ROYAL AMETHYST & ASTRAL VOID THEME
+   Active ONLY when data-os-theme="valheon" (Founder Valheon Mode).
+   When data-os-theme="unity", 100% untouched Classic Unity renders.
+   ============================================================================ */
+
+@keyframes valheon-orbit-cw {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes valheon-orbit-ccw {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes valheon-pulse-gold {
+  0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.4)); }
+  50% { opacity: 0.85; filter: drop-shadow(0 0 22px rgba(234, 179, 8, 0.85)); }
+}
+
+@keyframes valheon-scanline {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { transform: translateY(400%); opacity: 0; }
+}
+
+@keyframes valheon-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.valheon-orbit-cw {
+  animation: valheon-orbit-cw 38s linear infinite;
+}
+
+.valheon-orbit-ccw {
+  animation: valheon-orbit-ccw 26s linear infinite;
+}
+
+.valheon-pulse-gold {
+  animation: valheon-pulse-gold 4s ease-in-out infinite;
+}
+
+.valheon-float {
+  animation: valheon-float 5s ease-in-out infinite;
+}
+
+[data-os-theme="valheon"] {
+  background-color: #06030c !important;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(212, 175, 55, 0.11) 0%, transparent 42%),
+    radial-gradient(circle at 85% 22%, rgba(147, 51, 234, 0.12) 0%, transparent 46%),
+    radial-gradient(circle at 50% 90%, rgba(244, 63, 94, 0.07) 0%, transparent 50%),
+    linear-gradient(to right, rgba(212, 175, 55, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 55, 0.03) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px !important;
+}
+
+[data-os-theme="valheon"] ::-webkit-scrollbar-track {
+  background: #080510;
+}
+
+[data-os-theme="valheon"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #b45309, #7e22ce);
+  border-radius: 10px;
+}
+
+/* Transform standard panels inside Valheon Mode into Imperial Gold & Amethyst Glass */
+[data-os-theme="valheon"] main .bg-\[\#0f1115\],
+[data-os-theme="valheon"] main .bg-\[\#0d1117\],
+[data-os-theme="valheon"] main .bg-\[\#090b0f\] {
+  background: linear-gradient(155deg, rgba(19, 13, 33, 0.92) 0%, rgba(10, 7, 19, 0.96) 100%) !important;
+  border-color: rgba(212, 175, 55, 0.24) !important;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.85), inset 0 1px 0 0 rgba(253, 224, 71, 0.12) !important;
+}
+

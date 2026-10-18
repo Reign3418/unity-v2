@@ -3,7 +3,8 @@
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Lock, ShieldAlert, Eye } from 'lucide-react';
+import Link from 'next/link';
+import { Lock, ShieldAlert, Eye, Camera, Crown, Sparkles, BookOpen, Shield, Atom, Swords, Users } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
@@ -14,6 +15,8 @@ export default function DashboardLayout({ children }) {
     previewRole, 
     resetPreview, 
     setPreviewRole, 
+    osMode,
+    setOsMode,
     isRealValheonFounder,
     isRealSuperAdmin, 
     effectiveIsValheonFounder,
@@ -142,15 +145,81 @@ export default function DashboardLayout({ children }) {
     blockSubText = "This Sovereign Command Suite is restricted to the Principal Systems Architect.";
   }
 
-  // Render the fully authenticated Ghost Ship App Shell
+  // Render the App Shell (Valheon Sovereign Citadel when effectiveIsValheonFounder is true, otherwise 100% pure Classic UN.TY)
   return (
-    <div className="flex h-screen w-full bg-[#0a0c0f] overflow-hidden">
+    <div
+      data-os-theme={effectiveIsValheonFounder ? 'valheon' : 'unity'}
+      className={`flex h-screen w-full overflow-hidden ${
+        effectiveIsValheonFounder ? 'bg-[#07040e]' : 'bg-[#0a0c0f]'
+      }`}
+    >
       {/* Persistent Left Navigation Panel (Collapses on Mobile) */}
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       {/* Main Content Pane */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden relative">
-        {/* Sticky Role Preview Mode Indicator */}
+        {/* Valheon Sovereign Top Command Ribbon (ONLY rendered in Valheon Mode) */}
+        {effectiveIsValheonFounder && (
+          <div className="bg-gradient-to-r from-[#130826] via-[#1c0c36] to-[#130826] border-b border-amber-500/35 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between text-amber-200 z-50 shadow-[0_4px_20px_rgba(234,179,8,0.12)]">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-[10px] font-mono font-black uppercase tracking-widest text-amber-300 shrink-0">
+                <Crown size={11} className="text-amber-400" />
+                VALHEON CITADEL OS
+              </span>
+              <div className="hidden lg:flex items-center gap-1.5 ml-1">
+                <Link
+                  href="/aegis"
+                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-400 text-[10px] font-mono text-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Shield size={10} className="text-amber-400" /> 01 Aegis
+                </Link>
+                <Link
+                  href="/nexus"
+                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-400 text-[10px] font-mono text-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Atom size={10} className="text-purple-400" /> 02 Nexus
+                </Link>
+                <Link
+                  href="/theater"
+                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-400 text-[10px] font-mono text-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Swords size={10} className="text-rose-400" /> 03 Theater
+                </Link>
+                <Link
+                  href="/vanguard"
+                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-400 text-[10px] font-mono text-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Users size={10} className="text-emerald-400" /> 04 Vanguard
+                </Link>
+                <Link
+                  href="/optics"
+                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-400 text-[10px] font-mono text-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles size={10} className="text-fuchsia-400" /> 05 Optics
+                </Link>
+                <Link
+                  href="/guide?tab=valheon-vault"
+                  className="px-2.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-[10px] font-mono font-bold text-amber-200 flex items-center gap-1 transition-all"
+                >
+                  <BookOpen size={10} className="text-amber-300" /> 95 RoK Guides
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setOsMode('unity')}
+                title="Switch to 100% pure Classic UN.TY with zero Valheon UI for safe screenshots (Shortcut: Alt+V)"
+                className="bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/60 text-amber-200 px-2.5 py-0.5 rounded-md font-mono font-bold text-[10px] uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Camera size={11} className="text-amber-300" />
+                <span>Switch to Classic UN.TY (Screenshot Mode — Alt+V)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sticky Role Preview Mode Indicator (Only when previewing lower roles like Leader/Member/Guest) */}
         {previewRole && (
           <div className="bg-gradient-to-r from-amber-950/90 via-[#1e150a] to-amber-950/90 border-b border-amber-500/40 px-4 py-2 text-xs flex flex-wrap items-center justify-between text-amber-200 z-50 shadow-md">
             <div className="flex items-center gap-2 font-mono">
@@ -159,7 +228,7 @@ export default function DashboardLayout({ children }) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
               </span>
               <span className="text-[11px] uppercase tracking-wider text-amber-300">
-                <strong>ROLE PREVIEW MODE:</strong> Viewing Unity as <span className="underline font-black text-amber-100">{previewRole === 'unity_superadmin' ? 'UNITY SUPERADMIN' : previewRole.toUpperCase()}</span>. Navigation, tools, and permissions reflect this tier.
+                <strong>ROLE PREVIEW MODE:</strong> Viewing as <span className="underline font-black text-amber-100">{previewRole.toUpperCase()}</span>. Navigation, tools, and permissions reflect this tier.
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1 sm:mt-0">
@@ -167,7 +236,7 @@ export default function DashboardLayout({ children }) {
                 onClick={resetPreview}
                 className="bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-0.5 rounded font-black text-[10px] uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
               >
-                {isRealValheonFounder ? 'Return to 🏛️ Valheon Founder' : 'Exit Preview (👑 SuperAdmin)'}
+                Exit Role Preview
               </button>
             </div>
           </div>
@@ -176,8 +245,18 @@ export default function DashboardLayout({ children }) {
         <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
         
         {/* Dynamic Page Router injected here */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 bg-[#0a0c0f] relative scrollbar-thin scrollbar-thumb-[#1e222b]">
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
+        <main
+          className={`flex-1 overflow-y-auto overflow-x-hidden p-6 relative scrollbar-thin ${
+            effectiveIsValheonFounder
+              ? 'bg-transparent scrollbar-thumb-amber-500/30'
+              : 'bg-[#0a0c0f] scrollbar-thumb-[#1e222b]'
+          }`}
+        >
+          {effectiveIsValheonFounder ? (
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(234,179,8,0.07),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(168,85,247,0.07),transparent_55%)] pointer-events-none" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
+          )}
           <div className="w-full max-w-[1920px] 2xl:max-w-screen-3xl md:px-2 lg:px-8 mx-auto relative z-10 animate-fade-in">
             {isBlocked ? (
                 <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-lg mx-auto animate-fade-in">

@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare, Eye } from 'lucide-react';
+import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare, Eye, Crown, Camera } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
@@ -12,6 +12,9 @@ export default function Navbar({ onMenuClick }) {
   const {
     previewRole,
     setPreviewRole,
+    osMode,
+    setOsMode,
+    toggleOsMode,
     isRealValheonFounder,
     isRealSuperAdmin,
     effectiveIsValheonFounder,
@@ -102,28 +105,75 @@ export default function Navbar({ onMenuClick }) {
 
   // Simple route name formatter
   const getPageTitle = () => {
-    if (pathname === '/') return effectiveIsValheonFounder ? 'Valheon Command Center' : 'Command Center';
+    if (pathname === '/' || pathname === '/en') {
+      return effectiveIsValheonFounder ? 'Sovereign Command Bridge' : 'Command Center';
+    }
     const parts = pathname.split('/').filter(Boolean);
-    if (!parts.length) return effectiveIsValheonFounder ? 'Valheon Command' : 'Dashboard';
+    if (!parts.length) return effectiveIsValheonFounder ? 'Valheon Citadel' : 'Dashboard';
     const title = parts[parts.length - 1].replace(/-/g, ' ');
     return title.charAt(0).toUpperCase() + title.slice(1);
   };
 
+  const currentSelectValue = previewRole
+    ? previewRole
+    : effectiveIsValheonFounder
+    ? 'founder'
+    : 'superadmin';
+
+  const handleRoleSelectChange = (e) => {
+    const val = e.target.value;
+    if (val === 'founder') {
+      setOsMode('valheon');
+      setPreviewRole(null);
+    } else if (val === 'superadmin') {
+      setOsMode('unity');
+      setPreviewRole(null);
+    } else {
+      setPreviewRole(val);
+    }
+  };
+
   return (
     <>
-      <header className="h-16 bg-[#0a0c0f]/80 backdrop-blur-md border-b border-[#1e222b] flex items-center justify-between px-4 md:px-8 sticky top-0 z-50 transition-all">
+      <header
+        className={`h-16 backdrop-blur-md border-b flex items-center justify-between px-4 md:px-8 sticky top-0 z-50 transition-all ${
+          effectiveIsValheonFounder
+            ? 'bg-gradient-to-r from-[#120724]/90 via-[#0b0516]/90 to-[#120724]/90 border-amber-500/35 shadow-[0_8px_30px_rgba(0,0,0,0.65)]'
+            : 'bg-[#0a0c0f]/80 border-[#1e222b]'
+        }`}
+      >
         <div className="flex items-center gap-2 md:gap-4">
-          <button onClick={onMenuClick} className="md:hidden p-2 text-cyan-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+          <button
+            onClick={onMenuClick}
+            className={`md:hidden p-2 rounded-lg transition-colors ${
+              effectiveIsValheonFounder
+                ? 'text-amber-400 hover:text-white hover:bg-amber-500/10'
+                : 'text-cyan-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
              <Menu size={20} />
           </button>
-          <h1 className="text-lg md:text-xl font-bold text-white tracking-wide truncate max-w-[150px] md:max-w-none">
+          <h1
+            className={`text-lg md:text-xl font-bold tracking-wide truncate max-w-[150px] md:max-w-none ${
+              effectiveIsValheonFounder
+                ? 'font-cinzel gold-gradient-text font-black tracking-wider'
+                : 'text-white'
+            }`}
+          >
             {getPageTitle()}
           </h1>
-          {effectiveIsLeader && (
-            <span className="hidden sm:flex bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full items-center gap-1">
-              <ShieldCheck size={12} />
-              Command
+          {effectiveIsValheonFounder ? (
+            <span className="hidden sm:flex bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-mono font-black tracking-widest uppercase px-2.5 py-0.5 rounded-full items-center gap-1 shadow-[0_0_12px_rgba(234,179,8,0.2)]">
+              <Crown size={11} className="text-amber-400" />
+              Founder Sovereign
             </span>
+          ) : (
+            effectiveIsLeader && (
+              <span className="hidden sm:flex bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full items-center gap-1">
+                <ShieldCheck size={12} />
+                Command
+              </span>
+            )
           )}
         </div>
 
@@ -133,42 +183,40 @@ export default function Navbar({ onMenuClick }) {
             <button
               type="button"
               onClick={() => setIsOmniOpen(true)}
-              className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#0f1115] border border-cyan-500/30 hover:border-cyan-400 text-xs font-mono text-slate-300 transition-all cursor-pointer"
+              className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#160a2c] border border-amber-500/40 hover:border-amber-400 text-xs font-mono text-amber-100 transition-all cursor-pointer shadow-[0_0_15px_rgba(234,179,8,0.12)]"
             >
-              <Search size={13} className="text-cyan-400" />
-              <span>Omni-Command...</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px]">Ctrl+K</kbd>
+              <Search size={13} className="text-amber-400" />
+              <span>Omni-Citadel...</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">Ctrl+K</kbd>
             </button>
           )}
 
-          {/* View-As Role Preview Dropdown (Founder & SuperAdmin Testing Suite) */}
+          {/* View-As Role Preview Dropdown (100% Screenshot-Safe when in Classic UN.TY Mode) */}
           {isRealSuperAdmin && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
               previewRole 
                 ? 'bg-amber-500/15 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)]' 
+                : effectiveIsValheonFounder
+                ? 'bg-[#170b2c]/80 border-amber-500/45 shadow-[0_0_15px_rgba(234,179,8,0.15)]'
                 : 'bg-[#1e222b]/50 border-[#2d323e] hover:border-cyan-500/40'
             }`}>
-              <Eye size={14} className={previewRole ? 'text-amber-400 animate-pulse' : 'text-cyan-400'} />
+              <Eye size={14} className={previewRole || effectiveIsValheonFounder ? 'text-amber-400' : 'text-cyan-400'} />
               <span className={`text-[10px] font-bold uppercase tracking-widest hidden md:inline ${
-                previewRole ? 'text-amber-400' : 'text-gray-400'
+                previewRole || effectiveIsValheonFounder ? 'text-amber-300' : 'text-gray-400'
               }`}>
                 View As:
               </span>
               <select 
-                value={previewRole || (isRealValheonFounder ? 'founder' : 'superadmin')}
-                onChange={(e) => setPreviewRole((e.target.value === 'founder' || e.target.value === 'superadmin') ? null : e.target.value)}
+                value={currentSelectValue}
+                onChange={handleRoleSelectChange}
                 className={`bg-transparent font-mono text-xs font-bold outline-none cursor-pointer ${
-                  previewRole ? 'text-amber-300 font-black' : 'text-cyan-400'
+                  previewRole || effectiveIsValheonFounder ? 'text-amber-300 font-black' : 'text-cyan-400'
                 }`}
-                title="Switch between Valheon Founder Stealth OS and Unity membership tiers"
+                title="Switch between Valheon Sovereign OS, Classic UN.TY (Screenshot-Safe), and lower membership tiers (Shortcut: Alt+V)"
               >
-                {isRealValheonFounder ? (
-                  <>
-                    <option value="founder" className="bg-[#0f1115] text-cyan-300">🏛️ Valheon Founder (Stealth OS)</option>
-                    <option value="unity_superadmin" className="bg-[#0f1115] text-amber-300">👑 Unity SuperAdmin (Classic UN.TY)</option>
-                  </>
-                ) : (
-                  <option value="superadmin" className="bg-[#0f1115] text-cyan-400">👑 SuperAdmin (Real)</option>
+                <option value="superadmin" className="bg-[#0f1115] text-cyan-400">👑 SuperAdmin (Real)</option>
+                {isRealValheonFounder && (
+                  <option value="founder" className="bg-[#120724] text-amber-300">🏛️ Valheon Founder (Citadel OS — Alt+V)</option>
                 )}
                 <option value="leader" className="bg-[#0f1115] text-amber-400">🛡️ Leader (R4/R5)</option>
                 <option value="analyst" className="bg-[#0f1115] text-sky-400">📊 Data Analyst</option>
@@ -338,23 +386,55 @@ export default function Navbar({ onMenuClick }) {
             </div>
           </div>
 
-          {/* User Profile */}
+          {/* User Profile (Founder can click their profile badge or press Alt+V to silently flip between Valheon OS and Screenshot-Safe Classic UN.TY) */}
           {session?.user ? (
-            <div className="flex items-center gap-3 pl-4 border-l border-[#1e222b]">
+            <div
+              onClick={isRealValheonFounder ? toggleOsMode : undefined}
+              title={
+                isRealValheonFounder
+                  ? effectiveIsValheonFounder
+                    ? 'Click (or press Alt+V) to switch to Screenshot-Safe Classic UN.TY'
+                    : 'Click (or press Alt+V) to enter Valheon Sovereign Citadel OS'
+                  : undefined
+              }
+              className={`flex items-center gap-3 pl-4 border-l ${
+                effectiveIsValheonFounder ? 'border-amber-500/30' : 'border-[#1e222b]'
+              } ${isRealValheonFounder ? 'cursor-pointer group' : ''}`}
+            >
               <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-sm font-bold text-white leading-tight">{session.user.username}</span>
-                <span className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">
-                  Architecture Node
+                <span
+                  className={`text-sm font-bold leading-tight ${
+                    effectiveIsValheonFounder ? 'text-amber-200' : 'text-white'
+                  }`}
+                >
+                  {session.user.username}
+                </span>
+                <span
+                  className={`text-[10px] font-medium uppercase tracking-widest ${
+                    effectiveIsValheonFounder ? 'text-amber-400/80 font-mono' : 'text-gray-500'
+                  }`}
+                >
+                  {effectiveIsValheonFounder ? 'Principal Architect' : 'Architecture Node'}
                 </span>
               </div>
               {session.user.avatar ? (
                 <img 
                   src={`https://cdn.discordapp.com/avatars/${session.user.id}/${session.user.avatar}.png`} 
                   alt="Profile" 
-                  className="w-9 h-9 rounded-full border-2 border-[#1e222b] hover:border-cyan-500 transition-colors cursor-pointer object-cover"
+                  className={`w-9 h-9 rounded-full border-2 transition-colors cursor-pointer object-cover ${
+                    effectiveIsValheonFounder
+                      ? 'border-amber-400 shadow-[0_0_12px_rgba(234,179,8,0.4)]'
+                      : 'border-[#1e222b] hover:border-cyan-500'
+                  }`}
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-[#1e222b] text-gray-400 flex items-center justify-center font-bold border-2 border-[#2d323e]">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold border-2 ${
+                    effectiveIsValheonFounder
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-400'
+                      : 'bg-[#1e222b] text-gray-400 border-[#2d323e]'
+                  }`}
+                >
                   {session.user.username?.charAt(0).toUpperCase()}
                 </div>
               )}

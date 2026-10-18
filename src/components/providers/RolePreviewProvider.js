@@ -4,9 +4,12 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { useSession } from 'next-auth/react';
 
 const RolePreviewContext = createContext({
-  previewRole: null, // null = full Founder/SuperAdmin, 'unity_superadmin', 'leader', 'analyst', 'member', 'guest'
+  previewRole: null, // null = full SuperAdmin, 'leader', 'analyst', 'member', 'guest'
   setPreviewRole: () => {},
   resetPreview: () => {},
+  osMode: 'valheon', // 'valheon' | 'unity' (only applies to Founder)
+  setOsMode: () => {},
+  toggleOsMode: () => {},
   isRealValheonFounder: false,
   isRealSuperAdmin: false,
   effectiveRole: 'User',
@@ -43,25 +46,67 @@ function checkIsValheonFounder(user) {
 export function RolePreviewProvider({ children }) {
   const { data: session } = useSession();
   const [previewRole, setPreviewRoleState] = useState(null);
+  const [osModeState, setOsModeState] = useState('valheon');
 
   // Exclusive Founder tier above SuperAdmin (Lauren / reign3418 only)
   const isRealValheonFounder = checkIsValheonFounder(session?.user);
   // Check if the authenticated user is genuinely a SuperAdmin (or Founder)
   const isRealSuperAdmin = Boolean(session?.user?.isSuperAdmin) || isRealValheonFounder;
 
-  // Hydrate preview role from localStorage on mount (only for verified SuperAdmins)
+  // Hydrate preview role and OS mode from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('unty_preview_role');
-      if (saved && ['unity_superadmin', 'leader', 'analyst', 'member', 'guest'].includes(saved)) {
-        setPreviewRoleState(saved);
+      const savedRole = localStorage.getItem('unty_preview_role');
+      if (savedRole && ['leader', 'analyst', 'member', 'guest'].includes(savedRole)) {
+        setPreviewRoleState(savedRole);
+      }
+      const savedOs = localStorage.getItem('valheon_os_mode');
+      if (savedOs === 'unity' || savedOs === 'valheon') {
+        setOsModeState(savedOs);
       }
     }
   }, []);
 
+  const setOsMode = (mode) => {
+    const next = mode === 'unity' ? 'unity' : 'valheon';
+    setOsModeState(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('valheon_os_mode', next);
+    }
+  };
+
+  const toggleOsMode = () => {
+    setOsModeState((prev) => {
+      const next = prev === 'valheon' ? 'unity' : 'valheon';
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('valheon_os_mode', next);
+      }
+      return next;
+    });
+  };
+
+  // Global Alt+V hotkey for Founder to flip instantly between Valheon and screenshot-safe Classic Unity
+  useEffect(() => {
+    if (!isRealValheonFounder) return;
+    const handleKey = (e) => {
+      if (e.altKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        toggleOsMode();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isRealValheonFounder]);
+
   const setPreviewRole = (role) => {
     if (!role || role === 'founder' || role === 'superadmin' || role === 'real') {
       setPreviewRoleState(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('unty_preview_role');
+      }
+    } else if (role === 'unity_superadmin') {
+      setPreviewRoleState(null);
+      setOsMode('unity');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('unty_preview_role');
       }
@@ -78,20 +123,19 @@ export function RolePreviewProvider({ children }) {
   // Only genuinely authorized SuperAdmins can activate preview mode
   const activePreview = isRealSuperAdmin ? previewRole : null;
 
-  // Exclusive Valheon Founder UI surface flag: ONLY true for Lauren when not previewing a Unity tier
-  const effectiveIsValheonFounder = isRealValheonFounder && !activePreview;
+  // Exclusive Valheon Founder UI surface flag: ONLY true for Lauren when osMode === 'valheon' and not impersonating a lower role
+  const effectiveIsValheonFounder =
+    isRealValheonFounder && osModeState === 'valheon' && !activePreview;
 
   // Compute effective permissions based on simulated tier
-  const effectiveIsSuperAdmin =
-    isRealSuperAdmin && (!activePreview || activePreview === 'unity_superadmin');
+  // Note: when Lauren switches osMode to 'unity', she STILL has full SuperAdmin permissions in Classic Unity with ZERO preview banners!
+  const effectiveIsSuperAdmin = isRealSuperAdmin && !activePreview;
   const effectiveIsLeader =
     activePreview === 'leader' ||
-    activePreview === 'unity_superadmin' ||
     (effectiveIsSuperAdmin ? Boolean(session?.user?.isLeader ?? true) : false);
   const effectiveIsAnalyst =
     activePreview === 'analyst' ||
     activePreview === 'leader' ||
-    activePreview === 'unity_superadmin' ||
     (effectiveIsSuperAdmin ? Boolean(session?.user?.isAnalyst ?? true) : false);
   const effectiveIsMember = activePreview
     ? activePreview !== 'guest'
@@ -100,9 +144,7 @@ export function RolePreviewProvider({ children }) {
     activePreview === 'guest' ? false : Boolean(session?.user?.isSupporter);
 
   const effectiveRole = activePreview
-    ? activePreview === 'unity_superadmin'
-      ? 'Admin'
-      : activePreview === 'leader'
+    ? activePreview === 'leader'
       ? 'Leader'
       : activePreview === 'analyst'
       ? 'Data Analyst'
@@ -155,6 +197,9 @@ export function RolePreviewProvider({ children }) {
         previewRole: activePreview,
         setPreviewRole,
         resetPreview,
+        osMode: isRealValheonFounder ? osModeState : 'unity',
+        setOsMode,
+        toggleOsMode,
         isRealValheonFounder,
         isRealSuperAdmin,
         effectiveRole,

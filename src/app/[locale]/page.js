@@ -20,6 +20,7 @@ import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 import { useValheonCommand } from "@/components/command/ValheonCommandProvider";
+import ValheonSovereignBridge from "@/components/command/ValheonSovereignBridge";
 
 export default function Home() {
   const pathname = usePathname();
@@ -841,12 +842,16 @@ export default function Home() {
   }
 
   // ========================================================
-  // AUTHENTICATED DASHBOARD (SHOWN TO LOGGED-IN USERS)
+  // AUTHENTICATED DASHBOARD (VALHEON CITADEL VS CLASSIC UNITY)
   // ========================================================
+  if (effectiveIsValheonFounder) {
+    return <ValheonSovereignBridge />;
+  }
+
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       
-      {/* Welcome Banner */}
+      {/* Welcome Banner (100% Pure Classic Unity) */}
       <div className="relative overflow-hidden rounded-2xl bg-[#0f1115] border border-[#1e222b] p-10 text-center shadow-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
         
@@ -881,34 +886,6 @@ export default function Home() {
               </Link>
             </>
           )}
-          {effectiveIsValheonFounder && (
-            <>
-              <button
-                type="button"
-                onClick={() => setIsOmniOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 px-6 py-3 rounded-lg font-bold transition-all cursor-pointer"
-              >
-                <Search size={18} className="text-cyan-400" />
-                <span>{tValheon('dock_omni_btn')}</span>
-                <kbd className="text-xs font-mono bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-200">Ctrl+K</kbd>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsForensicsOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 px-6 py-3 rounded-lg font-bold transition-all cursor-pointer"
-              >
-                <Shield size={18} className="text-emerald-400" />
-                <span>{tValheon('dock_aegis_btn')}</span>
-              </button>
-              <Link
-                href="/guide?tab=valheon-vault"
-                className="inline-flex items-center gap-2 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#D4AF37] border border-[#D4AF37]/50 hover:border-[#D4AF37] px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
-              >
-                <BookOpen size={18} className="text-[#D4AF37]" />
-                <span>👑 95 RoK Field Guides</span>
-              </Link>
-            </>
-          )}
           <Link 
             href="/album-card" 
             className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-amber-300 border border-[#D4AF37]/40 hover:border-[#D4AF37] px-6 py-3 rounded-lg font-bold transition-all"
@@ -918,114 +895,6 @@ export default function Home() {
           </Link>
         </div>
       </div>
-
-      {/* THE 5 UNIFIED VALHEON COMMAND SUITES (Exclusive Founder Stealth Evolution) */}
-      {effectiveIsValheonFounder && (
-        <div className="rounded-2xl bg-[#090b0f] border border-[#1e2638] p-6 shadow-2xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <span className="text-[11px] font-mono font-black tracking-widest text-cyan-400 uppercase">
-                VALHEON // SOVEREIGN COMMAND OS (STRANGLER FIG STEALTH MODE)
-              </span>
-              <h3 className="text-xl font-black text-white mt-0.5">
-                {tValheon('sidebar_suites_header')}
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/guide?tab=valheon-vault"
-                className="px-3.5 py-1.5 rounded-lg bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/50 text-[#D4AF37] font-bold text-xs font-mono transition-all"
-              >
-                👑 Open 95 Scrubbed RoK Guides →
-              </Link>
-              <button
-                type="button"
-                onClick={() => setIsForensicsOpen(true)}
-                className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs font-mono transition-all cursor-pointer"
-              >
-                {tValheon('forensics_btn_audit')} →
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {[
-              {
-                code: '01 // COUNTER-INTEL',
-                title: tValheon('suite_aegis_title'),
-                desc: tValheon('suite_aegis_desc'),
-                href: '/aegis',
-                color: 'border-cyan-500/40 hover:border-cyan-400 bg-cyan-500/5',
-                tagColor: 'text-cyan-400',
-                bullets: ['EK Polygraph 3.0', 'Ghost/Alt Hunter', 'Reseller Radar', 'Account Age Audit'],
-              },
-              {
-                code: '02 // TELEMETRY',
-                title: tValheon('suite_nexus_title'),
-                desc: tValheon('suite_nexus_desc'),
-                href: '/nexus',
-                color: 'border-amber-500/40 hover:border-amber-400 bg-amber-500/5',
-                tagColor: 'text-amber-400',
-                bullets: ['Cerberus 3D Galaxy', '60fps DKP Worker', 'Kingdom 12-Tab Core', 'T5 & Presence'],
-              },
-              {
-                code: '03 // TACTICAL',
-                title: tValheon('suite_theater_title'),
-                desc: tValheon('suite_theater_desc'),
-                href: '/theater',
-                color: 'border-rose-500/40 hover:border-rose-400 bg-rose-500/5',
-                tagColor: 'text-rose-400',
-                bullets: ['128-Node Crystal Map', 'AI Battle Predictor', 'UTC Pass Clocks', 'Discord War Orders'],
-              },
-              {
-                code: '04 // DIPLOMACY',
-                title: tValheon('suite_vanguard_title'),
-                desc: tValheon('suite_vanguard_desc'),
-                href: '/vanguard',
-                color: 'border-emerald-500/40 hover:border-emerald-400 bg-emerald-500/5',
-                tagColor: 'text-emerald-400',
-                bullets: ['Migrant Kanban CRM', 'Player Hunter', 'RoK Mail Studio', 'Album QR Disguise'],
-              },
-              {
-                code: '05 // AI VISION',
-                title: tValheon('suite_optics_title'),
-                desc: tValheon('suite_optics_desc'),
-                href: '/optics',
-                color: 'border-purple-500/40 hover:border-purple-400 bg-purple-500/5',
-                tagColor: 'text-purple-400',
-                bullets: ['Ctrl+V Clipboard HUD', 'Floating Rank Scanner', '7 Audited Calculators', '12-Lang Live Chat'],
-              },
-            ].map((suite, idx) => (
-              <Link
-                key={idx}
-                href={suite.href}
-                className={`p-4 rounded-xl border transition-all flex flex-col justify-between group ${suite.color}`}
-              >
-                <div>
-                  <div className={`text-[10px] font-mono font-black ${suite.tagColor}`}>
-                    {suite.code}
-                  </div>
-                  <div className="text-sm font-black text-white mt-1 group-hover:text-cyan-300 transition-colors">
-                    {suite.title}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-snug">
-                    {suite.desc}
-                  </p>
-                  <div className="mt-3 pt-2.5 border-t border-white/10 space-y-1 text-[11px] font-mono text-slate-300">
-                    {suite.bullets.map((b, bi) => (
-                      <div key={bi}>• {b}</div>
-                    ))}
-                  </div>
-                </div>
-                <div className={`mt-3 pt-2 text-[11px] font-mono font-bold flex items-center justify-between ${suite.tagColor}`}>
-                  <span>{tValheon('omni_open_suite')}</span>
-                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Global Master Clock */}
       <WorldClock />

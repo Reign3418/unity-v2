@@ -47,8 +47,13 @@ import {
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { effectiveIsValheonFounder, effectiveIsSuperAdmin, effectiveIsLeader, previewRole } =
-    useRolePreview();
+  const {
+    effectiveIsValheonFounder,
+    effectiveIsSuperAdmin,
+    effectiveIsLeader,
+    previewRole,
+    setOsMode,
+  } = useRolePreview();
   const { setIsOmniOpen, setIsForensicsOpen } = useValheonCommand();
   const t = useTranslations('Sidebar');
   const tValheon = useTranslations('Valheon');
@@ -69,32 +74,43 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       pathname === `/en${href}` ||
       (href !== '/' && pathname.includes(href));
 
+    const activeClasses = effectiveIsValheonFounder
+      ? 'bg-gradient-to-r from-amber-500/20 via-purple-500/10 to-transparent text-amber-200 border border-amber-400/40 shadow-[inset_3px_0_0_0_#eab308]'
+      : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shadow-[inset_3px_0_0_0_rgba(6,182,212,1)]';
+
+    const inactiveClasses = effectiveIsValheonFounder
+      ? 'text-slate-300/80 hover:text-amber-200 hover:bg-amber-500/10 border border-transparent'
+      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent';
+
+    const iconClasses = effectiveIsValheonFounder
+      ? isActive
+        ? 'text-amber-400 shrink-0'
+        : 'text-purple-300/60 group-hover:text-amber-300 transition-colors shrink-0'
+      : isActive
+      ? 'text-cyan-400 shrink-0'
+      : 'text-gray-500 group-hover:text-cyan-400 transition-colors shrink-0';
+
     return (
       <div className="relative group flex items-center">
         <Link
           href={href}
           onClick={() => setIsOpen && setIsOpen(false)}
           className={`flex-1 flex items-center justify-between px-3.5 py-2 rounded-lg transition-all duration-200 ${
-            isActive
-              ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shadow-[inset_3px_0_0_0_rgba(6,182,212,1)]'
-              : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+            isActive ? activeClasses : inactiveClasses
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <Icon
-              size={17}
-              className={
-                isActive
-                  ? 'text-cyan-400 shrink-0'
-                  : 'text-gray-500 group-hover:text-cyan-400 transition-colors shrink-0'
-              }
-            />
+            <Icon size={17} className={iconClasses} />
             <span className="text-xs font-semibold flex items-center gap-1.5 truncate">
               {label}
               {isAi && (
                 <Sparkles
                   size={11}
-                  className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0"
+                  className={
+                    effectiveIsValheonFounder
+                      ? 'text-amber-400 fill-amber-400/20 shrink-0'
+                      : 'text-fuchsia-400 fill-fuchsia-400/20 shrink-0'
+                  }
                 />
               )}
             </span>
@@ -103,7 +119,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <span
               className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded border shrink-0 ${
                 badgeColor ||
-                'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                (effectiveIsValheonFounder
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30')
               }`}
             >
               {badge}
@@ -134,7 +152,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   };
 
   const SectionTitle = ({ children }) => (
-    <div className="px-3.5 py-1.5 mt-3.5 text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase">
+    <div
+      className={`px-3.5 py-1.5 mt-3.5 text-[10px] font-black tracking-[0.2em] uppercase ${
+        effectiveIsValheonFounder
+          ? 'text-amber-400/80 font-cinzel border-b border-amber-500/15 mb-1'
+          : 'text-slate-500'
+      }`}
+    >
       {children}
     </div>
   );
@@ -151,26 +175,36 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
       {/* Drawer Container */}
       <aside
-        className={`fixed inset-y-0 left-0 w-64 bg-[#0f1115] border-r border-[#1e222b] flex flex-col flex-shrink-0 z-50 overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.8)] md:shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] md:relative md:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 w-64 flex flex-col flex-shrink-0 z-50 overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.8)] md:shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] md:relative md:translate-x-0 ${
+          effectiveIsValheonFounder
+            ? 'bg-gradient-to-b from-[#110822] via-[#090414] to-[#0d061c] border-r border-amber-500/30'
+            : 'bg-[#0f1115] border-r border-[#1e222b]'
+        } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        {/* Brand Header (Strangler Fig: VALHEON for Founder, UN.TY for everyone else) */}
-        <div className="h-16 flex items-center px-5 border-b border-[#1e222b] bg-[#0a0c0f]">
+        {/* Brand Header (Strangler Fig: VALHEON SOVEREIGN CITADEL for Founder, Classic UN.TY for everyone else) */}
+        <div
+          className={`h-16 flex items-center px-5 border-b ${
+            effectiveIsValheonFounder
+              ? 'border-amber-500/30 bg-gradient-to-r from-[#170a2e] via-[#110722] to-[#170a2e]'
+              : 'border-[#1e222b] bg-[#0a0c0f]'
+          }`}
+        >
           <div className="flex items-center justify-between w-full">
             {effectiveIsValheonFounder ? (
               <Link href="/" className="flex items-center gap-2.5">
-                <img
-                  src="/logo-valheon-dark.png"
-                  alt="Valheon Crest"
-                  className="w-9 h-9 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                />
+                <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500/25 to-purple-600/25 border border-amber-400/50 shadow-[0_0_15px_rgba(234,179,8,0.35)]">
+                  <img
+                    src="/logo-valheon-dark.png"
+                    alt="Valheon Crest"
+                    className="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(250,204,21,0.7)]"
+                  />
+                </div>
                 <div dir="ltr" className="flex flex-col">
-                  <span className="text-lg font-black tracking-[0.22em] text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.3)] leading-none">
+                  <span className="text-lg font-black font-cinzel tracking-[0.2em] gold-gradient-text leading-none">
                     VALHEON
                   </span>
-                  <span className="text-[9px] font-mono tracking-[0.18em] text-cyan-500/80 uppercase mt-0.5">
-                    COMMAND OS
+                  <span className="text-[9px] font-mono tracking-[0.18em] text-amber-300/80 uppercase mt-0.5">
+                    SOVEREIGN CITADEL
                   </span>
                 </div>
               </Link>
@@ -194,30 +228,46 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </div>
         </div>
 
-        {/* Quick Omni-Bar & Forensics Launch Strip (Exclusive Valheon Founder Only) */}
+        {/* Quick Omni-Bar, Forensics & Screenshot Mode Strip (Exclusive Valheon Founder Only) */}
         {effectiveIsValheonFounder && (
-          <div className="px-3 pt-3 pb-1 grid grid-cols-2 gap-1.5">
+          <div className="px-3 pt-3 pb-1.5 space-y-1.5 border-b border-amber-500/20 bg-[#0c0517]/60">
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsOmniOpen(true)}
+                className="px-2.5 py-1.5 rounded-lg bg-[#150a2a] border border-amber-500/35 hover:border-amber-400 text-[11px] font-mono text-amber-200 flex items-center justify-between transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-1">
+                  <Search size={12} className="text-amber-400" />
+                  <span>Omni</span>
+                </span>
+                <kbd className="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded">^K</kbd>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsForensicsOpen(true)}
+                className="px-2.5 py-1.5 rounded-lg bg-[#150a2a] border border-purple-500/35 hover:border-purple-400 text-[11px] font-mono text-purple-200 flex items-center justify-between transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-1">
+                  <Shield size={12} className="text-purple-400" />
+                  <span>Aegis</span>
+                </span>
+                <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded">5D</span>
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setIsOmniOpen(true)}
-              className="px-2.5 py-1.5 rounded-lg bg-[#0a0c0f] border border-cyan-500/30 hover:border-cyan-400 text-[11px] font-mono text-cyan-300 flex items-center justify-between transition-all cursor-pointer"
+              onClick={() => setOsMode('unity')}
+              className="w-full px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-[10px] font-mono font-bold text-amber-200 flex items-center justify-between transition-all cursor-pointer"
+              title="Switch to 100% pure Classic UN.TY for screenshots (Shortcut: Alt+V)"
             >
-              <span className="flex items-center gap-1">
-                <Search size={12} />
-                <span>Omni</span>
+              <span className="flex items-center gap-1.5">
+                <Camera size={12} className="text-amber-400" />
+                <span>📸 Classic UN.TY Mode</span>
               </span>
-              <kbd className="text-[9px] bg-cyan-500/20 px-1 rounded">^K</kbd>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsForensicsOpen(true)}
-              className="px-2.5 py-1.5 rounded-lg bg-[#0a0c0f] border border-emerald-500/30 hover:border-emerald-400 text-[11px] font-mono text-emerald-300 flex items-center justify-between transition-all cursor-pointer"
-            >
-              <span className="flex items-center gap-1">
-                <Shield size={12} />
-                <span>Aegis</span>
-              </span>
-              <span className="text-[9px] bg-emerald-500/20 px-1 rounded">5D</span>
+              <kbd className="text-[9px] bg-black/40 border border-amber-500/30 px-1 rounded text-amber-300">
+                Alt+V
+              </kbd>
             </button>
           </div>
         )}
@@ -228,7 +278,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <NavItem
               href="/"
               icon={LayoutDashboard}
-              label={t('nav_dashboard')}
+              label={effectiveIsValheonFounder ? '🏛️ Citadel Bridge' : t('nav_dashboard')}
             />
             <NavItem href="/stats" icon={User} label={t('nav_stats')} />
             <NavItem
@@ -247,7 +297,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   icon={Shield}
                   label={tValheon('suite_aegis_nav')}
                   badge="01"
-                  badgeColor="bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
+                  badgeColor="bg-amber-500/20 text-amber-300 border-amber-500/40"
                   isAi={true}
                 />
                 <NavItem
@@ -255,7 +305,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   icon={Atom}
                   label={tValheon('suite_nexus_nav')}
                   badge="02"
-                  badgeColor="bg-amber-500/15 text-amber-300 border-amber-500/30"
+                  badgeColor="bg-purple-500/20 text-purple-300 border-purple-500/40"
                   isAi={true}
                 />
                 <NavItem
@@ -263,7 +313,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   icon={Swords}
                   label={tValheon('suite_theater_nav')}
                   badge="03"
-                  badgeColor="bg-rose-500/15 text-rose-300 border-rose-500/30"
+                  badgeColor="bg-rose-500/20 text-rose-300 border-rose-500/40"
                   isAi={true}
                 />
                 <NavItem
@@ -271,7 +321,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   icon={Users}
                   label={tValheon('suite_vanguard_nav')}
                   badge="04"
-                  badgeColor="bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                  badgeColor="bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                   isAi={true}
                 />
                 <NavItem
@@ -279,7 +329,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   icon={Camera}
                   label={tValheon('suite_optics_nav')}
                   badge="05"
-                  badgeColor="bg-purple-500/15 text-purple-300 border-purple-500/30"
+                  badgeColor="bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40"
                   isAi={true}
                 />
                 <NavItem
@@ -287,7 +337,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   icon={BookOpen}
                   label="👑 95 RoK Field Guides"
                   badge="95"
-                  badgeColor="bg-amber-500/20 text-amber-300 border-amber-500/40"
+                  badgeColor="bg-amber-500/25 text-amber-200 border-amber-400/50"
                   isAi={true}
                 />
               </>
@@ -456,7 +506,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         </div>
 
         {/* Footer Profile / Logout Area */}
-        <div className="w-full mt-auto p-4 bg-[#0a0c0f] border-t border-[#1e222b] flex flex-col gap-4">
+        <div
+          className={`w-full mt-auto p-4 border-t flex flex-col gap-4 ${
+            effectiveIsValheonFounder
+              ? 'bg-[#090414] border-amber-500/25'
+              : 'bg-[#0a0c0f] border-[#1e222b]'
+          }`}
+        >
           <div className="flex flex-col gap-2.5">
             <a
               href="https://ko-fi.com/ReignsPlace"
