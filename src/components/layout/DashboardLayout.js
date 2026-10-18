@@ -198,10 +198,10 @@ export default function DashboardLayout({ children }) {
                   <Sparkles size={10} className="text-fuchsia-400" /> 05 Optics
                 </Link>
                 <Link
-                  href="/guide?tab=valheon-vault"
+                  href="/guide?tab=valheon-vault&section=tiers"
                   className="px-2.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-[10px] font-mono font-bold text-amber-200 flex items-center gap-1 transition-all"
                 >
-                  <BookOpen size={10} className="text-amber-300" /> 95 RoK Guides
+                  <BookOpen size={10} className="text-amber-300" /> Tactical Vault (141+95)
                 </Link>
               </div>
             </div>

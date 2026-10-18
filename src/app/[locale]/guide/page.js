@@ -60,7 +60,7 @@ export default function UserGuidePage() {
             </h1>
             <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">
               {effectiveIsValheonFounder
-                ? "Includes Stealth 95-Guide RoK Archive Vault (Founder Only) + Platform Documentation"
+                ? "Includes Stealth Tactical Vault (95 Field Dossiers + 141 Commanders + 20 Tier Matrices) + Platform Documentation"
                 : "Step-by-step walkthrough of all features and modules in Unity 2.0!"}
             </p>
           </div>
@@ -79,7 +79,7 @@ export default function UserGuidePage() {
       {/* Tabs Menu */}
       <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-xl overflow-x-auto px-2 no-scrollbar">
         {effectiveIsValheonFounder && (
-          <TabButton id="valheon-vault" label="👑 Valheon Field Guides (95)" icon={Lock} color="amber" />
+          <TabButton id="valheon-vault" label="👑 Valheon Tactical Vault (95 Dossiers + 141 Commanders)" icon={Lock} color="amber" />
         )}
         <TabButton id="getting-started" label="🚀 Ingesting Data" icon={Upload} color="indigo" />
         <TabButton id="calculators" label="🔮 AI Calculators" icon={Sparkles} color="fuchsia" />

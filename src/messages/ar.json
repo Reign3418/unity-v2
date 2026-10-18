@@ -1,6 +1,6 @@
 {
   "Index": {
-    "title": "مرحباً بك في Valheon"
+    "title": "مرحباً بك في Unity"
   },
   "Sidebar": {
     "nav_dashboard": "لوحة القيادة",
@@ -63,7 +63,7 @@
     "req_access_desc": "يونيتي هو إطار معماري خاص. لتسجيل خادم ديسكورد الخاص بك، تواصل مع المهندس الرئيسي.",
     "discord_contact": "جهة الاتصال في ديسكورد",
     "btn_acknowledge": "أقر بذلك",
-    "welcome_title": "مرحباً بك في Valheon",
+    "welcome_title": "مرحباً بك في Unity",
     "welcome_desc": "نقوم بتحليل عمليات المسح، إنشاء التقارير، تتبع نقاط القتل (DKP)، تقييم المجندين الجدد، وتحضير جداول MGE بشكل كامل من السحابة.",
     "btn_upload": "ابدأ بتحميل مسح",
     "saas_title": "تحليلات ذكية، مسؤولية صفرية.",
@@ -85,7 +85,7 @@
     "mkt_feat_3_title": "التنسيق الرئيسي للديسكورد",
     "mkt_feat_3_desc": "قم بمزامنة معرفات Discord مع حكام اللعبة ، ووحد حسابات المزارع تلقائياً ، واستعلم عن لوحات صدارة DKP المباشرة مباشرة من أي قناة نصية في Discord.",
     "mkt_kofi_title": "تحقيق حالة الداعم VIP",
-    "mkt_kofi_desc": "يقوم Valheon بتشغيل أحمال حسابية وحشية على مستوى العالم. إذا قام قادة مملكتك بدعمنا ماليًا، فسيتم إدراج خادمك بالكامل بشكل فوري ودائم في القائمة البيضاء لجميع الميزات المقيدة على مستوى الخادم.",
+    "mkt_kofi_desc": "يقوم Unity بتشغيل أحمال حسابية وحشية على مستوى العالم. إذا قام قادة مملكتك بدعمنا ماليًا، فسيتم إدراج خادمك بالكامل بشكل فوري ودائم في القائمة البيضاء لجميع الميزات المقيدة على مستوى الخادم.",
     "btn_support_us": "القائمة البيضاء عبر Ko-fi",
     "mkt_feat_4_title": "تجاوز الوصول العالمي",
     "mkt_feat_4_desc": "هل ديسكورد محظور في بلدك؟ نقدم لداعمي المملكة رموزًا للويب تتجاوز ديسكورد تمامًا، لضمان عدم تخلف أي لاعب عن الركب.",
@@ -210,7 +210,7 @@
     "high_command": "القيادة العليا",
     "section_notifications": "الإشعارات",
     "discord_pings": "تنبيهات ديسكورد",
-    "discord_pings_desc": "استلم رسائل مباشرة من بوت Valheon عند اكتمال عمليات المسح",
+    "discord_pings_desc": "استلم رسائل مباشرة من بوت Unity عند اكتمال عمليات المسح",
     "email_notifs": "إشعارات البريد الإلكتروني",
     "email_notifs_desc": "تقارير ملخصة أسبوعية وتنبيهات أمنية",
     "section_dashboard": "تجربة لوحة التحكم",
@@ -221,7 +221,7 @@
     "no_arch_keys": "لم يتم التحقق من مفاتيح المعمارية.",
     "section_api": "اتصالات API الخارجية",
     "hybrid_mode": "الوضع الهجين",
-    "api_desc": "يعمل Valheon ببنية تحتية سحابية هجينة. يتطلب تحليل OCR المكثف لرفع الصور مفتاح Google Gemini Pro API للعمل.",
+    "api_desc": "يعمل Unity ببنية تحتية سحابية هجينة. يتطلب تحليل OCR المكثف لرفع الصور مفتاح Google Gemini Pro API للعمل.",
     "gemini_key": "مفتاح Google Gemini السري",
     "btn_save": "حفظ التغييرات",
     "gemini_model": "نموذج معمارية Gemini",
@@ -253,7 +253,7 @@
         "date": "أواخر مارس 2026",
         "h1": "هندسة بيئة تجريبية قوية للبيانات للربط الديناميكي الفوري لملفات Excel القديمة بمعاملات JSON الأصلية",
         "h2": "بناء نظام تتبع تدقيق البيانات من البداية إلى النهاية، وربط ملفات المصدر المرفوعة مباشرة بمصفوفة AWS DynamoDB العالمية",
-        "c1": "Sandbox Raw Data Inspector — Admins can dynamically map unrecognizable legacy Excel headers into strict Valheon variable structures",
+        "c1": "Sandbox Raw Data Inspector — Admins can dynamically map unrecognizable legacy Excel headers into strict Unity variable structures",
         "c2": "Explicit DTG Master Control — HTML5 Datetime-local inputs integrated to manually inject exact historical Scan Date times",
         "c3": "Global Cloud Audit Log Expansion — A new Source Origin column natively tracks and renders the actual Excel file names used to trigger Cloud uploads",
         "c4": "Origin File Signatures — All Sandbox cloud ingestions are permanently branded with their forensic Filename directly inside the DynamoDB DATES partition key",
@@ -305,7 +305,7 @@
         "c3": "توحيد وسوم التحالف في خط معالجة ملفات CSV"
       },
       "1_0_0": {
-        "label": "إطلاق Valheon V1",
+        "label": "إطلاق Unity V1",
         "date": "2025",
         "c1": "بوت Discord الأولي مع أوامر Slash: /bind, /stats, /roster",
         "c2": "خادم API بتقنية Express.js مع Discord OAuth",
@@ -331,7 +331,7 @@
     "dev_notes_1": "خوارزمية التقلب الطولي: لرسم صورة دقيقة رياضياً لاتساق اللاعب، يقوم النظام الخلفي بتقسيم الإطار الزمني المطلوب ديناميكياً إلى ما يصل إلى 5 نقاط زمنية متساوية (البداية، 3 مسوحات متوسطة، والنهاية) مع السحب المتزامن من AWS DynamoDB. بدلاً من مجرد حساب 'إجمالي نقاط القتل المكتسبة'، يحسب المحرك الانحراف المعياري عبر هذه الفترات المنفصلة. عند رسمها على المحور السيني (التقلب)، يكون اللاعب الذي يطحن بانتظام نفس المقدار كل أسبوع مستقراً إحصائياً (التباين ~0)، بينما اللاعب الذي يغيب لـ 3 أسابيع ثم يرتفع بشكل هائل في الأسبوع الأخير يتم دفعه رياضياً إلى الحواف المتفجرة للمصفوفة."
   },
   "Community": {
-    "title": "مركز مجتمع Valheon",
+    "title": "مركز مجتمع Unity",
     "subtitle": "إرسال الملاحظات والبث العالمي المباشر",
     "submit_title": "إرسال ملاحظات",
     "placeholder": "صف فكرتك أو أبلغ عن خطأ...",
@@ -424,7 +424,7 @@
   },
   "Upload": {
     "title": "مركز استيعاب البيانات",
-    "subtitle": "اختر مسار استيعاب لمزامنة معلومات المملكة الخارجية مع سحابة AWS Valheon الآمنة",
+    "subtitle": "اختر مسار استيعاب لمزامنة معلومات المملكة الخارجية مع سحابة AWS Unity الآمنة",
     "raw_spreadsheets": "جداول البيانات الخام",
     "raw_desc": "قم برفع ملفات Excel أو CSV الضخمة الناتجة عن RokBoard أو مستخرجات OCR الأخرى لمعالجة آلاف سجلات الحكام.",
     "cloud_db": "قاعدة البيانات السحابية",
@@ -929,7 +929,7 @@
     "title_free": "مجاني 100%",
     "title_vs": " مقابل ",
     "title_restricted": "المقيد",
-    "subtitle": "تخدم منصة Valheon عموم لاعبي Rise of Kingdoms بالأدوات التكتيكية المفتوحة، وتزود تحالفات الممالك المعتمدة بمعلومات الحرب الآمنة. راجع حدود الوصول الموضحة أدناه.",
+    "subtitle": "تخدم منصة Unity عموم لاعبي Rise of Kingdoms بالأدوات التكتيكية المفتوحة، وتزود تحالفات الممالك المعتمدة بمعلومات الحرب الآمنة. راجع حدود الوصول الموضحة أدناه.",
     "tier1_pill": "المستوى 1: الأكاديمية العامة",
     "tier1_login_badge": "0 تسجيل دخول مطلوب",
     "tier1_title": "أكاديمية الحكام المفتوحة",
@@ -1452,7 +1452,7 @@
     "card_seal_crest": "شارة القمة الملكية (بدون QR)",
     "card_seal_crest_desc": "يستبدل رمز الاستجابة السريعة بشارة قلعة الحرب الملكية الفاخرة مع الرتبة والحيتان والسرعة. خالٍ تماماً من أي رموز شريطية.",
     "tab_unity_richtext": "بريد وملاحظات اللعبة (HTML)",
-    "rok_mail_title": "رسالة بريد التحالف والمملكة (Valheon Rich Text)",
+    "rok_mail_title": "رسالة بريد التحالف والمملكة (Unity Rich Text)",
     "rok_note_title": "توقيع الملف الشخصي / ملاحظة التحالف",
     "discord_md_title": "إعلان القيادة على ديسكورد"
   },
@@ -1842,7 +1842,7 @@
     "classification_critical": "شبكة مؤكدة",
     "classification_high": "احتمالية عالية",
     "classification_suspected": "مزرعة مشتبه بها",
-    "hitlist_header": "🚨 [VALHEON] قائمة أهداف تصفية بوتات المزارع — مملكة {kd}",
+    "hitlist_header": "🚨 [UNITY] قائمة أهداف تصفية بوتات المزارع — مملكة {kd}",
     "hitlist_summary": "تم كشف: {count} حساب بوت | إجمالي الموارد: {rss}",
     "hitlist_item": "{index}. {name} [المعرف: {id}] - {power} قوة | {rss} موارد | {kp} نقاط قتل | [{alliance}]",
     "mail_template_subject": "[تنبيه] أمر إغارة على بوتات المزارع وبائعي الموارد",
@@ -2015,7 +2015,7 @@
     "th_credits": "الاعتمادات",
     "th_troops": "القوات",
     "th_status": "الحالة",
-    "btn_back_to_unity": "العودة إلى Valheon",
+    "btn_back_to_unity": "العودة إلى Unity",
     "th_infantry": "مشاة",
     "th_cavalry": "فرسان",
     "th_archer": "رماة",

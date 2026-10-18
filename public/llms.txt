@@ -1,0 +1,31 @@
+# Unity 2.0 / Valheon Command OS — Rise of Kingdoms (RoK) Intelligence & AI Calculator Platform
+
+> Unity / Valheon is a full-stack Rise of Kingdoms (RoK) Kingdom Telemetry, KvK Wargaming, AI Vision OCR Calculator, and Tactical Commander Intelligence Platform. Backed by live scans of 139,000+ governor profiles and 1.17M historical snapshots across 12 native languages (`en`, `es`, `pt`, `fr`, `de`, `ru`, `zh`, `ko`, `vi`, `id`, `tr`, `ar`).
+
+## Core Platform Capabilities & Routes
+
+- **AI Vision Calculators (`/calculators`):** Speedup Calculator, VIP Level & Gem Planner, Equipment Forge & Material Calculator, Action Point (AP) Stash Calculator, Tome / Commander EXP Calculator, and MGE Score Planner—all powered by instant `Ctrl+V` Gemini Vision screenshot OCR.
+- **Kingdom & KvK Analytics (`/analysis/kingdom`, `/analysis/kvk`, `/analysis/alliances`, `/analysis/players`):** Start-vs-End Delta DKP tracking, 8-dimensional behavioral vector analysis, SVD/PCA deadweight detection, hospital rebound forensics, and Hall of Heroes verified dead troop overrides.
+- **Global Rankings & Seed Matchmaking (`/rankings`, `/tools/matchmaking`, `/tools/migration`):** Imperium / A / B / C / D Seed brackets, Top 300 Kingdom matchmaking power projections, and Migrant Passport calculators.
+- **Tactical Commander & Meta Vault (`/guide`):**
+  - **141 Commanders & 694 Skills:** Complete in-game skill multipliers, minimum viable investment benchmarks (`5511`, `5551`, `Max`), skill lock orders, formations (`Arch`, `Wedge`, `Delta`, `Hollow Square`, `Pincer`, `Triple Line`), accessories, and 74-point talent tree distributions.
+  - **20 Stage-Aware Tier Matrices:** Validated pairings for `Season of Conquest (SoC)`, `KvK 2`, `KvK 1`, and `Pre-KvK` across `Open Field`, `Rally`, `Garrison`, `Swarming`, and `Sculpture Investment`.
+  - **19 Multi-March Fleet Lineups:** Synergistic 5, 6, and 7-march open-field and swarming lineups with zero commander overlap.
+  - **95 Field Guide Dossiers:** Comprehensive strategic playbooks covering Commanders, Events, KvK Tactics, Equipment Crafting, F2P Farming, and Spending ROI.
+  - **Active Redeem Codes:** Verified Rise of Kingdoms gift codes with full reward breakdowns.
+
+## Native 12-Language SSR Support
+
+All routes are natively server-rendered with localized URL prefixes:
+- English: `/en`
+- Español: `/es`
+- Português: `/pt`
+- Français: `/fr`
+- Deutsch: `/de`
+- Русский: `/ru`
+- 简体中文: `/zh`
+- 한국어: `/ko`
+- Tiếng Việt: `/vi`
+- Bahasa Indonesia: `/id`
+- Türkçe: `/tr`
+- العربية (RTL): `/ar`

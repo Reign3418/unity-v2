@@ -333,10 +333,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   isAi={true}
                 />
                 <NavItem
-                  href="/guide?tab=valheon-vault"
+                  href="/guide?tab=valheon-vault&section=tiers"
                   icon={BookOpen}
-                  label="👑 95 RoK Field Guides"
-                  badge="95"
+                  label="👑 Tactical Meta Vault"
+                  badge="141+95"
                   badgeColor="bg-amber-500/25 text-amber-200 border-amber-400/50"
                   isAi={true}
                 />

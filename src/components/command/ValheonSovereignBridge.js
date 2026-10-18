@@ -27,6 +27,7 @@ import {
 import { useValheonCommand } from './ValheonCommandProvider';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import WorldClock from '@/components/WorldClock';
+import ValheonFieldGuideVault from '@/components/guide/ValheonFieldGuideVault';
 
 export default function ValheonSovereignBridge() {
   const tValheon = useTranslations('Valheon');
@@ -371,13 +372,13 @@ export default function ValheonSovereignBridge() {
 
             <div className="p-3.5 rounded-2xl bg-[#090514]/85 border border-amber-500/30 shadow-inner">
               <div className="text-[10px] font-mono uppercase tracking-widest text-amber-400/80">
-                Scrubbed RoK Vault
+                Tactical Meta Vault
               </div>
               <div className="text-2xl font-black font-mono text-amber-300 mt-0.5">
-                {guideStats.total} Guides
+                141 Cmdrs • {guideStats.total} Guides
               </div>
               <div className="text-[10px] font-mono text-amber-200/80 mt-0.5">
-                {guideStats.published} Live • {guideStats.comingSoon} Gaps
+                20 Tier Matrices • 19 Fleets
               </div>
             </div>
 
@@ -397,11 +398,11 @@ export default function ValheonSovereignBridge() {
           {/* Primary Sovereign Action Bar */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link
-              href="/guide?tab=valheon-vault"
+              href="/guide?tab=valheon-vault&section=tiers"
               className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-[#090514] font-black text-xs sm:text-sm tracking-wider uppercase shadow-[0_0_30px_rgba(234,179,8,0.45)] transition-all flex items-center gap-2"
             >
               <Crown size={17} />
-              <span>Open All 95 Scrubbed RoK Guides</span>
+              <span>Tactical Vault (141 Cmdrs • 20 Tier Matrices • 95 Guides)</span>
               <ArrowRight size={15} />
             </Link>
 
@@ -538,64 +539,10 @@ export default function ValheonSovereignBridge() {
       </div>
 
       {/* =====================================================================
-          LIVE 95-GUIDE STRATEGIC INTELLIGENCE VAULT PREVIEW DECK
+          EMBEDDED TACTICAL META & STRATEGIC INTELLIGENCE VAULT
           ===================================================================== */}
-      <div className="rounded-3xl border border-amber-500/35 bg-gradient-to-r from-[#130c24] via-[#0e091a] to-[#170d20] p-6 sm:p-8 shadow-2xl space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 text-[11px] font-mono font-black uppercase tracking-[0.2em] text-amber-300">
-              <BookOpen size={14} />
-              <span>COMPETITIVE INTELLIGENCE // 95 SCRUBBED ROK FIELD GUIDES</span>
-            </div>
-            <h3 className="font-cinzel text-2xl font-black text-white">
-              Valheon Strategic Doctrine Vault ({guideStats.published} Published +{' '}
-              {guideStats.comingSoon} Competitor Gaps)
-            </h3>
-          </div>
-
-          <Link
-            href="/guide?tab=valheon-vault"
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all shadow-[0_0_25px_rgba(245,158,11,0.35)]"
-          >
-            <span>Browse All 95 Guides</span>
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-
-        {/* 6 Featured Guides Preview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          {guideStats.featured.map((g) => (
-            <Link
-              key={g.id}
-              href="/guide?tab=valheon-vault"
-              className="p-4 rounded-2xl bg-[#090514]/90 border border-amber-500/25 hover:border-amber-400/70 transition-all group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 text-[10px] font-mono">
-                  <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase">
-                    {g.valheonPillar || g.category}
-                  </span>
-                  <span className="text-emerald-400 font-bold">
-                    ✓ {g.readTimeMinutes || 8}m Read
-                  </span>
-                </div>
-                <div className="text-sm font-black text-white group-hover:text-amber-300 transition-colors mt-2.5">
-                  {g.title}
-                </div>
-                <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                  {g.summary}
-                </p>
-              </div>
-              <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-amber-300">
-                <span>Read Full Guide in Vault</span>
-                <ArrowRight
-                  size={12}
-                  className="group-hover:translate-x-1 transition-transform"
-                />
-              </div>
-            </Link>
-          ))}
-        </div>
+      <div id="valheon-tactical-vault" className="pt-2">
+        <ValheonFieldGuideVault initialSection="tiers" />
       </div>
 
       {/* Global Chronometer */}
