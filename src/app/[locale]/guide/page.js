@@ -1,20 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   BookOpen, FileText, Check, Upload, Timer, Wheat, Zap, Shield, 
   Map, Eye, Activity, Target, Sparkles, BrainCircuit, Swords, 
-  Bot, ChevronRight, MessageSquare, AlertTriangle, AlertCircle, Info, HelpCircle, Download
+  Bot, ChevronRight, MessageSquare, AlertTriangle, AlertCircle, Info, HelpCircle, Download, Lock
 } from "lucide-react";
+import { useRolePreview } from "@/components/providers/RolePreviewProvider";
+import ValheonFieldGuideVault from "@/components/guide/ValheonFieldGuideVault";
 
 export default function UserGuidePage() {
+  const { effectiveIsValheonFounder } = useRolePreview();
   const [activeTab, setActiveTab] = useState("getting-started");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("tab") === "valheon-vault" && effectiveIsValheonFounder) {
+        setActiveTab("valheon-vault");
+      }
+    }
+  }, [effectiveIsValheonFounder]);
+
+  useEffect(() => {
+    if (!effectiveIsValheonFounder && activeTab === "valheon-vault") {
+      setActiveTab("getting-started");
+    }
+  }, [effectiveIsValheonFounder, activeTab]);
 
   // Custom navigation tabs
   const TabButton = ({ id, label, icon: Icon, color }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2.5 px-5 py-3.5 border-b-2 font-black tracking-wider uppercase text-xs transition-all duration-200 whitespace-nowrap ${
+      className={`flex items-center gap-2.5 px-5 py-3.5 border-b-2 font-black tracking-wider uppercase text-xs transition-all duration-200 whitespace-nowrap cursor-pointer ${
         activeTab === id 
         ? `border-${color}-500 text-${color}-400 bg-${color}-500/5 shadow-[inset_0_-2px_0_0_rgba(244,63,94,0)]` 
         : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
@@ -37,11 +55,13 @@ export default function UserGuidePage() {
           </div>
           <div className="flex-1">
             <h1 className="text-3xl font-black text-white tracking-widest uppercase flex items-center gap-2">
-              Unity Platform Guide
+              {effectiveIsValheonFounder ? "Valheon & Unity Platform Guide" : "Unity Platform Guide"}
               <Sparkles className="text-fuchsia-400 fill-fuchsia-400/20 shrink-0" size={24} />
             </h1>
             <p className="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mt-1">
-              Step-by-step walkthrough of all features and modules in Unity 2.0!
+              {effectiveIsValheonFounder
+                ? "Includes Stealth 95-Guide RoK Archive Vault (Founder Only) + Platform Documentation"
+                : "Step-by-step walkthrough of all features and modules in Unity 2.0!"}
             </p>
           </div>
           <a 
@@ -58,12 +78,20 @@ export default function UserGuidePage() {
 
       {/* Tabs Menu */}
       <div className="flex bg-[#0a0c0f] border border-[#1e222b] rounded-xl overflow-x-auto px-2 no-scrollbar">
+        {effectiveIsValheonFounder && (
+          <TabButton id="valheon-vault" label="👑 Valheon Field Guides (95)" icon={Lock} color="amber" />
+        )}
         <TabButton id="getting-started" label="🚀 Ingesting Data" icon={Upload} color="indigo" />
         <TabButton id="calculators" label="🔮 AI Calculators" icon={Sparkles} color="fuchsia" />
         <TabButton id="analytics" label="📊 Charts & Analytics" icon={Activity} color="cyan" />
         <TabButton id="scouting" label="🌍 Global Scouting" icon={Target} color="amber" />
         <TabButton id="jarvis" label="🤖 AI & Discord Bot" icon={Bot} color="emerald" />
       </div>
+
+      {/* FOUNDER STEALTH TAB: 95 SCRUBBED ROK FIELD GUIDES */}
+      {effectiveIsValheonFounder && activeTab === "valheon-vault" && (
+        <ValheonFieldGuideVault />
+      )}
 
       {/* Tab Contents */}
       

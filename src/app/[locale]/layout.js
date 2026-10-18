@@ -1,6 +1,10 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/providers/AuthProvider";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { ValheonCommandProvider } from "@/components/command/ValheonCommandProvider";
+import ValheonOmniBar from "@/components/command/ValheonOmniBar";
+import ForensicsDrawer from "@/components/command/ForensicsDrawer";
+import OpticsFloatingDock from "@/components/command/OpticsFloatingDock";
 import { Analytics } from "@vercel/analytics/react";
 import "../globals.css";
 import { NextIntlClientProvider } from 'next-intl';
@@ -34,10 +38,15 @@ export default async function RootLayout({ children, params }) {
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0c0f]`}>
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
-            <DashboardLayout>
-              {children}
-              <Analytics />
-            </DashboardLayout>
+            <ValheonCommandProvider>
+              <DashboardLayout>
+                {children}
+                <Analytics />
+              </DashboardLayout>
+              <ValheonOmniBar />
+              <ForensicsDrawer />
+              <OpticsFloatingDock />
+            </ValheonCommandProvider>
           </AuthProvider>
         </NextIntlClientProvider>
       </body>

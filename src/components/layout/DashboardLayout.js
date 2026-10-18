@@ -14,7 +14,9 @@ export default function DashboardLayout({ children }) {
     previewRole, 
     resetPreview, 
     setPreviewRole, 
+    isRealValheonFounder,
     isRealSuperAdmin, 
+    effectiveIsValheonFounder,
     effectiveIsSuperAdmin, 
     effectiveIsLeader, 
     effectiveIsMember, 
@@ -130,6 +132,16 @@ export default function DashboardLayout({ children }) {
       }
   }
 
+  // Hard-gate Stealth Valheon Command Suites to Founder tier only
+  const isValheonSuiteRoute = ['/aegis', '/nexus', '/theater', '/vanguard', '/optics'].some(
+    (suite) => pathname === suite || pathname?.endsWith(suite) || pathname?.includes(`${suite}/`)
+  );
+  if (isValheonSuiteRoute && !effectiveIsValheonFounder) {
+    isBlocked = true;
+    blockPrimaryReason = "FOUNDER_CLEARANCE_REQUIRED";
+    blockSubText = "This Sovereign Command Suite is restricted to the Principal Systems Architect.";
+  }
+
   // Render the fully authenticated Ghost Ship App Shell
   return (
     <div className="flex h-screen w-full bg-[#0a0c0f] overflow-hidden">
@@ -147,15 +159,15 @@ export default function DashboardLayout({ children }) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
               </span>
               <span className="text-[11px] uppercase tracking-wider text-amber-300">
-                <strong>ROLE PREVIEW MODE:</strong> Viewing Unity as <span className="underline font-black text-amber-100">{previewRole.toUpperCase()}</span>. Navigation, tools, and permissions reflect this tier.
+                <strong>ROLE PREVIEW MODE:</strong> Viewing Unity as <span className="underline font-black text-amber-100">{previewRole === 'unity_superadmin' ? 'UNITY SUPERADMIN' : previewRole.toUpperCase()}</span>. Navigation, tools, and permissions reflect this tier.
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1 sm:mt-0">
               <button
                 onClick={resetPreview}
-                className="bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-0.5 rounded font-black text-[10px] uppercase tracking-wider transition-colors shadow-sm"
+                className="bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-0.5 rounded font-black text-[10px] uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
               >
-                Exit Preview (👑 SuperAdmin)
+                {isRealValheonFounder ? 'Return to 🏛️ Valheon Founder' : 'Exit Preview (👑 SuperAdmin)'}
               </button>
             </div>
           </div>

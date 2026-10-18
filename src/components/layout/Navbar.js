@@ -5,10 +5,21 @@ import { usePathname } from 'next/navigation';
 import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare, Eye } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
+import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
-  const { previewRole, setPreviewRole, isRealSuperAdmin, effectiveIsLeader, effectiveSession } = useRolePreview();
+  const {
+    previewRole,
+    setPreviewRole,
+    isRealValheonFounder,
+    isRealSuperAdmin,
+    effectiveIsValheonFounder,
+    effectiveIsSuperAdmin,
+    effectiveIsLeader,
+    effectiveSession,
+  } = useRolePreview();
+  const { setIsOmniOpen, inspectGovernor } = useValheonCommand();
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +40,15 @@ export default function Navbar({ onMenuClick }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Dynamically toggle browser tab title for Founder Stealth Mode
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = effectiveIsValheonFounder
+        ? 'VALHEON — Sovereign Command OS'
+        : 'Un.ty';
+    }
+  }, [effectiveIsValheonFounder]);
+
   // Fetch Live Notifications Engine
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -40,7 +60,7 @@ export default function Navbar({ onMenuClick }) {
                 setNotifications(data.notifications);
                 if (data.notifications.length > 0) {
                     const latestId = data.notifications[0].id;
-                    const lastRead = localStorage.getItem('unty_last_notification_id');
+                    const lastRead = localStorage.getItem('valheon_last_notification_id') || localStorage.getItem('unty_last_notification_id');
                     if (latestId !== lastRead) {
                         setHasUnread(true);
                     }
@@ -75,15 +95,16 @@ export default function Navbar({ onMenuClick }) {
       setIsSearchOpen(false);
       if (!isNotificationsOpen && notifications.length > 0) {
           setHasUnread(false);
+          localStorage.setItem('valheon_last_notification_id', notifications[0].id);
           localStorage.setItem('unty_last_notification_id', notifications[0].id);
       }
   };
 
   // Simple route name formatter
   const getPageTitle = () => {
-    if (pathname === '/') return 'Command Center';
+    if (pathname === '/') return effectiveIsValheonFounder ? 'Valheon Command Center' : 'Command Center';
     const parts = pathname.split('/').filter(Boolean);
-    if (!parts.length) return 'Dashboard';
+    if (!parts.length) return effectiveIsValheonFounder ? 'Valheon Command' : 'Dashboard';
     const title = parts[parts.length - 1].replace(/-/g, ' ');
     return title.charAt(0).toUpperCase() + title.slice(1);
   };
@@ -107,7 +128,20 @@ export default function Navbar({ onMenuClick }) {
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
-          {/* View-As Role Preview Dropdown (SuperAdmin Impersonation & Testing Suite) */}
+          {/* Valheon Ctrl+K Omni-Bar Trigger (Exclusive Founder Stealth Evolution) */}
+          {effectiveIsValheonFounder && (
+            <button
+              type="button"
+              onClick={() => setIsOmniOpen(true)}
+              className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#0f1115] border border-cyan-500/30 hover:border-cyan-400 text-xs font-mono text-slate-300 transition-all cursor-pointer"
+            >
+              <Search size={13} className="text-cyan-400" />
+              <span>Omni-Command...</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px]">Ctrl+K</kbd>
+            </button>
+          )}
+
+          {/* View-As Role Preview Dropdown (Founder & SuperAdmin Testing Suite) */}
           {isRealSuperAdmin && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
               previewRole 
@@ -121,14 +155,21 @@ export default function Navbar({ onMenuClick }) {
                 View As:
               </span>
               <select 
-                value={previewRole || 'superadmin'}
-                onChange={(e) => setPreviewRole(e.target.value === 'superadmin' ? null : e.target.value)}
+                value={previewRole || (isRealValheonFounder ? 'founder' : 'superadmin')}
+                onChange={(e) => setPreviewRole((e.target.value === 'founder' || e.target.value === 'superadmin') ? null : e.target.value)}
                 className={`bg-transparent font-mono text-xs font-bold outline-none cursor-pointer ${
                   previewRole ? 'text-amber-300 font-black' : 'text-cyan-400'
                 }`}
-                title="SuperAdmin View-As: Experience Unity as other membership tiers"
+                title="Switch between Valheon Founder Stealth OS and Unity membership tiers"
               >
-                <option value="superadmin" className="bg-[#0f1115] text-cyan-400">👑 SuperAdmin (Real)</option>
+                {isRealValheonFounder ? (
+                  <>
+                    <option value="founder" className="bg-[#0f1115] text-cyan-300">🏛️ Valheon Founder (Stealth OS)</option>
+                    <option value="unity_superadmin" className="bg-[#0f1115] text-amber-300">👑 Unity SuperAdmin (Classic UN.TY)</option>
+                  </>
+                ) : (
+                  <option value="superadmin" className="bg-[#0f1115] text-cyan-400">👑 SuperAdmin (Real)</option>
+                )}
                 <option value="leader" className="bg-[#0f1115] text-amber-400">🛡️ Leader (R4/R5)</option>
                 <option value="analyst" className="bg-[#0f1115] text-sky-400">📊 Data Analyst</option>
                 <option value="member" className="bg-[#0f1115] text-emerald-400">👤 Member (Standard)</option>
@@ -165,11 +206,12 @@ export default function Navbar({ onMenuClick }) {
                 <select 
                   className="bg-transparent text-cyan-400 font-mono font-bold text-sm outline-none cursor-pointer hover:text-cyan-300 transition-colors"
                   defaultValue={
-                      typeof window !== 'undefined' && localStorage.getItem('unty_active_kd') 
-                          ? localStorage.getItem('unty_active_kd') 
-                          : ((effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || [])[0] || "3155")
+                      typeof window !== 'undefined' && (localStorage.getItem('valheon_active_kd') || localStorage.getItem('unty_active_kd'))
+                          ? (localStorage.getItem('valheon_active_kd') || localStorage.getItem('unty_active_kd'))
+                          : ((effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || [])[0] || "3418")
                   }
                   onChange={(e) => {
+                      localStorage.setItem('valheon_active_kd', e.target.value);
                       localStorage.setItem('unty_active_kd', e.target.value);
                       window.location.reload();
                   }}
@@ -219,8 +261,9 @@ export default function Navbar({ onMenuClick }) {
           {/* Action Icons */}
           <div className="flex items-center gap-3 text-gray-400">
             <button 
-              onClick={() => setIsSearchOpen(true)}
+              onClick={() => effectiveIsValheonFounder ? setIsOmniOpen(true) : setIsSearchOpen(true)}
               className="p-2 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-full transition-all"
+              title={effectiveIsValheonFounder ? "Open Valheon Omni-Bar (Ctrl+K)" : "Search"}
             >
               <Search size={18} />
             </button>

@@ -14,6 +14,10 @@
  */
 export function getActiveTargetKingdom(session = null, fallback = "3418") {
     if (typeof window !== "undefined") {
+        const valheonActive = localStorage.getItem("valheon_active_kd");
+        if (valheonActive && valheonActive !== "GLOBAL" && valheonActive.trim()) {
+            return valheonActive.trim();
+        }
         const active = localStorage.getItem("unty_active_kd");
         if (active && active !== "GLOBAL" && active.trim()) {
             return active.trim();

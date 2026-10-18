@@ -377,6 +377,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.isAnalyst = true;
               token.isLeader = true;
               token.isSuperAdmin = true;
+              token.isValheonFounder = true;
               token.isSupporter = true;
               
               token.tenant = {
@@ -500,7 +501,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const safeUsername = (profile.username || '').toLowerCase();
           const safeEmail = (profile.email || user?.email || '').toLowerCase();
 
-          if (isDbSuperAdmin || safeUsername === 'reign3418' || safeUsername === 'reign' || safeEmail === 'lauren.alvarado@gmail.com' || safeUsername.includes('lauren')) {
+          // Exclusive Founder tier above SuperAdmin (Lauren / reign3418 only)
+          const computedValheonFounder =
+            safeUsername === 'reign3418' ||
+            safeUsername === 'reign' ||
+            safeEmail === 'lauren.alvarado@gmail.com' ||
+            safeUsername.includes('lauren') ||
+            safeEmail.includes('lauren');
+
+          if (isDbSuperAdmin || computedValheonFounder) {
               computedSuperAdmin = true;
               isLeader = true;
               isMember = true;
@@ -653,6 +662,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.isAnalyst = isAnalyst;
           token.isLeader = isLeader;
           token.isSuperAdmin = computedSuperAdmin;
+          token.isValheonFounder = computedValheonFounder;
           token.tenant = activeTenant;
           token.governorConfig = userConfig;
           token.ownedGuilds = ownedGuilds;
@@ -688,6 +698,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isAnalyst = token.isAnalyst || false;
         session.user.isLeader = token.isLeader;
         session.user.isSuperAdmin = token.isSuperAdmin;
+        session.user.isValheonFounder = Boolean(token.isValheonFounder);
         session.user.isSupporter = token.isSupporter || false;
         session.user.role = token.role || "User";
         session.user.tenant = token.tenant;

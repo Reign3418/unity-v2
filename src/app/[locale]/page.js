@@ -6,7 +6,7 @@ import Link from "next/link";
 import { 
   Shield, Zap, TrendingUp, UploadCloud, Globe, X, Key, Cpu, Database, 
   Activity, Terminal, ChevronDown, Box, Castle, BookOpen, Swords, 
-  Sparkles, ArrowRight, Lock, Award, Users, CheckSquare, Clock, Flame, QrCode
+  Sparkles, ArrowRight, Lock, Award, Users, CheckSquare, Clock, Flame, QrCode, Atom, Camera, Search
 } from "lucide-react";
 import WorldClock from "@/components/WorldClock";
 import AnimatedLogo from "@/components/AnimatedLogo";
@@ -19,13 +19,16 @@ import GovernorAuthModal from "@/components/auth/GovernorAuthModal";
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
+import { useValheonCommand } from "@/components/command/ValheonCommandProvider";
 
 export default function Home() {
   const pathname = usePathname();
   const t = useTranslations('HomePage');
   const tLanding = useTranslations('Landing');
+  const tValheon = useTranslations('Valheon');
   const { data: session } = useSession();
-  const { effectiveIsLeader, effectiveIsSuperAdmin, previewRole } = useRolePreview();
+  const { effectiveIsLeader, effectiveIsSuperAdmin, effectiveIsValheonFounder, previewRole } = useRolePreview();
+  const { setIsOmniOpen, setIsForensicsOpen } = useValheonCommand();
   const [isExploding, setIsExploding] = useState(false);
   const [fireworks, setFireworks] = useState([]);
   const [isGuestModalOpen, setGuestModalOpen] = useState(false);
@@ -79,7 +82,7 @@ export default function Home() {
         <header className="sticky top-0 z-50 w-full bg-[#0a0c10]/90 backdrop-blur-xl border-b border-[#1e222b] transition-all">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             
-            {/* Brand Logo */}
+            {/* Brand Logo (Public Portal remains UN.TY 2.0 during Strangler Fig Evolution) */}
             <div className="flex items-center gap-3">
               <img src="/logo-smooth-dark.png" alt="Unity Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]" />
               <div className="flex items-baseline gap-1">
@@ -483,20 +486,16 @@ export default function Home() {
                 </div>
                 
                 <div className="text-center group mb-8 flex flex-col items-center">
-                  <div dir="ltr" className="font-black text-4xl sm:text-5xl tracking-[0.25em] mb-3 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.3em] flex flex-col items-center gap-1 cursor-default">
-                     <div className="grid grid-cols-[1fr_auto_1fr] gap-x-1 w-[260px]">
-                       <div className="text-right text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">UN</div>
-                       <div className="text-center text-sky-400 font-bold -translate-y-[1px]">.</div>
-                       <div className="text-left text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">TY</div>
-                     </div>
-                     <div className="grid grid-cols-[1fr_auto_1fr] gap-x-1 w-[260px] text-white/90 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)] text-[3rem] tracking-[0.2em] transform -translate-x-[2px]">
-                       <div className="text-right">2</div>
-                       <div className="text-center font-bold text-gray-200 -translate-y-[2px]">.</div>
-                       <div className="text-left">0</div>
-                     </div>
+                  <div dir="ltr" className="font-black text-3xl sm:text-4xl tracking-[0.22em] mb-2.5 drop-shadow-sm transition-all duration-700 group-hover:tracking-[0.28em] flex flex-col items-center gap-1.5 cursor-default">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.45)]">
+                      V A L H E O N
+                    </span>
+                    <span className="text-[10px] font-mono tracking-[0.35em] text-amber-300/90 uppercase px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+                      SOVEREIGN COMMAND OS
+                    </span>
                   </div>
 
-                  <p className="text-sky-500/60 font-medium tracking-[0.15em] text-[10px] sm:text-xs uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)] font-mono">
+                  <p className="text-sky-500/70 font-medium tracking-[0.15em] text-[10px] sm:text-xs uppercase drop-shadow-[0_0_5px_rgba(14,165,233,0.3)] font-mono mt-1">
                     {t('subtitle_prefix')} <span className="text-cyan-400 font-bold lowercase text-sm">i</span> {t('subtitle_suffix')}
                   </p>
                 </div>
@@ -828,7 +827,7 @@ export default function Home() {
             </div>
             
             <div className="max-w-6xl mx-auto mt-24 border-t border-[#1e222b] pt-8 flex flex-col md:flex-row items-center justify-between text-xs font-mono text-gray-500 px-6 pb-8 gap-4 text-center md:text-left">
-                <span>© {new Date().getFullYear()} Reversing Technologies, LLC. By Kingdom 3418.</span>
+                <span>© {new Date().getFullYear()} Valheon Solutions LLC. Engineered by Kingdom 3418 High Command.</span>
                 <div className="flex gap-4 uppercase font-bold tracking-widest">
                     <Link href="/terms" className="hover:text-cyan-400 transition-colors">{tLanding('footer_terms')}</Link>
                     <Link href="/privacy" className="hover:text-cyan-400 transition-colors">{tLanding('footer_privacy')}</Link>
@@ -882,6 +881,34 @@ export default function Home() {
               </Link>
             </>
           )}
+          {effectiveIsValheonFounder && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsOmniOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 px-6 py-3 rounded-lg font-bold transition-all cursor-pointer"
+              >
+                <Search size={18} className="text-cyan-400" />
+                <span>{tValheon('dock_omni_btn')}</span>
+                <kbd className="text-xs font-mono bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-200">Ctrl+K</kbd>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsForensicsOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-emerald-300 border border-emerald-500/40 hover:border-emerald-400 px-6 py-3 rounded-lg font-bold transition-all cursor-pointer"
+              >
+                <Shield size={18} className="text-emerald-400" />
+                <span>{tValheon('dock_aegis_btn')}</span>
+              </button>
+              <Link
+                href="/guide?tab=valheon-vault"
+                className="inline-flex items-center gap-2 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#D4AF37] border border-[#D4AF37]/50 hover:border-[#D4AF37] px-6 py-3 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+              >
+                <BookOpen size={18} className="text-[#D4AF37]" />
+                <span>👑 95 RoK Field Guides</span>
+              </Link>
+            </>
+          )}
           <Link 
             href="/album-card" 
             className="inline-flex items-center gap-2 bg-[#121622] hover:bg-[#1a2233] text-amber-300 border border-[#D4AF37]/40 hover:border-[#D4AF37] px-6 py-3 rounded-lg font-bold transition-all"
@@ -891,6 +918,114 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      {/* THE 5 UNIFIED VALHEON COMMAND SUITES (Exclusive Founder Stealth Evolution) */}
+      {effectiveIsValheonFounder && (
+        <div className="rounded-2xl bg-[#090b0f] border border-[#1e2638] p-6 shadow-2xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="text-[11px] font-mono font-black tracking-widest text-cyan-400 uppercase">
+                VALHEON // SOVEREIGN COMMAND OS (STRANGLER FIG STEALTH MODE)
+              </span>
+              <h3 className="text-xl font-black text-white mt-0.5">
+                {tValheon('sidebar_suites_header')}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/guide?tab=valheon-vault"
+                className="px-3.5 py-1.5 rounded-lg bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/50 text-[#D4AF37] font-bold text-xs font-mono transition-all"
+              >
+                👑 Open 95 Scrubbed RoK Guides →
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsForensicsOpen(true)}
+                className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs font-mono transition-all cursor-pointer"
+              >
+                {tValheon('forensics_btn_audit')} →
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {[
+              {
+                code: '01 // COUNTER-INTEL',
+                title: tValheon('suite_aegis_title'),
+                desc: tValheon('suite_aegis_desc'),
+                href: '/aegis',
+                color: 'border-cyan-500/40 hover:border-cyan-400 bg-cyan-500/5',
+                tagColor: 'text-cyan-400',
+                bullets: ['EK Polygraph 3.0', 'Ghost/Alt Hunter', 'Reseller Radar', 'Account Age Audit'],
+              },
+              {
+                code: '02 // TELEMETRY',
+                title: tValheon('suite_nexus_title'),
+                desc: tValheon('suite_nexus_desc'),
+                href: '/nexus',
+                color: 'border-amber-500/40 hover:border-amber-400 bg-amber-500/5',
+                tagColor: 'text-amber-400',
+                bullets: ['Cerberus 3D Galaxy', '60fps DKP Worker', 'Kingdom 12-Tab Core', 'T5 & Presence'],
+              },
+              {
+                code: '03 // TACTICAL',
+                title: tValheon('suite_theater_title'),
+                desc: tValheon('suite_theater_desc'),
+                href: '/theater',
+                color: 'border-rose-500/40 hover:border-rose-400 bg-rose-500/5',
+                tagColor: 'text-rose-400',
+                bullets: ['128-Node Crystal Map', 'AI Battle Predictor', 'UTC Pass Clocks', 'Discord War Orders'],
+              },
+              {
+                code: '04 // DIPLOMACY',
+                title: tValheon('suite_vanguard_title'),
+                desc: tValheon('suite_vanguard_desc'),
+                href: '/vanguard',
+                color: 'border-emerald-500/40 hover:border-emerald-400 bg-emerald-500/5',
+                tagColor: 'text-emerald-400',
+                bullets: ['Migrant Kanban CRM', 'Player Hunter', 'RoK Mail Studio', 'Album QR Disguise'],
+              },
+              {
+                code: '05 // AI VISION',
+                title: tValheon('suite_optics_title'),
+                desc: tValheon('suite_optics_desc'),
+                href: '/optics',
+                color: 'border-purple-500/40 hover:border-purple-400 bg-purple-500/5',
+                tagColor: 'text-purple-400',
+                bullets: ['Ctrl+V Clipboard HUD', 'Floating Rank Scanner', '7 Audited Calculators', '12-Lang Live Chat'],
+              },
+            ].map((suite, idx) => (
+              <Link
+                key={idx}
+                href={suite.href}
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between group ${suite.color}`}
+              >
+                <div>
+                  <div className={`text-[10px] font-mono font-black ${suite.tagColor}`}>
+                    {suite.code}
+                  </div>
+                  <div className="text-sm font-black text-white mt-1 group-hover:text-cyan-300 transition-colors">
+                    {suite.title}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1 leading-snug">
+                    {suite.desc}
+                  </p>
+                  <div className="mt-3 pt-2.5 border-t border-white/10 space-y-1 text-[11px] font-mono text-slate-300">
+                    {suite.bullets.map((b, bi) => (
+                      <div key={bi}>• {b}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className={`mt-3 pt-2 text-[11px] font-mono font-bold flex items-center justify-between ${suite.tagColor}`}>
+                  <span>{tValheon('omni_open_suite')}</span>
+                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Global Master Clock */}
       <WorldClock />
