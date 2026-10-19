@@ -146,12 +146,6 @@ export default function MemberPortal({ session }) {
         </div>
       </div>
 
-      {/* ── Section 0: Live 35-Field Governor Finder & F2P Efficiency Optimizer ── */}
-      <F2pEfficiencyOptimizer
-        initialGovId={govId}
-        initialKd={kingdomId || '4194'}
-      />
-
       {/* ── Section 1: Governor Stats ───────────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-3">
