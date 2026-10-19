@@ -61,21 +61,36 @@ def screencap(adb_target: str, local_path: str) -> np.ndarray:
     return np.array(Image.open(local_path).convert("RGB"))
 
 
-def find_kingdom_coords(img_path: str, kingdom_num: str):
+def inspect_kingdom_viewport(img_path: str, kingdom_num: str):
+    import re
     ocr = get_ocr()
     res, _ = ocr(img_path)
     if not res:
-        return None
+        return None, [], False
     target_tag = f"#{kingdom_num}"
+    visible_kds = []
+    already_in_kd_list = False
+    found_target = None
     for box, text, conf in res:
         t = text.strip()
-        if target_tag in t or kingdom_num in t:
+        tu = t.upper()
+        if "KINGDOM LIST" in tu or "CREATE CHARACTER" in tu or "KINGDOM CALENDAR" in tu:
+            already_in_kd_list = True
+        for m in re.findall(r"#(\d{4})", t):
+            visible_kds.append(int(m))
+        if target_tag in t or re.search(rf"\b{re.escape(str(kingdom_num))}\b", t):
             xs = [p[0] for p in box]
             ys = [p[1] for p in box]
             cx = int(sum(xs) / 4.0)
             cy = int(sum(ys) / 4.0)
-            return (cx, cy, t)
-    return None
+            if 280 <= cy <= 860:
+                found_target = (cx, cy, t)
+    return found_target, sorted(set(visible_kds)), already_in_kd_list
+
+
+def find_kingdom_coords(img_path: str, kingdom_num: str):
+    found, _, _ = inspect_kingdom_viewport(img_path, kingdom_num)
+    return found
 
 
 def report_progress(kingdom: str, step: int, total_steps: int, status_label: str, detail: str, running: bool = True):
@@ -113,53 +128,86 @@ def main():
     args = parser.parse_args()
 
     snap_path = os.path.join(SCRIPT_DIR, "prov_step.png")
-    report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", f"[1/6] Checking City HUD on {args.adb}...")
+    report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", f"[1/6] Checking screen state on {args.adb}...")
 
     a0 = screencap(args.adb, snap_path)
-    ribbon = a0[85:125, 15:70]
-    diff_br = float((ribbon[:, :, 2].astype(np.float32) - ribbon[:, :, 0].astype(np.float32)).mean())
-    if diff_br < 45.0:
-        print("[0/6] Returning to City HUD (closing any open modals)...")
-        report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", "[1/6] Returning to City HUD (closing open modals)...")
-        tap(args.adb, 1365, 108, 1.8)
-        tap(args.adb, 1396, 83, 1.8)
+    init_found, init_vis, already_in_kd_list = inspect_kingdom_viewport(snap_path, str(args.kingdom))
 
-    print(f"[1/6] Opening Governor Profile -> Settings -> Characters...")
-    report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
-    tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
-    tap(args.adb, 1325, 760, 2.2)     # Settings gear
-    tap(args.adb, 1155, 255, 3.8)     # Characters icon
+    if not already_in_kd_list or args.mode == "switch":
+        ribbon = a0[85:125, 15:70]
+        diff_br = float((ribbon[:, :, 2].astype(np.float32) - ribbon[:, :, 0].astype(np.float32)).mean())
+        if diff_br < 45.0:
+            print("[0/6] Returning to City HUD (closing any open modals)...")
+            report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", "[1/6] Returning to City HUD (closing open modals)...")
+            tap(args.adb, 1365, 108, 1.8)
+            tap(args.adb, 1396, 83, 1.8)
 
-    if args.mode == "switch":
-        report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
-        screencap(args.adb, snap_path)
-        found_char = find_kingdom_coords(snap_path, str(args.kingdom))
-        if found_char:
-            cx, cy, ctext = found_char
-            report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom}...")
-            tap(args.adb, cx, cy, 2.5)
-            tap(args.adb, 1016, 639, 18.0)
-            report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
-            return
+        print(f"[1/6] Opening Governor Profile -> Settings -> Characters...")
+        report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
+        tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
+        tap(args.adb, 1325, 760, 2.2)     # Settings gear
+        tap(args.adb, 1155, 255, 3.8)     # Characters icon
 
-    tap(args.adb, 504, 333, 4.5)      # + Create New Character
+        if args.mode == "switch":
+            report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
+            screencap(args.adb, snap_path)
+            found_char = find_kingdom_coords(snap_path, str(args.kingdom))
+            if found_char:
+                cx, cy, ctext = found_char
+                report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom}...")
+                tap(args.adb, cx, cy, 2.5)
+                tap(args.adb, 1016, 639, 18.0)
+                report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
+                return
 
-    print(f"[2/6] Searching Kingdom List for #{args.kingdom}...")
+        tap(args.adb, 504, 333, 4.5)      # + Create New Character
+    else:
+        print(f"[1/6] Already on Create Character Kingdom List (visible: {init_vis}) -> resuming seek for #{args.kingdom}...")
+
+    print(f"[2/6] Proportional Seek in Kingdom List for #{args.kingdom}...")
+    target_num = int(args.kingdom)
     found = None
-    for scroll_idx in range(18):
-        report_progress(
-            args.kingdom,
-            3,
-            6,
-            "PROVISIONING_BOT",
-            f"[3/6] Scanning Kingdom List for #{args.kingdom} (Viewport {scroll_idx + 1}/18)...",
-        )
+    for scroll_idx in range(45):
         screencap(args.adb, snap_path)
-        found = find_kingdom_coords(snap_path, str(args.kingdom))
+        found, vis_kds, _ = inspect_kingdom_viewport(snap_path, str(args.kingdom))
         if found:
             break
-        print(f"  -> #{args.kingdom} not in current viewport (scroll {scroll_idx + 1}/18)...")
-        swipe(args.adb, 800, 720, 800, 360, 750, 2.0)
+        if vis_kds:
+            min_vis, max_vis = min(vis_kds), max(vis_kds)
+            report_progress(
+                args.kingdom,
+                3,
+                6,
+                "PROVISIONING_BOT",
+                f"[3/6] Seeking #{args.kingdom} — Currently passing #{max_vis}..#{min_vis}...",
+            )
+            if target_num < min_vis:
+                gap = min_vis - target_num
+                burst = min(5, max(1, gap // 10))
+                print(f"  -> Seeking #{target_num} below #{min_vis} (gap={gap}, burst={burst} swipes)...")
+                for _ in range(burst):
+                    adb_shell(args.adb, "input swipe 800 760 800 320 450")
+                    time.sleep(0.55)
+                time.sleep(1.0)
+            elif target_num > max_vis:
+                gap = target_num - max_vis
+                burst = min(3, max(1, gap // 10))
+                print(f"  -> Overshot #{target_num} (at #{max_vis}), scrolling UP {burst}x...")
+                for _ in range(burst):
+                    adb_shell(args.adb, "input swipe 800 360 800 760 550")
+                    time.sleep(0.65)
+                time.sleep(1.0)
+            else:
+                swipe(args.adb, 800, 650, 800, 480, 600, 1.5)
+        else:
+            report_progress(
+                args.kingdom,
+                3,
+                6,
+                "PROVISIONING_BOT",
+                f"[3/6] Scanning Kingdom List for #{args.kingdom} (Step {scroll_idx + 1})...",
+            )
+            swipe(args.adb, 800, 720, 800, 360, 650, 1.6)
 
     if not found:
         print(f"[ERROR] Could not locate #{args.kingdom} in Kingdom List.")
@@ -168,7 +216,7 @@ def main():
             3,
             6,
             "NEEDS_CONTINENT_SELECT",
-            f"Kingdom #{args.kingdom} not in current continent viewport — ready on Create Character screen",
+            f"Kingdom #{args.kingdom} not found after proportional seek — ready on Create Character screen",
             running=False,
         )
         sys.exit(1)
