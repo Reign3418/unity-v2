@@ -279,17 +279,17 @@ export default function BastionCommandCenter() {
     }
   };
 
-  if (!isLocalHost && !isRealValheonFounder && !isRealSuperAdmin && !effectiveIsValheonFounder && !effectiveIsSuperAdmin) {
+  if (!effectiveIsValheonFounder && !effectiveIsSuperAdmin) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center font-mono p-8">
         <div className="p-6 rounded-2xl bg-[#0b0e17] border border-rose-500/40 max-w-md space-y-3">
           <Lock className="text-rose-400 mx-auto" size={36} />
           <div className="text-sm font-black text-white uppercase tracking-widest">
-            VALHEON FOUNDER CLEARANCE REQUIRED
+            SUPERADMIN / FOUNDER CLEARANCE REQUIRED
           </div>
           <p className="text-xs text-slate-400 font-sans">
-            The Bastion Autonomous Fleet Orchestrator is restricted exclusively to Principal Systems Architect
-            clearance (Reign3418).
+            The Bastion Autonomous Fleet Orchestrator is restricted exclusively to SuperAdmin and Principal Systems
+            Architect clearance.
           </p>
         </div>
       </div>

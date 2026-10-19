@@ -288,16 +288,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               label={t('nav_load')}
               hidden={!effectiveIsLeader && !effectiveIsSuperAdmin}
             />
-            {!effectiveIsValheonFounder && (isRealValheonFounder || effectiveIsSuperAdmin) && (
-              <NavItem
-                href="/bastion"
-                icon={Bot}
-                label="🏰 Bastion MoE Ring"
-                badge="LIVE"
-                badgeColor="bg-cyan-500/25 text-cyan-200 border-cyan-400/50"
-                isAi={true}
-              />
-            )}
 
             {/* THE 5 UNIFIED VALHEON COMMAND SUITES (Exclusive Founder Stealth Evolution) */}
             {effectiveIsValheonFounder && (
