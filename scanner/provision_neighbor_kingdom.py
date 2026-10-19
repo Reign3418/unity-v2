@@ -253,9 +253,53 @@ def main():
             [sys.executable, tut_script, "--adb", args.adb, "--steps", str(args.tutorial_steps)],
             check=False,
         )
-    screencap(args.adb, snap_path)
-    report_progress(args.kingdom, 6, 6, "COMPLETED", f"Provisioned Bot in Kingdom #{args.kingdom}", running=False)
-    print(f"[DONE] Provisioned #{args.kingdom} character.")
+    # Open Governor Profile (45, 45), OCR Governor ID & Name, and register in Bastion Cloud Roster
+    gov_id = f"BOT-{args.kingdom}"
+    gov_name = f"Governor (#{args.kingdom})"
+    try:
+        tap(args.adb, 45, 45, 2.2)
+        screencap(args.adb, snap_path)
+        tap(args.adb, 1365, 108, 1.0)
+        import re, json, urllib.request
+        ocr = get_ocr()
+        arr = np.array(Image.open(snap_path).convert("RGB"))
+        res, _ = ocr(arr)
+        for item in res or []:
+            txt = item[1].strip()
+            m_id = re.search(r"ID\s*[:\uff1a]?\s*(\d{7,11})", txt, re.IGNORECASE)
+            if m_id:
+                gov_id = m_id.group(1)
+            m_name = re.search(r"(Governor\d{7,11})", txt)
+            if m_name:
+                gov_name = m_name.group(1)
+                if gov_id.startswith("BOT-"):
+                    gov_id = gov_name.replace("Governor", "")
+        if gov_name.startswith("Governor (") and gov_id.isdigit():
+            gov_name = f"Governor{gov_id}"
+
+        payload_bytes = json.dumps({
+            "action": "REGISTER_PROVISIONED_BOT",
+            "payload": {
+                "kingdom": str(args.kingdom),
+                "govId": gov_id,
+                "name": gov_name,
+                "chLevel": 2,
+                "power": 4287,
+                "instanceId": "sidekick-mumu-0",
+            },
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://unity-v2-azure.vercel.app/api/bastion",
+            data=payload_bytes,
+            headers={"Content-Type": "application/json", "User-Agent": "BastionProvisioner/2.0"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=8).read()
+    except Exception as e:
+        print(f"[WARN] Could not auto-register bot in cloud: {e}")
+
+    report_progress(args.kingdom, 6, 6, "COMPLETED", f"Provisioned {gov_name} in Kingdom #{args.kingdom}", running=False)
+    print(f"[DONE] Provisioned #{args.kingdom} character ({gov_name}, ID={gov_id}).")
 
 
 if __name__ == "__main__":

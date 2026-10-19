@@ -25,17 +25,38 @@ async function readBastionState() {
     if (cloudRaw) {
       const cloudState = JSON.parse(cloudRaw);
       if (!localState) return cloudState;
+
+      // Union-merge roster by govId or kingdom+instanceId so neither cloud nor repo file drops a provisioned bot
+      const mergedRoster = [...(localState.roster || [])];
+      for (const c of cloudState.roster || []) {
+        const idx = mergedRoster.findIndex(
+          (r) =>
+            (c.govId && r.govId === c.govId) ||
+            (String(r.kingdom) === String(c.kingdom) && r.name === c.name)
+        );
+        if (idx >= 0) mergedRoster[idx] = { ...mergedRoster[idx], ...c };
+        else mergedRoster.push(c);
+      }
+
+      // Union-merge kingdomSchedules by kingdom number
+      const mergedSchedules = [...(localState.kingdomSchedules || [])];
+      for (const s of cloudState.kingdomSchedules || []) {
+        const idx = mergedSchedules.findIndex((k) => String(k.kingdom) === String(s.kingdom));
+        if (idx >= 0) mergedSchedules[idx] = { ...mergedSchedules[idx], ...s };
+        else mergedSchedules.push(s);
+      }
+
       const localTs = new Date(localState.lastUpdated || 0).getTime();
       const cloudTs = new Date(cloudState.lastUpdated || 0).getTime();
-      if (cloudTs >= localTs) {
-        return {
-          ...localState,
-          ...cloudState,
-          kingdomSchedules: cloudState.kingdomSchedules || localState.kingdomSchedules,
-          activityLog: cloudState.activityLog || localState.activityLog,
-          activeScanProgress: cloudState.activeScanProgress || localState.activeScanProgress,
-        };
-      }
+      const base = cloudTs >= localTs ? { ...localState, ...cloudState } : { ...cloudState, ...localState };
+
+      return {
+        ...base,
+        roster: mergedRoster,
+        kingdomSchedules: mergedSchedules,
+        activityLog: cloudTs >= localTs ? cloudState.activityLog || localState.activityLog : localState.activityLog,
+        activeScanProgress: cloudState.activeScanProgress || localState.activeScanProgress,
+      };
     }
   } catch {}
 
@@ -615,6 +636,30 @@ export async function POST(request) {
         kdSched.reason = 'Provisioned & armed via Bastion Command Center';
       }
 
+      // Ensure character appears in state.roster immediately
+      state.roster = state.roster || [];
+      const existingCharIdx = state.roster.findIndex(
+        (c) => String(c.kingdom) === targetKd && c.instanceId === instanceId
+      );
+      if (existingCharIdx === -1) {
+        state.roster.push({
+          govId: payload.govId || `BOT-${targetKd}`,
+          name: payload.name || `Governor (#${targetKd})`,
+          kingdom: targetKd,
+          kingdomName: isGenesis ? `Genesis Kingdom #${targetKd}` : `Kingdom #${targetKd}`,
+          chLevel: 2,
+          power: 4287,
+          instanceId,
+          role: isGenesis ? 'GENESIS_FRONTIER_BOT' : 'CONTINENT_SCANNER',
+          tutorialCleared: true,
+          canScanTop1000: true,
+          canLocateGov: false,
+        });
+      }
+      if (inst) {
+        inst.charactersCount = state.roster.filter((c) => c.instanceId === instanceId).length;
+      }
+
       // Lock Kingdom into BOT_SOVEREIGN (Epoch 0 Cutover) & clear any Trojan Horse sheet lead
       epochLedger.kingdomEpochs = epochLedger.kingdomEpochs || {};
       epochLedger.kingdomEpochs[targetKd] = {
@@ -673,6 +718,93 @@ export async function POST(request) {
         gate,
         dispatchResult,
       });
+    }
+
+    // 6B. REGISTER COMPLETED BOT PROVISIONING FROM SIDEKICK OCR
+    if (action === 'REGISTER_PROVISIONED_BOT') {
+      const targetKd = String(payload.kingdom || '4044').trim();
+      const instanceId = payload.instanceId || 'sidekick-mumu-0';
+      const govId = String(payload.govId || `BOT-${targetKd}`);
+      const name = String(payload.name || `Governor${govId}`);
+      const chLevel = Number(payload.chLevel) || 2;
+      const power = Number(payload.power) || 4287;
+      const kingdomName = payload.kingdomName || `Kingdom #${targetKd}`;
+
+      state.roster = state.roster || [];
+      const idx = state.roster.findIndex(
+        (c) => c.govId === govId || (String(c.kingdom) === targetKd && c.instanceId === instanceId)
+      );
+      const botRecord = {
+        govId,
+        name,
+        kingdom: targetKd,
+        kingdomName,
+        chLevel,
+        power,
+        instanceId,
+        role: 'CONTINENT_SCANNER',
+        tutorialCleared: true,
+        canScanTop1000: true,
+        canLocateGov: false,
+      };
+      if (idx >= 0) state.roster[idx] = { ...state.roster[idx], ...botRecord };
+      else state.roster.push(botRecord);
+
+      let kdSched = (state.kingdomSchedules || []).find((k) => String(k.kingdom) === targetKd);
+      if (!kdSched) {
+        state.kingdomSchedules.push({
+          kingdom: targetKd,
+          name: kingdomName,
+          continent: 'Tracked Continent',
+          mode: 'STEADY_12H',
+          cadenceHours: 12,
+          scanPreset: epochLedger.defaultScanPreset || 'SWEET_650',
+          targetRanks: 650,
+          unityApiCalls24h: 1,
+          kpDeltaPct: 0,
+          accountsAvailable: 1,
+          assignedInstances: [instanceId],
+          lastScanAt: new Date().toISOString(),
+          nextScanAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
+          genesisCaptured: true,
+          genesisGovernorsTracked: 650,
+          reason: `Provisioned ${name} (Power: ${power.toLocaleString()}, CH${chLevel}) & armed 12h Steady-State`,
+        });
+      }
+
+      const inst = (state.instances || []).find((i) => i.instanceId === instanceId);
+      if (inst) {
+        inst.activeKingdom = targetKd;
+        inst.activeCharacter = name;
+        inst.status = 'ACTIVE_READY';
+        inst.assignedTask = `IDLE_READY (${name} in #${targetKd})`;
+        inst.charactersCount = state.roster.filter((c) => c.instanceId === instanceId).length;
+        inst.lastHeartbeat = new Date().toISOString();
+      }
+
+      state.activeScanProgress = {
+        running: false,
+        status: 'COMPLETED',
+        kingdom: targetKd,
+        currentRank: 6,
+        targetRanks: 6,
+        percent: 100,
+        instanceId,
+        lastGovernorName: `Provisioned ${name} in Kingdom #${targetKd} (Power: ${power.toLocaleString()})`,
+        updatedAt: new Date().toISOString(),
+      };
+
+      appendLog(state, {
+        agent: 'CIPHER',
+        ring: 'ring2_dispatch',
+        model: `${r1Model} + OpenCV`,
+        action: 'PROVISION_COMPLETE',
+        kingdom: targetKd,
+        detail: `Registered ${name} (ID: ${govId}, Power: ${power.toLocaleString()}, CH${chLevel}) in Kingdom #${targetKd} on ${instanceId}.`,
+      });
+
+      await writeBastionState(state);
+      return NextResponse.json({ success: true, state, epochLedger, botRecord });
     }
 
     // 7. RECORD UNITY API DEMAND PULSE (KENT -> NULL Auto-Scaler)

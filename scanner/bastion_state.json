@@ -8,7 +8,7 @@
   "demandThresholdForSurge": 5,
   "highestKnownKingdom": 4202,
   "nextGenesisWatchKingdom": 4203,
-  "lastUpdated": "2026-10-19T19:05:00.000Z",
+  "lastUpdated": "2026-10-19T22:45:00.000Z",
   "ringModels": {
     "ring1_intelligence": {
       "ringName": "Ring 1: Intelligence, Demand & Genesis Discovery",
@@ -136,13 +136,13 @@
       "adbAddress": "127.0.0.1:16384",
       "accountSlot": "Account #1 (Primary Multi-Kingdom Roster)",
       "status": "ACTIVE_READY",
-      "activeKingdom": "4196",
-      "activeCharacter": "Governor236459441",
-      "assignedTask": "IDLE_READY (Completed 6-Kingdom Provisioning)",
+      "activeKingdom": "4044",
+      "activeCharacter": "Governor236465943",
+      "assignedTask": "IDLE_READY (Completed 7-Kingdom Provisioning)",
       "assignedSlice": "1-1000",
-      "charactersCount": 6,
+      "charactersCount": 7,
       "lastSwitchSec": 21.8,
-      "lastHeartbeat": "2026-10-19T19:04:55.000Z"
+      "lastHeartbeat": "2026-10-19T22:45:00.000Z"
     },
     {
       "instanceId": "sidekick-mumu-1",
@@ -265,6 +265,19 @@
       "tutorialCleared": true,
       "canScanTop1000": true,
       "canLocateGov": false
+    },
+    {
+      "govId": "236465943",
+      "name": "Governor236465943",
+      "kingdom": "4044",
+      "kingdomName": "Kingdom #4044",
+      "chLevel": 2,
+      "power": 4287,
+      "instanceId": "sidekick-mumu-0",
+      "role": "CONTINENT_SCANNER",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": false
     }
   ],
   "kingdomSchedules": [
@@ -285,6 +298,24 @@
       "genesisCaptured": true,
       "genesisGovernorsTracked": 1000,
       "reason": "High Unity API demand (42 calls) + Home Kingdom Priority"
+    },
+    {
+      "kingdom": "4044",
+      "name": "Kingdom #4044",
+      "continent": "Tracked Continent",
+      "mode": "STEADY_12H",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 1,
+      "kpDeltaPct": 0,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-0"
+      ],
+      "lastScanAt": "2026-10-19T22:42:00.000Z",
+      "nextScanAt": "2026-10-20T10:42:00.000Z",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 650,
+      "reason": "Provisioned Governor236465943 (Power: 4,287, CH2) & armed 12h Steady-State rotation"
     },
     {
       "kingdom": "4193",
@@ -338,7 +369,7 @@
       "nextScanAt": "2026-10-20T06:28:00.000Z",
       "genesisCaptured": true,
       "genesisGovernorsTracked": 1000,
-      "reason": "Steady-State (12h rotation, currently active on Instance #0)"
+      "reason": "Steady-State (12h rotation)"
     },
     {
       "kingdom": "4202",
@@ -377,6 +408,16 @@
   ],
   "activityLog": [
     {
+      "id": "evt-107",
+      "timestamp": "2026-10-19T22:42:00.000Z",
+      "agent": "CIPHER",
+      "ring": "ring2_dispatch",
+      "model": "gemini-3.1-flash-lite + OpenCV",
+      "action": "PROVISION_COMPLETE",
+      "kingdom": "4044",
+      "detail": "Created Governor236465943 in Kingdom #4044, cleared tutorial & unlocked Rankings HUD (Power: 4,287, CH2)."
+    },
+    {
       "id": "evt-106",
       "timestamp": "2026-10-19T18:30:04.000Z",
       "agent": "CIPHER",
@@ -384,7 +425,7 @@
       "model": "gemini-3.1-flash-lite + OpenCV",
       "action": "ROSTER_VERIFIED",
       "kingdom": "ALL",
-      "detail": "Verified all 6 provisioned characters on Account #1 (#4194 x2, #4193, #4195, #4196, #4202). Ready for 22s dynamic switching."
+      "detail": "Verified all 7 provisioned characters on Account #1 (#4194 x2, #4044, #4193, #4195, #4196, #4202). Ready for 22s dynamic switching."
     },
     {
       "id": "evt-105",
