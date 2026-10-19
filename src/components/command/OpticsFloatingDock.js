@@ -56,47 +56,13 @@ export default function OpticsFloatingDock() {
     }, 650);
   };
 
+  if (!isOpticsOpen) return null;
+
   return (
     <>
-      {/* Persistent Bottom-Right Tactical Command Dock */}
-      <div className="fixed bottom-4 right-4 z-[70] flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setIsOmniOpen(true)}
-          className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0b0e17]/95 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-400 text-xs font-mono text-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.85)] transition-all cursor-pointer"
-        >
-          <Search size={13} className="text-cyan-400" />
-          <span>{t('dock_omni_btn')}</span>
-          <kbd className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px]">
-            Ctrl+K
-          </kbd>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsForensicsOpen(true)}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0b0e17]/95 backdrop-blur-md border border-emerald-500/30 hover:border-emerald-400 text-xs font-mono text-emerald-300 shadow-[0_10px_30px_rgba(0,0,0,0.85)] transition-all cursor-pointer"
-        >
-          <Shield size={13} className="text-emerald-400" />
-          <span>{t('dock_aegis_btn')}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsOpticsOpen((prev) => !prev)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600/30 via-fuchsia-500/25 to-cyan-500/25 backdrop-blur-md border border-purple-400/50 hover:border-purple-300 text-xs font-mono font-bold text-white shadow-[0_10px_30px_rgba(0,0,0,0.9)] transition-all cursor-pointer"
-        >
-          <Camera size={14} className="text-purple-300" />
-          <span>{t('dock_optics_btn')}</span>
-          <kbd className="px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-200 text-[10px]">
-            Ctrl+V
-          </kbd>
-        </button>
-      </div>
-
       {/* Expanded Floating Optics Clipboard HUD */}
       {isOpticsOpen && (
-        <div className="fixed bottom-16 right-4 z-[80] w-[92vw] max-w-md bg-[#06080d] border border-purple-500/40 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden animate-fade-in">
+        <div className="fixed bottom-6 right-6 z-[80] w-[92vw] max-w-md bg-[#06080d] border border-purple-500/40 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden animate-fade-in">
           <div className="px-4 py-3 bg-[#0b0e17] border-b border-[#1e2638] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Camera size={16} className="text-purple-400" />
