@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 ===============================================================================
 SIDEKICK STANDALONE CLOUD & AUTOPILOT AGENT (24/7 ZERO-MIXERV3 DEPENDENCY)
 File: E:\Unity\scanner\sidekick_cloud_agent.py
