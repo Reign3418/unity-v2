@@ -3,89 +3,70 @@
     "width": 1600,
     "height": 900,
     "dpi": 240,
-    "notes": "Standard 1600x900 landscape coordinate map for Rise of Kingdoms on MuMu Player 12 / LDPlayer 9 / BlueStacks 5."
+    "verified_on": "MuMu Player 12 (SIDEKICK 192.168.50.218) - RoK 2026 UI"
   },
   "leaderboard": {
-    "row_x": 680,
-    "visible_rows_y": [285, 390, 495, 600],
-    "scroll_settled_y": 600,
-    "swipe_drag": {
-      "start_x": 680,
-      "start_y": 620,
-      "end_x": 680,
-      "end_y": 495,
-      "duration_ms": 650
-    }
+    "first_rows_y": [285, 385, 485, 585],
+    "locked_row_y": 650,
+    "row_x": 690,
+    "scroll_swipe": [690, 680, 690, 560, 650]
   },
   "governor_profile": {
-    "taps": {
-      "copy_name_button": [624, 282],
-      "kill_points_details_button": [1116, 352],
-      "more_info_button": [386, 664],
-      "close_profile_button": [1396, 108]
-    },
-    "crops": {
-      "gov_id": [736, 232, 910, 266],
-      "gov_name_fallback": [650, 266, 980, 306],
-      "alliance_tag": [648, 336, 895, 376],
-      "power": [870, 336, 1095, 378],
-      "kill_points": [1110, 336, 1365, 378]
-    }
+    "open_self_avatar_tap": [50, 50],
+    "copy_name_button": [626, 232],
+    "gov_id": [585, 178, 860, 212],
+    "gov_name_fallback": [592, 215, 990, 252],
+    "alliance_tag": [582, 318, 845, 360],
+    "kill_points": [885, 318, 1105, 360],
+    "power": [1118, 318, 1345, 360],
+    "kill_points_details_button": [870, 304],
+    "more_info_button": [265, 755],
+    "rankings_button": [532, 755],
+    "settings_button": [1335, 755],
+    "close_profile_button": [1455, 98]
   },
-  "kill_split_popup": {
-    "crops": {
-      "t1_kills": [858, 435, 1065, 468],
-      "t2_kills": [858, 478, 1065, 511],
-      "t3_kills": [858, 521, 1065, 554],
-      "t4_kills": [858, 564, 1065, 597],
-      "t5_kills": [858, 607, 1065, 640]
-    }
+  "kill_tier_popup": {
+    "t1_kills": [608, 415, 860, 452],
+    "t2_kills": [608, 458, 860, 496],
+    "t3_kills": [608, 502, 860, 540],
+    "t4_kills": [608, 547, 860, 585],
+    "t5_kills": [608, 592, 860, 630],
+    "ranged_points": [980, 695, 1175, 730],
+    "dismiss_tap": [532, 200]
   },
   "more_info_modal": {
-    "taps": {
-      "close_more_info_button": [1395, 58]
+    "top_screen": {
+      "building_power": [1100, 655, 1320, 695],
+      "tech_power": [1100, 715, 1320, 755],
+      "troop_power": [1100, 773, 1320, 813],
+      "commander_power": [1100, 832, 1320, 872]
     },
-    "crops": {
-      "highest_power": [520, 250, 740, 288],
-      "troop_power": [520, 315, 740, 353],
-      "building_power": [520, 380, 740, 418],
-      "tech_power": [520, 445, 740, 483],
-      "commander_power": [520, 510, 740, 548],
-      "victories": [1120, 195, 1355, 233],
-      "defeats": [1120, 255, 1355, 293],
-      "dead": [1120, 315, 1355, 353],
-      "scout_times": [1120, 375, 1355, 413],
-      "gathered": [1120, 495, 1355, 533],
-      "assistance": [1120, 555, 1355, 593],
-      "helps": [1120, 615, 1355, 653]
-    }
+    "scroll_swipe": [800, 820, 800, 260, 650],
+    "scrolled_screen": {
+      "highest_power": [1100, 342, 1320, 382],
+      "victories": [1100, 402, 1320, 442],
+      "defeats": [1100, 460, 1320, 500],
+      "dead": [1100, 518, 1320, 558],
+      "scout_times": [1100, 577, 1320, 617],
+      "gathered": [1100, 695, 1320, 735],
+      "assistance": [1100, 754, 1320, 794],
+      "helps": [1100, 812, 1320, 852]
+    },
+    "close_more_info_button": [1395, 55]
   },
-  "alliance_war_rallies": {
-    "slots": [
-      {
-        "slot_index": 0,
-        "launcher_name": [345, 215, 620, 252],
-        "target_name": [975, 215, 1265, 252],
-        "troop_capacity": [640, 310, 960, 348],
-        "timer": [640, 260, 960, 298],
-        "expand_tap": [800, 280]
-      },
-      {
-        "slot_index": 1,
-        "launcher_name": [345, 445, 620, 482],
-        "target_name": [975, 445, 1265, 482],
-        "troop_capacity": [640, 540, 960, 578],
-        "timer": [640, 490, 960, 528],
-        "expand_tap": [800, 510]
-      },
-      {
-        "slot_index": 2,
-        "launcher_name": [345, 675, 620, 712],
-        "target_name": [975, 675, 1265, 712],
-        "troop_capacity": [640, 770, 960, 808],
-        "timer": [640, 720, 960, 758],
-        "expand_tap": [800, 740]
-      }
-    ]
+  "alliance_war_rally": {
+    "rally_card_1": {
+      "leader_name": [340, 240, 580, 275],
+      "target_type": [640, 240, 890, 275],
+      "troop_capacity": [920, 285, 1180, 320],
+      "march_timer": [1210, 285, 1410, 320]
+    },
+    "rally_card_2": {
+      "leader_name": [340, 430, 580, 465],
+      "target_type": [640, 430, 890, 465],
+      "troop_capacity": [920, 475, 1180, 510],
+      "march_timer": [1210, 475, 1410, 510]
+    },
+    "scroll_swipe": [800, 680, 800, 320, 600]
   }
 }
