@@ -75,6 +75,8 @@ export default function KingdomAnalysis() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [rosterData, setRosterData] = useState([]);
+  const [rosterSourceMode, setRosterSourceMode] = useState("bot_sovereign");
+  const [rosterProvenance, setRosterProvenance] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRoster, setIsLoadingRoster] = useState(true);
 
@@ -160,22 +162,32 @@ export default function KingdomAnalysis() {
     }
   };
 
-  const fetchRoster = async (forceKd = null) => {
+  const fetchRoster = async (forceKd = null, forceSourceMode = null) => {
       const kd = forceKd || targetKd;
+      const mode = forceSourceMode || rosterSourceMode;
       if (!kd) return;
 
       setIsLoadingRoster(true);
       try {
-          const res = await fetch(`/api/aws/roster?kd=${kd}`);
+          const res = await fetch(`/api/aws/roster?kd=${kd}&sourceMode=${mode}`);
           const data = await res.json();
           if (res.ok && data.roster) {
               setRosterData(data.roster);
+              setRosterProvenance({
+                  source: data.source,
+                  sourceMode: data.sourceMode || mode,
+                  scanDate: data.scanDate,
+                  epochMeta: data.epochMeta || null,
+                  dozerStats: data.dozerStats || null,
+              });
           } else {
               setRosterData([]);
+              setRosterProvenance(null);
           }
       } catch (e) {
           console.error(e);
           setRosterData([]);
+          setRosterProvenance(null);
       } finally {
           setIsLoadingRoster(false);
       }
@@ -219,6 +231,7 @@ export default function KingdomAnalysis() {
         const storedKd = localStorage.getItem('unty_active_kd');
         if (storedKd) initialKd = storedKd;
         else if (session?.user?.allowedKingdoms?.[0]) initialKd = session.user.allowedKingdoms[0];
+        else initialKd = "4194";
     }
     
     if (initialKd && !targetKd) {
@@ -385,6 +398,13 @@ export default function KingdomAnalysis() {
                   <RosterViewTab
                       rosterData={mergedRosterData}
                       isLoading={isLoadingRoster}
+                      targetKd={targetKd}
+                      provenance={rosterProvenance}
+                      sourceMode={rosterSourceMode}
+                      onToggleSourceMode={(nextMode) => {
+                          setRosterSourceMode(nextMode);
+                          fetchRoster(targetKd, nextMode);
+                      }}
                   />
               );
           case 'Roster Linker':
@@ -473,7 +493,7 @@ export default function KingdomAnalysis() {
               setTargetKd(newKd);
               if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
               fetchTrends(newKd);
-              fetchRoster(newKd);
+              fetchRoster(newKd, rosterSourceMode);
               // Clear secondary if same kingdom selected
               if (secondaryKd === newKd) { setSecondaryKd(''); setSecondaryRosterData([]); }
             }}
@@ -486,6 +506,33 @@ export default function KingdomAnalysis() {
               <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
             )}
           </select>
+
+          {/* Bastion Bot Epoch 0 vs Archive Toggle Chip */}
+          <button
+            onClick={() => {
+              const nextMode = rosterSourceMode === "archive" ? "bot_sovereign" : "archive";
+              setRosterSourceMode(nextMode);
+              fetchRoster(targetKd, nextMode);
+            }}
+            title={rosterSourceMode === "archive"
+              ? "Currently viewing pre-Bot Historical Archive (View-Only, deltas zeroed). Click to return to Active Bastion Bot Epoch 0."
+              : "Active Bastion Bot Sovereign Mode (Epoch 0). Click to inspect View-Only Legacy Sheet Archive."}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-mono font-bold border transition-all shadow-md shrink-0 ${
+              rosterSourceMode === "archive"
+                ? "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
+                : rosterProvenance?.epochMeta?.status === "BOT_SOVEREIGN"
+                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25"
+                : "bg-cyan-500/15 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
+            }`}
+          >
+            <span>
+              {rosterSourceMode === "archive"
+                ? "🏛️ ARCHIVE (VIEW-ONLY)"
+                : rosterProvenance?.epochMeta?.status === "BOT_SOVEREIGN"
+                ? "🤖 BASTION BOT · EPOCH 0"
+                : "📊 SHEET LEDGER"}
+            </span>
+          </button>
 
           {/* Kingdom Age & Season Badge */}
           {serverAgeDays !== null && (

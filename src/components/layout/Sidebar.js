@@ -333,6 +333,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   isAi={true}
                 />
                 <NavItem
+                  href="/bastion"
+                  icon={Bot}
+                  label="🏰 Bastion MoE Ring"
+                  badge="06"
+                  badgeColor="bg-cyan-500/25 text-cyan-200 border-cyan-400/50"
+                  isAi={true}
+                />
+                <NavItem
                   href="/guide?tab=valheon-vault&section=tiers"
                   icon={BookOpen}
                   label="👑 Tactical Meta Vault"
@@ -485,6 +493,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   href="/creator/project-cerberus"
                   icon={Atom}
                   label={t('nav_project_cerberus')}
+                  isAi={true}
+                />
+                <NavItem
+                  href="/bastion"
+                  icon={Bot}
+                  label="🏰 Bastion MoE Ring"
+                  badge="LIVE"
                   isAi={true}
                 />
               </>

@@ -43,4 +43,9 @@ next-env.d.ts
 
 # local scratch files
 scratch/
-
+scanner/*.png
+scanner/check_*.py
+scanner/inspect_*.py
+scanner/test_*.py
+scanner/parse_35_fields_test.py
+Kingdom_4194_Top1000_45Fields.csv

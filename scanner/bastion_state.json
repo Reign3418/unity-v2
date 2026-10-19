@@ -1,0 +1,440 @@
+{
+  "systemStatus": "HEALTHY",
+  "autopilotEnabled": true,
+  "autoGenesisEnabled": true,
+  "autoProvisionEnabled": true,
+  "defaultSteadyCadenceHours": 12,
+  "surgeCadenceHours": 3,
+  "demandThresholdForSurge": 5,
+  "highestKnownKingdom": 4202,
+  "nextGenesisWatchKingdom": 4203,
+  "lastUpdated": "2026-10-19T19:05:00.000Z",
+  "ringModels": {
+    "ring1_intelligence": {
+      "ringName": "Ring 1: Intelligence, Demand & Genesis Discovery",
+      "agents": [
+        "KENT",
+        "SCOUT"
+      ],
+      "selectedModel": "gemini-3.1-flash-lite",
+      "tier": "SLM (Ultra-Fast / High-Frequency)",
+      "fallbackModel": "local-rtx4070-qwen2.5-7b",
+      "options": [
+        {
+          "id": "gemini-3.1-flash-lite",
+          "label": "Gemini 3.1 Flash-Lite (Cloud SLM · 500 RPD)",
+          "type": "SLM"
+        },
+        {
+          "id": "local-rtx4070-qwen2.5-7b",
+          "label": "Qwen 2.5 7B Instruct (Local MIXERV3 RTX 4070 · $0)",
+          "type": "LOCAL_SLM"
+        },
+        {
+          "id": "gemini-2.5-flash",
+          "label": "Gemini 2.5 Flash (Tactical LLM)",
+          "type": "LLM"
+        }
+      ]
+    },
+    "ring2_dispatch": {
+      "ringName": "Ring 2: Bastion Operations, Dispatch & Provisioning",
+      "agents": [
+        "TANK",
+        "NULL",
+        "BIG JON",
+        "NUMNUM",
+        "CIPHER"
+      ],
+      "selectedModel": "gemini-2.5-flash",
+      "visionModel": "gemini-3.1-flash-lite",
+      "mathGate": "NUMNUM_DETERMINISTIC_V2 (0 Tokens)",
+      "tier": "Tactical LLM + Vision SLM + Hard Math Gate",
+      "options": [
+        {
+          "id": "gemini-2.5-flash",
+          "label": "Gemini 2.5 Flash (Tactical Reasoning LLM)",
+          "type": "LLM"
+        },
+        {
+          "id": "gemini-2.5-pro",
+          "label": "Gemini 2.5 Pro (Deep Strategic LLM)",
+          "type": "LLM"
+        },
+        {
+          "id": "gemini-3.1-flash-lite",
+          "label": "Gemini 3.1 Flash-Lite (Fast SLM)",
+          "type": "SLM"
+        },
+        {
+          "id": "local-rtx4070-qwen2.5-7b",
+          "label": "Qwen 2.5 7B Instruct (Local MIXERV3 RTX 4070 · $0)",
+          "type": "LOCAL_SLM"
+        }
+      ]
+    },
+    "ring3_forensics": {
+      "ringName": "Ring 3: Back-Office Reconciliation & Migration Forensics",
+      "agents": [
+        "DOZER",
+        "BASTION AUDIT"
+      ],
+      "selectedModel": "gemini-2.5-pro",
+      "reconcilerEngine": "DOZER_SLICE_MERGER_V1 (0 Tokens)",
+      "tier": "Pure Math Reconciler + Deep Forensic LLM",
+      "options": [
+        {
+          "id": "gemini-2.5-pro",
+          "label": "Gemini 2.5 Pro (Deep Forensic LLM)",
+          "type": "LLM"
+        },
+        {
+          "id": "gemini-2.5-flash",
+          "label": "Gemini 2.5 Flash (Fast Analytical LLM)",
+          "type": "LLM"
+        },
+        {
+          "id": "local-rtx4070-qwen2.5-7b",
+          "label": "Qwen 2.5 7B Instruct (Local MIXERV3 RTX 4070 · $0)",
+          "type": "LOCAL_SLM"
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "nodeId": "SIDEKICK",
+      "hostname": "SIDEKICK",
+      "ip": "192.168.50.218",
+      "specs": "Intel Core i7-7920HQ (4C/8T) · 64GB RAM · Quadro P3000 · 1.8TB Free",
+      "status": "ONLINE",
+      "cpuLoadPct": 34,
+      "ramUsedGb": 14.2,
+      "ramTotalGb": 63.8,
+      "maxConcurrentInstances": 4,
+      "activeInstances": 1,
+      "role": "Primary 24/7 Multi-Emulator RoK Telemetry Cluster"
+    },
+    {
+      "nodeId": "MIXERV3",
+      "hostname": "MIXERV3",
+      "ip": "192.168.50.41",
+      "specs": "AMD Ryzen 7 7700X (8C/16T) · 32GB DDR5 · NVIDIA RTX 4070 (12GB)",
+      "status": "ONLINE",
+      "cpuLoadPct": 18,
+      "ramUsedGb": 19.7,
+      "ramTotalGb": 31.1,
+      "maxConcurrentInstances": 6,
+      "activeInstances": 0,
+      "role": "Cluster Hub Master · Local SLM Host (RTX 4070) · Burst ADB Accelerator"
+    }
+  ],
+  "instances": [
+    {
+      "instanceId": "sidekick-mumu-0",
+      "nodeId": "SIDEKICK",
+      "adbAddress": "127.0.0.1:16384",
+      "accountSlot": "Account #1 (Primary Multi-Kingdom Roster)",
+      "status": "ACTIVE_READY",
+      "activeKingdom": "4196",
+      "activeCharacter": "Governor236459441",
+      "assignedTask": "IDLE_READY (Completed 6-Kingdom Provisioning)",
+      "assignedSlice": "1-1000",
+      "charactersCount": 6,
+      "lastSwitchSec": 21.8,
+      "lastHeartbeat": "2026-10-19T19:04:55.000Z"
+    },
+    {
+      "instanceId": "sidekick-mumu-1",
+      "nodeId": "SIDEKICK",
+      "adbAddress": "127.0.0.1:16416",
+      "accountSlot": "Account #2 (Dedicated #4194 Anchor / Offload Worker)",
+      "status": "STANDBY_PROVISIONABLE",
+      "activeKingdom": "4194",
+      "activeCharacter": "Unassigned (Ready for Email #2)",
+      "assignedTask": "STANDBY (Offloads #4194 24/7 so Instance #0 roams freely)",
+      "assignedSlice": "1-500",
+      "charactersCount": 0,
+      "lastSwitchSec": 0,
+      "lastHeartbeat": "2026-10-19T19:04:55.000Z"
+    },
+    {
+      "instanceId": "sidekick-mumu-2",
+      "nodeId": "SIDEKICK",
+      "adbAddress": "127.0.0.1:16448",
+      "accountSlot": "Account #3 (Genesis New-Kingdom Bot & Surge Worker)",
+      "status": "STANDBY_PROVISIONABLE",
+      "activeKingdom": "4203",
+      "activeCharacter": "Unassigned (Genesis Reserve)",
+      "assignedTask": "STANDBY (Auto-wakes when #4203 opens or Surge hits)",
+      "assignedSlice": "501-1000",
+      "charactersCount": 0,
+      "lastSwitchSec": 0,
+      "lastHeartbeat": "2026-10-19T19:04:55.000Z"
+    },
+    {
+      "instanceId": "mixerv3-mumu-0",
+      "nodeId": "MIXERV3",
+      "adbAddress": "127.0.0.1:16384 (Local)",
+      "accountSlot": "Account #4 (RTX 4070 Ultra-Low-Latency Turbo Scanner)",
+      "status": "STANDBY_IDLE",
+      "activeKingdom": "None",
+      "activeCharacter": "Unassigned",
+      "assignedTask": "OPTIONAL_TURBO (120ms Local ADB Loopback)",
+      "assignedSlice": "1-1000",
+      "charactersCount": 0,
+      "lastSwitchSec": 0,
+      "lastHeartbeat": "2026-10-19T19:04:55.000Z"
+    }
+  ],
+  "roster": [
+    {
+      "govId": "236264666",
+      "name": "[Lova]lilfarmer",
+      "kingdom": "4194",
+      "kingdomName": "Kingdom of Thrud",
+      "chLevel": 8,
+      "power": 36558,
+      "instanceId": "sidekick-mumu-0",
+      "role": "HOME_ANCHOR_CH8",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": true
+    },
+    {
+      "govId": "236449685",
+      "name": "Governor236449685",
+      "kingdom": "4194",
+      "kingdomName": "Kingdom of Thrud",
+      "chLevel": 3,
+      "power": 4880,
+      "instanceId": "sidekick-mumu-0",
+      "role": "PARALLEL_SLICE_HELPER",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": false
+    },
+    {
+      "govId": "236455452",
+      "name": "Governor236455452",
+      "kingdom": "4193",
+      "kingdomName": "Kingdom of Zanoni",
+      "chLevel": 2,
+      "power": 4287,
+      "instanceId": "sidekick-mumu-0",
+      "role": "CONTINENT_SCANNER",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": false
+    },
+    {
+      "govId": "236457194",
+      "name": "Governor236457194",
+      "kingdom": "4195",
+      "kingdomName": "Kingdom of Biarmia",
+      "chLevel": 2,
+      "power": 1047,
+      "instanceId": "sidekick-mumu-0",
+      "role": "CONTINENT_SCANNER",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": false
+    },
+    {
+      "govId": "236459441",
+      "name": "Governor236459441",
+      "kingdom": "4196",
+      "kingdomName": "Kingdom of Skuld",
+      "chLevel": 2,
+      "power": 4292,
+      "instanceId": "sidekick-mumu-0",
+      "role": "CONTINENT_SCANNER",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": false
+    },
+    {
+      "govId": "236434540",
+      "name": "Governor236434540",
+      "kingdom": "4202",
+      "kingdomName": "Kingdom of Vanaheim",
+      "chLevel": 2,
+      "power": 1647,
+      "instanceId": "sidekick-mumu-0",
+      "role": "GENESIS_FRONTIER_BOT",
+      "tutorialCleared": true,
+      "canScanTop1000": true,
+      "canLocateGov": false
+    }
+  ],
+  "kingdomSchedules": [
+    {
+      "kingdom": "4194",
+      "name": "Kingdom of Thrud",
+      "continent": "Continent 4193–4196",
+      "mode": "SURGE_3H",
+      "cadenceHours": 3,
+      "unityApiCalls24h": 43,
+      "kpDeltaPct": 4.8,
+      "accountsAvailable": 2,
+      "assignedInstances": [
+        "sidekick-mumu-0"
+      ],
+      "lastScanAt": "2026-10-19T14:15:00.000Z",
+      "nextScanAt": "2026-10-19T20:00:00.000Z",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 1000,
+      "reason": "High Unity API demand (42 calls) + Home Kingdom Priority"
+    },
+    {
+      "kingdom": "4193",
+      "name": "Kingdom of Zanoni",
+      "continent": "Continent 4193–4196",
+      "mode": "STEADY_12H",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 2,
+      "kpDeltaPct": 0.3,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-0"
+      ],
+      "lastScanAt": "2026-10-19T17:08:00.000Z",
+      "nextScanAt": "2026-10-20T05:08:00.000Z",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 1000,
+      "reason": "Steady-State (Low API traffic, flat KP delta)"
+    },
+    {
+      "kingdom": "4195",
+      "name": "Kingdom of Biarmia",
+      "continent": "Continent 4193–4196",
+      "mode": "STEADY_12H",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 1,
+      "kpDeltaPct": 0.4,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-0"
+      ],
+      "lastScanAt": "2026-10-19T18:02:00.000Z",
+      "nextScanAt": "2026-10-20T06:02:00.000Z",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 1000,
+      "reason": "Steady-State (12h rotation)"
+    },
+    {
+      "kingdom": "4196",
+      "name": "Kingdom of Skuld",
+      "continent": "Continent 4193–4196",
+      "mode": "STEADY_12H",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 4,
+      "kpDeltaPct": 0.6,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-0"
+      ],
+      "lastScanAt": "2026-10-19T18:28:00.000Z",
+      "nextScanAt": "2026-10-20T06:28:00.000Z",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 1000,
+      "reason": "Steady-State (12h rotation, currently active on Instance #0)"
+    },
+    {
+      "kingdom": "4202",
+      "name": "Kingdom of Vanaheim",
+      "continent": "Genesis Frontier",
+      "mode": "GENESIS_BASELINE",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 3,
+      "kpDeltaPct": 1.9,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-0"
+      ],
+      "lastScanAt": "2026-10-19T16:10:00.000Z",
+      "nextScanAt": "2026-10-20T04:10:00.000Z",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 1000,
+      "reason": "Genesis Frontier Kingdom — Birth-Certificate Roster Locked"
+    },
+    {
+      "kingdom": "4203",
+      "name": "Upcoming Kingdom #4203 (Unopened)",
+      "continent": "Genesis Frontier Watch",
+      "mode": "GENESIS_WATCH",
+      "cadenceHours": 1,
+      "unityApiCalls24h": 0,
+      "kpDeltaPct": 0,
+      "accountsAvailable": 0,
+      "assignedInstances": [],
+      "lastScanAt": null,
+      "nextScanAt": "Auto-Triggers on Kingdom Spawn",
+      "genesisCaptured": false,
+      "genesisGovernorsTracked": 0,
+      "reason": "SCOUT polling every 30m — CIPHER will auto-deploy bot on spawn to capture Day-1 native governors"
+    }
+  ],
+  "activityLog": [
+    {
+      "id": "evt-106",
+      "timestamp": "2026-10-19T18:30:04.000Z",
+      "agent": "CIPHER",
+      "ring": "ring2_dispatch",
+      "model": "gemini-3.1-flash-lite + OpenCV",
+      "action": "ROSTER_VERIFIED",
+      "kingdom": "ALL",
+      "detail": "Verified all 6 provisioned characters on Account #1 (#4194 x2, #4193, #4195, #4196, #4202). Ready for 22s dynamic switching."
+    },
+    {
+      "id": "evt-105",
+      "timestamp": "2026-10-19T18:28:04.000Z",
+      "agent": "CIPHER",
+      "ring": "ring2_dispatch",
+      "model": "gemini-3.1-flash-lite + OpenCV",
+      "action": "PROVISION_COMPLETE",
+      "kingdom": "4196",
+      "detail": "Created Governor236459441 in #4196 Kingdom of Skuld, cleared Vengeance Stages 1-3, reached open city HUD (Power: 4,292)."
+    },
+    {
+      "id": "evt-104",
+      "timestamp": "2026-10-19T18:02:07.000Z",
+      "agent": "CIPHER",
+      "ring": "ring2_dispatch",
+      "model": "gemini-3.1-flash-lite + OpenCV",
+      "action": "PROVISION_COMPLETE",
+      "kingdom": "4195",
+      "detail": "Created Governor236457194 in #4195 Kingdom of Biarmia, cleared tutorial & Vengeance Stages 1-3."
+    },
+    {
+      "id": "evt-103",
+      "timestamp": "2026-10-19T17:08:00.000Z",
+      "agent": "CIPHER",
+      "ring": "ring2_dispatch",
+      "model": "gemini-3.1-flash-lite + OpenCV",
+      "action": "PROVISION_COMPLETE",
+      "kingdom": "4193",
+      "detail": "Created Governor236455452 in #4193 Kingdom of Zanoni (Power: 4,287)."
+    },
+    {
+      "id": "evt-102",
+      "timestamp": "2026-10-19T16:45:00.000Z",
+      "agent": "NULL",
+      "ring": "ring2_dispatch",
+      "model": "gemini-2.5-flash",
+      "action": "CADENCE_DIRECTIVE",
+      "kingdom": "4194",
+      "detail": "Promoted #4194 to SURGE_3H (42 Unity API hits). Kept #4193, #4195, #4196, #4202 on STEADY_12H baseline."
+    },
+    {
+      "id": "evt-101",
+      "timestamp": "2026-10-19T16:15:00.000Z",
+      "agent": "SCOUT",
+      "ring": "ring1_intelligence",
+      "model": "gemini-3.1-flash-lite",
+      "action": "GENESIS_WATCH_ARMED",
+      "kingdom": "4203",
+      "detail": "Highest active kingdom detected: #4202 (Vanaheim). Armed Genesis Auto-Trigger for #4203 to capture Day-1 native governors before migration/jumping."
+    }
+  ]
+}

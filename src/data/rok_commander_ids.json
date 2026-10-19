@@ -1,0 +1,1097 @@
+{
+  "1": {
+    "id": 1,
+    "name": "Julius Caesar",
+    "title": "The Uncrowned Emperor"
+  },
+  "2": {
+    "id": 2,
+    "name": "Calvin",
+    "title": "Barbarian Warrior"
+  },
+  "3": {
+    "id": 3,
+    "name": "Sun Tzu",
+    "title": "Tactical Genius"
+  },
+  "4": {
+    "id": 4,
+    "name": "Frederick I",
+    "title": "Barbarossa"
+  },
+  "5": {
+    "id": 5,
+    "name": "Constantine I",
+    "title": "Peerless Lord"
+  },
+  "6": {
+    "id": 6,
+    "name": "Yi Seong-Gye",
+    "title": "Bow of Revolution"
+  },
+  "7": {
+    "id": 7,
+    "name": "Cao Cao",
+    "title": "Conqueror of Chaos"
+  },
+  "8": {
+    "id": 8,
+    "name": "Richard I",
+    "title": "The Lionheart"
+  },
+  "9": {
+    "id": 9,
+    "name": "Minamoto no Yoshitsune",
+    "title": "Kamakura's Warlord"
+  },
+  "10": {
+    "id": 10,
+    "name": "Charles Martel",
+    "title": "The Immortal Hammer"
+  },
+  "11": {
+    "id": 11,
+    "name": "El Cid",
+    "title": "Holy Overlord"
+  },
+  "12": {
+    "id": 12,
+    "name": "Hermann",
+    "title": "Teutoburg's Liberator"
+  },
+  "13": {
+    "id": 13,
+    "name": "Kusunoki Masashige",
+    "title": "Bushido Spirit"
+  },
+  "14": {
+    "id": 14,
+    "name": "Scipio Africanus",
+    "title": "Blades of Warfare"
+  },
+  "15": {
+    "id": 15,
+    "name": "Joan of Arc",
+    "title": "The Maid of Orléans"
+  },
+  "16": {
+    "id": 16,
+    "name": "Eulji Mundeok",
+    "title": "Elegant Demeanor"
+  },
+  "17": {
+    "id": 17,
+    "name": "Boudica",
+    "title": "Celtic Rose"
+  },
+  "18": {
+    "id": 18,
+    "name": "Pelagius",
+    "title": "Unruly Revivalist"
+  },
+  "19": {
+    "id": 19,
+    "name": "Spartacus",
+    "title": "Spartacus"
+  },
+  "20": {
+    "id": 20,
+    "name": "Test Super Commander",
+    "title": "Test Hero"
+  },
+  "21": {
+    "id": 21,
+    "name": "Criterion Commander",
+    "title": "Criterion Commander"
+  },
+  "22": {
+    "id": 22,
+    "name": "City Keeper",
+    "title": "Shield of the People"
+  },
+  "23": {
+    "id": 23,
+    "name": "Markswoman",
+    "title": "Shadow Snake"
+  },
+  "24": {
+    "id": 24,
+    "name": "Centurion",
+    "title": "Wings of the Eagle"
+  },
+  "25": {
+    "id": 25,
+    "name": "Dragon Lancer",
+    "title": "Lance in the Fire"
+  },
+  "27": {
+    "id": 27,
+    "name": "Junior Lohar",
+    "title": ""
+  },
+  "28": {
+    "id": 28,
+    "name": "Dauntless Lohar",
+    "title": ""
+  },
+  "29": {
+    "id": 29,
+    "name": "Invincible Lohar",
+    "title": ""
+  },
+  "30": {
+    "id": 30,
+    "name": "Hannibal Barca",
+    "title": "Carthage's Guardian"
+  },
+  "31": {
+    "id": 31,
+    "name": "Shaman",
+    "title": "Shaman-Priest"
+  },
+  "32": {
+    "id": 32,
+    "name": "Cleopatra VII",
+    "title": "Queen of Egypt"
+  },
+  "33": {
+    "id": 33,
+    "name": "Constance",
+    "title": "Queen of Sicily"
+  },
+  "34": {
+    "id": 34,
+    "name": "Gaius Marius",
+    "title": "Reformer of the Legions"
+  },
+  "35": {
+    "id": 35,
+    "name": "Tomoe Gozen",
+    "title": "Beauty of the Falling Sun"
+  },
+  "36": {
+    "id": 36,
+    "name": "Lancelot",
+    "title": "Knight of the Lake"
+  },
+  "37": {
+    "id": 37,
+    "name": "Lohar",
+    "title": "Roaring Barbarian"
+  },
+  "38": {
+    "id": 38,
+    "name": "Šárka",
+    "title": "Mead of Death"
+  },
+  "39": {
+    "id": 39,
+    "name": "The High Priest",
+    "title": "神庙核心统帅的昵称占位"
+  },
+  "40": {
+    "id": 40,
+    "name": "Shadow Shaman",
+    "title": "Shaman"
+  },
+  "41": {
+    "id": 41,
+    "name": "The Chanter",
+    "title": "神庙召唤的狂热者统帅昵称占位"
+  },
+  "42": {
+    "id": 42,
+    "name": "Andaal",
+    "title": ""
+  },
+  "43": {
+    "id": 43,
+    "name": "Lukor",
+    "title": ""
+  },
+  "44": {
+    "id": 44,
+    "name": "Murdos",
+    "title": ""
+  },
+  "45": {
+    "id": 45,
+    "name": "Pache",
+    "title": ""
+  },
+  "46": {
+    "id": 46,
+    "name": "Solon Por",
+    "title": ""
+  },
+  "47": {
+    "id": 47,
+    "name": "Voodoo Totem",
+    "title": "GVE4号boss的召唤物"
+  },
+  "58": {
+    "id": 58,
+    "name": "Crowned Thief",
+    "title": ""
+  },
+  "59": {
+    "id": 59,
+    "name": "Master Thief",
+    "title": ""
+  },
+  "60": {
+    "id": 60,
+    "name": "Wooden Statue",
+    "title": "技能测试木桩"
+  },
+  "61": {
+    "id": 61,
+    "name": "Belisarius",
+    "title": "Last of the Romans"
+  },
+  "62": {
+    "id": 62,
+    "name": "Baibars",
+    "title": "Father of Conquest"
+  },
+  "63": {
+    "id": 63,
+    "name": "Osman I",
+    "title": "Imperial Pioneer"
+  },
+  "64": {
+    "id": 64,
+    "name": "Saladin",
+    "title": "Al-Malik an-Nasir"
+  },
+  "65": {
+    "id": 65,
+    "name": "Mehmed II",
+    "title": "Conqueror of Istanbul"
+  },
+  "66": {
+    "id": 66,
+    "name": "Mulan",
+    "title": "Legendary Heroine"
+  },
+  "67": {
+    "id": 67,
+    "name": "Shaman",
+    "title": ""
+  },
+  "68": {
+    "id": 68,
+    "name": "Greater Shaman",
+    "title": ""
+  },
+  "69": {
+    "id": 69,
+    "name": "Shaman",
+    "title": ""
+  },
+  "70": {
+    "id": 70,
+    "name": "Shaman",
+    "title": ""
+  },
+  "71": {
+    "id": 71,
+    "name": "Greater Shaman",
+    "title": ""
+  },
+  "72": {
+    "id": 72,
+    "name": "Shaman",
+    "title": ""
+  },
+  "73": {
+    "id": 73,
+    "name": "Shaman",
+    "title": ""
+  },
+  "74": {
+    "id": 74,
+    "name": "Greater Shaman",
+    "title": ""
+  },
+  "75": {
+    "id": 75,
+    "name": "Chieftain",
+    "title": ""
+  },
+  "76": {
+    "id": 76,
+    "name": "Shaman",
+    "title": ""
+  },
+  "77": {
+    "id": 77,
+    "name": "Shaman",
+    "title": ""
+  },
+  "78": {
+    "id": 78,
+    "name": "Shaman",
+    "title": ""
+  },
+  "79": {
+    "id": 79,
+    "name": "Shaman",
+    "title": ""
+  },
+  "80": {
+    "id": 80,
+    "name": "Shaman",
+    "title": ""
+  },
+  "81": {
+    "id": 81,
+    "name": "Shaman",
+    "title": ""
+  },
+  "82": {
+    "id": 82,
+    "name": "Priest",
+    "title": ""
+  },
+  "83": {
+    "id": 83,
+    "name": "Priest",
+    "title": ""
+  },
+  "84": {
+    "id": 84,
+    "name": "蛮族勇士",
+    "title": ""
+  },
+  "85": {
+    "id": 85,
+    "name": "女战士名字占位（）",
+    "title": ""
+  },
+  "86": {
+    "id": 86,
+    "name": "Buffalo Drummer",
+    "title": ""
+  },
+  "87": {
+    "id": 87,
+    "name": "Shaman",
+    "title": ""
+  },
+  "88": {
+    "id": 88,
+    "name": "Shaman",
+    "title": ""
+  },
+  "89": {
+    "id": 89,
+    "name": "Shaman",
+    "title": ""
+  },
+  "90": {
+    "id": 90,
+    "name": "Shaman",
+    "title": ""
+  },
+  "91": {
+    "id": 91,
+    "name": "Shaman",
+    "title": ""
+  },
+  "92": {
+    "id": 92,
+    "name": "Shaman",
+    "title": ""
+  },
+  "93": {
+    "id": 93,
+    "name": "Marauders",
+    "title": ""
+  },
+  "94": {
+    "id": 94,
+    "name": "Marauder Encampment",
+    "title": ""
+  },
+  "95": {
+    "id": 95,
+    "name": "Wu Zetian",
+    "title": "The Eternal Empress"
+  },
+  "96": {
+    "id": 96,
+    "name": "Genghis Khan",
+    "title": "First Khagan"
+  },
+  "97": {
+    "id": 97,
+    "name": "Charlemagne",
+    "title": "Pater Europae"
+  },
+  "98": {
+    "id": 98,
+    "name": "Alexander the Great",
+    "title": "World Conqueror"
+  },
+  "99": {
+    "id": 99,
+    "name": "Æthelflæd",
+    "title": "Lady of the Mercians"
+  },
+  "100": {
+    "id": 100,
+    "name": "Tomyris",
+    "title": "Queen of the Massagetae"
+  },
+  "101": {
+    "id": 101,
+    "name": "Edward of Woodstock",
+    "title": "The Black Prince"
+  },
+  "102": {
+    "id": 102,
+    "name": "Seondeok",
+    "title": "Queen of Silla"
+  },
+  "103": {
+    "id": 103,
+    "name": "Attila",
+    "title": "The Scourge of God"
+  },
+  "104": {
+    "id": 104,
+    "name": "Takeda Shingen",
+    "title": "The Tiger of Kai"
+  },
+  "105": {
+    "id": 105,
+    "name": "Ishida Mitsunari",
+    "title": "Tragic Hero of Azuchi-Momoyama"
+  },
+  "106": {
+    "id": 106,
+    "name": "Theodora",
+    "title": "Heaven's Bounty"
+  },
+  "108": {
+    "id": 108,
+    "name": "Guan Yu",
+    "title": "Lord of the Magnificent Beard"
+  },
+  "109": {
+    "id": 109,
+    "name": "Leonidas I",
+    "title": "Indomitable Powerhouse"
+  },
+  "110": {
+    "id": 110,
+    "name": "Ramesses II",
+    "title": "Favored by Gods"
+  },
+  "111": {
+    "id": 111,
+    "name": "Artemisia I",
+    "title": "Queen of Caria"
+  },
+  "112": {
+    "id": 112,
+    "name": "Keira",
+    "title": "The Red Chameleon"
+  },
+  "113": {
+    "id": 113,
+    "name": "Yi Sun-sin",
+    "title": "Duke of Loyalty and Warfare"
+  },
+  "114": {
+    "id": 114,
+    "name": "Chandragupta Maurya",
+    "title": "Lord of the Peacocks"
+  },
+  "115": {
+    "id": 115,
+    "name": "William I",
+    "title": "The Conqueror"
+  },
+  "116": {
+    "id": 116,
+    "name": "Matilda of Flanders",
+    "title": "Duchess Regent of Normandy"
+  },
+  "117": {
+    "id": 117,
+    "name": "Harald Sigurdsson",
+    "title": "Hardrada"
+  },
+  "118": {
+    "id": 118,
+    "name": "Zenobia",
+    "title": "Queen of Palmyra"
+  },
+  "119": {
+    "id": 119,
+    "name": "Lu Bu",
+    "title": "The Powerful Demon God"
+  },
+  "120": {
+    "id": 120,
+    "name": "Diaochan",
+    "title": "The Intriguing Dancer"
+  },
+  "121": {
+    "id": 121,
+    "name": "Cyrus the Great",
+    "title": "Founder of the Persian Empire"
+  },
+  "122": {
+    "id": 122,
+    "name": "Nebuchadnezzar II",
+    "title": "Restorer of Babylon"
+  },
+  "124": {
+    "id": 124,
+    "name": "Moctezuma I",
+    "title": "Aztec Eagle"
+  },
+  "125": {
+    "id": 125,
+    "name": "Trajan",
+    "title": "Optimus Princeps"
+  },
+  "126": {
+    "id": 126,
+    "name": "Jadwiga",
+    "title": "Holy Sovereign"
+  },
+  "127": {
+    "id": 127,
+    "name": "Xiang Yu",
+    "title": "King of Western Chu"
+  },
+  "128": {
+    "id": 128,
+    "name": "Björn Ironside",
+    "title": "King of Kattegat"
+  },
+  "129": {
+    "id": 129,
+    "name": "Ragnar Lodbrok",
+    "title": "Legend of the North"
+  },
+  "130": {
+    "id": 130,
+    "name": "Cheok Jun-gyeong",
+    "title": "Minister Protector"
+  },
+  "131": {
+    "id": 131,
+    "name": "Kʼinich Janaabʼ Pakal",
+    "title": "Sun of Eternal Glory"
+  },
+  "132": {
+    "id": 132,
+    "name": "Gilgamesh",
+    "title": "Wrath of Ishtar"
+  },
+  "133": {
+    "id": 133,
+    "name": "Amanitore",
+    "title": "Nubian Kandake"
+  },
+  "134": {
+    "id": 134,
+    "name": "Queen Tamar of Georgia",
+    "title": "The Georgian Will"
+  },
+  "135": {
+    "id": 135,
+    "name": "Honda Tadakatsu",
+    "title": "The Deer of Tokugawa"
+  },
+  "136": {
+    "id": 136,
+    "name": "Suleiman I",
+    "title": "Kanuni"
+  },
+  "137": {
+    "id": 137,
+    "name": "Bertrand du Guesclin",
+    "title": "The Eagle of Brittany"
+  },
+  "138": {
+    "id": 138,
+    "name": "Alexander Nevsky",
+    "title": "The Hero of Neva River"
+  },
+  "139": {
+    "id": 139,
+    "name": "Flavius Aetius",
+    "title": "Patrician of Rome"
+  },
+  "140": {
+    "id": 140,
+    "name": "Scipio Africanus",
+    "title": "Hero of Zama"
+  },
+  "141": {
+    "id": 141,
+    "name": "Thutmose III",
+    "title": "Beloved of Thoth"
+  },
+  "142": {
+    "id": 142,
+    "name": "Imhotep",
+    "title": "Man of Peace"
+  },
+  "143": {
+    "id": 143,
+    "name": "Torgny",
+    "title": "Stormbringer"
+  },
+  "144": {
+    "id": 144,
+    "name": "Wafura",
+    "title": "Wolfshadow"
+  },
+  "145": {
+    "id": 145,
+    "name": "Henry V",
+    "title": "Lancastrian King"
+  },
+  "146": {
+    "id": 146,
+    "name": "Boudica",
+    "title": "Queen of the Iceni"
+  },
+  "147": {
+    "id": 147,
+    "name": "Jan Žižka",
+    "title": "Žižka of the Chalice"
+  },
+  "148": {
+    "id": 148,
+    "name": "Joan of Arc",
+    "title": "Virgin Warrior"
+  },
+  "161": {
+    "id": 161,
+    "name": "Tariq ibn Ziyad",
+    "title": "Governor of al-Andalus"
+  },
+  "162": {
+    "id": 162,
+    "name": "Sargon the Great",
+    "title": "Emperor of Akkad"
+  },
+  "175": {
+    "id": 175,
+    "name": "Margaret I",
+    "title": "High Queen of the North"
+  },
+  "176": {
+    "id": 176,
+    "name": "Babur",
+    "title": "Forefather of the Mughals"
+  },
+  "177": {
+    "id": 177,
+    "name": "Heraclius",
+    "title": "The First Basileus"
+  },
+  "178": {
+    "id": 178,
+    "name": "Dido",
+    "title": "First Queen of Carthage"
+  },
+  "179": {
+    "id": 179,
+    "name": "Zhuge Liang",
+    "title": "Crouching Dragon"
+  },
+  "180": {
+    "id": 180,
+    "name": "Pyrrhus",
+    "title": "King of Epirus"
+  },
+  "181": {
+    "id": 181,
+    "name": "Pericles",
+    "title": "Father of Athens"
+  },
+  "182": {
+    "id": 182,
+    "name": "Huo Qubing",
+    "title": "Marquis Guanjun"
+  },
+  "183": {
+    "id": 183,
+    "name": "Justinian I",
+    "title": "Unsleeping Emperor"
+  },
+  "184": {
+    "id": 184,
+    "name": "Gorgo",
+    "title": "Laconian Eagle"
+  },
+  "185": {
+    "id": 185,
+    "name": "Liu Che",
+    "title": "Emperor Wu of Han"
+  },
+  "186": {
+    "id": 186,
+    "name": "Ashurbanipal",
+    "title": "King of Assyria"
+  },
+  "187": {
+    "id": 187,
+    "name": "Hermann",
+    "title": "Wolf of Teutoburg"
+  },
+  "188": {
+    "id": 188,
+    "name": "Lapulapu",
+    "title": "The Shorestone Shield"
+  },
+  "189": {
+    "id": 189,
+    "name": "Gonzalo de Córdoba",
+    "title": "Father of the Tercio"
+  },
+  "190": {
+    "id": 190,
+    "name": "Gajah Mada",
+    "title": "Jirnnodhara"
+  },
+  "191": {
+    "id": 191,
+    "name": "Eleanor of Aquitaine",
+    "title": "The Wildflower Duchess"
+  },
+  "192": {
+    "id": 192,
+    "name": "Belisarius",
+    "title": "Renovator Imperii"
+  },
+  "194": {
+    "id": 194,
+    "name": "William Wallace",
+    "title": "Guardian of Scotland"
+  },
+  "195": {
+    "id": 195,
+    "name": "Shajar al-Durr",
+    "title": "Tree of Pearls"
+  },
+  "196": {
+    "id": 196,
+    "name": "Choe Yeong",
+    "title": "Lord Mumin"
+  },
+  "197": {
+    "id": 197,
+    "name": "Scipio Aemilianus",
+    "title": "Conqueror of Carthage"
+  },
+  "198": {
+    "id": 198,
+    "name": "Ragnar Lodbrok",
+    "title": "Odin's Might"
+  },
+  "205": {
+    "id": 205,
+    "name": "Obeira",
+    "title": ""
+  },
+  "206": {
+    "id": 206,
+    "name": "Athikat",
+    "title": ""
+  },
+  "207": {
+    "id": 207,
+    "name": "Therata",
+    "title": ""
+  },
+  "208": {
+    "id": 208,
+    "name": "Kranitos",
+    "title": ""
+  },
+  "210": {
+    "id": 210,
+    "name": "Caravan",
+    "title": ""
+  },
+  "211": {
+    "id": 211,
+    "name": "Keira",
+    "title": ""
+  },
+  "212": {
+    "id": 212,
+    "name": "Keira's Secondary Commander",
+    "title": ""
+  },
+  "213": {
+    "id": 213,
+    "name": "Veil Totem",
+    "title": ""
+  },
+  "217": {
+    "id": 217,
+    "name": "Keira's Guard",
+    "title": ""
+  },
+  "218": {
+    "id": 218,
+    "name": "Keira's Elite Guard",
+    "title": ""
+  },
+  "219": {
+    "id": 219,
+    "name": "Evil Witch",
+    "title": ""
+  },
+  "220": {
+    "id": 220,
+    "name": "Adjudicator Natali",
+    "title": ""
+  },
+  "260": {
+    "id": 260,
+    "name": "Frida's Guard",
+    "title": ""
+  },
+  "261": {
+    "id": 261,
+    "name": "Frida's Elite Guard",
+    "title": ""
+  },
+  "262": {
+    "id": 262,
+    "name": "Sun Guard",
+    "title": ""
+  },
+  "309": {
+    "id": 309,
+    "name": "Lohar's Guard",
+    "title": ""
+  },
+  "310": {
+    "id": 310,
+    "name": "Lohar's Elite Guard",
+    "title": ""
+  },
+  "311": {
+    "id": 311,
+    "name": "Chieftain Lohar",
+    "title": ""
+  },
+  "459": {
+    "id": 459,
+    "name": "Philip II",
+    "title": "Star of the Argeadai"
+  },
+  "460": {
+    "id": 460,
+    "name": "Stephen III",
+    "title": "Cel Mare"
+  },
+  "461": {
+    "id": 461,
+    "name": "John Hunyadi",
+    "title": "Athleta Christi"
+  },
+  "462": {
+    "id": 462,
+    "name": "Siyaj K'ak'",
+    "title": "Fire is Born"
+  },
+  "463": {
+    "id": 463,
+    "name": "Wak Chanil Ajaw",
+    "title": "Lady Six Sky"
+  },
+  "503": {
+    "id": 503,
+    "name": "Tokugawa Ieyasu",
+    "title": "Tōshō Daigongen"
+  },
+  "506": {
+    "id": 506,
+    "name": "Shapur I",
+    "title": "Shahanshah"
+  },
+  "509": {
+    "id": 509,
+    "name": "Qin Shi Huang",
+    "title": "The First Emperor"
+  },
+  "510": {
+    "id": 510,
+    "name": "Matthias I",
+    "title": "Corvinus"
+  },
+  "536": {
+    "id": 536,
+    "name": "Catherine de' Medici",
+    "title": "Shadow Queen"
+  },
+  "537": {
+    "id": 537,
+    "name": "Narses",
+    "title": "Grand Chamberlain"
+  },
+  "539": {
+    "id": 539,
+    "name": "Subutai",
+    "title": "Sword of the Khan"
+  },
+  "540": {
+    "id": 540,
+    "name": "Arthur Pendragon",
+    "title": "Once and Future King"
+  },
+  "545": {
+    "id": 545,
+    "name": "Bai Qi",
+    "title": "Deity of Death"
+  },
+  "546": {
+    "id": 546,
+    "name": "Afonso de Albuquerque",
+    "title": "Caesar of the East"
+  },
+  "564": {
+    "id": 564,
+    "name": "Archimedes",
+    "title": "Father of Mathematics"
+  },
+  "565": {
+    "id": 565,
+    "name": "Mary I",
+    "title": "Bloody Mary"
+  },
+  "572": {
+    "id": 572,
+    "name": "Casimir III",
+    "title": "Wielki Król"
+  },
+  "573": {
+    "id": 573,
+    "name": "Pepin III",
+    "title": "Le Bref"
+  },
+  "575": {
+    "id": 575,
+    "name": "Achilles",
+    "title": "Swift-Footed"
+  },
+  "576": {
+    "id": 576,
+    "name": "Hector",
+    "title": "Prince of the Gleaming Helm"
+  },
+  "578": {
+    "id": 578,
+    "name": "David IV",
+    "title": "The Builder"
+  },
+  "579": {
+    "id": 579,
+    "name": "Gang Gamchan",
+    "title": "Sword of the Falling Star"
+  },
+  "595": {
+    "id": 595,
+    "name": "Sun Tzu",
+    "title": "Artist of War"
+  },
+  "596": {
+    "id": 596,
+    "name": "Ivar",
+    "title": "The Boneless"
+  },
+  "597": {
+    "id": 597,
+    "name": "Barbarians",
+    "title": ""
+  },
+  "598": {
+    "id": 598,
+    "name": "Barbarians",
+    "title": ""
+  },
+  "600": {
+    "id": 600,
+    "name": "Barbarian Wolf Tamers",
+    "title": ""
+  },
+  "601": {
+    "id": 601,
+    "name": "Barbarian Pack Striders",
+    "title": ""
+  },
+  "603": {
+    "id": 603,
+    "name": "Barbarian Beast Riders",
+    "title": ""
+  },
+  "604": {
+    "id": 604,
+    "name": "Barbarian Blitz Hunters",
+    "title": ""
+  },
+  "606": {
+    "id": 606,
+    "name": "Barbarian Bone Archers",
+    "title": ""
+  },
+  "607": {
+    "id": 607,
+    "name": "Barbarian Heavy Archers",
+    "title": ""
+  },
+  "611": {
+    "id": 611,
+    "name": "Alp Arslan",
+    "title": "Sultan of Seljuk"
+  },
+  "612": {
+    "id": 612,
+    "name": "Hayam Wuruk",
+    "title": "The Thalassocrat"
+  },
+  "616": {
+    "id": 616,
+    "name": "Vercingetorix",
+    "title": "King of Gaul"
+  },
+  "617": {
+    "id": 617,
+    "name": "Elizabeth I",
+    "title": "Queen Gloriana"
+  },
+  "618": {
+    "id": 618,
+    "name": "Pelagius",
+    "title": "Unruly Revivalist"
+  },
+  "619": {
+    "id": 619,
+    "name": "Ivan IV",
+    "title": "Ivan the Terrible"
+  },
+  "620": {
+    "id": 620,
+    "name": "William Marshal",
+    "title": "Incomparable Knight"
+  },
+  "627": {
+    "id": 627,
+    "name": "Yahya ibn Khalid",
+    "title": "Grand Vizier"
+  }
+}

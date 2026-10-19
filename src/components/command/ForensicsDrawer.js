@@ -18,12 +18,11 @@ import {
   Mail,
 } from 'lucide-react';
 import { useValheonCommand } from './ValheonCommandProvider';
-import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { formatCompactNumber } from '@/lib/valheonTrustEngine';
+import { evaluateF2pGovernorReport } from '@/lib/f2pEfficiencyEngine';
 
 export default function ForensicsDrawer() {
   const t = useTranslations('Valheon');
-  const { effectiveIsValheonFounder } = useRolePreview();
   const {
     isForensicsOpen,
     setIsForensicsOpen,
@@ -35,9 +34,10 @@ export default function ForensicsDrawer() {
   const [quickId, setQuickId] = useState('');
   const [copied, setCopied] = useState(false);
 
-  if (!effectiveIsValheonFounder || !isForensicsOpen || !selectedGovernor) return null;
+  if (!isForensicsOpen || !selectedGovernor) return null;
 
   const g = selectedGovernor;
+  const f2pReport = g.f2pReport || evaluateF2pGovernorReport(g);
 
   const toneClasses = (tone) => {
     if (tone === 'emerald') return 'text-emerald-400';
@@ -305,6 +305,114 @@ export default function ForensicsDrawer() {
                 {g.verdict}
               </span>
             </div>
+          </div>
+
+          {/* 35-Field Hidden RAM Power Composition & Sub-Stats */}
+          <div className="p-4 rounded-2xl bg-[#0b0e17] border border-emerald-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+                35-Field Lua RAM Power Split
+              </span>
+              <span className="text-[11px] font-mono text-slate-400">
+                CH{f2pReport.metrics.cityHallLevel} • VIP {f2pReport.metrics.vipLevel} • {f2pReport.metrics.civilization}
+              </span>
+            </div>
+
+            {f2pReport.metrics.hasExactPowerSplit ? (
+              <>
+                <div className="h-2.5 w-full rounded-full bg-[#06080d] overflow-hidden border border-[#1e2638] flex">
+                  <div
+                    className="h-full bg-rose-500"
+                    style={{ width: `${Math.max(2, f2pReport.metrics.troopRatio * 100)}%` }}
+                    title={`Troop Power: ${(f2pReport.metrics.troopRatio * 100).toFixed(1)}%`}
+                  />
+                  <div
+                    className="h-full bg-cyan-400"
+                    style={{ width: `${Math.max(2, f2pReport.metrics.techRatio * 100)}%` }}
+                    title={`Tech Power: ${(f2pReport.metrics.techRatio * 100).toFixed(1)}%`}
+                  />
+                  <div
+                    className="h-full bg-amber-400"
+                    style={{ width: `${Math.max(2, f2pReport.metrics.bldgRatio * 100)}%` }}
+                    title={`Building Power: ${(f2pReport.metrics.bldgRatio * 100).toFixed(1)}%`}
+                  />
+                  <div
+                    className="h-full bg-purple-400"
+                    style={{ width: `${Math.max(2, f2pReport.metrics.cmdrRatio * 100)}%` }}
+                    title={`Commander Power: ${(f2pReport.metrics.cmdrRatio * 100).toFixed(1)}%`}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between">
+                    <span className="text-rose-400">Troops ({(f2pReport.metrics.troopRatio * 100).toFixed(1)}%)</span>
+                    <span className="text-white font-bold">{formatCompactNumber(f2pReport.metrics.troopsPower)}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between">
+                    <span className="text-cyan-400">Tech ({(f2pReport.metrics.techRatio * 100).toFixed(1)}%)</span>
+                    <span className="text-white font-bold">{formatCompactNumber(f2pReport.metrics.techPower)}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between">
+                    <span className="text-amber-400">Building ({(f2pReport.metrics.bldgRatio * 100).toFixed(1)}%)</span>
+                    <span className="text-white font-bold">{formatCompactNumber(f2pReport.metrics.buildingPower)}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between">
+                    <span className="text-purple-400">Cmdr ({(f2pReport.metrics.cmdrRatio * 100).toFixed(1)}%)</span>
+                    <span className="text-white font-bold">{formatCompactNumber(f2pReport.metrics.commanderPower)}</span>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {/* MuMu Binary Save / Mailcache Telemetry Sub-Grid */}
+            {(g.castlePos || g.primaryCommander || g.ralliesLed || g.ralliesJoined || g.equippedGear) && (
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-1">
+                {g.castlePos && (
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between">
+                    <span className="text-cyan-400">Map Pos</span>
+                    <span className="text-white font-bold">
+                      X:{g.castlePos.X ?? g.castlePos.x}, Y:{g.castlePos.Y ?? g.castlePos.y}
+                    </span>
+                  </div>
+                )}
+                {(g.ralliesLed > 0 || g.ralliesJoined > 0) && (
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between">
+                    <span className="text-emerald-400">Rallies</span>
+                    <span className="text-white font-bold">
+                      {g.ralliesLed || 0} Led / {g.ralliesJoined || 0} Joined
+                    </span>
+                  </div>
+                )}
+                {g.primaryCommander && (
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between col-span-2">
+                    <span className="text-purple-400">Primary Cmdr (Save)</span>
+                    <span className="text-white font-bold">
+                      Hero #{g.primaryCommander.id} (Lv{g.primaryCommander.level || 1}
+                      {g.primaryCommander.skills ? ` • Skills: ${g.primaryCommander.skills}` : ''})
+                    </span>
+                  </div>
+                )}
+                {g.equippedGear && (
+                  <div className="p-2 rounded-lg bg-[#06080d] border border-[#1e2638] flex justify-between col-span-2">
+                    <span className="text-amber-400">Gear (HEq)</span>
+                    <span className="text-white font-bold truncate max-w-[260px]" title={g.equippedGear}>
+                      {g.equippedGear}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Top F2P Diagnostic Alert Inside Drawer */}
+            {f2pReport.diagnostics?.slice(0, 2).map((diag, dIdx) => (
+              <div key={dIdx} className="p-3 rounded-xl bg-[#06080d] border border-[#1e2638] space-y-1">
+                <div className="text-[11px] font-mono font-bold text-amber-400">
+                  F2P Coach ({f2pReport.grade} • {f2pReport.overallScore}/100): {diag.title}
+                </div>
+                <div className="text-[11px] text-slate-300 leading-relaxed">
+                  {diag.fix}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* 5-Axis Behavioral Fingerprint Breakdown */}

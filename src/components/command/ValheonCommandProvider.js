@@ -25,14 +25,31 @@ export function ValheonCommandProvider({ children }) {
     evaluateGovernorTrust(BENCHMARK_GOVERNORS[0])
   );
 
-  // Sync active kingdom & fetch live governor telemetry when available
+  // Sync active kingdom & fetch live 35-field governor telemetry when available
   useEffect(() => {
-    const kd = getActiveTargetKingdom(session, '3418');
+    const kd = getActiveTargetKingdom(session, '4194');
     setActiveKd(kd);
 
     let cancelled = false;
     async function hydrateKingdomRoster() {
       try {
+        // 1. First pull live 45-field MuMu RAM + binary save telemetry
+        const liveRes = await fetch(`/api/aws/governor-search?limit=300&_t=${Date.now()}`);
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          if (!cancelled && Array.isArray(liveData?.results) && liveData.results.length > 0) {
+            const matrix = evaluateKingdomTrustMatrix(liveData.results);
+            const enriched = matrix.governors.map((mg) => {
+              const rawGov = liveData.results.find((r) => String(r.id) === String(mg.id)) || {};
+              return { ...rawGov, ...mg };
+            });
+            setGovernorPool(enriched);
+            setSelectedGovernor(enriched[0]);
+            return;
+          }
+        }
+
+        // 2. Fallback to anomaly-detector
         const res = await fetch(
           `/api/lab/anomaly-detector?kingdom=${encodeURIComponent(kd)}`
         );
@@ -50,16 +67,14 @@ export function ValheonCommandProvider({ children }) {
       }
     }
 
-    if (session) {
-      hydrateKingdomRoster();
-    }
+    hydrateKingdomRoster();
     return () => {
       cancelled = true;
     };
   }, [session]);
 
   const inspectGovernor = useCallback(
-    (govOrId) => {
+    async (govOrId) => {
       if (!govOrId) {
         setIsForensicsOpen(true);
         return;
@@ -73,23 +88,37 @@ export function ValheonCommandProvider({ children }) {
         );
         if (found) {
           setSelectedGovernor(found);
-        } else {
-          setSelectedGovernor(
-            evaluateGovernorTrust({
-              id: String(govOrId),
-              name: `Governor #${govOrId}`,
-              alliance: activeKd,
-              power: 68_000_000,
-              killPoints: 1_850_000_000,
-              deads: 7_200_000,
-            })
-          );
+          setIsForensicsOpen(true);
+          return;
         }
+        try {
+          const sRes = await fetch(`/api/aws/governor-search?q=${encodeURIComponent(query)}&limit=5`);
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            if (sData?.results?.length > 0) {
+              const hit = sData.results[0];
+              const dossier = { ...hit, ...evaluateGovernorTrust(hit) };
+              setSelectedGovernor(dossier);
+              setIsForensicsOpen(true);
+              return;
+            }
+          }
+        } catch {}
+        setSelectedGovernor(
+          evaluateGovernorTrust({
+            id: String(govOrId),
+            name: `Governor #${govOrId}`,
+            alliance: activeKd,
+            power: 14_272_961,
+            killPoints: 536_287,
+            deads: 0,
+          })
+        );
       } else if (typeof govOrId === 'object') {
         const dossier =
           govOrId.trustIndex !== undefined
             ? govOrId
-            : evaluateGovernorTrust(govOrId);
+            : { ...govOrId, ...evaluateGovernorTrust(govOrId) };
         setSelectedGovernor(dossier);
       }
       setIsForensicsOpen(true);

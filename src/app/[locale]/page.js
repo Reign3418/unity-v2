@@ -21,6 +21,7 @@ import { usePathname } from 'next/navigation';
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 import { useValheonCommand } from "@/components/command/ValheonCommandProvider";
 import ValheonSovereignBridge from "@/components/command/ValheonSovereignBridge";
+import F2pEfficiencyOptimizer from "@/components/member/F2pEfficiencyOptimizer";
 
 export default function Home() {
   const pathname = usePathname();
@@ -337,6 +338,13 @@ export default function Home() {
               <ChevronDown size={20} className="text-cyan-400" />
             </a>
 
+        </div>
+
+        {/* ========================================================
+            SECTION: 45-FIELD MUMU LIVE GOVERNOR SEARCH & F2P COACH
+            ======================================================== */}
+        <div id="mumu-45field-hub" className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          <F2pEfficiencyOptimizer />
         </div>
 
         {/* ========================================================
@@ -894,6 +902,11 @@ export default function Home() {
             <span>{tLanding('dashboard_album_qr')}</span>
           </Link>
         </div>
+      </div>
+
+      {/* 45-Field Near-Live MuMu Telemetry, Instant Governor Search & F2P Coach */}
+      <div id="mumu-45field-hub" className="scroll-mt-20">
+        <F2pEfficiencyOptimizer />
       </div>
 
       {/* Global Master Clock */}

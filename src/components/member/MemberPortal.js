@@ -8,6 +8,7 @@ import {
   Link2, Settings, ChevronRight, Zap, Users
 } from 'lucide-react';
 import MemberCoachingBrief from '@/components/member/MemberCoachingBrief';
+import F2pEfficiencyOptimizer from '@/components/member/F2pEfficiencyOptimizer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility: format UTC uptime window from stored local values
@@ -129,13 +130,13 @@ export default function MemberPortal({ session }) {
   const displayName = session?.user?.username || session?.user?.name || 'Governor';
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6 animate-fade-in pb-16 mt-6 px-4">
+    <div className="w-full max-w-5xl mx-auto space-y-6 animate-fade-in pb-16 mt-6 px-4">
 
       {/* ── Welcome Banner ─────────────────────────────────────────────────── */}
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 md:p-8 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/8 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
         <div className="relative z-10">
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-500 mb-1">Commander Portal</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-500 mb-1">Governor Executive Portal</p>
           <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide">
             Welcome back, <span className="text-cyan-400">{displayName}</span>
           </h1>
@@ -144,6 +145,12 @@ export default function MemberPortal({ session }) {
           )}
         </div>
       </div>
+
+      {/* ── Section 0: Live 35-Field Governor Finder & F2P Efficiency Optimizer ── */}
+      <F2pEfficiencyOptimizer
+        initialGovId={govId}
+        initialKd={kingdomId || '4194'}
+      />
 
       {/* ── Section 1: Governor Stats ───────────────────────────────────────── */}
       <div>

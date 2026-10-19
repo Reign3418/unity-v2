@@ -429,9 +429,17 @@ export async function getKingdomRoster(kingdomId) {
             return []; // Kingdom hasn't been scanned yet
         }
         
-        // Sort the dates (newest first)
-        const dates = dateResult.Items.map(i => i.attributes?.M?.scanDate?.S).sort((a, b) => new Date(b) - new Date(a));
-        const latestDate = String(dates[0]).replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
+        // Sort the dates (newest first), preferring full rosters (>= 100 rows) over tiny partial slices
+        const sortedDateItems = [...dateResult.Items].sort((a, b) => {
+            const da = new Date(a.attributes?.M?.scanDate?.S || 0);
+            const db = new Date(b.attributes?.M?.scanDate?.S || 0);
+            return db - da;
+        });
+        const fullRosterItem = sortedDateItems.find(
+            i => parseInt(i.attributes?.M?.rowCount?.N || '0', 10) >= 100 &&
+                 i.attributes?.M?.epochStatus?.S !== 'ARCHIVED_VIEW_ONLY'
+        ) || sortedDateItems[0];
+        const latestDate = String(fullRosterItem.attributes?.M?.scanDate?.S || '').replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
         
         console.log(`[AWS] Querying DynamoDB for Kingdom ${kingdomId} Roster from ${latestDate}...`);
 
@@ -465,21 +473,55 @@ export async function getKingdomRoster(kingdomId) {
                         id,
                         name,
                         alliance,
+                        allianceName: getAttrVal(attrs, ['Alliance Name', 'allianceName'], false, ''),
+                        kingdomId: String(kingdomId),
+                        cityHall: getAttrVal(attrs, ['Town Hall', 'City Hall', 'cityHall', 'townHall'], true) || 25,
+                        vipLevel: getAttrVal(attrs, ['VIP Level', 'vipLevel'], true),
+                        civilization: getAttrVal(attrs, ['Civilization', 'civilization'], false, 'China'),
+                        civId: getAttrVal(attrs, ['Civ ID', 'civId'], true),
                         
                         // Stats
                         power: getAttrVal(attrs, ['Power', 'power', 'POWER'], true),
+                        highestPower: getAttrVal(attrs, ['Highest Power', 'highestPower'], true),
                         killPoints: getAttrVal(attrs, ['Kill Points', 'killPoints', 'KillPoints', 'killpoints', 'Total KP', 'KP', 'kp'], true),
+                        totalUnitsKilled: getAttrVal(attrs, ['Total Units Killed', 'totalUnitsKilled'], true),
+                        rangedPoints: getAttrVal(attrs, ['Ranged Points', 'rangedPoints'], true),
                         dead: getAttrVal(attrs, ['Deads', 'dead', 'Dead', 'DEAD', 'DEADS', 'Defeat', 'DEFEAT', 'defeats', 'Dead(s)'], true),
+                        healedTroops: getAttrVal(attrs, ['Healed Troops', 'healedTroops'], true),
+                        victories: getAttrVal(attrs, ['Victories', 'victories'], true),
+                        defeats: getAttrVal(attrs, ['Defeats', 'defeats'], true),
+                        scoutTimes: getAttrVal(attrs, ['Scout Times', 'scoutTimes'], true),
+                        t1Kills: getAttrVal(attrs, ['T1 Kills', 't1Kills', 'T1Kills', 'Tier 1 Kills'], true),
+                        t2Kills: getAttrVal(attrs, ['T2 Kills', 't2Kills', 'T2Kills', 'Tier 2 Kills'], true),
+                        t3Kills: getAttrVal(attrs, ['T3 Kills', 't3Kills', 'T3Kills', 'Tier 3 Kills'], true),
                         t4Kills: getAttrVal(attrs, ['T4 Kills', 't4Kills', 'T4Kills', 'Tier 4 Kills'], true),
                         t5Kills: getAttrVal(attrs, ['T5 Kills', 't5Kills', 'T5Kills', 'Tier 5 Kills'], true),
+                        t1Kp: getAttrVal(attrs, ['T1 KP', 't1Kp'], true),
+                        t2Kp: getAttrVal(attrs, ['T2 KP', 't2Kp'], true),
+                        t3Kp: getAttrVal(attrs, ['T3 KP', 't3Kp'], true),
+                        t4Kp: getAttrVal(attrs, ['T4 KP', 't4Kp'], true),
+                        t5Kp: getAttrVal(attrs, ['T5 KP', 't5Kp'], true),
                         gathered: getAttrVal(attrs, ['Resources Gathered', 'Gathered', 'gathered', 'ResourcesGathered', 'resourcesGathered', 'RSS Gathered', 'rss gathered', 'resources', 'Resources', 'rss', 'RSS'], true),
-                        assistance: getAttrVal(attrs, ['Assistance', 'assistance', 'Resources Given', 'resources given', 'ResourcesGiven', 'RSS Assistance', 'rss assistance', 'rssAssisted', 'RssAssisted', 'helps'], true),
+                        assistance: getAttrVal(attrs, ['Assistance', 'assistance', 'Resources Given', 'resources given', 'ResourcesGiven', 'RSS Assistance', 'rss assistance', 'rssAssisted', 'RssAssisted'], true),
+                        helps: getAttrVal(attrs, ['Helps', 'helps', 'Alliance Helps'], true),
                         
                         // Sub-Power Metrics
                         troopPower: getAttrVal(attrs, ['Troop Power', 'troop power', 'troopPower', 'TroopPower'], true),
                         techPower: getAttrVal(attrs, ['Tech Power', 'tech power', 'techPower', 'TechPower'], true),
                         commanderPower: getAttrVal(attrs, ['Commander Power', 'commander power', 'commanderPower', 'CommanderPower'], true),
                         buildingPower: getAttrVal(attrs, ['Building Power', 'building power', 'buildingPower', 'BuildingPower'], true),
+
+                        // Career Metrics (KvK + AoO)
+                        kvkHighestKp: getAttrVal(attrs, ['KvK Highest KP', 'kvkHighestKp'], true),
+                        kvkMostKills: getAttrVal(attrs, ['KvK Most Kills', 'kvkMostKills'], true),
+                        kvkMostHealed: getAttrVal(attrs, ['KvK Most Healed', 'kvkMostHealed'], true),
+                        kvkMostDead: getAttrVal(attrs, ['KvK Most Dead', 'kvkMostDead'], true),
+                        kvkCount: getAttrVal(attrs, ['KvK Count', 'kvkCount', 'Lost Kingdom Count'], true),
+                        aooWins: getAttrVal(attrs, ['AoO Wins', 'aooWins'], true),
+                        aooLosses: getAttrVal(attrs, ['AoO Losses', 'aooLosses'], true),
+                        aooLeaves: getAttrVal(attrs, ['AoO Leaves', 'aooLeaves'], true),
+                        aooKillStocks: getAttrVal(attrs, ['AoO Kill Stocks', 'aooKillStocks'], true),
+                        aooHighestScore: getAttrVal(attrs, ['AoO Highest Score', 'aooHighestScore'], true),
                         
                         // Deltas
                         powerDelta: getAttrVal(attrs, ['powerDelta'], true),
@@ -2604,6 +2646,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
             '100': { power: 0, kp: 0, deads: 0, elements: 0 },
             '300': { power: 0, kp: 0, deads: 0, elements: 0 },
             '400': { power: 0, kp: 0, deads: 0, elements: 0 },
+            '465': { power: 0, kp: 0, deads: 0, elements: 0 },
             '650': { power: 0, kp: 0, deads: 0, elements: 0 },
             '1000': { power: 0, kp: 0, deads: 0, elements: 0 }
         }
@@ -2627,8 +2670,8 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         if (!summaryData.alliances[tag]) summaryData.alliances[tag] = 0;
         summaryData.alliances[tag] += power;
 
-        // Populate Top N Slices based on sequential index mapping (since array is strictly sorted descending by power)
-        [100, 300, 400, 650, 1000].forEach(limit => {
+        // Populate Top N Slices based on sequential index mapping (155x3 = 465 Core, 650 KvK Sweet Spot, 1000 Full)
+        [100, 300, 400, 465, 650, 1000].forEach(limit => {
             if (index < limit) {
                 summaryData.topSlices[String(limit)].power += power;
                 summaryData.topSlices[String(limit)].kp += kp;
@@ -2642,6 +2685,10 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     if (summaryData.totalKP === 0 && summaryData.totalDeads === 0) {
         summaryData.scanType = 'Limited';
     }
+
+    const sourceType = uploaderData?.sourceType || (String(uploaderData?.importTag || '').startsWith('RAM') || String(uploaderData?.importTag || '').startsWith('BOT') ? 'BASTION_BOT' : 'SPREADSHEET');
+    const coverageTier = uploaderData?.coverageTier || (rosterArray.length >= 900 ? 'FULL_1000_CENSUS' : rosterArray.length >= 600 ? 'SWEET_650_ROSTER' : rosterArray.length >= 450 ? 'CORE_465_ROSTER' : 'PARTIAL_SLICE');
+    const epochStatus = uploaderData?.epochStatus || (sourceType === 'BASTION_BOT' || sourceType === 'GENESIS_BOT' ? 'BOT_SOVEREIGN' : 'SANDBOX_SHEET');
 
     // 1. Write the Master DATES pointer so queries know the 'Latest' scan date and hold trend metadata
     const dateParams = {
@@ -2657,7 +2704,10 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                     'uploaderId': { S: String(uploaderData?.discordId || "Unknown") },
                     'uploaderName': { S: String(uploaderData?.username || "System") },
                     'sourceFile': { S: String(uploaderData?.sourceFile || "Legacy_Upload") },
-                    'importTag': { S: String(uploaderData?.importTag || "UNDOCUMENTED") }
+                    'importTag': { S: String(uploaderData?.importTag || "UNDOCUMENTED") },
+                    'sourceType': { S: String(sourceType) },
+                    'coverageTier': { S: String(coverageTier) },
+                    'epochStatus': { S: String(epochStatus) }
                 }
             },
             'expiresAt': { N: String(ttlEpoch) }  // TTL — DynamoDB auto-deletes after 12 months
@@ -2687,18 +2737,31 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         const formatS = (val) => ({ S: String(val || '') });
         const formatN = (val) => ({ N: String(val || 0).replace(/,/g, '') });
 
-        const id = player.id || player.Id || player.ID || player['Governor ID'] || player['Character ID'] || player.CharacterID;
+        const id = player.id || player.govId || player.Id || player.ID || player['Governor ID'] || player['Character ID'] || player.CharacterID;
         const name = player.name || player.Name || player.NAME || player['Governor Name'] || player.Username || player.username;
         const alliance = player.alliance || player.Alliance || player.ALLIANCE || player['Alliance Tag'] || player['Alliance Name'] || player['alliance Tag'] || "";
+        const allianceName = player.allianceName || player['Alliance Full Name'] || "";
         const power = player.power || player.Power || player.POWER;
+        const highestPower = player.highestPower || player['Highest Power'] || power;
         const killpoints = player.killpoints || player.killPoints || player.KillPoints || player['Kill Points'] || player['Total KP'];
-        const deads = player.deads || player.Deads || player.Dead || player.DEAD || player.DEADS || player.Defeat || player.DEFEAT || player.dead || player.defeats || player['Dead(s)'];
+        const totalUnitsKilled = player.totalUnitsKilled || player['Total Units Killed'] || 0;
+        const rangedPoints = player.rangedPoints || player['Ranged Points'] || 0;
+        const deads = player.deads || player.Deads || player.Dead || player.DEAD || player.DEADS || player.dead || player['Dead(s)'] || 0;
+        const healedTroops = player.healedTroops || player['Healed Troops'] || 0;
+        const victories = player.victories || player.Victory || player['Victories'] || 0;
+        const defeats = player.defeats || player.Defeat || player['Defeats'] || 0;
+        const scoutTimes = player.scoutTimes || player['Scout Times'] || 0;
         const acclaim = player.acclaim || player.Acclaim || player.ACCLAIM;
         const t1kills = player.t1Kills || player.T1Kills || player['T1 Kills'] || player['Tier 1 Kills'];
         const t2kills = player.t2Kills || player.T2Kills || player['T2 Kills'] || player['Tier 2 Kills'];
         const t3kills = player.t3Kills || player.T3Kills || player['T3 Kills'] || player['Tier 3 Kills'];
         const t4kills = player.t4Kills || player.T4Kills || player['T4 Kills'] || player['Tier 4 Kills'];
         const t5kills = player.t5Kills || player.T5Kills || player['T5 Kills'] || player['Tier 5 Kills'];
+        const t1Kp = player.t1Kp || player['T1 KP'] || 0;
+        const t2Kp = player.t2Kp || player['T2 KP'] || 0;
+        const t3Kp = player.t3Kp || player['T3 KP'] || 0;
+        const t4Kp = player.t4Kp || player['T4 KP'] || 0;
+        const t5Kp = player.t5Kp || player['T5 KP'] || 0;
         const gathered = player.gathered || player.Gathered || player.ResourcesGathered || player['Resources Gathered'] || player['RSS Gathered'];
         const assistance = player.assistance || player.Assistance || player.ASSISTANCE || player['Resources Given'] || player['resources Given'] || player['RSS Assistance'];
         const helps = player.helps || player.Helps || player.HELPS || player['Alliance Helps'] || player['Helps Given'] || player['helps Given'];
@@ -2706,11 +2769,78 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         const techPower = player.techPower || player.TechPower || player['Tech Power'];
         const comPower = player.commanderPower || player.CommanderPower || player['Commander Power'];
         const buildPower = player.buildingPower || player.BuildingPower || player['Building Power'];
-        const townHall = player.townHall || player.TownHall || player['Town Hall'] || player['CH Level'] || player.CityHall || player['City Hall'];
-        const lostKingdomCount = player.lostKingdomCount || player.LostKingdomCount || player['Lost Kingdom Count'] || player['LK Count'];
+        const townHall = player.cityHall || player.townHall || player.TownHall || player['Town Hall'] || player['CH Level'] || player.CityHall || player['City Hall'] || 25;
+        const vipLevel = player.vipLevel || player['VIP Level'] || 0;
+        const civilization = player.civilization || player['Civilization'] || "China";
+        const civId = player.civId || player['Civ ID'] || 6;
+        const lostKingdomCount = player.kvkCount || player.lostKingdomCount || player.LostKingdomCount || player['Lost Kingdom Count'] || player['LK Count'] || 0;
+        const kvkHighestKp = player.kvkHighestKp || 0;
+        const kvkMostKills = player.kvkMostKills || 0;
+        const kvkMostHealed = player.kvkMostHealed || 0;
+        const kvkMostDead = player.kvkMostDead || 0;
+        const aooWins = player.aooWins || 0;
+        const aooLosses = player.aooLosses || 0;
+        const aooLeaves = player.aooLeaves || 0;
+        const aooKillStocks = player.aooKillStocks || 0;
+        const aooHighestScore = player.aooHighestScore || 0;
 
         // Drop corrupted lines if the ID failed entirely
         if (!id) return null;
+
+        const full35Attributes = {
+            'Governor ID': formatS(id),
+            'Governor Name': formatS(name),
+            'Alliance Tag': formatS(alliance),
+            'Alliance Name': formatS(allianceName),
+            'Power': formatN(power),
+            'Highest Power': formatN(highestPower),
+            'Kill Points': formatN(killpoints),
+            'Total Units Killed': formatN(totalUnitsKilled),
+            'Ranged Points': formatN(rangedPoints),
+            'Deads': formatN(deads),
+            'Healed Troops': formatN(healedTroops),
+            'Victories': formatN(victories),
+            'Defeats': formatN(defeats),
+            'Scout Times': formatN(scoutTimes),
+            'Acclaim': formatN(acclaim),
+            'T1 Kills': formatN(t1kills),
+            'T2 Kills': formatN(t2kills),
+            'T3 Kills': formatN(t3kills),
+            'T4 Kills': formatN(t4kills),
+            'T5 Kills': formatN(t5kills),
+            'T1 KP': formatN(t1Kp),
+            'T2 KP': formatN(t2Kp),
+            'T3 KP': formatN(t3Kp),
+            'T4 KP': formatN(t4Kp),
+            'T5 KP': formatN(t5Kp),
+            'Resources Gathered': formatN(gathered),
+            'Assistance': formatN(assistance),
+            'Helps': formatN(helps),
+            'Troop Power': formatN(troopPower),
+            'Tech Power': formatN(techPower),
+            'Commander Power': formatN(comPower),
+            'Building Power': formatN(buildPower),
+            'Town Hall': formatN(townHall),
+            'VIP Level': formatN(vipLevel),
+            'Civilization': formatS(civilization),
+            'Civ ID': formatN(civId),
+            'Lost Kingdom Count': formatN(lostKingdomCount),
+            'KvK Highest KP': formatN(kvkHighestKp),
+            'KvK Most Kills': formatN(kvkMostKills),
+            'KvK Most Healed': formatN(kvkMostHealed),
+            'KvK Most Dead': formatN(kvkMostDead),
+            'KvK Count': formatN(lostKingdomCount),
+            'AoO Wins': formatN(aooWins),
+            'AoO Losses': formatN(aooLosses),
+            'AoO Leaves': formatN(aooLeaves),
+            'AoO Kill Stocks': formatN(aooKillStocks),
+            'AoO Highest Score': formatN(aooHighestScore),
+            // Map any deltas if provided by the client side processor
+            'powerDelta': formatN(player.powerDelta),
+            'kpDelta': formatN(player.kpDelta),
+            'deadsDelta': formatN(player.deadsDelta),
+            'gatheredDelta': formatN(player.gatheredDelta),
+        };
 
         return [
             {
@@ -2719,34 +2849,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                         'PK': { S: `SCAN#${kingdomId}#${dateKey}` },
                         'SK': { S: `GOV#${id}` },
                         'attributes': {
-                            M: {
-                                'Governor ID': formatS(id),
-                                'Governor Name': formatS(name),
-                                'Alliance Tag': formatS(alliance),
-                                'Power': formatN(power),
-                                'Kill Points': formatN(killpoints),
-                                'Deads': formatN(deads),
-                                'Acclaim': formatN(acclaim),
-                                'T1 Kills': formatN(t1kills),
-                                'T2 Kills': formatN(t2kills),
-                                'T3 Kills': formatN(t3kills),
-                                'T4 Kills': formatN(t4kills),
-                                'T5 Kills': formatN(t5kills),
-                                'Resources Gathered': formatN(gathered),
-                                'Assistance': formatN(assistance),
-                                'Helps': formatN(helps),
-                                'Troop Power': formatN(troopPower),
-                                'Tech Power': formatN(techPower),
-                                'Commander Power': formatN(comPower),
-                                'Building Power': formatN(buildPower),
-                                'Town Hall': formatN(townHall),
-                                'Lost Kingdom Count': formatN(lostKingdomCount),
-                                // Map any deltas if provided by the client side processor
-                                'powerDelta': formatN(player.powerDelta),
-                                'kpDelta': formatN(player.kpDelta),
-                                'deadsDelta': formatN(player.deadsDelta),
-                                'gatheredDelta': formatN(player.gatheredDelta),
-                            }
+                            M: full35Attributes
                         },
                         'expiresAt': { N: String(ttlEpoch) }  // TTL — DynamoDB auto-deletes after 12 months
                     }
@@ -2759,6 +2862,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
                         'SK': { S: 'PROFILE' },
                         'attributes': {
                             M: {
+                                ...full35Attributes,
                                 'name': formatS(name),
                                 'lastSeenKingdom': { N: String(kingdomId) },
                                 'lastSeenDate': { S: scanDate }

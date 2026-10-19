@@ -1,0 +1,72 @@
+{
+  "updatedAt": "2026-10-19T20:16:08.926Z",
+  "globalCutoverActive": true,
+  "defaultScanPreset": "SWEET_650",
+  "monotonicGuardEnabled": true,
+  "captureLowPowerR5Enabled": true,
+  "dozerStats": {
+    "totalBotScansReconciled": 6,
+    "monotonicFixesApplied": 14,
+    "archivedSheetSnapshots": 163,
+    "migrantsIdentified": 0
+  },
+  "kingdomEpochs": {
+    "4193": {
+      "kingdomId": "4193",
+      "status": "BOT_SOVEREIGN",
+      "epochZeroAt": "2026-10-19T17:08:00.000Z",
+      "scanPreset": "SWEET_650",
+      "activeBaselineSource": "BASTION_BOT",
+      "legacySheetsArchived": true,
+      "legacyBaselineZeroed": true,
+      "allianceR5HeaderCaptured": true,
+      "governorsCount": 1000
+    },
+    "4194": {
+      "kingdomId": "4194",
+      "status": "BOT_SOVEREIGN",
+      "epochZeroAt": "2026-10-19T07:43:00.000Z",
+      "scanPreset": "SWEET_650",
+      "activeBaselineSource": "BASTION_BOT",
+      "legacySheetsArchived": true,
+      "legacyBaselineZeroed": true,
+      "allianceR5HeaderCaptured": true,
+      "governorsCount": 1000
+    },
+    "4195": {
+      "kingdomId": "4195",
+      "status": "BOT_SOVEREIGN",
+      "epochZeroAt": "2026-10-19T18:02:00.000Z",
+      "scanPreset": "SWEET_650",
+      "activeBaselineSource": "BASTION_BOT",
+      "legacySheetsArchived": true,
+      "legacyBaselineZeroed": true,
+      "allianceR5HeaderCaptured": true,
+      "governorsCount": 1000
+    },
+    "4196": {
+      "kingdomId": "4196",
+      "status": "BOT_SOVEREIGN",
+      "epochZeroAt": "2026-10-19T18:28:00.000Z",
+      "scanPreset": "SWEET_650",
+      "activeBaselineSource": "BASTION_BOT",
+      "legacySheetsArchived": true,
+      "legacyBaselineZeroed": true,
+      "allianceR5HeaderCaptured": true,
+      "governorsCount": 1000
+    },
+    "4202": {
+      "kingdomId": "4202",
+      "status": "GENESIS_SOVEREIGN",
+      "epochZeroAt": "2026-10-19T16:10:00.000Z",
+      "scanPreset": "CORE_465",
+      "activeBaselineSource": "GENESIS_BOT",
+      "legacySheetsArchived": true,
+      "legacyBaselineZeroed": true,
+      "allianceR5HeaderCaptured": true,
+      "governorsCount": 1000
+    }
+  },
+  "trojanHorseLeads": [],
+  "archivedSnapshots": []
+}

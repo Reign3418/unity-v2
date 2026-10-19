@@ -1,0 +1,3536 @@
+[
+  {
+    "id": "236053465",
+    "govId": 236053465,
+    "ralliesLed": 8,
+    "ralliesJoined": 8,
+    "name": "么 Shіro farm",
+    "alliance": "RSMM",
+    "allianceName": "Money Maker's",
+    "cityHall": 11,
+    "castlePos": {
+      "Y": 629.49,
+      "X": 6754.19
+    },
+    "internalServerId": 3198,
+    "primaryCommander": {
+      "id": 15,
+      "level": 21,
+      "star": 3,
+      "skills": "1-2-1-0"
+    },
+    "udid": "413842294543088168",
+    "appUid": "4372840",
+    "clientPlatform": "com.lilithgames.rok.pc.int",
+    "secondaryCommander": {
+      "id": 7,
+      "level": 4,
+      "star": 1,
+      "skills": "3-0-0-0"
+    }
+  },
+  {
+    "id": "154253014",
+    "govId": 154253014,
+    "ralliesLed": 2,
+    "ralliesJoined": 2,
+    "name": "Long chu famer",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4454.22,
+      "X": 1101.02
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 509,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "equippedGear": "{1:20019_73:2,2:20020_105:1,3:20021_71:21,4:20022_72:1,5:20023_80:22,6:20024_85:1,7:20040_86:21,8:20037_132:21}",
+    "udid": "3CFCEE26-1620-4E4D-AE01-A01BC3F82B25",
+    "appUid": "6626468-23022345",
+    "clientPlatform": "com.rok.ios.vn"
+  },
+  {
+    "id": "143165645",
+    "govId": 143165645,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "F2pSeas0n",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 66,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 60
+    }
+  },
+  {
+    "id": "135042283",
+    "govId": 135042283,
+    "ralliesLed": 245,
+    "ralliesJoined": 275,
+    "name": "メDarkinf",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 37,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 540,
+      "level": 43,
+      "star": 5,
+      "skills": "1-1-1-1"
+    },
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 5269.45,
+      "X": 1057.58
+    },
+    "internalServerId": 1294,
+    "equippedGear": "{1:20013_50:11,2:20014_49:3,3:20026_46:2,4:20029_47:4,5:20032_30:4,6:20034_58:5,7:20041_44:3,8:20037_59:1}",
+    "udid": "02BD0AB0-C24B-4F82-B579-E2D93ABD5119",
+    "appUid": "106161018",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "7697375",
+    "govId": 7697375,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Alaeus",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 7,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "172312973",
+    "govId": 172312973,
+    "ralliesLed": 1,
+    "ralliesJoined": 2,
+    "name": "空 DriiaN ツ",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4560.28,
+      "X": 1161.47
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 179,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 195,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "equippedGear": "{1:20003_45:1,2:20006_39:1,3:20027_37:1,4:20022_48:21,5:20031_36:1,6:20024_38:21,7:20039_49:1,8:20040_50:1}",
+    "udid": "05C23FB8B2B055BF01B39BC2B1298092",
+    "appUid": "219495476",
+    "clientPlatform": "com.lilithgame.roc.gp"
+  },
+  {
+    "id": "93067435",
+    "govId": 93067435,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "KenpachiメZaraki",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 61,
+      "level": 60
+    }
+  },
+  {
+    "id": "93056758",
+    "govId": 93056758,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ElMarcelo",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 1,
+      "level": 39
+    }
+  },
+  {
+    "id": "7702875",
+    "govId": 7702875,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "QuQu18",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "193893229",
+    "govId": 193893229,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "メDarkchaos",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 189,
+      "level": 60
+    }
+  },
+  {
+    "id": "154610181",
+    "govId": 154610181,
+    "ralliesLed": 2,
+    "ralliesJoined": 4,
+    "name": "ㆍ S e t hㆍ",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4484.96,
+      "X": 1252.36
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 182,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 540,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "equippedGear": "{1:20001_82:33,2:20004_54:32,3:20009_44:32,4:20028_53:32,5:20033_65:34,6:20012_77:31,7:20040_58:1,8:20037_50:1}",
+    "udid": "4FA095FCE76B9BD25536F74C13788362",
+    "appUid": "210577418",
+    "clientPlatform": "com.lilithgame.roc.gp"
+  },
+  {
+    "id": "155351979",
+    "govId": 155351979,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "Seth reinforce",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 7,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 39
+    }
+  },
+  {
+    "id": "17136535",
+    "govId": 17136535,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "팔콘Minor",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 66,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 545,
+      "level": 60
+    }
+  },
+  {
+    "id": "24021171",
+    "govId": 24021171,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "vv CESAR vv",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 66,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "158426025",
+    "govId": 158426025,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "Medi",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4498.59,
+      "X": 1241.17
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 540,
+      "level": 60,
+      "star": 6,
+      "skills": "5-1-5-5"
+    },
+    "secondaryCommander": {
+      "id": 619,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "equippedGear": "{1:20007_45:2,2:20004_50:32,3:20009_43:32,4:20028_38:33,5:20033_47:32,6:20012_46:31,7:20166_78:31,8:20118_69:31}",
+    "udid": "C4681972-B2C3-4C97-8657-11E930B84702",
+    "appUid": "213017689",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "70903110",
+    "govId": 70903110,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "광마존vT",
+    "alliance": "F27P",
+    "primaryCommander": {
+      "id": 61,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 42
+    }
+  },
+  {
+    "id": "148790156",
+    "govId": 148790156,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Kroket88",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 138,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 148,
+      "level": 60
+    }
+  },
+  {
+    "id": "162275221",
+    "govId": 162275221,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Medi farm1",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 619,
+      "level": 60
+    }
+  },
+  {
+    "id": "56705699",
+    "govId": 56705699,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ᵗᵃMarcelaoo",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "76824035",
+    "govId": 76824035,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "광마존vF",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 7,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 63,
+      "level": 60
+    }
+  },
+  {
+    "id": "109930339",
+    "govId": 109930339,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "PalmaBunny",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4593.82,
+      "X": 1136.32
+    },
+    "internalServerId": 132,
+    "primaryCommander": {
+      "id": 540,
+      "level": 60,
+      "star": 6,
+      "skills": "1-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 575,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "equippedGear": "{1:20001_55:1,2:20004_57:31,3:20025_46:2,4:20028_41:2,5:20033_19:2,6:20035_27:2,7:20076_45:0,8:20038_61:31}",
+    "udid": "26C74344-B6E4-4302-88FF-EACE8BA27F75",
+    "appUid": "42974145",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "127686278",
+    "govId": 127686278,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "bratDmitryUA",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4763.45,
+      "X": 1106.48
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 611,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60,
+      "star": 6,
+      "skills": "1-5-5-5"
+    },
+    "equippedGear": "{1:20003_81:2,2:20006_90:2,3:20027_26:1,4:20030_144:3,5:20031_45:1,6:20036_156:5,7:20040_62:22,8:20118_148:21}",
+    "udid": "808B84D2-4622-442C-83C1-1CF9AAB371C2",
+    "appUid": "84605006",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "12909029",
+    "govId": 12909029,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Ququ bunniE",
+    "alliance": "F27P",
+    "primaryCommander": {
+      "id": 37,
+      "level": 60
+    }
+  },
+  {
+    "id": "176858365",
+    "govId": 176858365,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Blood1Moon",
+    "alliance": "4O4",
+    "primaryCommander": {
+      "id": 17,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 177,
+      "level": 60
+    }
+  },
+  {
+    "id": "109339158",
+    "govId": 109339158,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Reaper13farm",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 50
+    }
+  },
+  {
+    "id": "14344730",
+    "govId": 14344730,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "MrRojak",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 9,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "6667324",
+    "govId": 6667324,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "Koolangot",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4497.59,
+      "X": 955.35
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 595,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 545,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-1"
+    },
+    "equippedGear": "{1:20002_293:4,2:20005_299:5,3:20026_283:15,4:20029_256:12,5:20032_138:15,6:20034_63:15,7:20040_148:15,8:20037_277:5}",
+    "udid": "6B037FA631BCC11770670FAD055AA039",
+    "appUid": "6207673",
+    "clientPlatform": "com.lilithgame.roc.gp"
+  },
+  {
+    "id": "104412745",
+    "govId": 104412745,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "ZHuK",
+    "alliance": "94-1",
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4482.29,
+      "X": 1095.94
+    },
+    "internalServerId": 1294,
+    "primaryCommander": {
+      "id": 182,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 540,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "equippedGear": "{1:20007_50:1,2:20008_94:31,3:20025_38:2,4:20028_32:2,5:20033_48:2,6:20035_68:3,7:20039_107:1,8:20042_136:31}",
+    "udid": "914F91B8B12AD6E6145BC78008E0D8BA",
+    "appUid": "84617196",
+    "clientPlatform": "com.lilithgame.roc.gp"
+  },
+  {
+    "id": "141033424",
+    "govId": 141033424,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "TanZku",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 66,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "98747453",
+    "govId": 98747453,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "MoonNite",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 182,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 540,
+      "level": 60
+    }
+  },
+  {
+    "id": "34079516",
+    "govId": 34079516,
+    "ralliesLed": 1,
+    "ralliesJoined": 2,
+    "name": "혼꾸멍",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 575,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 619,
+      "level": 60,
+      "star": 6,
+      "skills": "5-1-5-5"
+    },
+    "allianceName": "Piece of Chiet",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 4459.25,
+      "X": 1254.47
+    },
+    "internalServerId": 947,
+    "equippedGear": "{1:20007_485:1,2:20008_424:2,3:20009_509:1,4:20010_436:1,5:20011_431:3,6:20012_458:2,7:20040_417:3,8:20037_483:1}",
+    "udid": "236D73511F2FDA9072D11ED80D523BE8",
+    "appUid": "8518744-875362",
+    "clientPlatform": "com.lilithgames.rok.gpkr"
+  },
+  {
+    "id": "93042214",
+    "govId": 93042214,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "ᴸˢ SunMoon",
+    "alliance": "94-1",
+    "primaryCommander": {
+      "id": 138,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "53505661",
+    "govId": 53505661,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "ᴳᴺYAGAMI亗",
+    "alliance": "5-MS",
+    "allianceName": "Morituri Te Salutant",
+    "cityHall": 25,
+    "castlePos": {
+      "Y": 883.27,
+      "X": 1786.71
+    },
+    "internalServerId": 2155,
+    "primaryCommander": {
+      "id": 186,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-5-1"
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60,
+      "star": 6,
+      "skills": "5-5-1-5"
+    },
+    "equippedGear": "{7:20037_270:22,8:20040_249:22,2:20020_250:23,3:20021_296:23,5:20023_286:25,6:20024_246:22,1:20019_240:24,4:20022_259:22}",
+    "udid": "01E47CE3A4A7A9B6347212B5805D7C3E",
+    "appUid": "43935448"
+  },
+  {
+    "id": "85283757",
+    "govId": 85283757,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "Temîstocles",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 101,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 50
+    }
+  },
+  {
+    "id": "155039486",
+    "govId": 155039486,
+    "ralliesLed": 0,
+    "ralliesJoined": 22,
+    "name": "ᵖᶠ K2",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 10,
+      "level": 60
+    }
+  },
+  {
+    "id": "85530660",
+    "govId": 85530660,
+    "ralliesLed": 0,
+    "ralliesJoined": 19,
+    "name": "も GABRIEL も",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 112,
+      "level": 51
+    },
+    "secondaryCommander": {
+      "id": 146,
+      "level": 40
+    }
+  },
+  {
+    "id": "155115743",
+    "govId": 155115743,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "Mommy Aureo",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 47
+    }
+  },
+  {
+    "id": "154364546",
+    "govId": 154364546,
+    "ralliesLed": 0,
+    "ralliesJoined": 37,
+    "name": "Real DukeDennis",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 61,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 40
+    }
+  },
+  {
+    "id": "155529869",
+    "govId": 155529869,
+    "ralliesLed": 0,
+    "ralliesJoined": 11,
+    "name": "ᶜⁿMightyMax",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 60
+    }
+  },
+  {
+    "id": "53716062",
+    "govId": 53716062,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "Sensational69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 148,
+      "level": 60
+    }
+  },
+  {
+    "id": "139821541",
+    "govId": 139821541,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "Xpandérs Creed",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 11,
+      "level": 40
+    }
+  },
+  {
+    "id": "155347840",
+    "govId": 155347840,
+    "ralliesLed": 0,
+    "ralliesJoined": 43,
+    "name": "ᵖᶠSebass",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 9,
+      "level": 60
+    }
+  },
+  {
+    "id": "155508869",
+    "govId": 155508869,
+    "ralliesLed": 0,
+    "ralliesJoined": 13,
+    "name": "ᵖᶠJhøshuą",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 102,
+      "level": 40
+    }
+  },
+  {
+    "id": "32858014",
+    "govId": 32858014,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "백암삼산",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 146,
+      "level": 60
+    }
+  },
+  {
+    "id": "155319325",
+    "govId": 155319325,
+    "ralliesLed": 0,
+    "ralliesJoined": 21,
+    "name": "ᵗᵇErLiNgA",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 17,
+      "level": 60
+    }
+  },
+  {
+    "id": "65002904",
+    "govId": 65002904,
+    "ralliesLed": 0,
+    "ralliesJoined": 27,
+    "name": "Aulia ayu JR",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 146,
+      "level": 57
+    },
+    "secondaryCommander": {
+      "id": 145,
+      "level": 49
+    }
+  },
+  {
+    "id": "85444559",
+    "govId": 85444559,
+    "ralliesLed": 0,
+    "ralliesJoined": 19,
+    "name": "Anton7o",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 60
+    }
+  },
+  {
+    "id": "107229957",
+    "govId": 107229957,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "ˢᴾAlaaGoulak",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 112,
+      "level": 60
+    }
+  },
+  {
+    "id": "155547196",
+    "govId": 155547196,
+    "ralliesLed": 0,
+    "ralliesJoined": 23,
+    "name": "ᵖᶠ MAIREN",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 140,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "85442728",
+    "govId": 85442728,
+    "ralliesLed": 0,
+    "ralliesJoined": 9,
+    "name": "yeffersonbravo",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 96,
+      "level": 60
+    }
+  },
+  {
+    "id": "155713532",
+    "govId": 155713532,
+    "ralliesLed": 0,
+    "ralliesJoined": 39,
+    "name": "ᵖᶠKALER4",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 50
+    }
+  },
+  {
+    "id": "4960519",
+    "govId": 4960519,
+    "ralliesLed": 0,
+    "ralliesJoined": 26,
+    "name": "ᵗᵇSreeZun69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 140,
+      "level": 60
+    }
+  },
+  {
+    "id": "155615406",
+    "govId": 155615406,
+    "ralliesLed": 0,
+    "ralliesJoined": 16,
+    "name": "ˢᴾMaJed14",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "154523665",
+    "govId": 154523665,
+    "ralliesLed": 0,
+    "ralliesJoined": 18,
+    "name": "ᵖᶠZAYDa",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 145,
+      "level": 50
+    }
+  },
+  {
+    "id": "154951824",
+    "govId": 154951824,
+    "ralliesLed": 0,
+    "ralliesJoined": 21,
+    "name": "Level1Barbarian",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 37,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 142,
+      "level": 60
+    }
+  },
+  {
+    "id": "155558974",
+    "govId": 155558974,
+    "ralliesLed": 0,
+    "ralliesJoined": 9,
+    "name": "ᵖᶠ PDeyoe16",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 140,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 50
+    }
+  },
+  {
+    "id": "154892327",
+    "govId": 154892327,
+    "ralliesLed": 0,
+    "ralliesJoined": 25,
+    "name": "ᵖᶠ EISS",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 64,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 141,
+      "level": 30
+    }
+  },
+  {
+    "id": "54992812",
+    "govId": 54992812,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "亗 HORÚS 亗",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 122,
+      "level": 60
+    }
+  },
+  {
+    "id": "155573965",
+    "govId": 155573965,
+    "ralliesLed": 0,
+    "ralliesJoined": 13,
+    "name": "ᵖᶠOmote Cat",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "105251629",
+    "govId": 105251629,
+    "ralliesLed": 0,
+    "ralliesJoined": 32,
+    "name": "ᵗᵇPapaJim69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 10,
+      "level": 60
+    }
+  },
+  {
+    "id": "149817278",
+    "govId": 149817278,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "ᵖᶠ Shark",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 18
+    }
+  },
+  {
+    "id": "155451411",
+    "govId": 155451411,
+    "ralliesLed": 0,
+    "ralliesJoined": 19,
+    "name": "ᴸᶢKurona",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 37,
+      "level": 37
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 40
+    }
+  },
+  {
+    "id": "155025751",
+    "govId": 155025751,
+    "ralliesLed": 0,
+    "ralliesJoined": 26,
+    "name": "GYATT ASSIN ㋡",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 12,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 36,
+      "level": 40
+    }
+  },
+  {
+    "id": "155506606",
+    "govId": 155506606,
+    "ralliesLed": 0,
+    "ralliesJoined": 16,
+    "name": "ᵖᶠConor 13",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "12032899",
+    "govId": 12032899,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "USG 48",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "155616197",
+    "govId": 155616197,
+    "ralliesLed": 0,
+    "ralliesJoined": 11,
+    "name": "ˢᴾJudge Boss",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 8,
+      "level": 47
+    },
+    "secondaryCommander": {
+      "id": 140,
+      "level": 50
+    }
+  },
+  {
+    "id": "87609192",
+    "govId": 87609192,
+    "ralliesLed": 0,
+    "ralliesJoined": 28,
+    "name": "ムAJ",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 13,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 60
+    }
+  },
+  {
+    "id": "37183642",
+    "govId": 37183642,
+    "ralliesLed": 0,
+    "ralliesJoined": 6,
+    "name": "식량 석재",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "84802635",
+    "govId": 84802635,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "Aźraîl",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 60
+    }
+  },
+  {
+    "id": "87145486",
+    "govId": 87145486,
+    "ralliesLed": 0,
+    "ralliesJoined": 12,
+    "name": "๛EduMDB๛",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 11,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 65,
+      "level": 40
+    }
+  },
+  {
+    "id": "155617889",
+    "govId": 155617889,
+    "ralliesLed": 0,
+    "ralliesJoined": 12,
+    "name": "ᵖᶠ ASHLAD",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 10,
+      "level": 40
+    }
+  },
+  {
+    "id": "155046551",
+    "govId": 155046551,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "ᶜⁿ ARIAS",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 8,
+      "level": 60
+    }
+  },
+  {
+    "id": "38430914",
+    "govId": 38430914,
+    "ralliesLed": 0,
+    "ralliesJoined": 24,
+    "name": "DawgofWar",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 65,
+      "level": 40
+    }
+  },
+  {
+    "id": "83258210",
+    "govId": 83258210,
+    "ralliesLed": 0,
+    "ralliesJoined": 28,
+    "name": "ᴷᴳ Xarous",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 98,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "154912225",
+    "govId": 154912225,
+    "ralliesLed": 0,
+    "ralliesJoined": 29,
+    "name": "ᵖᶠSarsah69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 40
+    }
+  },
+  {
+    "id": "85519737",
+    "govId": 85519737,
+    "ralliesLed": 0,
+    "ralliesJoined": 15,
+    "name": "윈 디",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 145,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "31921836",
+    "govId": 31921836,
+    "ralliesLed": 0,
+    "ralliesJoined": 15,
+    "name": "무ㅈiㄱH",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 162,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 161,
+      "level": 60
+    }
+  },
+  {
+    "id": "132009335",
+    "govId": 132009335,
+    "ralliesLed": 0,
+    "ralliesJoined": 14,
+    "name": "ᶜⁿ Panther",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "85547893",
+    "govId": 85547893,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "Alexis vl",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 100,
+      "level": 60
+    }
+  },
+  {
+    "id": "155166488",
+    "govId": 155166488,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "ᴳᴺ69GYATT69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 40
+    }
+  },
+  {
+    "id": "155146769",
+    "govId": 155146769,
+    "ralliesLed": 0,
+    "ralliesJoined": 13,
+    "name": "ᶜⁿtObirama",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 13,
+      "level": 60
+    }
+  },
+  {
+    "id": "35401046",
+    "govId": 35401046,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "ˢᴾZoro",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "85385300",
+    "govId": 85385300,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "빵신라",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 122,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "87194024",
+    "govId": 87194024,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "금화전용2",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 32,
+      "level": 26
+    }
+  },
+  {
+    "id": "103313326",
+    "govId": 103313326,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "AndyDontLikeUu",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "159939562",
+    "govId": 159939562,
+    "ralliesLed": 0,
+    "ralliesJoined": 14,
+    "name": "Llamaturtle",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 10,
+      "level": 46
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 45
+    }
+  },
+  {
+    "id": "85432594",
+    "govId": 85432594,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "Bearboski2",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "154911609",
+    "govId": 154911609,
+    "ralliesLed": 0,
+    "ralliesJoined": 13,
+    "name": "ᶜⁿ BUWCH",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 17,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "20309671",
+    "govId": 20309671,
+    "ralliesLed": 0,
+    "ralliesJoined": 11,
+    "name": "ᴳᴺŘagnarӁ",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 131,
+      "level": 60
+    }
+  },
+  {
+    "id": "62131599",
+    "govId": 62131599,
+    "ralliesLed": 0,
+    "ralliesJoined": 24,
+    "name": "Chief Saurfang",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 182,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 115,
+      "level": 40
+    }
+  },
+  {
+    "id": "155506312",
+    "govId": 155506312,
+    "ralliesLed": 0,
+    "ralliesJoined": 23,
+    "name": "M3rithra",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 102,
+      "level": 40
+    }
+  },
+  {
+    "id": "75714963",
+    "govId": 75714963,
+    "ralliesLed": 0,
+    "ralliesJoined": 13,
+    "name": "pf MASOUD67",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 101,
+      "level": 60
+    }
+  },
+  {
+    "id": "155564976",
+    "govId": 155564976,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ᵖᶠSir Yammi",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 50
+    }
+  },
+  {
+    "id": "86864415",
+    "govId": 86864415,
+    "ralliesLed": 0,
+    "ralliesJoined": 8,
+    "name": "Alifanni81",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 102,
+      "level": 50
+    }
+  },
+  {
+    "id": "85478360",
+    "govId": 85478360,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "슈팅스",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 148,
+      "level": 60
+    }
+  },
+  {
+    "id": "157642560",
+    "govId": 157642560,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "ᵖᶠNugaroni",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 3,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 10,
+      "level": 40
+    }
+  },
+  {
+    "id": "85240191",
+    "govId": 85240191,
+    "ralliesLed": 0,
+    "ralliesJoined": 16,
+    "name": "Javier bardem",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 148,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 60
+    }
+  },
+  {
+    "id": "46489391",
+    "govId": 46489391,
+    "ralliesLed": 0,
+    "ralliesJoined": 8,
+    "name": "ᶜⁿ Strider",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 8,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 9,
+      "level": 55
+    }
+  },
+  {
+    "id": "155517735",
+    "govId": 155517735,
+    "ralliesLed": 0,
+    "ralliesJoined": 16,
+    "name": "ᵖᶠDeadly",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 11,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 17,
+      "level": 50
+    }
+  },
+  {
+    "id": "154320483",
+    "govId": 154320483,
+    "ralliesLed": 0,
+    "ralliesJoined": 23,
+    "name": "ᵖᶠKurona",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 17,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 31
+    }
+  },
+  {
+    "id": "154908510",
+    "govId": 154908510,
+    "ralliesLed": 0,
+    "ralliesJoined": 16,
+    "name": "ᴷᴳBingBong",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 35
+    }
+  },
+  {
+    "id": "155539191",
+    "govId": 155539191,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "ᵗᵇlol",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 7,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 59
+    }
+  },
+  {
+    "id": "104430794",
+    "govId": 104430794,
+    "ralliesLed": 0,
+    "ralliesJoined": 8,
+    "name": "Aegon targayen",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 60
+    }
+  },
+  {
+    "id": "84945990",
+    "govId": 84945990,
+    "ralliesLed": 0,
+    "ralliesJoined": 22,
+    "name": "Praetor GanNi",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 58
+    },
+    "secondaryCommander": {
+      "id": 112,
+      "level": 52
+    }
+  },
+  {
+    "id": "79667898",
+    "govId": 79667898,
+    "ralliesLed": 0,
+    "ralliesJoined": 16,
+    "name": "ᴷᴳFaMülan",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "63547379",
+    "govId": 63547379,
+    "ralliesLed": 0,
+    "ralliesJoined": 18,
+    "name": "BumbLeBeee",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 11,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 64,
+      "level": 60
+    }
+  },
+  {
+    "id": "154782774",
+    "govId": 154782774,
+    "ralliesLed": 0,
+    "ralliesJoined": 8,
+    "name": "ᵖᶠJelly 5G",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 48
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 40
+    }
+  },
+  {
+    "id": "32328501",
+    "govId": 32328501,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "Sophie of 하울",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 138,
+      "level": 60
+    }
+  },
+  {
+    "id": "155403388",
+    "govId": 155403388,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ᵖᶠStifler",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 50
+    }
+  },
+  {
+    "id": "129209292",
+    "govId": 129209292,
+    "ralliesLed": 0,
+    "ralliesJoined": 13,
+    "name": "ᵖᶠ Robshey",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 50
+    }
+  },
+  {
+    "id": "155550121",
+    "govId": 155550121,
+    "ralliesLed": 0,
+    "ralliesJoined": 26,
+    "name": "ᴳᴺƁĽỤE",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 48
+    }
+  },
+  {
+    "id": "59232961",
+    "govId": 59232961,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "Motoret x 300",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 132,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "58483293",
+    "govId": 58483293,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "lUckwhAtzErO",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "155624114",
+    "govId": 155624114,
+    "ralliesLed": 0,
+    "ralliesJoined": 9,
+    "name": "ᵖᶠGHOSTMIG1",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 50
+    }
+  },
+  {
+    "id": "55997279",
+    "govId": 55997279,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "SeñorChaval",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 50
+    }
+  },
+  {
+    "id": "41328992",
+    "govId": 41328992,
+    "ralliesLed": 0,
+    "ralliesJoined": 6,
+    "name": "NarocoPakalito",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 11,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "155646513",
+    "govId": 155646513,
+    "ralliesLed": 0,
+    "ralliesJoined": 6,
+    "name": "ᶜⁿ Sonic",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 141,
+      "level": 40
+    }
+  },
+  {
+    "id": "92205038",
+    "govId": 92205038,
+    "ralliesLed": 0,
+    "ralliesJoined": 6,
+    "name": "KhalDrogo00",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 98,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "92373029",
+    "govId": 92373029,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "유원MS",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 50
+    }
+  },
+  {
+    "id": "86071723",
+    "govId": 86071723,
+    "ralliesLed": 0,
+    "ralliesJoined": 23,
+    "name": "호호호해솔솔",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 98,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 50
+    }
+  },
+  {
+    "id": "155490627",
+    "govId": 155490627,
+    "ralliesLed": 0,
+    "ralliesJoined": 19,
+    "name": "ᵗᵇPresa",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 49
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 51
+    }
+  },
+  {
+    "id": "155531301",
+    "govId": 155531301,
+    "ralliesLed": 0,
+    "ralliesJoined": 17,
+    "name": "ᵗᵇBatWick",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "152605944",
+    "govId": 152605944,
+    "ralliesLed": 0,
+    "ralliesJoined": 9,
+    "name": "ᵖᶠALEXANDER",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 3,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 148,
+      "level": 60
+    }
+  },
+  {
+    "id": "154099279",
+    "govId": 154099279,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "ᵖᶠPielemuis",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 12,
+      "level": 60
+    }
+  },
+  {
+    "id": "90336832",
+    "govId": 90336832,
+    "ralliesLed": 0,
+    "ralliesJoined": 18,
+    "name": "ᴳᴺQUEENY",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 40
+    }
+  },
+  {
+    "id": "137698244",
+    "govId": 137698244,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "ᵖᶠPark Kim",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 142,
+      "level": 54
+    },
+    "secondaryCommander": {
+      "id": 3,
+      "level": 60
+    }
+  },
+  {
+    "id": "155673607",
+    "govId": 155673607,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "BigDaddyPoll",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 145,
+      "level": 40
+    }
+  },
+  {
+    "id": "100223237",
+    "govId": 100223237,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "BOSS BOZO",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "77038935",
+    "govId": 77038935,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "Shogun Panther",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 11,
+      "level": 30
+    },
+    "secondaryCommander": {
+      "id": 11,
+      "level": 30
+    }
+  },
+  {
+    "id": "155543718",
+    "govId": 155543718,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "ᵖᶠQueenKyla",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 66,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 129,
+      "level": 50
+    }
+  },
+  {
+    "id": "85243589",
+    "govId": 85243589,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "큰 바우덩이",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 187,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 50
+    }
+  },
+  {
+    "id": "85408387",
+    "govId": 85408387,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "비밀얌",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 11,
+      "level": 40
+    }
+  },
+  {
+    "id": "155326890",
+    "govId": 155326890,
+    "ralliesLed": 0,
+    "ralliesJoined": 9,
+    "name": "ᵖᶠDukeFleed",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 11,
+      "level": 30
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 40
+    }
+  },
+  {
+    "id": "155513851",
+    "govId": 155513851,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "ᵖᶠConkulon",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 142,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 138,
+      "level": 60
+    }
+  },
+  {
+    "id": "111873585",
+    "govId": 111873585,
+    "ralliesLed": 0,
+    "ralliesJoined": 19,
+    "name": "ᴸᶢKingInsn",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 45
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 40
+    }
+  },
+  {
+    "id": "85500318",
+    "govId": 85500318,
+    "ralliesLed": 0,
+    "ralliesJoined": 10,
+    "name": "DarkSeiddd",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 60
+    }
+  },
+  {
+    "id": "85169601",
+    "govId": 85169601,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "유원MD",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 8,
+      "level": 60
+    }
+  },
+  {
+    "id": "61712101",
+    "govId": 61712101,
+    "ralliesLed": 0,
+    "ralliesJoined": 6,
+    "name": "식량 나무",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 49
+    }
+  },
+  {
+    "id": "85536872",
+    "govId": 85536872,
+    "ralliesLed": 0,
+    "ralliesJoined": 17,
+    "name": "AlyaVera",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 187,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 140,
+      "level": 60
+    }
+  },
+  {
+    "id": "20076762",
+    "govId": 20076762,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "BlooDyŦYɌAƝT",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 50
+    }
+  },
+  {
+    "id": "155545534",
+    "govId": 155545534,
+    "ralliesLed": 0,
+    "ralliesJoined": 11,
+    "name": "ᵖᶠ㋛PLÅGĀ㋛",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 145,
+      "level": 40
+    }
+  },
+  {
+    "id": "85502027",
+    "govId": 85502027,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "Dong Hae 이사금",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 162,
+      "level": 60
+    }
+  },
+  {
+    "id": "155535234",
+    "govId": 155535234,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "mpu tantular",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 65,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 40
+    }
+  },
+  {
+    "id": "15232346",
+    "govId": 15232346,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "Rogue Panther",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 53
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 60
+    }
+  },
+  {
+    "id": "54482153",
+    "govId": 54482153,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "ᴰᶜALTESSE92",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 127,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 103,
+      "level": 60
+    }
+  },
+  {
+    "id": "82339861",
+    "govId": 82339861,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "ᴰᶜJфkeR义",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 61,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 63,
+      "level": 49
+    }
+  },
+  {
+    "id": "37558414",
+    "govId": 37558414,
+    "ralliesLed": 0,
+    "ralliesJoined": 6,
+    "name": "금화 전용",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 40
+    }
+  },
+  {
+    "id": "64283450",
+    "govId": 64283450,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "Gladiador 85",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 10
+    }
+  },
+  {
+    "id": "32273862",
+    "govId": 32273862,
+    "ralliesLed": 0,
+    "ralliesJoined": 7,
+    "name": "Calcifer of 하울",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 122,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "155539396",
+    "govId": 155539396,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "lg Noel Tarde",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 17,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 66,
+      "level": 30
+    }
+  },
+  {
+    "id": "68200831",
+    "govId": 68200831,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ᴳᴸ Spectre",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "155607950",
+    "govId": 155607950,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "ᵖᶠOGUZHAN",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 65,
+      "level": 60
+    }
+  },
+  {
+    "id": "85396290",
+    "govId": 85396290,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "사다함21",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 6,
+      "level": 60
+    }
+  },
+  {
+    "id": "7333753",
+    "govId": 7333753,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "Baby USG",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 13,
+      "level": 44
+    }
+  },
+  {
+    "id": "155517751",
+    "govId": 155517751,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "ᴳᴺŘagnarus",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 9,
+      "level": 50
+    }
+  },
+  {
+    "id": "87116068",
+    "govId": 87116068,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "플랜 B",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 138,
+      "level": 60
+    }
+  },
+  {
+    "id": "63772718",
+    "govId": 63772718,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "moto slayer",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "46472093",
+    "govId": 46472093,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "亗 SIX 亗",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 54
+    },
+    "secondaryCommander": {
+      "id": 109,
+      "level": 51
+    }
+  },
+  {
+    "id": "51914636",
+    "govId": 51914636,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "ss sniffer",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 187,
+      "level": 60
+    }
+  },
+  {
+    "id": "154539690",
+    "govId": 154539690,
+    "ralliesLed": 0,
+    "ralliesJoined": 8,
+    "name": "ᵖᶠ ÅkÈMí",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 48
+    }
+  },
+  {
+    "id": "111130011",
+    "govId": 111130011,
+    "ralliesLed": 0,
+    "ralliesJoined": 4,
+    "name": "FkcnUchinchinD",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 50
+    }
+  },
+  {
+    "id": "127585168",
+    "govId": 127585168,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "ᵖᶠnew funny",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 179,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 60
+    }
+  },
+  {
+    "id": "146909250",
+    "govId": 146909250,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "ᵖᶠthemummy",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 138,
+      "level": 60
+    }
+  },
+  {
+    "id": "155520232",
+    "govId": 155520232,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ᵖᶠ Jackal",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 179,
+      "level": 50
+    }
+  },
+  {
+    "id": "59894442",
+    "govId": 59894442,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Toﾒic osito",
+    "alliance": "3OOD",
+    "primaryCommander": {
+      "id": 6,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 146,
+      "level": 60
+    }
+  },
+  {
+    "id": "8865230",
+    "govId": 8865230,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "69META GYATT69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 146,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 186,
+      "level": 60
+    }
+  },
+  {
+    "id": "71285099",
+    "govId": 71285099,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "ᴳᴺ69JYATT69",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 63,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 30
+    }
+  },
+  {
+    "id": "151453549",
+    "govId": 151453549,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "ss licker",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 61,
+      "level": 60
+    },
+    "secondaryCommander": {
+      "id": 99,
+      "level": 50
+    }
+  },
+  {
+    "id": "155564972",
+    "govId": 155564972,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "pfMavi Vatan",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 138,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 146,
+      "level": 50
+    }
+  },
+  {
+    "id": "61798559",
+    "govId": 61798559,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "ᵖᶠ Fragile",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 110,
+      "level": 48
+    },
+    "secondaryCommander": {
+      "id": 112,
+      "level": 38
+    }
+  },
+  {
+    "id": "168251616",
+    "govId": 168251616,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "ᶜⁿTogira",
+    "alliance": "5-MS",
+    "primaryCommander": {
+      "id": 99,
+      "level": 50
+    },
+    "secondaryCommander": {
+      "id": 146,
+      "level": 20
+    }
+  },
+  {
+    "id": "235693754",
+    "govId": 235693754,
+    "ralliesLed": 232,
+    "ralliesJoined": 247,
+    "name": "Shіro",
+    "alliance": "LW=A",
+    "allianceName": "LEGENDARYWОRK",
+    "cityHall": 21,
+    "castlePos": {
+      "Y": 6084.11,
+      "X": 876.51
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 9,
+      "level": 49,
+      "star": 5,
+      "skills": "5-5-2-4"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 31,
+      "star": 4,
+      "skills": "3-1-5-5"
+    },
+    "equippedGear": "{1:20100_8:30,2:20104_9:0,3:20084_7:0,5:20101_6:0,6:20110_4:0}",
+    "udid": "413842294543088168",
+    "appUid": "4372840",
+    "clientPlatform": "com.lilithgames.rok.pc.int"
+  },
+  {
+    "id": "235818153",
+    "govId": 235818153,
+    "ralliesLed": 0,
+    "ralliesJoined": 5,
+    "name": "mar04",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 37,
+      "level": 29
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 23
+    }
+  },
+  {
+    "id": "235840606",
+    "govId": 235840606,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "rafaelll",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 3,
+      "level": 30
+    },
+    "secondaryCommander": {
+      "id": 10,
+      "level": 14
+    }
+  },
+  {
+    "id": "235731038",
+    "govId": 235731038,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "HarryParker",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 23,
+      "level": 31
+    },
+    "secondaryCommander": {
+      "id": 3,
+      "level": 40
+    }
+  },
+  {
+    "id": "235693760",
+    "govId": 235693760,
+    "ralliesLed": 5,
+    "ralliesJoined": 6,
+    "name": "么BOZKURT",
+    "alliance": "LW=A",
+    "allianceName": "LEGENDARYWОRK",
+    "cityHall": 23,
+    "castlePos": {
+      "Y": 6085.41,
+      "X": 833.5
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 9,
+      "level": 40,
+      "star": 5,
+      "skills": "1-2-5-5"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 31,
+      "star": 4,
+      "skills": "5-5-3-1"
+    },
+    "udid": "01D622E5E1EEE30A551499A520C8EE23",
+    "appUid": "244794973",
+    "clientPlatform": "com.lilithgame.roc.gp",
+    "equippedGear": "{1:20112_1:0,2:20090_2:30,6:20086_0:0}"
+  },
+  {
+    "id": "235695550",
+    "govId": 235695550,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "Ганс111",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 37,
+      "level": 25
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 30
+    }
+  },
+  {
+    "id": "235697261",
+    "govId": 235697261,
+    "ralliesLed": 1,
+    "ralliesJoined": 5,
+    "name": "Hashar",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 15,
+      "level": 40,
+      "star": 5,
+      "skills": "5-3-3-5"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 26,
+      "star": 3,
+      "skills": "5-1-2-0"
+    },
+    "allianceName": "LEGENDARYWОRK",
+    "cityHall": 16,
+    "castlePos": {
+      "Y": 6102.86,
+      "X": 1087.42
+    },
+    "internalServerId": 3194,
+    "equippedGear": "{4:20116_0:0}",
+    "udid": "EC614F15ECD41BC36BFE59702885F67D",
+    "appUid": "220273071",
+    "clientPlatform": "com.lilithgame.roc.gp"
+  },
+  {
+    "id": "235842322",
+    "govId": 235842322,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "LorDBeeLZeBuB",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 3,
+      "level": 34
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 26
+    }
+  },
+  {
+    "id": "235599021",
+    "govId": 235599021,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "yukiShadowFang",
+    "alliance": "LW=A",
+    "allianceName": "LEGENDARYWОRK",
+    "cityHall": 22,
+    "castlePos": {
+      "Y": 6133.91,
+      "X": 1123.17
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 9,
+      "level": 40,
+      "star": 4,
+      "skills": "5-5-1-1"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 30,
+      "star": 4,
+      "skills": "5-3-2-1"
+    },
+    "equippedGear": "{1:20112_4:0,3:20106_7:0,6:20117_2:0}",
+    "udid": "E3C0506672BDA7429F16031324D7E5EA",
+    "appUid": "72752421",
+    "clientPlatform": "com.lilithgame.roc.gp"
+  },
+  {
+    "id": "235838348",
+    "govId": 235838348,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "AntonioBander",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 3,
+      "level": 25
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 25
+    }
+  },
+  {
+    "id": "235699459",
+    "govId": 235699459,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "Julius Martius",
+    "alliance": "WOM",
+    "allianceName": "Fleet of The Wolves",
+    "cityHall": 16,
+    "castlePos": {
+      "Y": 4676.03,
+      "X": 773.96
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 17,
+      "level": 30,
+      "star": 4,
+      "skills": "5-2-1-1"
+    },
+    "secondaryCommander": {
+      "id": 9,
+      "level": 30,
+      "star": 3,
+      "skills": "4-1-1-0"
+    },
+    "udid": "69985FAF-444D-4883-BE81-DF204E87BF9A",
+    "appUid": "91097984",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "235780000",
+    "govId": 235780000,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "々 Fiuzabr",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 37,
+      "level": 25
+    },
+    "secondaryCommander": {
+      "id": 3,
+      "level": 40
+    }
+  },
+  {
+    "id": "235695805",
+    "govId": 235695805,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "々 Jiren",
+    "alliance": "WOM",
+    "allianceName": "Fleet of The Wolves",
+    "cityHall": 17,
+    "castlePos": {
+      "Y": 4611.8,
+      "X": 897.49
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 3,
+      "level": 40,
+      "star": 5,
+      "skills": "5-5-5-1"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 24,
+      "star": 3,
+      "skills": "1-5-2-0"
+    },
+    "equippedGear": "{6:20117_0:0}",
+    "udid": "B54A232F-72B5-4FA4-9762-FAA85C3E3DD7",
+    "appUid": "263358140",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "235697298",
+    "govId": 235697298,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "sLTamyFruit",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 61,
+      "level": 14
+    },
+    "secondaryCommander": {
+      "id": 62,
+      "level": 21
+    }
+  },
+  {
+    "id": "235797152",
+    "govId": 235797152,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "FlávioBR",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 7,
+      "level": 34
+    },
+    "secondaryCommander": {
+      "id": 14,
+      "level": 30
+    }
+  },
+  {
+    "id": "235710977",
+    "govId": 235710977,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "P3eta Mellark",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 37,
+      "level": 27
+    },
+    "secondaryCommander": {
+      "id": 3,
+      "level": 44
+    }
+  },
+  {
+    "id": "235699739",
+    "govId": 235699739,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "Dr Art",
+    "alliance": "WOM",
+    "allianceName": "Fleet of The Wolves",
+    "cityHall": 13,
+    "castlePos": {
+      "Y": 4737.43,
+      "X": 845.47
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 37,
+      "level": 25,
+      "star": 3,
+      "skills": "2-2-1-0"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 20,
+      "star": 3,
+      "skills": "5-2-1-0"
+    },
+    "udid": "78ED8D06-907C-4C82-8E22-FCDD0D3FA202",
+    "appUid": "262580129",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "235699744",
+    "govId": 235699744,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "GENERAL KENOBI",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 3,
+      "level": 38
+    },
+    "secondaryCommander": {
+      "id": 17,
+      "level": 26
+    }
+  },
+  {
+    "id": "235693259",
+    "govId": 235693259,
+    "ralliesLed": 1,
+    "ralliesJoined": 1,
+    "name": "ShovelMcStick",
+    "alliance": "WOM",
+    "allianceName": "Fleet of The Wolves",
+    "cityHall": 16,
+    "castlePos": {
+      "Y": 4351.21,
+      "X": 1237.73
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 7,
+      "level": 35,
+      "star": 4,
+      "skills": "5-1-3-1"
+    },
+    "secondaryCommander": {
+      "id": 17,
+      "level": 25,
+      "star": 3,
+      "skills": "5-2-1-0"
+    },
+    "equippedGear": "{1:20102_1:30,4:20116_0:0,5:20115_2:0}",
+    "udid": "614842404821808",
+    "appUid": "224837601",
+    "clientPlatform": "com.lilithgames.rok.pc.int"
+  },
+  {
+    "id": "235400437",
+    "govId": 235400437,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "TheMasHamster",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 3,
+      "level": 42
+    },
+    "secondaryCommander": {
+      "id": 142,
+      "level": 30
+    }
+  },
+  {
+    "id": "235744026",
+    "govId": 235744026,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "Zᴀʀɪɴ",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 17,
+      "level": 20
+    },
+    "secondaryCommander": {
+      "id": 37,
+      "level": 8
+    }
+  },
+  {
+    "id": "235698424",
+    "govId": 235698424,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "GenGa",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 37,
+      "level": 15
+    }
+  },
+  {
+    "id": "235696174",
+    "govId": 235696174,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "CAPo SOPRANO",
+    "alliance": "WOM",
+    "primaryCommander": {
+      "id": 17,
+      "level": 10
+    }
+  },
+  {
+    "id": "235706149",
+    "govId": 235706149,
+    "ralliesLed": 3,
+    "ralliesJoined": 3,
+    "name": "メШарикメ",
+    "alliance": "S~94",
+    "allianceName": "Sakura Strike",
+    "cityHall": 22,
+    "castlePos": {
+      "Y": 4723.49,
+      "X": 1227.98
+    },
+    "internalServerId": 3194,
+    "primaryCommander": {
+      "id": 9,
+      "level": 50,
+      "star": 5,
+      "skills": "5-5-5-5"
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 31,
+      "star": 4,
+      "skills": "5-5-3-1"
+    },
+    "equippedGear": "{1:20100_3:30,2:20083_7:0,3:20106_14:0,5:20101_8:30}",
+    "udid": "44ACA789CB02F41C5E9A0938F01295A8",
+    "appUid": "9105753-8194153591600053",
+    "clientPlatform": "com.lilithgames.rok.abroad.huawei"
+  },
+  {
+    "id": "235758533",
+    "govId": 235758533,
+    "ralliesLed": 1,
+    "ralliesJoined": 4,
+    "name": "Shay1h",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 7,
+      "level": 40,
+      "star": 4,
+      "skills": "5-2-3-1"
+    },
+    "secondaryCommander": {
+      "id": 9,
+      "level": 39,
+      "star": 4,
+      "skills": "5-2-1-1"
+    },
+    "allianceName": "LEGENDARYWОRK",
+    "cityHall": 18,
+    "castlePos": {
+      "Y": 6120.2,
+      "X": 1026.85
+    },
+    "internalServerId": 3194,
+    "equippedGear": "{1:20102_5:30,2:20103_0:30,3:20106_3:0,4:20109_7:0,5:20101_4:0,6:20110_6:30}",
+    "udid": "1FEF5588-22F9-49A9-89F3-2FA06460E4FE",
+    "appUid": "263411733",
+    "clientPlatform": "com.lilithgame.roc.ios"
+  },
+  {
+    "id": "235512734",
+    "govId": 235512734,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "ybs52",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 7,
+      "level": 35
+    },
+    "secondaryCommander": {
+      "id": 37,
+      "level": 23
+    }
+  },
+  {
+    "id": "235872687",
+    "govId": 235872687,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "JaredRidesYT",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 9,
+      "level": 40
+    },
+    "secondaryCommander": {
+      "id": 3,
+      "level": 37
+    }
+  },
+  {
+    "id": "235818075",
+    "govId": 235818075,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "RustEZ",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 99,
+      "level": 19
+    }
+  },
+  {
+    "id": "235581019",
+    "govId": 235581019,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "alinamm",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 37,
+      "level": 24
+    },
+    "secondaryCommander": {
+      "id": 7,
+      "level": 39
+    }
+  },
+  {
+    "id": "235724490",
+    "govId": 235724490,
+    "ralliesLed": 0,
+    "ralliesJoined": 2,
+    "name": "paannnpannn",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 37,
+      "level": 18
+    }
+  },
+  {
+    "id": "236425783",
+    "govId": 236425783,
+    "ralliesLed": 0,
+    "ralliesJoined": 3,
+    "name": "lilfarmer",
+    "alliance": "Lova",
+    "primaryCommander": {
+      "id": 3,
+      "level": 12
+    }
+  },
+  {
+    "id": "235825638",
+    "govId": 235825638,
+    "ralliesLed": 0,
+    "ralliesJoined": 1,
+    "name": "YUJItadori",
+    "alliance": "LW=A",
+    "primaryCommander": {
+      "id": 7,
+      "level": 32
+    },
+    "secondaryCommander": {
+      "id": 9,
+      "level": 28
+    }
+  }
+]

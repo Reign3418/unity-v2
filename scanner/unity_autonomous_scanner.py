@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
 ===============================================================================
-UNITY AUTONOMOUS TELEMETRY AGENT (NODE 2 EMULATOR CLUSTER -> UNITY DYNAMODB)
+UNITY AUTONOMOUS 35-FIELD TELEMETRY AGENT (NODE 2 EMULATOR CLUSTER -> UNITY)
 File: E:\\Unity\\scanner\\unity_autonomous_scanner.py
 Verified On: SIDEKICK (192.168.50.218) MuMu Player 12 (1600x900 @ 240 DPI)
 ===============================================================================
-Captures:
-  1. Full 17-Field Governor Profiles (without Excel sheets!):
-     - Governor ID, Governor Name (via UTF-8 Clipboard / RapidOCR), Alliance Tag
-     - Power, Kill Points, Deads
-     - 4 Power Sub-Components (More Info Top): Troop Power, Building Power, Tech Power, Commander Power
-     - 5 Kill Tiers (Kill Statistics Popup): T1, T2, T3, T4, T5 Kills
-     - 3 Economy/Support Metrics (More Info Scrolled): Resources Gathered, Resource Assistance, Alliance Helps
-  2. Live Alliance Rallies & Barbarian Forts (10-second zero-click loop on Alliance -> War)
-  3. Visual Calibration Overlay (--mode calibrate) & Single Profile Live Test (--mode test-profile)
+Captures ALL 35 Exact Fields per Governor via Hybrid ADB + Direct MuMuNxDevice
+Lua Table Memory Extraction (Zero OCR Typos + Unlocks Hidden Power & Healed!):
+  - Identity (8): id, name (UTF-8), alliance, allianceName, serverId, cityHall, vipLevel, civilization
+  - Power Breakdown (6): power, highestPower, troopPower, buildingPower, techPower, commanderPower
+  - Combat & Kills (17): killPoints, totalUnitsKilled, rangedPoints, dead, healedTroops,
+    victories, defeats, scoutTimes, t1Kills..t5Kills, t1Kp..t5Kp
+  - Economy & Support (3): gathered, assistance, helps
+  - Career Telemetry (10): kvkHighestKp, kvkMostKills, kvkMostHealed, kvkMostDead, kvkCount,
+    aooWins, aooLosses, aooLeaves, aooKillStocks, aooHighestScore
 ===============================================================================
 """
 
@@ -23,7 +23,10 @@ import sys
 import io
 import json
 import time
+import struct
 import random
+import ctypes
+import ctypes.wintypes as wt
 import argparse
 import subprocess
 from datetime import datetime, timezone
@@ -34,7 +37,6 @@ import requests
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-# Zero-cost local ONNX OCR
 try:
     from rapidocr_onnxruntime import RapidOCR
     OCR_ENGINE = RapidOCR()
@@ -44,10 +46,371 @@ except ImportError:
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 COORDS_FILE = os.path.join(SCRIPT_DIR, "rok_coordinates_1600x900.json")
 
+CIV_NAMES = {
+    1: "Rome",
+    2: "Germany",
+    3: "Britain",
+    4: "France",
+    5: "Spain",
+    6: "China",
+    7: "Japan",
+    8: "Korea",
+    9: "Arabia",
+    10: "Ottoman",
+    11: "Byzantium",
+    12: "Vikings",
+    14: "Egypt",
+    15: "Greece",
+    16: "Maya",
+}
+
+HASH_NAMES = {
+    0x42810360: "govId",
+    0x1231d4d3: "power",
+    0x101786ad: "cityHall",
+    0x1211eb7f: "vipLevel",
+    0x913be88b: "civId",
+    0x34d7f0ac: "serverId",
+    0x6e31179d: "killPoints",
+    0xbda820ff: "killPointsB",
+    0x0074b362: "unitsKilled",
+    0x54da7efa: "totalUnitsKilled",
+    0x1e89dddc: "troopPower",
+    0x23736388: "buildingPower",
+    0xcf12bb74: "commanderPower",
+    0xe6ce6b24: "techPower",
+    0x1d5a7833: "rangedPoints",
+    0x3b40ba29: "victories",
+    0x6187ec4a: "scoutTimes",
+    0x70172bbf: "highestPower",
+    0x80861c5a: "defeats",
+    0xaa61fd8c: "healedTroops",
+    0xcd63e664: "dead",
+    0x58e1ff62: "assistance",
+    0x93df4bc2: "gathered",
+    0x9c017191: "helps",
+    0x007dc48b: "tierIndex",
+    0x0074f9df: "kvkHighestKp",
+    0x0c51ad9a: "kvkMostKills",
+    0x15136460: "kvkMostHealed",
+    0x397db12d: "kvkMostDead",
+    0xc0d99b0d: "kvkCount",
+    0x0051a2f9: "aooLeaves",
+    0x7ca892b1: "aooWins",
+    0x7cafd0f8: "aooLosses",
+    0xaa54030a: "aooKillStocks",
+    0xe1a2a665: "aooHighestScore",
+}
+
+
+class MEMORY_BASIC_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ("BaseAddress", ctypes.c_void_p),
+        ("AllocationBase", ctypes.c_void_p),
+        ("AllocationProtect", wt.DWORD),
+        ("PartitionId", wt.WORD),
+        ("RegionSize", ctypes.c_size_t),
+        ("State", wt.DWORD),
+        ("Protect", wt.DWORD),
+        ("Type", wt.DWORD),
+    ]
+
 
 def load_coords():
     with open(COORDS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def extract_utf8_name_from_header(header_bytes: bytes) -> str:
+    """
+    Extracts exact UTF-8 Governor Name from the Lua table header preceding
+    '{"avatar' or 'http://imimg.lilithcdn.com'.
+    """
+    idx = header_bytes.find(b'{"avatar')
+    if idx == -1:
+        idx = header_bytes.find(b"http://imimg")
+    if idx <= 0:
+        return ""
+
+    window = header_bytes[max(0, idx - 64) : idx]
+    kp_marker = window.rfind(b"\xff\x20\xa8\xbd")
+    if kp_marker != -1:
+        # Right after the 4-byte key hash 0xbda820ff is the governor's UTF-8 name!
+        name_region = window[kp_marker + 4 :]
+        # Try decoding prefixes of name_region from longest to shortest
+        for end_pos in range(len(name_region), 1, -1):
+            sub = name_region[:end_pos].rstrip(b"\x00")
+            if len(sub) < 2:
+                continue
+            # If the last byte right before '{"avatar' was a 1-byte Lua tag (e.g. 'n' after 'krp\xc5n')
+            try:
+                txt = sub.decode("utf-8")
+                if all(c.isprintable() for c in txt) and any(c.isalnum() for c in txt):
+                    return txt.strip()
+            except UnicodeDecodeError:
+                continue
+
+    # Fallback: scan null-separated chunks before idx
+    parts = [p for p in window.split(b"\x00") if len(p) >= 2]
+    for cand in reversed(parts):
+        for trim_start in range(0, min(6, len(cand) - 1)):
+            for trim_end in range(0, min(4, len(cand) - trim_start - 1)):
+                sub = cand[trim_start : len(cand) - trim_end]
+                try:
+                    txt = sub.decode("utf-8").strip()
+                    if len(txt) >= 2 and all(c.isprintable() for c in txt) and any(c.isalnum() for c in txt):
+                        return txt
+                except UnicodeDecodeError:
+                    continue
+    return ""
+
+
+def parse_tier_and_more_block(block: bytes) -> dict:
+    """Parses Healed, Dead, T1..T5 Kills & KP, RSS, Helps, KvK, AoO from a Lua table block."""
+    res = {
+        "healedTroops": 0,
+        "dead": 0,
+        "t1Kills": 0,
+        "t2Kills": 0,
+        "t3Kills": 0,
+        "t4Kills": 0,
+        "t5Kills": 0,
+        "t1Kp": 0,
+        "t2Kp": 0,
+        "t3Kp": 0,
+        "t4Kp": 0,
+        "t5Kp": 0,
+        "assistance": 0,
+        "gathered": 0,
+        "helps": 0,
+        "kvkHighestKp": 0,
+        "kvkMostKills": 0,
+        "kvkMostHealed": 0,
+        "kvkMostDead": 0,
+        "kvkCount": 0,
+        "aooLeaves": 0,
+        "aooWins": 0,
+        "aooLosses": 0,
+        "aooKillStocks": 0,
+        "aooHighestScore": 0,
+    }
+    pending_kills = None
+    pending_tier_for_kp = None
+    for off in range(0, len(block) - 16, 8):
+        vl, vh, tg, k = struct.unpack_from("<4I", block, off)
+        if (tg & 0x3F) != 0x32:
+            continue
+        val = vl + ((vh & 0xFFFF) << 32) if vh < 0x10000 else vl
+        fname = HASH_NAMES.get(k)
+        if not fname:
+            continue
+        if fname in res:
+            res[fname] = val
+        elif fname == "unitsKilled" and off >= 400:
+            pending_kills = val
+        elif fname == "tierIndex":
+            tier = val
+            if 1 <= tier <= 5:
+                if pending_kills is not None:
+                    res[f"t{tier}Kills"] = pending_kills
+                    pending_kills = None
+                else:
+                    pending_tier_for_kp = tier
+        elif fname == "killPointsB" and off >= 800:
+            if pending_tier_for_kp is not None:
+                res[f"t{pending_tier_for_kp}Kp"] = val
+                pending_tier_for_kp = None
+    return res
+
+
+def extract_all_governors_from_ram(exclude_gov_ids=None) -> list:
+    """
+    Scans MuMuNxDevice.exe's Lua heap (MEM_PRIVATE | PAGE_READWRITE) and extracts
+    all 35-field Governor records currently resident in memory.
+    """
+    if exclude_gov_ids is None:
+        exclude_gov_ids = {236425783}  # Exclude our CH8 scout account lilfarmer by default
+
+    PROCESS_QUERY_INFORMATION = 0x0400
+    PROCESS_VM_READ = 0x0010
+    MEM_COMMIT = 0x1000
+    PAGE_READWRITE = 0x04
+    MEM_PRIVATE = 0x20000
+
+    k32 = ctypes.windll.kernel32
+    k32.OpenProcess.argtypes = [wt.DWORD, wt.BOOL, wt.DWORD]
+    k32.OpenProcess.restype = wt.HANDLE
+    k32.VirtualQueryEx.argtypes = [wt.HANDLE, ctypes.c_void_p, ctypes.POINTER(MEMORY_BASIC_INFORMATION), ctypes.c_size_t]
+    k32.VirtualQueryEx.restype = ctypes.c_size_t
+    k32.ReadProcessMemory.argtypes = [wt.HANDLE, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
+    k32.ReadProcessMemory.restype = wt.BOOL
+    k32.CloseHandle.argtypes = [wt.HANDLE]
+
+    out = subprocess.check_output('tasklist /FI "IMAGENAME eq MuMuNxDevice.exe"', shell=True).decode(errors="ignore")
+    pids = re.findall(r"MuMuNxDevice\.exe\s+(\d+)", out)
+    if not pids:
+        raise RuntimeError("MuMuNxDevice.exe process not found!")
+    pid = int(pids[0])
+    h = k32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
+    if not h:
+        raise RuntimeError(f"Failed to open MuMuNxDevice.exe (PID {pid})")
+
+    mbi = MEMORY_BASIC_INFORMATION()
+    addr = 0x25000000000
+    max_addr = 0x25500000000
+    needle_troop = struct.pack("<I", 0x1e89dddc)
+    needle_helps = struct.pack("<I", 0x9c017191)
+
+    gov_by_id = {}
+    detached_more_blocks = []
+
+    try:
+        while addr < max_addr and k32.VirtualQueryEx(h, ctypes.c_void_p(addr), ctypes.byref(mbi), ctypes.sizeof(mbi)):
+            if (
+                mbi.State == MEM_COMMIT
+                and mbi.Protect == PAGE_READWRITE
+                and mbi.Type == MEM_PRIVATE
+                and mbi.RegionSize <= 16 * 1024 * 1024
+            ):
+                buf = ctypes.create_string_buffer(mbi.RegionSize)
+                br = ctypes.c_size_t(0)
+                if k32.ReadProcessMemory(h, ctypes.c_void_p(addr), buf, mbi.RegionSize, ctypes.byref(br)):
+                    raw = buf.raw[: br.value]
+
+                    # 1. Collect all AllianceHelps / Tier blocks
+                    idx2 = raw.find(needle_helps)
+                    while idx2 != -1:
+                        if idx2 >= 12:
+                            vl, vh, tg, k = struct.unpack_from("<4I", raw, idx2 - 12)
+                            if (tg & 0x3F) == 0x32:
+                                b_start = max(0, (idx2 - 12) - 1232)
+                                b_end = min(len(raw), b_start + 1800)
+                                parsed_b = parse_tier_and_more_block(raw[b_start:b_end])
+                                detached_more_blocks.append(parsed_b)
+                        idx2 = raw.find(needle_helps, idx2 + 4)
+
+                    # 2. Collect all Governor TroopPower records
+                    idx = raw.find(needle_troop)
+                    while idx != -1:
+                        if idx >= 12:
+                            vl, vh, tg, k = struct.unpack_from("<4I", raw, idx - 12)
+                            if (tg & 0x3F) == 0x32:
+                                base_off = idx - 12
+                                hdr_start = max(0, base_off - 720)
+                                hdr = raw[hdr_start:base_off]
+                                body = raw[base_off : min(len(raw), base_off + 1800)]
+
+                                gov = {
+                                    "govId": 0,
+                                    "name": "",
+                                    "alliance": "None",
+                                    "allianceName": "",
+                                    "serverId": 3194,
+                                    "cityHall": 25,
+                                    "vipLevel": 0,
+                                    "civId": 0,
+                                    "civilization": "Unknown",
+                                    "power": 0,
+                                    "highestPower": 0,
+                                    "killPoints": 0,
+                                    "totalUnitsKilled": 0,
+                                    "troopPower": 0,
+                                    "buildingPower": 0,
+                                    "commanderPower": 0,
+                                    "techPower": 0,
+                                    "rangedPoints": 0,
+                                    "victories": 0,
+                                    "defeats": 0,
+                                    "scoutTimes": 0,
+                                }
+                                for off in range(0, len(hdr) - 16, 8):
+                                    v_l, v_h, t_g, k_h = struct.unpack_from("<4I", hdr, off)
+                                    if (t_g & 0x3F) == 0x32 and k_h in HASH_NAMES:
+                                        val = v_l + ((v_h & 0xFFFF) << 32) if v_h < 0x10000 else v_l
+                                        fn = HASH_NAMES[k_h]
+                                        if fn in gov:
+                                            gov[fn] = val
+                                for off in range(0, min(300, len(body) - 16), 8):
+                                    v_l, v_h, t_g, k_h = struct.unpack_from("<4I", body, off)
+                                    if (t_g & 0x3F) == 0x32 and k_h in HASH_NAMES:
+                                        val = v_l + ((v_h & 0xFFFF) << 32) if v_h < 0x10000 else v_l
+                                        fn = HASH_NAMES[k_h]
+                                        if fn in gov:
+                                            gov[fn] = val
+
+                                calc_power = (
+                                    gov["troopPower"]
+                                    + gov["buildingPower"]
+                                    + gov["commanderPower"]
+                                    + gov["techPower"]
+                                )
+                                if gov["power"] == 0 or abs(gov["power"] - calc_power) > calc_power * 0.25:
+                                    gov["power"] = calc_power
+                                if gov["highestPower"] < gov["power"]:
+                                    gov["highestPower"] = gov["power"]
+
+                                gov["civilization"] = CIV_NAMES.get(gov["civId"], "China")
+                                gov["name"] = extract_utf8_name_from_header(hdr)
+
+                                # Extract Alliance Full Name & 4-char Tag
+                                al_marker = hdr.find(b"\x93\xe6\xbb\x4e")
+                                if al_marker != -1:
+                                    al_slice = hdr[al_marker + 4 :]
+                                    al_parts = [p for p in al_slice.split(b"\x00") if len(p) >= 2]
+                                    if al_parts:
+                                        gov["allianceName"] = al_parts[0].decode("utf-8", "ignore").strip()
+                                tag_raw = hdr[-64:-60] if len(hdr) >= 64 else b""
+                                tag_str = "".join(chr(b) for b in tag_raw if 32 <= b <= 126).strip()
+                                if tag_str:
+                                    gov["alliance"] = tag_str
+                                    # Clean trailing tag if concatenated onto allianceName
+                                    if gov["allianceName"].endswith(tag_str) and len(gov["allianceName"]) > len(tag_str):
+                                        gov["allianceName"] = gov["allianceName"][: -len(tag_str)].strip()
+
+                                more = parse_tier_and_more_block(body)
+                                for mk, mv in more.items():
+                                    if mv > 0 or mk not in gov:
+                                        gov[mk] = mv
+
+                                gid = gov["govId"]
+                                if gid > 1000000 and gid not in exclude_gov_ids:
+                                    gov["id"] = str(gid)
+                                    if not gov["name"]:
+                                        gov["name"] = f"Governor_{gid}"
+                                    # Merge with any earlier record for same gid (keep non-zero values)
+                                    if gid in gov_by_id:
+                                        existing = gov_by_id[gid]
+                                        for fk, fv in gov.items():
+                                            if fv and (not existing.get(fk) or existing.get(fk) == "None" or existing.get(fk) == f"Governor_{gid}"):
+                                                existing[fk] = fv
+                                    else:
+                                        gov_by_id[gid] = gov
+                        idx = raw.find(needle_troop, idx + 4)
+            addr = (mbi.BaseAddress or addr) + mbi.RegionSize
+    finally:
+        k32.CloseHandle(h)
+
+    gov_list = list(gov_by_id.values())
+
+    # Link any detached More Info block where t1..t5 kills == totalUnitsKilled or t1..t5 kp == killPoints
+    for g in gov_list:
+        sum_kills = g["t1Kills"] + g["t2Kills"] + g["t3Kills"] + g["t4Kills"] + g["t5Kills"]
+        if sum_kills == 0 and g["totalUnitsKilled"] > 0:
+            for b in detached_more_blocks:
+                b_kills = b["t1Kills"] + b["t2Kills"] + b["t3Kills"] + b["t4Kills"] + b["t5Kills"]
+                b_kp = b["t1Kp"] + b["t2Kp"] + b["t3Kp"] + b["t4Kp"] + b["t5Kp"]
+                if b_kills == g["totalUnitsKilled"] or (g["killPoints"] > 0 and b_kp == g["killPoints"]):
+                    for bk, bv in b.items():
+                        if bv > 0 and g.get(bk, 0) == 0:
+                            g[bk] = bv
+                    break
+
+    # Sort descending by power and assign rank
+    gov_list.sort(key=lambda x: x.get("power", 0), reverse=True)
+    for i, g in enumerate(gov_list, start=1):
+        g["rank"] = i
+
+    return gov_list
 
 
 class AdbEmulatorDriver:
@@ -82,7 +445,7 @@ class AdbEmulatorDriver:
         if not self.humanize:
             time.sleep(base_sec)
             return
-        time.sleep(base_sec * random.uniform(0.88, 1.28))
+        time.sleep(base_sec * random.uniform(0.88, 1.18))
 
     def tap(self, x, y, sleep_sec=0.45):
         jx = self._jitter_coord(x, max_offset=4)
@@ -98,7 +461,7 @@ class AdbEmulatorDriver:
         jy1 = self._jitter_coord(y1, max_offset=3)
         jx2 = self._jitter_coord(x2, max_offset=5)
         jy2 = self._jitter_coord(y2, max_offset=3)
-        jdur = int(duration_ms * random.uniform(0.90, 1.15)) if self.humanize else int(duration_ms)
+        jdur = int(duration_ms * random.uniform(0.90, 1.12)) if self.humanize else int(duration_ms)
         subprocess.run(
             [
                 self.adb_bin,
@@ -129,366 +492,293 @@ class AdbEmulatorDriver:
             img = img.resize((1600, 900), Image.Resampling.BILINEAR)
         return img
 
-    def read_clipboard(self) -> str:
-        """Reads Android clipboard or Windows host clipboard."""
-        proc = subprocess.run(
-            [self.adb_bin, "-s", self.serial, "shell", "cmd", "clipboard", "get-text"],
+
+def parse_rok_binary(data: bytes) -> dict:
+    """Decodes Lilith's 0x05 binary Lua table format from MuMu GLGData/com_lilithgame_roc_gp/doc/."""
+    def read_val(pos: int):
+        if pos >= len(data):
+            return None, pos
+        t = data[pos]
+        pos += 1
+        if t == 0x01:
+            return bool(data[pos]), pos + 1
+        elif t == 0x03:
+            val = struct.unpack(">d", data[pos:pos + 8])[0]
+            return (int(val) if val.is_integer() else round(val, 2)), pos + 8
+        elif t == 0x04:
+            slen = struct.unpack("<I", data[pos:pos + 4])[0]
+            pos += 4
+            return data[pos:pos + slen].decode("utf-8", errors="replace"), pos + slen
+        elif t == 0x05:
+            tbl = {}
+            while pos < len(data) and data[pos] != 0xFF:
+                k, pos = read_val(pos)
+                if k is None or pos >= len(data):
+                    break
+                v, pos = read_val(pos)
+                tbl[str(k)] = v
+            if pos < len(data) and data[pos] == 0xFF:
+                pos += 1
+            return tbl, pos
+        return None, len(data)
+
+    if len(data) > 9 and data[9] == 0x05:
+        res, _ = read_val(9)
+        return res or {}
+    return {}
+
+
+MUMU_DOC_REMOTE = "/storage/emulated/0/Android/data/com.lilithgame.roc.gp/files/GLGData/com_lilithgame_roc_gp/doc"
+
+
+def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16384") -> dict:
+    """
+    Pulls and decodes Lilith's 0x05 binary Lua tables directly from MuMu's Android container:
+      /storage/emulated/0/Android/data/com.lilithgame.roc.gp/files/GLGData/com_lilithgame_roc_gp/doc/mailcache/
+    Merges with any baseline seed in C:\\UnityScanner\\mailcache_baseline_seed.json.
+    Returns dict keyed by integer Governor ID (PId).
+    """
+    sync_dir = os.path.join(SCRIPT_DIR, "mumu_doc_sync")
+    mail_dir = os.path.join(sync_dir, "mailcache")
+    os.makedirs(mail_dir, exist_ok=True)
+
+    # Pull live mailcache and local_avatar from MuMu via ADB
+    try:
+        subprocess.run(
+            [adb_bin, "-s", serial, "pull", f"{MUMU_DOC_REMOTE}/mailcache", sync_dir],
             capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="ignore",
+            timeout=25,
         )
-        text = (proc.stdout or "").strip()
-        if text and "Error" not in text and "Unknown" not in text:
-            return text
-        if os.name == "nt":
-            ps = subprocess.run(
-                ["powershell", "-NoProfile", "-Command", "Get-Clipboard"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="ignore",
-            )
-            return (ps.stdout or "").strip()
-        return ""
+        subprocess.run(
+            [adb_bin, "-s", serial, "pull", f"{MUMU_DOC_REMOTE}/local_avatar", os.path.join(sync_dir, "local_avatar")],
+            capture_output=True,
+            timeout=10,
+        )
+    except Exception as e:
+        print(f"  [WARN] MuMu doc ADB pull warning: {e}")
+
+    govs = {}
+    # Load baseline mailcache seed if present
+    seed_path = os.path.join(SCRIPT_DIR, "mailcache_baseline_seed.json")
+    if os.path.exists(seed_path):
+        try:
+            with open(seed_path, "r", encoding="utf-8") as f:
+                for item in json.load(f):
+                    pid = int(item.get("govId") or item.get("id") or 0)
+                    if pid > 0:
+                        govs[pid] = dict(item)
+        except Exception:
+            pass
+
+    # Decode live MuMu Persistent.Mail.* binary files
+    if os.path.exists(mail_dir):
+        for mf in os.listdir(mail_dir):
+            if not mf.startswith("Persistent.Mail."):
+                continue
+            fp = os.path.join(mail_dir, mf)
+            try:
+                with open(fp, "rb") as f:
+                    doc = parse_rok_binary(f.read())
+                content = doc.get("body", {}).get("content", {})
+                if not isinstance(content, dict):
+                    continue
+                for ck in ("SelfChar", "CIdt"):
+                    ch = content.get(ck, {})
+                    if isinstance(ch, dict) and ch.get("PId") and int(ch["PId"]) > 0:
+                        pid = int(ch["PId"])
+                        cur = govs.get(pid, {"id": str(pid), "govId": pid, "ralliesLed": 0, "ralliesJoined": 0})
+                        cur["ralliesLed"] = int(cur.get("ralliesLed") or 0) + 1
+                        if ch.get("PName"):
+                            cur["name"] = ch["PName"]
+                        if ch.get("Abbr"):
+                            cur["alliance"] = ch["Abbr"]
+                        if ch.get("AName"):
+                            cur["allianceName"] = ch["AName"]
+                        if ch.get("CastleLevel"):
+                            cur["cityHall"] = int(ch["CastleLevel"])
+                        if ch.get("CastlePos"):
+                            cur["castlePos"] = ch["CastlePos"]
+                        if ch.get("COSId"):
+                            cur["internalServerId"] = int(ch["COSId"])
+                        if ch.get("HId"):
+                            hss = ch.get("HSS", {})
+                            skills = (
+                                "-".join(str(hss.get(str(i), {}).get("SkillLevel", 0)) for i in range(1, 5))
+                                if isinstance(hss, dict) and hss
+                                else ""
+                            )
+                            cur["primaryCommander"] = {
+                                "id": ch.get("HId"),
+                                "level": ch.get("HLv"),
+                                "star": ch.get("HSt"),
+                                "skills": skills,
+                            }
+                        if ch.get("HId2"):
+                            hss2 = ch.get("HSS2", {})
+                            skills2 = (
+                                "-".join(str(hss2.get(str(i), {}).get("SkillLevel", 0)) for i in range(1, 5))
+                                if isinstance(hss2, dict) and hss2
+                                else ""
+                            )
+                            cur["secondaryCommander"] = {
+                                "id": ch.get("HId2"),
+                                "level": ch.get("HLv2"),
+                                "star": ch.get("HSt2"),
+                                "skills": skills2,
+                            }
+                        if ch.get("HEq") and ch.get("HEq") != "{}":
+                            cur["equippedGear"] = ch["HEq"]
+                        if ch.get("Udid"):
+                            cur["udid"] = ch["Udid"]
+                        if ch.get("AppUid"):
+                            cur["appUid"] = ch["AppUid"]
+                        if ch.get("PkgNameNew"):
+                            cur["clientPlatform"] = ch["PkgNameNew"]
+                        govs[pid] = cur
+                for tk in ("STs", "OTs"):
+                    ts = content.get(tk, {})
+                    if isinstance(ts, dict):
+                        for _, j in ts.items():
+                            if isinstance(j, dict) and j.get("PId") and int(j["PId"]) > 0:
+                                pid = int(j["PId"])
+                                cur = govs.get(pid, {"id": str(pid), "govId": pid, "ralliesLed": 0, "ralliesJoined": 0})
+                                cur["ralliesJoined"] = int(cur.get("ralliesJoined") or 0) + 1
+                                if j.get("PName") and not cur.get("name"):
+                                    cur["name"] = j["PName"]
+                                if j.get("Abbr") and not cur.get("alliance"):
+                                    cur["alliance"] = j["Abbr"]
+                                if j.get("HId") and not cur.get("primaryCommander"):
+                                    cur["primaryCommander"] = {"id": j.get("HId"), "level": j.get("HLv")}
+                                if j.get("HId2") and not cur.get("secondaryCommander"):
+                                    cur["secondaryCommander"] = {"id": j.get("HId2"), "level": j.get("HLv2")}
+                                govs[pid] = cur
+            except Exception:
+                pass
+
+    return govs
 
 
-def ocr_crop(img: Image.Image, box, numeric_only=True) -> str:
-    """Crops [x1, y1, x2, y2], upscales 2x for sharp glyph edges, and runs local RapidOCR."""
-    x1, y1, x2, y2 = box
-    cropped = img.crop((x1, y1, x2, y2))
-    w, h = cropped.size
-    upscaled = cropped.resize((w * 2, h * 2), Image.Resampling.BICUBIC)
-    padded = ImageOps.expand(upscaled, border=12, fill=(18, 20, 26))
-
-    if OCR_ENGINE is None:
-        return ""
-
-    arr = np.array(padded)
-    result, _ = OCR_ENGINE(arr)
-    if not result:
-        return ""
-
-    raw_text = " ".join([line[1] for line in result]).strip()
-    if numeric_only:
-        digits = re.sub(r"[^0-9]", "", raw_text)
-        return digits
-    return raw_text
-
-
-def parse_int(val_str: str) -> int:
-    digits = re.sub(r"[^0-9]", "", val_str or "")
-    return int(digits) if digits else 0
-
-
-def parse_alliance_tag(raw_alliance: str) -> str:
-    if not raw_alliance or raw_alliance.strip() in ("-", "—", ""):
-        return "None"
-    m = re.search(r"\[([^\]]+)\]", raw_alliance)
-    if m:
-        return m.group(1).strip()
-    cleaned = raw_alliance.strip()
-    return cleaned[:8] if cleaned else "None"
-
-
-def parse_more_info_table(img: Image.Image, crop_box=None) -> dict:
+def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> list:
     """
-    Runs RapidOCR on a cropped strip of the 2026 Rise of Kingdoms 'More Info' table
-    and matches each left-hand label with its right-aligned integer value on the same row.
+    Fuses 35-field MuMu Lua RAM telemetry with 10-field MuMu doc/mailcache binary save telemetry
+    into a unified 45-field Governor roster.
     """
-    if OCR_ENGINE is None:
-        return {}
-    if crop_box:
-        x1, y1, x2, y2 = crop_box
-        sub = img.crop((x1, y1, x2, y2))
-        offset_x, offset_y = x1, y1
-    else:
-        sub = img
-        offset_x, offset_y = 0, 0
-
-    arr = np.array(sub)
-    res, _ = OCR_ENGINE(arr)
-    if not res:
-        return {}
-
-    labels = []
-    values = []
-    for box, txt, _score in res:
-        xc = (box[0][0] + box[2][0]) / 2.0 + offset_x
-        yc = (box[0][1] + box[2][1]) / 2.0 + offset_y
-        if xc < 650:
-            norm = re.sub(r"[^a-z]", "", txt.lower())
-            labels.append((yc, norm, txt))
-        elif xc > 1050:
-            digits = re.sub(r"[^0-9]", "", txt)
-            if digits:
-                values.append((yc, int(digits)))
-
-    key_map = {
-        "buildingpower": "buildingPower",
-        "technologypower": "techPower",
-        "trooppower": "troopPower",
-        "commanderpower": "commanderPower",
-        "highestpower": "highestPower",
-        "victory": "victories",
-        "defeat": "defeats",
-        "dead": "dead",
-        "scouttimes": "scoutTimes",
-        "resourcesgathered": "gathered",
-        "resourceassistance": "assistance",
-        "alliancehelptimes": "helps",
-    }
-
-    extracted = {}
-    for l_yc, l_norm, _raw in labels:
-        for prefix, field_name in key_map.items():
-            if prefix in l_norm:
-                best_val = 0
-                best_dist = 26.0
-                for v_yc, v_num in values:
-                    dist = abs(v_yc - l_yc)
-                    if dist < best_dist:
-                        best_dist = dist
-                        best_val = v_num
-                extracted[field_name] = best_val
-                break
-    return extracted
-
-
-def parse_profile_header_strip(img: Image.Image) -> dict:
-    """
-    Single-pass OCR on the Governor Profile header strip [570, 170, 1360, 365]
-    to extract gov_id, gov_name, alliance, kill_points, and power in ~0.25s.
-    """
-    out = {
-        "id": "",
-        "name": "",
-        "alliance": "None",
-        "killPoints": 0,
-        "power": 0,
-    }
-    if OCR_ENGINE is None:
-        return out
-
-    x1, y1, x2, y2 = 570, 170, 1360, 365
-    sub = img.crop((x1, y1, x2, y2))
-    res, _ = OCR_ENGINE(np.array(sub))
-    if not res:
-        return out
-
-    for box, txt, _score in res:
-        xc = (box[0][0] + box[2][0]) / 2.0 + x1
-        yc = (box[0][1] + box[2][1]) / 2.0 + y1
-        clean = txt.strip()
-
-        # Check for Governor(ID: 236424540)
-        m_id = re.search(r"ID[:\s]*([0-9]{5,12})", clean, re.IGNORECASE)
-        if m_id:
-            out["id"] = m_id.group(1)
+    merged_by_id = {}
+    for g in ram_govs:
+        pid = int(g.get("govId") or g.get("id") or 0)
+        if pid <= 0:
             continue
+        rec = dict(g)
+        s = save_govs_by_id.get(pid)
+        if s:
+            for k in (
+                "castlePos",
+                "ralliesLed",
+                "ralliesJoined",
+                "primaryCommander",
+                "secondaryCommander",
+                "equippedGear",
+                "udid",
+                "appUid",
+                "clientPlatform",
+                "internalServerId",
+            ):
+                if s.get(k) is not None:
+                    rec[k] = s[k]
+            if not rec.get("allianceName") and s.get("allianceName"):
+                rec["allianceName"] = s["allianceName"]
+        rec["telemetrySource"] = "MUMU_45_FIELD_RAM_AND_SAVE" if s else "MUMU_35_FIELD_RAM"
+        merged_by_id[pid] = rec
 
-        # Governor Name row (yc around 215..255, xc < 980)
-        if 212 <= yc <= 258 and xc < 980:
-            if clean.lower() not in ("civilization", "governor"):
-                out["name"] = clean
-                if not out["id"]:
-                    m_fallback = re.search(r"([0-9]{6,12})", clean)
-                    if m_fallback:
-                        out["id"] = m_fallback.group(1)
-            continue
+    # Include mailcache-discovered governors not yet tapped on the Top-N leaderboard
+    for pid, s in save_govs_by_id.items():
+        if pid not in merged_by_id and s.get("name"):
+            merged_by_id[pid] = {
+                "id": str(pid),
+                "govId": pid,
+                "name": s.get("name", f"Governor_{pid}"),
+                "alliance": s.get("alliance", "None"),
+                "allianceName": s.get("allianceName", ""),
+                "power": int(s.get("power") or 0),
+                "highestPower": int(s.get("highestPower") or 0),
+                "troopPower": int(s.get("troopPower") or 0),
+                "techPower": int(s.get("techPower") or 0),
+                "buildingPower": int(s.get("buildingPower") or 0),
+                "commanderPower": int(s.get("commanderPower") or 0),
+                "killPoints": int(s.get("killPoints") or 0),
+                "dead": int(s.get("dead") or 0),
+                "healedTroops": int(s.get("healedTroops") or 0),
+                "gathered": int(s.get("gathered") or 0),
+                "assistance": int(s.get("assistance") or 0),
+                "helps": int(s.get("helps") or 0),
+                "cityHall": int(s.get("cityHall") or 21),
+                "vipLevel": int(s.get("vipLevel") or 0),
+                "civilization": s.get("civilization", "Unknown"),
+                "castlePos": s.get("castlePos"),
+                "ralliesLed": int(s.get("ralliesLed") or 0),
+                "ralliesJoined": int(s.get("ralliesJoined") or 0),
+                "primaryCommander": s.get("primaryCommander"),
+                "secondaryCommander": s.get("secondaryCommander"),
+                "equippedGear": s.get("equippedGear"),
+                "udid": s.get("udid"),
+                "appUid": s.get("appUid"),
+                "clientPlatform": s.get("clientPlatform"),
+                "internalServerId": s.get("internalServerId", 3194),
+                "telemetrySource": "MUMU_BINARY_MAILCACHE",
+            }
 
-        # Values row (yc around 320..362)
-        if 318 <= yc <= 364:
-            if xc < 830:
-                out["alliance"] = parse_alliance_tag(clean)
-            elif 850 <= xc <= 1080:
-                out["killPoints"] = parse_int(clean)
-            elif xc > 1080:
-                out["power"] = parse_int(clean)
-
-    return out
-
-
-def extract_open_governor_profile(driver: AdbEmulatorDriver, coords: dict, rank: int = 1, close_when_done: bool = True) -> dict:
-    """
-    Fast 4-Pass Strip OCR for an open Governor Profile on 1600x900:
-      1. Pass 1 (~0.25s): Header Strip -> Gov ID, Name, Alliance, Power, Kill Points
-      2. Pass 2 (~0.35s): Tap (?) -> Kill Statistics Popup Strip -> T1..T5 Kills
-      3. Pass 3 (~0.30s): Tap More Info -> Top Power Table Strip -> Building/Tech/Troop/Commander Power
-      4. Pass 4 (~0.35s): Scroll More Info -> Battle & Resource Strip -> Dead, Gathered, Assistance, Helps
-    """
-    prof_cfg = coords["governor_profile"]
-    kill_cfg = coords["kill_tier_popup"]
-    more_cfg = coords["more_info_modal"]
-
-    frame_profile = driver.screenshot()
-    hdr = parse_profile_header_strip(frame_profile)
-
-    gov_id = hdr["id"] or ocr_crop(frame_profile, prof_cfg["gov_id"], numeric_only=True)
-    gov_name = hdr["name"] or f"Governor_{gov_id or rank}"
-    alliance = hdr["alliance"]
-    power = hdr["power"]
-    kill_points = hdr["killPoints"]
-
-    # Step 2: Open Kill Statistics popup
-    kp_x, kp_y = prof_cfg["kill_points_details_button"]
-    driver.tap(kp_x, kp_y, sleep_sec=0.55)
-    frame_kills = driver.screenshot()
-
-    # Only run per-tier OCR if kill_points > 0 (or check popup strip in 1 call)
-    t1_kills = t2_kills = t3_kills = t4_kills = t5_kills = 0
-    if kill_points > 0:
-        t1_kills = parse_int(ocr_crop(frame_kills, kill_cfg["t1_kills"], numeric_only=True))
-        t2_kills = parse_int(ocr_crop(frame_kills, kill_cfg["t2_kills"], numeric_only=True))
-        t3_kills = parse_int(ocr_crop(frame_kills, kill_cfg["t3_kills"], numeric_only=True))
-        t4_kills = parse_int(ocr_crop(frame_kills, kill_cfg["t4_kills"], numeric_only=True))
-        t5_kills = parse_int(ocr_crop(frame_kills, kill_cfg["t5_kills"], numeric_only=True))
-
-    # Dismiss Kill Statistics popup
-    dis_x, dis_y = kill_cfg["dismiss_tap"]
-    driver.tap(dis_x, dis_y, sleep_sec=0.40)
-
-    # Step 3: Tap More Info button (265, 755) and OCR only the Power breakdown strip [295, 645, 1320, 875]
-    mi_x, mi_y = prof_cfg["more_info_button"]
-    driver.tap(mi_x, mi_y, sleep_sec=0.65)
-    frame_more_top = driver.screenshot()
-    top_stats = parse_more_info_table(frame_more_top, crop_box=[295, 645, 1320, 875])
-
-    building_power = top_stats.get("buildingPower", 0)
-    tech_power = top_stats.get("techPower", 0)
-    troop_power = top_stats.get("troopPower", 0)
-    commander_power = top_stats.get("commanderPower", 0)
-
-    # Step 4: Scroll down More Info modal and OCR only the Battle & Resource strip [295, 335, 1320, 860]
-    sx1, sy1, sx2, sy2, sdur = more_cfg["scroll_swipe"]
-    driver.swipe(sx1, sy1, sx2, sy2, duration_ms=sdur, sleep_sec=0.65)
-    frame_more_bot = driver.screenshot()
-    bot_stats = parse_more_info_table(frame_more_bot, crop_box=[295, 335, 1320, 860])
-
-    dead = bot_stats.get("dead", 0)
-    gathered = bot_stats.get("gathered", 0)
-    assistance = bot_stats.get("assistance", 0)
-    helps = bot_stats.get("helps", 0)
-
-    # Close More Info
-    cmi_x, cmi_y = more_cfg["close_more_info_button"]
-    driver.tap(cmi_x, cmi_y, sleep_sec=0.45)
-
-    if close_when_done:
-        cp_x, cp_y = prof_cfg["close_profile_button"]
-        driver.tap(cp_x, cp_y, sleep_sec=0.40)
-
-    return {
-        "rank": rank,
-        "id": str(gov_id or f"RANK_{rank}"),
-        "name": gov_name,
-        "alliance": alliance,
-        "power": power,
-        "killPoints": kill_points,
-        "dead": dead,
-        "t1Kills": t1_kills,
-        "t2Kills": t2_kills,
-        "t3Kills": t3_kills,
-        "t4Kills": t4_kills,
-        "t5Kills": t5_kills,
-        "troopPower": troop_power,
-        "buildingPower": building_power,
-        "techPower": tech_power,
-        "commanderPower": commander_power,
-        "gathered": gathered,
-        "assistance": assistance,
-        "helps": helps,
-    }
-
-
-def scan_single_governor(driver: AdbEmulatorDriver, coords: dict, row_x: int, row_y: int, rank: int) -> dict:
-    driver.tap(row_x, row_y, sleep_sec=0.60)
-    return extract_open_governor_profile(driver, coords, rank=rank, close_when_done=True)
+    final_list = list(merged_by_id.values())
+    final_list.sort(
+        key=lambda x: (
+            x.get("power", 0),
+            (x.get("ralliesLed", 0) + x.get("ralliesJoined", 0)),
+        ),
+        reverse=True,
+    )
+    for idx, item in enumerate(final_list, start=1):
+        item["rank"] = idx
+    return final_list
 
 
 def push_batch_to_unity(unity_url: str, scanner_key: str, payload: dict):
     headers = {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         "x-unity-scanner-key": scanner_key,
     }
-    resp = requests.post(unity_url, headers=headers, json=payload, timeout=30)
+    body_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    resp = requests.post(unity_url, headers=headers, data=body_bytes, timeout=30)
     if not resp.ok:
         print(f"  [WARN] Unity Ingest HTTP {resp.status_code}: {resp.text[:200]}")
     else:
         data = resp.json()
-        print(f"  [UNITY AWS SYNC] {data.get('message', 'OK')}")
+        print(f"  [UNITY 45-FIELD MUMU LIVE SYNC] {data.get('message', 'OK')}")
 
 
-def run_kingdom_scan(args):
-    coords = load_coords()
+def run_ram_dump(args):
     driver = AdbEmulatorDriver(serial=args.adb)
-    scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
-    ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"
-
-    print("==================================================================")
-    print(f"  UNITY KINGDOM DEEP SCANNER | KD #{args.kd} | Ranks {args.start_rank}..{args.end_rank}")
-    print(f"  ADB Emulator: {args.adb} | Scan ID: {scan_date_iso}")
-    print("==================================================================")
-
-    lb_cfg = coords["leaderboard"]
-    row_x = lb_cfg["row_x"]
-    visible_ys = lb_cfg["first_rows_y"]
-    settled_y = lb_cfg["locked_row_y"]
-    sx1, sy1, sx2, sy2, sdur = lb_cfg["scroll_swipe"]
-
-    batch = []
-    seen_gov_ids = set()
-
-    for rank in range(args.start_rank, args.end_rank + 1):
-        target_y = visible_ys[rank - 1] if rank <= 4 else settled_y
-
-        t0 = time.time()
-        gov = scan_single_governor(driver, coords, row_x, target_y, rank)
-        elapsed = time.time() - t0
-
-        if rank >= 4:
-            driver.swipe(sx1, sy1, sx2, sy2, duration_ms=sdur)
-
-        print(
-            f"[#{rank:03d}] {gov['name']} ({gov['id']}) [{gov['alliance']}] | "
-            f"Pwr: {gov['power']:,} (Troop: {gov['troopPower']:,} | Tech: {gov['techPower']:,} | Bldg: {gov['buildingPower']:,} | Cmdr: {gov['commanderPower']:,}) | "
-            f"KP: {gov['killPoints']:,} (T4: {gov['t4Kills']:,} | T5: {gov['t5Kills']:,}) | Deads: {gov['dead']:,} [{elapsed:.2f}s]"
-        )
-
-        if gov["id"] not in seen_gov_ids:
-            seen_gov_ids.add(gov["id"])
-            batch.append(gov)
-
-        if len(batch) >= 25 or rank == args.end_rank:
-            push_batch_to_unity(
-                ingest_url,
-                args.scanner_key,
-                {
-                    "kingdomId": str(args.kd),
-                    "scanDateOverride": scan_date_iso,
-                    "progress": {
-                        "currentRank": rank,
-                        "targetRank": args.end_rank,
-                        "workerSerial": args.adb,
-                    },
-                    "rosterArray": batch,
-                },
-            )
-            batch = []
-
-
-def run_test_profile(args):
-    coords = load_coords()
-    driver = AdbEmulatorDriver(serial=args.adb)
-    print("==================================================================")
-    print(f"  UNITY LIVE 17-FIELD GOVERNOR EXTRACTION TEST ({args.adb})")
-    print("==================================================================")
     t0 = time.time()
-    gov = extract_open_governor_profile(driver, coords, rank=1, close_when_done=False)
+    ram_govs = extract_all_governors_from_ram()
+    save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
+    merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
     elapsed = time.time() - t0
-    print(json.dumps(gov, indent=2, ensure_ascii=False))
-    print(f"\n[SUCCESS] Extracted all 17 fields in {elapsed:.2f}s!")
-    if args.push:
+    print(
+        f"Extracted {len(ram_govs)} 35-field RAM governors + {len(save_govs)} MuMu binary save/mailcache governors "
+        f"-> {len(merged_govs)} unified 45-field governors in {elapsed:.2f}s:"
+    )
+    for g in merged_govs[:18]:
+        pos_str = f" @ ({g['castlePos'].get('X')},{g['castlePos'].get('Y')})" if isinstance(g.get("castlePos"), dict) else ""
+        cmdr_str = (
+            f" | Cmdr: #{g['primaryCommander'].get('id')}(Lv{g['primaryCommander'].get('level')} {g['primaryCommander'].get('skills','')})"
+            if isinstance(g.get("primaryCommander"), dict)
+            else ""
+        )
+        print(
+            f"  [#{g['rank']:02d}] {g['name']} (ID: {g['id']}) [{g.get('alliance','')}]{pos_str} | "
+            f"CH{g.get('cityHall',0)} VIP{g.get('vipLevel',0)} {g.get('civilization','')} | "
+            f"Pwr: {g.get('power',0):,} (Troop: {g.get('troopPower',0):,}, Tech: {g.get('techPower',0):,}) | "
+            f"KP: {g.get('killPoints',0):,} | Rallies: {g.get('ralliesLed',0)}L/{g.get('ralliesJoined',0)}J{cmdr_str}"
+        )
+    if args.push and merged_govs:
         scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
         ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"
         push_batch_to_unity(
@@ -497,115 +787,81 @@ def run_test_profile(args):
             {
                 "kingdomId": str(args.kd),
                 "scanDateOverride": scan_date_iso,
-                "rosterArray": [gov],
+                "progress": {
+                    "currentRank": len(ram_govs),
+                    "targetRank": args.end_rank,
+                    "workerSerial": args.adb,
+                    "mode": "MUMU_45_FIELD_UNIFIED_RAM_AND_SAVE",
+                },
+                "rosterArray": merged_govs,
             },
         )
 
 
-def run_rally_watcher(args):
-    coords = load_coords()
+def run_kingdom_scan(args):
     driver = AdbEmulatorDriver(serial=args.adb)
-    ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/rallies"
-    rally_cfg = coords["alliance_war_rally"]
-    cards = [rally_cfg["rally_card_1"], rally_cfg["rally_card_2"]]
+    scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
+    ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"
 
     print("==================================================================")
-    print(f"  UNITY 24/7 ZERO-CLICK RALLY WATCHER | KD #{args.kd} [{args.alliance}]")
-    print(f"  Polling every {args.interval}s on ADB {args.adb} -> {ingest_url}")
+    print(f"  UNITY 45-FIELD MUMU RAM + BINARY SAVE SCANNER | KD #{args.kd} | Ranks {args.start_rank}..{args.end_rank}")
+    print(f"  ADB Emulator: {args.adb} | Scan ID: {scan_date_iso}")
     print("==================================================================")
 
-    while True:
-        try:
-            frame = driver.screenshot()
-            detected_rallies = []
-            for idx, slot in enumerate(cards, start=1):
-                launcher = ocr_crop(frame, slot["leader_name"], numeric_only=False)
-                target = ocr_crop(frame, slot["target_type"], numeric_only=False)
-                capacity = ocr_crop(frame, slot["troop_capacity"], numeric_only=False)
-                timer = ocr_crop(frame, slot["march_timer"], numeric_only=False)
+    first_rows_y = [315, 430, 545, 660, 775]
+    settled_y = 775
 
-                if launcher and target:
-                    detected_rallies.append(
-                        {
-                            "slotIndex": idx,
-                            "launcherName": launcher,
-                            "targetName": target,
-                            "troopCapacity": capacity,
-                            "timer": timer,
-                            "capturedAt": datetime.now(timezone.utc).isoformat(),
-                        }
-                    )
+    for rank in range(args.start_rank, args.end_rank + 1):
+        ry = first_rows_y[rank - 1] if rank <= 5 else settled_y
+        print(f"  -> Stepping Rank #{rank} (y={ry})...")
+        driver.tap(600, ry, sleep_sec=0.58)
+        driver.tap(240, 755, sleep_sec=0.58)
+        driver.tap(1395, 55, sleep_sec=0.42)
+        driver.tap(1415, 100, sleep_sec=0.48)
 
-            if detected_rallies:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Captured {len(detected_rallies)} active rallies:")
-                for r in detected_rallies:
-                    print(f"  - {r['launcherName']} -> {r['targetName']} ({r['troopCapacity']}) [{r['timer']}]")
+        if rank >= 5:
+            driver.swipe(600, 780, 600, 665, duration_ms=550, sleep_sec=0.55)
+
+        if rank % 10 == 0 or rank == args.end_rank:
+            ram_govs = extract_all_governors_from_ram()
+            save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
+            merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
+            print(
+                f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} RAM + {len(save_govs)} Save -> {len(merged_govs)} governors!"
+            )
+            if merged_govs:
                 push_batch_to_unity(
                     ingest_url,
                     args.scanner_key,
                     {
                         "kingdomId": str(args.kd),
-                        "allianceTag": args.alliance,
-                        "rallies": detected_rallies,
+                        "scanDateOverride": scan_date_iso,
+                        "progress": {
+                            "currentRank": rank,
+                            "targetRank": args.end_rank,
+                            "workerSerial": args.adb,
+                            "mode": "MUMU_45_FIELD_UNIFIED_RAM_AND_SAVE",
+                        },
+                        "rosterArray": merged_govs,
                     },
                 )
-        except KeyboardInterrupt:
-            print("\nStopping Rally Watcher.")
-            break
-        except Exception as e:
-            print(f"[WARN] Rally watcher tick error: {e}")
-
-        time.sleep(args.interval)
-
-
-def run_calibrate(args):
-    coords = load_coords()
-    driver = AdbEmulatorDriver(serial=args.adb)
-    frame = driver.screenshot()
-    draw = ImageDraw.Draw(frame)
-
-    prof = coords["governor_profile"]
-    for name in ("gov_id", "gov_name_fallback", "alliance_tag", "kill_points", "power"):
-        box = prof[name]
-        draw.rectangle(box, outline=(6, 182, 212), width=2)
-        draw.text((box[0], box[1] - 14), f"prof:{name}", fill=(6, 182, 212))
-
-    for name in ("copy_name_button", "kill_points_details_button", "more_info_button", "rankings_button", "settings_button", "close_profile_button"):
-        pt = prof[name]
-        r = 8
-        draw.ellipse((pt[0] - r, pt[1] - r, pt[0] + r, pt[1] + r), outline=(244, 63, 94), width=3)
-        draw.text((pt[0] + 10, pt[1] - 6), f"tap:{name}", fill=(244, 63, 94))
-
-    for name, box in coords["kill_tier_popup"].items():
-        if len(box) == 4:
-            draw.rectangle(box, outline=(245, 158, 11), width=2)
-            draw.text((box[0], box[1] - 14), f"kill:{name}", fill=(245, 158, 11))
-
-    out_path = os.path.join(SCRIPT_DIR, "calibration_preview.png")
-    frame.save(out_path)
-    print(f"[CALIBRATION] Saved annotated 1600x900 overlay to: {out_path}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Unity Autonomous RoK Telemetry Scanner (Node 2 ADB Cluster)")
-    parser.add_argument("--mode", choices=["calibrate", "test-profile", "kingdom-scan", "rally-watcher"], default="calibrate")
-    parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial (default: 127.0.0.1:16384 for MuMu 12)")
-    parser.add_argument("--kd", default="3418", help="Target 4-digit Kingdom ID")
-    parser.add_argument("--alliance", default="VAL", help="Alliance tag for rally watcher")
+    parser = argparse.ArgumentParser(description="Unity Autonomous 45-Field MuMu RAM + Binary Save Telemetry Scanner")
+    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan"], default="ram-dump")
+    parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial")
+    parser.add_argument("--kd", default="4194", help="Target Kingdom ID")
     parser.add_argument("--start-rank", type=int, default=1)
-    parser.add_argument("--end-rank", type=int, default=300)
-    parser.add_argument("--interval", type=int, default=10, help="Polling interval in seconds for rally-watcher")
-    parser.add_argument("--scan-date", default=None, help="Optional scanDateIso override (YYYY-MM-DD_HHMM)")
-    parser.add_argument("--push", action="store_true", help="Push test-profile result to Unity API")
+    parser.add_argument("--end-rank", type=int, default=25)
+    parser.add_argument("--scan-date", default=None)
+    parser.add_argument("--push", action="store_true", help="Push extracted 45-field governors to Unity API")
     parser.add_argument("--unity-url", default=os.environ.get("UNITY_URL", "http://192.168.50.41:3000"))
     parser.add_argument("--scanner-key", default=os.environ.get("UNITY_SCANNER_KEY", "unity-local-node2-telemetry"))
     args = parser.parse_args()
 
-    if args.mode == "calibrate":
-        run_calibrate(args)
-    elif args.mode == "test-profile":
-        run_test_profile(args)
+    if args.mode == "ram-dump":
+        run_ram_dump(args)
     elif args.mode == "kingdom-scan":
         run_kingdom_scan(args)
-    elif args.mode == "rally-watcher":
-        run_rally_watcher(args)
+

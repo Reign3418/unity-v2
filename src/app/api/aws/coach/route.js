@@ -56,8 +56,9 @@ RULES:
 4. **IF AT WAR:** Call them out if they have high Troop Power growth but zero Kill Points or Deads (they are training troops but not fighting).
 5. **IF AT PEACE:** DO NOT penalize them or mention lack of Kill Points or Dead Troops. Focus entirely on their economic growth (Tech, Building, Troops, Gathering).
 ${stats.serverAgeDays && stats.serverAgeDays > 270 ? '6. **MATURE KINGDOM CONTEXT:** In mature Season of Conquest kingdoms, City Hall 25 and core buildings are already maxed out. Do NOT criticize low or zero building growth; focus on technology, troop expansion, and resource management.' : ''}
-7. **BE EXTREMELY BRIEF.** Maximum 2 short sentences per thought. Get straight to the point. Keep the entire response under 75 words.
-8. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
+7. **F2P SPEEDUP & $2-$5 ROI EFFICIENCY:** Remind them to NEVER burn universal speedups dry—always wait for 30/30 Alliance Helps (-26.2% base time) and stack the Scientist Title (+10%), Kingdom Buff (+10%), and 7%-10% Research Rune first. If they are a $2-$5 micro-spender, advise prioritizing Lucerne Scrolls ($4.99), Writer of History popups ($4.99 for 10 Gold Heads), or the 30-Day Gem Supply exclusively for More Than Gems (VIP 10/12/14).
+8. **BE EXTREMELY BRIEF.** Maximum 2 short sentences per thought. Get straight to the point. Keep the entire response under 90 words.
+9. **CRUCIAL: YOU MUST TRANSLATE YOUR ENTIRE RESPONSE AND REPLY ONLY IN THE LANGUAGE OF THIS ISO-639-1 LOCALE CODE: '${stats.locale || 'en'}'. Do NOT reply in English unless the code is 'en'.**
 `;
 
         const customModel = req.headers.get('x-gemini-model');

@@ -28,6 +28,7 @@ import { useValheonCommand } from './ValheonCommandProvider';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import WorldClock from '@/components/WorldClock';
 import ValheonFieldGuideVault from '@/components/guide/ValheonFieldGuideVault';
+import F2pEfficiencyOptimizer from '@/components/member/F2pEfficiencyOptimizer';
 
 export default function ValheonSovereignBridge() {
   const tValheon = useTranslations('Valheon');
@@ -427,6 +428,14 @@ export default function ValheonSovereignBridge() {
               <span>5-Model Governor Dossier</span>
             </button>
 
+            <a
+              href="#mumu-45field-hub"
+              className="px-4 py-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-200 font-mono font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+            >
+              <Activity size={15} className="text-emerald-400" />
+              <span>⚡ 45-Field Live MuMu Search & F2P Coach ({governorPool?.length || 214} Govs)</span>
+            </a>
+
             <button
               type="button"
               onClick={() => setIsOpticsOpen(true)}
@@ -437,6 +446,13 @@ export default function ValheonSovereignBridge() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* =====================================================================
+          45-FIELD NEAR-LIVE MUMU TELEMETRY, INSTANT GOVERNOR SEARCH & F2P COACH
+          ===================================================================== */}
+      <div id="mumu-45field-hub" className="scroll-mt-20">
+        <F2pEfficiencyOptimizer />
       </div>
 
       {/* =====================================================================
