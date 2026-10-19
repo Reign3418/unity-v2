@@ -353,19 +353,28 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
 
 
 def report_tut_progress(step: int, total_steps: int, detail: str, running: bool = True):
+    import json as _json
+    pct = round((step / max(1, total_steps)) * 100.0, 1)
+    payload = {
+        "running": running,
+        "status": "PROVISIONING_BOT" if running else "COMPLETED",
+        "preset": "BOT_PROVISION",
+        "currentRank": step,
+        "targetRanks": total_steps,
+        "percent": pct,
+        "governorsExtracted": step,
+        "lastGovernorName": detail,
+        "pid": os.getpid(),
+        "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    try:
+        prog_path = os.path.join(SCRIPT_DIR, "scan_progress.json")
+        with open(prog_path, "w", encoding="utf-8") as f:
+            _json.dump(payload, f, indent=2)
+    except Exception:
+        pass
     try:
         import urllib.request
-        import json as _json
-        payload = {
-            "running": running,
-            "status": "PROVISIONING_BOT" if running else "COMPLETED",
-            "preset": "BOT_PROVISION",
-            "currentRank": step,
-            "targetRanks": total_steps,
-            "governorsExtracted": step,
-            "lastGovernorName": detail,
-            "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        }
         req = urllib.request.Request(
             "http://192.168.50.41:8888/scan-progress",
             data=_json.dumps(payload).encode("utf-8"),

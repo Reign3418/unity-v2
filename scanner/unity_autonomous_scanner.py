@@ -740,18 +740,31 @@ def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> 
     return final_list
 
 
+CLOUD_UNITY_URL = os.environ.get("UNITY_CLOUD_URL", "https://unity-v2-azure.vercel.app")
+
+
 def push_batch_to_unity(unity_url: str, scanner_key: str, payload: dict):
     headers = {
         "Content-Type": "application/json; charset=utf-8",
         "x-unity-scanner-key": scanner_key,
     }
     body_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    resp = requests.post(unity_url, headers=headers, data=body_bytes, timeout=30)
-    if not resp.ok:
-        print(f"  [WARN] Unity Ingest HTTP {resp.status_code}: {resp.text[:200]}")
-    else:
-        data = resp.json()
-        print(f"  [UNITY 45-FIELD MUMU LIVE SYNC] {data.get('message', 'OK')}")
+    target_urls = [f"{CLOUD_UNITY_URL.rstrip('/')}/api/ingest/kingdom-scan"]
+    if unity_url and not unity_url.startswith(CLOUD_UNITY_URL):
+        target_urls.append(unity_url)
+
+    for url in target_urls:
+        try:
+            resp = requests.post(url, headers=headers, data=body_bytes, timeout=20)
+            if resp.ok:
+                data = resp.json()
+                print(f"  [UNITY 45-FIELD SYNC -> {url}] {data.get('message', 'OK')}")
+            else:
+                print(f"  [WARN] Unity Ingest ({url}) HTTP {resp.status_code}: {resp.text[:160]}")
+        except Exception as e:
+            if "192.168." not in url and "127.0.0.1" not in url:
+                print(f"  [WARN] Cloud Ingest ({url}) unreachable: {e}")
+
 
 
 def run_ram_dump(args):

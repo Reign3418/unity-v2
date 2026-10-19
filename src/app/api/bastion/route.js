@@ -111,17 +111,23 @@ function evaluateNumNumGate(state, { targetKingdom, instanceId, operation }) {
 }
 
 async function dispatchToClusterHub(psCommand, scanProgressPayload = null) {
+  const cmdId = `cloud-cmd-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  let directLanOk = false;
+  let hubResponse = null;
+
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2500);
+    const timer = setTimeout(() => controller.abort(), 1800);
     const res = await fetch(`${CLUSTER_HUB_URL}/exec`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command: psCommand, cmd: psCommand, async: true }),
+      body: JSON.stringify({ id: cmdId, command: psCommand, cmd: psCommand, async: true }),
       signal: controller.signal,
     });
     clearTimeout(timer);
     if (res.ok) {
+      directLanOk = true;
+      hubResponse = await res.json();
       if (scanProgressPayload) {
         try {
           await fetch(`${CLUSTER_HUB_URL}/scan-progress`, {
@@ -131,33 +137,36 @@ async function dispatchToClusterHub(psCommand, scanProgressPayload = null) {
           });
         } catch {}
       }
-      return { dispatched: true, mode: 'DIRECT_LAN', hubResponse: await res.json() };
     }
   } catch {}
 
-  // Fallback for Vercel Cloud -> Home LAN Bridge via AWS DynamoDB + Browser PNA Bridge
+  // Always write to AWS DynamoDB Cloud Bus so SIDEKICK receives it directly even if MIXERV3 is turned OFF
   try {
     const cmdRecord = {
-      cmdId: `cloud-cmd-${Date.now()}`,
+      cmdId,
       command: psCommand,
       scanProgress: scanProgressPayload,
+      dispatchedViaLan: directLanOk,
+      pickedUpByCloudAgent: false,
       queuedAt: new Date().toISOString(),
     };
     await updateGlobalConfig('BASTION_CLOUD_CMD', JSON.stringify(cmdRecord));
     return {
       dispatched: true,
-      mode: 'DYNAMO_CLOUD_BRIDGE',
-      cmdId: cmdRecord.cmdId,
+      mode: directLanOk ? 'DIRECT_LAN' : 'DYNAMO_CLOUD_BRIDGE',
+      cmdId,
       psCommand,
       scanProgressPayload,
+      hubResponse,
     };
   } catch (err) {
     return {
-      dispatched: false,
-      mode: 'BROWSER_PNA_BRIDGE',
+      dispatched: directLanOk,
+      mode: directLanOk ? 'DIRECT_LAN' : 'BROWSER_PNA_BRIDGE',
+      cmdId,
       psCommand,
       scanProgressPayload,
-      note: 'Queued for direct Browser -> 127.0.0.1:8888 dispatch',
+      note: 'Queued for direct SIDEKICK pickup',
     };
   }
 }
@@ -229,6 +238,90 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const { action, payload = {} } = body;
+
+    // 00. DIRECT SIDEKICK -> VERCEL CLOUD HEARTBEAT & COMMAND BUS (Zero MIXERV3 Dependency)
+    if (action === 'SIDEKICK_CLOUD_HEARTBEAT') {
+      const nowIso = new Date().toISOString();
+      const {
+        hostname = 'SIDEKICK',
+        ip = '192.168.50.218',
+        cpuLoadPct = 28,
+        ramUsedGb = 14.4,
+        ramTotalGb = 64,
+        scannerRunning = false,
+        scannerPid = null,
+        scannerCmd = null,
+        scanProgress = null,
+        lastExecutedCmdId = null,
+      } = payload;
+
+      const liveScanProgress = scanProgress
+        ? {
+            ...scanProgress,
+            running: typeof scannerRunning === 'boolean' ? scannerRunning : Boolean(scanProgress.running),
+            scannerPid: scannerPid || scanProgress.scannerPid || null,
+            updatedAt: nowIso,
+          }
+        : {
+            running: Boolean(scannerRunning),
+            status: scannerRunning ? 'SCANNING_LIVE' : 'IDLE',
+            scannerPid: scannerPid || null,
+            updatedAt: nowIso,
+          };
+
+      const telemetryObj = {
+        nodes: {
+          [hostname]: {
+            hostname,
+            ip,
+            cpuLoadPct,
+            ramUsedGb,
+            ramTotalGb,
+            scannerRunning,
+            scannerPid,
+            scannerCmd,
+            lastSeen: nowIso,
+            cloudDirect: true,
+          },
+        },
+        liveScanProgress,
+        updatedAt: nowIso,
+      };
+
+      try {
+        await updateGlobalConfig('BASTION_CLOUD_TELEMETRY', JSON.stringify(telemetryObj));
+      } catch {}
+
+      let pendingCommand = null;
+      try {
+        const rawCmd = await getGlobalConfig('BASTION_CLOUD_CMD');
+        if (rawCmd) {
+          const cmdRecord = JSON.parse(rawCmd);
+          const ageMs = Date.now() - new Date(cmdRecord.queuedAt || 0).getTime();
+          if (
+            cmdRecord.cmdId &&
+            cmdRecord.cmdId !== lastExecutedCmdId &&
+            !cmdRecord.pickedUpByCloudAgent &&
+            ageMs < 300000
+          ) {
+            cmdRecord.pickedUpByCloudAgent = true;
+            cmdRecord.pickedUpAt = nowIso;
+            await updateGlobalConfig('BASTION_CLOUD_CMD', JSON.stringify(cmdRecord));
+            pendingCommand = cmdRecord;
+          }
+        }
+      } catch {}
+
+      const state = await readBastionState();
+      return NextResponse.json({
+        success: true,
+        pendingCommand,
+        autopilotEnabled: state?.autopilotEnabled ?? true,
+        autoGenesisEnabled: state?.autoGenesisEnabled ?? true,
+        nextGenesisWatchKingdom: state?.nextGenesisWatchKingdom ?? 4203,
+      });
+    }
+
     const state = await readBastionState();
     const epochLedger = readEpochLedger();
 
@@ -433,7 +526,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
@@ -559,7 +652,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py"; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
@@ -652,7 +745,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py"; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       await writeBastionState(state);
