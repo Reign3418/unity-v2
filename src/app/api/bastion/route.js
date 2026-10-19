@@ -433,7 +433,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
@@ -559,7 +559,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py"; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
@@ -652,7 +652,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py"; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       await writeBastionState(state);
