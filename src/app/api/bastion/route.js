@@ -2,33 +2,55 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { readEpochLedger, writeEpochLedger, KVK_SCAN_PRESETS } from '@/lib/dozerReconciler';
+import { getGlobalConfig, updateGlobalConfig } from '@/lib/awsDynamo';
 
 export const maxDuration = 300;
 
 const STATE_PATH = path.join(process.cwd(), 'scanner', 'bastion_state.json');
 const CLUSTER_HUB_URL = 'http://127.0.0.1:8888';
 
-function readBastionState() {
+async function readBastionState() {
+  let localState = null;
   try {
     if (fs.existsSync(STATE_PATH)) {
       const raw = fs.readFileSync(STATE_PATH, 'utf-8');
-      return JSON.parse(raw);
+      localState = JSON.parse(raw);
     }
   } catch (err) {
     console.error('[BASTION API] Failed to read bastion_state.json:', err);
   }
-  return null;
+
+  try {
+    const cloudRaw = await getGlobalConfig('BASTION_CLOUD_STATE');
+    if (cloudRaw) {
+      const cloudState = JSON.parse(cloudRaw);
+      if (!localState) return cloudState;
+      const localTs = new Date(localState.lastUpdated || 0).getTime();
+      const cloudTs = new Date(cloudState.lastUpdated || 0).getTime();
+      if (cloudTs >= localTs) {
+        return {
+          ...localState,
+          ...cloudState,
+          kingdomSchedules: cloudState.kingdomSchedules || localState.kingdomSchedules,
+          activityLog: cloudState.activityLog || localState.activityLog,
+          activeScanProgress: cloudState.activeScanProgress || localState.activeScanProgress,
+        };
+      }
+    }
+  } catch {}
+
+  return localState;
 }
 
-function writeBastionState(state) {
+async function writeBastionState(state) {
+  state.lastUpdated = new Date().toISOString();
   try {
-    state.lastUpdated = new Date().toISOString();
     fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2), 'utf-8');
-    return true;
-  } catch (err) {
-    console.error('[BASTION API] Failed to write bastion_state.json:', err);
-    return false;
-  }
+  } catch {}
+  try {
+    await updateGlobalConfig('BASTION_CLOUD_STATE', JSON.stringify(state));
+  } catch {}
+  return true;
 }
 
 function appendLog(state, { agent, ring, model, action, kingdom, detail }) {
@@ -88,10 +110,10 @@ function evaluateNumNumGate(state, { targetKingdom, instanceId, operation }) {
   };
 }
 
-async function dispatchToClusterHub(psCommand) {
+async function dispatchToClusterHub(psCommand, scanProgressPayload = null) {
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 2500);
     const res = await fetch(`${CLUSTER_HUB_URL}/exec`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,21 +122,53 @@ async function dispatchToClusterHub(psCommand) {
     });
     clearTimeout(timer);
     if (res.ok) {
-      return { dispatched: true, hubResponse: await res.json() };
+      if (scanProgressPayload) {
+        try {
+          await fetch(`${CLUSTER_HUB_URL}/scan-progress`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scanProgressPayload),
+          });
+        } catch {}
+      }
+      return { dispatched: true, mode: 'DIRECT_LAN', hubResponse: await res.json() };
     }
-    return { dispatched: false, status: res.status };
+  } catch {}
+
+  // Fallback for Vercel Cloud -> Home LAN Bridge via AWS DynamoDB + Browser PNA Bridge
+  try {
+    const cmdRecord = {
+      cmdId: `cloud-cmd-${Date.now()}`,
+      command: psCommand,
+      scanProgress: scanProgressPayload,
+      queuedAt: new Date().toISOString(),
+    };
+    await updateGlobalConfig('BASTION_CLOUD_CMD', JSON.stringify(cmdRecord));
+    return {
+      dispatched: true,
+      mode: 'DYNAMO_CLOUD_BRIDGE',
+      cmdId: cmdRecord.cmdId,
+      psCommand,
+      scanProgressPayload,
+    };
   } catch (err) {
-    return { dispatched: false, note: 'Queued asynchronously for Node 2 worker pickup' };
+    return {
+      dispatched: false,
+      mode: 'BROWSER_PNA_BRIDGE',
+      psCommand,
+      scanProgressPayload,
+      note: 'Queued for direct Browser -> 127.0.0.1:8888 dispatch',
+    };
   }
 }
 
 export async function GET() {
-  const state = readBastionState();
+  const state = await readBastionState();
   if (!state) {
     return NextResponse.json({ error: 'Bastion state file not found' }, { status: 404 });
   }
 
-  // Enrich with live Cluster Hub node telemetry if reachable
+  // Enrich with live Cluster Hub node telemetry if reachable locally, or via DynamoDB cloud bridge
   let clusterLive = null;
   try {
     const controller = new AbortController();
@@ -125,6 +179,15 @@ export async function GET() {
       clusterLive = await res.json();
     }
   } catch {}
+
+  if (!clusterLive) {
+    try {
+      const cloudTelRaw = await getGlobalConfig('BASTION_CLOUD_TELEMETRY');
+      if (cloudTelRaw) {
+        clusterLive = JSON.parse(cloudTelRaw);
+      }
+    } catch {}
+  }
 
   const epochLedger = readEpochLedger();
   const hubProg = clusterLive?.liveScanProgress;
@@ -166,7 +229,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const { action, payload = {} } = body;
-    const state = readBastionState();
+    const state = await readBastionState();
     const epochLedger = readEpochLedger();
 
     if (!state) {
@@ -211,7 +274,7 @@ export async function POST(request) {
       });
 
       writeEpochLedger(epochLedger);
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({ success: true, state, epochLedger, kvkPresets: KVK_SCAN_PRESETS });
     }
 
@@ -264,7 +327,7 @@ export async function POST(request) {
       });
 
       writeEpochLedger(epochLedger);
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({ success: true, state, epochLedger, kvkPresets: KVK_SCAN_PRESETS });
     }
 
@@ -279,7 +342,7 @@ export async function POST(request) {
         kingdom: 'ALL',
         detail: `Operator toggled Bastion Autopilot to ${state.autopilotEnabled ? 'ON (12h Steady-State + 3h Demand Surge active)' : 'PAUSED (Manual Intervention Mode)'}.`,
       });
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({ success: true, state, epochLedger });
     }
 
@@ -294,7 +357,7 @@ export async function POST(request) {
         kingdom: state.nextGenesisWatchKingdom || 4203,
         detail: `SCOUT New-Kingdom Genesis Auto-Trigger set to ${state.autoGenesisEnabled ? 'ACTIVE — will auto-deploy bot the moment #' + state.nextGenesisWatchKingdom + ' opens' : 'PAUSED'}.`,
       });
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({ success: true, state, epochLedger });
     }
 
@@ -312,7 +375,7 @@ export async function POST(request) {
           kingdom: 'ALL',
           detail: `Switched ${state.ringModels[ringKey].ringName} model from ${oldModel} → ${modelId}.`,
         });
-        writeBastionState(state);
+        await writeBastionState(state);
       }
       return NextResponse.json({ success: true, state, epochLedger });
     }
@@ -336,7 +399,7 @@ export async function POST(request) {
         kingdom,
         detail: `NULL updated Kingdom #${kingdom} cadence to ${mode} (every ${cadenceHours || (mode === 'SURGE_3H' ? 3 : 12)}h).`,
       });
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({ success: true, state, epochLedger });
     }
 
@@ -356,8 +419,22 @@ export async function POST(request) {
         inst.lastHeartbeat = new Date().toISOString();
       }
 
-      const psCmd = `Start-Process python -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
-      const dispatchResult = await dispatchToClusterHub(psCmd);
+      state.activeScanProgress = {
+        running: true,
+        status: 'SWITCHING_CHARACTER',
+        preset: 'BOT_PROVISION',
+        kingdom: String(kingdom),
+        currentRank: 1,
+        targetRanks: 6,
+        percent: 16.7,
+        instanceId,
+        lastGovernorName: `[1/6] Switching ${instanceId} to Kingdom #${kingdom} (~22s)...`,
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
+      const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
         agent: 'CIPHER',
@@ -367,8 +444,15 @@ export async function POST(request) {
         kingdom,
         detail: `${gate.reason} Dispatched 22s character switch on ${instanceId} → Kingdom #${kingdom} (${targetChar ? targetChar.name : 'Character Slot'}).`,
       });
-      writeBastionState(state);
-      return NextResponse.json({ success: true, state, epochLedger, gate, dispatchResult });
+      await writeBastionState(state);
+      return NextResponse.json({
+        success: true,
+        state,
+        epochLedger,
+        activeScanProgress: state.activeScanProgress,
+        gate,
+        dispatchResult,
+      });
     }
 
     // 6. PROVISION NEW KINGDOM / GENESIS BOT DEPLOYMENT
@@ -393,7 +477,7 @@ export async function POST(request) {
           kingdom: targetKd,
           detail: gate.reason,
         });
-        writeBastionState(state);
+        await writeBastionState(state);
         return NextResponse.json({ success: false, vetoed: true, gate, state, epochLedger }, { status: 400 });
       }
 
@@ -461,8 +545,22 @@ export async function POST(request) {
         state.nextGenesisWatchKingdom = Number(targetKd) + 1;
       }
 
-      const psCmd = `Start-Process python -ArgumentList 'C:\\UnityScanner\\bastion_genesis_probe.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
-      const dispatchResult = await dispatchToClusterHub(psCmd);
+      state.activeScanProgress = {
+        running: true,
+        status: 'PROVISIONING_BOT',
+        preset: 'BOT_PROVISION',
+        kingdom: targetKd,
+        currentRank: 1,
+        targetRanks: 6,
+        percent: 16.7,
+        instanceId,
+        lastGovernorName: `[1/6] Standing up Bot in Kingdom #${targetKd} on ${instanceId}...`,
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
+      const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
         agent: isGenesis ? 'SCOUT' : 'CIPHER',
@@ -473,8 +571,15 @@ export async function POST(request) {
         detail: `${gate.reason} Launched autonomous character creation + tutorial clear in Kingdom #${targetKd} on ${instanceId}. Locked #${targetKd} into Bot-Sovereign Epoch 0.`,
       });
 
-      writeBastionState(state);
-      return NextResponse.json({ success: true, state, epochLedger, gate, dispatchResult });
+      await writeBastionState(state);
+      return NextResponse.json({
+        success: true,
+        state,
+        epochLedger,
+        activeScanProgress: state.activeScanProgress,
+        gate,
+        dispatchResult,
+      });
     }
 
     // 7. RECORD UNITY API DEMAND PULSE (KENT -> NULL Auto-Scaler)
@@ -501,7 +606,7 @@ export async function POST(request) {
           });
         }
       }
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({ success: true, state, epochLedger });
     }
 
@@ -531,12 +636,9 @@ export async function POST(request) {
         inst.status = 'SCANNING_LIVE';
       }
 
-      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
-      const dispatchResult = await dispatchToClusterHub(psCmd);
-
       state.activeScanProgress = {
         running: true,
-        status: dispatchResult.dispatched ? 'SCANNING_LIVE' : 'QUEUED_FOR_SIDEKICK',
+        status: 'SCANNING_LIVE',
         kingdom: targetKd,
         currentRank: 1,
         targetRanks: preset.targetRanks,
@@ -550,15 +652,10 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      try {
-        await fetch(`${CLUSTER_HUB_URL}/scan-progress`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(state.activeScanProgress),
-        });
-      } catch {}
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
+      const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({
         success: true,
         state,
@@ -570,16 +667,7 @@ export async function POST(request) {
 
     // 9. STOP / ABORT ACTIVE SCAN ON SIDEKICK
     if (action === 'STOP_ACTIVE_SCAN') {
-      const killCmd = `Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Remove-Item "C:\\UnityScanner\\scan_progress.json" -Force -ErrorAction SilentlyContinue`;
-      const dispatchResult = await dispatchToClusterHub(killCmd);
-
-      (state.instances || []).forEach((inst) => {
-        if (inst.status === 'SCANNING_LIVE') {
-          inst.status = 'ONLINE_IDLE';
-          inst.assignedTask = 'STANDBY_STEADY_12H';
-        }
-      });
-
+      const killCmd = `Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*provision_neighbor_kingdom*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*auto_tutorial_ch8*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Remove-Item "C:\\UnityScanner\\scan_progress.json" -Force -ErrorAction SilentlyContinue`;
       state.activeScanProgress = {
         running: false,
         status: 'STOPPED_BY_OPERATOR',
@@ -589,14 +677,14 @@ export async function POST(request) {
         percent: state.activeScanProgress?.percent || 0,
         updatedAt: new Date().toISOString(),
       };
+      const dispatchResult = await dispatchToClusterHub(killCmd, state.activeScanProgress);
 
-      try {
-        await fetch(`${CLUSTER_HUB_URL}/scan-progress`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(state.activeScanProgress),
-        });
-      } catch {}
+      (state.instances || []).forEach((inst) => {
+        if (inst.status === 'SCANNING_LIVE' || inst.status === 'BUSY_PROVISIONING') {
+          inst.status = 'ONLINE_IDLE';
+          inst.assignedTask = 'STANDBY_STEADY_12H';
+        }
+      });
 
       appendLog(state, {
         agent: 'TANK',
@@ -604,10 +692,10 @@ export async function POST(request) {
         model: r2Model,
         action: 'SCAN_ABORTED_BY_OPERATOR',
         kingdom: state.activeScanProgress.kingdom,
-        detail: 'Operator sent immediate STOP signal to terminate active Python scanner process on SIDEKICK.',
+        detail: 'Operator sent immediate STOP signal to terminate active Python scanner/provisioner process on SIDEKICK.',
       });
 
-      writeBastionState(state);
+      await writeBastionState(state);
       return NextResponse.json({
         success: true,
         state,

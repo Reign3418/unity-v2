@@ -115,6 +115,13 @@ Write-Host "[ONLINE] Background daemon spawned on $env:COMPUTERNAME! Running for
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Request-Private-Network');
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
   if (req.method === 'GET' && url.pathname === '/join') {
@@ -167,9 +174,16 @@ const server = http.createServer((req, res) => {
     try {
       if (req.method === 'POST' && url.pathname === '/scan-progress') {
         const data = JSON.parse(body || '{}');
+        const pct =
+          typeof data.percent === 'number'
+            ? data.percent
+            : data.currentRank && data.targetRanks
+            ? Math.min(100, +((data.currentRank / data.targetRanks) * 100).toFixed(1))
+            : liveScanProgress.percent || 0;
         liveScanProgress = {
           ...liveScanProgress,
           ...data,
+          percent: pct,
           updatedAt: new Date().toISOString(),
         };
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -266,4 +280,112 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[UNITY CLUSTER HUB] Listening on http://${HOST_IP}:${PORT}`);
+  startDynamoCloudBridge();
 });
+
+function loadEnvLocal() {
+  try {
+    const envPath = path.join(SCANNER_DIR, '..', '.env.local');
+    if (fs.existsSync(envPath)) {
+      const lines = fs.readFileSync(envPath, 'utf-8').split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+          if (!process.env[key]) process.env[key] = val;
+        }
+      }
+    }
+  } catch {}
+}
+
+function startDynamoCloudBridge() {
+  loadEnvLocal();
+  const tableName = process.env.AWS_TABLE_NAME;
+  if (!tableName || !process.env.AWS_ACCESS_KEY_ID) {
+    console.log('[CLOUD BRIDGE] No AWS credentials found in .env.local; running LAN-only.');
+    return;
+  }
+
+  let DynamoDBClient, QueryCommand, PutItemCommand, dbClient;
+  try {
+    ({ DynamoDBClient, QueryCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb'));
+    dbClient = new DynamoDBClient({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+    console.log(`[CLOUD BRIDGE] Connected to DynamoDB (${tableName}) — bridging Vercel Cloud <-> SIDEKICK LAN`);
+  } catch (err) {
+    console.error('[CLOUD BRIDGE] Failed to initialize DynamoDB client:', err.message);
+    return;
+  }
+
+  let lastExecutedCmdId = null;
+
+  setInterval(async () => {
+    try {
+      // 1. Push live SIDEKICK telemetry + scan progress to DynamoDB for Vercel
+      const telemetryPayload = JSON.stringify({
+        nodes,
+        liveScanProgress,
+        queueLength: commandQueue.length,
+        updatedAt: new Date().toISOString(),
+      });
+      await dbClient.send(
+        new PutItemCommand({
+          TableName: tableName,
+          Item: {
+            PK: { S: 'GLOBAL_CONFIG' },
+            SK: { S: 'CONFIG#BASTION_CLOUD_TELEMETRY' },
+            attributes: { M: { value: { S: telemetryPayload } } },
+          },
+        })
+      );
+
+      // 2. Check if Vercel queued a command in BASTION_CLOUD_CMD
+      const res = await dbClient.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'PK = :pk AND SK = :sk',
+          ExpressionAttributeValues: {
+            ':pk': { S: 'GLOBAL_CONFIG' },
+            ':sk': { S: 'CONFIG#BASTION_CLOUD_CMD' },
+          },
+        })
+      );
+
+      const rawCmd = res.Items?.[0]?.attributes?.M?.value?.S;
+      if (rawCmd) {
+        const cmdRecord = JSON.parse(rawCmd);
+        if (cmdRecord.cmdId && cmdRecord.cmdId !== lastExecutedCmdId) {
+          const ageMs = Date.now() - new Date(cmdRecord.queuedAt || 0).getTime();
+          if (ageMs < 120000 && cmdRecord.command) {
+            lastExecutedCmdId = cmdRecord.cmdId;
+            console.log(`[CLOUD BRIDGE] Picked up Vercel command ${cmdRecord.cmdId}: ${cmdRecord.command}`);
+            commandQueue.push({
+              id: cmdRecord.cmdId,
+              cmd: cmdRecord.command,
+              createdAt: new Date().toISOString(),
+            });
+            if (cmdRecord.scanProgress) {
+              liveScanProgress = {
+                ...liveScanProgress,
+                ...cmdRecord.scanProgress,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+          } else {
+            lastExecutedCmdId = cmdRecord.cmdId;
+          }
+        }
+      }
+    } catch {}
+  }, 3000);
+}
+

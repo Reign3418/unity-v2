@@ -78,52 +78,111 @@ def find_kingdom_coords(img_path: str, kingdom_num: str):
     return None
 
 
+def report_progress(kingdom: str, step: int, total_steps: int, status_label: str, detail: str, running: bool = True):
+    try:
+        import urllib.request
+        import json as _json
+        payload = {
+            "running": running,
+            "status": status_label,
+            "kingdom": str(kingdom),
+            "preset": "BOT_PROVISION",
+            "currentRank": step,
+            "targetRanks": total_steps,
+            "governorsExtracted": step,
+            "lastGovernorName": detail,
+            "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        req = urllib.request.Request(
+            "http://192.168.50.41:8888/scan-progress",
+            data=_json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=2.0)
+    except Exception:
+        pass
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--adb", default="127.0.0.1:16384")
-    parser.add_argument("--kingdom", required=True, help="Target kingdom number, e.g. 4195")
+    parser.add_argument("--adb", "--adb-serial", dest="adb", default="127.0.0.1:16384")
+    parser.add_argument("--kingdom", required=True, help="Target kingdom number, e.g. 4044 or 4195")
+    parser.add_argument("--mode", default="create", choices=["create", "switch", "probe"])
     parser.add_argument("--tutorial-steps", type=int, default=55, help="Autonomous tutorial steps to run after spawn")
     args = parser.parse_args()
 
     snap_path = os.path.join(SCRIPT_DIR, "prov_step.png")
+    report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", f"[1/6] Checking City HUD on {args.adb}...")
 
     a0 = screencap(args.adb, snap_path)
     ribbon = a0[85:125, 15:70]
     diff_br = float((ribbon[:, :, 2].astype(np.float32) - ribbon[:, :, 0].astype(np.float32)).mean())
     if diff_br < 45.0:
-        print("[0/6] Returning to City HUD (closing Victory HOME -> Campaign Back -> Modal X)...")
-        tap(args.adb, 644, 762, 3.5)
-        tap(args.adb, 48, 52, 3.5)
-        tap(args.adb, 1352, 114, 2.0)
+        print("[0/6] Returning to City HUD (closing any open modals)...")
+        report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", "[1/6] Returning to City HUD (closing open modals)...")
+        tap(args.adb, 1365, 108, 1.8)
+        tap(args.adb, 1396, 83, 1.8)
 
     print(f"[1/6] Opening Governor Profile -> Settings -> Characters...")
+    report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
     tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
     tap(args.adb, 1325, 760, 2.2)     # Settings gear
     tap(args.adb, 1155, 255, 3.8)     # Characters icon
+
+    if args.mode == "switch":
+        report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
+        screencap(args.adb, snap_path)
+        found_char = find_kingdom_coords(snap_path, str(args.kingdom))
+        if found_char:
+            cx, cy, ctext = found_char
+            report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom}...")
+            tap(args.adb, cx, cy, 2.5)
+            tap(args.adb, 1016, 639, 18.0)
+            report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
+            return
+
     tap(args.adb, 504, 333, 4.5)      # + Create New Character
 
     print(f"[2/6] Searching Kingdom List for #{args.kingdom}...")
     found = None
-    for scroll_idx in range(5):
+    for scroll_idx in range(18):
+        report_progress(
+            args.kingdom,
+            3,
+            6,
+            "PROVISIONING_BOT",
+            f"[3/6] Scanning Kingdom List for #{args.kingdom} (Viewport {scroll_idx + 1}/18)...",
+        )
         screencap(args.adb, snap_path)
         found = find_kingdom_coords(snap_path, str(args.kingdom))
         if found:
             break
-        print(f"  -> #{args.kingdom} not in current viewport (scroll {scroll_idx + 1}/4)...")
-        swipe(args.adb, 800, 700, 800, 420, 800, 2.0)
+        print(f"  -> #{args.kingdom} not in current viewport (scroll {scroll_idx + 1}/18)...")
+        swipe(args.adb, 800, 720, 800, 360, 750, 2.0)
 
     if not found:
         print(f"[ERROR] Could not locate #{args.kingdom} in Kingdom List.")
+        report_progress(
+            args.kingdom,
+            3,
+            6,
+            "NEEDS_CONTINENT_SELECT",
+            f"Kingdom #{args.kingdom} not in current continent viewport — ready on Create Character screen",
+            running=False,
+        )
         sys.exit(1)
 
     kx, ky, ktext = found
     print(f"[3/6] Found '{ktext}' at ({kx}, {ky}) -> tapping kingdom card...")
+    report_progress(args.kingdom, 4, 6, "PROVISIONING_BOT", f"[4/6] Found #{args.kingdom} at ({kx},{ky}) -> Confirming Spawn...")
     tap(args.adb, kx + 40, ky, 2.2)
 
     print(f"[4/6] Confirming Character Creation in #{args.kingdom} -> tap YES (1016, 639)...")
     tap(args.adb, 1016, 639, 25.0)
 
     print(f"[5/6] Selecting China civilization & skipping intro cutscene...")
+    report_progress(args.kingdom, 5, 6, "PROVISIONING_BOT", f"[5/6] Selecting China Civilization & Skipping Cutscene in #{args.kingdom}...")
     tap(args.adb, 580, 755, 2.2)      # Tap PICK CIVILIZATION
     tap(args.adb, 240, 800, 2.0)      # Select China
     tap(args.adb, 1352, 630, 4.0)     # Tap CONFIRM
@@ -131,14 +190,17 @@ def main():
 
     if args.tutorial_steps > 0:
         print(f"[6/6] Running {args.tutorial_steps} autonomous tutorial steps in #{args.kingdom}...")
+        report_progress(args.kingdom, 6, 6, "PROVISIONING_BOT", f"[6/6] Clearing Ch.1 Tutorial in #{args.kingdom} ({args.tutorial_steps} steps)...")
         tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
         subprocess.run(
             [sys.executable, tut_script, "--adb", args.adb, "--steps", str(args.tutorial_steps)],
             check=False,
         )
     screencap(args.adb, snap_path)
+    report_progress(args.kingdom, 6, 6, "COMPLETED", f"Provisioned Bot in Kingdom #{args.kingdom}", running=False)
     print(f"[DONE] Provisioned #{args.kingdom} character.")
 
 
 if __name__ == "__main__":
     main()
+

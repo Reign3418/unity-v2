@@ -178,10 +178,35 @@ export default function BastionCommandCenter() {
       if (res.ok) {
         const data = await res.json();
         setState(data.state);
-        setClusterLive(data.clusterLive);
         if (data.epochLedger) setEpochLedger(data.epochLedger);
         if (data.kvkPresets) setKvkPresets(data.kvkPresets);
-        if (data.activeScanProgress) setActiveScanProgress(data.activeScanProgress);
+
+        let liveHub = data.clusterLive;
+        let mergedProgress = data.activeScanProgress;
+
+        // If served from Vercel Cloud, bridge directly from Browser -> Local Cluster Hub (127.0.0.1:8888)
+        if (!liveHub) {
+          try {
+            const hubRes = await fetch('http://127.0.0.1:8888/status');
+            if (hubRes.ok) {
+              liveHub = await hubRes.json();
+              const hubProg = liveHub?.liveScanProgress;
+              const sidekickNode = liveHub?.nodes?.SIDEKICK;
+              if (hubProg && (hubProg.running || hubProg.currentRank > 0)) {
+                mergedProgress = {
+                  ...mergedProgress,
+                  ...hubProg,
+                  sidekickOnline: Boolean(sidekickNode),
+                  sidekickLastSeen: sidekickNode?.lastSeen || null,
+                  scannerPid: sidekickNode?.scannerPid || hubProg.scannerPid || null,
+                };
+              }
+            }
+          } catch {}
+        }
+
+        setClusterLive(liveHub);
+        if (mergedProgress) setActiveScanProgress(mergedProgress);
       }
     } catch (err) {
       console.error('Failed to load Bastion state:', err);
@@ -211,6 +236,28 @@ export default function BastionCommandCenter() {
       if (data.epochLedger) setEpochLedger(data.epochLedger);
       if (data.kvkPresets) setKvkPresets(data.kvkPresets);
       if (data.activeScanProgress) setActiveScanProgress(data.activeScanProgress);
+
+      // If /api/bastion ran on Vercel Cloud, forward command + progress directly from Browser -> 127.0.0.1:8888
+      if (data.dispatchResult && data.dispatchResult.mode !== 'DIRECT_LAN' && data.dispatchResult.psCommand) {
+        try {
+          if (data.activeScanProgress) {
+            await fetch('http://127.0.0.1:8888/scan-progress', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data.activeScanProgress),
+            });
+          }
+          await fetch('http://127.0.0.1:8888/exec', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command: data.dispatchResult.psCommand,
+              cmd: data.dispatchResult.psCommand,
+              async: true,
+            }),
+          });
+        } catch {}
+      }
 
       if (!res.ok || data.vetoed) {
         setBannerMsg({
@@ -413,13 +460,14 @@ export default function BastionCommandCenter() {
             </select>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
+                setQuickScanKingdom(newKingdomInput);
                 dispatchAction(
                   'TRIGGER_GENESIS_BOT',
                   { kingdom: newKingdomInput, instanceId: selectedInstanceForNewKd },
                   'deploy-genesis'
-                )
-              }
+                );
+              }}
               disabled={busyAction === 'deploy-genesis'}
               className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
@@ -472,19 +520,26 @@ export default function BastionCommandCenter() {
                 <Activity size={12} />
                 <span>
                   {activeScanProgress?.running
-                    ? `🟢 LIVE SCAN RUNNING ON SIDEKICK ${
-                        activeScanProgress?.scannerPid ? `(PID ${activeScanProgress.scannerPid})` : ''
-                      }`
+                    ? activeScanProgress?.status === 'PROVISIONING_BOT'
+                      ? `🟢 PROVISIONING BOT IN KINGDOM #${activeScanProgress?.kingdom} ON SIDEKICK`
+                      : activeScanProgress?.status === 'SWITCHING_CHARACTER'
+                      ? `🟢 SWITCHING BOT TO KINGDOM #${activeScanProgress?.kingdom} ON SIDEKICK`
+                      : `🟢 LIVE SCAN RUNNING ON SIDEKICK ${
+                          activeScanProgress?.scannerPid ? `(PID ${activeScanProgress.scannerPid})` : ''
+                        }`
                     : activeScanProgress?.status === 'COMPLETED'
-                    ? '✅ LAST SCAN COMPLETED'
+                    ? '✅ LAST OPERATION COMPLETED'
                     : activeScanProgress?.status === 'STOPPED_BY_OPERATOR'
-                    ? '🛑 SCAN STOPPED BY OPERATOR'
+                    ? '🛑 STOPPED BY OPERATOR'
+                    : activeScanProgress?.status === 'NEEDS_CONTINENT_SELECT'
+                    ? `⚠️ #${activeScanProgress?.kingdom} READY FOR CONTINENT SELECT ON SIDEKICK`
                     : '⚪ NO ACTIVE SCAN RUNNING (SIDEKICK READY)'}
                 </span>
               </span>
 
               <span className="text-xs font-bold text-white">
-                Kingdom #{activeScanProgress?.kingdom || quickScanKingdom} · Rank{' '}
+                Kingdom #{activeScanProgress?.kingdom || quickScanKingdom} ·{' '}
+                {activeScanProgress?.preset === 'BOT_PROVISION' ? 'Step' : 'Rank'}{' '}
                 <span className="text-amber-300">{activeScanProgress?.currentRank || 0}</span> /{' '}
                 <span>{activeScanProgress?.targetRanks || 650}</span> (
                 <span className="text-cyan-300">{activeScanProgress?.percent || 0}%</span>)
@@ -500,7 +555,7 @@ export default function BastionCommandCenter() {
             <div className="text-[11px] text-slate-400 font-sans">
               {activeScanProgress?.running ? (
                 <>
-                  Latest Governor Scanned:{' '}
+                  {activeScanProgress?.preset === 'BOT_PROVISION' ? 'Current Step:' : 'Latest Governor Scanned:'}{' '}
                   <span className="text-emerald-300 font-semibold font-mono">
                     {activeScanProgress.lastGovernorName || 'Stepping Leaderboard...'}
                   </span>
@@ -530,11 +585,21 @@ export default function BastionCommandCenter() {
               onChange={(e) => setQuickScanKingdom(e.target.value)}
               className="bg-[#06080d] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-amber-400 cursor-pointer"
             >
-              <option value="4194">Kingdom #4194 (2 Bots Ready)</option>
-              <option value="4193">Kingdom #4193 (1 Bot Ready)</option>
-              <option value="4195">Kingdom #4195 (1 Bot Ready)</option>
-              <option value="4196">Kingdom #4196 (1 Bot Ready)</option>
-              <option value="4202">Kingdom #4202 (Genesis Bot)</option>
+              {Array.from(
+                new Set([
+                  '4194',
+                  '4193',
+                  '4195',
+                  '4196',
+                  '4202',
+                  ...schedules.map((s) => String(s.kingdom)),
+                  ...(activeScanProgress?.kingdom ? [String(activeScanProgress.kingdom)] : []),
+                ])
+              ).map((kd) => (
+                <option key={kd} value={kd}>
+                  Kingdom #{kd}
+                </option>
+              ))}
             </select>
 
             <button
