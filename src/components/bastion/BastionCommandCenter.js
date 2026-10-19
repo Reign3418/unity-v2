@@ -150,7 +150,7 @@ const AGENT_DEFINITIONS = [
 ];
 
 export default function BastionCommandCenter() {
-  const { isRealValheonFounder, effectiveIsValheonFounder } = useRolePreview();
+  const { isRealValheonFounder, isRealSuperAdmin, effectiveIsValheonFounder, effectiveIsSuperAdmin } = useRolePreview();
   const [isLocalHost, setIsLocalHost] = useState(true);
   const [state, setState] = useState(null);
   const [clusterLive, setClusterLive] = useState(null);
@@ -232,7 +232,7 @@ export default function BastionCommandCenter() {
     }
   };
 
-  if (!isLocalHost && !isRealValheonFounder && !effectiveIsValheonFounder) {
+  if (!isLocalHost && !isRealValheonFounder && !isRealSuperAdmin && !effectiveIsValheonFounder && !effectiveIsSuperAdmin) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center font-mono p-8">
         <div className="p-6 rounded-2xl bg-[#0b0e17] border border-rose-500/40 max-w-md space-y-3">

@@ -401,7 +401,7 @@ export default function KingdomAnalysis() {
                       targetKd={targetKd}
                       provenance={rosterProvenance}
                       sourceMode={rosterSourceMode}
-                      isFounder={effectiveIsValheonFounder}
+                      isFounder={effectiveIsValheonFounder || isSuperAdmin}
                       onToggleSourceMode={(nextMode) => {
                           setRosterSourceMode(nextMode);
                           fetchRoster(targetKd, nextMode);
@@ -508,8 +508,8 @@ export default function KingdomAnalysis() {
             )}
           </select>
 
-          {/* Bastion Bot Epoch 0 vs Archive Toggle Chip (Founder Only) */}
-          {effectiveIsValheonFounder && (
+          {/* Bastion Bot Epoch 0 vs Archive Toggle Chip (Founder / SuperAdmin Only) */}
+          {(effectiveIsValheonFounder || isSuperAdmin) && (
             <button
               onClick={() => {
                 const nextMode = rosterSourceMode === "archive" ? "bot_sovereign" : "archive";
