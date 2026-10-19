@@ -95,7 +95,7 @@ async function dispatchToClusterHub(psCommand) {
     const res = await fetch(`${CLUSTER_HUB_URL}/exec`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cmd: psCommand }),
+      body: JSON.stringify({ command: psCommand, cmd: psCommand, async: true }),
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -127,12 +127,37 @@ export async function GET() {
   } catch {}
 
   const epochLedger = readEpochLedger();
+  const hubProg = clusterLive?.liveScanProgress;
+  const sidekickNode = clusterLive?.nodes?.SIDEKICK;
+  const activeScanProgress =
+    hubProg && (hubProg.running || hubProg.currentRank > 0)
+      ? {
+          ...state.activeScanProgress,
+          ...hubProg,
+          sidekickOnline: Boolean(sidekickNode),
+          sidekickLastSeen: sidekickNode?.lastSeen || null,
+          scannerPid: sidekickNode?.scannerPid || hubProg.scannerPid || null,
+        }
+      : {
+          ...(state.activeScanProgress || {
+            running: false,
+            status: 'IDLE',
+            kingdom: '4194',
+            currentRank: 0,
+            targetRanks: 650,
+            percent: 0,
+          }),
+          sidekickOnline: Boolean(sidekickNode),
+          sidekickLastSeen: sidekickNode?.lastSeen || null,
+          scannerPid: sidekickNode?.scannerPid || null,
+        };
 
   return NextResponse.json({
     success: true,
     state,
     clusterLive,
     epochLedger,
+    activeScanProgress,
     kvkPresets: KVK_SCAN_PRESETS,
   });
 }
@@ -506,11 +531,90 @@ export async function POST(request) {
         inst.status = 'SCANNING_LIVE';
       }
 
-      const psCmd = `Start-Process python -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --kingdom ${targetKd} --max-ranks ${preset.targetRanks}' -WindowStyle Hidden`;
+      const psCmd = `Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py"; Start-Process python -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd);
 
+      state.activeScanProgress = {
+        running: true,
+        status: dispatchResult.dispatched ? 'SCANNING_LIVE' : 'QUEUED_FOR_SIDEKICK',
+        kingdom: targetKd,
+        currentRank: 1,
+        targetRanks: preset.targetRanks,
+        percent: 0.2,
+        presetLabel: preset.label,
+        instanceId,
+        lastGovernorName: 'Dispatching to SIDEKICK...',
+        lastGovernorPower: 0,
+        etaSeconds: Math.round(preset.targetRanks * 3.1),
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      try {
+        await fetch(`${CLUSTER_HUB_URL}/scan-progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state.activeScanProgress),
+        });
+      } catch {}
+
       writeBastionState(state);
-      return NextResponse.json({ success: true, state, epochLedger, dispatchResult });
+      return NextResponse.json({
+        success: true,
+        state,
+        epochLedger,
+        activeScanProgress: state.activeScanProgress,
+        dispatchResult,
+      });
+    }
+
+    // 9. STOP / ABORT ACTIVE SCAN ON SIDEKICK
+    if (action === 'STOP_ACTIVE_SCAN') {
+      const killCmd = `Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Remove-Item "C:\\UnityScanner\\scan_progress.json" -Force -ErrorAction SilentlyContinue`;
+      const dispatchResult = await dispatchToClusterHub(killCmd);
+
+      (state.instances || []).forEach((inst) => {
+        if (inst.status === 'SCANNING_LIVE') {
+          inst.status = 'ONLINE_IDLE';
+          inst.assignedTask = 'STANDBY_STEADY_12H';
+        }
+      });
+
+      state.activeScanProgress = {
+        running: false,
+        status: 'STOPPED_BY_OPERATOR',
+        kingdom: state.activeScanProgress?.kingdom || '4194',
+        currentRank: state.activeScanProgress?.currentRank || 0,
+        targetRanks: state.activeScanProgress?.targetRanks || 650,
+        percent: state.activeScanProgress?.percent || 0,
+        updatedAt: new Date().toISOString(),
+      };
+
+      try {
+        await fetch(`${CLUSTER_HUB_URL}/scan-progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state.activeScanProgress),
+        });
+      } catch {}
+
+      appendLog(state, {
+        agent: 'TANK',
+        ring: 'ring2_dispatch',
+        model: r2Model,
+        action: 'SCAN_ABORTED_BY_OPERATOR',
+        kingdom: state.activeScanProgress.kingdom,
+        detail: 'Operator sent immediate STOP signal to terminate active Python scanner process on SIDEKICK.',
+      });
+
+      writeBastionState(state);
+      return NextResponse.json({
+        success: true,
+        state,
+        epochLedger,
+        activeScanProgress: state.activeScanProgress,
+        dispatchResult,
+      });
     }
 
     return NextResponse.json({ error: `Unknown Bastion action: ${action}` }, { status: 400 });

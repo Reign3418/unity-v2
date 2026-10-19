@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import {
   Shield,
   Cpu,
@@ -24,6 +25,7 @@ import {
   Eye,
   Compass,
   Database,
+  Lock,
   X,
 } from 'lucide-react';
 
@@ -148,16 +150,27 @@ const AGENT_DEFINITIONS = [
 ];
 
 export default function BastionCommandCenter() {
+  const { isRealValheonFounder, effectiveIsValheonFounder } = useRolePreview();
+  const [isLocalHost, setIsLocalHost] = useState(true);
   const [state, setState] = useState(null);
   const [clusterLive, setClusterLive] = useState(null);
   const [epochLedger, setEpochLedger] = useState(null);
   const [kvkPresets, setKvkPresets] = useState(null);
+  const [activeScanProgress, setActiveScanProgress] = useState(null);
+  const [quickScanKingdom, setQuickScanKingdom] = useState('4194');
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState(null);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [newKingdomInput, setNewKingdomInput] = useState('4203');
   const [selectedInstanceForNewKd, setSelectedInstanceForNewKd] = useState('sidekick-mumu-0');
   const [bannerMsg, setBannerMsg] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const h = window.location.hostname;
+      setIsLocalHost(h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.'));
+    }
+  }, []);
 
   const fetchBastion = useCallback(async () => {
     try {
@@ -168,6 +181,7 @@ export default function BastionCommandCenter() {
         setClusterLive(data.clusterLive);
         if (data.epochLedger) setEpochLedger(data.epochLedger);
         if (data.kvkPresets) setKvkPresets(data.kvkPresets);
+        if (data.activeScanProgress) setActiveScanProgress(data.activeScanProgress);
       }
     } catch (err) {
       console.error('Failed to load Bastion state:', err);
@@ -178,9 +192,10 @@ export default function BastionCommandCenter() {
 
   useEffect(() => {
     fetchBastion();
-    const iv = setInterval(fetchBastion, 8000);
+    const pollMs = activeScanProgress?.running ? 2500 : 6000;
+    const iv = setInterval(fetchBastion, pollMs);
     return () => clearInterval(iv);
-  }, [fetchBastion]);
+  }, [fetchBastion, activeScanProgress?.running]);
 
   const dispatchAction = async (action, payload = {}, label = action) => {
     setBusyAction(label);
@@ -195,6 +210,7 @@ export default function BastionCommandCenter() {
       if (data.state) setState(data.state);
       if (data.epochLedger) setEpochLedger(data.epochLedger);
       if (data.kvkPresets) setKvkPresets(data.kvkPresets);
+      if (data.activeScanProgress) setActiveScanProgress(data.activeScanProgress);
 
       if (!res.ok || data.vetoed) {
         setBannerMsg({
@@ -215,6 +231,23 @@ export default function BastionCommandCenter() {
       setBusyAction(null);
     }
   };
+
+  if (!isLocalHost && !isRealValheonFounder && !effectiveIsValheonFounder) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center font-mono p-8">
+        <div className="p-6 rounded-2xl bg-[#0b0e17] border border-rose-500/40 max-w-md space-y-3">
+          <Lock className="text-rose-400 mx-auto" size={36} />
+          <div className="text-sm font-black text-white uppercase tracking-widest">
+            VALHEON FOUNDER CLEARANCE REQUIRED
+          </div>
+          <p className="text-xs text-slate-400 font-sans">
+            The Bastion Autonomous Fleet Orchestrator is restricted exclusively to Principal Systems Architect
+            clearance (Reign3418).
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !state) {
     return (
@@ -414,6 +447,148 @@ export default function BastionCommandCenter() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* LIVE ACTIVE SCANNER EXECUTION & RANK-BY-RANK PROGRESS BAR */}
+      <div
+        className={`p-5 rounded-2xl border shadow-xl transition-all ${
+          activeScanProgress?.running
+            ? 'bg-gradient-to-r from-emerald-950/40 via-[#0d1922] to-[#0b0e17] border-emerald-500/50'
+            : 'bg-[#0b0e17] border-slate-800'
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span
+                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${
+                  activeScanProgress?.running
+                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 animate-pulse'
+                    : activeScanProgress?.status === 'COMPLETED'
+                    ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <Activity size={12} />
+                <span>
+                  {activeScanProgress?.running
+                    ? `🟢 LIVE SCAN RUNNING ON SIDEKICK ${
+                        activeScanProgress?.scannerPid ? `(PID ${activeScanProgress.scannerPid})` : ''
+                      }`
+                    : activeScanProgress?.status === 'COMPLETED'
+                    ? '✅ LAST SCAN COMPLETED'
+                    : activeScanProgress?.status === 'STOPPED_BY_OPERATOR'
+                    ? '🛑 SCAN STOPPED BY OPERATOR'
+                    : '⚪ NO ACTIVE SCAN RUNNING (SIDEKICK READY)'}
+                </span>
+              </span>
+
+              <span className="text-xs font-bold text-white">
+                Kingdom #{activeScanProgress?.kingdom || quickScanKingdom} · Rank{' '}
+                <span className="text-amber-300">{activeScanProgress?.currentRank || 0}</span> /{' '}
+                <span>{activeScanProgress?.targetRanks || 650}</span> (
+                <span className="text-cyan-300">{activeScanProgress?.percent || 0}%</span>)
+              </span>
+
+              {activeScanProgress?.etaSeconds > 0 && activeScanProgress?.running && (
+                <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">
+                  ETA: ~{Math.max(1, Math.round(activeScanProgress.etaSeconds / 60))}m remaining
+                </span>
+              )}
+            </div>
+
+            <div className="text-[11px] text-slate-400 font-sans">
+              {activeScanProgress?.running ? (
+                <>
+                  Latest Governor Scanned:{' '}
+                  <span className="text-emerald-300 font-semibold font-mono">
+                    {activeScanProgress.lastGovernorName || 'Stepping Leaderboard...'}
+                  </span>
+                  {activeScanProgress.lastGovernorPower > 0 && (
+                    <span className="ml-2 text-slate-300 font-mono">
+                      ({(activeScanProgress.lastGovernorPower / 1_000_000).toFixed(2)}M Power)
+                    </span>
+                  )}
+                  <span className="ml-3 text-cyan-300 font-mono">
+                    · 45-Field Govs Cached: {activeScanProgress.governorsExtracted || 1000}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Select a target kingdom and click <span className="text-emerald-300 font-semibold">Launch Scan</span>{' '}
+                  to dispatch <span className="text-amber-300 font-mono">unity_autonomous_scanner.py</span> on{' '}
+                  <span className="text-cyan-300 font-mono">SIDEKICK</span> and watch live rank-by-rank progress here.
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Launch / Stop Scan Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={quickScanKingdom}
+              onChange={(e) => setQuickScanKingdom(e.target.value)}
+              className="bg-[#06080d] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-amber-400 cursor-pointer"
+            >
+              <option value="4194">Kingdom #4194 (2 Bots Ready)</option>
+              <option value="4193">Kingdom #4193 (1 Bot Ready)</option>
+              <option value="4195">Kingdom #4195 (1 Bot Ready)</option>
+              <option value="4196">Kingdom #4196 (1 Bot Ready)</option>
+              <option value="4202">Kingdom #4202 (Genesis Bot)</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={() =>
+                dispatchAction(
+                  'RUN_IMMEDIATE_SCAN',
+                  {
+                    kingdom: quickScanKingdom,
+                    presetId: epochLedger?.defaultScanPreset || 'SWEET_650',
+                    instanceId: 'sidekick-mumu-0',
+                  },
+                  'quick-launch-scan'
+                )
+              }
+              disabled={busyAction === 'quick-launch-scan'}
+              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Play size={13} />
+              <span>{activeScanProgress?.running ? 'Restart Scan' : `Launch #${quickScanKingdom} Scan Now`}</span>
+            </button>
+
+            {activeScanProgress?.running && (
+              <button
+                type="button"
+                onClick={() => dispatchAction('STOP_ACTIVE_SCAN', {}, 'stop-active-scan')}
+                disabled={busyAction === 'stop-active-scan'}
+                className="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/50 text-rose-200 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Pause size={13} />
+                <span>Stop / Abort Scan</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Visual Progress Bar */}
+        <div className="mt-3 w-full h-2.5 bg-[#06080d] rounded-full overflow-hidden border border-slate-800">
+          <div
+            className={`h-full transition-all duration-500 ${
+              activeScanProgress?.running
+                ? 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-amber-400'
+                : activeScanProgress?.status === 'COMPLETED'
+                ? 'bg-cyan-500'
+                : 'bg-slate-700'
+            }`}
+            style={{
+              width: `${Math.min(
+                100,
+                Math.max(activeScanProgress?.running ? 2 : 0, Number(activeScanProgress?.percent || 0))
+              )}%`,
+            }}
+          />
+        </div>
       </div>
 
       {/* SECTION 1: THE 3 BASTION MOE RINGS + INDEPENDENT LLM / SLM ROUTING */}

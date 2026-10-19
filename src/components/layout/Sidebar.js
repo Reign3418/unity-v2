@@ -495,13 +495,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   label={t('nav_project_cerberus')}
                   isAi={true}
                 />
-                <NavItem
-                  href="/bastion"
-                  icon={Bot}
-                  label="🏰 Bastion MoE Ring"
-                  badge="LIVE"
-                  isAi={true}
-                />
               </>
             )}
 

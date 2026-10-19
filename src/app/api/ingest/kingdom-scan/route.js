@@ -68,6 +68,30 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
         monotonicFixes: dozerReport.monotonicFixes,
         updatedAt: new Date().toISOString(),
       };
+      try {
+        const bPath = path.join(process.cwd(), 'scanner', 'bastion_state.json');
+        if (fs.existsSync(bPath)) {
+          const bState = JSON.parse(fs.readFileSync(bPath, 'utf8'));
+          const cur = Number(progress.currentRank) || reconciledRoster.length;
+          const tgt = Number(progress.targetRank) || 650;
+          const isDone = cur >= tgt;
+          const latestGov = reconciledRoster[reconciledRoster.length - 1];
+          bState.activeScanProgress = {
+            ...(bState.activeScanProgress || {}),
+            running: !isDone,
+            status: isDone ? 'COMPLETED' : 'SCANNING_LIVE',
+            kingdom: kd,
+            currentRank: cur,
+            targetRanks: tgt,
+            percent: Math.min(100, Math.round((cur / Math.max(1, tgt)) * 1000) / 10),
+            lastGovernorName: latestGov?.name || 'Scanning...',
+            lastGovernorPower: latestGov?.power || 0,
+            governorsExtracted: Object.keys(cache.kingdoms[kd].governors).length,
+            updatedAt: new Date().toISOString(),
+          };
+          fs.writeFileSync(bPath, JSON.stringify(bState, null, 2), 'utf8');
+        }
+      } catch {}
     }
 
     for (const enriched of reconciledRoster) {

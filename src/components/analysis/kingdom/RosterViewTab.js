@@ -103,7 +103,7 @@ function exportRosterCsv(rows) {
 }
 
 // ─── Governor Profiles Sub-Tab ────────────────────────────────────────────────
-function GovernorProfiles({ rosterData }) {
+function GovernorProfiles({ rosterData, isFounder = false }) {
     const { data: session } = useSession();
     const isR4 = session?.user?.isLeader || session?.user?.isSuperAdmin;
     const [notesModalGov, setNotesModalGov] = useState(null);
@@ -356,7 +356,7 @@ function GovernorProfiles({ rosterData }) {
                                     <div className="font-bold text-white text-xs leading-tight whitespace-nowrap">{gov.name}</div>
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                         <span className="text-gray-500 font-mono text-[10px]">{gov.id}</span>
-                                        {gov.sourceBadge && (
+                                        {isFounder && gov.sourceBadge && (
                                             <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${
                                                 gov.sourceBadge.includes("ARCHIVE")
                                                     ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
@@ -556,6 +556,7 @@ export default function RosterViewTab({
     targetKd = "4194",
     provenance = null,
     sourceMode = "bot_sovereign",
+    isFounder = false,
     onToggleSourceMode = null,
 }) {
     const [view, setView] = useState("governors");
@@ -576,7 +577,7 @@ export default function RosterViewTab({
         return (
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-12 text-center text-gray-500 space-y-3">
                 <div>No roster data available for Kingdom #{targetKd} in {sourceMode === "archive" ? "Historical Archive" : "Bot-Sovereign"} mode.</div>
-                {onToggleSourceMode && (
+                {isFounder && onToggleSourceMode && (
                     <button
                         onClick={() => onToggleSourceMode(sourceMode === "archive" ? "bot_sovereign" : "archive")}
                         className="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold"
@@ -593,47 +594,49 @@ export default function RosterViewTab({
 
     return (
         <div className="space-y-4">
-            {/* DOZER Provenance & Epoch 0 Archival Cutover Banner */}
-            <div className={`rounded-xl p-3.5 border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-                isArchiveView
-                    ? "bg-amber-950/20 border-amber-500/40"
-                    : isBotSovereign
-                    ? "bg-emerald-950/20 border-emerald-500/40"
-                    : "bg-[#0f1115] border-[#1e222b]"
-            }`}>
-                <div className="flex items-center gap-3 flex-wrap">
-                    <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold border ${
-                        isArchiveView
-                            ? "bg-amber-500/20 border-amber-500/50 text-amber-300"
-                            : isBotSovereign
-                            ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
-                            : "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
-                    }`}>
-                        {isArchiveView
-                            ? "🏛️ HISTORICAL ARCHIVE (VIEW-ONLY · DELTAS ZEROED)"
-                            : isBotSovereign
-                            ? `🤖 BASTION BOT SOVEREIGN · EPOCH 0 (${provenance?.epochMeta?.scanDepthPreset || 650}+ PRESET)`
-                            : "📊 SPREADSHEET LEDGER"}
-                    </span>
-                    <span className="text-xs text-gray-300 font-mono">
-                        {isArchiveView
-                            ? "Viewing legacy pre-Bot sheets for historical reference. Zeroed out from active KvK delta math."
-                            : "DOZER Monotonic Lifetime KP/Deads Guard Active · Non-Destructive Deep Field Carry-Forward Enabled"}
-                    </span>
-                </div>
-                {onToggleSourceMode && (
-                    <button
-                        onClick={() => onToggleSourceMode(isArchiveView ? "bot_sovereign" : "archive")}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all shrink-0 ${
+            {/* DOZER Provenance & Epoch 0 Archival Cutover Banner (Founder Only) */}
+            {isFounder && (
+                <div className={`rounded-xl p-3.5 border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                    isArchiveView
+                        ? "bg-amber-950/20 border-amber-500/40"
+                        : isBotSovereign
+                        ? "bg-emerald-950/20 border-emerald-500/40"
+                        : "bg-[#0f1115] border-[#1e222b]"
+                }`}>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold border ${
                             isArchiveView
-                                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
-                                : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
-                        }`}
-                    >
-                        {isArchiveView ? "Return to 🤖 Active Bot Epoch 0" : "Inspect 🏛️ Historical Archive (View-Only)"}
-                    </button>
-                )}
-            </div>
+                                ? "bg-amber-500/20 border-amber-500/50 text-amber-300"
+                                : isBotSovereign
+                                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
+                                : "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
+                        }`}>
+                            {isArchiveView
+                                ? "🏛️ HISTORICAL ARCHIVE (VIEW-ONLY · DELTAS ZEROED)"
+                                : isBotSovereign
+                                ? `🤖 BASTION BOT SOVEREIGN · EPOCH 0 (${provenance?.epochMeta?.scanDepthPreset || 650}+ PRESET)`
+                                : "📊 SPREADSHEET LEDGER"}
+                        </span>
+                        <span className="text-xs text-gray-300 font-mono">
+                            {isArchiveView
+                                ? "Viewing legacy pre-Bot sheets for historical reference. Zeroed out from active KvK delta math."
+                                : "DOZER Monotonic Lifetime KP/Deads Guard Active · Non-Destructive Deep Field Carry-Forward Enabled"}
+                        </span>
+                    </div>
+                    {onToggleSourceMode && (
+                        <button
+                            onClick={() => onToggleSourceMode(isArchiveView ? "bot_sovereign" : "archive")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all shrink-0 ${
+                                isArchiveView
+                                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                                    : "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
+                            }`}
+                        >
+                            {isArchiveView ? "Return to 🤖 Active Bot Epoch 0" : "Inspect 🏛️ Historical Archive (View-Only)"}
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Sub-Tab Switcher */}
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
@@ -669,7 +672,7 @@ export default function RosterViewTab({
             {/* Content */}
             <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4">
                 {view === "governors"
-                    ? <GovernorProfiles rosterData={rosterData} />
+                    ? <GovernorProfiles rosterData={rosterData} isFounder={isFounder} />
                     : <AllianceAnalysis rosterData={rosterData} />
                 }
             </div>

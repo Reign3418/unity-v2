@@ -16,6 +16,18 @@ const SCANNER_DIR = __dirname;
 const nodes = {}; // hostname -> { lastSeen, info }
 const commandQueue = []; // { id, cmd, createdAt }
 const commandHistory = [];
+let liveScanProgress = {
+  running: false,
+  status: 'IDLE',
+  kingdom: '4194',
+  currentRank: 0,
+  targetRanks: 650,
+  percent: 0,
+  lastGovernorName: null,
+  lastGovernorPower: 0,
+  governorsExtracted: 1000,
+  updatedAt: null,
+};
 
 const WORKER_LOOP_PS1 = `
 $ErrorActionPreference = "Continue"
@@ -25,12 +37,21 @@ Set-Location $WorkDir
 
 while ($true) {
     try {
+        $pyProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*provision_neighbor*" } | Select-Object -First 1
+        $progObj = $null
+        if (Test-Path "$WorkDir\\scan_progress.json") {
+            try { $progObj = Get-Content "$WorkDir\\scan_progress.json" -Raw | ConvertFrom-Json } catch {}
+        }
         $payload = @{
             hostname = $env:COMPUTERNAME
             user = $env:USERNAME
             workdir = $WorkDir
+            scannerRunning = [bool]($null -ne $pyProc)
+            scannerPid = if ($pyProc) { $pyProc.ProcessId } else { $null }
+            scannerCmd = if ($pyProc) { $pyProc.CommandLine } else { $null }
+            scanProgress = $progObj
             timestamp = (Get-Date).ToString("o")
-        } | ConvertTo-Json -Compress
+        } | ConvertTo-Json -Compress -Depth 4
         $resp = Invoke-RestMethod -Uri "$HubUrl/heartbeat" -Method Post -Body $payload -ContentType "application/json" -TimeoutSec 10
         if ($resp.commandId -and $resp.command) {
             Write-Host "[EXEC] $($resp.command)" -ForegroundColor Yellow
@@ -120,12 +141,18 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
+    const compactHistory = commandHistory.slice(-10).map((item) => ({
+      ...item,
+      stdout: item.stdout ? String(item.stdout).slice(0, 600) : '',
+      stderr: item.stderr ? String(item.stderr).slice(0, 400) : '',
+    }));
     return res.end(
       JSON.stringify(
         {
           nodes,
           queueLength: commandQueue.length,
-          recentHistory: commandHistory.slice(-10),
+          liveScanProgress,
+          recentHistory: compactHistory,
         },
         null,
         2
@@ -138,9 +165,34 @@ const server = http.createServer((req, res) => {
   req.on('end', () => {
     const body = Buffer.concat(chunks).toString('utf8');
     try {
+      if (req.method === 'POST' && url.pathname === '/scan-progress') {
+        const data = JSON.parse(body || '{}');
+        liveScanProgress = {
+          ...liveScanProgress,
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true, liveScanProgress }));
+      }
+
       if (req.method === 'POST' && url.pathname === '/heartbeat') {
         const data = JSON.parse(body || '{}');
         const ip = req.socket.remoteAddress;
+        if (data.scanProgress) {
+          liveScanProgress = {
+            ...liveScanProgress,
+            ...data.scanProgress,
+            running: typeof data.scannerRunning === 'boolean' ? data.scannerRunning : Boolean(data.scanProgress.running),
+            scannerPid: data.scannerPid || data.scanProgress.pid || null,
+          };
+        } else if (typeof data.scannerRunning === 'boolean') {
+          liveScanProgress.running = data.scannerRunning;
+          liveScanProgress.scannerPid = data.scannerPid || null;
+          if (!data.scannerRunning && liveScanProgress.status === 'SCANNING_LIVE') {
+            liveScanProgress.status = 'IDLE';
+          }
+        }
         nodes[data.hostname || ip] = {
           ...data,
           ip,
@@ -171,15 +223,26 @@ const server = http.createServer((req, res) => {
 
       if (req.method === 'POST' && url.pathname === '/exec') {
         const data = JSON.parse(body || '{}');
+        const cmdStr = data.command || data.cmd;
+        if (!cmdStr) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Missing command or cmd field' }));
+        }
         const id = 'cmd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-        global._pendingResolvers = global._pendingResolvers || {};
+        commandQueue.push({ id, cmd: cmdStr, createdAt: new Date().toISOString() });
 
+        if (data.async) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ queued: true, commandId: id, command: cmdStr }));
+        }
+
+        global._pendingResolvers = global._pendingResolvers || {};
         const timeoutMs = data.timeoutMs || 120000;
         const timer = setTimeout(() => {
           if (global._pendingResolvers[id]) {
             delete global._pendingResolvers[id];
             res.writeHead(504, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Timed out waiting for Node 2 response' }));
+            res.end(JSON.stringify({ error: 'Timed out waiting for Node 2 response', commandId: id }));
           }
         }, timeoutMs);
 
@@ -188,8 +251,6 @@ const server = http.createServer((req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         };
-
-        commandQueue.push({ id, cmd: data.command, createdAt: new Date().toISOString() });
         return;
       }
 

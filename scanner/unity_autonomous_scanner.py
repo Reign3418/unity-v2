@@ -798,10 +798,30 @@ def run_ram_dump(args):
         )
 
 
+PROGRESS_FILE = os.path.join(SCRIPT_DIR, "scan_progress.json")
+HUB_URL = os.environ.get("UNITY_HUB_URL", "http://192.168.50.41:8888")
+
+
+def write_scan_progress(payload):
+    try:
+        payload["pid"] = os.getpid()
+        payload["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        with open(PROGRESS_FILE, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+    except Exception:
+        pass
+    try:
+        requests.post(f"{HUB_URL}/scan-progress", json=payload, timeout=1.5)
+    except Exception:
+        pass
+
+
 def run_kingdom_scan(args):
     driver = AdbEmulatorDriver(serial=args.adb)
     scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"
+    started_at_iso = datetime.now(timezone.utc).isoformat()
+    t_start = time.time()
 
     print("==================================================================")
     print(f"  UNITY 45-FIELD MUMU RAM + BINARY SAVE SCANNER | KD #{args.kd} | Ranks {args.start_rank}..{args.end_rank}")
@@ -810,6 +830,24 @@ def run_kingdom_scan(args):
 
     first_rows_y = [315, 430, 545, 660, 775]
     settled_y = 775
+    last_gov_name = "Initializing..."
+    last_gov_power = 0
+    total_extracted = 0
+
+    write_scan_progress({
+        "running": True,
+        "status": "SCANNING_LIVE",
+        "kingdom": str(args.kd),
+        "currentRank": args.start_rank,
+        "targetRanks": args.end_rank,
+        "percent": 0.0,
+        "lastGovernorName": last_gov_name,
+        "lastGovernorPower": last_gov_power,
+        "governorsExtracted": 0,
+        "startedAt": started_at_iso,
+        "etaSeconds": int((args.end_rank - args.start_rank + 1) * 3.1),
+        "workerSerial": args.adb,
+    })
 
     for rank in range(args.start_rank, args.end_rank + 1):
         ry = first_rows_y[rank - 1] if rank <= 5 else settled_y
@@ -822,14 +860,25 @@ def run_kingdom_scan(args):
         if rank >= 5:
             driver.swipe(600, 780, 600, 665, duration_ms=550, sleep_sec=0.55)
 
-        if rank % 10 == 0 or rank == args.end_rank:
+        elapsed = max(1.0, time.time() - t_start)
+        done_steps = max(1, rank - args.start_rank + 1)
+        avg_sec = elapsed / done_steps
+        rem_steps = max(0, args.end_rank - rank)
+        pct = round((rank / max(1, args.end_rank)) * 100, 1)
+
+        if rank % 10 == 0 or rank == args.end_rank or rank == 1:
             ram_govs = extract_all_governors_from_ram()
             save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
             merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
+            total_extracted = len(merged_govs)
+            if merged_govs:
+                top_latest = merged_govs[min(rank - 1, len(merged_govs) - 1)]
+                last_gov_name = top_latest.get("name", last_gov_name)
+                last_gov_power = top_latest.get("power", last_gov_power)
             print(
                 f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} RAM + {len(save_govs)} Save -> {len(merged_govs)} governors!"
             )
-            if merged_govs:
+            if merged_govs and (rank % 10 == 0 or rank == args.end_rank):
                 push_batch_to_unity(
                     ingest_url,
                     args.scanner_key,
@@ -846,16 +895,46 @@ def run_kingdom_scan(args):
                     },
                 )
 
+        write_scan_progress({
+            "running": True,
+            "status": "SCANNING_LIVE",
+            "kingdom": str(args.kd),
+            "currentRank": rank,
+            "targetRanks": args.end_rank,
+            "percent": pct,
+            "lastGovernorName": last_gov_name,
+            "lastGovernorPower": last_gov_power,
+            "governorsExtracted": total_extracted,
+            "startedAt": started_at_iso,
+            "etaSeconds": int(rem_steps * avg_sec),
+            "workerSerial": args.adb,
+        })
+
+    write_scan_progress({
+        "running": False,
+        "status": "COMPLETED",
+        "kingdom": str(args.kd),
+        "currentRank": args.end_rank,
+        "targetRanks": args.end_rank,
+        "percent": 100.0,
+        "lastGovernorName": last_gov_name,
+        "lastGovernorPower": last_gov_power,
+        "governorsExtracted": total_extracted,
+        "startedAt": started_at_iso,
+        "etaSeconds": 0,
+        "workerSerial": args.adb,
+    })
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unity Autonomous 45-Field MuMu RAM + Binary Save Telemetry Scanner")
-    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan"], default="ram-dump")
+    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan"], default="kingdom-scan")
     parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial")
-    parser.add_argument("--kd", default="4194", help="Target Kingdom ID")
+    parser.add_argument("--kd", "--kingdom", dest="kd", default="4194", help="Target Kingdom ID")
     parser.add_argument("--start-rank", type=int, default=1)
-    parser.add_argument("--end-rank", type=int, default=25)
+    parser.add_argument("--end-rank", "--max-ranks", dest="end_rank", type=int, default=650)
     parser.add_argument("--scan-date", default=None)
-    parser.add_argument("--push", action="store_true", help="Push extracted 45-field governors to Unity API")
+    parser.add_argument("--push", action="store_true", default=True, help="Push extracted 45-field governors to Unity API")
     parser.add_argument("--unity-url", default=os.environ.get("UNITY_URL", "http://192.168.50.41:3000"))
     parser.add_argument("--scanner-key", default=os.environ.get("UNITY_SCANNER_KEY", "unity-local-node2-telemetry"))
     args = parser.parse_args()
@@ -864,4 +943,5 @@ if __name__ == "__main__":
         run_ram_dump(args)
     elif args.mode == "kingdom-scan":
         run_kingdom_scan(args)
+
 

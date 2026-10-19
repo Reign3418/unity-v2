@@ -122,7 +122,7 @@ export default function KingdomAnalysis() {
   }, []);
 
   // ── Role tier resolution (additive hierarchy with Role Preview support) ──
-  const { effectiveIsSuperAdmin, effectiveIsLeader, effectiveIsAnalyst, effectiveSession } = useRolePreview();
+  const { effectiveIsValheonFounder, effectiveIsSuperAdmin, effectiveIsLeader, effectiveIsAnalyst, effectiveSession } = useRolePreview();
   const isAnalyst    = effectiveIsAnalyst;
   const isLeader     = effectiveIsLeader;
   const isSuperAdmin = effectiveIsSuperAdmin;
@@ -401,6 +401,7 @@ export default function KingdomAnalysis() {
                       targetKd={targetKd}
                       provenance={rosterProvenance}
                       sourceMode={rosterSourceMode}
+                      isFounder={effectiveIsValheonFounder}
                       onToggleSourceMode={(nextMode) => {
                           setRosterSourceMode(nextMode);
                           fetchRoster(targetKd, nextMode);
@@ -507,32 +508,34 @@ export default function KingdomAnalysis() {
             )}
           </select>
 
-          {/* Bastion Bot Epoch 0 vs Archive Toggle Chip */}
-          <button
-            onClick={() => {
-              const nextMode = rosterSourceMode === "archive" ? "bot_sovereign" : "archive";
-              setRosterSourceMode(nextMode);
-              fetchRoster(targetKd, nextMode);
-            }}
-            title={rosterSourceMode === "archive"
-              ? "Currently viewing pre-Bot Historical Archive (View-Only, deltas zeroed). Click to return to Active Bastion Bot Epoch 0."
-              : "Active Bastion Bot Sovereign Mode (Epoch 0). Click to inspect View-Only Legacy Sheet Archive."}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-mono font-bold border transition-all shadow-md shrink-0 ${
-              rosterSourceMode === "archive"
-                ? "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
-                : rosterProvenance?.epochMeta?.status === "BOT_SOVEREIGN"
-                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25"
-                : "bg-cyan-500/15 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
-            }`}
-          >
-            <span>
-              {rosterSourceMode === "archive"
-                ? "🏛️ ARCHIVE (VIEW-ONLY)"
-                : rosterProvenance?.epochMeta?.status === "BOT_SOVEREIGN"
-                ? "🤖 BASTION BOT · EPOCH 0"
-                : "📊 SHEET LEDGER"}
-            </span>
-          </button>
+          {/* Bastion Bot Epoch 0 vs Archive Toggle Chip (Founder Only) */}
+          {effectiveIsValheonFounder && (
+            <button
+              onClick={() => {
+                const nextMode = rosterSourceMode === "archive" ? "bot_sovereign" : "archive";
+                setRosterSourceMode(nextMode);
+                fetchRoster(targetKd, nextMode);
+              }}
+              title={rosterSourceMode === "archive"
+                ? "Currently viewing pre-Bot Historical Archive (View-Only, deltas zeroed). Click to return to Active Bastion Bot Epoch 0."
+                : "Active Bastion Bot Sovereign Mode (Epoch 0). Click to inspect View-Only Legacy Sheet Archive."}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-mono font-bold border transition-all shadow-md shrink-0 ${
+                rosterSourceMode === "archive"
+                  ? "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
+                  : rosterProvenance?.epochMeta?.status === "BOT_SOVEREIGN"
+                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25"
+                  : "bg-cyan-500/15 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
+              }`}
+            >
+              <span>
+                {rosterSourceMode === "archive"
+                  ? "🏛️ ARCHIVE (VIEW-ONLY)"
+                  : rosterProvenance?.epochMeta?.status === "BOT_SOVEREIGN"
+                  ? "🤖 BASTION BOT · EPOCH 0"
+                  : "📊 SHEET LEDGER"}
+              </span>
+            </button>
+          )}
 
           {/* Kingdom Age & Season Badge */}
           {serverAgeDays !== null && (
