@@ -352,6 +352,31 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
     return None
 
 
+def report_tut_progress(step: int, total_steps: int, detail: str, running: bool = True):
+    try:
+        import urllib.request
+        import json as _json
+        payload = {
+            "running": running,
+            "status": "PROVISIONING_BOT" if running else "COMPLETED",
+            "preset": "BOT_PROVISION",
+            "currentRank": step,
+            "targetRanks": total_steps,
+            "governorsExtracted": step,
+            "lastGovernorName": detail,
+            "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        req = urllib.request.Request(
+            "http://192.168.50.41:8888/scan-progress",
+            data=_json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=1.5)
+    except Exception:
+        pass
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--adb", default="127.0.0.1:16384")
@@ -364,6 +389,7 @@ def main():
     repeat_cnt = 0
 
     for step in range(1, args.steps + 1):
+        report_tut_progress(step, args.steps, f"[6/6] Autonomous Tutorial Unlock — Step {step}/{args.steps}...")
         a1, a2 = screencap_pair(args.adb, p1, p2)
 
         pc = detect_pick_civilization(a2)
