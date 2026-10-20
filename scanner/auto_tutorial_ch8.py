@@ -183,13 +183,13 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(gold_qd)) > 0.35 and float(np.mean(cyan_st)) > 0.35:
         return (650, 790, "VENGEANCE_QUICK_DEPLOY_AND_START")
 
-    # 6b. Vengeance Stage 1 Active Skill Prompt: white bubble at x=215..750, y=280..335 + gold skill icon at x=215..285, y=380..450
-    v_bub = a[280:335, 215:750]
+    # 6b. Vengeance Stage 1 Active Skill Prompt: white bubble at x=215..750, y=315..400 + gold skill icon at x=215..295, y=405..475
+    v_bub = a[315:400, 215:750]
     is_vbub = (v_bub[:, :, 0] >= 220) & (v_bub[:, :, 1] >= 220) & (v_bub[:, :, 2] >= 220)
-    v_sk = a[380:450, 215:285]
-    is_vsk = (v_sk[:, :, 0] >= 195) & (v_sk[:, :, 1] >= 135) & (v_sk[:, :, 2] <= 75)
-    if float(np.mean(is_vbub)) > 0.55 and float(np.mean(is_vsk)) > 0.25:
-        return (250, 415, "Vengeance -> Cast Active Skill")
+    v_sk = a[405:475, 215:295]
+    is_vsk = (v_sk[:, :, 0] >= 195) & (v_sk[:, :, 1] >= 135) & (v_sk[:, :, 2] <= 110)
+    if float(np.mean(is_vbub)) > 0.50 and float(np.mean(is_vsk)) > 0.18:
+        return (256, 437, "VENGEANCE_CAST_SKILL_AND_EXIT")
 
     # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760, y=845..900) + Golden OPEN ANOTHER (x=825..1105, y=845..900)
     t_conf = a[850:898, 495:755]
@@ -438,10 +438,12 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
         hdr = a[75:145, 500:1100]
         if float(hdr.mean()) > 125.0 and float(np.mean(np.abs(hdr[:, :, 0] - hdr[:, :, 1]) < 25)) > 0.60:
             return (1375, 110, "Modal Open -> Close (1375, 110)")
-        # If top-aligned modal header bar (DLC at y=30..90, x=500..1100) is open, tap top-right X (1365, 58)
+        # If top-aligned modal header bar (Mail/DLC at y=30..90, x=500..1100) is open, tap top-right X (1540, 58 for full-width Mail; 1365, 58 for DLC)
         hdr2 = a[30:90, 500:1100]
         if float(hdr2.mean()) > 125.0 and float(np.mean(np.abs(hdr2[:, :, 0] - hdr2[:, :, 1]) < 25)) > 0.60:
-            return (1365, 58, "Top Modal Open -> Close (1365, 58)")
+            if float(a[35:80, 1480:1560].mean()) > 125.0:
+                return (1540, 58, "Full-Width Top Modal (Mail) -> Close (1540, 58)")
+            return (1365, 58, "Top Modal Open (DLC) -> Close (1365, 58)")
         # If top-left Back button (48, 52) is visible (Commander/Tavern view), tap (48, 52)
         back_btn = a[20:85, 20:85]
         if float(back_btn.mean()) > 110.0 and float(np.mean(np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)) > 0.55:
@@ -571,8 +573,12 @@ def main():
                 tap(args.adb, 110, 265, 1.0)
                 tap(args.adb, 265, 265, 1.0)
                 tap(args.adb, 650, 790, 1.2)
-                tap(args.adb, 945, 790, 11.5)
+                tap(args.adb, 945, 790, 6.0)
+            elif nt[2] == "VENGEANCE_CAST_SKILL_AND_EXIT":
+                print(f"[Step {step:02d}] Vengeance Active Skill (256,437) -> Wait Victory -> Exit (48,52)")
+                tap(args.adb, 256, 437, 8.5)
                 tap(args.adb, 800, 780, 1.8)
+                tap(args.adb, 48, 52, 1.5)
                 tap(args.adb, 48, 52, 1.2)
             elif nt[2] == "COMMANDER_LEVEL_UP_5":
                 print(f"[Step {step:02d}] Commander Screen -> Level Up (1498,408) + XP Tomes (525,340)x10 + Back (48,52)")
