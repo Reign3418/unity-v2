@@ -8,7 +8,7 @@
   "demandThresholdForSurge": 5,
   "highestKnownKingdom": 4202,
   "nextGenesisWatchKingdom": 4203,
-  "lastUpdated": "2026-10-19T22:45:00.000Z",
+  "lastUpdated": "2026-10-20T06:00:00.000Z",
   "ringModels": {
     "ring1_intelligence": {
       "ringName": "Ring 1: Intelligence, Demand & Genesis Discovery",
@@ -112,7 +112,7 @@
       "ramUsedGb": 14.2,
       "ramTotalGb": 63.8,
       "maxConcurrentInstances": 4,
-      "activeInstances": 1,
+      "activeInstances": 2,
       "role": "Primary 24/7 Multi-Emulator RoK Telemetry Cluster"
     },
     {
@@ -148,15 +148,15 @@
       "instanceId": "sidekick-mumu-1",
       "nodeId": "SIDEKICK",
       "adbAddress": "127.0.0.1:16416",
-      "accountSlot": "Account #2 (Dedicated #4194 Anchor / Offload Worker)",
-      "status": "STANDBY_PROVISIONABLE",
-      "activeKingdom": "4194",
-      "activeCharacter": "Unassigned (Ready for Email #2)",
-      "assignedTask": "STANDBY (Offloads #4194 24/7 so Instance #0 roams freely)",
-      "assignedSlice": "1-500",
-      "charactersCount": 0,
+      "accountSlot": "Account #2 (Parallel Multi-Kingdom Worker)",
+      "status": "ACTIVE_READY",
+      "activeKingdom": "4044",
+      "activeCharacter": "516K Power Account (#4044 / S11001)",
+      "assignedTask": "ONLINE_READY (Parallel ADB 127.0.0.1:16416)",
+      "assignedSlice": "1-650",
+      "charactersCount": 1,
       "lastSwitchSec": 0,
-      "lastHeartbeat": "2026-10-19T19:04:55.000Z"
+      "lastHeartbeat": "2026-10-20T05:25:00.000Z"
     },
     {
       "instanceId": "sidekick-mumu-2",
