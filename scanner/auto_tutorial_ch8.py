@@ -392,8 +392,9 @@ def main():
     parser.add_argument("--steps", type=int, default=40)
     args = parser.parse_args()
 
-    p1 = os.path.join(SCRIPT_DIR, "auto_step.png")
-    p2 = os.path.join(SCRIPT_DIR, "auto_step2.png")
+    adb_port = str(args.adb).split(":")[-1]
+    p1 = os.path.join(SCRIPT_DIR, f"auto_step_{adb_port}.png")
+    p2 = os.path.join(SCRIPT_DIR, f"auto_step2_{adb_port}.png")
     last_spear = None
     repeat_cnt = 0
 

@@ -142,8 +142,18 @@ def report_progress(kingdom: str, step: int, total_steps: int, status_label: str
     }
     try:
         prog_path = os.path.join(SCRIPT_DIR, "scan_progress.json")
-        with open(prog_path, "w", encoding="utf-8") as f:
-            _json.dump(payload, f, indent=2)
+        can_write = True
+        if os.path.exists(prog_path):
+            try:
+                with open(prog_path, "r", encoding="utf-8") as rf:
+                    cur_p = _json.load(rf)
+                if cur_p.get("running") and cur_p.get("status") == "SCANNING_LIVE":
+                    can_write = False
+            except Exception:
+                pass
+        if can_write:
+            with open(prog_path, "w", encoding="utf-8") as f:
+                _json.dump(payload, f, indent=2)
     except Exception:
         pass
     try:
@@ -167,7 +177,8 @@ def main():
     parser.add_argument("--tutorial-steps", type=int, default=55, help="Autonomous tutorial steps to run after spawn")
     args = parser.parse_args()
 
-    snap_path = os.path.join(SCRIPT_DIR, "prov_step.png")
+    adb_port = str(args.adb).split(":")[-1]
+    snap_path = os.path.join(SCRIPT_DIR, f"prov_step_{adb_port}.png")
     report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", f"[1/6] Checking screen state on {args.adb}...")
 
     a0 = screencap(args.adb, snap_path)
@@ -334,6 +345,11 @@ def main():
         if gov_name.startswith("Governor (") and gov_id.isdigit():
             gov_name = f"Governor{gov_id}"
 
+        inst_id = (
+            "sidekick-mumu-1"
+            if "16416" in str(args.adb)
+            else ("sidekick-mumu-2" if "16448" in str(args.adb) else "sidekick-mumu-0")
+        )
         payload_bytes = json.dumps({
             "action": "REGISTER_PROVISIONED_BOT",
             "payload": {
@@ -342,7 +358,7 @@ def main():
                 "name": gov_name,
                 "chLevel": 2,
                 "power": 4287,
-                "instanceId": "sidekick-mumu-0",
+                "instanceId": inst_id,
             },
         }).encode("utf-8")
         req = urllib.request.Request(
