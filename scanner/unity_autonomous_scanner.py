@@ -1016,13 +1016,16 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
         prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
         if os.path.exists(prov_script):
             print(f"  [PREAMBLE] Verifying / switching active character to Kingdom #{target_kd}...")
-            subprocess.run(
-                [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
-                timeout=90,
-                check=False,
-            )
+            try:
+                subprocess.run(
+                    [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
+                    timeout=240,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                print(f"  [WARN] Character switch subprocess timed out after 240s; continuing preamble check...")
 
-    for attempt in range(1, 10):
+    for attempt in range(1, 15):
         screen_txt = get_screen_ocr_text(driver)
         if "INDIVIDUAL POWER RANKINGS" in screen_txt:
             print(f"  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open (attempt {attempt}).")
@@ -1034,7 +1037,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
             if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
                 return True
 
-        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt}/9)...")
+        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt}/14)...")
         def _clear_hud_for_avatar():
             try:
                 arr = np.array(driver.screenshot())
@@ -1093,9 +1096,8 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
         driver.tap(rank_x, 755, sleep_sec=2.2)
         after_rank_txt = get_screen_ocr_text(driver)
         if "LEVEL 8" in after_rank_txt or "VIEW RANKINGS" in after_rank_txt or "GOVERNOR PROFILE" in after_rank_txt:
-            print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/9)...")
-            subprocess.run([driver.adb_bin, "-s", driver.serial, "shell", "input", "keyevent", "4"], capture_output=True)
-            time.sleep(0.8)
+            print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/14)...")
+            driver.tap(1454, 105, sleep_sec=1.0)
             tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
             if os.path.exists(tut_script):
                 subprocess.run(

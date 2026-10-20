@@ -207,16 +207,24 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_q_hdr)) > 0.55 and float(np.mean(is_q_go)) > 0.35:
         return (1258, 325, "Quests Modal -> Tap Main Quest GO")
 
-    # 9. Commander Screen ('SKILLS' cyan button at x=755..955, y=800..885 + top-left grey Back button at x=20..85, y=20..85)
-    sk_btn = a[800:885, 755:955]
+    # 9a. Commander Upgrade Modal ('QUICK LEVEL' gold button at x=1107..1340, y=337..412 + cyan 'USE' button at x=1100..1340, y=490..565)
+    ql_gold = a[337:412, 1107:1340]
+    is_ql_gold = (ql_gold[:, :, 0] >= 200) & (ql_gold[:, :, 1] >= 130) & (ql_gold[:, :, 2] <= 50)
+    use_cy = a[490:565, 1100:1340]
+    is_use_cy = (use_cy[:, :, 2] >= 200) & (use_cy[:, :, 1] >= 145) & (use_cy[:, :, 0] <= 75)
+    if float(np.mean(is_ql_gold)) > 0.50 and float(np.mean(is_use_cy)) > 0.50:
+        return (1225, 371, "COMMANDER_UPGRADE_MODAL")
+
+    # 9b. Commander Screen ('SKILLS' cyan button at x=1220..1415, y=725..795 + top-left grey Back button at x=20..85, y=20..85)
+    sk_btn = a[725:795, 1220:1415]
     is_sk_cyan = (sk_btn[:, :, 2] >= 200) & (sk_btn[:, :, 1] >= 145) & (sk_btn[:, :, 0] <= 75)
     back_btn = a[20:85, 20:85]
     is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)
     if float(np.mean(is_sk_cyan)) > 0.45 and float(np.mean(is_back_grey)) > 0.55:
-        lvl_btn = a[380:435, 1470:1535]
-        is_lvl_green = (lvl_btn[:, :, 1] >= 150) & (lvl_btn[:, :, 0] <= 70) & (lvl_btn[:, :, 2] <= 70)
+        lvl_btn = a[340:390, 1480:1555]
+        is_lvl_green = (lvl_btn[:, :, 1] >= 165) & (lvl_btn[:, :, 0] <= 80) & (lvl_btn[:, :, 2] <= 80)
         if float(np.mean(is_lvl_green)) > 0.30:
-            return (1498, 408, "COMMANDER_LEVEL_UP_5")
+            return (1515, 363, "COMMANDER_LEVEL_UP_5")
         return (48, 52, "Commander Screen -> Tap Back (48, 52)")
 
     # 10. Gem Store / Pack Shop Screen (left brown tab bar x=10..250, y=150..750 + top-left grey Back button at 48, 52)
@@ -593,14 +601,20 @@ def main():
                 tap(args.adb, 256, 437, 8.5)
                 tap(args.adb, 800, 780, 1.8)
                 tap(args.adb, 48, 52, 1.5)
-            elif nt[2] == "COMMANDER_LEVEL_UP_5":
-                print(f"[Step {step:02d}] Commander Screen -> Level Up (1498,408) + XP Tomes (525,340)x10 + Back (48,52)")
-                if step % 2 == 0:
-                    tap(args.adb, 150, 250, 1.0)
-                tap(args.adb, 1498, 408, 1.2)
-                for _ in range(10):
-                    tap(args.adb, 525, 340, 0.25)
+            elif nt[2] == "COMMANDER_UPGRADE_MODAL":
+                print(f"[Step {step:02d}] Commander Upgrade Modal -> QUICK LEVEL (1225,371)x6 + Close (1380,112) + Back (48,52)")
+                for _ in range(6):
+                    tap(args.adb, 1225, 371, 0.45)
                 time.sleep(0.6)
+                tap(args.adb, 1380, 112, 1.0)
+                tap(args.adb, 48, 52, 1.1)
+            elif nt[2] == "COMMANDER_LEVEL_UP_5":
+                print(f"[Step {step:02d}] Commander Screen -> Level Up (1515,363) + QUICK LEVEL (1225,371)x6 + Close (1380,112) + Back (48,52)")
+                tap(args.adb, 1515, 363, 1.2)
+                for _ in range(6):
+                    tap(args.adb, 1225, 371, 0.45)
+                time.sleep(0.6)
+                tap(args.adb, 1380, 112, 1.0)
                 tap(args.adb, 48, 52, 1.1)
             else:
                 print(f"[Step {step:02d}] {nt[2]} -> tap ({nt[0]}, {nt[1]})")

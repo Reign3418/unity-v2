@@ -295,9 +295,9 @@ def main():
                     confirm_texts = " ".join([item[1].upper() for item in (res_confirm or [])])
                     if "NORMAL CHARACTERS" in confirm_texts or "CREATE NEW CHARACTER" in confirm_texts:
                         print(f"  -> Character {ctext} in #{args.kingdom} is ALREADY active (green checkmark)! Closing modals...")
-                        for _ in range(3):
-                            adb_shell(args.adb, "input keyevent 4")
-                            time.sleep(0.8)
+                        tap(args.adb, 1455, 88, 1.0)
+                        tap(args.adb, 1388, 56, 1.0)
+                        tap(args.adb, 1454, 105, 1.0)
                         report_progress(args.kingdom, 6, 6, "COMPLETED", f"Already active on Kingdom #{args.kingdom}", running=False)
                         return
                     # On CHARACTER LOGIN modal, YES is at (1035, 710); also check OCR for exact YES button
