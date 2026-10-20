@@ -219,6 +219,12 @@ def detect_new_troop_modal(a: np.ndarray):
             return (1498, 408, "COMMANDER_LEVEL_UP_5")
         return (48, 52, "Commander Screen -> Tap Back (48, 52)")
 
+    # 10. Gem Store / Pack Shop Screen (left brown tab bar x=10..250, y=150..750 + top-left grey Back button at 48, 52)
+    shop_bar = a[150:750, 10:250]
+    is_shop_brown = (shop_bar[:, :, 0] >= 75) & ((shop_bar[:, :, 0].astype(np.int32) - shop_bar[:, :, 2].astype(np.int32)) >= 45)
+    if float(np.mean(is_shop_brown)) > 0.60 and float(np.mean(is_back_grey)) > 0.55:
+        return (48, 52, "Gem Store Open -> Tap Back (48, 52)")
+
     return None
 
 
