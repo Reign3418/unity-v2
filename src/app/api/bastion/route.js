@@ -633,7 +633,8 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
+      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --adb ${adbSerial} --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
@@ -783,7 +784,8 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
+      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --adb ${adbSerial} --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       appendLog(state, {
@@ -972,7 +974,8 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
+      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb ${adbSerial} --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       await writeBastionState(state);
