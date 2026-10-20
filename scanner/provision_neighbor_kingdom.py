@@ -300,7 +300,15 @@ def main():
                             time.sleep(0.8)
                         report_progress(args.kingdom, 6, 6, "COMPLETED", f"Already active on Kingdom #{args.kingdom}", running=False)
                         return
-                    tap(args.adb, 1016, 639, 14.0)
+                    # On CHARACTER LOGIN modal, YES is at (1035, 710); also check OCR for exact YES button
+                    yes_x, yes_y = 1035, 710
+                    for item in (res_confirm or []):
+                        if item[1].strip().upper() == "YES":
+                            pts = item[0]
+                            yes_x = int(sum(p[0] for p in pts) / 4)
+                            yes_y = int(sum(p[1] for p in pts) / 4)
+                            break
+                    tap(args.adb, yes_x, yes_y, 14.0)
                     # Handle "Tap to Start" splash screen if present during character reload
                     for _ in range(3):
                         screencap(args.adb, snap_path)
