@@ -303,8 +303,10 @@ def spear_mask(a: np.ndarray) -> np.ndarray:
 def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     diff = np.abs(a1 - a2).sum(axis=2)
     sp = (spear_mask(a1) | spear_mask(a2)) & (diff >= 20)
-    # Exclude bottom-right HUD cyan icons (Items, Alliance, Commander, Mail, Menu at x>=850, y>=775)
-    sp[775:, 850:] = False
+    # Exclude bottom-right HUD cyan icons & bouncing resource cart (Items, Alliance, Commander, Mail, Menu at x>=850, y>=720)
+    sp[720:, 850:] = False
+    # Exclude bottom-left HUD blue Build/Map buttons themselves (x<=115, y>=685; spears pointing at them sit at y=520..665)
+    sp[685:, :115] = False
     # Filter out full-screen moving Kingdom Fog clouds
     if int(sp.sum()) > 12000:
         return None, None, 0
