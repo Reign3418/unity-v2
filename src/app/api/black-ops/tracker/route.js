@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { auth } from '@/lib/auth';
 import {
   getWatchlist,
   saveWatchlist,
@@ -33,6 +34,15 @@ function get4194Dataset() {
 
 export async function GET(req) {
   try {
+    const session = await auth();
+    const isSuperAdmin = Boolean(session?.user?.isSuperAdmin || session?.user?.isValheonFounder);
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: SuperAdmin clearance required for Black Ops operations.' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const query = (searchParams.get('q') || '').trim().toLowerCase();
     const action = searchParams.get('action');
@@ -88,6 +98,15 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
+    const session = await auth();
+    const isSuperAdmin = Boolean(session?.user?.isSuperAdmin || session?.user?.isValheonFounder);
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: SuperAdmin clearance required for Black Ops operations.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { action } = body;
 

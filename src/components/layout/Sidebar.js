@@ -91,6 +91,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       setOpenGroups((prev) => ({ ...prev, community: true }));
     } else if (
       pathname.includes('/bastion') ||
+      pathname.includes('/black-ops') ||
       pathname.includes('/creator/') ||
       pathname.includes('/admin')
     ) {
@@ -320,14 +321,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </CollapsibleSection>
 
             {/* Group 2: Tools & Inspection */}
-            <CollapsibleSection groupKey="tools" title={t('sec_tools')} count={14}>
-              <NavItem
-                href="/black-ops"
-                icon={Crosshair}
-                label="Black Ops Radar"
-                badge="LIVE"
-                badgeColor="bg-rose-500/15 text-rose-300 border-rose-500/30"
-              />
+            <CollapsibleSection groupKey="tools" title={t('sec_tools')} count={13}>
               <NavItem
                 href="/tools/hunter"
                 icon={Crosshair}
@@ -428,7 +422,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
             {/* Group 4: Admin, Creator & Bastion (SuperAdmin Only) */}
             {effectiveIsSuperAdmin && (
-              <CollapsibleSection groupKey="admin" title="Admin & Bastion" count={7}>
+              <CollapsibleSection groupKey="admin" title="Admin & Bastion" count={8}>
+                <NavItem
+                  href="/black-ops"
+                  icon={Crosshair}
+                  label="🎯 Black Ops Radar"
+                  badge="TOP SECRET"
+                  badgeColor="bg-rose-500/25 text-rose-200 border-rose-400/50"
+                />
                 <NavItem
                   href="/bastion"
                   icon={Bot}
