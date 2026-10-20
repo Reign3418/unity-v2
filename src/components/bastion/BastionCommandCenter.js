@@ -308,9 +308,13 @@ export default function BastionCommandCenter() {
   }
 
   const ringModels = state.ringModels || {};
-  const schedules = state.kingdomSchedules || [];
+  const schedules = [...(state.kingdomSchedules || [])].sort(
+    (a, b) => Number(a.kingdom || 0) - Number(b.kingdom || 0)
+  );
   const instances = state.instances || [];
-  const roster = state.roster || [];
+  const roster = [...(state.roster || [])].sort(
+    (a, b) => Number(a.kingdom || 0) - Number(b.kingdom || 0)
+  );
   const nodes = state.nodes || [];
   const logs = state.activityLog || [];
 
