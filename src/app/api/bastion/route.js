@@ -221,7 +221,10 @@ export async function GET() {
 
   const epochLedger = readEpochLedger();
   const hubProg = clusterLive?.liveScanProgress;
-  const sidekickNode = clusterLive?.nodes?.SIDEKICK;
+  const sidekickNode =
+    clusterLive?.nodes?.SIDEKICK ||
+    clusterLive?.nodes?.sidekick ||
+    Object.values(clusterLive?.nodes || {})[0];
   const activeScanProgress =
     hubProg && (hubProg.running || hubProg.currentRank > 0)
       ? {
@@ -290,10 +293,11 @@ export async function POST(request) {
             updatedAt: nowIso,
           };
 
+      const nodeKey = String(hostname || 'SIDEKICK').toUpperCase();
       const telemetryObj = {
         nodes: {
-          [hostname]: {
-            hostname,
+          [nodeKey]: {
+            hostname: nodeKey,
             ip,
             cpuLoadPct,
             ramUsedGb,
@@ -854,11 +858,18 @@ export async function POST(request) {
       });
 
       const inst = (state.instances || []).find((i) => i.instanceId === instanceId);
+      const needsSwitch = inst && String(inst.activeKingdom) !== targetKd;
       if (inst) {
         inst.activeKingdom = targetKd;
         inst.assignedSlice = slice;
         inst.assignedTask = `SCANNING_#${targetKd} (${preset.label})`;
         inst.status = 'SCANNING_LIVE';
+      }
+
+      const kdEntry = (state.kingdomSchedules || []).find((k) => String(k.kingdom) === targetKd);
+      if (kdEntry) {
+        const cadence = Number(kdEntry.cadenceHours) || (kdEntry.mode === 'SURGE_3H' ? 3 : 12);
+        kdEntry.nextScanAt = new Date(Date.now() + cadence * 3600 * 1000).toISOString();
       }
 
       state.activeScanProgress = {
@@ -870,14 +881,19 @@ export async function POST(request) {
         percent: 0.2,
         presetLabel: preset.label,
         instanceId,
-        lastGovernorName: 'Dispatching to SIDEKICK...',
+        lastGovernorName: needsSwitch
+          ? `Switching to #${targetKd} & starting ${preset.label} scan...`
+          : `Dispatching ${preset.label} scan to SIDEKICK...`,
         lastGovernorPower: 0,
         etaSeconds: Math.round(preset.targetRanks * 3.1),
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
+      const switchPrefix = needsSwitch
+        ? `& "C:\\UnityScanner\\.venv\\Scripts\\python.exe" C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode switch; `
+        : '';
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process powershell -ArgumentList '-NoProfile -WindowStyle Hidden -Command "${switchPrefix}& ''C:\\UnityScanner\\.venv\\Scripts\\python.exe'' C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push"' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       await writeBastionState(state);

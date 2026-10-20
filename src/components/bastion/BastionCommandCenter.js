@@ -857,6 +857,7 @@ export default function BastionCommandCenter() {
                 <th className="py-2.5 px-3">Kingdom</th>
                 <th className="py-2.5 px-3">Data Provenance / Epoch</th>
                 <th className="py-2.5 px-3">Active Mode / Cadence</th>
+                <th className="py-2.5 px-3">Last Scan Completed / Next Scan</th>
                 <th className="py-2.5 px-3">KvK Scan Depth</th>
                 <th className="py-2.5 px-3">Unity API Demand (KENT)</th>
                 <th className="py-2.5 px-3">Genesis Birth Roster</th>
@@ -870,6 +871,26 @@ export default function BastionCommandCenter() {
                 const isGenesisBase = kd.mode === 'GENESIS_BASELINE';
                 const kdEpoch = epochLedger?.kingdomEpochs?.[String(kd.kingdom)];
                 const activePreset = kd.scanPreset || kdEpoch?.scanPreset || epochLedger?.defaultScanPreset || 'SWEET_650';
+
+                const lastScanDate = kd.lastScanAt ? new Date(kd.lastScanAt) : null;
+                const nextScanDate = kd.nextScanAt && !isNaN(new Date(kd.nextScanAt).getTime()) ? new Date(kd.nextScanAt) : null;
+                const agoMins = lastScanDate ? Math.max(0, Math.round((Date.now() - lastScanDate.getTime()) / 60000)) : null;
+                const agoLabel =
+                  agoMins === null
+                    ? 'Never'
+                    : agoMins < 60
+                    ? `${agoMins}m ago`
+                    : `${Math.floor(agoMins / 60)}h ${agoMins % 60}m ago`;
+
+                const nextMins = nextScanDate ? Math.round((nextScanDate.getTime() - Date.now()) / 60000) : null;
+                const nextLabel =
+                  nextMins === null
+                    ? kd.nextScanAt || '—'
+                    : nextMins <= 0
+                    ? 'Due Now (Queued)'
+                    : nextMins < 60
+                    ? `in ${nextMins}m`
+                    : `in ${Math.floor(nextMins / 60)}h ${nextMins % 60}m`;
 
                 return (
                   <tr key={kd.kingdom} className="hover:bg-white/[0.02]">
@@ -905,6 +926,39 @@ export default function BastionCommandCenter() {
                       >
                         {kd.mode} ({kd.cadenceHours}h)
                       </span>
+                    </td>
+                    <td className="py-3 px-3">
+                      {isGenesisWatch ? (
+                        <span className="text-[10px] text-slate-500">Triggers on Spawn</span>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-white font-bold text-[11px]">
+                              {lastScanDate
+                                ? lastScanDate.toLocaleString([], {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : 'No Scan Yet'}
+                            </span>
+                            {agoMins !== null && (
+                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[9px] font-bold">
+                                {agoLabel}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Next:{' '}
+                            <span className={nextMins !== null && nextMins <= 0 ? 'text-amber-300 font-bold' : 'text-slate-300'}>
+                              {nextScanDate
+                                ? `${nextScanDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${nextLabel})`
+                                : nextLabel}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-3">
                       {isGenesisWatch ? (

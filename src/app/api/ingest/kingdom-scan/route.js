@@ -89,6 +89,13 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
             governorsExtracted: Object.keys(cache.kingdoms[kd].governors).length,
             updatedAt: new Date().toISOString(),
           };
+          const kdSched = (bState.kingdomSchedules || []).find((k) => String(k.kingdom) === kd);
+          if (kdSched) {
+            kdSched.lastScanAt = new Date().toISOString();
+            const cadence = Number(kdSched.cadenceHours) || (kdSched.mode === 'SURGE_3H' ? 3 : 12);
+            kdSched.nextScanAt = new Date(Date.now() + cadence * 3600 * 1000).toISOString();
+          }
+          bState.lastUpdated = new Date().toISOString();
           fs.writeFileSync(bPath, JSON.stringify(bState, null, 2), 'utf8');
         }
       } catch {}
@@ -216,6 +223,43 @@ export async function POST(req) {
         console.warn('[API/Ingest/Kingdom-Scan] AWS sync warning (local 45-field cache saved):', awsErr.message);
       }
     }
+
+    // Always sync lastScanAt & nextScanAt into BASTION_CLOUD_STATE in DynamoDB so Bastion UI shows live completion time
+    try {
+      const cloudRaw = await getGlobalConfig('BASTION_CLOUD_STATE');
+      const bPath = path.join(process.cwd(), 'scanner', 'bastion_state.json');
+      const baseState = cloudRaw
+        ? JSON.parse(cloudRaw)
+        : fs.existsSync(bPath)
+        ? JSON.parse(fs.readFileSync(bPath, 'utf8'))
+        : null;
+      if (baseState) {
+        const nowIso = new Date().toISOString();
+        const kdStr = String(kingdomId);
+        const kdSched = (baseState.kingdomSchedules || []).find((k) => String(k.kingdom) === kdStr);
+        if (kdSched) {
+          kdSched.lastScanAt = nowIso;
+          const cadence = Number(kdSched.cadenceHours) || (kdSched.mode === 'SURGE_3H' ? 3 : 12);
+          kdSched.nextScanAt = new Date(Date.now() + cadence * 3600 * 1000).toISOString();
+        }
+        const cur = Number(progress?.currentRank) || totalCachedInKingdom;
+        const tgt = Number(progress?.targetRank) || 650;
+        const isDone = cur >= tgt;
+        baseState.activeScanProgress = {
+          ...(baseState.activeScanProgress || {}),
+          running: !isDone,
+          status: isDone ? 'COMPLETED' : 'SCANNING_LIVE',
+          kingdom: kdStr,
+          currentRank: cur,
+          targetRanks: tgt,
+          percent: Math.min(100, Math.round((cur / Math.max(1, tgt)) * 1000) / 10),
+          governorsExtracted: totalCachedInKingdom,
+          updatedAt: nowIso,
+        };
+        baseState.lastUpdated = nowIso;
+        await updateGlobalConfig('BASTION_CLOUD_STATE', JSON.stringify(baseState));
+      }
+    } catch {}
 
     return NextResponse.json(
       {
