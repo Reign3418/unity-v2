@@ -1022,7 +1022,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
                 check=False,
             )
 
-    for attempt in range(1, 5):
+    for attempt in range(1, 10):
         screen_txt = get_screen_ocr_text(driver)
         if "INDIVIDUAL POWER RANKINGS" in screen_txt:
             print(f"  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open (attempt {attempt}).")
@@ -1034,7 +1034,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
             if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
                 return True
 
-        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt})...")
+        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt}/9)...")
         def _clear_hud_for_avatar():
             try:
                 arr = np.array(driver.screenshot())
@@ -1078,11 +1078,11 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
         driver.tap(45, 45, sleep_sec=2.2)
         prof_txt = get_screen_ocr_text(driver)
         if not any(k in prof_txt for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
-            print(f"  [PREAMBLE] Avatar (45,45) blocked by remaining tutorial on #{target_kd}; running 32 tutorial steps...")
+            print(f"  [PREAMBLE] Avatar (45,45) blocked by remaining tutorial on #{target_kd}; running 45 tutorial steps...")
             tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
             if os.path.exists(tut_script):
                 subprocess.run(
-                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "32"],
+                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "45"],
                     check=False,
                 )
             _clear_hud_for_avatar()
@@ -1091,6 +1091,19 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
 
         rank_x = 475 if "ACHIEVEMENTS" in prof_txt else 530
         driver.tap(rank_x, 755, sleep_sec=2.2)
+        after_rank_txt = get_screen_ocr_text(driver)
+        if "LEVEL 8" in after_rank_txt or "VIEW RANKINGS" in after_rank_txt or "GOVERNOR PROFILE" in after_rank_txt:
+            print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/9)...")
+            subprocess.run([driver.adb_bin, "-s", driver.serial, "shell", "input", "keyevent", "4"], capture_output=True)
+            time.sleep(0.8)
+            tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+            if os.path.exists(tut_script):
+                subprocess.run(
+                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "65"],
+                    check=False,
+                )
+            continue
+
         driver.tap(380, 560, sleep_sec=2.4)
 
         if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):

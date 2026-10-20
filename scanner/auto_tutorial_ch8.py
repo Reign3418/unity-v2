@@ -410,13 +410,13 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
             return (345, 560, "Build Drawer -> Tap Unlocked Slot #1")
         return None
 
-    # 1. Check for completed Side Quest pink gift icon at x=195..245, y=355..610
-    sub = a[355:610, 195:245]
+    # 1. Check for completed Main or Side Quest pink gift icon at x=195..245, y=285..610 (pick topmost first)
+    sub = a[285:610, 195:245]
     pink = (sub[:, :, 0] >= 200) & (sub[:, :, 1] <= 100) & (sub[:, :, 2] >= 170)
     ys, xs = np.where(pink)
     if len(xs) >= 35:
-        gy = int(np.median(ys) + 355)
-        return (120, gy + 15, "Claim Completed Side Quest")
+        gy = int(np.percentile(ys, 15) + 285)
+        return (120, gy + 15, "Claim Completed Quest Gift")
 
     # 2. Tap Main Quest Card at (120, 325) only if the dark translucent Quest Card is visible (not green grass)
     quest_card = a[305:345, 50:180]
