@@ -149,12 +149,14 @@ def detect_new_troop_modal(a: np.ndarray):
         return (340, 660, "Barbarians Modal -> Tap SEARCH")
 
     # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
-    tr_box = a[140:325, 1140:1380]
-    gold_tr = (tr_box[:, :, 0] >= 215) & (tr_box[:, :, 1] >= 140) & (tr_box[:, :, 2] <= 75)
-    g_ys, g_xs = np.where(gold_tr)
-    if len(g_xs) >= 1800:
-        gy = int(np.median(g_ys) + 140)
-        return (1260, gy, f"Map Popup Golden Button -> Tap (1260, {gy})")
+    # Only valid when top-left Governor HUD ribbon is visible (never inside full-screen ITEMS/QUESTS modals)
+    if is_city_hud(a):
+        tr_box = a[140:325, 1140:1380]
+        gold_tr = (tr_box[:, :, 0] >= 215) & (tr_box[:, :, 1] >= 140) & (tr_box[:, :, 2] <= 75)
+        g_ys, g_xs = np.where(gold_tr)
+        if len(g_xs) >= 1800:
+            gy = int(np.median(g_ys) + 140)
+            return (1260, gy, f"Map Popup Golden Button -> Tap (1260, {gy})")
 
     # 5. Tavern Golden Chest 'OPEN' button at x=1010..1275, y=710..775 with white speech bubble below -> tap (1143, 740)
     open_btn = a[710:775, 1010:1275]
@@ -215,6 +217,8 @@ def spear_mask(a: np.ndarray) -> np.ndarray:
 def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     diff = np.abs(a1 - a2).sum(axis=2)
     sp = (spear_mask(a1) | spear_mask(a2)) & (diff >= 20)
+    # Exclude bottom-right HUD cyan icons (Items, Alliance, Commander, Mail, Menu at x>=850, y>=775)
+    sp[775:, 850:] = False
     # Filter out full-screen moving Kingdom Fog clouds
     if int(sp.sum()) > 12000:
         return None, None, 0
@@ -238,11 +242,12 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
             return (sx, sy), (40, 235), best_s
         return (sx, sy), (48, 52), best_s
 
-    # Bottom-left HUD shortcuts: Build Hammer at (45, 735) vs Map/City toggle at (55, 845)
-    if sx < 165 and 420 <= sy < 700:
-        return (sx, sy), (45, 735), best_s
-    if sx < 165 and 700 <= sy <= 860:
-        return (sx, sy), (55, 845), best_s
+    # Bottom-left HUD shortcuts (ONLY when on City HUD, never when Build Drawer is open where (45,845) is DECORATIVE)
+    if is_city_hud(a2):
+        if sx < 165 and 420 <= sy < 700:
+            return (sx, sy), (45, 735), best_s
+        if sx < 165 and 700 <= sy <= 860:
+            return (sx, sy), (55, 845), best_s
 
     # Build Drawer Slot #1 & New Troop Primary Commander '+' slot shortcut
     if 280 <= sx <= 435 and 245 <= sy <= 430:
@@ -372,7 +377,6 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
         "Create",
         "Help",
         "Speed Up",
-        "Use",
     ]
     for kw in priority_keywords:
         for box, txt, score in res:
@@ -401,13 +405,24 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
 
 def detect_quest_sidebar_action(a: np.ndarray, step: int):
     # Ensure Main HUD Top-Left Avatar (15..75, 15..75) is visible (not hidden by Build Drawer or full-screen modal)
-    avatar_patch = a[15:75, 15:75]
-    if float(avatar_patch.mean()) < 75.0:
+    if not is_city_hud(a):
         # Check if Build Drawer Slot #1 (x=320..450, y=755..800) has an unlocked bright-cyan card
         slot1 = a[755:800, 320:450]
         unlocked = (slot1[:, :, 0] >= 85) & (slot1[:, :, 1] >= 190) & (slot1[:, :, 2] >= 230)
         if float(np.mean(unlocked)) > 0.45:
             return (345, 560, "Build Drawer -> Tap Unlocked Slot #1")
+        # If Build Drawer stone pillar is visible on left (x=10..80, y=500..850) with locked Slot #1, tap (800, 200) to close
+        pillar = a[500:850, 10:80]
+        if float(pillar.mean()) > 95.0 and float(np.mean(np.abs(pillar[:, :, 0] - pillar[:, :, 1]) < 25)) > 0.55:
+            return (800, 200, "Build Drawer Locked -> Close (800, 200)")
+        # If full-screen modal header bar (Items/Quests/Settings at y=75..145, x=500..1100) is open, tap top-right X (1415, 110)
+        hdr = a[75:145, 500:1100]
+        if float(hdr.mean()) > 125.0 and float(np.mean(np.abs(hdr[:, :, 0] - hdr[:, :, 1]) < 25)) > 0.60:
+            return (1415, 110, "Modal Open -> Close (1415, 110)")
+        # If top-left Back button (48, 52) is visible (Commander/Tavern view), tap (48, 52)
+        back_btn = a[20:85, 20:85]
+        if float(back_btn.mean()) > 110.0 and float(np.mean(np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)) > 0.55:
+            return (48, 52, "Sub-Screen Open -> Tap Back (48, 52)")
         return None
 
     # 1. Check for completed Main or Side Quest pink gift icon at x=195..245, y=285..610 (pick topmost first)
