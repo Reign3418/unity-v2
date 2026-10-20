@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Users, ShieldCheck, ChevronUp, ChevronDown, Search, ShieldAlert, MapPin, Download, Table, Swords } from "lucide-react";
+import { Users, ShieldCheck, ChevronUp, ChevronDown, Search, ShieldAlert, MapPin, Download, Table, Swords, Percent, Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
 import GovernorNotesModal from "./GovernorNotesModal";
+import { enrichRosterWithAnalytics } from "@/lib/telemetryAnalytics";
 
 const fmt = (n) => {
     if (n === null || n === undefined || n === "") return "-";
@@ -69,18 +70,38 @@ const FULL_45_COLS = [
     { key: "primaryCommanderStr",label: "Commanders",    color: "text-purple-300", isText: true },
 ];
 
+const ANALYTICS_COLS = [
+    { key: "rank",                   label: "Rank",          color: "text-cyan-400" },
+    { key: "power",                  label: "Power",         color: "text-white font-bold" },
+    { key: "killPoints",             label: "Kill Points",   color: "text-emerald-400" },
+    { key: "kpToPowerRatio",         label: "KP/Power",      color: "text-emerald-300 font-mono font-bold" },
+    { key: "warKillRatio",           label: "War Kill %",    color: "text-amber-400 font-mono font-bold" },
+    { key: "t1PaddingRatio",         label: "T1 Padding %",  color: "text-rose-400 font-mono font-bold" },
+    { key: "t4KillPct",              label: "T4 Kill %",     color: "text-amber-300 font-mono" },
+    { key: "t5KillPct",              label: "T5 Kill %",     color: "text-fuchsia-400 font-mono" },
+    { key: "dead",                   label: "Deads",         color: "text-rose-400" },
+    { key: "deadToPowerPct",         label: "Dead/Power %",  color: "text-rose-300 font-mono font-bold" },
+    { key: "troopPowerPct",          label: "Troop %",       color: "text-sky-400 font-mono" },
+    { key: "techPowerPct",           label: "Tech %",        color: "text-cyan-300 font-mono" },
+    { key: "buildingPowerPct",       label: "Bldg %",        color: "text-amber-200 font-mono" },
+    { key: "winRatePct",             label: "Win Rate",      color: "text-emerald-400 font-mono" },
+    { key: "tacticalClassification", label: "Class",         color: "text-yellow-400 font-mono font-bold", isBadge: true },
+];
+
 function exportRosterCsv(rows) {
     const headers = [
         "rank","prevRank","id","name","alliance","allianceName","ch","vip",
         "mapTileX","mapTileY","worldX","worldY",
         "power","highestPower","troopPower","techPower","buildingPower","commanderPower",
-        "killPoints","dead","healedTroops",
-        "t1Kills","t2Kills","t3Kills","t4Kills","t5Kills","t4t5Kills","totalKills",
+        "troopPowerPct","techPowerPct","buildingPowerPct","cmdrPowerPct",
+        "killPoints","kpToPowerRatio","dead","deadToPowerPct","healedTroops",
+        "t1Kills","t2Kills","t3Kills","t4Kills","t5Kills","warKills","warKillRatio",
+        "t1PaddingRatio","t4KillPct","t5KillPct","totalKills",
         "t1Kp","t2Kp","t3Kp","t4Kp","t5Kp","rangedPoints",
         "rssGathered","rssAssistance","allianceHelps","scoutTimes","acclaim",
-        "Conqueror","FailTimes","DeadSoldiers","WatchTower",
+        "Conqueror","FailTimes","winRatePct","DeadSoldiers","WatchTower",
         "rallyLaunchedCount","rallyJoinedCount","rallyTotalCount",
-        "primaryCommanderStr","secondaryCommanderStr","udid"
+        "primaryCommanderStr","secondaryCommanderStr","tacticalClassification","udid"
     ];
     const esc = (v) => {
         if (v === null || v === undefined) return "";
@@ -97,7 +118,7 @@ function exportRosterCsv(rows) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Kingdom_4194_Top${rows.length}_45Fields.csv`;
+    a.download = `Kingdom_4194_Top${rows.length}_FullAnalytics.csv`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -113,15 +134,20 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
     const [sortDir, setSortDir]               = useState("asc");
     const [allianceFilter, setAllianceFilter] = useState("ALL");
     const [onlyMappedCoords, setOnlyMappedCoords] = useState(false);
-    const [full45Mode, setFull45Mode]         = useState(true);
+    const [viewMode, setViewMode]             = useState("analytics"); // "compact" | "full45" | "analytics"
 
-    const alliances = useMemo(() => {
-        const tags = [...new Set(rosterData.map(g => g.alliance || "None"))].sort();
-        return ["ALL", ...tags];
+    // Enrich roster once using pure deterministic client math ($0.00 Tokens)
+    const enrichedRoster = useMemo(() => {
+        return enrichRosterWithAnalytics(rosterData);
     }, [rosterData]);
 
+    const alliances = useMemo(() => {
+        const tags = [...new Set(enrichedRoster.map(g => g.alliance || "None"))].sort();
+        return ["ALL", ...tags];
+    }, [enrichedRoster]);
+
     const sorted = useMemo(() => {
-        let rows = [...rosterData];
+        let rows = [...enrichedRoster];
 
         if (search) {
             const q = search.trim().toLowerCase();
@@ -159,13 +185,13 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
     const spotlightGovernor = useMemo(() => {
         const q = search.trim();
         if (!q) return null;
-        const exact = rosterData.find(
+        const exact = enrichedRoster.find(
             g => String(g.id) === q || (g.name || "").toLowerCase() === q.toLowerCase()
         );
         if (exact) return exact;
         if (sorted.length >= 1 && sorted.length <= 5) return sorted[0];
         return null;
-    }, [rosterData, search, sorted]);
+    }, [enrichedRoster, search, sorted]);
 
     const toggleSort = (key) => {
         if (sortKey === key) setSortDir(d => d === "desc" ? "asc" : "desc");
@@ -180,7 +206,7 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
             : <ChevronDown size={12} className="text-gray-700" />
     );
 
-    const activeCols = full45Mode ? FULL_45_COLS : COMPACT_COLS;
+    const activeCols = viewMode === "analytics" ? ANALYTICS_COLS : (viewMode === "full45" ? FULL_45_COLS : COMPACT_COLS);
 
     return (
         <div className="space-y-4">
@@ -214,16 +240,39 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
                     >
                         <MapPin size={13} /> Mapped Coords
                     </button>
-                    <button
-                        onClick={() => setFull45Mode(v => !v)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
-                            full45Mode
-                                ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
-                                : "bg-[#0a0c0f] border-[#1e222b] text-gray-400 hover:text-white"
-                        }`}
-                    >
-                        <Table size={13} /> {full45Mode ? "Full 45-Field View" : "Compact View"}
-                    </button>
+                    {/* View Mode 3-Way Switcher */}
+                    <div className="flex items-center rounded-lg bg-[#0a0c0f] border border-[#1e222b] p-0.5">
+                        <button
+                            onClick={() => setViewMode("compact")}
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+                                viewMode === "compact"
+                                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                                    : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                            Compact
+                        </button>
+                        <button
+                            onClick={() => setViewMode("full45")}
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+                                viewMode === "full45"
+                                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                                    : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                            Full 45-Field
+                        </button>
+                        <button
+                            onClick={() => setViewMode("analytics")}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+                                viewMode === "analytics"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                                    : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                            <Percent size={12} /> Strategic Ratios & %
+                        </button>
+                    </div>
                     <button
                         onClick={() => exportRosterCsv(sorted)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 transition-all"
@@ -254,6 +303,11 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
                                 {spotlightGovernor.ch > 0 && (
                                     <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-bold">
                                         CH {spotlightGovernor.ch}
+                                    </span>
+                                )}
+                                {spotlightGovernor.tacticalClassification && (
+                                    <span className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-mono text-xs font-bold border border-yellow-500/40">
+                                        {spotlightGovernor.tacticalClassification}
                                     </span>
                                 )}
                             </div>
@@ -293,8 +347,42 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
                         </div>
                     </div>
 
+                    {/* Algorithmic Strategic Ratios & War Efficiency Bar ($0 Tokens) */}
+                    <div className="mt-3 pt-2.5 border-t border-[#1e222b] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+                        <div className="p-2 bg-[#080b10] border border-amber-500/20 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">War Kill Ratio</span>
+                            <span className="text-amber-400 font-mono font-bold text-sm">{spotlightGovernor.warKillRatio || "0.0%"}</span>
+                            <span className="text-[9px] text-gray-500 block">T4+T5 / Total Kills</span>
+                        </div>
+                        <div className="p-2 bg-[#080b10] border border-rose-500/20 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">T1 Farm Padding</span>
+                            <span className="text-rose-400 font-mono font-bold text-sm">{spotlightGovernor.t1PaddingRatio || "0.0%"}</span>
+                            <span className="text-[9px] text-gray-500 block">T1 / Total Kills</span>
+                        </div>
+                        <div className="p-2 bg-[#080b10] border border-emerald-500/20 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">KP / Power Ratio</span>
+                            <span className="text-emerald-400 font-mono font-bold text-sm">{spotlightGovernor.kpToPowerRatio || "0.00"}</span>
+                            <span className="text-[9px] text-gray-500 block">Combat Output Index</span>
+                        </div>
+                        <div className="p-2 bg-[#080b10] border border-pink-500/20 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">Sacrifice / Dead %</span>
+                            <span className="text-pink-400 font-mono font-bold text-sm">{spotlightGovernor.deadToPowerPct || "0.00%"}</span>
+                            <span className="text-[9px] text-gray-500 block">Dead / Power</span>
+                        </div>
+                        <div className="p-2 bg-[#080b10] border border-sky-500/20 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">Power Split</span>
+                            <span className="text-sky-300 font-mono text-xs block font-bold">Troop: {spotlightGovernor.troopPowerPct}</span>
+                            <span className="text-[9px] text-gray-400 block">Tech {spotlightGovernor.techPowerPct} • Bldg {spotlightGovernor.buildingPowerPct}</span>
+                        </div>
+                        <div className="p-2 bg-[#080b10] border border-emerald-500/20 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">Battle Record</span>
+                            <span className="text-emerald-400 font-mono font-bold text-xs block">Win Rate: {spotlightGovernor.winRatePct || "0.0%"}</span>
+                            <span className="text-[9px] text-gray-500 block">{spotlightGovernor.victories || 0}W / {spotlightGovernor.defeats || 0}L</span>
+                        </div>
+                    </div>
+
                     {(spotlightGovernor.primaryCommanderStr || spotlightGovernor.rallyTotalCount > 0) && (
-                        <div className="mt-3 pt-2.5 border-t border-[#1e222b] flex items-center gap-4 text-xs text-gray-300 flex-wrap">
+                        <div className="mt-3 pt-2 border-t border-[#1e222b] flex items-center gap-4 text-xs text-gray-300 flex-wrap">
                             <span className="flex items-center gap-1.5 text-purple-300 font-mono">
                                 <Swords size={13} /> Active Pair: <strong>{spotlightGovernor.primaryCommanderStr || "None"}</strong>
                                 {spotlightGovernor.secondaryCommanderStr ? ` + ${spotlightGovernor.secondaryCommanderStr}` : ""}

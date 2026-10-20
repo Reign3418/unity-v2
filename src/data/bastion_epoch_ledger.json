@@ -1,12 +1,12 @@
 {
-  "updatedAt": "2026-10-19T20:16:08.926Z",
+  "updatedAt": "2026-10-20T22:53:11.549Z",
   "globalCutoverActive": true,
   "defaultScanPreset": "SWEET_650",
   "monotonicGuardEnabled": true,
   "captureLowPowerR5Enabled": true,
   "dozerStats": {
-    "totalBotScansReconciled": 6,
-    "monotonicFixesApplied": 14,
+    "totalBotScansReconciled": 24,
+    "monotonicFixesApplied": 5461,
     "archivedSheetSnapshots": 163,
     "migrantsIdentified": 0
   },
@@ -26,12 +26,13 @@
       "kingdomId": "4194",
       "status": "BOT_SOVEREIGN",
       "epochZeroAt": "2026-10-19T07:43:00.000Z",
+      "lastBotScanAt": "2026-10-20T22:53:11.549Z",
       "scanPreset": "SWEET_650",
       "activeBaselineSource": "BASTION_BOT",
       "legacySheetsArchived": true,
       "legacyBaselineZeroed": true,
       "allianceR5HeaderCaptured": true,
-      "governorsCount": 1000
+      "governorsCount": 1211
     },
     "4195": {
       "kingdomId": "4195",

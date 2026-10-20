@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { uploadKingdomRoster, getGlobalConfig, updateGlobalConfig } from '@/lib/awsDynamo';
 import { reconcileGovernorBatch, readEpochLedger } from '@/lib/dozerReconciler';
+import { evaluateTrackedTargets } from '@/lib/blackOpsTracker';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -108,6 +109,13 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
     }
 
     cache.updatedAt = new Date().toISOString();
+
+    // Trigger Black Ops Radar Watchlist evaluation (Target coordinate shift / power delta / alert dispatch)
+    try {
+      evaluateTrackedTargets(reconciledRoster).catch((err) =>
+        console.warn('[LiveCache] evaluateTrackedTargets background error:', err.message)
+      );
+    } catch {}
     try {
       fs.mkdirSync(path.dirname(LIVE_CACHE_PATH), { recursive: true });
       fs.writeFileSync(LIVE_CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');

@@ -48,4 +48,7 @@ scanner/check_*.py
 scanner/inspect_*.py
 scanner/test_*.py
 scanner/parse_35_fields_test.py
-Kingdom_4194_Top1000_45Fields.csv
+
+scanner/ram_accum_*.json
+__pycache__/
+*.pyc

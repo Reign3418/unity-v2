@@ -1025,7 +1025,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
             except subprocess.TimeoutExpired:
                 print(f"  [WARN] Character switch subprocess timed out after 240s; continuing preamble check...")
 
-    for attempt in range(1, 15):
+    for attempt in range(1, 120):
         screen_txt = get_screen_ocr_text(driver)
         if "INDIVIDUAL POWER RANKINGS" in screen_txt:
             print(f"  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open (attempt {attempt}).")
@@ -1037,7 +1037,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
             if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
                 return True
 
-        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt}/14)...")
+        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt}/119)...")
         def _clear_hud_for_avatar():
             try:
                 arr = np.array(driver.screenshot())
@@ -1111,6 +1111,15 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
         if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
             print("  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open!")
             return True
+
+        print(f"  [PREAMBLE] INDIVIDUAL POWER RANKINGS not open yet on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/119)...")
+        driver.tap(1454, 105, sleep_sec=1.0)
+        tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+        if os.path.exists(tut_script):
+            subprocess.run(
+                [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "65"],
+                check=False,
+            )
 
     print("  [ERROR] Could not verify INDIVIDUAL POWER RANKINGS modal after 3 attempts; aborting scan to prevent misclicks.")
     return False

@@ -8,7 +8,7 @@
   "demandThresholdForSurge": 5,
   "highestKnownKingdom": 4202,
   "nextGenesisWatchKingdom": 4203,
-  "lastUpdated": "2026-10-20T06:00:00.000Z",
+  "lastUpdated": "2026-10-20T22:53:11.550Z",
   "ringModels": {
     "ring1_intelligence": {
       "ringName": "Ring 1: Intelligence, Demand & Genesis Discovery",
@@ -44,10 +44,12 @@
         "NULL",
         "BIG JON",
         "NUMNUM",
-        "CIPHER"
+        "CIPHER",
+        "FORGE"
       ],
       "selectedModel": "gemini-2.5-flash",
       "visionModel": "gemini-3.1-flash-lite",
+      "provisioningEngine": "VALHEON_FORGE_V1",
       "mathGate": "NUMNUM_DETERMINISTIC_V2 (0 Tokens)",
       "tier": "Tactical LLM + Vision SLM + Hard Math Gate",
       "options": [
@@ -135,14 +137,14 @@
       "nodeId": "SIDEKICK",
       "adbAddress": "127.0.0.1:16384",
       "accountSlot": "Account #1 (Primary Multi-Kingdom Roster)",
-      "status": "ACTIVE_READY",
-      "activeKingdom": "4044",
-      "activeCharacter": "Governor236465943",
-      "assignedTask": "IDLE_READY (Completed 7-Kingdom Provisioning)",
-      "assignedSlice": "1-1000",
-      "charactersCount": 7,
-      "lastSwitchSec": 21.8,
-      "lastHeartbeat": "2026-10-19T22:45:00.000Z"
+      "status": "SCANNING_LIVE",
+      "activeKingdom": "4194",
+      "activeCharacter": "[Lova]lilfarmer",
+      "assignedTask": "Live Top-650 Kingdom Scan (#4194)",
+      "assignedSlice": "1-650",
+      "charactersCount": 8,
+      "lastSwitchSec": 14.2,
+      "lastHeartbeat": "2026-10-20T22:05:00.000Z"
     },
     {
       "instanceId": "sidekick-mumu-1",
@@ -150,13 +152,13 @@
       "adbAddress": "127.0.0.1:16416",
       "accountSlot": "Account #2 (Parallel Multi-Kingdom Worker)",
       "status": "ACTIVE_READY",
-      "activeKingdom": "4044",
-      "activeCharacter": "516K Power Account (#4044 / S11001)",
-      "assignedTask": "ONLINE_READY (Parallel ADB 127.0.0.1:16416)",
+      "activeKingdom": "4194",
+      "activeCharacter": "Governor (Account #2 #4194 Bot)",
+      "assignedTask": "ONLINE_READY (Stationed in #4194 · VALHEON FORGE Idle Gatherer)",
       "assignedSlice": "1-650",
-      "charactersCount": 1,
-      "lastSwitchSec": 0,
-      "lastHeartbeat": "2026-10-20T05:25:00.000Z"
+      "charactersCount": 28,
+      "lastSwitchSec": 12,
+      "lastHeartbeat": "2026-10-20T22:05:00.000Z"
     },
     {
       "instanceId": "sidekick-mumu-2",
@@ -294,11 +296,11 @@
         "sidekick-mumu-0",
         "sidekick-mumu-1"
       ],
-      "lastScanAt": "2026-10-19T14:15:00.000Z",
-      "nextScanAt": "2026-10-19T20:00:00.000Z",
+      "lastScanAt": "2026-10-20T22:53:11.550Z",
+      "nextScanAt": "2026-10-21T01:53:11.550Z",
       "genesisCaptured": true,
       "genesisGovernorsTracked": 1000,
-      "reason": "High Unity API demand (42 calls) + Dual CH8 Home Kingdom Priority"
+      "reason": "Principal Directive — Parallel #4194 Refresh & Black Ops Star Cluster Tracking"
     },
     {
       "kingdom": "4197",
@@ -515,5 +517,17 @@
       "kingdom": "4203",
       "detail": "Highest active kingdom detected: #4202 (Vanaheim). Armed Genesis Auto-Trigger for #4203 to capture Day-1 native governors before migration/jumping."
     }
-  ]
+  ],
+  "activeScanProgress": {
+    "running": true,
+    "status": "SCANNING_LIVE",
+    "kingdom": "4194",
+    "currentRank": 450,
+    "targetRanks": 650,
+    "percent": 69.2,
+    "lastGovernorName": "YUJItadori",
+    "lastGovernorPower": 0,
+    "governorsExtracted": 1211,
+    "updatedAt": "2026-10-20T22:53:11.550Z"
+  }
 }

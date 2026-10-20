@@ -320,7 +320,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </CollapsibleSection>
 
             {/* Group 2: Tools & Inspection */}
-            <CollapsibleSection groupKey="tools" title={t('sec_tools')} count={13}>
+            <CollapsibleSection groupKey="tools" title={t('sec_tools')} count={14}>
+              <NavItem
+                href="/black-ops"
+                icon={Crosshair}
+                label="Black Ops Radar"
+                badge="LIVE"
+                badgeColor="bg-rose-500/15 text-rose-300 border-rose-500/30"
+              />
               <NavItem
                 href="/tools/hunter"
                 icon={Crosshair}
