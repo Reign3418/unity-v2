@@ -6,6 +6,11 @@
  * dead-to-power sacrifice indices, and tactical classifications from raw telemetry.
  */
 
+export function cleanUtf8Name(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  return str;
+}
+
 export function enrichGovernorWithRatios(g = {}) {
   const num = (v) => {
     if (v === null || v === undefined || v === '') return 0;
@@ -18,7 +23,7 @@ export function enrichGovernorWithRatios(g = {}) {
   const troopPower = num(g.troopPower || g.TroopPower);
   const techPower = num(g.techPower || g.TechPower);
   const buildingPower = num(g.buildingPower || g.BuildingPower);
-  const cmdrPower = num(g.commanderPower || g.CommanderPower);
+  const commanderPower = num(g.commanderPower || g.CommanderPower);
 
   const killPoints = num(g.killPoints || g.KillPoints);
   const totalKills = num(g.totalUnitsKilled || g.totalKills || g.TotalKills);
@@ -29,15 +34,15 @@ export function enrichGovernorWithRatios(g = {}) {
   const t5Kills = num(g.t5Kills || g.T5Kills);
 
   const dead = num(g.dead || g.Deads);
-  const healed = num(g.healedTroops || g.HealedTroops);
+  const healedTroops = num(g.healedTroops || g.HealedTroops);
 
   const victories = num(g.victories || g.Conqueror);
   const defeats = num(g.defeats || g.FailTimes);
   const totalBattles = victories + defeats;
 
-  const gathered = num(g.gathered || g.rssGathered);
-  const assistance = num(g.assistance || g.rssAssistance);
-  const helps = num(g.helps || g.allianceHelps);
+  const rssGathered = num(g.gathered || g.rssGathered);
+  const rssAssistance = num(g.assistance || g.rssAssistance);
+  const allianceHelps = num(g.helps || g.allianceHelps);
 
   const aooWins = num(g.aooWins);
   const aooLosses = num(g.aooLosses);
@@ -71,7 +76,7 @@ export function enrichGovernorWithRatios(g = {}) {
   const buildingPowerPctNum = power > 0 ? (buildingPower / power) * 100 : 0;
   const buildingPowerPct = buildingPowerPctNum.toFixed(1) + '%';
 
-  const cmdrPowerPctNum = power > 0 ? (cmdrPower / power) * 100 : 0;
+  const cmdrPowerPctNum = power > 0 ? (commanderPower / power) * 100 : 0;
   const cmdrPowerPct = cmdrPowerPctNum.toFixed(1) + '%';
 
   const winRateNum = totalBattles > 0 ? (victories / totalBattles) * 100 : 0;
@@ -112,6 +117,11 @@ export function enrichGovernorWithRatios(g = {}) {
     t3Kills,
     t4Kills,
     t5Kills,
+    dead,
+    healedTroops,
+    rssGathered,
+    rssAssistance,
+    allianceHelps,
     warKills,
     warKillRatio,
     warKillRatioNum,

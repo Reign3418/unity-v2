@@ -10,6 +10,7 @@ import {
   dispatchBlackOpsNotification,
 } from '@/lib/blackOpsTracker';
 import { readLiveTelemetryCache } from '@/app/api/ingest/kingdom-scan/route';
+import { enrichGovernorWithRatios } from '@/lib/telemetryAnalytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,17 +20,51 @@ function get4194Dataset() {
   const list = Object.values(govsById).filter((g) => String(g.kingdomId || g.kingdom || '4194') === '4194');
 
   if (list.length > 0) {
-    return list;
+    return list.map((g) => enrichGovernorWithRatios(g));
   }
 
   // Fallback to local JSON/CSV if liveCache is empty
   const jsonPath = path.join(process.cwd(), 'scanner', 'ram_accum_16384_4194.json');
   if (fs.existsSync(jsonPath)) {
     try {
-      return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      return Array.isArray(raw) ? raw.map((g) => enrichGovernorWithRatios(g)) : [];
     } catch (e) {}
   }
   return [];
+}
+
+function buildEnrichedWatchlist(watchlist, dataset) {
+  const targetMap = new Map();
+  dataset.forEach((g) => {
+    const id = String(g.govId || g.id || '');
+    if (id) targetMap.set(id, g);
+  });
+
+  const enrichedTargets = Object.values(watchlist.targets || {}).map((target) => {
+    const live = targetMap.get(String(target.govId)) || target.initialSnapshot || null;
+    const enrichedLive = live ? enrichGovernorWithRatios(live) : null;
+    return {
+      ...target,
+      liveTelemetry: enrichedLive,
+      currentRank: enrichedLive?.rank || target.initialSnapshot?.rank || null,
+      lastKnownPower: enrichedLive?.power || target.lastKnownPower || 0,
+      lastKnownAlliance: enrichedLive?.alliance || target.lastKnownAlliance || 'None',
+      lastKnownKp: enrichedLive?.killPoints || target.lastKnownKp || 0,
+      lastKnownDeads: enrichedLive?.dead || target.lastKnownDeads || 0,
+      lastKnownCoords:
+        enrichedLive?.castlePos ||
+        (enrichedLive?.mapTileX && enrichedLive?.mapTileY
+          ? { X: Number(enrichedLive.mapTileX), Y: Number(enrichedLive.mapTileY) }
+          : target.lastKnownCoords || null),
+    };
+  });
+
+  return {
+    ...watchlist,
+    targetsList: enrichedTargets,
+    totalTracked: enrichedTargets.length,
+  };
 }
 
 export async function GET(req) {
@@ -45,9 +80,8 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const query = (searchParams.get('q') || '').trim().toLowerCase();
-    const action = searchParams.get('action');
 
-    const watchlist = getWatchlist();
+    const watchlist = await getWatchlist();
     const dataset = get4194Dataset();
 
     // If query provided, return matching governors for autocomplete / instant search
@@ -63,29 +97,11 @@ export async function GET(req) {
         .slice(0, 25);
     }
 
-    // Attach latest live telemetry to all tracked targets
-    const targetMap = new Map();
-    dataset.forEach((g) => {
-      const id = String(g.govId || g.id || '');
-      if (id) targetMap.set(id, g);
-    });
-
-    const enrichedTargets = Object.values(watchlist.targets || {}).map((target) => {
-      const live = targetMap.get(String(target.govId));
-      return {
-        ...target,
-        liveTelemetry: live || null,
-        currentRank: live?.rank || null,
-      };
-    });
+    const enrichedWatchlist = buildEnrichedWatchlist(watchlist, dataset);
 
     return NextResponse.json({
       success: true,
-      watchlist: {
-        ...watchlist,
-        targetsList: enrichedTargets,
-        totalTracked: enrichedTargets.length,
-      },
+      watchlist: enrichedWatchlist,
       searchResults,
       totalKnownGovernors: dataset.length,
       timestamp: new Date().toISOString(),
@@ -109,16 +125,36 @@ export async function POST(req) {
 
     const body = await req.json();
     const { action } = body;
-
-    const watchlist = getWatchlist();
+    const dataset = get4194Dataset();
 
     if (action === 'TRACK_TARGET') {
       const { govId, name, kingdom, priority, notes, initialData } = body;
       if (!govId) {
         return NextResponse.json({ success: false, error: 'govId is required' }, { status: 400 });
       }
-      const target = addTrackedTarget({ govId, name, kingdom, priority, notes, initialData });
-      return NextResponse.json({ success: true, message: `Target ${target.name} locked on radar`, target });
+      // Look up full record from dataset if available
+      const fullRecord =
+        dataset.find((g) => String(g.govId || g.id) === String(govId)) || initialData || {};
+
+      const { target, watchlist } = await addTrackedTarget({
+        govId,
+        name: name || fullRecord.name,
+        kingdom: kingdom || fullRecord.kingdomId || '4194',
+        priority: priority || 'VIP',
+        notes,
+        initialData: fullRecord,
+      });
+
+      const enrichedWatchlist = buildEnrichedWatchlist(watchlist, dataset);
+      const enrichedTarget =
+        enrichedWatchlist.targetsList.find((t) => String(t.govId) === String(govId)) || target;
+
+      return NextResponse.json({
+        success: true,
+        message: `Target ${target.name} locked on radar`,
+        target: enrichedTarget,
+        watchlist: enrichedWatchlist,
+      });
     }
 
     if (action === 'UNTRACK_TARGET') {
@@ -126,24 +162,61 @@ export async function POST(req) {
       if (!govId) {
         return NextResponse.json({ success: false, error: 'govId is required' }, { status: 400 });
       }
-      removeTrackedTarget(govId);
-      return NextResponse.json({ success: true, message: `Target ${govId} removed from watchlist` });
+      const { watchlist } = await removeTrackedTarget(govId);
+      const enrichedWatchlist = buildEnrichedWatchlist(watchlist, dataset);
+      return NextResponse.json({
+        success: true,
+        message: `Target ${govId} removed from watchlist`,
+        watchlist: enrichedWatchlist,
+      });
     }
+
+    if (action === 'SYNC_LOCAL_TARGETS') {
+      const { localTargets = [] } = body;
+      let watchlist = await getWatchlist();
+      for (const lt of localTargets) {
+        const gid = lt.govId || lt.id;
+        if (gid && !watchlist.targets[String(gid)]) {
+          const fullRecord =
+            dataset.find((g) => String(g.govId || g.id) === String(gid)) || lt.liveTelemetry || lt;
+          const res = await addTrackedTarget({
+            govId: gid,
+            name: lt.name || fullRecord.name,
+            kingdom: lt.kingdom || '4194',
+            priority: lt.priority || 'VIP',
+            notes: lt.notes || '',
+            initialData: fullRecord,
+          });
+          watchlist = res.watchlist;
+        }
+      }
+      const enrichedWatchlist = buildEnrichedWatchlist(watchlist, dataset);
+      return NextResponse.json({
+        success: true,
+        watchlist: enrichedWatchlist,
+      });
+    }
+
+    const watchlist = await getWatchlist();
 
     if (action === 'UPDATE_SETTINGS') {
       const { webhookUrl, emailAlerts, pushAlerts } = body;
       if (typeof webhookUrl !== 'undefined') watchlist.webhookUrl = webhookUrl;
       if (typeof emailAlerts !== 'undefined') watchlist.emailAlerts = Boolean(emailAlerts);
       if (typeof pushAlerts !== 'undefined') watchlist.pushAlerts = Boolean(pushAlerts);
-      saveWatchlist(watchlist);
-      return NextResponse.json({ success: true, message: 'Black Ops alert routing updated' });
+      await saveWatchlist(watchlist);
+      return NextResponse.json({
+        success: true,
+        message: 'Black Ops alert routing updated',
+        watchlist: buildEnrichedWatchlist(watchlist, dataset),
+      });
     }
 
     if (action === 'TEST_ALERT') {
       const sampleAlert = {
         alertId: `test_${Date.now()}`,
-        govId: body.govId || 236264666,
-        name: body.name || '[D-94] 么krp (TEST WHALE)',
+        govId: body.govId || 235824876,
+        name: body.name || '[FaKE] 么krp',
         kingdom: '4194',
         priority: 'ENEMY_WHALE',
         timestamp: new Date().toISOString(),
@@ -162,8 +235,8 @@ export async function POST(req) {
           },
         ],
         coords: { X: 640, Y: 810 },
-        power: 24270921,
-        alliance: 'D-94',
+        power: 24269135,
+        alliance: 'FaKE',
       };
 
       await dispatchBlackOpsNotification(sampleAlert, body.webhookUrl || watchlist.webhookUrl);

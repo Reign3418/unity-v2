@@ -1,12 +1,12 @@
 {
-  "updatedAt": "2026-10-20T22:59:24.241Z",
+  "updatedAt": "2026-10-20T23:10:55.640Z",
   "globalCutoverActive": true,
   "defaultScanPreset": "SWEET_650",
   "monotonicGuardEnabled": true,
   "captureLowPowerR5Enabled": true,
   "dozerStats": {
-    "totalBotScansReconciled": 31,
-    "monotonicFixesApplied": 8082,
+    "totalBotScansReconciled": 44,
+    "monotonicFixesApplied": 13211,
     "archivedSheetSnapshots": 163,
     "migrantsIdentified": 0
   },
@@ -26,7 +26,7 @@
       "kingdomId": "4194",
       "status": "BOT_SOVEREIGN",
       "epochZeroAt": "2026-10-19T07:43:00.000Z",
-      "lastBotScanAt": "2026-10-20T22:59:24.241Z",
+      "lastBotScanAt": "2026-10-20T23:10:55.640Z",
       "scanPreset": "SWEET_650",
       "activeBaselineSource": "BASTION_BOT",
       "legacySheetsArchived": true,

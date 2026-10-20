@@ -1,82 +1,180 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { notifyAdmin } from './notifyAdmin.js';
-import { readLiveTelemetryCache } from '../app/api/ingest/kingdom-scan/route.js';
+import { getGlobalConfig, updateGlobalConfig } from './awsDynamo.js';
 
-const WATCHLIST_PATH = path.join(process.cwd(), 'src', 'data', 'black_ops_watchlist.json');
+const LOCAL_WATCHLIST_PATH = path.join(process.cwd(), 'src', 'data', 'black_ops_watchlist.json');
+const TMP_WATCHLIST_PATH = path.join(os.tmpdir(), 'black_ops_watchlist.json');
+const DYNAMO_CONFIG_KEY = 'BLACK_OPS_WATCHLIST';
+
+if (!globalThis.__blackOpsWatchlistMemory) {
+  globalThis.__blackOpsWatchlistMemory = null;
+}
+
+const DEFAULT_WATCHLIST = () => ({
+  targets: {},
+  alertHistory: [],
+  webhookUrl: null,
+  emailAlerts: true,
+  pushAlerts: true,
+});
 
 /**
- * Loads the active Black Ops Target Watchlist.
+ * Loads the active Black Ops Target Watchlist from DynamoDB, memory, /tmp, or local disk.
  */
-export function getWatchlist() {
+export async function getWatchlist() {
+  // 1. Try AWS DynamoDB first (persistent across Vercel serverless instances)
   try {
-    if (fs.existsSync(WATCHLIST_PATH)) {
-      return JSON.parse(fs.readFileSync(WATCHLIST_PATH, 'utf8'));
+    if (process.env.AWS_TABLE_NAME) {
+      const rawDynamo = await getGlobalConfig(DYNAMO_CONFIG_KEY);
+      if (rawDynamo) {
+        const parsed = JSON.parse(rawDynamo);
+        if (parsed && typeof parsed === 'object') {
+          globalThis.__blackOpsWatchlistMemory = {
+            ...DEFAULT_WATCHLIST(),
+            ...parsed,
+            targets: parsed.targets || {},
+            alertHistory: parsed.alertHistory || [],
+          };
+          return globalThis.__blackOpsWatchlistMemory;
+        }
+      }
     }
   } catch (e) {
-    console.warn('[BlackOps] Watchlist read warning:', e.message);
+    console.warn('[BlackOps] DynamoDB watchlist read fallback:', e.message);
   }
-  return { targets: {}, alertHistory: [], webhookUrl: null, emailAlerts: true, pushAlerts: true };
+
+  // 2. Try warm memory cache
+  if (globalThis.__blackOpsWatchlistMemory) {
+    return globalThis.__blackOpsWatchlistMemory;
+  }
+
+  // 3. Try /tmp or local disk
+  for (const filePath of [LOCAL_WATCHLIST_PATH, TMP_WATCHLIST_PATH]) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (parsed && typeof parsed === 'object') {
+          globalThis.__blackOpsWatchlistMemory = {
+            ...DEFAULT_WATCHLIST(),
+            ...parsed,
+            targets: parsed.targets || {},
+            alertHistory: parsed.alertHistory || [],
+          };
+          return globalThis.__blackOpsWatchlistMemory;
+        }
+      }
+    } catch (e) {
+      // Ignore read errors
+    }
+  }
+
+  globalThis.__blackOpsWatchlistMemory = DEFAULT_WATCHLIST();
+  return globalThis.__blackOpsWatchlistMemory;
 }
 
 /**
- * Saves the Black Ops Target Watchlist.
+ * Saves the Black Ops Target Watchlist to DynamoDB, memory, /tmp, and local disk (if writable).
  */
-export function saveWatchlist(data) {
+export async function saveWatchlist(data) {
+  const cleanData = {
+    ...DEFAULT_WATCHLIST(),
+    ...data,
+    targets: data?.targets || {},
+    alertHistory: data?.alertHistory || [],
+    updatedAt: new Date().toISOString(),
+  };
+
+  // 1. Update warm memory cache immediately
+  globalThis.__blackOpsWatchlistMemory = cleanData;
+
+  const jsonStr = JSON.stringify(cleanData, null, 2);
+
+  // 2. Persist to AWS DynamoDB (production persistence on Vercel)
   try {
-    const dir = path.dirname(WATCHLIST_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(WATCHLIST_PATH, JSON.stringify(data, null, 2), 'utf8');
-    return true;
+    if (process.env.AWS_TABLE_NAME) {
+      await updateGlobalConfig(DYNAMO_CONFIG_KEY, JSON.stringify(cleanData));
+    }
   } catch (e) {
-    console.error('[BlackOps] Failed to save watchlist:', e.message);
-    return false;
+    console.warn('[BlackOps] DynamoDB save warning:', e.message);
   }
+
+  // 3. Write to /tmp (always writable on Vercel Lambda)
+  try {
+    fs.writeFileSync(TMP_WATCHLIST_PATH, jsonStr, 'utf8');
+  } catch (e) {
+    // Ignore /tmp errors
+  }
+
+  // 4. Write to local src/data if on local workstation (ignore EROFS on Vercel)
+  try {
+    const dir = path.dirname(LOCAL_WATCHLIST_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(LOCAL_WATCHLIST_PATH, jsonStr, 'utf8');
+  } catch (e) {
+    // Expected on Vercel read-only filesystem
+  }
+
+  return true;
 }
 
 /**
  * Adds or updates a target governor in the tracking radar.
  */
-export function addTrackedTarget({ govId, name, kingdom = '4194', priority = 'HIGH', notes = '', initialData = {} }) {
-  const list = getWatchlist();
+export async function addTrackedTarget({
+  govId,
+  name,
+  kingdom = '4194',
+  priority = 'VIP',
+  notes = '',
+  initialData = {},
+}) {
+  const list = await getWatchlist();
   const idStr = String(govId);
 
   const existing = list.targets[idStr] || {};
+  const coords =
+    initialData.castlePos ||
+    (initialData.mapTileX && initialData.mapTileY
+      ? { X: Number(initialData.mapTileX), Y: Number(initialData.mapTileY) }
+      : existing.lastKnownCoords || null);
+
   list.targets[idStr] = {
     govId: Number(govId),
     id: idStr,
-    name: name || existing.name || `Governor_${govId}`,
-    kingdom: String(kingdom || existing.kingdom || '4194'),
-    priority, // VIP, HIGH, MEDIUM, ENEMY_WHALE
+    name: name || initialData.name || existing.name || `Governor_${govId}`,
+    kingdom: String(kingdom || initialData.kingdomId || existing.kingdom || '4194'),
+    priority: priority || existing.priority || 'VIP',
     notes: notes || existing.notes || '',
     addedAt: existing.addedAt || new Date().toISOString(),
     lastAlertAt: existing.lastAlertAt || null,
-    lastKnownCoords: initialData.castlePos || existing.lastKnownCoords || null,
-    lastKnownPower: initialData.power || existing.lastKnownPower || 0,
+    lastKnownCoords: coords,
+    lastKnownPower: Number(initialData.power || existing.lastKnownPower || 0),
     lastKnownAlliance: initialData.alliance || existing.lastKnownAlliance || 'None',
-    lastKnownKp: initialData.killPoints || existing.lastKnownKp || 0,
-    lastKnownDeads: initialData.dead || existing.lastKnownDeads || 0,
+    lastKnownKp: Number(initialData.killPoints || existing.lastKnownKp || 0),
+    lastKnownDeads: Number(initialData.dead || existing.lastKnownDeads || 0),
+    initialSnapshot: initialData || existing.initialSnapshot || {},
     movementHistory: existing.movementHistory || [],
     deltas: existing.deltas || { power: 0, kp: 0, deads: 0, moved: false },
     active: true,
   };
 
-  saveWatchlist(list);
-  return list.targets[idStr];
+  await saveWatchlist(list);
+  return { target: list.targets[idStr], watchlist: list };
 }
 
 /**
  * Removes a target from active tracking.
  */
-export function removeTrackedTarget(govId) {
-  const list = getWatchlist();
+export async function removeTrackedTarget(govId) {
+  const list = await getWatchlist();
   const idStr = String(govId);
   if (list.targets[idStr]) {
     delete list.targets[idStr];
-    saveWatchlist(list);
-    return true;
+    await saveWatchlist(list);
   }
-  return false;
+  return { removed: true, watchlist: list };
 }
 
 /**
@@ -84,8 +182,8 @@ export function removeTrackedTarget(govId) {
  * and dispatches immediate tactical alerts if movement or major stat changes occur.
  */
 export async function evaluateTrackedTargets(freshGovs = []) {
-  const list = getWatchlist();
-  const trackedIds = Object.keys(list.targets);
+  const list = await getWatchlist();
+  const trackedIds = Object.keys(list.targets || {});
   if (trackedIds.length === 0) return { alertsDispatched: 0 };
 
   const freshMap = new Map();
@@ -103,10 +201,11 @@ export async function evaluateTrackedTargets(freshGovs = []) {
     if (!fresh) continue;
 
     const changes = [];
-    let hasMovement = false;
 
     // 1. Coordinate Tracking (Territory Movement)
-    const newCoords = fresh.castlePos;
+    const newCoords =
+      fresh.castlePos ||
+      (fresh.mapTileX && fresh.mapTileY ? { X: Number(fresh.mapTileX), Y: Number(fresh.mapTileY) } : null);
     if (newCoords && typeof newCoords === 'object') {
       const oldCoords = target.lastKnownCoords;
       if (oldCoords && (oldCoords.X !== newCoords.X || oldCoords.Y !== newCoords.Y)) {
@@ -120,13 +219,13 @@ export async function evaluateTrackedTargets(freshGovs = []) {
           to: newCoords,
           distance: dist,
         });
+        if (!Array.isArray(target.movementHistory)) target.movementHistory = [];
         target.movementHistory.push({
           from: oldCoords,
           to: newCoords,
           distance: dist,
           timestamp: nowIso,
         });
-        hasMovement = true;
       }
       target.lastKnownCoords = newCoords;
     }
@@ -198,7 +297,7 @@ export async function evaluateTrackedTargets(freshGovs = []) {
     }
   }
 
-  saveWatchlist(list);
+  await saveWatchlist(list);
   return { alertsDispatched: generatedAlerts.length, alerts: generatedAlerts };
 }
 
@@ -209,7 +308,6 @@ export async function dispatchBlackOpsNotification(alertItem, customWebhookUrl =
   const coordStr = alertItem.coords ? `(${alertItem.coords.X}, ${alertItem.coords.Y})` : 'Unknown Grid';
   const changeSummary = alertItem.changes.map((c) => `• ${c.detail}`).join('\n');
 
-  // Format Star Cluster Tactical Alert
   const title = `🚨 [BLACK OPS RADAR] Target Alert: ${alertItem.name} [#${alertItem.kingdom}]`;
   const message = `**Target Locked:** ${alertItem.name} (ID: ${alertItem.govId})\n**Alliance:** [${alertItem.alliance}] | **Power:** ${(alertItem.power / 1e6).toFixed(1)}M\n**Coordinates:** ${coordStr}\n\n**Telemetry Shifts Detected:**\n${changeSummary}`;
 
