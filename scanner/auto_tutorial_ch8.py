@@ -199,13 +199,22 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_vh_red)) > 0.45 and float(np.mean(is_vc_cyan)) > 0.45:
         return (392, 760, "Vengeance Victory -> Tap HOME (392, 760)")
 
-    # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760, y=845..900) + Golden OPEN ANOTHER (x=825..1105, y=845..900)
-    t_conf = a[850:898, 495:755]
-    cyan_conf = (t_conf[:, :, 2] >= 195) & (t_conf[:, :, 1] >= 140) & (t_conf[:, :, 0] <= 110)
-    t_open = a[850:898, 830:1095]
-    gold_open2 = (t_open[:, :, 0] >= 195) & (t_open[:, :, 1] >= 130) & (t_open[:, :, 2] <= 75)
-    if float(np.mean(cyan_conf)) > 0.35 and float(np.mean(gold_open2)) > 0.35:
-        return (625, 875, "Tavern Chest Result -> Tap CONFIRM")
+    # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760) + Golden OPEN ANOTHER (x=825..1105) at y=845..898 or y=765..845
+    for y_lo, y_hi, y_tap in [(845, 898, 875), (765, 845, 805)]:
+        t_conf = a[y_lo:y_hi, 495:755]
+        cyan_conf = (t_conf[:, :, 2] >= 185) & (t_conf[:, :, 1] >= 135) & (t_conf[:, :, 0] <= 110)
+        t_open = a[y_lo:y_hi, 830:1095]
+        gold_open2 = (t_open[:, :, 0] >= 190) & (t_open[:, :, 1] >= 125) & (t_open[:, :, 2] <= 80)
+        if float(np.mean(cyan_conf)) > 0.35 and float(np.mean(gold_open2)) > 0.35:
+            return (628, y_tap, f"Tavern Chest Result -> Tap CONFIRM (628, {y_tap})")
+
+    # 7b. Insufficient Gems Popup Modal (grey header y=165..215, x=350..1250 + centered golden Purchase button y=620..698, x=680..920)
+    ig_hdr = a[165:215, 350:1250]
+    is_ig_hdr = (ig_hdr[:, :, 0] >= 150) & (np.abs(ig_hdr[:, :, 0].astype(np.int32) - ig_hdr[:, :, 1].astype(np.int32)) < 20)
+    ig_btn = a[620:698, 680:920]
+    is_ig_gold = (ig_btn[:, :, 0] >= 200) & (ig_btn[:, :, 1] >= 135) & (ig_btn[:, :, 2] <= 65)
+    if float(np.mean(is_ig_hdr)) > 0.65 and float(np.mean(is_ig_gold)) > 0.45:
+        return (1263, 190, "INSUFFICIENT_GEMS_CLOSE_AND_EXIT")
 
     # 8. Quests Modal Main Quest Cyan 'GO' button at x=1175..1340, y=295..355 with cream Quests header at y=80..150
     q_hdr = a[85:145, 500:1100]
@@ -253,21 +262,26 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
         return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
 
-    # 11b. Building Upgrade Modal (grey header y=85..140 + golden Instant button at x=780..1035, y=635..730)
+    # 11b. Building Upgrade Modal (grey header y=85..140, x=250..1350 + left teal 3D building panel x=220..650, y=200..750)
+    b_hdr = a[85:140, 250:1350]
+    is_b_hdr = (b_hdr[:, :, 0] >= 160) & (np.abs(b_hdr[:, :, 0].astype(np.int32) - b_hdr[:, :, 1].astype(np.int32)) < 22)
+    b_lpan = a[200:750, 220:650]
+    is_b_lteal = (b_lpan[:, :, 2] >= 95) & (b_lpan[:, :, 0] <= 45) & ((b_lpan[:, :, 2].astype(np.int32) - b_lpan[:, :, 0].astype(np.int32)) >= 65)
     inst_btn = a[635:730, 780:1035]
     inst_gold = (inst_btn[:, :, 0] >= 200) & (inst_btn[:, :, 1] >= 135) & (inst_btn[:, :, 2] <= 95) & ((inst_btn[:, :, 0].astype(np.int32) - inst_btn[:, :, 2].astype(np.int32)) >= 110)
-    if int(inst_gold.sum()) >= 1500:
-        upg_btn = a[635:730, 1110:1360]
-        upg_cyan = (upg_btn[:, :, 2] >= 175) & (upg_btn[:, :, 1] >= 140) & (upg_btn[:, :, 0] <= 90) & ((upg_btn[:, :, 2].astype(np.int32) - upg_btn[:, :, 0].astype(np.int32)) >= 85)
-        uys, uxs = np.where(upg_cyan)
-        if len(uxs) >= 1500:
-            ux, uy = int(np.median(uxs) + 1110), int(np.median(uys) + 635)
-            return (ux, uy, f"Building Upgrade Modal -> Tap Upgrade ({ux}, {uy})")
-        prereq_go = a[460:630, 1130:1350]
-        go_cyan = (prereq_go[:, :, 2] >= 185) & (prereq_go[:, :, 1] >= 145) & (prereq_go[:, :, 0] <= 85) & ((prereq_go[:, :, 2].astype(np.int32) - prereq_go[:, :, 0].astype(np.int32)) >= 95)
+    if int(inst_gold.sum()) >= 1500 or (float(np.mean(is_b_hdr)) > 0.65 and float(np.mean(is_b_lteal)) > 0.28):
+        if int(inst_gold.sum()) >= 1500:
+            upg_btn = a[635:735, 1110:1360]
+            upg_cyan = (upg_btn[:, :, 2] >= 175) & (upg_btn[:, :, 1] >= 140) & (upg_btn[:, :, 0] <= 90) & ((upg_btn[:, :, 2].astype(np.int32) - upg_btn[:, :, 0].astype(np.int32)) >= 85)
+            uys, uxs = np.where(upg_cyan)
+            if len(uxs) >= 1500:
+                ux, uy = int(np.median(uxs) + 1110), int(np.median(uys) + 635)
+                return (ux, uy, f"Building Upgrade Modal -> Tap Upgrade ({ux}, {uy})")
+        prereq_go = a[460:750, 950:1355]
+        go_cyan = (prereq_go[:, :, 2] >= 180) & (prereq_go[:, :, 1] >= 140) & (prereq_go[:, :, 0] <= 85) & ((prereq_go[:, :, 2].astype(np.int32) - prereq_go[:, :, 0].astype(np.int32)) >= 95)
         gys, gxs = np.where(go_cyan)
         if len(gxs) >= 250:
-            gx, gy = int(np.median(gxs) + 1130), int(np.median(gys) + 460)
+            gx, gy = int(np.median(gxs) + 950), int(np.median(gys) + 460)
             return (gx, gy, f"Building Upgrade Prereq -> Tap Go ({gx}, {gy})")
 
     # 12. Decorative Info / Non-Actionable Grey Modal (e.g. ELM, OAK, MORE INFO, DLC, MAIL) with no action buttons on the right half
@@ -659,12 +673,30 @@ def main():
                 time.sleep(0.6)
                 tap(args.adb, 1380, 112, 1.0)
                 tap(args.adb, 48, 52, 1.1)
+            elif nt[2] == "INSUFFICIENT_GEMS_CLOSE_AND_EXIT":
+                print(f"[Step {step:02d}] Insufficient Gems -> Close (1263,190) + Confirm Chest (628,805) + Back (48,52)")
+                tap(args.adb, 1263, 190, 1.0)
+                tap(args.adb, 628, 805, 1.2)
+                tap(args.adb, 48, 52, 1.2)
             else:
                 print(f"[Step {step:02d}] {nt[2]} -> tap ({nt[0]}, {nt[1]})")
                 tap(args.adb, nt[0], nt[1], 1.1)
             last_spear = None
             repeat_cnt = 0
             continue
+
+        # Claim completed Main/Side Quest pink gift icon BEFORE following passive building-selection spears
+        if is_city_hud(a2) and not is_world_map(a2):
+            sub_q = a2[285:640, 195:245]
+            pink_q = (sub_q[:, :, 0] >= 200) & (sub_q[:, :, 1] <= 100) & (sub_q[:, :, 2] >= 170)
+            qys, qxs = np.where(pink_q)
+            if len(qxs) >= 35:
+                gy = int(np.percentile(qys, 15) + 285)
+                print(f"[Step {step:02d}] Completed Quest Gift -> tap (120, {gy + 15})")
+                tap(args.adb, 120, gy + 15, 1.1)
+                last_spear = None
+                repeat_cnt = 0
+                continue
 
         spear_xy, target_xy, bcnt = detect_spear_and_starburst(a1, a2)
         if spear_xy and target_xy:
