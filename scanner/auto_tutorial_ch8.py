@@ -90,6 +90,15 @@ def is_city_hud(a: np.ndarray) -> bool:
     return float(diff_br.mean()) > 45.0
 
 
+def is_world_map(a: np.ndarray) -> bool:
+    if not is_city_hud(a):
+        return False
+    # On the World Map, (48, 735) is the bright-blue Search Magnifying Glass button (B - R > 95)
+    p735 = a[710:760, 25:70]
+    b_minus_r = float((p735[:, :, 2].astype(np.float32) - p735[:, :, 0].astype(np.float32)).mean())
+    return b_minus_r > 95.0 and float(p735[:, :, 2].mean()) >= 165.0
+
+
 def detect_new_troop_modal(a: np.ndarray):
     # 0. Quests Modal Main Quest Cyan 'GO' button at x=1175..1340, y=295..355 with grey-cream Quests header at y=85..145
     q_hdr = a[85:145, 500:1100]
@@ -204,6 +213,10 @@ def detect_new_troop_modal(a: np.ndarray):
     back_btn = a[20:85, 20:85]
     is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)
     if float(np.mean(is_sk_cyan)) > 0.45 and float(np.mean(is_back_grey)) > 0.55:
+        lvl_btn = a[380:435, 1470:1535]
+        is_lvl_green = (lvl_btn[:, :, 1] >= 150) & (lvl_btn[:, :, 0] <= 70) & (lvl_btn[:, :, 2] <= 70)
+        if float(np.mean(is_lvl_green)) > 0.30:
+            return (1498, 408, "COMMANDER_LEVEL_UP_5")
         return (48, 52, "Commander Screen -> Tap Back (48, 52)")
 
     return None
@@ -353,8 +366,6 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
         "QUICK DEPLOY",
         "START",
         "New Troop",
-        "MARCH",
-        "March",
         "SEARCH",
         "Search",
         "ATTACK",
@@ -423,27 +434,39 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
         pillar = a[500:850, 10:80]
         if float(pillar.mean()) > 95.0 and float(np.mean(np.abs(pillar[:, :, 0] - pillar[:, :, 1]) < 25)) > 0.55:
             return (800, 200, "Build Drawer Locked -> Close (800, 200)")
-        # If full-screen modal header bar (Items/Quests/Settings at y=75..145, x=500..1100) is open, tap top-right X (1415, 110)
+        # If full-screen modal header bar (Items/Quests/Settings/ELM at y=75..145, x=500..1100) is open, tap top-right X (1375, 110)
         hdr = a[75:145, 500:1100]
         if float(hdr.mean()) > 125.0 and float(np.mean(np.abs(hdr[:, :, 0] - hdr[:, :, 1]) < 25)) > 0.60:
-            return (1415, 110, "Modal Open -> Close (1415, 110)")
+            return (1375, 110, "Modal Open -> Close (1375, 110)")
+        # If top-aligned modal header bar (DLC at y=30..90, x=500..1100) is open, tap top-right X (1365, 58)
+        hdr2 = a[30:90, 500:1100]
+        if float(hdr2.mean()) > 125.0 and float(np.mean(np.abs(hdr2[:, :, 0] - hdr2[:, :, 1]) < 25)) > 0.60:
+            return (1365, 58, "Top Modal Open -> Close (1365, 58)")
         # If top-left Back button (48, 52) is visible (Commander/Tavern view), tap (48, 52)
         back_btn = a[20:85, 20:85]
         if float(back_btn.mean()) > 110.0 and float(np.mean(np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)) > 0.55:
             return (48, 52, "Sub-Screen Open -> Tap Back (48, 52)")
         return None
 
-    # 1. Check for completed Main or Side Quest pink gift icon at x=195..245, y=285..610 (pick topmost first)
-    sub = a[285:610, 195:245]
+    # 0. If idle on the World Map (no spear, no barbarian search, no map popup), return to City (55, 845)
+    if is_world_map(a):
+        return (55, 845, "World Map Idle -> Return to City (55, 845)")
+
+    # 1. Check for completed Main or Side Quest pink gift icon at x=195..245, y=285..640 (pick topmost first)
+    sub = a[285:640, 195:245]
     pink = (sub[:, :, 0] >= 200) & (sub[:, :, 1] <= 100) & (sub[:, :, 2] >= 170)
     ys, xs = np.where(pink)
     if len(xs) >= 35:
         gy = int(np.percentile(ys, 15) + 285)
         return (120, gy + 15, "Claim Completed Quest Gift")
 
-    # 2. Tap Main Quest Card at (120, 325) only if the dark translucent Quest Card is visible (not green grass)
+    # 2. Tap Quest Card at (120, 325) or alternate with Side Quest rows (440 / 615) so City Hall upgrades never stall behind a Chapter quest
     quest_card = a[305:345, 50:180]
     if float(quest_card[:, :, 1].mean()) < 98.0:
+        if step % 4 == 0:
+            return (120, 440, "Tap Side Quest Row #1 (120, 440)")
+        if step % 4 == 2:
+            return (120, 615, "Tap Side Quest Row #3 (120, 615)")
         return (120, 325, "Tap Main Quest Card")
     return None
 
@@ -549,6 +572,16 @@ def main():
                 tap(args.adb, 650, 790, 1.2)
                 tap(args.adb, 945, 790, 11.0)
                 tap(args.adb, 800, 780, 1.5)
+            elif nt[2] == "COMMANDER_LEVEL_UP_5":
+                print(f"[Step {step:02d}] Commander Screen -> Level Up (1498,408) + XP Tomes (525,340)x10 + Back (48,52)")
+                if step % 2 == 0:
+                    tap(args.adb, 150, 250, 1.0)
+                tap(args.adb, 1498, 408, 1.2)
+                for _ in range(10):
+                    tap(args.adb, 525, 340, 0.25)
+                time.sleep(0.6)
+                tap(args.adb, 48, 52, 1.1)
+                tap(args.adb, 48, 52, 1.1)
             else:
                 print(f"[Step {step:02d}] {nt[2]} -> tap ({nt[0]}, {nt[1]})")
                 tap(args.adb, nt[0], nt[1], 1.1)
