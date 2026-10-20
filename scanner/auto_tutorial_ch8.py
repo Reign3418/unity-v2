@@ -128,6 +128,14 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(gold_qd)) > 0.35 and float(np.mean(cyan_st)) > 0.35:
         return (650, 790, "VENGEANCE_QUICK_DEPLOY_AND_START")
 
+    # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760, y=845..900) + Golden OPEN ANOTHER (x=825..1105, y=845..900)
+    t_conf = a[850:898, 495:755]
+    cyan_conf = (t_conf[:, :, 2] >= 195) & (t_conf[:, :, 1] >= 140) & (t_conf[:, :, 0] <= 110)
+    t_open = a[850:898, 830:1095]
+    gold_open2 = (t_open[:, :, 0] >= 195) & (t_open[:, :, 1] >= 130) & (t_open[:, :, 2] <= 75)
+    if float(np.mean(cyan_conf)) > 0.35 and float(np.mean(gold_open2)) > 0.35:
+        return (625, 875, "Tavern Chest Result -> Tap CONFIRM")
+
     return None
 
 

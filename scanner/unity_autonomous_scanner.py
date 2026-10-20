@@ -223,10 +223,123 @@ def parse_tier_and_more_block(block: bytes) -> dict:
     return res
 
 
-def extract_all_governors_from_ram(exclude_gov_ids=None) -> list:
+_MUMU_ARENA_CACHE = {}
+
+
+def resolve_mumu_pid_and_arena(adb_serial: str = "127.0.0.1:16384"):
     """
-    Scans MuMuNxDevice.exe's Lua heap (MEM_PRIVATE | PAGE_READWRITE) and extracts
-    all 35-field Governor records currently resident in memory.
+    Maps an emulator ADB port (16384 -> -v 0, 16416 -> -v 1, 16448 -> -v 2, 16480 -> -v 3)
+    to its exact MuMuNxDevice.exe PID and discovers its 64GB ASLR guest RAM arena via VirtualQueryEx.
+    """
+    from collections import Counter
+
+    PROCESS_QUERY_INFORMATION = 0x0400
+    PROCESS_VM_READ = 0x0010
+    MEM_COMMIT = 0x1000
+    PAGE_READWRITE = 0x04
+    MEM_PRIVATE = 0x20000
+
+    k32 = ctypes.windll.kernel32
+    k32.OpenProcess.argtypes = [wt.DWORD, wt.BOOL, wt.DWORD]
+    k32.OpenProcess.restype = wt.HANDLE
+    k32.VirtualQueryEx.argtypes = [wt.HANDLE, ctypes.c_void_p, ctypes.POINTER(MEMORY_BASIC_INFORMATION), ctypes.c_size_t]
+    k32.VirtualQueryEx.restype = ctypes.c_size_t
+    k32.CloseHandle.argtypes = [wt.HANDLE]
+
+    port_str = str(adb_serial or "127.0.0.1:16384").split(":")[-1]
+    try:
+        adb_port = int(port_str)
+    except ValueError:
+        adb_port = 16384
+    vm_idx = max(0, (adb_port - 16384) // 32)
+
+    cached = _MUMU_ARENA_CACHE.get(adb_port)
+    if cached:
+        c_pid, c_start, c_end = cached
+        h_test = k32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, c_pid)
+        if h_test:
+            k32.CloseHandle(h_test)
+            return c_pid, c_start, c_end
+
+    target_pid = None
+    try:
+        ps_cmd = (
+            "Get-CimInstance Win32_Process -Filter \"Name = 'MuMuNxDevice.exe'\" | "
+            "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress"
+        )
+        proc_out = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        ).decode("utf-8", errors="ignore").strip()
+        if proc_out:
+            parsed = json.loads(proc_out)
+            if isinstance(parsed, dict):
+                parsed = [parsed]
+            for item in parsed:
+                cmd_line = str(item.get("CommandLine") or "")
+                pid_val = int(item.get("ProcessId") or 0)
+                if pid_val > 0 and (
+                    f"-v {vm_idx} " in f"{cmd_line} "
+                    or f"15.0-{vm_idx}" in cmd_line
+                    or f"12.0-{vm_idx}" in cmd_line
+                ):
+                    target_pid = pid_val
+                    break
+            if target_pid is None and parsed:
+                idx_clamped = min(vm_idx, len(parsed) - 1)
+                target_pid = int(parsed[idx_clamped].get("ProcessId") or 0)
+    except Exception:
+        pass
+
+    if not target_pid:
+        out = subprocess.check_output('tasklist /FI "IMAGENAME eq MuMuNxDevice.exe"', shell=True).decode(errors="ignore")
+        pids = [int(x) for x in re.findall(r"MuMuNxDevice\.exe\s+(\d+)", out)]
+        if not pids:
+            raise RuntimeError("MuMuNxDevice.exe process not found!")
+        target_pid = pids[min(vm_idx, len(pids) - 1)]
+
+    h = k32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, target_pid)
+    if not h:
+        raise RuntimeError(f"Failed to open MuMuNxDevice.exe (PID {target_pid}) for {adb_serial}")
+
+    buckets = Counter()
+    mbi = MEMORY_BASIC_INFORMATION()
+    addr = 0x10000
+    max_user_addr = 0x7FFFFFFFFFFF
+    try:
+        while addr < max_user_addr and k32.VirtualQueryEx(h, ctypes.c_void_p(addr), ctypes.byref(mbi), ctypes.sizeof(mbi)):
+            if (
+                mbi.State == MEM_COMMIT
+                and mbi.Protect == PAGE_READWRITE
+                and mbi.Type == MEM_PRIVATE
+                and mbi.RegionSize <= 16 * 1024 * 1024
+            ):
+                buckets[addr >> 36] += mbi.RegionSize
+            nxt = (mbi.BaseAddress or addr) + mbi.RegionSize
+            if nxt <= addr:
+                break
+            addr = nxt
+    finally:
+        k32.CloseHandle(h)
+
+    if buckets:
+        best_prefix = buckets.most_common(1)[0][0]
+        start_addr = best_prefix << 36
+        end_addr = start_addr + 0x600000000
+    else:
+        start_addr = 0x25000000000
+        end_addr = 0x25500000000
+
+    _MUMU_ARENA_CACHE[adb_port] = (target_pid, start_addr, end_addr)
+    print(f"  [MUMU ARENA] Mapped {adb_serial} (vm={vm_idx}) -> PID {target_pid} @ {hex(start_addr)}..{hex(end_addr)}")
+    return target_pid, start_addr, end_addr
+
+
+def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.0.0.1:16384") -> list:
+    """
+    Scans the target emulator's MuMuNxDevice.exe Lua heap (MEM_PRIVATE | PAGE_READWRITE)
+    and extracts all 35-field Governor records currently resident in memory.
     """
     if exclude_gov_ids is None:
         exclude_gov_ids = {236425783}  # Exclude our CH8 scout account lilfarmer by default
@@ -246,18 +359,12 @@ def extract_all_governors_from_ram(exclude_gov_ids=None) -> list:
     k32.ReadProcessMemory.restype = wt.BOOL
     k32.CloseHandle.argtypes = [wt.HANDLE]
 
-    out = subprocess.check_output('tasklist /FI "IMAGENAME eq MuMuNxDevice.exe"', shell=True).decode(errors="ignore")
-    pids = re.findall(r"MuMuNxDevice\.exe\s+(\d+)", out)
-    if not pids:
-        raise RuntimeError("MuMuNxDevice.exe process not found!")
-    pid = int(pids[0])
+    pid, addr, max_addr = resolve_mumu_pid_and_arena(adb_serial)
     h = k32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
     if not h:
         raise RuntimeError(f"Failed to open MuMuNxDevice.exe (PID {pid})")
 
     mbi = MEMORY_BASIC_INFORMATION()
-    addr = 0x25000000000
-    max_addr = 0x25500000000
     needle_troop = struct.pack("<I", 0x1e89dddc)
     needle_helps = struct.pack("<I", 0x9c017191)
 
@@ -532,14 +639,15 @@ def parse_rok_binary(data: bytes) -> dict:
 MUMU_DOC_REMOTE = "/storage/emulated/0/Android/data/com.lilithgame.roc.gp/files/GLGData/com_lilithgame_roc_gp/doc"
 
 
-def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16384") -> dict:
+def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16384", target_kd: str = "4194") -> dict:
     """
     Pulls and decodes Lilith's 0x05 binary Lua tables directly from MuMu's Android container:
       /storage/emulated/0/Android/data/com.lilithgame.roc.gp/files/GLGData/com_lilithgame_roc_gp/doc/mailcache/
-    Merges with any baseline seed in C:\\UnityScanner\\mailcache_baseline_seed.json.
+    Merges with any baseline seed in C:\\UnityScanner\\mailcache_baseline_seed.json (only for #4194).
     Returns dict keyed by integer Governor ID (PId).
     """
-    sync_dir = os.path.join(SCRIPT_DIR, "mumu_doc_sync")
+    adb_port = str(serial or "127.0.0.1:16384").split(":")[-1]
+    sync_dir = os.path.join(SCRIPT_DIR, f"mumu_doc_sync_{adb_port}")
     mail_dir = os.path.join(sync_dir, "mailcache")
     os.makedirs(mail_dir, exist_ok=True)
 
@@ -559,9 +667,9 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
         print(f"  [WARN] MuMu doc ADB pull warning: {e}")
 
     govs = {}
-    # Load baseline mailcache seed if present
+    # Load baseline mailcache seed ONLY when scanning Kingdom #4194
     seed_path = os.path.join(SCRIPT_DIR, "mailcache_baseline_seed.json")
-    if os.path.exists(seed_path):
+    if str(target_kd) == "4194" and os.path.exists(seed_path):
         try:
             with open(seed_path, "r", encoding="utf-8") as f:
                 for item in json.load(f):
@@ -570,6 +678,14 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                         govs[pid] = dict(item)
         except Exception:
             pass
+
+    expected_cos_id = None
+    try:
+        kd_int = int(target_kd)
+        if kd_int > 1000:
+            expected_cos_id = kd_int - 1000
+    except Exception:
+        pass
 
     # Decode live MuMu Persistent.Mail.* binary files
     if os.path.exists(mail_dir):
@@ -586,6 +702,8 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                 for ck in ("SelfChar", "CIdt"):
                     ch = content.get(ck, {})
                     if isinstance(ch, dict) and ch.get("PId") and int(ch["PId"]) > 0:
+                        if expected_cos_id and ch.get("COSId") and int(ch["COSId"]) != expected_cos_id:
+                            continue
                         pid = int(ch["PId"])
                         cur = govs.get(pid, {"id": str(pid), "govId": pid, "ralliesLed": 0, "ralliesJoined": 0})
                         cur["ralliesLed"] = int(cur.get("ralliesLed") or 0) + 1
@@ -641,6 +759,8 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                     if isinstance(ts, dict):
                         for _, j in ts.items():
                             if isinstance(j, dict) and j.get("PId") and int(j["PId"]) > 0:
+                                if expected_cos_id and j.get("COSId") and int(j["COSId"]) != expected_cos_id:
+                                    continue
                                 pid = int(j["PId"])
                                 cur = govs.get(pid, {"id": str(pid), "govId": pid, "ralliesLed": 0, "ralliesJoined": 0})
                                 cur["ralliesJoined"] = int(cur.get("ralliesJoined") or 0) + 1
@@ -771,8 +891,8 @@ def push_batch_to_unity(unity_url: str, scanner_key: str, payload: dict):
 def run_ram_dump(args):
     driver = AdbEmulatorDriver(serial=args.adb)
     t0 = time.time()
-    ram_govs = extract_all_governors_from_ram()
-    save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
+    ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
+    save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
     merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
     elapsed = time.time() - t0
     print(
@@ -981,6 +1101,24 @@ def run_kingdom_scan(args):
     last_gov_power = 0
     total_extracted = 0
 
+    adb_port = str(args.adb or "127.0.0.1:16384").split(":")[-1]
+    accum_path = os.path.join(SCRIPT_DIR, f"ram_accum_{adb_port}_{args.kd}.json")
+    cumulative_ram_by_id = {}
+    if os.path.exists(accum_path):
+        try:
+            with open(accum_path, "r", encoding="utf-8") as rf:
+                loaded_accum = json.load(rf)
+            if isinstance(loaded_accum, dict):
+                cumulative_ram_by_id = {int(k): v for k, v in loaded_accum.items() if int(k) > 0}
+            elif isinstance(loaded_accum, list):
+                for item in loaded_accum:
+                    gid = int(item.get("govId") or item.get("id") or 0)
+                    if gid > 0:
+                        cumulative_ram_by_id[gid] = item
+            print(f"  [ACCUMULATOR] Loaded {len(cumulative_ram_by_id)} pre-accumulated RAM governors from {accum_path}")
+        except Exception:
+            pass
+
     write_scan_progress({
         "running": True,
         "status": "PREPARING_LEADERBOARD",
@@ -990,7 +1128,7 @@ def run_kingdom_scan(args):
         "percent": 0.0,
         "lastGovernorName": f"Switching to #{args.kd} & opening Individual Power Rankings...",
         "lastGovernorPower": 0,
-        "governorsExtracted": 0,
+        "governorsExtracted": len(cumulative_ram_by_id),
         "startedAt": started_at_iso,
         "etaSeconds": int((args.end_rank - args.start_rank + 1) * 3.1),
         "workerSerial": args.adb,
@@ -1006,7 +1144,7 @@ def run_kingdom_scan(args):
             "percent": 0.0,
             "lastGovernorName": f"Could not open Individual Power Rankings on #{args.kd}",
             "lastGovernorPower": 0,
-            "governorsExtracted": 0,
+            "governorsExtracted": len(cumulative_ram_by_id),
             "startedAt": started_at_iso,
             "etaSeconds": 0,
             "workerSerial": args.adb,
@@ -1037,16 +1175,39 @@ def run_kingdom_scan(args):
                 ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True)
             if rank >= 6 and rank < args.end_rank:
                 settled_y = detect_bottom_card_center_y(driver, target_y=780)
-            ram_govs = extract_all_governors_from_ram()
-            save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
-            merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
+            ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
+            for rg in ram_govs:
+                gid = int(rg.get("govId") or rg.get("id") or 0)
+                if gid <= 0:
+                    continue
+                if gid in cumulative_ram_by_id:
+                    existing = cumulative_ram_by_id[gid]
+                    for fk, fv in rg.items():
+                        if fv and (not existing.get(fk) or existing.get(fk) == "None" or existing.get(fk) == f"Governor_{gid}"):
+                            existing[fk] = fv
+                        elif isinstance(fv, (int, float)) and fv > 0:
+                            existing[fk] = fv
+                else:
+                    cumulative_ram_by_id[gid] = dict(rg)
+            try:
+                with open(accum_path, "w", encoding="utf-8") as wf:
+                    json.dump(list(cumulative_ram_by_id.values()), wf, ensure_ascii=False)
+            except Exception:
+                pass
+            accum_ram_list = list(cumulative_ram_by_id.values())
+            save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
+            merged_govs = merge_ram_and_mumu_save_telemetry(accum_ram_list, save_govs)
             total_extracted = len(merged_govs)
-            if merged_govs:
+            if ram_govs:
+                lowest_live = ram_govs[-1]
+                last_gov_name = lowest_live.get("name", last_gov_name)
+                last_gov_power = lowest_live.get("power", last_gov_power)
+            elif merged_govs:
                 top_latest = merged_govs[min(rank - 1, len(merged_govs) - 1)]
                 last_gov_name = top_latest.get("name", last_gov_name)
                 last_gov_power = top_latest.get("power", last_gov_power)
             print(
-                f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} RAM + {len(save_govs)} Save -> {len(merged_govs)} governors!"
+                f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} live RAM ({len(accum_ram_list)} accum) + {len(save_govs)} Save -> {len(merged_govs)} governors!"
             )
             if merged_govs and (rank % 10 == 0 or rank == args.end_rank):
                 push_batch_to_unity(
@@ -1055,6 +1216,7 @@ def run_kingdom_scan(args):
                     {
                         "kingdomId": str(args.kd),
                         "scanDateOverride": scan_date_iso,
+                        "forceSnapshotCommit": bool(rank == args.end_rank or rank % 50 == 0 or str(args.kd) != "4194"),
                         "progress": {
                             "currentRank": rank,
                             "targetRank": args.end_rank,
