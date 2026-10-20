@@ -183,12 +183,12 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(gold_qd)) > 0.35 and float(np.mean(cyan_st)) > 0.35:
         return (650, 790, "VENGEANCE_QUICK_DEPLOY_AND_START")
 
-    # 6b. Vengeance Stage 1 Active Skill Prompt: white bubble at x=215..750, y=315..400 + gold skill icon at x=215..295, y=405..475
-    v_bub = a[315:400, 215:750]
-    is_vbub = (v_bub[:, :, 0] >= 220) & (v_bub[:, :, 1] >= 220) & (v_bub[:, :, 2] >= 220)
+    # 6b. Vengeance Stage 1 Active Skill Prompt: white bubble at x=215..750, y=315..405 + gold skill icon at x=215..295, y=405..475
+    v_bub = a[315:405, 215:750]
+    is_vbub = (v_bub[:, :, 0] >= 215) & (v_bub[:, :, 1] >= 215) & (v_bub[:, :, 2] >= 215)
     v_sk = a[405:475, 215:295]
-    is_vsk = (v_sk[:, :, 0] >= 195) & (v_sk[:, :, 1] >= 135) & (v_sk[:, :, 2] <= 110)
-    if float(np.mean(is_vbub)) > 0.50 and float(np.mean(is_vsk)) > 0.18:
+    is_vsk = (v_sk[:, :, 0] >= 185) & (v_sk[:, :, 1] >= 125) & (v_sk[:, :, 2] <= 115)
+    if float(np.mean(is_vbub)) > 0.35 and float(np.mean(is_vsk)) > 0.14:
         return (256, 437, "VENGEANCE_CAST_SKILL_AND_EXIT")
 
     # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760, y=845..900) + Golden OPEN ANOTHER (x=825..1105, y=845..900)
@@ -227,10 +227,14 @@ def detect_new_troop_modal(a: np.ndarray):
             return (1515, 363, "COMMANDER_LEVEL_UP_5")
         return (48, 52, "Commander Screen -> Tap Back (48, 52)")
 
-    # 10. Gem Store / Pack Shop Screen (left brown tab bar x=10..250, y=150..750 + top-left grey Back button at 48, 52)
+    # 10. Gem Store / Pack Shop Screen (left dark reddish-brown tab bar x=10..250, y=150..750 + top-left grey Back button at 48, 52)
     shop_bar = a[150:750, 10:250]
-    is_shop_brown = (shop_bar[:, :, 0] >= 75) & ((shop_bar[:, :, 0].astype(np.int32) - shop_bar[:, :, 2].astype(np.int32)) >= 45)
-    if float(np.mean(is_shop_brown)) > 0.60 and float(np.mean(is_back_grey)) > 0.55:
+    is_shop_brown = (
+        (shop_bar[:, :, 0] >= 75)
+        & ((shop_bar[:, :, 0].astype(np.int32) - shop_bar[:, :, 2].astype(np.int32)) >= 45)
+        & ((shop_bar[:, :, 0].astype(np.int32) - shop_bar[:, :, 1].astype(np.int32)) >= 22)
+    )
+    if float(np.mean(is_shop_brown)) > 0.50 and float(np.mean(is_back_grey)) > 0.55:
         return (48, 52, "Gem Store Open -> Tap Back (48, 52)")
 
     # 11. Governor Profile Modal (gold banner left x=140..500, y=220..680 + blue panel right x=550..1400, y=220..680) -> Close (1454, 105)
@@ -240,6 +244,21 @@ def detect_new_troop_modal(a: np.ndarray):
     is_pan = (pan[:, :, 2] >= 120) & (pan[:, :, 0] <= 45)
     if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
         return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
+
+    # 11b. Building Upgrade Modal (grey header y=85..140 + golden Instant button at x=780..965, y=715..805)
+    inst_btn = a[715:805, 780:965]
+    inst_gold = (inst_btn[:, :, 0] >= 200) & (inst_btn[:, :, 1] >= 135) & (inst_btn[:, :, 2] <= 95) & ((inst_btn[:, :, 0].astype(np.int32) - inst_btn[:, :, 2].astype(np.int32)) >= 110)
+    if int(inst_gold.sum()) >= 300:
+        upg_btn = a[715:805, 1110:1295]
+        upg_cyan = (upg_btn[:, :, 2] >= 175) & (upg_btn[:, :, 1] >= 140) & (upg_btn[:, :, 0] <= 90) & ((upg_btn[:, :, 2].astype(np.int32) - upg_btn[:, :, 0].astype(np.int32)) >= 85)
+        if int(upg_cyan.sum()) >= 400:
+            return (1200, 760, "Building Upgrade Modal -> Tap Upgrade (1200, 760)")
+        prereq_go = a[490:670, 1140:1340]
+        go_cyan = (prereq_go[:, :, 2] >= 185) & (prereq_go[:, :, 1] >= 145) & (prereq_go[:, :, 0] <= 85) & ((prereq_go[:, :, 2].astype(np.int32) - prereq_go[:, :, 0].astype(np.int32)) >= 95)
+        gys, gxs = np.where(go_cyan)
+        if len(gxs) >= 250:
+            gx, gy = int(np.median(gxs) + 1140), int(np.median(gys) + 490)
+            return (gx, gy, f"Building Upgrade Prereq -> Tap Go ({gx}, {gy})")
 
     # 12. Decorative Info / Non-Actionable Grey Modal (e.g. ELM, OAK, MORE INFO, DLC, MAIL) with no action buttons on the right half
     for y_lo, y_hi, y_c in [(85, 140, 105), (35, 80, 58)]:
@@ -498,13 +517,11 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
         gy = int(np.percentile(ys, 15) + 285)
         return (120, gy + 15, "Claim Completed Quest Gift")
 
-    # 2. Tap Quest Card at (120, 325) or alternate with Side Quest rows (440 / 615) so City Hall upgrades never stall behind a Chapter quest
+    # 2. Tap Main Quest Card at (120, 325) primarily; only try Side Quest Row #1 (120, 440) every 9th step
     quest_card = a[305:345, 50:180]
     if float(quest_card[:, :, 1].mean()) < 98.0:
-        if step % 4 == 0:
+        if step % 9 == 8:
             return (120, 440, "Tap Side Quest Row #1 (120, 440)")
-        if step % 4 == 2:
-            return (120, 615, "Tap Side Quest Row #3 (120, 615)")
         return (120, 325, "Tap Main Quest Card")
     return None
 
