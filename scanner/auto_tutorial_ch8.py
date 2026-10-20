@@ -567,11 +567,13 @@ def main():
         nt = detect_new_troop_modal(a2)
         if nt:
             if nt[2] == "VENGEANCE_QUICK_DEPLOY_AND_START":
-                print(f"[Step {step:02d}] Vengeance Stage 1 -> Sun Tzu (110,265) + QUICK DEPLOY (650,790) + START (945,790)")
-                tap(args.adb, 110, 265, 1.2)
+                print(f"[Step {step:02d}] Vengeance -> Cmdr1 (68,265) + Cmdr2 (168,265) + QUICK DEPLOY (650,790) + START (945,790)")
+                tap(args.adb, 68, 265, 1.0)
+                tap(args.adb, 168, 265, 1.0)
                 tap(args.adb, 650, 790, 1.2)
-                tap(args.adb, 945, 790, 11.0)
-                tap(args.adb, 800, 780, 1.5)
+                tap(args.adb, 945, 790, 11.5)
+                tap(args.adb, 800, 780, 1.8)
+                tap(args.adb, 48, 52, 1.2)
             elif nt[2] == "COMMANDER_LEVEL_UP_5":
                 print(f"[Step {step:02d}] Commander Screen -> Level Up (1498,408) + XP Tomes (525,340)x10 + Back (48,52)")
                 if step % 2 == 0:
