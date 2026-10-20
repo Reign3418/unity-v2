@@ -225,6 +225,14 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_shop_brown)) > 0.60 and float(np.mean(is_back_grey)) > 0.55:
         return (48, 52, "Gem Store Open -> Tap Back (48, 52)")
 
+    # 11. Governor Profile Modal (gold banner left x=140..500, y=220..680 + blue panel right x=550..1400, y=220..680) -> Close (1454, 105)
+    ban = a[220:680, 140:500]
+    is_ban = (ban[:, :, 0] >= 170) & (ban[:, :, 1] >= 110) & (ban[:, :, 2] <= 60)
+    pan = a[220:680, 550:1400]
+    is_pan = (pan[:, :, 2] >= 120) & (pan[:, :, 0] <= 45)
+    if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
+        return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
+
     return None
 
 
@@ -440,16 +448,16 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
         pillar = a[500:850, 10:80]
         if float(pillar.mean()) > 95.0 and float(np.mean(np.abs(pillar[:, :, 0] - pillar[:, :, 1]) < 25)) > 0.55:
             return (800, 200, "Build Drawer Locked -> Close (800, 200)")
-        # If full-screen modal header bar (Items/Quests/Settings/ELM at y=75..145, x=500..1100) is open, tap top-right X (1375, 110)
-        hdr = a[75:145, 500:1100]
-        if float(hdr.mean()) > 125.0 and float(np.mean(np.abs(hdr[:, :, 0] - hdr[:, :, 1]) < 25)) > 0.60:
-            return (1375, 110, "Modal Open -> Close (1375, 110)")
-        # If top-aligned modal header bar (Mail/DLC at y=30..90, x=500..1100) is open, tap top-right X (1540, 58 for full-width Mail; 1365, 58 for DLC)
-        hdr2 = a[30:90, 500:1100]
-        if float(hdr2.mean()) > 125.0 and float(np.mean(np.abs(hdr2[:, :, 0] - hdr2[:, :, 1]) < 25)) > 0.60:
-            if float(a[35:80, 1480:1560].mean()) > 125.0:
-                return (1540, 58, "Full-Width Top Modal (Mail) -> Close (1540, 58)")
-            return (1365, 58, "Top Modal Open (DLC) -> Close (1365, 58)")
+        # If full-screen or top-aligned modal header bar (Items/Quests/Settings/ELM/Governor/DLC/Mail) is open, tap its exact X button (right_edge - 38)
+        for y_center in (105, 58):
+            row = a[y_center - 15 : y_center + 15, 500:1590]
+            is_hdr = (row.mean(axis=2) > 125.0) & (np.abs(row[:, :, 0] - row[:, :, 1]) < 25)
+            xs_hdr = np.where(is_hdr.mean(axis=0) > 0.50)[0]
+            if len(xs_hdr) > 400:
+                right_edge = int(xs_hdr.max() + 500)
+                if right_edge < 1585 or y_center == 58:
+                    x_close = right_edge - 38
+                    return (x_close, y_center, f"Modal Open -> Close ({x_close}, {y_center})")
         # If top-left Back button (48, 52) is visible (Commander/Tavern view), tap (48, 52)
         back_btn = a[20:85, 20:85]
         if float(back_btn.mean()) > 110.0 and float(np.mean(np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)) > 0.55:
@@ -585,7 +593,6 @@ def main():
                 tap(args.adb, 256, 437, 8.5)
                 tap(args.adb, 800, 780, 1.8)
                 tap(args.adb, 48, 52, 1.5)
-                tap(args.adb, 48, 52, 1.2)
             elif nt[2] == "COMMANDER_LEVEL_UP_5":
                 print(f"[Step {step:02d}] Commander Screen -> Level Up (1498,408) + XP Tomes (525,340)x10 + Back (48,52)")
                 if step % 2 == 0:
@@ -594,7 +601,6 @@ def main():
                 for _ in range(10):
                     tap(args.adb, 525, 340, 0.25)
                 time.sleep(0.6)
-                tap(args.adb, 48, 52, 1.1)
                 tap(args.adb, 48, 52, 1.1)
             else:
                 print(f"[Step {step:02d}] {nt[2]} -> tap ({nt[0]}, {nt[1]})")
