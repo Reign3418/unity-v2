@@ -101,11 +101,12 @@ def execute_ps_command(cmd_str: str):
 
 
 def kill_duplicate_agent_instances():
-    """Ensures only a single sidekick_cloud_agent.py instance runs on SIDEKICK."""
+    """Ensures only a single sidekick_cloud_agent.py process tree runs on SIDEKICK (preserving venv parent stub)."""
     my_pid = os.getpid()
+    my_ppid = os.getppid()
     ps_kill = (
         f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
-        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.CommandLine -like '*sidekick_cloud_agent*' }} | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and $_.CommandLine -like '*sidekick_cloud_agent*' }} | "
         f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
     )
     try:

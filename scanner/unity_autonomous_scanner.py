@@ -830,11 +830,12 @@ def write_scan_progress(payload):
 
 
 def kill_other_scanner_instances():
-    """Ensures only a single unity_autonomous_scanner.py process can run at a time."""
+    """Ensures only a single unity_autonomous_scanner.py process tree can run at a time (preserving venv parent stub)."""
     my_pid = os.getpid()
+    my_ppid = os.getppid()
     ps_cmd = (
         f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
-        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.CommandLine -like '*unity_autonomous_scanner*' }} | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and $_.CommandLine -like '*unity_autonomous_scanner*' }} | "
         f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
     )
     try:
