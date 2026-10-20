@@ -338,6 +338,91 @@ export async function POST(request) {
       } catch {}
 
       const state = await readBastionState();
+
+      // Autonomous Ring 2 (NULL -> CIPHER) Scheduled Cadence Dispatcher (3h Surge & 12h Steady)
+      if (!pendingCommand && !scannerRunning && state && state.autopilotEnabled !== false) {
+        const lastAutoMs = new Date(state.lastAutopilotDispatchAt || 0).getTime();
+        if (Date.now() - lastAutoMs > 90000) {
+          const dueKingdoms = (state.kingdomSchedules || [])
+            .filter((k) => {
+              if (!k || k.mode === 'GENESIS_WATCH' || k.mode === 'PAUSED') return false;
+              if (!k.nextScanAt) return true;
+              const nextMs = new Date(k.nextScanAt).getTime();
+              return !isNaN(nextMs) && nextMs <= Date.now();
+            })
+            .sort((a, b) => {
+              if (a.mode === 'SURGE_3H' && b.mode !== 'SURGE_3H') return -1;
+              if (b.mode === 'SURGE_3H' && a.mode !== 'SURGE_3H') return 1;
+              return new Date(a.nextScanAt || 0).getTime() - new Date(b.nextScanAt || 0).getTime();
+            });
+
+          if (dueKingdoms.length > 0) {
+            const dueKd = dueKingdoms[0];
+            const targetKd = String(dueKd.kingdom);
+            const targetRanks = Number(dueKd.targetRanks) || 650;
+            const cadenceHrs = Number(dueKd.cadenceHours) || (dueKd.mode === 'SURGE_3H' ? 3 : 12);
+            const instanceId = (dueKd.assignedInstances && dueKd.assignedInstances[0]) || 'sidekick-mumu-0';
+            const inst = (state.instances || []).find((i) => i.instanceId === instanceId);
+            const needsSwitch = !inst || String(inst.activeKingdom) !== targetKd;
+
+            if (inst) {
+              inst.activeKingdom = targetKd;
+              inst.assignedSlice = `1-${targetRanks}`;
+              inst.assignedTask = `AUTOPILOT_${dueKd.mode}_#${targetKd}`;
+              inst.status = 'SCANNING_LIVE';
+              inst.lastHeartbeat = nowIso;
+            }
+
+            dueKd.nextScanAt = new Date(Date.now() + cadenceHrs * 3600 * 1000).toISOString();
+            state.lastAutopilotDispatchAt = nowIso;
+
+            const autoProgress = {
+              running: true,
+              status: 'SCANNING_LIVE',
+              kingdom: targetKd,
+              currentRank: 1,
+              targetRanks,
+              percent: 0.2,
+              presetLabel: `${dueKd.mode} (${cadenceHrs}h Autopilot)`,
+              instanceId,
+              lastGovernorName: needsSwitch
+                ? `[Autopilot] Switching to #${targetKd} & starting ${dueKd.mode} scan...`
+                : `[Autopilot] Starting ${dueKd.mode} scan in #${targetKd}...`,
+              lastGovernorPower: 0,
+              etaSeconds: Math.round(targetRanks * 3.1),
+              startedAt: nowIso,
+              updatedAt: nowIso,
+            };
+            state.activeScanProgress = autoProgress;
+
+            const switchPrefix = needsSwitch
+              ? `& "C:\\UnityScanner\\.venv\\Scripts\\python.exe" C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode switch; `
+              : '';
+            const autoPsCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process powershell -ArgumentList '-NoProfile -WindowStyle Hidden -Command "${switchPrefix}& ''C:\\UnityScanner\\.venv\\Scripts\\python.exe'' C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${targetRanks} --push"' -WindowStyle Hidden`;
+
+            appendLog(state, {
+              agent: 'NULL',
+              ring: 'ring2_dispatch',
+              model: state.ringModels?.ring2_dispatch?.selectedModel || 'gemini-2.5-flash',
+              action: 'AUTOPILOT_SCAN_DISPATCHED',
+              kingdom: targetKd,
+              detail: `Autopilot detected overdue ${dueKd.mode} (${cadenceHrs}h) schedule for Kingdom #${targetKd}. Automatically dispatched ${needsSwitch ? '22s character hop + ' : ''}Top-${targetRanks} scan to ${instanceId}.`,
+            });
+
+            await writeBastionState(state);
+
+            pendingCommand = {
+              cmdId: `autopilot-${targetKd}-${Date.now()}`,
+              command: autoPsCmd,
+              scanProgress: autoProgress,
+              dispatchedViaLan: false,
+              pickedUpByCloudAgent: true,
+              queuedAt: nowIso,
+            };
+          }
+        }
+      }
+
       return NextResponse.json({
         success: true,
         pendingCommand,

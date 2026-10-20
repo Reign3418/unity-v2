@@ -159,15 +159,20 @@ def main():
 
         if args.mode == "switch":
             report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
-            screencap(args.adb, snap_path)
-            found_char = find_kingdom_coords(snap_path, str(args.kingdom))
-            if found_char:
-                cx, cy, ctext = found_char
-                report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom}...")
-                tap(args.adb, cx, cy, 2.5)
-                tap(args.adb, 1016, 639, 18.0)
-                report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
-                return
+            for sw_idx in range(4):
+                screencap(args.adb, snap_path)
+                found_char = find_kingdom_coords(snap_path, str(args.kingdom))
+                if found_char:
+                    cx, cy, ctext = found_char
+                    report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom} (~20s)...")
+                    tap(args.adb, cx, cy, 2.5)
+                    tap(args.adb, 1016, 639, 20.0)
+                    report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
+                    return
+                if sw_idx < 3:
+                    swipe(args.adb, 800, 680, 800, 280, 650, 1.8)
+            report_progress(args.kingdom, 6, 6, "SWITCH_NOT_FOUND", f"Character for #{args.kingdom} not found in roster", running=False)
+            return
 
         tap(args.adb, 504, 333, 4.5)      # + Create New Character
     else:
