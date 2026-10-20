@@ -93,10 +93,10 @@ def is_city_hud(a: np.ndarray) -> bool:
 def is_world_map(a: np.ndarray) -> bool:
     if not is_city_hud(a):
         return False
-    # On the World Map, (48, 735) is the bright-blue Search Magnifying Glass button (B - R > 95)
-    p735 = a[710:760, 25:70]
-    b_minus_r = float((p735[:, :, 2].astype(np.float32) - p735[:, :, 0].astype(np.float32)).mean())
-    return b_minus_r > 95.0 and float(p735[:, :, 2].mean()) >= 165.0
+    # On the World Map, the top coordinate bar (#4194 X:... Y:...) has a gold Star bookmark icon at (597, 22)
+    star = a[8:40, 580:615]
+    gold = (star[:, :, 0] >= 195) & (star[:, :, 1] >= 125) & (star[:, :, 2] <= 55)
+    return float(np.mean(gold)) > 0.45
 
 
 def detect_new_troop_modal(a: np.ndarray):
@@ -567,9 +567,9 @@ def main():
         nt = detect_new_troop_modal(a2)
         if nt:
             if nt[2] == "VENGEANCE_QUICK_DEPLOY_AND_START":
-                print(f"[Step {step:02d}] Vengeance -> Cmdr1 (68,265) + Cmdr2 (168,265) + QUICK DEPLOY (650,790) + START (945,790)")
-                tap(args.adb, 68, 265, 1.0)
-                tap(args.adb, 168, 265, 1.0)
+                print(f"[Step {step:02d}] Vengeance -> Cmdr1 (110,265) + Cmdr2 (265,265) + QUICK DEPLOY (650,790) + START (945,790)")
+                tap(args.adb, 110, 265, 1.0)
+                tap(args.adb, 265, 265, 1.0)
                 tap(args.adb, 650, 790, 1.2)
                 tap(args.adb, 945, 790, 11.5)
                 tap(args.adb, 800, 780, 1.8)
