@@ -35,7 +35,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 import unity_autonomous_scanner as scanner
-from provision_neighbor_kingdom import get_ocr, tap, screencap
+from provision_neighbor_kingdom import get_ocr, tap, screencap, ADB_EXE
 
 CLOUD_BASTION_URL = "https://unity-v2-azure.vercel.app/api/bastion"
 CLOUD_INGEST_URL = "https://unity-v2-azure.vercel.app/api/ingest/kingdom-scan"
@@ -70,11 +70,11 @@ def register_bot_on_screen(adb_serial: str, kingdom: str, ch_level: int = 3):
     gov_id = f"BOT-{kingdom}-{adb_port}"
     gov_name = f"Governor (#{kingdom})"
     try:
-        subprocess.run([scanner.ADB_PATH, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True)
+        subprocess.run([ADB_EXE, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True)
         time.sleep(0.8)
         tap(adb_serial, 45, 45, 2.2)
         screencap(adb_serial, snap_path)
-        subprocess.run([scanner.ADB_PATH, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True)
+        subprocess.run([ADB_EXE, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True)
         time.sleep(1.0)
         ocr = get_ocr()
         arr = np.array(Image.open(snap_path).convert("RGB"))

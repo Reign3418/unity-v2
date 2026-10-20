@@ -390,8 +390,8 @@ def main():
     print(f"[5/6] Selecting China civilization & skipping intro cutscene...")
     report_progress(args.kingdom, 5, 6, "PROVISIONING_BOT", f"[5/6] Selecting China Civilization & Skipping Cutscene in #{args.kingdom}...")
     tap(args.adb, 890, 755, 2.2)      # Tap PICK CIVILIZATION
-    tap(args.adb, 155, 860, 2.0)      # Select China
-    tap(args.adb, 1355, 700, 4.0)     # Tap CONFIRM
+    tap(args.adb, 240, 825, 2.0)      # Select China
+    tap(args.adb, 1352, 630, 4.0)     # Tap CONFIRM
     tap(args.adb, 1488, 38, 6.0)      # Tap SKIP intro cutscene
 
     if args.tutorial_steps > 0:

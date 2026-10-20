@@ -71,6 +71,16 @@ def detect_pick_civilization(a: np.ndarray) -> int:
     if float(np.mean(has_green_box)) > 0.20 and float(np.mean(is_parch)) > 0.55 and float(np.mean(is_gold)) > 0.22:
         return 1
 
+    # Returns 2 for Civilization Carousel screen (golden CONFIRM button at x=1235..1475, y=590..660 + gold banner + bright sky left)
+    conf_btn = a[590:660, 1235:1475]
+    is_conf_gold = (conf_btn[:, :, 0] >= 210) & (conf_btn[:, :, 1] >= 150) & (conf_btn[:, :, 2] <= 55)
+    banner = a[50:400, 700:1450]
+    is_banner_gold = (banner[:, :, 0] >= 165) & (banner[:, :, 1] >= 100) & (banner[:, :, 2] <= 40)
+    sky_left = a[50:400, 20:200]
+    is_sky = (sky_left[:, :, 2] >= 150) & (sky_left[:, :, 0] >= 120)
+    if float(np.mean(is_conf_gold)) > 0.55 and float(np.mean(is_banner_gold)) > 0.18 and float(np.mean(is_sky)) > 0.65:
+        return 2
+
     return 0
 
 
@@ -124,6 +134,20 @@ def detect_new_troop_modal(a: np.ndarray):
         if float(np.mean(white_plus)) > 0.45:
             return (295, 495, "New Troop -> Tap Primary Commander '+' Slot")
 
+    # 3b. City Hall Upgraded full-width golden ribbon at x=450..1150, y=85..205 -> tap (800, 830) to dismiss
+    ch_rib = a[85:205, 450:1150]
+    gold_rib = (ch_rib[:, :, 0] >= 215) & (ch_rib[:, :, 1] >= 135) & (ch_rib[:, :, 2] <= 75)
+    if float(np.mean(gold_rib)) > 0.45:
+        return (800, 830, "City Hall Upgraded Banner -> Tap (800, 830)")
+
+    # 3c. Barbarians Search Panel: Cream panel at x=80..580, y=280..500 + Cyan SEARCH button at x=235..445, y=615..705
+    b_pan = a[350:480, 100:550]
+    is_b_pan = (b_pan[:, :, 0] >= 215) & (b_pan[:, :, 1] >= 200) & (b_pan[:, :, 2] >= 175)
+    b_srch = a[615:705, 235:445]
+    is_b_srch = (b_srch[:, :, 2] >= 195) & (b_srch[:, :, 1] >= 140) & ((b_srch[:, :, 2].astype(np.int32) - b_srch[:, :, 0].astype(np.int32)) >= 65)
+    if float(np.mean(is_b_pan)) > 0.55 and float(np.mean(is_b_srch)) > 0.30:
+        return (340, 660, "Barbarians Modal -> Tap SEARCH")
+
     # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
     tr_box = a[140:325, 1140:1380]
     gold_tr = (tr_box[:, :, 0] >= 215) & (tr_box[:, :, 1] >= 140) & (tr_box[:, :, 2] <= 75)
@@ -147,6 +171,14 @@ def detect_new_troop_modal(a: np.ndarray):
     cyan_st = (st_btn[:, :, 2] >= 195) & (st_btn[:, :, 1] >= 140) & (st_btn[:, :, 0] <= 65)
     if float(np.mean(gold_qd)) > 0.35 and float(np.mean(cyan_st)) > 0.35:
         return (650, 790, "VENGEANCE_QUICK_DEPLOY_AND_START")
+
+    # 6b. Vengeance Stage 1 Active Skill Prompt: white bubble at x=215..750, y=280..335 + gold skill icon at x=215..285, y=380..450
+    v_bub = a[280:335, 215:750]
+    is_vbub = (v_bub[:, :, 0] >= 220) & (v_bub[:, :, 1] >= 220) & (v_bub[:, :, 2] >= 220)
+    v_sk = a[380:450, 215:285]
+    is_vsk = (v_sk[:, :, 0] >= 195) & (v_sk[:, :, 1] >= 135) & (v_sk[:, :, 2] <= 75)
+    if float(np.mean(is_vbub)) > 0.55 and float(np.mean(is_vsk)) > 0.25:
+        return (250, 415, "Vengeance -> Cast Active Skill")
 
     # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760, y=845..900) + Golden OPEN ANOTHER (x=825..1105, y=845..900)
     t_conf = a[850:898, 495:755]
@@ -219,7 +251,7 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     Y, X = np.ogrid[:H, :W]
     dist = np.sqrt((X - sx) ** 2 + (Y - sy) ** 2)
     # The RoK tutorial spear points downward (Y >= sy + 25) or rightward/leftward (|Y - sy| <= 95); exclude title bars above the spear (Y < sy - 35)
-    valid_cone = (dist >= 55) & (dist <= 285) & (((Y >= sy + 25) & (np.abs(X - sx) <= 185)) | (np.abs(Y - sy) <= 95))
+    valid_cone = (dist >= 55) & (dist <= 285) & (((Y >= sy + 25) & (np.abs(X - sx) <= 235)) | (np.abs(Y - sy) <= 95))
 
     # 1. Animated pulsing starburst / glow ring (ignores static white popups 100%)
     anim_burst = (
