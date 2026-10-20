@@ -447,21 +447,22 @@ class AdbEmulatorDriver:
             return
         time.sleep(base_sec * random.uniform(0.88, 1.18))
 
-    def tap(self, x, y, sleep_sec=0.45):
-        jx = self._jitter_coord(x, max_offset=4)
-        jy = self._jitter_coord(y, max_offset=4)
+    def tap(self, x, y, sleep_sec=0.45, max_offset=2):
+        jx = self._jitter_coord(x, max_offset=max_offset)
+        jy = self._jitter_coord(y, max_offset=max_offset)
         subprocess.run(
             [self.adb_bin, "-s", self.serial, "shell", "input", "tap", str(jx), str(jy)],
             capture_output=True,
         )
         self._human_sleep(sleep_sec)
 
-    def swipe(self, x1, y1, x2, y2, duration_ms=650, sleep_sec=0.65):
-        jx1 = self._jitter_coord(x1, max_offset=5)
-        jy1 = self._jitter_coord(y1, max_offset=3)
-        jx2 = self._jitter_coord(x2, max_offset=5)
-        jy2 = self._jitter_coord(y2, max_offset=3)
-        jdur = int(duration_ms * random.uniform(0.90, 1.12)) if self.humanize else int(duration_ms)
+    def swipe(self, x1, y1, x2, y2, duration_ms=950, sleep_sec=0.48):
+        # For vertical leaderboard scrolling, keep y1, y2, and duration exact so 101.0px row pitch never accumulates random-walk drift
+        jx1 = self._jitter_coord(x1, max_offset=3)
+        jy1 = int(y1)
+        jx2 = self._jitter_coord(x2, max_offset=3)
+        jy2 = int(y2)
+        jdur = int(duration_ms)
         subprocess.run(
             [
                 self.adb_bin,
@@ -932,6 +933,34 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
     return False
 
 
+def detect_bottom_card_center_y(driver, target_y: int = 780) -> int:
+    """
+    Measures the exact vertical center of the blue row card closest to target_y (780)
+    along column x=600 so settled_y never lands in the 12px dark gap between rows.
+    """
+    try:
+        a = np.array(driver.screenshot())
+        col = a[250:855, 600]
+        is_card = (col[:, 2] > 125) & (col[:, 0] < 65)
+        centers = []
+        start = None
+        for i, v in enumerate(is_card):
+            y = 250 + i
+            if v and start is None:
+                start = y
+            elif not v and start is not None:
+                if y - start >= 65:
+                    centers.append(int((start + y - 1) // 2))
+                start = None
+        if start is not None and 855 - start >= 65:
+            centers.append(int((start + 854) // 2))
+        if centers:
+            return min(centers, key=lambda cy: abs(cy - target_y))
+    except Exception:
+        pass
+    return target_y
+
+
 def run_kingdom_scan(args):
     kill_other_scanner_instances(args.adb)
     driver = AdbEmulatorDriver(serial=args.adb)
@@ -945,8 +974,9 @@ def run_kingdom_scan(args):
     print(f"  ADB Emulator: {args.adb} | Scan ID: {scan_date_iso}")
     print("==================================================================")
 
-    first_rows_y = [315, 430, 545, 660, 775]
-    settled_y = 775
+    # Exact measured row card centers on 1600x900 Individual Power Rankings (101px row pitch)
+    first_rows_y = [290, 384, 485, 585, 686, 785]
+    settled_y = 780
     last_gov_name = "Preparing Leaderboard..."
     last_gov_power = 0
     total_extracted = 0
@@ -984,15 +1014,16 @@ def run_kingdom_scan(args):
         return
 
     for rank in range(args.start_rank, args.end_rank + 1):
-        ry = first_rows_y[rank - 1] if rank <= 5 else settled_y
+        ry = first_rows_y[rank - 1] if rank <= 6 else settled_y
         print(f"  -> Stepping Rank #{rank} (y={ry})...")
-        driver.tap(600, ry, sleep_sec=0.58)
-        driver.tap(240, 755, sleep_sec=0.58)
-        driver.tap(1395, 55, sleep_sec=0.42)
-        driver.tap(1415, 100, sleep_sec=0.48)
+        driver.tap(600, ry, sleep_sec=0.58)        # Open Governor Profile from Leaderboard row
+        driver.tap(240, 755, sleep_sec=0.58)       # Open More Info
+        driver.tap(1395, 55, sleep_sec=0.42)       # Close More Info (X at 1395, 55)
+        driver.tap(1455, 88, sleep_sec=0.48)       # Close Governor Profile (X at 1455, 88)
 
-        if rank >= 5:
-            driver.swipe(600, 780, 600, 665, duration_ms=550, sleep_sec=0.55)
+        if rank >= 6:
+            # 82px drag over 950ms advances exactly 101.0px (1.00 row) with zero inertia coasting
+            driver.swipe(600, 780, 600, 698, duration_ms=950, sleep_sec=0.45)
 
         elapsed = max(1.0, time.time() - t_start)
         done_steps = max(1, rank - args.start_rank + 1)
@@ -1004,6 +1035,8 @@ def run_kingdom_scan(args):
             if rank < args.end_rank and "INDIVIDUAL POWER" not in get_screen_ocr_text(driver):
                 print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus; restoring INDIVIDUAL POWER RANKINGS...")
                 ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True)
+            if rank >= 6 and rank < args.end_rank:
+                settled_y = detect_bottom_card_center_y(driver, target_y=780)
             ram_govs = extract_all_governors_from_ram()
             save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
             merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)

@@ -213,8 +213,11 @@ def main():
         if diff_br < 45.0:
             print("[0/6] Returning to City HUD (closing any open modals)...")
             report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", "[1/6] Returning to City HUD (closing open modals)...")
-            tap(args.adb, 1365, 108, 1.8)
-            tap(args.adb, 1396, 83, 1.8)
+            for _ in range(3):
+                adb_shell(args.adb, "input keyevent 4")
+                time.sleep(0.6)
+            tap(args.adb, 1363, 110, 1.4)
+            tap(args.adb, 1455, 88, 1.4)
 
         print(f"[1/6] Opening Governor Profile -> Settings -> Characters...")
         report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
@@ -241,6 +244,10 @@ def main():
                 [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "28"],
                 check=False,
             )
+            for _ in range(3):
+                adb_shell(args.adb, "input keyevent 4")
+                time.sleep(0.6)
+            tap(args.adb, 1363, 110, 1.2)
             tap(args.adb, 45, 45, 2.2)
 
         tap(args.adb, 1325, 760, 2.2)     # Settings gear
