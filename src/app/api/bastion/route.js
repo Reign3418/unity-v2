@@ -395,10 +395,7 @@ export async function POST(request) {
             };
             state.activeScanProgress = autoProgress;
 
-            const switchPrefix = needsSwitch
-              ? `& "C:\\UnityScanner\\.venv\\Scripts\\python.exe" C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode switch; `
-              : '';
-            const autoPsCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process powershell -ArgumentList '-NoProfile -WindowStyle Hidden -Command "${switchPrefix}& ''C:\\UnityScanner\\.venv\\Scripts\\python.exe'' C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${targetRanks} --push"' -WindowStyle Hidden`;
+            const autoPsCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${targetRanks} --push' -WindowStyle Hidden`;
 
             appendLog(state, {
               agent: 'NULL',
@@ -975,10 +972,7 @@ export async function POST(request) {
         updatedAt: new Date().toISOString(),
       };
 
-      const switchPrefix = needsSwitch
-        ? `& "C:\\UnityScanner\\.venv\\Scripts\\python.exe" C:\\UnityScanner\\provision_neighbor_kingdom.py --kingdom ${targetKd} --mode switch; `
-        : '';
-      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process powershell -ArgumentList '-NoProfile -WindowStyle Hidden -Command "${switchPrefix}& ''C:\\UnityScanner\\.venv\\Scripts\\python.exe'' C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push"' -WindowStyle Hidden`;
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
 
       await writeBastionState(state);

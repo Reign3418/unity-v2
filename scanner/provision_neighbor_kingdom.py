@@ -84,8 +84,39 @@ def inspect_kingdom_viewport(img_path: str, kingdom_num: str):
             cx = int(sum(xs) / 4.0)
             cy = int(sum(ys) / 4.0)
             if 280 <= cy <= 860:
-                found_target = (cx, cy, t)
+                if found_target is None or cy < found_target[1]:
+                    found_target = (cx, cy, t)
     return found_target, sorted(set(visible_kds)), already_in_kd_list
+
+
+def tap_characters_in_settings(adb_target: str, snap_path: str):
+    """Handles both young kingdoms (Characters at 1155,255) and older/SoC kingdoms with Search Governor (Characters at 435,515)."""
+    screencap(adb_target, snap_path)
+    ocr = get_ocr()
+    res, _ = ocr(snap_path)
+    char_coords = None
+    has_search_gov = False
+    for box, text, conf in (res or []):
+        tu = text.strip().upper()
+        if "SEARCH GOVERNOR" in tu:
+            has_search_gov = True
+        if "CHARACTER" in tu:
+            xs = [p[0] for p in box]
+            ys = [p[1] for p in box]
+            cx = int(sum(xs) / 4.0)
+            cy = int(sum(ys) / 4.0) - 45
+            if 180 <= cy <= 620:
+                char_coords = (cx, cy)
+                break
+    if char_coords:
+        print(f"  -> Found Characters icon via OCR at {char_coords}")
+        tap(adb_target, char_coords[0], char_coords[1], 3.5)
+    elif has_search_gov:
+        print("  -> Search Governor detected in Settings; tapping Characters at (435, 515)")
+        tap(adb_target, 435, 515, 3.5)
+    else:
+        print("  -> Standard Settings layout; tapping Characters at (1155, 255)")
+        tap(adb_target, 1155, 255, 3.5)
 
 
 def find_kingdom_coords(img_path: str, kingdom_num: str):
@@ -155,7 +186,7 @@ def main():
         report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
         tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
         tap(args.adb, 1325, 760, 2.2)     # Settings gear
-        tap(args.adb, 1155, 255, 3.8)     # Characters icon
+        tap_characters_in_settings(args.adb, snap_path)
 
         if args.mode == "switch":
             report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
@@ -166,7 +197,28 @@ def main():
                     cx, cy, ctext = found_char
                     report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom} (~20s)...")
                     tap(args.adb, cx, cy, 2.5)
-                    tap(args.adb, 1016, 639, 20.0)
+                    screencap(args.adb, snap_path)
+                    ocr = get_ocr()
+                    res_confirm, _ = ocr(snap_path)
+                    confirm_texts = " ".join([item[1].upper() for item in (res_confirm or [])])
+                    if "NORMAL CHARACTERS" in confirm_texts or "CREATE NEW CHARACTER" in confirm_texts:
+                        print(f"  -> Character {ctext} in #{args.kingdom} is ALREADY active (green checkmark)! Closing modals...")
+                        for _ in range(3):
+                            adb_shell(args.adb, "input keyevent 4")
+                            time.sleep(0.8)
+                        report_progress(args.kingdom, 6, 6, "COMPLETED", f"Already active on Kingdom #{args.kingdom}", running=False)
+                        return
+                    tap(args.adb, 1016, 639, 14.0)
+                    # Handle "Tap to Start" splash screen if present during character reload
+                    for _ in range(3):
+                        screencap(args.adb, snap_path)
+                        res_tts, _ = ocr(snap_path)
+                        tts_texts = " ".join([item[1].upper() for item in (res_tts or [])])
+                        if "TAP TO START" in tts_texts:
+                            print("  -> Detected 'Tap to Start' splash screen -> tapping (800, 835)...")
+                            tap(args.adb, 800, 835, 8.0)
+                        else:
+                            break
                     report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
                     return
                 if sw_idx < 3:

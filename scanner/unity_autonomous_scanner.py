@@ -829,7 +829,87 @@ def write_scan_progress(payload):
         pass
 
 
+def kill_other_scanner_instances():
+    """Ensures only a single unity_autonomous_scanner.py process can run at a time."""
+    my_pid = os.getpid()
+    ps_cmd = (
+        f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.CommandLine -like '*unity_autonomous_scanner*' }} | "
+        f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
+    )
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], capture_output=True, timeout=4)
+    except Exception:
+        pass
+
+
+def get_screen_ocr_text(driver) -> str:
+    """Captures a screenshot and returns all uppercase OCR text on screen."""
+    if OCR_ENGINE is None:
+        return ""
+    try:
+        img = driver.screenshot()
+        res, _ = OCR_ENGINE(np.array(img))
+        if not res:
+            return ""
+        return " | ".join([item[1].strip().upper() for item in res])
+    except Exception as e:
+        print(f"  [WARN] OCR check failed: {e}")
+        return ""
+
+
+def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch: bool = False) -> bool:
+    """
+    Guarantees the emulator is on the target kingdom character AND that the
+    INDIVIDUAL POWER RANKINGS modal is open before any row taps begin.
+    """
+    screen_txt = get_screen_ocr_text(driver)
+    if skip_switch and "INDIVIDUAL POWER RANKINGS" in screen_txt:
+        return True
+
+    if not skip_switch:
+        prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
+        if os.path.exists(prov_script):
+            print(f"  [PREAMBLE] Verifying / switching active character to Kingdom #{target_kd}...")
+            subprocess.run(
+                [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
+                timeout=90,
+                check=False,
+            )
+
+    for attempt in range(1, 4):
+        screen_txt = get_screen_ocr_text(driver)
+        if "INDIVIDUAL POWER RANKINGS" in screen_txt:
+            print(f"  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open (attempt {attempt}).")
+            return True
+
+        if "ALLIANCE POWER" in screen_txt and "INDIVIDUAL POWER" in screen_txt:
+            print("  [PREAMBLE] On Rankings 9-card menu -> tapping Individual Power (380, 560)...")
+            driver.tap(380, 560, sleep_sec=2.2)
+            if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
+                return True
+
+        print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt})...")
+        for _ in range(3):
+            subprocess.run([driver.adb_bin, "-s", driver.serial, "shell", "input", "keyevent", "4"], capture_output=True)
+            time.sleep(0.7)
+
+        driver.tap(45, 45, sleep_sec=2.2)
+        prof_txt = get_screen_ocr_text(driver)
+        rank_x = 475 if "ACHIEVEMENTS" in prof_txt else 530
+        driver.tap(rank_x, 755, sleep_sec=2.2)
+        driver.tap(380, 560, sleep_sec=2.4)
+
+        if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
+            print("  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open!")
+            return True
+
+    print("  [ERROR] Could not verify INDIVIDUAL POWER RANKINGS modal after 3 attempts; aborting scan to prevent misclicks.")
+    return False
+
+
 def run_kingdom_scan(args):
+    kill_other_scanner_instances()
     driver = AdbEmulatorDriver(serial=args.adb)
     scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"
@@ -843,24 +923,41 @@ def run_kingdom_scan(args):
 
     first_rows_y = [315, 430, 545, 660, 775]
     settled_y = 775
-    last_gov_name = "Initializing..."
+    last_gov_name = "Preparing Leaderboard..."
     last_gov_power = 0
     total_extracted = 0
 
     write_scan_progress({
         "running": True,
-        "status": "SCANNING_LIVE",
+        "status": "PREPARING_LEADERBOARD",
         "kingdom": str(args.kd),
-        "currentRank": args.start_rank,
+        "currentRank": 0,
         "targetRanks": args.end_rank,
         "percent": 0.0,
-        "lastGovernorName": last_gov_name,
-        "lastGovernorPower": last_gov_power,
+        "lastGovernorName": f"Switching to #{args.kd} & opening Individual Power Rankings...",
+        "lastGovernorPower": 0,
         "governorsExtracted": 0,
         "startedAt": started_at_iso,
         "etaSeconds": int((args.end_rank - args.start_rank + 1) * 3.1),
         "workerSerial": args.adb,
     })
+
+    if not ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=getattr(args, "skip_switch", False)):
+        write_scan_progress({
+            "running": False,
+            "status": "LEADERBOARD_NAV_FAILED",
+            "kingdom": str(args.kd),
+            "currentRank": 0,
+            "targetRanks": args.end_rank,
+            "percent": 0.0,
+            "lastGovernorName": f"Could not open Individual Power Rankings on #{args.kd}",
+            "lastGovernorPower": 0,
+            "governorsExtracted": 0,
+            "startedAt": started_at_iso,
+            "etaSeconds": 0,
+            "workerSerial": args.adb,
+        })
+        return
 
     for rank in range(args.start_rank, args.end_rank + 1):
         ry = first_rows_y[rank - 1] if rank <= 5 else settled_y
@@ -880,6 +977,9 @@ def run_kingdom_scan(args):
         pct = round((rank / max(1, args.end_rank)) * 100, 1)
 
         if rank % 10 == 0 or rank == args.end_rank or rank == 1:
+            if rank < args.end_rank and "INDIVIDUAL POWER" not in get_screen_ocr_text(driver):
+                print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus; restoring INDIVIDUAL POWER RANKINGS...")
+                ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True)
             ram_govs = extract_all_governors_from_ram()
             save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb)
             merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
@@ -950,6 +1050,7 @@ if __name__ == "__main__":
     parser.add_argument("--push", action="store_true", default=True, help="Push extracted 45-field governors to Unity API")
     parser.add_argument("--unity-url", default=os.environ.get("UNITY_URL", "http://192.168.50.41:3000"))
     parser.add_argument("--scanner-key", default=os.environ.get("UNITY_SCANNER_KEY", "unity-local-node2-telemetry"))
+    parser.add_argument("--skip-switch", action="store_true", default=False, help="Skip character switch if already on target kingdom")
     args = parser.parse_args()
 
     if args.mode == "ram-dump":

@@ -100,7 +100,22 @@ def execute_ps_command(cmd_str: str):
         print(f"[SIDEKICK CLOUD AGENT] Execution error: {e}")
 
 
+def kill_duplicate_agent_instances():
+    """Ensures only a single sidekick_cloud_agent.py instance runs on SIDEKICK."""
+    my_pid = os.getpid()
+    ps_kill = (
+        f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.CommandLine -like '*sidekick_cloud_agent*' }} | "
+        f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
+    )
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps_kill], capture_output=True, timeout=4)
+    except Exception:
+        pass
+
+
 def main():
+    kill_duplicate_agent_instances()
     hostname = socket.gethostname() or "SIDEKICK"
     cache = load_agent_cache()
     print(f"[SIDEKICK CLOUD AGENT] Online on {hostname}. Polling {CLOUD_BASTION_URL} every 3.5s...")
