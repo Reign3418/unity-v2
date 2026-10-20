@@ -158,8 +158,8 @@ def detect_new_troop_modal(a: np.ndarray):
         return (340, 660, "Barbarians Modal -> Tap SEARCH")
 
     # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
-    # Only valid when top-left Governor HUD ribbon is visible (never inside full-screen ITEMS/QUESTS modals)
-    if is_city_hud(a):
+    # ONLY valid on the World Map (is_world_map(a)), never inside the City where (1260, 225) is the Stable roof!
+    if is_world_map(a):
         tr_box = a[140:325, 1140:1380]
         gold_tr = (tr_box[:, :, 0] >= 215) & (tr_box[:, :, 1] >= 140) & (tr_box[:, :, 2] <= 75)
         g_ys, g_xs = np.where(gold_tr)
@@ -240,6 +240,20 @@ def detect_new_troop_modal(a: np.ndarray):
     is_pan = (pan[:, :, 2] >= 120) & (pan[:, :, 0] <= 45)
     if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
         return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
+
+    # 12. Decorative Info / Non-Actionable Grey Modal (e.g. ELM, OAK, MORE INFO, DLC, MAIL) with no action buttons on the right half
+    for y_lo, y_hi, y_c in [(85, 140, 105), (35, 80, 58)]:
+        hdr = a[y_lo:y_hi, 220:1580]
+        is_hdr = (hdr[:, :, 0] >= 165) & (np.abs(hdr[:, :, 0] - hdr[:, :, 1]) < 22) & (np.abs(hdr[:, :, 1] - hdr[:, :, 2]) < 28)
+        col_r = np.mean(is_hdr, axis=0)
+        cols = np.where(col_r > 0.55)[0]
+        if float(np.mean(is_hdr[:, :900])) > 0.45 and len(cols) > 400:
+            rbody = a[250:830, 750:1400]
+            rgold = (rbody[:, :, 0] >= 195) & (rbody[:, :, 1] >= 130) & (rbody[:, :, 2] <= 70)
+            rcyan = (rbody[:, :, 2] >= 215) & (rbody[:, :, 1] >= 165) & (rbody[:, :, 0] <= 55)
+            if int(rgold.sum()) < 500 and int(rcyan.sum()) < 500:
+                right_edge = 220 + int(cols[-1])
+                return (right_edge - 38, y_c, f"Info Modal Open -> Close ({right_edge - 38}, {y_c})")
 
     return None
 
