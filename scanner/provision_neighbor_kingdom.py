@@ -224,14 +224,14 @@ def main():
         tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
 
         # Verify Governor Profile opened; if blocked by forced intro tutorial on a fresh emulator, clear tutorial first
-        for tut_round in range(1, 3):
+        for tut_round in range(1, 6):
             screencap(args.adb, snap_path)
             ocr = get_ocr()
             res_prof, _ = ocr(snap_path)
             prof_texts = " ".join([item[1].upper() for item in (res_prof or [])])
             if any(k in prof_texts for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
                 break
-            print(f"  -> Avatar (45,45) blocked by active tutorial (round {tut_round}); running 28 tutorial steps on {args.adb}...")
+            print(f"  -> Avatar (45,45) blocked by active tutorial (round {tut_round}); running 32 tutorial steps on {args.adb}...")
             report_progress(
                 args.kingdom,
                 1,
@@ -241,7 +241,7 @@ def main():
             )
             tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
             subprocess.run(
-                [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "28"],
+                [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "32"],
                 check=False,
             )
             for _ in range(3):

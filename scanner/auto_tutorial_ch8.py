@@ -133,6 +133,14 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(cyan_conf)) > 0.35 and float(np.mean(gold_open2)) > 0.35:
         return (625, 875, "Tavern Chest Result -> Tap CONFIRM")
 
+    # 8. Quests Modal Main Quest Cyan 'GO' button at x=1175..1340, y=295..355 with cream Quests header at y=80..150
+    q_hdr = a[85:145, 500:1100]
+    is_q_hdr = (q_hdr[:, :, 0] >= 205) & (q_hdr[:, :, 1] >= 195) & (q_hdr[:, :, 2] >= 175) & (np.abs(q_hdr[:, :, 0] - q_hdr[:, :, 1]) < 25)
+    q_go = a[295:355, 1175:1340]
+    is_q_go = (q_go[:, :, 2] >= 200) & (q_go[:, :, 1] >= 145) & (q_go[:, :, 0] <= 110)
+    if float(np.mean(is_q_hdr)) > 0.55 and float(np.mean(is_q_go)) > 0.35:
+        return (1258, 325, "Quests Modal -> Tap Main Quest GO")
+
     return None
 
 
@@ -187,7 +195,8 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
 
     Y, X = np.ogrid[:H, :W]
     dist = np.sqrt((X - sx) ** 2 + (Y - sy) ** 2)
-    annulus = (dist >= 75) & (dist <= 300)
+    # The RoK tutorial spear points downward: target starburst is below the spear (Y >= sy + 30) and within +/- 160px horizontally
+    downward_cone = (dist >= 55) & (dist <= 275) & (Y >= sy + 30) & (np.abs(X - sx) <= 165)
 
     # 1. Animated pulsing starburst / glow ring (ignores static white popups 100%)
     anim_burst = (
@@ -195,14 +204,14 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
          | ((a2[:, :, 0] >= 225) & (a2[:, :, 1] >= 200) & (a2[:, :, 2] >= 90)))
         & (diff >= 12)
         & (~sp)
-        & annulus
+        & downward_cone
     )
     # Exclude Build Drawer left flaming torch (x < 165, y = 140..440)
     anim_burst[140:440, :165] = False
 
     best_b, tx, ty = 0, None, None
-    for gy in range(max(20, sy - 290), min(H - 60, sy + 290), 15):
-        for gx in range(max(10, sx - 290), min(W - 60, sx + 290), 15):
+    for gy in range(max(20, sy + 25), min(H - 50, sy + 265), 15):
+        for gx in range(max(10, sx - 165), min(W - 60, sx + 165), 15):
             win = anim_burst[gy : min(H, gy + 85), gx : min(W, gx + 85)]
             c = int(win.sum())
             if c > best_b:
@@ -210,14 +219,14 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
                 ys, xs = np.where(win)
                 tx, ty = int(np.median(xs) + gx), int(np.median(ys) + gy)
 
-    if best_b >= 55 and tx is not None:
+    if best_b >= 45 and tx is not None:
         return (sx, sy), (tx, ty), best_b
 
-    # 2. Static pure-white starburst fallback
-    stat_burst = (a2[:, :, 0] >= 248) & (a2[:, :, 1] >= 250) & (a2[:, :, 2] >= 235) & annulus
+    # 2. Static pure-white starburst fallback inside downward cone
+    stat_burst = (a2[:, :, 0] >= 248) & (a2[:, :, 1] >= 250) & (a2[:, :, 2] >= 235) & downward_cone
     stat_burst[140:440, :165] = False
-    for gy in range(max(20, sy - 290), min(H - 60, sy + 290), 15):
-        for gx in range(max(10, sx - 290), min(W - 60, sx + 290), 15):
+    for gy in range(max(20, sy + 25), min(H - 50, sy + 265), 15):
+        for gx in range(max(10, sx - 165), min(W - 60, sx + 165), 15):
             win = stat_burst[gy : min(H, gy + 85), gx : min(W, gx + 85)]
             c = int(win.sum())
             if c > best_b:
@@ -225,11 +234,11 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
                 ys, xs = np.where(win)
                 tx, ty = int(np.median(xs) + gx), int(np.median(ys) + gy)
 
-    if tx is not None and best_b >= 40:
+    if tx is not None and best_b >= 35:
         return (sx, sy), (tx, ty), best_b
 
     # 3. Default downward offset
-    return (sx, sy), (sx, sy + 150), 0
+    return (sx, sy), (sx, sy + 145), 0
 
 
 def detect_green_checkmark(a: np.ndarray):

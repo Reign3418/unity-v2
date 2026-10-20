@@ -137,7 +137,7 @@ def mumu0_worker():
     accum_by_id = {}
     if os.path.exists(accum_path):
         try:
-            with open(accum_path, "r", encoding="utf-8") as f:
+            with open(accum_path, "r", encoding="utf-8-sig") as f:
                 for g in json.load(f):
                     gid = int(g.get("govId") or g.get("id") or 0)
                     if gid > 0:
@@ -147,9 +147,16 @@ def mumu0_worker():
             log_msg("sidekick-mumu-0", f"Seed load warning: {e}")
 
     last_push_time = 0
+    seed_path = os.path.join(SCRIPT_DIR, "ram_accum_seed_4194.json")
     while True:
         running, cur_rank, tgt_rank = is_mumu0_scan_running()
         try:
+            if len(accum_by_id) < 500 and os.path.exists(seed_path):
+                with open(seed_path, "r", encoding="utf-8-sig") as sf:
+                    for sg in json.load(sf):
+                        sgid = int(sg.get("govId") or sg.get("id") or 0)
+                        if sgid > 0 and sgid not in accum_by_id:
+                            accum_by_id[sgid] = sg
             live_ram = scanner.extract_all_governors_from_ram(adb_serial=adb_serial)
             for rg in live_ram:
                 gid = int(rg.get("govId") or rg.get("id") or 0)
