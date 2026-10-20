@@ -815,10 +815,28 @@ PROGRESS_FILE = os.path.join(SCRIPT_DIR, "scan_progress.json")
 HUB_URL = os.environ.get("UNITY_HUB_URL", "http://192.168.50.41:8888")
 
 
+def resolve_instance_id(adb_serial: str) -> str:
+    s = str(adb_serial or "127.0.0.1:16384")
+    if "16416" in s:
+        return "sidekick-mumu-1"
+    if "16448" in s:
+        return "sidekick-mumu-2"
+    return "sidekick-mumu-0"
+
+
 def write_scan_progress(payload):
     try:
+        adb_serial = str(payload.get("workerSerial") or "127.0.0.1:16384")
+        adb_port = adb_serial.split(":")[-1]
+        inst_id = resolve_instance_id(adb_serial)
+        payload["workerSerial"] = adb_serial
+        payload["adbPort"] = adb_port
+        payload["instanceId"] = inst_id
         payload["pid"] = os.getpid()
         payload["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        per_port_file = os.path.join(SCRIPT_DIR, f"scan_progress_{adb_port}.json")
+        with open(per_port_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
         with open(PROGRESS_FILE, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
     except Exception:
@@ -829,13 +847,18 @@ def write_scan_progress(payload):
         pass
 
 
-def kill_other_scanner_instances():
-    """Ensures only a single unity_autonomous_scanner.py process tree can run at a time (preserving venv parent stub)."""
+def kill_other_scanner_instances(adb_serial: str = "127.0.0.1:16384"):
+    """Ensures only a single unity_autonomous_scanner.py process tree runs per emulator ADB port (preserving venv parent stub)."""
     my_pid = os.getpid()
     my_ppid = os.getppid()
+    adb_port = str(adb_serial or "127.0.0.1:16384").split(":")[-1]
+    if adb_port == "16384":
+        port_filter = "($_.CommandLine -like '*16384*' -or $_.CommandLine -notlike '*--adb*')"
+    else:
+        port_filter = f"($_.CommandLine -like '*{adb_port}*')"
     ps_cmd = (
         f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
-        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and $_.CommandLine -like '*unity_autonomous_scanner*' }} | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and $_.CommandLine -like '*unity_autonomous_scanner*' -and {port_filter} }} | "
         f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
     )
     try:
@@ -910,7 +933,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
 
 
 def run_kingdom_scan(args):
-    kill_other_scanner_instances()
+    kill_other_scanner_instances(args.adb)
     driver = AdbEmulatorDriver(serial=args.adb)
     scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"

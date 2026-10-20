@@ -352,24 +352,39 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
     return None
 
 
-def report_tut_progress(step: int, total_steps: int, detail: str, running: bool = True):
+def resolve_instance_id(adb_serial: str) -> str:
+    s = str(adb_serial or "127.0.0.1:16384")
+    if "16416" in s:
+        return "sidekick-mumu-1"
+    if "16448" in s:
+        return "sidekick-mumu-2"
+    return "sidekick-mumu-0"
+
+
+def report_tut_progress(adb_serial: str, kingdom: str, step: int, total_steps: int, detail: str, running: bool = True):
     import json as _json
     pct = round((step / max(1, total_steps)) * 100.0, 1)
+    adb_port = str(adb_serial or "127.0.0.1:16384").split(":")[-1]
+    inst_id = resolve_instance_id(adb_serial)
     payload = {
         "running": running,
         "status": "PROVISIONING_BOT" if running else "COMPLETED",
+        "kingdom": str(kingdom or "4194"),
         "preset": "BOT_PROVISION",
         "currentRank": step,
         "targetRanks": total_steps,
         "percent": pct,
         "governorsExtracted": step,
         "lastGovernorName": detail,
+        "workerSerial": str(adb_serial),
+        "adbPort": adb_port,
+        "instanceId": inst_id,
         "pid": os.getpid(),
         "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     try:
-        prog_path = os.path.join(SCRIPT_DIR, "scan_progress.json")
-        with open(prog_path, "w", encoding="utf-8") as f:
+        per_port_path = os.path.join(SCRIPT_DIR, f"scan_progress_{adb_port}.json")
+        with open(per_port_path, "w", encoding="utf-8") as f:
             _json.dump(payload, f, indent=2)
     except Exception:
         pass
@@ -389,6 +404,7 @@ def report_tut_progress(step: int, total_steps: int, detail: str, running: bool 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--adb", default="127.0.0.1:16384")
+    parser.add_argument("--kingdom", default="4194")
     parser.add_argument("--steps", type=int, default=40)
     args = parser.parse_args()
 
@@ -399,7 +415,7 @@ def main():
     repeat_cnt = 0
 
     for step in range(1, args.steps + 1):
-        report_tut_progress(step, args.steps, f"[6/6] Autonomous Tutorial Unlock — Step {step}/{args.steps}...")
+        report_tut_progress(args.adb, args.kingdom, step, args.steps, f"[Tutorial {args.adb}] Autonomous Unlock — Step {step}/{args.steps}...")
         a1, a2 = screencap_pair(args.adb, p1, p2)
 
         pc = detect_pick_civilization(a2)

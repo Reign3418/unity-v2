@@ -157,7 +157,9 @@ export default function BastionCommandCenter() {
   const [epochLedger, setEpochLedger] = useState(null);
   const [kvkPresets, setKvkPresets] = useState(null);
   const [activeScanProgress, setActiveScanProgress] = useState(null);
+  const [activeTasks, setActiveTasks] = useState([]);
   const [quickScanKingdom, setQuickScanKingdom] = useState('4194');
+  const [quickScanInstance, setQuickScanInstance] = useState('sidekick-mumu-0');
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState(null);
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -183,6 +185,15 @@ export default function BastionCommandCenter() {
 
         let liveHub = data.clusterLive;
         let mergedProgress = data.activeScanProgress;
+        const tasksByInst = {};
+        if (Array.isArray(data.activeTasks)) {
+          data.activeTasks.forEach((t) => {
+            if (t) {
+              const id = t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+              tasksByInst[id] = { ...t, instanceId: id };
+            }
+          });
+        }
 
         // If served from Vercel Cloud, bridge directly from Browser -> Local Cluster Hub (127.0.0.1:8888)
         if (!liveHub) {
@@ -192,7 +203,17 @@ export default function BastionCommandCenter() {
               liveHub = await hubRes.json();
               const hubProg = liveHub?.liveScanProgress;
               const sidekickNode = liveHub?.nodes?.SIDEKICK;
+              if (Array.isArray(liveHub?.activeTasks)) {
+                liveHub.activeTasks.forEach((t) => {
+                  if (t) {
+                    const id = t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+                    tasksByInst[id] = { ...(tasksByInst[id] || {}), ...t, instanceId: id };
+                  }
+                });
+              }
               if (hubProg && (hubProg.running || hubProg.currentRank > 0)) {
+                const id = hubProg.instanceId || (String(hubProg.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+                tasksByInst[id] = { ...(tasksByInst[id] || {}), ...hubProg, instanceId: id };
                 mergedProgress = {
                   ...mergedProgress,
                   ...hubProg,
@@ -206,6 +227,10 @@ export default function BastionCommandCenter() {
         }
 
         setClusterLive(liveHub);
+        const taskList = Object.values(tasksByInst).sort((a, b) =>
+          String(a.instanceId || '').localeCompare(String(b.instanceId || ''))
+        );
+        setActiveTasks(taskList);
         if (mergedProgress) setActiveScanProgress(mergedProgress);
       }
     } catch (err) {
@@ -215,12 +240,14 @@ export default function BastionCommandCenter() {
     }
   }, []);
 
+  const anyTaskRunning = activeScanProgress?.running || activeTasks.some((t) => t?.running);
+
   useEffect(() => {
     fetchBastion();
-    const pollMs = activeScanProgress?.running ? 2500 : 6000;
+    const pollMs = anyTaskRunning ? 2500 : 6000;
     const iv = setInterval(fetchBastion, pollMs);
     return () => clearInterval(iv);
-  }, [fetchBastion, activeScanProgress?.running]);
+  }, [fetchBastion, anyTaskRunning]);
 
   const dispatchAction = async (action, payload = {}, label = action) => {
     setBusyAction(label);
@@ -236,6 +263,7 @@ export default function BastionCommandCenter() {
       if (data.epochLedger) setEpochLedger(data.epochLedger);
       if (data.kvkPresets) setKvkPresets(data.kvkPresets);
       if (data.activeScanProgress) setActiveScanProgress(data.activeScanProgress);
+      if (Array.isArray(data.activeTasks)) setActiveTasks(data.activeTasks);
 
       // If /api/bastion ran on Vercel Cloud, forward command + progress directly from Browser -> 127.0.0.1:8888
       if (data.dispatchResult && data.dispatchResult.mode !== 'DIRECT_LAN' && data.dispatchResult.psCommand) {
@@ -501,164 +529,257 @@ export default function BastionCommandCenter() {
         )}
       </div>
 
-      {/* LIVE ACTIVE SCANNER EXECUTION & RANK-BY-RANK PROGRESS BAR */}
-      <div
-        className={`p-5 rounded-2xl border shadow-xl transition-all ${
-          activeScanProgress?.running
-            ? 'bg-gradient-to-r from-emerald-950/40 via-[#0d1922] to-[#0b0e17] border-emerald-500/50'
-            : 'bg-[#0b0e17] border-slate-800'
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${
-                  activeScanProgress?.running
-                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 animate-pulse'
-                    : activeScanProgress?.status === 'COMPLETED'
-                    ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-300'
-                    : 'bg-slate-800 border-slate-700 text-slate-400'
-                }`}
-              >
-                <Activity size={12} />
-                <span>
-                  {activeScanProgress?.running
-                    ? activeScanProgress?.status === 'PROVISIONING_BOT'
-                      ? `🟢 PROVISIONING BOT IN KINGDOM #${activeScanProgress?.kingdom} ON SIDEKICK`
-                      : activeScanProgress?.status === 'SWITCHING_CHARACTER'
-                      ? `🟢 SWITCHING BOT TO KINGDOM #${activeScanProgress?.kingdom} ON SIDEKICK`
-                      : `🟢 LIVE SCAN RUNNING ON SIDEKICK ${
-                          activeScanProgress?.scannerPid ? `(PID ${activeScanProgress.scannerPid})` : ''
-                        }`
-                    : activeScanProgress?.status === 'COMPLETED'
-                    ? '✅ LAST OPERATION COMPLETED'
-                    : activeScanProgress?.status === 'STOPPED_BY_OPERATOR'
-                    ? '🛑 STOPPED BY OPERATOR'
-                    : activeScanProgress?.status === 'NEEDS_CONTINENT_SELECT'
-                    ? `⚠️ #${activeScanProgress?.kingdom} READY FOR CONTINENT SELECT ON SIDEKICK`
-                    : '⚪ NO ACTIVE SCAN RUNNING (SIDEKICK READY)'}
-                </span>
-              </span>
+      {/* LIVE SIMULTANEOUS MULTI-INSTANCE EXECUTION & RANK-BY-RANK PROGRESS MONITOR */}
+      {(() => {
+        const mergedMap = {};
+        if (activeScanProgress) {
+          const id =
+            activeScanProgress.instanceId ||
+            (String(activeScanProgress.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+          mergedMap[id] = { ...activeScanProgress, instanceId: id };
+        }
+        (activeTasks || []).forEach((t) => {
+          if (t) {
+            const id =
+              t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+            mergedMap[id] = { ...(mergedMap[id] || {}), ...t, instanceId: id };
+          }
+        });
+        const allTaskCards = Object.values(mergedMap).sort((a, b) => {
+          if (Boolean(b.running) !== Boolean(a.running)) return b.running ? 1 : -1;
+          return String(a.instanceId || '').localeCompare(String(b.instanceId || ''));
+        });
+        const runningTaskCards = allTaskCards.filter((t) => t.running);
+        const visibleTasks = runningTaskCards.length > 0 ? allTaskCards.filter((t) => t.running || t.status === 'COMPLETED' || t.status === 'NEEDS_CONTINENT_SELECT') : allTaskCards.slice(0, 2);
 
-              <span className="text-xs font-bold text-white">
-                Kingdom #{activeScanProgress?.kingdom || quickScanKingdom} ·{' '}
-                {activeScanProgress?.preset === 'BOT_PROVISION' ? 'Step' : 'Rank'}{' '}
-                <span className="text-amber-300">{activeScanProgress?.currentRank || 0}</span> /{' '}
-                <span>{activeScanProgress?.targetRanks || 650}</span> (
-                <span className="text-cyan-300">{activeScanProgress?.percent || 0}%</span>)
-              </span>
-
-              {activeScanProgress?.etaSeconds > 0 && activeScanProgress?.running && (
-                <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">
-                  ETA: ~{Math.max(1, Math.round(activeScanProgress.etaSeconds / 60))}m remaining
-                </span>
-              )}
-            </div>
-
-            <div className="text-[11px] text-slate-400 font-sans">
-              {activeScanProgress?.running ? (
-                <>
-                  {activeScanProgress?.preset === 'BOT_PROVISION' ? 'Current Step:' : 'Latest Governor Scanned:'}{' '}
-                  <span className="text-emerald-300 font-semibold font-mono">
-                    {activeScanProgress.lastGovernorName || 'Stepping Leaderboard...'}
-                  </span>
-                  {activeScanProgress.lastGovernorPower > 0 && (
-                    <span className="ml-2 text-slate-300 font-mono">
-                      ({(activeScanProgress.lastGovernorPower / 1_000_000).toFixed(2)}M Power)
-                    </span>
-                  )}
-                  <span className="ml-3 text-cyan-300 font-mono">
-                    · 45-Field Govs Cached: {activeScanProgress.governorsExtracted || 1000}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Select a target kingdom and click <span className="text-emerald-300 font-semibold">Launch Scan</span>{' '}
-                  to dispatch <span className="text-amber-300 font-mono">unity_autonomous_scanner.py</span> on{' '}
-                  <span className="text-cyan-300 font-mono">SIDEKICK</span> and watch live rank-by-rank progress here.
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Launch / Stop Scan Controls */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={quickScanKingdom}
-              onChange={(e) => setQuickScanKingdom(e.target.value)}
-              className="bg-[#06080d] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-amber-400 cursor-pointer"
-            >
-              {Array.from(
-                new Set([
-                  '4194',
-                  '4193',
-                  '4195',
-                  '4196',
-                  '4202',
-                  ...schedules.map((s) => String(s.kingdom)),
-                  ...(activeScanProgress?.kingdom ? [String(activeScanProgress.kingdom)] : []),
-                ])
-              ).map((kd) => (
-                <option key={kd} value={kd}>
-                  Kingdom #{kd}
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              onClick={() =>
-                dispatchAction(
-                  'RUN_IMMEDIATE_SCAN',
-                  {
-                    kingdom: quickScanKingdom,
-                    presetId: epochLedger?.defaultScanPreset || 'SWEET_650',
-                    instanceId: 'sidekick-mumu-0',
-                  },
-                  'quick-launch-scan'
-                )
-              }
-              disabled={busyAction === 'quick-launch-scan'}
-              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Play size={13} />
-              <span>{activeScanProgress?.running ? 'Restart Scan' : `Launch #${quickScanKingdom} Scan Now`}</span>
-            </button>
-
-            {activeScanProgress?.running && (
-              <button
-                type="button"
-                onClick={() => dispatchAction('STOP_ACTIVE_SCAN', {}, 'stop-active-scan')}
-                disabled={busyAction === 'stop-active-scan'}
-                className="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/50 text-rose-200 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Pause size={13} />
-                <span>Stop / Abort Scan</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Visual Progress Bar */}
-        <div className="mt-3 w-full h-2.5 bg-[#06080d] rounded-full overflow-hidden border border-slate-800">
+        return (
           <div
-            className={`h-full transition-all duration-500 ${
-              activeScanProgress?.running
-                ? 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-amber-400'
-                : activeScanProgress?.status === 'COMPLETED'
-                ? 'bg-cyan-500'
-                : 'bg-slate-700'
+            className={`p-5 rounded-2xl border shadow-xl transition-all space-y-4 ${
+              runningTaskCards.length > 0
+                ? 'bg-gradient-to-r from-emerald-950/40 via-[#0d1922] to-[#0b0e17] border-emerald-500/50'
+                : 'bg-[#0b0e17] border-slate-800'
             }`}
-            style={{
-              width: `${Math.min(
-                100,
-                Math.max(activeScanProgress?.running ? 2 : 0, Number(activeScanProgress?.percent || 0))
-              )}%`,
-            }}
-          />
-        </div>
-      </div>
+          >
+            {/* Header Bar + Quick Launch Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${
+                      runningTaskCards.length > 0
+                        ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 animate-pulse'
+                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    <Activity size={12} />
+                    <span>
+                      {runningTaskCards.length > 1
+                        ? `🟢 ${runningTaskCards.length} SIMULTANEOUS TASKS RUNNING ON SIDEKICK`
+                        : runningTaskCards.length === 1
+                        ? `🟢 1 ACTIVE TASK RUNNING ON SIDEKICK (${runningTaskCards[0].instanceId || 'sidekick-mumu-0'})`
+                        : '⚪ NO ACTIVE TASKS RUNNING (ALL SIDEKICK INSTANCES READY)'}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-sans">
+                    Per-instance telemetry isolation enabled (`sidekick-mumu-0 :16384` · `sidekick-mumu-1 :16416` · `sidekick-mumu-2 :16448`)
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Launch / Stop Scan Controls */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={quickScanKingdom}
+                  onChange={(e) => setQuickScanKingdom(e.target.value)}
+                  className="bg-[#06080d] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  {Array.from(
+                    new Set([
+                      '4194',
+                      '4193',
+                      '4195',
+                      '4196',
+                      '4202',
+                      ...schedules.map((s) => String(s.kingdom)),
+                      ...(activeScanProgress?.kingdom ? [String(activeScanProgress.kingdom)] : []),
+                    ])
+                  ).map((kd) => (
+                    <option key={kd} value={kd}>
+                      Kingdom #{kd}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={quickScanInstance}
+                  onChange={(e) => setQuickScanInstance(e.target.value)}
+                  className="bg-[#06080d] border border-slate-700 text-cyan-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-cyan-400 cursor-pointer"
+                >
+                  {instances.map((inst) => (
+                    <option key={inst.instanceId} value={inst.instanceId}>
+                      {inst.instanceId} ({(inst.adbAddress || '').split(' ')[0] || inst.nodeId})
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    dispatchAction(
+                      'RUN_IMMEDIATE_SCAN',
+                      {
+                        kingdom: quickScanKingdom,
+                        presetId: epochLedger?.defaultScanPreset || 'SWEET_650',
+                        instanceId: quickScanInstance,
+                      },
+                      'quick-launch-scan'
+                    )
+                  }
+                  disabled={busyAction === 'quick-launch-scan'}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Play size={13} />
+                  <span>{`Launch #${quickScanKingdom} Scan on ${quickScanInstance}`}</span>
+                </button>
+
+                {runningTaskCards.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => dispatchAction('STOP_ACTIVE_SCAN', {}, 'stop-all-scans')}
+                    disabled={busyAction === 'stop-all-scans'}
+                    className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/50 text-rose-200 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Pause size={13} />
+                    <span>Stop All ({runningTaskCards.length})</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Stacked / Grid Simultaneous Per-Instance Task Cards */}
+            <div className={`grid grid-cols-1 ${visibleTasks.length > 1 ? 'xl:grid-cols-2' : ''} gap-3`}>
+              {visibleTasks.map((task) => {
+                const instId = task.instanceId || 'sidekick-mumu-0';
+                const portStr =
+                  task.adbPort ||
+                  (instId.includes('mumu-1') ? '16416' : instId.includes('mumu-2') ? '16448' : '16384');
+                const isProv = task.status === 'PROVISIONING_BOT' || task.preset === 'BOT_PROVISION';
+                const isSwitch = task.status === 'SWITCHING_CHARACTER';
+                const pidVal = task.scannerPid || task.pid;
+
+                return (
+                  <div
+                    key={instId}
+                    className={`p-4 rounded-xl border transition-all ${
+                      task.running
+                        ? isProv
+                          ? 'bg-[#09131c]/90 border-amber-500/45'
+                          : 'bg-[#071615]/90 border-emerald-500/45'
+                        : 'bg-[#06080d]/90 border-slate-800/90'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/35 text-cyan-300 text-[10px] font-black">
+                          🖥️ {instId} (:{portStr})
+                        </span>
+
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${
+                            task.running
+                              ? isProv
+                                ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
+                                : isSwitch
+                                ? 'bg-blue-500/20 border-blue-400/50 text-blue-300'
+                                : 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+                              : task.status === 'COMPLETED'
+                              ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
+                              : 'bg-slate-800 border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          {task.running
+                            ? isProv
+                              ? `⚡ PROVISIONING BOT IN #${task.kingdom}`
+                              : isSwitch
+                              ? `🔄 SWITCHING TO #${task.kingdom}`
+                              : `🟢 LIVE SCANNING #${task.kingdom}`
+                            : task.status === 'COMPLETED'
+                            ? `✅ COMPLETED (#${task.kingdom})`
+                            : task.status === 'STOPPED_BY_OPERATOR'
+                            ? '🛑 STOPPED BY OPERATOR'
+                            : '⚪ STANDBY READY'}
+                          {pidVal && task.running ? ` · PID ${pidVal}` : ''}
+                        </span>
+
+                        <span className="text-xs font-bold text-white">
+                          {isProv || isSwitch ? 'Step' : 'Rank'}{' '}
+                          <span className="text-amber-300">{task.currentRank || 0}</span> /{' '}
+                          <span>{task.targetRanks || 650}</span> (
+                          <span className="text-cyan-300">{task.percent || 0}%</span>)
+                        </span>
+
+                        {task.etaSeconds > 0 && task.running && (
+                          <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">
+                            ETA: ~{Math.max(1, Math.round(task.etaSeconds / 60))}m
+                          </span>
+                        )}
+                      </div>
+
+                      {task.running && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            dispatchAction('STOP_ACTIVE_SCAN', { instanceId: instId }, `stop-${instId}`)
+                          }
+                          disabled={busyAction === `stop-${instId}`}
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/50 text-rose-200 font-black text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                        >
+                          <Pause size={11} />
+                          <span>Stop {instId}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-2 text-[11px] text-slate-400 font-sans">
+                      {isProv || isSwitch ? 'Current Step:' : 'Latest Governor Scanned:'}{' '}
+                      <span className="text-emerald-300 font-semibold font-mono">
+                        {task.lastGovernorName || (task.running ? 'Stepping Leaderboard...' : 'Idle Ready')}
+                      </span>
+                      {task.lastGovernorPower > 0 && (
+                        <span className="ml-2 text-slate-300 font-mono">
+                          ({(task.lastGovernorPower / 1_000_000).toFixed(2)}M Power)
+                        </span>
+                      )}
+                      {!isProv && !isSwitch && (
+                        <span className="ml-3 text-cyan-300 font-mono">
+                          · 45-Field Govs Cached: {task.governorsExtracted || 0}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-2.5 w-full h-2 bg-[#06080d] rounded-full overflow-hidden border border-slate-800">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          task.running
+                            ? isProv
+                              ? 'bg-gradient-to-r from-amber-500 via-orange-400 to-yellow-300'
+                              : 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-amber-400'
+                            : task.status === 'COMPLETED'
+                            ? 'bg-cyan-500'
+                            : 'bg-slate-700'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.max(task.running ? 3 : 0, Number(task.percent || 0)))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* SECTION 1: THE 3 BASTION MOE RINGS + INDEPENDENT LLM / SLM ROUTING */}
       <div className="space-y-4">

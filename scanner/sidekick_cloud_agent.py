@@ -33,16 +33,24 @@ CLOUD_BASTION_URL = os.environ.get("UNITY_CLOUD_BASTION_URL", "https://unity-v2-
 LOCAL_HUB_URL = os.environ.get("UNITY_LOCAL_HUB_URL", "http://192.168.50.41:8888")
 
 
-def get_active_scanner_proc():
-    """Returns (running: bool, pid: int|None, cmdline: str|None) for active scanner/provisioner."""
+INSTANCE_PORT_MAP = [
+    ("16384", "sidekick-mumu-0", "127.0.0.1:16384"),
+    ("16416", "sidekick-mumu-1", "127.0.0.1:16416"),
+    ("16448", "sidekick-mumu-2", "127.0.0.1:16448"),
+]
+
+
+def get_active_scanner_procs():
+    """Returns dict mapping adb_port ('16384', '16416', '16448') -> {'pid': int, 'cmdline': str} for all live worker processes."""
     ps_check = (
         "Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
         "Where-Object { $_.CommandLine -like '*unity_autonomous_scanner*' -or "
         "$_.CommandLine -like '*provision_neighbor_kingdom*' -or "
         "$_.CommandLine -like '*bastion_genesis_probe*' -or "
         "$_.CommandLine -like '*auto_tutorial_ch8*' } | "
-        "Select-Object -First 1 ProcessId, CommandLine | ConvertTo-Json -Compress"
+        "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress"
     )
+    by_port = {}
     try:
         res = subprocess.run(
             ["powershell", "-NoProfile", "-Command", ps_check],
@@ -53,20 +61,80 @@ def get_active_scanner_proc():
         out = (res.stdout or "").strip()
         if out:
             data = json.loads(out)
-            return True, data.get("ProcessId"), data.get("CommandLine")
+            items = data if isinstance(data, list) else [data]
+            for item in items:
+                cmd = str(item.get("CommandLine") or "")
+                pid = item.get("ProcessId")
+                if not pid:
+                    continue
+                if "16416" in cmd:
+                    port = "16416"
+                elif "16448" in cmd:
+                    port = "16448"
+                else:
+                    port = "16384"
+                # Preferunity_autonomous_scanner or provision_neighbor_kingdom over child auto_tutorial_ch8 if both exist
+                if port not in by_port or "auto_tutorial_ch8" not in cmd:
+                    by_port[port] = {"pid": pid, "cmdline": cmd}
     except Exception:
         pass
-    return False, None, None
+    return by_port
 
 
-def read_local_progress():
-    if os.path.exists(PROGRESS_FILE):
-        try:
-            with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return None
+def read_all_local_tasks(by_port: dict):
+    """Reads per-port scan_progress_<port>.json files and reconciles with live running processes."""
+    active_tasks = []
+    for port, inst_id, serial in INSTANCE_PORT_MAP:
+        per_file = os.path.join(SCRIPT_DIR, f"scan_progress_{port}.json")
+        prog = None
+        if os.path.exists(per_file):
+            try:
+                with open(per_file, "r", encoding="utf-8") as f:
+                    prog = json.load(f)
+            except Exception:
+                pass
+        elif port == "16384" and os.path.exists(PROGRESS_FILE):
+            try:
+                with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
+                    cand = json.load(f)
+                cand_port = str(cand.get("adbPort") or cand.get("workerSerial") or "16384").split(":")[-1]
+                if cand_port == "16384":
+                    prog = cand
+            except Exception:
+                pass
+
+        proc_info = by_port.get(port)
+        is_running = proc_info is not None
+
+        if prog is not None:
+            prog["running"] = is_running
+            prog["instanceId"] = inst_id
+            prog["workerSerial"] = serial
+            prog["adbPort"] = port
+            if is_running:
+                prog["scannerPid"] = proc_info["pid"]
+                prog["pid"] = proc_info["pid"]
+            active_tasks.append(prog)
+        elif is_running:
+            cmd_str = proc_info["cmdline"]
+            is_prov = "provision_neighbor" in cmd_str or "auto_tutorial" in cmd_str
+            active_tasks.append({
+                "running": True,
+                "status": "PROVISIONING_BOT" if is_prov else "SCANNING_LIVE",
+                "preset": "BOT_PROVISION" if is_prov else "SWEET_650",
+                "kingdom": "4194",
+                "currentRank": 1,
+                "targetRanks": 6 if is_prov else 650,
+                "percent": 15.0 if is_prov else 1.0,
+                "instanceId": inst_id,
+                "workerSerial": serial,
+                "adbPort": port,
+                "scannerPid": proc_info["pid"],
+                "pid": proc_info["pid"],
+                "lastGovernorName": f"Active task on {inst_id} ({serial})...",
+                "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            })
+    return active_tasks
 
 
 def load_agent_cache():
@@ -123,12 +191,22 @@ def main():
 
     while True:
         try:
-            running, pid, cmdline = get_active_scanner_proc()
-            prog = read_local_progress()
-            if prog is not None:
-                prog["running"] = running
-                if pid:
-                    prog["scannerPid"] = pid
+            by_port = get_active_scanner_procs()
+            active_tasks = read_all_local_tasks(by_port)
+            running_tasks = [t for t in active_tasks if t.get("running")]
+            any_running = len(running_tasks) > 0
+
+            primary_prog = None
+            if running_tasks:
+                # Prefer a live scan as primary fallback, otherwise first running task
+                scan_tasks = [t for t in running_tasks if t.get("status") == "SCANNING_LIVE"]
+                primary_prog = scan_tasks[0] if scan_tasks else running_tasks[0]
+            elif active_tasks:
+                primary_prog = active_tasks[0]
+
+            primary_pid = primary_prog.get("scannerPid") if primary_prog else None
+            primary_port = primary_prog.get("adbPort", "16384") if primary_prog else "16384"
+            primary_cmd = by_port.get(primary_port, {}).get("cmdline") if any_running else None
 
             hb_payload = {
                 "action": "SIDEKICK_CLOUD_HEARTBEAT",
@@ -138,10 +216,11 @@ def main():
                     "cpuLoadPct": 28,
                     "ramUsedGb": 14.4,
                     "ramTotalGb": 64.0,
-                    "scannerRunning": running,
-                    "scannerPid": pid,
-                    "scannerCmd": cmdline,
-                    "scanProgress": prog,
+                    "scannerRunning": any_running,
+                    "scannerPid": primary_pid,
+                    "scannerCmd": primary_cmd,
+                    "scanProgress": primary_prog,
+                    "activeTasks": active_tasks,
                     "lastExecutedCmdId": cache.get("lastExecutedCmdId"),
                 },
             }
@@ -164,12 +243,21 @@ def main():
                 cache["lastExecutedCmdId"] = cmd_id
                 save_agent_cache(cache)
 
-                # Only execute if not already dispatched via local LAN when MIXERV3 is on
-                if not pending.get("dispatchedViaLan") or not running:
-                    if pending.get("scanProgress"):
+                # Execute if not already dispatched via local LAN
+                if not pending.get("dispatchedViaLan"):
+                    sp = pending.get("scanProgress")
+                    if sp:
                         try:
-                            with open(PROGRESS_FILE, "w", encoding="utf-8") as f:
-                                json.dump(pending["scanProgress"], f, indent=2)
+                            inst_id = str(sp.get("instanceId") or "")
+                            cmd_txt = str(pending.get("command") or "")
+                            t_port = (
+                                "16416"
+                                if ("16416" in cmd_txt or "mumu-1" in inst_id)
+                                else ("16448" if ("16448" in cmd_txt or "mumu-2" in inst_id) else "16384")
+                            )
+                            per_f = os.path.join(SCRIPT_DIR, f"scan_progress_{t_port}.json")
+                            with open(per_f, "w", encoding="utf-8") as f:
+                                json.dump(sp, f, indent=2)
                         except Exception:
                             pass
                     execute_ps_command(pending.get("command", ""))

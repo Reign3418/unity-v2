@@ -56,6 +56,10 @@ async function readBastionState() {
         kingdomSchedules: mergedSchedules,
         activityLog: cloudTs >= localTs ? cloudState.activityLog || localState.activityLog : localState.activityLog,
         activeScanProgress: cloudState.activeScanProgress || localState.activeScanProgress,
+        activeTasksByInstance: {
+          ...(localState.activeTasksByInstance || {}),
+          ...(cloudState.activeTasksByInstance || {}),
+        },
       };
     }
   } catch {}
@@ -225,14 +229,35 @@ export async function GET() {
     clusterLive?.nodes?.SIDEKICK ||
     clusterLive?.nodes?.sidekick ||
     Object.values(clusterLive?.nodes || {})[0];
+
+  // Merge per-instance active tasks from state and live cluster telemetry
+  const tasksMap = { ...(state.activeTasksByInstance || {}) };
+  if (Array.isArray(clusterLive?.activeTasks)) {
+    for (const t of clusterLive.activeTasks) {
+      const instId = t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+      tasksMap[instId] = { ...(tasksMap[instId] || {}), ...t, instanceId: instId };
+    }
+  }
+  if (hubProg && (hubProg.running || hubProg.currentRank > 0)) {
+    const instId = hubProg.instanceId || (String(hubProg.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
+    tasksMap[instId] = { ...(tasksMap[instId] || {}), ...hubProg, instanceId: instId };
+  }
+  const activeTasks = Object.values(tasksMap).sort((a, b) =>
+    String(a.instanceId || '').localeCompare(String(b.instanceId || ''))
+  );
+
+  const runningScans = activeTasks.filter((t) => t.running && t.status === 'SCANNING_LIVE');
+  const runningAny = activeTasks.filter((t) => t.running);
+  const bestTask = runningScans[0] || runningAny[0] || hubProg || state.activeScanProgress;
+
   const activeScanProgress =
-    hubProg && (hubProg.running || hubProg.currentRank > 0)
+    bestTask && (bestTask.running || bestTask.currentRank > 0)
       ? {
           ...state.activeScanProgress,
-          ...hubProg,
+          ...bestTask,
           sidekickOnline: Boolean(sidekickNode),
           sidekickLastSeen: sidekickNode?.lastSeen || null,
-          scannerPid: sidekickNode?.scannerPid || hubProg.scannerPid || null,
+          scannerPid: bestTask.scannerPid || bestTask.pid || sidekickNode?.scannerPid || null,
         }
       : {
           ...(state.activeScanProgress || {
@@ -254,6 +279,7 @@ export async function GET() {
     clusterLive,
     epochLedger,
     activeScanProgress,
+    activeTasks,
     kvkPresets: KVK_SCAN_PRESETS,
   });
 }
@@ -276,6 +302,7 @@ export async function POST(request) {
         scannerPid = null,
         scannerCmd = null,
         scanProgress = null,
+        activeTasks = null,
         lastExecutedCmdId = null,
       } = payload;
 
@@ -310,6 +337,7 @@ export async function POST(request) {
           },
         },
         liveScanProgress,
+        activeTasks: Array.isArray(activeTasks) ? activeTasks : liveScanProgress ? [liveScanProgress] : [],
         updatedAt: nowIso,
       };
 
@@ -619,7 +647,8 @@ export async function POST(request) {
         inst.lastHeartbeat = new Date().toISOString();
       }
 
-      state.activeScanProgress = {
+      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const switchTask = {
         running: true,
         status: 'SWITCHING_CHARACTER',
         preset: 'BOT_PROVISION',
@@ -628,14 +657,19 @@ export async function POST(request) {
         targetRanks: 6,
         percent: 16.7,
         instanceId,
+        workerSerial: adbSerial,
         lastGovernorName: `[1/6] Switching ${instanceId} to Kingdom #${kingdom} (~22s)...`,
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      state.activeTasksByInstance = state.activeTasksByInstance || {};
+      state.activeTasksByInstance[instanceId] = switchTask;
+      if (!state.activeScanProgress?.running || state.activeScanProgress?.instanceId === instanceId) {
+        state.activeScanProgress = switchTask;
+      }
 
-      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
       const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --adb ${adbSerial} --kingdom ${kingdom} --mode switch' -WindowStyle Hidden`;
-      const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
+      const dispatchResult = await dispatchToClusterHub(psCmd, switchTask);
 
       appendLog(state, {
         agent: 'CIPHER',
@@ -651,6 +685,7 @@ export async function POST(request) {
         state,
         epochLedger,
         activeScanProgress: state.activeScanProgress,
+        activeTasks: Object.values(state.activeTasksByInstance),
         gate,
         dispatchResult,
       });
@@ -770,7 +805,8 @@ export async function POST(request) {
         state.nextGenesisWatchKingdom = Number(targetKd) + 1;
       }
 
-      state.activeScanProgress = {
+      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const provTask = {
         running: true,
         status: 'PROVISIONING_BOT',
         preset: 'BOT_PROVISION',
@@ -779,14 +815,19 @@ export async function POST(request) {
         targetRanks: 6,
         percent: 16.7,
         instanceId,
+        workerSerial: adbSerial,
         lastGovernorName: `[1/6] Standing up Bot in Kingdom #${targetKd} on ${instanceId}...`,
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      state.activeTasksByInstance = state.activeTasksByInstance || {};
+      state.activeTasksByInstance[instanceId] = provTask;
+      if (!state.activeScanProgress?.running || state.activeScanProgress?.instanceId === instanceId) {
+        state.activeScanProgress = provTask;
+      }
 
-      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
       const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/auto_tutorial_ch8.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\auto_tutorial_ch8.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\provision_neighbor_kingdom.py --adb ${adbSerial} --kingdom ${targetKd} --mode create' -WindowStyle Hidden`;
-      const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
+      const dispatchResult = await dispatchToClusterHub(psCmd, provTask);
 
       appendLog(state, {
         agent: isGenesis ? 'SCOUT' : 'CIPHER',
@@ -803,6 +844,7 @@ export async function POST(request) {
         state,
         epochLedger,
         activeScanProgress: state.activeScanProgress,
+        activeTasks: Object.values(state.activeTasksByInstance),
         gate,
         dispatchResult,
       });
@@ -870,7 +912,7 @@ export async function POST(request) {
         inst.lastHeartbeat = new Date().toISOString();
       }
 
-      state.activeScanProgress = {
+      const completedTask = {
         running: false,
         status: 'COMPLETED',
         kingdom: targetKd,
@@ -881,6 +923,11 @@ export async function POST(request) {
         lastGovernorName: `Provisioned ${name} in Kingdom #${targetKd} (Power: ${power.toLocaleString()})`,
         updatedAt: new Date().toISOString(),
       };
+      state.activeTasksByInstance = state.activeTasksByInstance || {};
+      state.activeTasksByInstance[instanceId] = completedTask;
+      if (!state.activeScanProgress?.running || state.activeScanProgress?.instanceId === instanceId) {
+        state.activeScanProgress = completedTask;
+      }
 
       appendLog(state, {
         agent: 'CIPHER',
@@ -892,7 +939,13 @@ export async function POST(request) {
       });
 
       await writeBastionState(state);
-      return NextResponse.json({ success: true, state, epochLedger, botRecord });
+      return NextResponse.json({
+        success: true,
+        state,
+        epochLedger,
+        botRecord,
+        activeTasks: Object.values(state.activeTasksByInstance),
+      });
     }
 
     // 7. RECORD UNITY API DEMAND PULSE (KENT -> NULL Auto-Scaler)
@@ -956,7 +1009,8 @@ export async function POST(request) {
         kdEntry.nextScanAt = new Date(Date.now() + cadence * 3600 * 1000).toISOString();
       }
 
-      state.activeScanProgress = {
+      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const scanTask = {
         running: true,
         status: 'SCANNING_LIVE',
         kingdom: targetKd,
@@ -965,18 +1019,21 @@ export async function POST(request) {
         percent: 0.2,
         presetLabel: preset.label,
         instanceId,
+        workerSerial: adbSerial,
         lastGovernorName: needsSwitch
           ? `Switching to #${targetKd} & starting ${preset.label} scan...`
-          : `Dispatching ${preset.label} scan to SIDEKICK...`,
+          : `Dispatching ${preset.label} scan to ${instanceId}...`,
         lastGovernorPower: 0,
         etaSeconds: Math.round(preset.targetRanks * 3.1),
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      state.activeTasksByInstance = state.activeTasksByInstance || {};
+      state.activeTasksByInstance[instanceId] = scanTask;
+      state.activeScanProgress = scanTask;
 
-      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
       const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb ${adbSerial} --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
-      const dispatchResult = await dispatchToClusterHub(psCmd, state.activeScanProgress);
+      const dispatchResult = await dispatchToClusterHub(psCmd, scanTask);
 
       await writeBastionState(state);
       return NextResponse.json({
@@ -984,38 +1041,91 @@ export async function POST(request) {
         state,
         epochLedger,
         activeScanProgress: state.activeScanProgress,
+        activeTasks: Object.values(state.activeTasksByInstance),
         dispatchResult,
       });
     }
 
-    // 9. STOP / ABORT ACTIVE SCAN ON SIDEKICK
+    // 9. STOP / ABORT ACTIVE SCAN OR TASK ON SIDEKICK (Supports Per-Instance or Global Stop)
     if (action === 'STOP_ACTIVE_SCAN') {
-      const killCmd = `Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*provision_neighbor_kingdom*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*auto_tutorial_ch8*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Remove-Item "C:\\UnityScanner\\scan_progress.json" -Force -ErrorAction SilentlyContinue`;
-      state.activeScanProgress = {
-        running: false,
-        status: 'STOPPED_BY_OPERATOR',
-        kingdom: state.activeScanProgress?.kingdom || '4194',
-        currentRank: state.activeScanProgress?.currentRank || 0,
-        targetRanks: state.activeScanProgress?.targetRanks || 650,
-        percent: state.activeScanProgress?.percent || 0,
-        updatedAt: new Date().toISOString(),
-      };
-      const dispatchResult = await dispatchToClusterHub(killCmd, state.activeScanProgress);
+      const targetInstanceId = payload.instanceId || null;
+      state.activeTasksByInstance = state.activeTasksByInstance || {};
 
-      (state.instances || []).forEach((inst) => {
-        if (inst.status === 'SCANNING_LIVE' || inst.status === 'BUSY_PROVISIONING') {
+      let killCmd = '';
+      let stoppedTask = null;
+
+      if (targetInstanceId) {
+        const targetPort = targetInstanceId.includes('mumu-1')
+          ? '16416'
+          : targetInstanceId.includes('mumu-2')
+          ? '16448'
+          : '16384';
+        const portMatch =
+          targetPort === '16384'
+            ? `($_.CommandLine -like "*16384*" -or $_.CommandLine -notlike "*--adb*")`
+            : `($_.CommandLine -like "*${targetPort}*")`;
+        killCmd = `Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { ($_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*provision_neighbor_kingdom*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*auto_tutorial_ch8*") -and ${portMatch} } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Remove-Item "C:\\UnityScanner\\scan_progress_${targetPort}.json" -Force -ErrorAction SilentlyContinue`;
+
+        const prev = state.activeTasksByInstance[targetInstanceId] || {};
+        stoppedTask = {
+          ...prev,
+          instanceId: targetInstanceId,
+          running: false,
+          status: 'STOPPED_BY_OPERATOR',
+          kingdom: prev.kingdom || '4194',
+          currentRank: prev.currentRank || 0,
+          targetRanks: prev.targetRanks || 650,
+          percent: prev.percent || 0,
+          updatedAt: new Date().toISOString(),
+        };
+        state.activeTasksByInstance[targetInstanceId] = stoppedTask;
+
+        const inst = (state.instances || []).find((i) => i.instanceId === targetInstanceId);
+        if (inst) {
           inst.status = 'ONLINE_IDLE';
           inst.assignedTask = 'STANDBY_STEADY_12H';
         }
-      });
+      } else {
+        killCmd = `Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*provision_neighbor_kingdom*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*auto_tutorial_ch8*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Remove-Item "C:\\UnityScanner\\scan_progress*.json" -Force -ErrorAction SilentlyContinue`;
+        Object.keys(state.activeTasksByInstance).forEach((k) => {
+          state.activeTasksByInstance[k] = {
+            ...state.activeTasksByInstance[k],
+            running: false,
+            status: 'STOPPED_BY_OPERATOR',
+            updatedAt: new Date().toISOString(),
+          };
+        });
+        stoppedTask = {
+          running: false,
+          status: 'STOPPED_BY_OPERATOR',
+          kingdom: state.activeScanProgress?.kingdom || '4194',
+          currentRank: state.activeScanProgress?.currentRank || 0,
+          targetRanks: state.activeScanProgress?.targetRanks || 650,
+          percent: state.activeScanProgress?.percent || 0,
+          updatedAt: new Date().toISOString(),
+        };
+        (state.instances || []).forEach((inst) => {
+          if (inst.status === 'SCANNING_LIVE' || inst.status === 'BUSY_PROVISIONING') {
+            inst.status = 'ONLINE_IDLE';
+            inst.assignedTask = 'STANDBY_STEADY_12H';
+          }
+        });
+      }
+
+      const remainingRunning = Object.values(state.activeTasksByInstance).filter((t) => t.running);
+      state.activeScanProgress = remainingRunning[0] || stoppedTask;
+
+      const dispatchResult = await dispatchToClusterHub(killCmd, stoppedTask);
 
       appendLog(state, {
         agent: 'TANK',
         ring: 'ring2_dispatch',
         model: r2Model,
         action: 'SCAN_ABORTED_BY_OPERATOR',
-        kingdom: state.activeScanProgress.kingdom,
-        detail: 'Operator sent immediate STOP signal to terminate active Python scanner/provisioner process on SIDEKICK.',
+        kingdom: stoppedTask?.kingdom || 'ALL',
+        detail: targetInstanceId
+          ? `Operator stopped active task on ${targetInstanceId} while preserving other running emulator tasks.`
+          : 'Operator sent immediate STOP signal to terminate all active Python scanner/provisioner processes on SIDEKICK.',
       });
 
       await writeBastionState(state);
@@ -1024,6 +1134,7 @@ export async function POST(request) {
         state,
         epochLedger,
         activeScanProgress: state.activeScanProgress,
+        activeTasks: Object.values(state.activeTasksByInstance),
         dispatchResult,
       });
     }

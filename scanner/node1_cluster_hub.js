@@ -16,6 +16,7 @@ const SCANNER_DIR = __dirname;
 const nodes = {}; // hostname -> { lastSeen, info }
 const commandQueue = []; // { id, cmd, createdAt }
 const commandHistory = [];
+const activeTasksByInstance = {}; // instanceId -> taskProgressObj
 let liveScanProgress = {
   running: false,
   status: 'IDLE',
@@ -28,6 +29,14 @@ let liveScanProgress = {
   governorsExtracted: 1000,
   updatedAt: null,
 };
+
+function resolveInstId(data) {
+  if (data?.instanceId) return data.instanceId;
+  const s = String(data?.workerSerial || data?.adbPort || '');
+  if (s.includes('16416')) return 'sidekick-mumu-1';
+  if (s.includes('16448')) return 'sidekick-mumu-2';
+  return 'sidekick-mumu-0';
+}
 
 const WORKER_LOOP_PS1 = `
 $ErrorActionPreference = "Continue"
@@ -159,6 +168,7 @@ const server = http.createServer((req, res) => {
           nodes,
           queueLength: commandQueue.length,
           liveScanProgress,
+          activeTasks: Object.values(activeTasksByInstance),
           recentHistory: compactHistory,
         },
         null,
@@ -174,32 +184,56 @@ const server = http.createServer((req, res) => {
     try {
       if (req.method === 'POST' && url.pathname === '/scan-progress') {
         const data = JSON.parse(body || '{}');
+        const instId = resolveInstId(data);
+        const prevInst = activeTasksByInstance[instId] || {};
         const pct =
           typeof data.percent === 'number'
             ? data.percent
             : data.currentRank && data.targetRanks
             ? Math.min(100, +((data.currentRank / data.targetRanks) * 100).toFixed(1))
-            : liveScanProgress.percent || 0;
-        liveScanProgress = {
-          ...liveScanProgress,
+            : prevInst.percent || 0;
+        const updatedTask = {
+          ...prevInst,
           ...data,
+          instanceId: instId,
           percent: pct,
           updatedAt: new Date().toISOString(),
         };
+        activeTasksByInstance[instId] = updatedTask;
+
+        // Only overwrite primary liveScanProgress if no other instance is actively SCANNING_LIVE
+        const allTasks = Object.values(activeTasksByInstance);
+        const liveScans = allTasks.filter((t) => t.running && t.status === 'SCANNING_LIVE');
+        const runningAny = allTasks.filter((t) => t.running);
+        liveScanProgress = liveScans[0] || runningAny[0] || updatedTask;
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ ok: true, liveScanProgress }));
+        return res.end(JSON.stringify({ ok: true, liveScanProgress, activeTasks: allTasks }));
       }
 
       if (req.method === 'POST' && url.pathname === '/heartbeat') {
         const data = JSON.parse(body || '{}');
         const ip = req.socket.remoteAddress;
+        if (Array.isArray(data.activeTasks)) {
+          data.activeTasks.forEach((t) => {
+            const instId = resolveInstId(t);
+            activeTasksByInstance[instId] = { ...activeTasksByInstance[instId], ...t, instanceId: instId };
+          });
+        }
         if (data.scanProgress) {
-          liveScanProgress = {
-            ...liveScanProgress,
+          const instId = resolveInstId(data.scanProgress);
+          const merged = {
+            ...(activeTasksByInstance[instId] || {}),
             ...data.scanProgress,
+            instanceId: instId,
             running: typeof data.scannerRunning === 'boolean' ? data.scannerRunning : Boolean(data.scanProgress.running),
             scannerPid: data.scannerPid || data.scanProgress.pid || null,
           };
+          activeTasksByInstance[instId] = merged;
+          const allTasks = Object.values(activeTasksByInstance);
+          const liveScans = allTasks.filter((t) => t.running && t.status === 'SCANNING_LIVE');
+          const runningAny = allTasks.filter((t) => t.running);
+          liveScanProgress = liveScans[0] || runningAny[0] || merged;
         } else if (typeof data.scannerRunning === 'boolean') {
           liveScanProgress.running = data.scannerRunning;
           liveScanProgress.scannerPid = data.scannerPid || null;

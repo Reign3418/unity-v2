@@ -124,9 +124,24 @@ def find_kingdom_coords(img_path: str, kingdom_num: str):
     return found
 
 
+_CURRENT_ADB = "127.0.0.1:16384"
+
+
+def resolve_instance_id(adb_serial: str) -> str:
+    s = str(adb_serial or "127.0.0.1:16384")
+    if "16416" in s:
+        return "sidekick-mumu-1"
+    if "16448" in s:
+        return "sidekick-mumu-2"
+    return "sidekick-mumu-0"
+
+
 def report_progress(kingdom: str, step: int, total_steps: int, status_label: str, detail: str, running: bool = True):
     import json as _json
     pct = round((step / max(1, total_steps)) * 100.0, 1)
+    adb_serial = str(_CURRENT_ADB or "127.0.0.1:16384")
+    adb_port = adb_serial.split(":")[-1]
+    inst_id = resolve_instance_id(adb_serial)
     payload = {
         "running": running,
         "status": status_label,
@@ -137,10 +152,16 @@ def report_progress(kingdom: str, step: int, total_steps: int, status_label: str
         "percent": pct,
         "governorsExtracted": step,
         "lastGovernorName": detail,
+        "workerSerial": adb_serial,
+        "adbPort": adb_port,
+        "instanceId": inst_id,
         "pid": os.getpid(),
         "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     try:
+        per_port_path = os.path.join(SCRIPT_DIR, f"scan_progress_{adb_port}.json")
+        with open(per_port_path, "w", encoding="utf-8") as f:
+            _json.dump(payload, f, indent=2)
         prog_path = os.path.join(SCRIPT_DIR, "scan_progress.json")
         can_write = True
         if os.path.exists(prog_path):
@@ -170,6 +191,7 @@ def report_progress(kingdom: str, step: int, total_steps: int, status_label: str
 
 
 def main():
+    global _CURRENT_ADB
     parser = argparse.ArgumentParser()
     parser.add_argument("--adb", "--adb-serial", dest="adb", default="127.0.0.1:16384")
     parser.add_argument("--kingdom", required=True, help="Target kingdom number, e.g. 4044 or 4195")
@@ -177,6 +199,7 @@ def main():
     parser.add_argument("--tutorial-steps", type=int, default=55, help="Autonomous tutorial steps to run after spawn")
     args = parser.parse_args()
 
+    _CURRENT_ADB = args.adb
     adb_port = str(args.adb).split(":")[-1]
     snap_path = os.path.join(SCRIPT_DIR, f"prov_step_{adb_port}.png")
     report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", f"[1/6] Checking screen state on {args.adb}...")
@@ -196,6 +219,30 @@ def main():
         print(f"[1/6] Opening Governor Profile -> Settings -> Characters...")
         report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
         tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
+
+        # Verify Governor Profile opened; if blocked by forced intro tutorial on a fresh emulator, clear tutorial first
+        for tut_round in range(1, 3):
+            screencap(args.adb, snap_path)
+            ocr = get_ocr()
+            res_prof, _ = ocr(snap_path)
+            prof_texts = " ".join([item[1].upper() for item in (res_prof or [])])
+            if any(k in prof_texts for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
+                break
+            print(f"  -> Avatar (45,45) blocked by active tutorial (round {tut_round}); running 28 tutorial steps on {args.adb}...")
+            report_progress(
+                args.kingdom,
+                1,
+                6,
+                "PROVISIONING_BOT",
+                f"[1/6] Finishing initial tutorial on {args.adb} before opening Character List (Round {tut_round})...",
+            )
+            tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+            subprocess.run(
+                [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "28"],
+                check=False,
+            )
+            tap(args.adb, 45, 45, 2.2)
+
         tap(args.adb, 1325, 760, 2.2)     # Settings gear
         tap_characters_in_settings(args.adb, snap_path)
 
@@ -318,7 +365,7 @@ def main():
         report_progress(args.kingdom, 6, 6, "PROVISIONING_BOT", f"[6/6] Clearing Ch.1 Tutorial in #{args.kingdom} ({args.tutorial_steps} steps)...")
         tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
         subprocess.run(
-            [sys.executable, tut_script, "--adb", args.adb, "--steps", str(args.tutorial_steps)],
+            [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", str(args.tutorial_steps)],
             check=False,
         )
     # Open Governor Profile (45, 45), OCR Governor ID & Name, and register in Bastion Cloud Roster
