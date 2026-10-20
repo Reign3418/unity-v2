@@ -255,7 +255,7 @@ def detect_new_troop_modal(a: np.ndarray):
     is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)
     if float(np.mean(is_back_grey)) > 0.55:
         if float(np.mean(is_tal_cyan)) > 0.45 and float(np.mean(is_sk2_cyan)) > 0.45:
-            return (150, 250, "COMMANDER_SLOT2_LEVEL_UP_5")
+            return (235, 255, "COMMANDER_SLOT2_LEVEL_UP_5")
         if float(np.mean(is_sk_cyan)) > 0.45:
             lvl_btn = a[340:390, 1480:1555]
             is_lvl_green = (lvl_btn[:, :, 1] >= 165) & (lvl_btn[:, :, 0] <= 80) & (lvl_btn[:, :, 2] <= 80)
@@ -693,10 +693,10 @@ def main():
                 tap(args.adb, 1380, 112, 1.0)
                 tap(args.adb, 48, 52, 1.1)
             elif nt[2] == "COMMANDER_SLOT2_LEVEL_UP_5":
-                print(f"[Step {step:02d}] Commander Slot #2 -> Clear Star-Up Spear (1515,363)+(1366,112) + Select Slot #2 (150,250) + Level Up (1515,363) + QUICK LEVEL x6 + Close (1380,112) + Back (48,52)")
+                print(f"[Step {step:02d}] Commander Slot #2 -> Clear Star-Up Spear (1515,363)+(1366,112) + Select Slot #2 (235,255) + Level Up (1515,363) + QUICK LEVEL x6 + Close (1380,112) + Back (48,52)")
                 tap(args.adb, 1515, 363, 1.0)
                 tap(args.adb, 1366, 112, 1.0)
-                tap(args.adb, 150, 250, 1.2)
+                tap(args.adb, 235, 255, 1.2)
                 tap(args.adb, 1515, 363, 1.2)
                 for _ in range(6):
                     tap(args.adb, 1225, 371, 0.45)
