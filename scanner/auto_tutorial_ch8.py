@@ -198,6 +198,14 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_q_hdr)) > 0.55 and float(np.mean(is_q_go)) > 0.35:
         return (1258, 325, "Quests Modal -> Tap Main Quest GO")
 
+    # 9. Commander Screen ('SKILLS' cyan button at x=755..955, y=800..885 + top-left grey Back button at x=20..85, y=20..85)
+    sk_btn = a[800:885, 755:955]
+    is_sk_cyan = (sk_btn[:, :, 2] >= 200) & (sk_btn[:, :, 1] >= 145) & (sk_btn[:, :, 0] <= 75)
+    back_btn = a[20:85, 20:85]
+    is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)
+    if float(np.mean(is_sk_cyan)) > 0.45 and float(np.mean(is_back_grey)) > 0.55:
+        return (48, 52, "Commander Screen -> Tap Back (48, 52)")
+
     return None
 
 
