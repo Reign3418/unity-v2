@@ -92,17 +92,14 @@ def detect_new_troop_modal(a: np.ndarray):
         if float(np.mean(gold_march)) > 0.35:
             return (1160, 785, "New Troop -> Tap MARCH")
 
-        # 2. "Please select me as commander." white speech bubble at x=115..395, y=230..295 -> tap Sun Tzu (60, 260)
-        bubble = a[230:295, 115:395]
-        white_bubble = (bubble[:, :, 0] >= 210) & (bubble[:, :, 1] >= 210) & (bubble[:, :, 2] >= 210)
-        if float(np.mean(white_bubble)) > 0.60:
-            return (60, 260, "New Troop -> Select Primary Commander (Sun Tzu)")
-
-        # 3. Empty Primary Commander glowing white '+' circle at x=265..325, y=465..525 -> tap '+' (295, 495)
+        # 2. Empty Primary Commander glowing white '+' circle at x=265..325, y=465..525 -> tap '+' (295, 495)
         plus = a[465:525, 265:325]
         white_plus = (plus[:, :, 0] >= 242) & (plus[:, :, 1] >= 248) & (plus[:, :, 2] >= 248)
         if float(np.mean(white_plus)) > 0.45:
             return (295, 495, "New Troop -> Tap Primary Commander '+' Slot")
+
+        # 3. Commander selection drawer is open on left -> tap Sun Tzu (115, 250)
+        return (115, 250, "New Troop -> Select Primary Commander (Sun Tzu)")
 
     # 4. Scout Fog golden 'Send' button at x=1140..1375, y=185..270 with white speech bubble below -> tap (1260, 228)
     send_btn = a[185:270, 1140:1375]

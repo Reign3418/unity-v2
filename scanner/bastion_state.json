@@ -291,13 +291,51 @@
       "kpDeltaPct": 4.8,
       "accountsAvailable": 2,
       "assignedInstances": [
-        "sidekick-mumu-0"
+        "sidekick-mumu-0",
+        "sidekick-mumu-1"
       ],
       "lastScanAt": "2026-10-19T14:15:00.000Z",
       "nextScanAt": "2026-10-19T20:00:00.000Z",
       "genesisCaptured": true,
       "genesisGovernorsTracked": 1000,
-      "reason": "High Unity API demand (42 calls) + Home Kingdom Priority"
+      "reason": "High Unity API demand (42 calls) + Dual CH8 Home Kingdom Priority"
+    },
+    {
+      "kingdom": "4197",
+      "name": "Kingdom #4197",
+      "continent": "Continent 4197–4200",
+      "mode": "STEADY_12H",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 5,
+      "kpDeltaPct": 0,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-1"
+      ],
+      "lastScanAt": null,
+      "nextScanAt": "Scanning Now",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 650,
+      "reason": "Principal Directive — Live 45-Field Telemetry Acquisition (#4197)"
+    },
+    {
+      "kingdom": "4198",
+      "name": "Kingdom #4198",
+      "continent": "Continent 4197–4200",
+      "mode": "STEADY_12H",
+      "cadenceHours": 12,
+      "unityApiCalls24h": 5,
+      "kpDeltaPct": 0,
+      "accountsAvailable": 1,
+      "assignedInstances": [
+        "sidekick-mumu-0",
+        "sidekick-mumu-1"
+      ],
+      "lastScanAt": null,
+      "nextScanAt": "Queued Next",
+      "genesisCaptured": true,
+      "genesisGovernorsTracked": 650,
+      "reason": "Principal Directive — Live 45-Field Telemetry Acquisition (#4198)"
     },
     {
       "kingdom": "4044",
