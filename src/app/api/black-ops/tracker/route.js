@@ -8,6 +8,7 @@ import {
   addTrackedTarget,
   removeTrackedTarget,
   dispatchBlackOpsNotification,
+  dispatchBastionPinpointRecon,
 } from '@/lib/blackOpsTracker';
 import { readLiveTelemetryCache } from '@/app/api/ingest/kingdom-scan/route';
 import { enrichGovernorWithRatios } from '@/lib/telemetryAnalytics';
@@ -64,6 +65,7 @@ function buildEnrichedWatchlist(watchlist, dataset) {
     ...watchlist,
     targetsList: enrichedTargets,
     totalTracked: enrichedTargets.length,
+    bastionRingEvents: watchlist.bastionRingEvents || [],
   };
 }
 
@@ -132,11 +134,10 @@ export async function POST(req) {
       if (!govId) {
         return NextResponse.json({ success: false, error: 'govId is required' }, { status: 400 });
       }
-      // Look up full record from dataset if available
       const fullRecord =
         dataset.find((g) => String(g.govId || g.id) === String(govId)) || initialData || {};
 
-      const { target, watchlist } = await addTrackedTarget({
+      const { target, watchlist, bastionSync } = await addTrackedTarget({
         govId,
         name: name || fullRecord.name,
         kingdom: kingdom || fullRecord.kingdomId || '4194',
@@ -151,9 +152,30 @@ export async function POST(req) {
 
       return NextResponse.json({
         success: true,
-        message: `Target ${target.name} locked on radar`,
+        message: `Target ${target.name} locked on radar · Bastion Ring 1 (SCOUT) set to 1h Surge`,
         target: enrichedTarget,
         watchlist: enrichedWatchlist,
+        bastionSync,
+      });
+    }
+
+    if (action === 'DISPATCH_BASTION_RECON') {
+      const { target } = body;
+      if (!target) {
+        return NextResponse.json({ success: false, error: 'target is required' }, { status: 400 });
+      }
+      const reconRes = await dispatchBastionPinpointRecon(target);
+      const watchlist = await getWatchlist();
+      if (reconRes?.bastionEvent) {
+        if (!Array.isArray(watchlist.bastionRingEvents)) watchlist.bastionRingEvents = [];
+        watchlist.bastionRingEvents.unshift(reconRes.bastionEvent);
+        await saveWatchlist(watchlist);
+      }
+      return NextResponse.json({
+        success: true,
+        message: `Bastion Ring 2 (TANK + CIPHER) dispatched on sidekick-mumu-0 for Rank Window #${reconRes.rankWindow}!`,
+        recon: reconRes,
+        watchlist: buildEnrichedWatchlist(watchlist, dataset),
       });
     }
 

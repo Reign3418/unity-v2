@@ -4,25 +4,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Crosshair,
   Search,
-  ShieldAlert,
   Bell,
   Send,
-  Download,
   RefreshCw,
   MapPin,
-  Activity,
   Zap,
   Radio,
   UserX,
   CheckCircle2,
   AlertTriangle,
   Compass,
-  Shield,
-  Swords,
-  Skull,
-  Award,
-  Flame,
   Eye,
+  Bot,
+  Cpu,
+  ShieldCheck,
+  Radar,
 } from 'lucide-react';
 import { enrichGovernorWithRatios } from '@/lib/telemetryAnalytics';
 
@@ -72,6 +68,12 @@ function buildClientTargetObject(gov, priority = 'VIP') {
     liveTelemetry: enriched,
     movementHistory: [],
     deltas: { power: 0, kp: 0, deads: 0, moved: false },
+    bastionStatus: {
+      ring1Scout: 'SURGE_1H_ARMED',
+      ring2Tank: 'SIDEKICK_MUMU_0_LOCKED',
+      ring2NumNum: 'PASS_0_TOKENS',
+      ring3Dozer: 'SLICE_DELTA_WATCH',
+    },
     active: true,
   };
 }
@@ -80,6 +82,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
   const [watchlist, setWatchlist] = useState({
     targetsList: [],
     alertHistory: [],
+    bastionRingEvents: [],
     webhookUrl: '',
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,8 +91,10 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [webhookInput, setWebhookInput] = useState('');
   const [isDispatchingTest, setIsDispatchingTest] = useState(false);
+  const [isDispatchingRecon, setIsDispatchingRecon] = useState(false);
   const [testAlertStatus, setTestAlertStatus] = useState(null);
   const [liveScannerStatus, setLiveScannerStatus] = useState(null);
+  const [bastionTelemetry, setBastionTelemetry] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [lockFeedback, setLockFeedback] = useState(null);
 
@@ -117,7 +122,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         const serverList = data.watchlist.targetsList || [];
         const localList = loadLocalTargets();
 
-        // Merge server targets with any local targets so targets never vanish on serverless cold starts
         const mergedMap = new Map();
         localList.forEach((t) => mergedMap.set(String(t.govId), t));
         serverList.forEach((t) => mergedMap.set(String(t.govId), t));
@@ -125,7 +129,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         const mergedList = Array.from(mergedMap.values());
         saveLocalTargets(mergedList);
 
-        // If local had targets that server didn't know about, sync them up in the background
         if (localList.length > serverList.length) {
           fetch('/api/black-ops/tracker', {
             method: 'POST',
@@ -140,6 +143,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         setWatchlist({
           ...data.watchlist,
           targetsList: mergedList,
+          bastionRingEvents: data.watchlist.bastionRingEvents || [],
         });
 
         setSelectedTarget((prev) => {
@@ -160,14 +164,17 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     }
   };
 
-  // 2. Poll Scanner Progress
-  const pollScanner = async () => {
+  // 2. Poll Bastion MoE Ring State & Scanner Progress
+  const pollBastionRing = async () => {
     try {
       const res = await fetch('/api/bastion');
       if (res.ok) {
         const data = await res.json();
-        if (data?.scanProgress) {
-          setLiveScannerStatus(data.scanProgress);
+        if (data?.activeScanProgress) {
+          setLiveScannerStatus(data.activeScanProgress);
+        }
+        if (data?.state) {
+          setBastionTelemetry(data.state);
         }
       }
     } catch (e) {}
@@ -175,10 +182,10 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
 
   useEffect(() => {
     fetchWatchlist();
-    pollScanner();
+    pollBastionRing();
     const interval = setInterval(() => {
       fetchWatchlist();
-      pollScanner();
+      pollBastionRing();
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -226,11 +233,20 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // 4. Lock / Track Target (Optimistic + Persistent)
+  // 4. Lock / Track Target + Command Bastion MoE Ring
   const handleTrackTarget = async (gov, priority = 'VIP') => {
     const optimisticTarget = buildClientTargetObject(gov, priority);
 
-    // Immediately lock target in UI & localStorage so it never disappears
+    const optimisticBastionEvt = {
+      id: `evt-local-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      agent: 'SCOUT + NUMNUM + DOZER',
+      ring: 'RING 1 -> RING 2 -> RING 3',
+      action: 'BLACK_OPS_TARGET_LOCK',
+      kingdom: '4194',
+      detail: `Locked [${optimisticTarget.lastKnownAlliance}] ${optimisticTarget.name} (ID: ${optimisticTarget.govId}). SCOUT escalated #4194 to 1h Surge Cadence; DOZER armed for slice delta interception.`,
+    };
+
     setWatchlist((prev) => {
       const filtered = (prev.targetsList || []).filter(
         (t) => String(t.govId) !== String(optimisticTarget.govId)
@@ -240,14 +256,17 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       return {
         ...prev,
         targetsList: nextList,
+        bastionRingEvents: [optimisticBastionEvt, ...(prev.bastionRingEvents || [])].slice(0, 30),
       };
     });
 
     setSelectedTarget(optimisticTarget);
     setSearchQuery('');
     setSearchResults([]);
-    setLockFeedback(`RADAR LOCK ACQUIRED: [${optimisticTarget.lastKnownAlliance}] ${optimisticTarget.name}`);
-    setTimeout(() => setLockFeedback(null), 4000);
+    setLockFeedback(
+      `BASTION RING LOCK ACQUIRED: [${optimisticTarget.lastKnownAlliance}] ${optimisticTarget.name} -> SCOUT 1h Surge Armed + DOZER Delta Watch`
+    );
+    setTimeout(() => setLockFeedback(null), 5000);
 
     try {
       const res = await fetch('/api/black-ops/tracker', {
@@ -277,13 +296,51 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
             targetsList: merged,
           });
         }
+        pollBastionRing();
       }
     } catch (e) {
       console.error('Track target server sync error:', e);
     }
   };
 
-  // 5. Untrack Target
+  // 5. Dispatch Bastion Pinpoint Recon (Ring 2: TANK + CIPHER)
+  const handleDispatchBastionRecon = async (targetToScan = null) => {
+    const tgt = targetToScan || selectedTarget;
+    if (!tgt) return;
+    setIsDispatchingRecon(true);
+    setLockFeedback(
+      `COMMANDING BASTION RING 2 (TANK + CIPHER): Dispatching pinpoint RAM sweep for [${tgt.lastKnownAlliance}] ${tgt.name}...`
+    );
+
+    try {
+      const res = await fetch('/api/black-ops/tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'DISPATCH_BASTION_RECON',
+          target: tgt,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLockFeedback(data.message);
+        if (data.watchlist) {
+          setWatchlist((prev) => ({
+            ...prev,
+            bastionRingEvents: data.watchlist.bastionRingEvents || prev.bastionRingEvents,
+          }));
+        }
+        pollBastionRing();
+      }
+    } catch (e) {
+      console.error('Bastion recon dispatch error:', e);
+    } finally {
+      setIsDispatchingRecon(false);
+      setTimeout(() => setLockFeedback(null), 5000);
+    }
+  };
+
+  // 6. Untrack Target
   const handleUntrackTarget = async (govId, e) => {
     if (e) e.stopPropagation();
     const idStr = String(govId);
@@ -306,12 +363,13 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'UNTRACK_TARGET', govId }),
       });
+      pollBastionRing();
     } catch (err) {
       console.error('Untrack error:', err);
     }
   };
 
-  // 6. Send Test / Target Alert to Phone
+  // 7. Send Test / Target Alert to Phone
   const handleSendTestAlert = async (customTarget = null) => {
     setIsDispatchingTest(true);
     setTestAlertStatus(null);
@@ -350,7 +408,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     }
   };
 
-  // 7. Save Webhook Settings
+  // 8. Save Webhook Settings
   const handleSaveSettings = async () => {
     try {
       await fetch('/api/black-ops/tracker', {
@@ -367,7 +425,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     }
   };
 
-  // 8. 2D Interactive Star Cluster Canvas
+  // 9. 2D Interactive Star Cluster Canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -394,7 +452,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       ctx.fillStyle = '#020408';
       ctx.fillRect(0, 0, width, height);
 
-      // Draw Grid / Radar Coordinate Rings
       ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
       ctx.lineWidth = 1;
       for (let r = 50; r < Math.max(width, height); r += 65) {
@@ -403,7 +460,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         ctx.stroke();
       }
 
-      // Crosshairs
       ctx.strokeStyle = 'rgba(16, 185, 129, 0.12)';
       ctx.beginPath();
       ctx.moveTo(0, height / 2);
@@ -412,7 +468,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       ctx.lineTo(width / 2, height);
       ctx.stroke();
 
-      // Radar Sweep line
       ctx.save();
       ctx.translate(width / 2, height / 2);
       ctx.rotate(pulse * 0.5);
@@ -427,7 +482,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       ctx.fill();
       ctx.restore();
 
-      // Render Tracked Targets as Glowing Star Nodes
       const targets = watchlist.targetsList || [];
       const clickableNodes = [];
 
@@ -454,7 +508,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         const starRadius = isSelected ? 8 : isWhale ? 6.5 : 4.5;
         const glowRadius = starRadius * (1.6 + Math.sin(pulse + idx) * 0.4);
 
-        // Glow halo
         const glow = ctx.createRadialGradient(x, y, 0, x, y, glowRadius * 3.5);
         const color = isSelected
           ? '6, 182, 212'
@@ -469,13 +522,11 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         ctx.arc(x, y, glowRadius * 3.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Star Core
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(x, y, starRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Pulsing Target Lock Reticle
         ctx.strokeStyle = `rgba(${color}, ${isSelected ? 0.9 : 0.45 + Math.sin(pulse * 2) * 0.35})`;
         ctx.lineWidth = isSelected ? 2 : 1.5;
         ctx.beginPath();
@@ -483,7 +534,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         ctx.stroke();
 
         if (isSelected) {
-          // Crosshair ticks around selected target
           const rOuter = starRadius + 18;
           ctx.beginPath();
           ctx.moveTo(x - rOuter, y);
@@ -497,7 +547,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
           ctx.stroke();
         }
 
-        // Target Label
         ctx.fillStyle = isSelected ? '#22d3ee' : '#f8fafc';
         ctx.font = isSelected ? 'bold 11px monospace' : '10px monospace';
         ctx.fillText(`[${target.lastKnownAlliance || 'None'}] ${target.name}`, x + 14, y - 4);
@@ -539,7 +588,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     }
   };
 
-  // Enrich selectedTarget's liveTelemetry with ratios ($0 tokens)
   const activeDossier = selectedTarget
     ? enrichGovernorWithRatios({
         ...(selectedTarget.liveTelemetry || {}),
@@ -553,6 +601,14 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       })
     : null;
 
+  const lockedCount = watchlist.targetsList?.length || 0;
+  const combinedRingEvents = [
+    ...(watchlist.bastionRingEvents || []),
+    ...((bastionTelemetry?.activityLog || []).filter((e) =>
+      String(e.action || '').includes('BLACK_OPS') || String(e.kingdom) === '4194'
+    )),
+  ].slice(0, 12);
+
   return (
     <div className="min-h-screen bg-[#020408] text-slate-200 font-sans p-4 md:p-8">
       {/* Top Tactical Status HUD */}
@@ -563,8 +619,8 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30">
                 <Radio className="w-3 h-3 animate-pulse" /> CLASSIFIED BLACK OPS
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                <Compass className="w-3 h-3" /> RADAR ACTIVE • KD #4194
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/40">
+                <Bot className="w-3 h-3" /> BASTION MOE RING LINKED
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
@@ -572,7 +628,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
               GOV HUNTER & STAR CLUSTER RADAR
             </h1>
             <p className="text-xs text-slate-400 font-mono mt-0.5">
-              Live Coordinate Shift Detection • Whale Power Spikes • Instant Mobile Alert Dispatch
+              Two-Way Bastion MoE Command Loop • SCOUT Auto-Surge • TANK Pinpoint Recon • DOZER Delta Watch
             </p>
           </div>
 
@@ -585,7 +641,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                     liveScannerStatus?.running ? 'bg-emerald-400 animate-ping' : 'bg-emerald-500'
                   }`}
                 />
-                LIVE SCANNER: {liveScannerStatus?.status || 'SCANNING_LIVE'}
+                BASTION WORKER: {liveScannerStatus?.status || 'READY (650/650)'}
               </div>
               <div className="text-xs font-mono font-bold text-white">
                 Rank {liveScannerStatus?.currentRank || 650} / {liveScannerStatus?.targetRanks || 650} (
@@ -594,6 +650,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
             </div>
 
             <button
+              type="button"
               onClick={requestPushPermission}
               className={`px-3 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 border transition-all cursor-pointer ${
                 pushEnabled
@@ -607,22 +664,75 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
           </div>
         </div>
 
+        {/* BASTION MOE RING TWO-WAY COMMAND UPLINK BAR */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 font-mono">
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-cyan-500/30 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] text-cyan-400 font-bold uppercase flex items-center gap-1.5">
+                <Radar className="w-3.5 h-3.5" /> RING 1: SCOUT & KENT
+              </div>
+              <div className="text-xs font-bold text-white mt-0.5">
+                {lockedCount > 0
+                  ? `SURGE CADENCE ACTIVE (1h Sweep · ${lockedCount} Locked)`
+                  : 'STEADY CADENCE (12h Sweep · Standby)'}
+              </div>
+            </div>
+            <span
+              className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                lockedCount > 0
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
+              }`}
+            >
+              {lockedCount > 0 ? 'SURGE ON' : 'STEADY'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] text-emerald-400 font-bold uppercase flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5" /> RING 2: TANK · CIPHER · NUMNUM · FORGE
+              </div>
+              <div className="text-xs font-bold text-white mt-0.5">
+                SIDEKICK (16384 Recon · 16416 Forge)
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              0 TOKENS PASS
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-purple-500/30 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] text-purple-400 font-bold uppercase flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> RING 3: DOZER & BASTION AUDIT
+              </div>
+              <div className="text-xs font-bold text-white mt-0.5">
+                Slice Delta Reconciler & Teleport Intercept
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+              ARMED
+            </span>
+          </div>
+        </div>
+
         {/* Instant Lock Confirmation Banner */}
         {lockFeedback && (
-          <div className="mt-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-xs flex items-center justify-between animate-pulse">
+          <div className="mt-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-xs flex items-center justify-between">
             <span className="flex items-center gap-2 font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               {lockFeedback}
             </span>
-            <span className="text-[10px] uppercase tracking-widest text-emerald-400">
-              Telemetry Dossier & Reticle Active
+            <span className="text-[10px] uppercase tracking-widest text-emerald-400 shrink-0 ml-2">
+              Bastion Uplink Synced
             </span>
           </div>
         )}
       </div>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Search & Target Watchlist */}
+        {/* Left Column: Search, Watchlist & Bastion Ring Feed */}
         <div className="space-y-6">
           {/* Target Search Box */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 backdrop-blur-sm shadow-xl">
@@ -695,15 +805,15 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                 <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
                 ACTIVE WATCHLIST ({watchlist.targetsList?.length || 0})
               </h2>
-              <span className="text-[10px] font-mono text-emerald-400">RADAR LOCK ARMED</span>
+              <span className="text-[10px] font-mono text-emerald-400">SCOUT + DOZER ARMED</span>
             </div>
 
             {!watchlist.targetsList || watchlist.targetsList.length === 0 ? (
               <div className="text-center py-8 text-slate-500 font-mono text-xs">
-                No targets locked yet. Search above and click TRACK to lock a governor onto the radar.
+                No targets locked yet. Search above and click TRACK to lock a governor onto the Bastion radar.
               </div>
             ) : (
-              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                 {watchlist.targetsList.map((target) => {
                   const isSelected = String(selectedTarget?.govId) === String(target.govId);
                   const enriched = enrichGovernorWithRatios(target.liveTelemetry || target);
@@ -753,17 +863,45 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                           <span className="text-emerald-400 font-bold">{enriched.warKillRatio}</span>
                         </div>
                         <div className="p-1.5 bg-slate-900/80 rounded border border-slate-800">
-                          <span className="text-slate-400 block text-[9px]">GRID POS</span>
-                          <span className="text-cyan-300 font-bold">
-                            {target.lastKnownCoords
-                              ? `(${target.lastKnownCoords.X}, ${target.lastKnownCoords.Y})`
-                              : 'Sector Lock'}
-                          </span>
+                          <span className="text-slate-400 block text-[9px]">BASTION RING</span>
+                          <span className="text-cyan-300 font-bold">1h SURGE</span>
                         </div>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Bastion MoE Ring Live Command & Intercept Ledger */}
+          <div className="bg-slate-900/60 border border-cyan-500/30 rounded-2xl p-4 backdrop-blur-sm shadow-xl font-mono">
+            <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+              <h2 className="text-xs font-bold uppercase text-cyan-300 flex items-center gap-2">
+                <Bot className="w-4 h-4 text-cyan-400" />
+                BASTION MOE RING INTERCEPT LOG
+              </h2>
+              <span className="text-[9px] text-slate-400">RING 1 · 2 · 3</span>
+            </div>
+
+            {combinedRingEvents.length === 0 ? (
+              <div className="text-center py-6 text-slate-500 text-xs">
+                Lock a target above to trigger SCOUT, TANK, and DOZER operations.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1 text-[10px]">
+                {combinedRingEvents.map((evt, idx) => (
+                  <div
+                    key={evt.id || idx}
+                    className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/90 space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-[9px]">
+                      <span className="font-bold text-cyan-400">{evt.agent || 'BASTION RING'}</span>
+                      <span className="text-emerald-400">{evt.action}</span>
+                    </div>
+                    <div className="text-slate-300 leading-relaxed">{evt.detail}</div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -776,9 +914,12 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
             <div className="bg-slate-900/80 border border-cyan-500/40 rounded-2xl p-5 backdrop-blur-sm shadow-[0_0_30px_rgba(6,182,212,0.12)]">
               <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
                       <Eye className="w-3 h-3" /> TARGET LOCKED ON RADAR
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      SCOUT: 1H SURGE ARMED
                     </span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                       {activeDossier.tacticalClassification}
@@ -796,20 +937,29 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isDispatchingRecon}
+                    onClick={() => handleDispatchBastionRecon(selectedTarget)}
+                    className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/50 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Bot className={`w-3.5 h-3.5 ${isDispatchingRecon ? 'animate-spin' : ''}`} />
+                    {isDispatchingRecon ? 'DISPATCHING TANK...' : 'DISPATCH BASTION RECON (TANK)'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleSendTestAlert(selectedTarget)}
                     className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <Send className="w-3.5 h-3.5" /> PING TARGET TO PHONE
+                    <Send className="w-3.5 h-3.5" /> PING TO PHONE
                   </button>
                   <button
                     type="button"
                     onClick={(e) => handleUntrackTarget(activeDossier.govId, e)}
                     className="px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <UserX className="w-3.5 h-3.5" /> RELEASE LOCK
+                    <UserX className="w-3.5 h-3.5" /> RELEASE
                   </button>
                 </div>
               </div>
@@ -981,8 +1131,8 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
             </div>
 
             <p className="text-xs text-slate-400 font-mono mb-4">
-              When any tracked governor moves coordinates, spikes power, or changes alliance, Valheon Black Ops
-              immediately transmits an emergency dispatch payload to your mobile device.
+              When DOZER detects any tracked governor moving coordinates, spiking power, or changing alliance,
+              Valheon Black Ops immediately transmits an emergency dispatch payload to your mobile device.
             </p>
 
             <div className="flex flex-col md:flex-row gap-3 items-center mb-3">
