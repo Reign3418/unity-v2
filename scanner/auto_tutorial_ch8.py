@@ -191,6 +191,14 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_vbub)) > 0.35 and float(np.mean(is_vsk)) > 0.14:
         return (256, 437, "VENGEANCE_CAST_SKILL_AND_EXIT")
 
+    # 6c. Vengeance VICTORY Screen: Red HOME button (x=275..508, y=720..800) + Cyan CONTINUE button (x=587..821, y=720..800)
+    vh_btn = a[720:800, 275:508]
+    is_vh_red = (vh_btn[:, :, 0] >= 175) & (vh_btn[:, :, 1] <= 80) & (vh_btn[:, :, 2] <= 80)
+    vc_btn = a[720:800, 587:821]
+    is_vc_cyan = (vc_btn[:, :, 2] >= 180) & (vc_btn[:, :, 1] >= 140) & (vc_btn[:, :, 0] <= 80)
+    if float(np.mean(is_vh_red)) > 0.45 and float(np.mean(is_vc_cyan)) > 0.45:
+        return (392, 760, "Vengeance Victory -> Tap HOME (392, 760)")
+
     # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760, y=845..900) + Golden OPEN ANOTHER (x=825..1105, y=845..900)
     t_conf = a[850:898, 495:755]
     cyan_conf = (t_conf[:, :, 2] >= 195) & (t_conf[:, :, 1] >= 140) & (t_conf[:, :, 0] <= 110)
@@ -245,19 +253,21 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
         return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
 
-    # 11b. Building Upgrade Modal (grey header y=85..140 + golden Instant button at x=780..965, y=715..805)
-    inst_btn = a[715:805, 780:965]
+    # 11b. Building Upgrade Modal (grey header y=85..140 + golden Instant button at x=780..1035, y=635..730)
+    inst_btn = a[635:730, 780:1035]
     inst_gold = (inst_btn[:, :, 0] >= 200) & (inst_btn[:, :, 1] >= 135) & (inst_btn[:, :, 2] <= 95) & ((inst_btn[:, :, 0].astype(np.int32) - inst_btn[:, :, 2].astype(np.int32)) >= 110)
-    if int(inst_gold.sum()) >= 300:
-        upg_btn = a[715:805, 1110:1295]
+    if int(inst_gold.sum()) >= 1500:
+        upg_btn = a[635:730, 1110:1360]
         upg_cyan = (upg_btn[:, :, 2] >= 175) & (upg_btn[:, :, 1] >= 140) & (upg_btn[:, :, 0] <= 90) & ((upg_btn[:, :, 2].astype(np.int32) - upg_btn[:, :, 0].astype(np.int32)) >= 85)
-        if int(upg_cyan.sum()) >= 400:
-            return (1200, 760, "Building Upgrade Modal -> Tap Upgrade (1200, 760)")
-        prereq_go = a[490:670, 1140:1340]
+        uys, uxs = np.where(upg_cyan)
+        if len(uxs) >= 1500:
+            ux, uy = int(np.median(uxs) + 1110), int(np.median(uys) + 635)
+            return (ux, uy, f"Building Upgrade Modal -> Tap Upgrade ({ux}, {uy})")
+        prereq_go = a[460:630, 1130:1350]
         go_cyan = (prereq_go[:, :, 2] >= 185) & (prereq_go[:, :, 1] >= 145) & (prereq_go[:, :, 0] <= 85) & ((prereq_go[:, :, 2].astype(np.int32) - prereq_go[:, :, 0].astype(np.int32)) >= 95)
         gys, gxs = np.where(go_cyan)
         if len(gxs) >= 250:
-            gx, gy = int(np.median(gxs) + 1140), int(np.median(gys) + 490)
+            gx, gy = int(np.median(gxs) + 1130), int(np.median(gys) + 460)
             return (gx, gy, f"Building Upgrade Prereq -> Tap Go ({gx}, {gy})")
 
     # 12. Decorative Info / Non-Actionable Grey Modal (e.g. ELM, OAK, MORE INFO, DLC, MAIL) with no action buttons on the right half
@@ -628,9 +638,9 @@ def main():
                 tap(args.adb, 650, 790, 1.2)
                 tap(args.adb, 945, 790, 6.0)
             elif nt[2] == "VENGEANCE_CAST_SKILL_AND_EXIT":
-                print(f"[Step {step:02d}] Vengeance Active Skill (256,437) -> Wait Victory -> Exit (48,52)")
+                print(f"[Step {step:02d}] Vengeance Active Skill (256,437) -> Wait Victory -> HOME (392,760) + Exit (48,52)")
                 tap(args.adb, 256, 437, 8.5)
-                tap(args.adb, 800, 780, 1.8)
+                tap(args.adb, 392, 760, 2.0)
                 tap(args.adb, 48, 52, 1.5)
             elif nt[2] == "COMMANDER_UPGRADE_MODAL":
                 print(f"[Step {step:02d}] Commander Upgrade Modal -> QUICK LEVEL (1225,371)x6 + Close (1380,112) + Back (48,52)")
