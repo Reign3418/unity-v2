@@ -208,17 +208,47 @@ def main():
     init_found, init_vis, already_in_kd_list = inspect_kingdom_viewport(snap_path, str(args.kingdom))
 
     if not already_in_kd_list or args.mode == "switch":
-        ribbon = a0[85:125, 15:70]
-        diff_br = float((ribbon[:, :, 2].astype(np.float32) - ribbon[:, :, 0].astype(np.float32)).mean())
-        if diff_br < 45.0:
+        def _is_hud(arr: np.ndarray) -> bool:
+            rib = arr[85:125, 15:70]
+            return float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0
+
+        def _clear_to_hud():
+            arr = screencap(args.adb, snap_path)
+            # Clear pending building placement green checkmark if present
+            sub = arr[30:840, 200:1400]
+            r_mask = (sub[:, :, 0] >= 195) & (sub[:, :, 1] <= 75) & (sub[:, :, 2] <= 75) & ((sub[:, :, 0] - sub[:, :, 1]) >= 125)
+            rys, rxs = np.where(r_mask)
+            if len(rxs) >= 700:
+                rx, ry = int(np.median(rxs) + 200), int(np.median(rys) + 30)
+                g_patch = arr[max(0, ry - 75) : min(900, ry + 75), max(0, rx + 100) : min(1600, rx + 270)]
+                g_mask = (
+                    (g_patch[:, :, 1] >= 150)
+                    & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 2].astype(np.int32)) >= 55)
+                    & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 0].astype(np.int32)) >= 35)
+                )
+                gys, gxs = np.where(g_mask)
+                if len(gxs) >= 350:
+                    gx = int(np.median(gxs) + max(0, rx + 100))
+                    gy = int(np.median(gys) + max(0, ry - 75))
+                    tap(args.adb, gx, gy, 1.2)
+                    arr = screencap(args.adb, snap_path)
+            if _is_hud(arr):
+                return
             print("[0/6] Returning to City HUD (closing any open modals)...")
             report_progress(args.kingdom, 1, 6, "PROVISIONING_BOT", "[1/6] Returning to City HUD (closing open modals)...")
             for _ in range(3):
                 adb_shell(args.adb, "input keyevent 4")
                 time.sleep(0.6)
-            tap(args.adb, 1363, 110, 1.4)
-            tap(args.adb, 1455, 88, 1.4)
+            arr = screencap(args.adb, snap_path)
+            if _is_hud(arr):
+                return
+            for cx_close, cy_close in [(1388, 56), (1363, 110), (1455, 88)]:
+                tap(args.adb, cx_close, cy_close, 1.2)
+                arr = screencap(args.adb, snap_path)
+                if _is_hud(arr):
+                    return
 
+        _clear_to_hud()
         print(f"[1/6] Opening Governor Profile -> Settings -> Characters...")
         report_progress(args.kingdom, 2, 6, "PROVISIONING_BOT", f"[2/6] Opening Profile -> Settings -> Characters for #{args.kingdom}...")
         tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
@@ -244,10 +274,7 @@ def main():
                 [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "32"],
                 check=False,
             )
-            for _ in range(3):
-                adb_shell(args.adb, "input keyevent 4")
-                time.sleep(0.6)
-            tap(args.adb, 1363, 110, 1.2)
+            _clear_to_hud()
             tap(args.adb, 45, 45, 2.2)
 
         tap(args.adb, 1325, 760, 2.2)     # Settings gear
@@ -363,8 +390,8 @@ def main():
     print(f"[5/6] Selecting China civilization & skipping intro cutscene...")
     report_progress(args.kingdom, 5, 6, "PROVISIONING_BOT", f"[5/6] Selecting China Civilization & Skipping Cutscene in #{args.kingdom}...")
     tap(args.adb, 890, 755, 2.2)      # Tap PICK CIVILIZATION
-    tap(args.adb, 240, 800, 2.0)      # Select China
-    tap(args.adb, 1352, 630, 4.0)     # Tap CONFIRM
+    tap(args.adb, 155, 860, 2.0)      # Select China
+    tap(args.adb, 1355, 700, 4.0)     # Tap CONFIRM
     tap(args.adb, 1488, 38, 6.0)      # Tap SKIP intro cutscene
 
     if args.tutorial_steps > 0:

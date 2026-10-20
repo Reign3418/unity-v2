@@ -1022,7 +1022,7 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
                 check=False,
             )
 
-    for attempt in range(1, 4):
+    for attempt in range(1, 5):
         screen_txt = get_screen_ocr_text(driver)
         if "INDIVIDUAL POWER RANKINGS" in screen_txt:
             print(f"  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open (attempt {attempt}).")
@@ -1035,12 +1035,60 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
                 return True
 
         print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt})...")
-        for _ in range(3):
-            subprocess.run([driver.adb_bin, "-s", driver.serial, "shell", "input", "keyevent", "4"], capture_output=True)
-            time.sleep(0.7)
+        def _clear_hud_for_avatar():
+            try:
+                arr = np.array(driver.screenshot())
+                sub = arr[30:840, 200:1400]
+                r_mask = (sub[:, :, 0] >= 195) & (sub[:, :, 1] <= 75) & (sub[:, :, 2] <= 75) & ((sub[:, :, 0] - sub[:, :, 1]) >= 125)
+                rys, rxs = np.where(r_mask)
+                if len(rxs) >= 700:
+                    rx, ry = int(np.median(rxs) + 200), int(np.median(rys) + 30)
+                    g_patch = arr[max(0, ry - 75) : min(900, ry + 75), max(0, rx + 100) : min(1600, rx + 270)]
+                    g_mask = (
+                        (g_patch[:, :, 1] >= 150)
+                        & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 2].astype(np.int32)) >= 55)
+                        & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 0].astype(np.int32)) >= 35)
+                    )
+                    gys, gxs = np.where(g_mask)
+                    if len(gxs) >= 350:
+                        gx = int(np.median(gxs) + max(0, rx + 100))
+                        gy = int(np.median(gys) + max(0, ry - 75))
+                        driver.tap(gx, gy, sleep_sec=1.2)
+                        arr = np.array(driver.screenshot())
+                rib = arr[85:125, 15:70]
+                if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
+                    return
+                for _ in range(3):
+                    subprocess.run([driver.adb_bin, "-s", driver.serial, "shell", "input", "keyevent", "4"], capture_output=True)
+                    time.sleep(0.6)
+                arr = np.array(driver.screenshot())
+                rib = arr[85:125, 15:70]
+                if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
+                    return
+                for cx_c, cy_c in [(1388, 56), (1363, 110), (1455, 88)]:
+                    driver.tap(cx_c, cy_c, sleep_sec=1.0)
+                    arr = np.array(driver.screenshot())
+                    rib = arr[85:125, 15:70]
+                    if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
+                        return
+            except Exception:
+                pass
 
+        _clear_hud_for_avatar()
         driver.tap(45, 45, sleep_sec=2.2)
         prof_txt = get_screen_ocr_text(driver)
+        if not any(k in prof_txt for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
+            print(f"  [PREAMBLE] Avatar (45,45) blocked by remaining tutorial on #{target_kd}; running 32 tutorial steps...")
+            tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+            if os.path.exists(tut_script):
+                subprocess.run(
+                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "32"],
+                    check=False,
+                )
+            _clear_hud_for_avatar()
+            driver.tap(45, 45, sleep_sec=2.2)
+            prof_txt = get_screen_ocr_text(driver)
+
         rank_x = 475 if "ACHIEVEMENTS" in prof_txt else 530
         driver.tap(rank_x, 755, sleep_sec=2.2)
         driver.tap(380, 560, sleep_sec=2.4)
@@ -1106,7 +1154,7 @@ def run_kingdom_scan(args):
     cumulative_ram_by_id = {}
     if os.path.exists(accum_path):
         try:
-            with open(accum_path, "r", encoding="utf-8") as rf:
+            with open(accum_path, "r", encoding="utf-8-sig") as rf:
                 loaded_accum = json.load(rf)
             if isinstance(loaded_accum, dict):
                 cumulative_ram_by_id = {int(k): v for k, v in loaded_accum.items() if int(k) > 0}

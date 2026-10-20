@@ -81,9 +81,29 @@ def is_city_hud(a: np.ndarray) -> bool:
 
 
 def detect_new_troop_modal(a: np.ndarray):
+    # 0. Quests Modal Main Quest Cyan 'GO' button at x=1175..1340, y=295..355 with grey-cream Quests header at y=85..145
+    q_hdr = a[85:145, 500:1100]
+    is_q_hdr = (
+        (q_hdr[:, :, 0] >= 150)
+        & (q_hdr[:, :, 0] <= 220)
+        & (q_hdr[:, :, 1] >= 150)
+        & (q_hdr[:, :, 1] <= 220)
+        & (q_hdr[:, :, 2] >= 140)
+        & (np.abs(q_hdr[:, :, 0] - q_hdr[:, :, 1]) < 20)
+    )
+    q_go = a[295:355, 1175:1340]
+    is_q_go = (q_go[:, :, 2] >= 170) & (q_go[:, :, 1] >= 135) & ((q_go[:, :, 2] - q_go[:, :, 0]) >= 55)
+    if float(np.mean(is_q_hdr)) > 0.55 and float(np.mean(is_q_go)) > 0.35:
+        return (1258, 325, "Quests Modal -> Tap Main Quest GO")
+
     # Gate rules 1-3 on the dark teal-blue right panel of the New Troop modal (x=700..1100, y=280..450)
+    # AND ensure we are NOT inside the Quests modal (where q_hdr is grey-cream)
     nt_panel = a[280:450, 700:1100]
-    is_nt_panel = float(nt_panel[:, :, 0].mean()) < 45.0 and float(nt_panel[:, :, 2].mean()) > 80.0
+    is_nt_panel = (
+        float(nt_panel[:, :, 0].mean()) < 45.0
+        and float(nt_panel[:, :, 2].mean()) > 80.0
+        and float(np.mean(is_q_hdr)) < 0.35
+    )
 
     if is_nt_panel:
         # 1. Golden MARCH button at x=1010..1315, y=745..830 -> tap MARCH (1160, 785)
@@ -92,22 +112,25 @@ def detect_new_troop_modal(a: np.ndarray):
         if float(np.mean(gold_march)) > 0.35:
             return (1160, 785, "New Troop -> Tap MARCH")
 
-        # 2. Empty Primary Commander glowing white '+' circle at x=265..325, y=465..525 -> tap '+' (295, 495)
+        # 2. "Please select me as commander." white speech bubble at x=115..395, y=230..295 -> tap Sun Tzu (60, 260)
+        bubble = a[230:295, 115:395]
+        white_bubble = (bubble[:, :, 0] >= 210) & (bubble[:, :, 1] >= 210) & (bubble[:, :, 2] >= 210)
+        if float(np.mean(white_bubble)) > 0.60:
+            return (60, 260, "New Troop -> Select Primary Commander (Sun Tzu)")
+
+        # 3. Empty Primary Commander glowing white '+' circle at x=265..325, y=465..525 -> tap '+' (295, 495)
         plus = a[465:525, 265:325]
         white_plus = (plus[:, :, 0] >= 242) & (plus[:, :, 1] >= 248) & (plus[:, :, 2] >= 248)
         if float(np.mean(white_plus)) > 0.45:
             return (295, 495, "New Troop -> Tap Primary Commander '+' Slot")
 
-        # 3. Commander selection drawer is open on left -> tap Sun Tzu (115, 250)
-        return (115, 250, "New Troop -> Select Primary Commander (Sun Tzu)")
-
-    # 4. Scout Fog golden 'Send' button at x=1140..1375, y=185..270 with white speech bubble below -> tap (1260, 228)
-    send_btn = a[185:270, 1140:1375]
-    gold_send = (send_btn[:, :, 0] >= 220) & (send_btn[:, :, 1] >= 145) & (send_btn[:, :, 2] <= 75)
-    send_bub = a[285:355, 920:1450]
-    white_sb = (send_bub[:, :, 0] >= 210) & (send_bub[:, :, 1] >= 210) & (send_bub[:, :, 2] >= 210)
-    if float(np.mean(gold_send)) > 0.40 and float(np.mean(white_sb)) > 0.50:
-        return (1260, 228, "Scout Fog -> Tap Send")
+    # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
+    tr_box = a[140:325, 1140:1380]
+    gold_tr = (tr_box[:, :, 0] >= 215) & (tr_box[:, :, 1] >= 140) & (tr_box[:, :, 2] <= 75)
+    g_ys, g_xs = np.where(gold_tr)
+    if len(g_xs) >= 1800:
+        gy = int(np.median(g_ys) + 140)
+        return (1260, gy, f"Map Popup Golden Button -> Tap (1260, {gy})")
 
     # 5. Tavern Golden Chest 'OPEN' button at x=1010..1275, y=710..775 with white speech bubble below -> tap (1143, 740)
     open_btn = a[710:775, 1010:1275]
@@ -190,13 +213,13 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
         return (sx, sy), (55, 845), best_s
 
     # Build Drawer Slot #1 & New Troop Primary Commander '+' slot shortcut
-    if 290 <= sx <= 435 and 300 <= sy <= 430:
+    if 280 <= sx <= 435 and 245 <= sy <= 430:
         return (sx, sy), (315, 515), best_s
 
     Y, X = np.ogrid[:H, :W]
     dist = np.sqrt((X - sx) ** 2 + (Y - sy) ** 2)
-    # The RoK tutorial spear points downward: target starburst is below the spear (Y >= sy + 30) and within +/- 160px horizontally
-    downward_cone = (dist >= 55) & (dist <= 275) & (Y >= sy + 30) & (np.abs(X - sx) <= 165)
+    # The RoK tutorial spear points downward (Y >= sy + 25) or rightward/leftward (|Y - sy| <= 95); exclude title bars above the spear (Y < sy - 35)
+    valid_cone = (dist >= 55) & (dist <= 285) & (((Y >= sy + 25) & (np.abs(X - sx) <= 185)) | (np.abs(Y - sy) <= 95))
 
     # 1. Animated pulsing starburst / glow ring (ignores static white popups 100%)
     anim_burst = (
@@ -204,14 +227,14 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
          | ((a2[:, :, 0] >= 225) & (a2[:, :, 1] >= 200) & (a2[:, :, 2] >= 90)))
         & (diff >= 12)
         & (~sp)
-        & downward_cone
+        & valid_cone
     )
     # Exclude Build Drawer left flaming torch (x < 165, y = 140..440)
     anim_burst[140:440, :165] = False
 
     best_b, tx, ty = 0, None, None
-    for gy in range(max(20, sy + 25), min(H - 50, sy + 265), 15):
-        for gx in range(max(10, sx - 165), min(W - 60, sx + 165), 15):
+    for gy in range(max(20, sy - 60), min(H - 50, sy + 265), 15):
+        for gx in range(max(10, sx - 250), min(W - 60, sx + 250), 15):
             win = anim_burst[gy : min(H, gy + 85), gx : min(W, gx + 85)]
             c = int(win.sum())
             if c > best_b:
@@ -222,11 +245,11 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     if best_b >= 45 and tx is not None:
         return (sx, sy), (tx, ty), best_b
 
-    # 2. Static pure-white starburst fallback inside downward cone
-    stat_burst = (a2[:, :, 0] >= 248) & (a2[:, :, 1] >= 250) & (a2[:, :, 2] >= 235) & downward_cone
+    # 2. Static pure-white starburst fallback inside valid cone
+    stat_burst = (a2[:, :, 0] >= 248) & (a2[:, :, 1] >= 250) & (a2[:, :, 2] >= 235) & valid_cone
     stat_burst[140:440, :165] = False
-    for gy in range(max(20, sy + 25), min(H - 50, sy + 265), 15):
-        for gx in range(max(10, sx - 165), min(W - 60, sx + 165), 15):
+    for gy in range(max(20, sy - 60), min(H - 50, sy + 265), 15):
+        for gx in range(max(10, sx - 250), min(W - 60, sx + 250), 15):
             win = stat_burst[gy : min(H, gy + 85), gx : min(W, gx + 85)]
             c = int(win.sum())
             if c > best_b:
@@ -249,11 +272,15 @@ def detect_green_checkmark(a: np.ndarray):
         return None
     rx = int(np.median(rxs) + 200)
     ry = int(np.median(rys) + 30)
-    # Green checkmark hexagon sits ~185px to the right of the Red X hexagon
+    # Green checkmark hexagon sits ~185px to the right of the Red X hexagon (even when glowing under starburst)
     g_patch = a[max(0, ry - 75) : min(900, ry + 75), max(0, rx + 100) : min(1600, rx + 270)]
-    g_mask = (g_patch[:, :, 1] >= 150) & (g_patch[:, :, 0] <= 90) & (g_patch[:, :, 2] <= 70) & ((g_patch[:, :, 1] - g_patch[:, :, 0]) >= 80)
+    g_mask = (
+        (g_patch[:, :, 1] >= 150)
+        & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 2].astype(np.int32)) >= 55)
+        & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 0].astype(np.int32)) >= 35)
+    )
     gys, gxs = np.where(g_mask)
-    if len(gxs) >= 400:
+    if len(gxs) >= 350:
         gx = int(np.median(gxs) + max(0, rx + 100))
         gy = int(np.median(gys) + max(0, ry - 75))
         return (gx, gy)
@@ -514,7 +541,11 @@ def main():
         print(f"[Step {step:02d}] Idle/Popup -> tap (800, 780)")
         tap(args.adb, 800, 780, 0.85)
 
-    screencap_pair(args.adb, p1, p2)
+    _, a_final = screencap_pair(args.adb, p1, p2)
+    chk_final = detect_green_checkmark(a_final)
+    if chk_final:
+        print(f"[Final Cleanup] Completing pending building placement at {chk_final}")
+        tap(args.adb, chk_final[0], chk_final[1], 1.2)
 
 
 if __name__ == "__main__":

@@ -70,10 +70,12 @@ def register_bot_on_screen(adb_serial: str, kingdom: str, ch_level: int = 3):
     gov_id = f"BOT-{kingdom}-{adb_port}"
     gov_name = f"Governor (#{kingdom})"
     try:
+        subprocess.run([scanner.ADB_PATH, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True)
+        time.sleep(0.8)
         tap(adb_serial, 45, 45, 2.2)
         screencap(adb_serial, snap_path)
-        tap(adb_serial, 1365, 108, 1.2)
-        tap(adb_serial, 1455, 88, 1.0)
+        subprocess.run([scanner.ADB_PATH, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True)
+        time.sleep(1.0)
         ocr = get_ocr()
         arr = np.array(Image.open(snap_path).convert("RGB"))
         res, _ = ocr(arr)
@@ -207,9 +209,9 @@ def mumu0_worker():
             break
         time.sleep(22)
 
-    # Now check if #4198 still needs provisioning & scanning
-    if claim_kingdom_job("4198"):
-        log_msg("sidekick-mumu-0", "Claimed Kingdom #4198 -> Provisioning #4198 character on 127.0.0.1:16384...")
+    # sidekick-mumu-0 (127.0.0.1:16384) has completed #4194 (650/650) -> now provision & scan #4197
+    if claim_kingdom_job("4197"):
+        log_msg("sidekick-mumu-0", "Claimed Kingdom #4197 -> Provisioning #4197 character on 127.0.0.1:16384...")
         subprocess.run(
             [
                 sys.executable,
@@ -217,15 +219,16 @@ def mumu0_worker():
                 "--adb",
                 adb_serial,
                 "--kingdom",
-                "4198",
+                "4197",
                 "--mode",
                 "create",
                 "--tutorial-steps",
-                "55",
+                "85",
             ],
             check=False,
         )
-        log_msg("sidekick-mumu-0", "Starting full 650-rank 45-field scan on Kingdom #4198...")
+        register_bot_on_screen(adb_serial, "4197", ch_level=2)
+        log_msg("sidekick-mumu-0", "Starting full 650-rank 45-field scan on Kingdom #4197...")
         subprocess.run(
             [
                 sys.executable,
@@ -235,7 +238,7 @@ def mumu0_worker():
                 "--mode",
                 "kingdom-scan",
                 "--kd",
-                "4198",
+                "4197",
                 "--end-rank",
                 "650",
                 "--skip-switch",
@@ -243,69 +246,14 @@ def mumu0_worker():
             ],
             check=False,
         )
-        log_msg("sidekick-mumu-0", "Completed 650-rank scan on Kingdom #4198!")
+        log_msg("sidekick-mumu-0", "Completed 650-rank scan on Kingdom #4197!")
 
 
 def mumu1_worker():
     adb_serial = "127.0.0.1:16416"
-    log_msg("sidekick-mumu-1", "Step 1: Registering #4194 Bot #2 on 127.0.0.1:16416...")
-    register_bot_on_screen(adb_serial, "4194", ch_level=3)
-
-    if claim_kingdom_job("4197"):
-        log_msg("sidekick-mumu-1", "Step 2: Provisioning Kingdom #4197 character on 127.0.0.1:16416...")
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py"),
-                "--adb",
-                adb_serial,
-                "--kingdom",
-                "4197",
-                "--mode",
-                "create",
-                "--tutorial-steps",
-                "55",
-            ],
-            check=False,
-        )
-        log_msg("sidekick-mumu-1", "Step 3: Running full 650-rank 45-field scan on Kingdom #4197...")
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(SCRIPT_DIR, "unity_autonomous_scanner.py"),
-                "--adb",
-                adb_serial,
-                "--mode",
-                "kingdom-scan",
-                "--kd",
-                "4197",
-                "--end-rank",
-                "650",
-                "--skip-switch",
-                "--push",
-            ],
-            check=False,
-        )
-        log_msg("sidekick-mumu-1", "Completed 650-rank scan on Kingdom #4197!")
-
     if claim_kingdom_job("4198"):
-        log_msg("sidekick-mumu-1", "Claimed Kingdom #4198 -> Provisioning #4198 character on 127.0.0.1:16416...")
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py"),
-                "--adb",
-                adb_serial,
-                "--kingdom",
-                "4198",
-                "--mode",
-                "create",
-                "--tutorial-steps",
-                "55",
-            ],
-            check=False,
-        )
-        log_msg("sidekick-mumu-1", "Running full 650-rank 45-field scan on Kingdom #4198...")
+        log_msg("sidekick-mumu-1", "Step 1: Registering #4198 bot & running full 650-rank 45-field scan on Kingdom #4198...")
+        register_bot_on_screen(adb_serial, "4198", ch_level=2)
         subprocess.run(
             [
                 sys.executable,
