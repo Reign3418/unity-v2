@@ -206,7 +206,7 @@ def detect_new_troop_modal(a: np.ndarray):
         t_open = a[y_lo:y_hi, 830:1095]
         gold_open2 = (t_open[:, :, 0] >= 190) & (t_open[:, :, 1] >= 125) & (t_open[:, :, 2] <= 80)
         if float(np.mean(cyan_conf)) > 0.35 and float(np.mean(gold_open2)) > 0.35:
-            return (628, y_tap, f"Tavern Chest Result -> Tap CONFIRM (628, {y_tap})")
+            return (628, y_tap, "TAVERN_CONFIRM_AND_EXIT")
 
     # 7b. Insufficient Gems Popup Modal (grey header y=165..215, x=350..1250 + centered golden Purchase button y=620..698, x=680..920)
     ig_hdr = a[165:215, 350:1250]
@@ -215,6 +215,14 @@ def detect_new_troop_modal(a: np.ndarray):
     is_ig_gold = (ig_btn[:, :, 0] >= 200) & (ig_btn[:, :, 1] >= 135) & (ig_btn[:, :, 2] <= 65)
     if float(np.mean(is_ig_hdr)) > 0.65 and float(np.mean(is_ig_gold)) > 0.45:
         return (1263, 190, "INSUFFICIENT_GEMS_CLOSE_AND_EXIT")
+
+    # 7c. Spend Gems Notice Modal (grey header y=165..215, x=350..1250 + left gold CONFIRM x=440..740, y=600..750 + right cyan NO x=875..1177, y=600..750)
+    no_btn = a[600:750, 875:1177]
+    is_no_cyan = (no_btn[:, :, 2] >= 180) & (no_btn[:, :, 1] >= 135) & (no_btn[:, :, 0] <= 75)
+    cf_btn = a[600:750, 440:740]
+    is_cf_gold = (cf_btn[:, :, 0] >= 195) & (cf_btn[:, :, 1] >= 130) & (cf_btn[:, :, 2] <= 75)
+    if float(np.mean(is_ig_hdr)) > 0.65 and float(np.mean(is_no_cyan)) > 0.30 and float(np.mean(is_cf_gold)) > 0.30:
+        return (1027, 675, "NOTICE_NO_AND_EXIT")
 
     # 8. Quests Modal Main Quest Cyan 'GO' button at x=1175..1340, y=295..355 with cream Quests header at y=80..150
     q_hdr = a[85:145, 500:1100]
@@ -232,17 +240,24 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_ql_gold)) > 0.50 and float(np.mean(is_use_cy)) > 0.50:
         return (1225, 371, "COMMANDER_UPGRADE_MODAL")
 
-    # 9b. Commander Screen ('SKILLS' cyan button at x=1220..1415, y=725..795 + top-left grey Back button at x=20..85, y=20..85)
+    # 9b. Commander Screen ('SKILLS' cyan button at x=1220..1415 or TALENTS+SKILLS at x=1095..1555, y=725..795 + top-left grey Back button at x=20..85, y=20..85)
     sk_btn = a[725:795, 1220:1415]
     is_sk_cyan = (sk_btn[:, :, 2] >= 200) & (sk_btn[:, :, 1] >= 145) & (sk_btn[:, :, 0] <= 75)
+    tal_btn = a[725:795, 1095:1300]
+    is_tal_cyan = (tal_btn[:, :, 2] >= 200) & (tal_btn[:, :, 1] >= 145) & (tal_btn[:, :, 0] <= 75)
+    sk2_btn = a[725:795, 1350:1555]
+    is_sk2_cyan = (sk2_btn[:, :, 2] >= 200) & (sk2_btn[:, :, 1] >= 145) & (sk2_btn[:, :, 0] <= 75)
     back_btn = a[20:85, 20:85]
     is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)
-    if float(np.mean(is_sk_cyan)) > 0.45 and float(np.mean(is_back_grey)) > 0.55:
-        lvl_btn = a[340:390, 1480:1555]
-        is_lvl_green = (lvl_btn[:, :, 1] >= 165) & (lvl_btn[:, :, 0] <= 80) & (lvl_btn[:, :, 2] <= 80)
-        if float(np.mean(is_lvl_green)) > 0.30:
-            return (1515, 363, "COMMANDER_LEVEL_UP_5")
-        return (48, 52, "Commander Screen -> Tap Back (48, 52)")
+    if float(np.mean(is_back_grey)) > 0.55:
+        if float(np.mean(is_tal_cyan)) > 0.45 and float(np.mean(is_sk2_cyan)) > 0.45:
+            return (150, 250, "COMMANDER_SLOT2_LEVEL_UP_5")
+        if float(np.mean(is_sk_cyan)) > 0.45:
+            lvl_btn = a[340:390, 1480:1555]
+            is_lvl_green = (lvl_btn[:, :, 1] >= 165) & (lvl_btn[:, :, 0] <= 80) & (lvl_btn[:, :, 2] <= 80)
+            if float(np.mean(is_lvl_green)) > 0.30:
+                return (1515, 363, "COMMANDER_LEVEL_UP_5")
+            return (48, 52, "Commander Screen -> Tap Back (48, 52)")
 
     # 10. Gem Store / Pack Shop Screen (left dark reddish-brown tab bar x=10..250, y=150..750 + top-left grey Back button at 48, 52)
     shop_bar = a[150:750, 10:250]
@@ -673,6 +688,23 @@ def main():
                 time.sleep(0.6)
                 tap(args.adb, 1380, 112, 1.0)
                 tap(args.adb, 48, 52, 1.1)
+            elif nt[2] == "COMMANDER_SLOT2_LEVEL_UP_5":
+                print(f"[Step {step:02d}] Commander Slot #2 (150,250) -> Level Up (1515,363) + QUICK LEVEL (1225,371)x6 + Close (1380,112) + Back (48,52)")
+                tap(args.adb, 150, 250, 1.2)
+                tap(args.adb, 1515, 363, 1.2)
+                for _ in range(6):
+                    tap(args.adb, 1225, 371, 0.45)
+                time.sleep(0.6)
+                tap(args.adb, 1380, 112, 1.0)
+                tap(args.adb, 48, 52, 1.1)
+            elif nt[2] == "TAVERN_CONFIRM_AND_EXIT":
+                print(f"[Step {step:02d}] Tavern Chest Result -> Confirm ({nt[0]},{nt[1]}) + Back (48,52)")
+                tap(args.adb, nt[0], nt[1], 1.2)
+                tap(args.adb, 48, 52, 1.2)
+            elif nt[2] == "NOTICE_NO_AND_EXIT":
+                print(f"[Step {step:02d}] Notice Modal -> NO (1027,675) + Back (48,52)")
+                tap(args.adb, 1027, 675, 1.0)
+                tap(args.adb, 48, 52, 1.2)
             elif nt[2] == "INSUFFICIENT_GEMS_CLOSE_AND_EXIT":
                 print(f"[Step {step:02d}] Insufficient Gems -> Close (1263,190) + Confirm Chest (628,805) + Back (48,52)")
                 tap(args.adb, 1263, 190, 1.0)
