@@ -154,6 +154,14 @@ def validate_job(job: Dict[str, Any], now: Optional[datetime] = None) -> None:
     if now is not None and deadline <= now:
         raise ContractValidationError("BastionJob.deadline has already passed")
 
+    if job["job_type"] == "provision_character":
+        account_id = job["args"]["account_id"]
+        if ACCOUNT_TO_INSTANCE[account_id] != job["instance_id"]:
+            raise ContractValidationError(
+                f"provision_character account {account_id} lives on {ACCOUNT_TO_INSTANCE[account_id]}, "
+                f"not {job['instance_id']}"
+            )
+
 
 def validate_job_result(result: Dict[str, Any], job: Optional[Dict[str, Any]] = None) -> None:
     """Validates a BastionJobResult. If the originating `job` is supplied, the result must echo its identity."""

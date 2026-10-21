@@ -174,6 +174,13 @@ class Jobs(unittest.TestCase):
             j = good_job(); j["job_type"] = jt; j["args"] = args
             V.validate_job(j)
 
+    def test_provision_account_must_live_on_job_instance(self):
+        j = good_job(); j["job_type"] = "provision_character"
+        j["args"] = {"target_kingdom_id": 4194, "account_id": "mumu-account-0", "character_slot": 1}
+        self.rejects(j)  # mumu-account-0 lives on sidekick-mumu-0, job targets sidekick-mumu-1
+        j["args"]["account_id"] = "mumu-account-1"
+        V.validate_job(j)
+
     def test_ring1_and_helper_cannot_issue(self):
         j = good_job(); j["issued_by"]["ring"] = "RING_1_INTEL"; self.rejects(j)
         j = good_job(); j["issued_by"]["leader"] = "SCOUT"; self.rejects(j)

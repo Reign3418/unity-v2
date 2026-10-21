@@ -55,3 +55,7 @@ __pycache__/
 
 # Bastion agent shared secret (SIDEKICK only, never commit)
 .bastion_agent_secret
+
+# Bastion Brain CIPHER credentials/settings (SIDEKICK only, never commit)
+.bastion_aws_credentials
+bastion-brain/cipher_state/
