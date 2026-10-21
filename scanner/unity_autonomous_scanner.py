@@ -1063,7 +1063,7 @@ def kill_other_scanner_instances(adb_serial: str = "127.0.0.1:16384"):
         port_filter = f"($_.CommandLine -like '*{adb_port}*')"
     ps_cmd = (
         f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
-        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and $_.CommandLine -like '*unity_autonomous_scanner*' -and {port_filter} }} | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and ($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*') -and {port_filter} }} | "
         f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
     )
     try:
