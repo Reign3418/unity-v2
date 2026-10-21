@@ -67,7 +67,34 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
     is_16384 = "16384" in str(serial)
 
     def _try_ocr_ch(path: str) -> bool:
-        if not path or OCR is None or not os.path.exists(path):
+        if not path or not os.path.exists(path):
+            return False
+        try:
+            arr_ch = np.array(Image.open(path).convert("RGB"))
+            sub = arr_ch[30:480, 300:1180]
+            stairs = (sub[:, :, 2] >= 75) & (sub[:, :, 0] <= 35) & ((sub[:, :, 2].astype(np.int32) - sub[:, :, 0].astype(np.int32)) >= 55)
+            lanterns = ((sub[:, :, 0] >= 175) & (sub[:, :, 1] <= 55) & (sub[:, :, 2] <= 55)) | ((sub[:, :, 0] >= 225) & (sub[:, :, 1] >= 120) & (sub[:, :, 2] <= 35))
+            stairs[:190, 720:] = False
+            lanterns[:190, 720:] = False
+            best_score, best_xy = 0, None
+            for y in range(0, sub.shape[0] - 90, 20):
+                for x in range(0, sub.shape[1] - 90, 20):
+                    sc = int(stairs[y : y + 90, x : x + 90].sum())
+                    if 180 <= sc <= 1200:
+                        lc = int(lanterns[max(0, y - 60) : min(sub.shape[0], y + 110), max(0, x - 70) : min(sub.shape[1], x + 110)].sum())
+                        if lc >= 95:
+                            score = sc + lc * 2
+                            if score > best_score:
+                                best_score = score
+                                ys, xs = np.where(stairs[y : y + 90, x : x + 90])
+                                best_xy = (int(np.median(xs) + 300 + x - 15), int(np.median(ys) + 30 + y - 5))
+            if best_xy is not None and best_score >= 1300 and best_xy[1] >= 120:
+                print(f"  [CH-Locator] Visual China City Hall detected at {best_xy} (score={best_score}) -> Tap City Hall")
+                tap(serial, best_xy[0], best_xy[1], 1.2)
+                return True
+        except Exception:
+            pass
+        if OCR is None:
             return False
         try:
             res, _ = OCR(path)
@@ -76,8 +103,8 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
                     tc = txt.strip().lower()
                     cx = int(sum(pt[0] for pt in box) / 4)
                     cy = int(sum(pt[1] for pt in box) / 4)
-                    if tc == "recruit" and 130 < cx <= 1380 and 150 <= cy <= 780:
-                        chx, chy = (cx + 180, cy - 50) if is_16384 else (cx + 155, cy - 90)
+                    if tc == "recruit" and 130 < cx <= 950 and 150 <= cy <= 780:
+                        chx, chy = (cx + 180, cy - 50) if is_16384 else (cx + 170, cy - 15)
                         print(f"  [CH-Locator] Found 'Recruit' at ({cx},{cy}) -> Tap City Hall ({chx},{chy})")
                         tap(serial, chx, chy, 1.2)
                         return True
@@ -86,7 +113,12 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
                     cx = int(sum(pt[0] for pt in box) / 4)
                     cy = int(sum(pt[1] for pt in box) / 4)
                     if tc == "build" and cx > 450 and 55 <= cy <= 680:
-                        chx, chy = (cx - 365, cy + 75) if is_16384 else (cx - 390, cy + 50)
+                        if is_16384:
+                            chx, chy = cx - 365, cy + 75
+                        elif cx >= 1000:
+                            chx, chy = cx - 845, cy + 125
+                        else:
+                            continue
                         print(f"  [CH-Locator] Found 'Build' at ({cx},{cy}) -> Tap City Hall ({chx},{chy})")
                         tap(serial, chx, chy, 1.2)
                         return True
@@ -110,7 +142,11 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
         subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s_ch.png", ch_path], capture_output=True)
         img_path = ch_path
 
-    # 1. Check if camera is pinned at top-left boundary stop
+    # 1. Always check if City Hall is already visible on screen before swiping
+    if _try_ocr_ch(img_path):
+        return
+
+    # 2. Check if camera is pinned at top-left boundary stop (only on 16384 layout)
     overpanned_top_left = False
     try:
         arr = np.array(Image.open(img_path).convert("RGB"))
@@ -122,35 +158,38 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
             & (patch[:, :, 2] <= 95)
             & ((patch[:, :, 1].astype(np.int32) - patch[:, :, 2].astype(np.int32)) >= 65)
         )
-        overpanned_top_left = float(np.mean(grass)) > 0.65
+        overpanned_top_left = float(np.mean(grass)) > 0.55
     except Exception:
         pass
-
-    # 2. If not overpanned top-left, check 'Recruit' or 'Build' immediately before swiping
-    if (not overpanned_top_left) and _try_ocr_ch(img_path):
-        return
 
     if overpanned_top_left:
         swipe(serial, 1250, 700, 500, 280, 450, 1.0)
     else:
-        swipe(serial, 350, 280, 1050, 600, 400, 1.0)
+        swipe(serial, 350, 400, 950, 460, 400, 1.0)
 
     subprocess.run([ADB_BIN, "-s", serial, "shell", "screencap -p /sdcard/s_ch.png"], capture_output=True)
     subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s_ch.png", ch_path], capture_output=True)
     if _try_ocr_ch(ch_path):
         return
 
-    # 3. Second up-left pan toward top-left City Hall if still not visible
-    swipe(serial, 350, 280, 1050, 600, 400, 1.0)
+    # 3. On non-16384 layouts, reset camera to home origin via Map/City toggle (55, 845) x2 where China City Hall is always at (425, 175)
+    if not is_16384:
+        tap(serial, 55, 845, 2.2)
+        tap(serial, 55, 845, 2.5)
+        subprocess.run([ADB_BIN, "-s", serial, "shell", "screencap -p /sdcard/s_ch.png"], capture_output=True)
+        subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s_ch.png", ch_path], capture_output=True)
+        if _try_ocr_ch(ch_path):
+            return
+        tap(serial, 425, 175, 1.2)
+        return
+
+    swipe(serial, 350, 360, 950, 460, 400, 1.0)
     subprocess.run([ADB_BIN, "-s", serial, "shell", "screencap -p /sdcard/s_ch.png"], capture_output=True)
     subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s_ch.png", ch_path], capture_output=True)
     if _try_ocr_ch(ch_path):
         return
 
-    if "16384" in str(serial):
-        tap(serial, 1095, 455, 1.2)
-    else:
-        tap(serial, 1055, 290, 1.2)
+    tap(serial, 1095, 455, 1.2)
 
 
 def detect_counselor_dialogue(a: np.ndarray) -> bool:
@@ -191,7 +230,21 @@ def detect_pick_civilization(a: np.ndarray) -> int:
 def is_city_hud(a: np.ndarray) -> bool:
     ribbon = a[85:125, 15:70]
     diff_br = ribbon[:, :, 2].astype(np.float32) - ribbon[:, :, 0].astype(np.float32)
-    return float(diff_br.mean()) > 45.0
+    if float(diff_br.mean()) <= 28.0:
+        return False
+    # Any open modal (Items, Upgrade, Speed Up, VIP, Quests) hides/darkens the bottom-left Map/City button (10:100, 800:890)
+    if float(a[800:890, 10:100].mean()) < 55.0:
+        return False
+    b_hdr = a[85:140, 400:1200]
+    is_b_hdr = (
+        (b_hdr[:, :, 0] >= 150)
+        & (b_hdr[:, :, 0] <= 230)
+        & (np.abs(b_hdr[:, :, 0].astype(np.int32) - b_hdr[:, :, 1].astype(np.int32)) < 20)
+        & (np.abs(b_hdr[:, :, 1].astype(np.int32) - b_hdr[:, :, 2].astype(np.int32)) < 25)
+    )
+    if float(np.mean(is_b_hdr)) > 0.55:
+        return False
+    return True
 
 
 def is_world_map(a: np.ndarray) -> bool:
@@ -243,27 +296,32 @@ def detect_new_troop_modal(a: np.ndarray):
             return (1380, 108, "Alliance Modal (No Open Join) -> Close (1380, 108)")
         if "replenish" in q_hdr_txt or "resource" in q_hdr_txt or (float(np.mean(is_q_tab3)) > 0.14 and "quest" not in q_hdr_txt and "objective" not in q_hdr_txt):
             return (1355, 112, "Replenish Resources Modal -> Close (1355, 112)")
-        # Check for any golden CLAIM button (Quests tab) OR green CLAIM button (Daily Objectives tab) at x=1170..1345, y=275..865
+        # Check for green CLAIM button (Daily Objectives tab) OR OCR-verified 'CLAIM' button (Quests tab) at x=1160..1355, y=275..865
         q_claims = a[275:865, 1170:1345]
-        is_gold_claim = (q_claims[:, :, 0] >= 200) & (q_claims[:, :, 1] >= 135) & (q_claims[:, :, 2] <= 75)
         is_grn_claim = (
             (q_claims[:, :, 1] >= 155)
             & (q_claims[:, :, 0] <= 75)
             & (q_claims[:, :, 2] <= 65)
             & ((q_claims[:, :, 1].astype(np.int32) - q_claims[:, :, 0].astype(np.int32)) >= 95)
         )
-        cys, cxs = np.where(is_gold_claim | is_grn_claim)
-        if len(cxs) >= 1200:
-            cy = int(np.percentile(cys, 15) + 275)
+        cys_g, cxs_g = np.where(is_grn_claim)
+        if len(cxs_g) >= 1200:
+            cy = int(np.percentile(cys_g, 15) + 275)
             return (1258, cy, "QUESTS_MODAL_CLAIM")
+        if OCR is not None:
+            try:
+                qc_res, _ = OCR(a[275:865, 1160:1355].astype(np.uint8))
+                for qbox, qtxt, _ in qc_res or []:
+                    if "claim" in qtxt.strip().lower():
+                        qcy = int(sum(pt[1] for pt in qbox) / 4 + 275)
+                        return (1258, qcy, "QUESTS_MODAL_CLAIM")
+            except Exception:
+                pass
         # Check if the other left tab (Tab 2 Daily Objectives at y=310..360 or Tab 1 Quests at y=155..205) has a red notification badge
         tab2_red = (a[310:360, 45:95, 0] >= 180) & (a[310:360, 45:95, 1] <= 65) & (a[310:360, 45:95, 2] <= 65)
         tab1_active = float(np.mean(is_q_tab[:150, :])) > float(np.mean(is_q_tab[150:, :]))
-        if tab1_active and int(tab2_red.sum()) >= 120:
-            return (85, 415, "Quests Modal -> Switch to Daily Objectives Tab (85, 415)")
-        tab1_red = (a[155:205, 45:95, 0] >= 180) & (a[155:205, 45:95, 1] <= 65) & (a[155:205, 45:95, 2] <= 65)
-        if (not tab1_active) and int(tab1_red.sum()) >= 120:
-            return (85, 240, "Quests Modal -> Switch to Quests Tab (85, 240)")
+        if not tab1_active:
+            return (85, 240, "DAILY_OBJECTIVES_CHESTS_AND_SWITCH_TAB1")
         # Otherwise check if Main Quest is City Hall ('Power Through' / 'City Hall'); if it's Vengeance ('Digging Two Graves'), close Quests modal!
         mq_txt = ""
         if OCR is not None and tab1_active:
@@ -273,8 +331,27 @@ def detect_new_troop_modal(a: np.ndarray):
                     mq_txt = " ".join(r[1].strip() for r in m_res).lower()
             except Exception:
                 pass
-        if mq_txt.strip() != "" and not any(bad in mq_txt for bad in ("graves", "vengeance", "stage 20", "barbarian", "buster", "defeat")):
+        is_bad_mq = any(bad in mq_txt for bad in ("stage 20", "barbarian", "buster", "defeat")) or (
+            ("graves" in mq_txt or "vengeance" in mq_txt) and ("stage 1" not in mq_txt and "stage1" not in mq_txt)
+        )
+        next_q_act = "QUESTS_MODAL_CLOSE"
+        if mq_txt.strip() != "" and not is_bad_mq:
+            next_q_act = "QUESTS_MODAL_MAIN_GO"
+        elif OCR is not None and tab1_active:
+            try:
+                sq_res, _ = OCR(a[455:595, 235:900].astype(np.uint8))
+                if sq_res:
+                    sq_txt = " ".join(r[1].strip() for r in sq_res).lower()
+                    if any(g in sq_txt for g in ("alliance", "solidarity", "stable", "horseback", "siege", "cavalry", "archery", "academy", "research", "upgrade", "train", "build")):
+                        next_q_act = "QUESTS_MODAL_SIDE_GO"
+            except Exception:
+                pass
+        if tab1_active and int(tab2_red.sum()) >= 120:
+            return (85, 415, f"QUESTS_SWITCH_TO_DAILY_TAB:{next_q_act}")
+        if next_q_act == "QUESTS_MODAL_MAIN_GO":
             return (1258, 325, "QUESTS_MODAL_MAIN_GO")
+        if next_q_act == "QUESTS_MODAL_SIDE_GO":
+            return (1258, 550, "QUESTS_MODAL_SIDE_GO")
         return (1380, 108, "QUESTS_MODAL_CLOSE")
 
     # Gate rules 1-3 on the dark teal-blue right panel of the New Troop modal (x=700..1100, y=280..450)
@@ -337,13 +414,24 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(gold_open)) > 0.40 and float(np.mean(white_ob)) > 0.50:
         return (1143, 740, "Tavern -> Tap Golden Chest OPEN")
 
+    # 6a. Path of Vengeance Splash Screen: Centered Cyan START (x=685..915, y=735..815) + warm sunset sky (y=100..250, x=600..1000)
+    v_sp = a[735:815, 685:915]
+    cyan_vsp = (v_sp[:, :, 2] >= 195) & (v_sp[:, :, 1] >= 140) & (v_sp[:, :, 0] <= 70)
+    v_sky = a[100:250, 600:1000]
+    if float(np.mean(cyan_vsp)) > 0.45 and float(v_sky[:, :, 0].mean()) > float(v_sky[:, :, 2].mean()) + 35.0:
+        if int(spear_mask(a[480:725, 730:870]).sum()) >= 120:
+            return (800, 780, "Path of Vengeance Splash -> Tap START (800, 780)")
+        return (48, 52, "Path of Vengeance Splash (Done) -> Tap Back (48, 52)")
+
     # 6. Vengeance Stage 1: Golden QUICK DEPLOY (x=530..770, y=755..830) + Cyan START (x=825..1065, y=755..830)
     qd_btn = a[755:830, 530:770]
     gold_qd = (qd_btn[:, :, 0] >= 195) & (qd_btn[:, :, 1] >= 130) & (qd_btn[:, :, 2] <= 70)
     st_btn = a[755:830, 825:1065]
     cyan_st = (st_btn[:, :, 2] >= 195) & (st_btn[:, :, 1] >= 140) & (st_btn[:, :, 0] <= 65)
     if float(np.mean(gold_qd)) > 0.35 and float(np.mean(cyan_st)) > 0.35:
-        return (650, 790, "VENGEANCE_QUICK_DEPLOY_AND_START")
+        if int(spear_mask(a[150:420, 40:350]).sum()) >= 80:
+            return (650, 790, "VENGEANCE_QUICK_DEPLOY_AND_START")
+        return (48, 52, "VENGEANCE_STAGE2_EXIT")
 
     # 6b. Vengeance Stage 1 Active Skill Prompt: white bubble at x=215..750, y=315..405 + gold skill icon at x=215..295, y=405..475
     v_bub = a[315:405, 215:750]
@@ -359,7 +447,7 @@ def detect_new_troop_modal(a: np.ndarray):
     vc_btn = a[720:800, 587:821]
     is_vc_cyan = (vc_btn[:, :, 2] >= 180) & (vc_btn[:, :, 1] >= 140) & (vc_btn[:, :, 0] <= 80)
     if float(np.mean(is_vh_red)) > 0.45 and float(np.mean(is_vc_cyan)) > 0.45:
-        return (392, 760, "Vengeance Victory -> Tap HOME (392, 760)")
+        return (392, 760, "VENGEANCE_VICTORY_HOME_AND_EXIT")
 
     # 7. Tavern Chest Result: Cyan CONFIRM (x=490..760) + Golden OPEN ANOTHER (x=825..1105) at y=845..898 or y=765..845
     for y_lo, y_hi, y_tap in [(845, 898, 875), (765, 845, 805)]:
@@ -470,14 +558,16 @@ def detect_new_troop_modal(a: np.ndarray):
                 return (235, 255, "COMMANDER_SLOT2_LEVEL_UP_5")
             return (48, 52, "Commander Screen -> Tap Back (48, 52)")
         if float(np.mean(is_sk_cyan)) > 0.45:
-            sk_rb1 = a[690:750, 1380:1445]
-            is_sk_red1 = (sk_rb1[:, :, 0] >= 200) & (sk_rb1[:, :, 1] <= 60) & (sk_rb1[:, :, 2] <= 60)
-            if int(is_sk_red1.sum()) >= 250:
-                return (1315, 761, "COMMANDER_SKILL_UPGRADE")
+            sk_sp1 = a[530:730, 1240:1410]
+            is_sk_sp1 = (sk_sp1[:, :, 2] >= 180) & ((sk_sp1[:, :, 2].astype(np.int32) - sk_sp1[:, :, 0].astype(np.int32)) >= 20)
             lvl_btn = a[340:390, 1480:1555]
             is_lvl_green = (lvl_btn[:, :, 1] >= 165) & (lvl_btn[:, :, 0] <= 80) & (lvl_btn[:, :, 2] <= 80)
-            if float(np.mean(is_lvl_green)) > 0.30:
+            if float(np.mean(is_lvl_green)) > 0.30 and int(is_sk_sp1.sum()) < 900:
                 return (1515, 363, "COMMANDER_LEVEL_UP_5")
+            sk_rb1 = a[690:750, 1380:1445]
+            is_sk_red1 = (sk_rb1[:, :, 0] >= 200) & (sk_rb1[:, :, 1] <= 60) & (sk_rb1[:, :, 2] <= 60)
+            if int(is_sk_red1.sum()) >= 250 or int(is_sk_sp1.sum()) >= 900:
+                return (1315, 761, "COMMANDER_SKILL_UPGRADE")
             return (48, 52, "Commander Screen -> Tap Back (48, 52)")
         # 9c. Commander Skills Upgrade Sub-Screen (dark background + cyan UPGRADE button at x=1100..1340, y=765..865)
         sk_upg = a[765:865, 1100:1340]
@@ -497,7 +587,7 @@ def detect_new_troop_modal(a: np.ndarray):
         & ((shop_bar[:, :, 0].astype(np.int32) - shop_bar[:, :, 2].astype(np.int32)) >= 45)
         & ((shop_bar[:, :, 0].astype(np.int32) - shop_bar[:, :, 1].astype(np.int32)) >= 22)
     )
-    if float(np.mean(is_shop_brown)) > 0.18 and float(np.mean(is_back_grey)) > 0.55:
+    if float(np.mean(is_shop_brown)) > 0.18 and float(np.mean(is_back_grey)) > 0.55 and float(a[35:80, 300:1150].mean()) < 130.0:
         return (48, 52, "Gem Store / Pack Shop Open -> Tap Back (48, 52)")
 
     # 11. Governor Profile Modal (gold banner left x=140..500, y=220..680 + blue panel right x=550..1400, y=220..680) -> Close (1454, 105)
@@ -539,6 +629,17 @@ def detect_new_troop_modal(a: np.ndarray):
             tx, ty = int(np.median(txs) + 1100), int(np.median(tys) + 700)
             return (tx, ty, f"TROOP_TRAIN_START:{hdr_title}")
 
+    # 11a2. Nested Replenish Resources Modal (grey header y=155..220, x=400..1200 + left/right cyan buttons at y=585..680)
+    if not is_city_hud(a):
+        rep_hdr = a[155:220, 400:1200]
+        is_rep_hdr = (rep_hdr[:, :, 0] >= 150) & (np.abs(rep_hdr[:, :, 0].astype(np.int32) - rep_hdr[:, :, 1].astype(np.int32)) < 25)
+        rep_l = a[585:680, 495:740]
+        rep_r = a[585:680, 855:1100]
+        is_rep_l = (rep_l[:, :, 2] >= 180) & (rep_l[:, :, 1] >= 140) & (rep_l[:, :, 0] <= 85)
+        is_rep_r = (rep_r[:, :, 2] >= 180) & (rep_r[:, :, 1] >= 140) & (rep_r[:, :, 0] <= 85)
+        if float(np.mean(is_rep_hdr)) > 0.55 and float(np.mean(is_rep_l)) > 0.45 and float(np.mean(is_rep_r)) > 0.45:
+            return (977, 632, "Replenish Resources Modal -> Tap Quick Replenish (977, 632)")
+
     # 11b. Building Upgrade Modal (grey header y=85..140, x=250..1350 + left teal 3D building panel x=220..650, y=200..750)
     b_hdr = a[85:140, 250:1350]
     is_b_hdr = (b_hdr[:, :, 0] >= 160) & (np.abs(b_hdr[:, :, 0].astype(np.int32) - b_hdr[:, :, 1].astype(np.int32)) < 22)
@@ -578,12 +679,10 @@ def detect_new_troop_modal(a: np.ndarray):
         is_no_cy = (no_btn[:, :, 2] >= 180) & (no_btn[:, :, 1] >= 140) & (no_btn[:, :, 0] <= 85)
         if float(np.mean(is_yes_cy)) > 0.30 and (float(np.mean(is_no_cy)) > 0.30 or "notice" in hdr_title.lower()):
             return (582, 704, "Notice Beginner's Teleport Confirm -> Tap Yes (582, 704)")
-        allowed_ch8 = ("city hall", "wall", "tavern", "quarry", "storehouse", "scout", "sentry", "barracks", "rack", "farm")
         ht_low = hdr_title.lower()
         if hdr_title.strip() and (
-            not any(b in ht_low for b in allowed_ch8)
+            any(bad in ht_low for bad in ("stable", "siege", "workshop", "management"))
             or ("level 8" in ht_low and "city hall" not in ht_low)
-            or "management" in ht_low
         ):
             return (1365, 110, "CLOSE_STABLE_AND_SELECT_CH")
         if int(inst_gold.sum()) >= 1500:
@@ -639,6 +738,8 @@ def detect_new_troop_modal(a: np.ndarray):
 
     # 11c2. Event Calendar Parchment Modal (tan header y=20..80, x=200..1350 spanning both left & right halves) -> Close (1386, 58) x2
     if not is_city_hud(a):
+        if float(np.mean(is_back_grey)) > 0.45:
+            return (58, 52, "Sub-Screen Open -> Tap Back (58, 52)")
         ec_hdr = a[20:80, 200:1350]
         is_ec_hdr = (
             (ec_hdr[:, :, 0] >= 165)
@@ -693,6 +794,21 @@ def detect_new_troop_modal(a: np.ndarray):
         pillar = a[500:850, 10:80]
         is_grey_pillar = float(np.mean(np.abs(pillar[:, :, 0].astype(np.int32) - pillar[:, :, 1].astype(np.int32)) < 18)) > 0.65
         if float(np.mean(is_top_hdr)) < 0.40 and float(np.mean(is_top_hdr2)) < 0.40 and float(pillar.mean()) > 80.0 and is_grey_pillar and float(a[470:510, 200:1400].mean()) > 60.0:
+            sp_bd = spear_mask(a[330:680, 90:1550])
+            if int(sp_bd.sum()) >= 85:
+                s_ys, s_xs = np.where(sp_bd)
+                bsx = int(np.median(s_xs) + 90)
+                return (max(250, min(1450, bsx)), 620, f"Build Drawer -> Tap Spear Card ({max(250, min(1450, bsx))}, 620)")
+            if OCR is not None:
+                try:
+                    bd_res, _ = OCR(a[450:880, 90:1550].astype(np.uint8))
+                    for bbox, btxt, _ in bd_res or []:
+                        bt_low = btxt.strip().lower().replace(" ", "")
+                        if "0/1" in bt_low or "0/2" in bt_low or "0/4" in bt_low:
+                            bcx = int(sum(pt[0] for pt in bbox) / 4 + 90)
+                            return (max(250, bcx - 75), 620, f"Build Drawer -> Tap Unbuilt Card ({max(250, bcx - 75)}, 620)")
+                except Exception:
+                    pass
             slot1 = a[755:800, 320:450]
             unlocked = (slot1[:, :, 0] >= 85) & (slot1[:, :, 1] >= 190) & (slot1[:, :, 2] >= 230)
             if float(np.mean(unlocked)) > 0.40:
@@ -839,28 +955,41 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
 
 
 def detect_green_checkmark(a: np.ndarray):
-    # Never trigger inside a modal with a grey top header or top-left grey Back button (e.g. Items Bag / Pack Shop)
+    # Never trigger inside a modal with a grey top header or top-left grey Back button (e.g. Items Bag / Pack Shop / Alliance)
     top_hdr = a[55:145, 200:1400]
-    is_hdr = (top_hdr[:, :, 0] >= 150) & (np.abs(top_hdr[:, :, 0].astype(np.int32) - top_hdr[:, :, 1].astype(np.int32)) < 25)
+    is_hdr = (
+        (top_hdr[:, :, 0] >= 150)
+        & (np.abs(top_hdr[:, :, 0].astype(np.int32) - top_hdr[:, :, 1].astype(np.int32)) < 22)
+        & (np.abs(top_hdr[:, :, 1].astype(np.int32) - top_hdr[:, :, 2].astype(np.int32)) < 25)
+    )
+    top_hdr2 = a[20:95, 200:1400]
+    is_hdr2 = (
+        (top_hdr2[:, :, 0] >= 150)
+        & (np.abs(top_hdr2[:, :, 0].astype(np.int32) - top_hdr2[:, :, 1].astype(np.int32)) < 22)
+        & (np.abs(top_hdr2[:, :, 1].astype(np.int32) - top_hdr2[:, :, 2].astype(np.int32)) < 25)
+    )
     back_btn = a[15:85, 10:90]
-    is_back = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0].astype(np.int32) - back_btn[:, :, 1].astype(np.int32)) < 25)
-    if float(np.mean(is_hdr)) > 0.35 or float(np.mean(is_back)) > 0.45:
+    is_back = (
+        (back_btn[:, :, 0] >= 115)
+        & (np.abs(back_btn[:, :, 0].astype(np.int32) - back_btn[:, :, 1].astype(np.int32)) < 22)
+        & (np.abs(back_btn[:, :, 1].astype(np.int32) - back_btn[:, :, 2].astype(np.int32)) < 25)
+    )
+    if float(np.mean(is_hdr)) > 0.45 or float(np.mean(is_hdr2)) > 0.45 or float(np.mean(is_back)) > 0.55:
         return None
     r_mask = (a[:, :, 0] >= 195) & (a[:, :, 1] <= 85) & (a[:, :, 2] <= 85) & ((a[:, :, 0].astype(np.int32) - a[:, :, 1].astype(np.int32)) >= 120)
-    r_mask[:60, :] = False
-    r_mask[:185, 1120:] = False
+    r_mask[:55, 1430:] = False
     r_mask[755:, :] = False
     r_mask[:, :180] = False
     best_score, best_pt = 0, None
-    for gy in range(55, 680, 20):
+    for gy in range(10, 680, 20):
         for gx in range(180, 1450, 20):
             w = r_mask[gy : gy + 85, gx : gx + 85]
             c = int(w.sum())
             if c >= 380:
                 ys, xs = np.where(w)
                 rx, ry = int(np.median(xs) + gx), int(np.median(ys) + gy)
-                y0_g, y1_g = max(60, ry - 32), min(900, ry + 32)
-                x0_g, x1_g = max(0, rx + 72), min(1600, rx + 165)
+                y0_g, y1_g = max(5, ry - 45), min(900, ry + 45)
+                x0_g, x1_g = max(0, rx + 72), min(1530, rx + 265)
                 g_patch = a[y0_g:y1_g, x0_g:x1_g]
                 g_mask = (
                     (g_patch[:, :, 1] >= 158)
@@ -872,9 +1001,19 @@ def detect_green_checkmark(a: np.ndarray):
                 if len(gxs) >= 380 and (c + len(gxs)) > best_score:
                     px = int(np.median(gxs) + x0_g)
                     py = int(np.median(gys) + y0_g)
-                    if abs(py - ry) <= 22 and 80 <= (px - rx) <= 148:
+                    if abs(py - ry) <= 32 and 80 <= (px - rx) <= 235:
                         best_score = c + len(gxs)
                         best_pt = (px, py)
+    if best_pt is None:
+        for gy in range(140, 660, 20):
+            for gx in range(1380, 1515, 20):
+                w = r_mask[gy : gy + 85, gx : gx + 85]
+                c = int(w.sum())
+                if c >= 380:
+                    w_patch = a[gy : gy + 85, gx : gx + 85]
+                    hex_white = (w_patch[:, :, 0] >= 215) & (w_patch[:, :, 1] >= 195) & (w_patch[:, :, 2] >= 195)
+                    if int(hex_white.sum()) >= 600:
+                        return (-1, gy + 42)
     return best_pt
 
 
@@ -961,6 +1100,10 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
 def detect_quest_sidebar_action(a: np.ndarray, step: int):
     # Ensure Main HUD Top-Left Avatar (15..75, 15..75) is visible (not hidden by Build Drawer or full-screen modal)
     if not is_city_hud(a):
+        # If top-left Back button (58, 52) is visible (Commander/Tavern/Grand Prix view), tap (58, 52) first!
+        back_btn = a[20:85, 20:85]
+        if float(back_btn.mean()) > 135.0 and float(np.mean(np.abs(back_btn[:, :, 0].astype(np.int32) - back_btn[:, :, 1].astype(np.int32)) < 25)) > 0.80:
+            return (58, 52, "Sub-Screen Open -> Tap Back (58, 52)")
         # If full-screen or top-aligned modal header bar (Items/Quests/Settings/ELM/Governor/DLC/Mail/Train) is open, tap its exact X button (right_edge - 38)
         for y_center in (105, 58):
             row = a[y_center - 15 : y_center + 15, 500:1590]
@@ -1004,11 +1147,8 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
         gy = int(np.percentile(ys, 15) + 285)
         return (120, gy + 15, "Claim Completed Quest Gift")
 
-    # 2. Anchor on Main Quest Card (120, 325) & Swipe to Select City Hall directly
-    quest_card = a[305:345, 50:180]
-    if float(quest_card[:, :, 1].mean()) < 98.0:
-        return (120, 325, "SELECT_CITY_HALL_VIA_ANCHOR")
-    return None
+    # 2. Default City HUD action: Select City Hall via Anchor
+    return (120, 325, "SELECT_CITY_HALL_VIA_ANCHOR")
 
 
 def resolve_instance_id(adb_serial: str) -> str:
@@ -1064,7 +1204,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--adb", default="127.0.0.1:16384")
     parser.add_argument("--kingdom", default="4194")
-    parser.add_argument("--steps", type=int, default=40)
+    parser.add_argument("--steps", type=int, default=350)
     args = parser.parse_args()
 
     adb_port = str(args.adb).split(":")[-1]
@@ -1081,6 +1221,7 @@ def main():
                 lf.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
         except Exception:
             pass
+    _builtins.print = print
 
     last_spear = None
     repeat_cnt = 0
@@ -1091,6 +1232,7 @@ def main():
     checked_vip_chest = False
     checked_alliance_join = False
     checked_mail = False
+    checked_daily_tab = False
     last_rib_xy = None
     rib_retry_cnt = 0
     chk_repeat = 0
@@ -1127,6 +1269,12 @@ def main():
 
         chk = detect_green_checkmark(a2)
         if chk:
+            if chk[0] == -1:
+                print(f"[Step {step:02d}] Building Placement Near Right Edge (y={chk[1]}) -> Pan Camera Right (1150,450 -> 550,450) to Reveal Green Checkmark")
+                swipe(args.adb, 1150, 450, 550, 450, 400, 1.2)
+                last_spear = None
+                repeat_cnt = 0
+                continue
             chk_repeat += 1
             if chk_repeat >= 2:
                 rx_cancel = max(180, chk[0] - 108)
@@ -1136,7 +1284,9 @@ def main():
                 chk_repeat = 0
             else:
                 print(f"[Step {step:02d}] Green Checkmark -> tap {chk}")
-                tap(args.adb, chk[0], chk[1], 1.1)
+                tap(args.adb, chk[0], chk[1], 1.4)
+                quest_scroll_cooldown = 0
+                speedup_cooldown = 0
             last_spear = None
             repeat_cnt = 0
             continue
@@ -1155,6 +1305,14 @@ def main():
                 tap(args.adb, 256, 437, 8.5)
                 tap(args.adb, 392, 760, 2.0)
                 tap(args.adb, 48, 52, 1.5)
+            elif nt[2] == "VENGEANCE_VICTORY_HOME_AND_EXIT":
+                print(f"[Step {step:02d}] Vengeance Victory -> HOME (392,760) + Exit (48,52)")
+                tap(args.adb, 392, 760, 2.2)
+                tap(args.adb, 48, 52, 1.5)
+            elif nt[2] == "VENGEANCE_STAGE2_EXIT":
+                print(f"[Step {step:02d}] Vengeance Stage 2+ -> Exit (48,52) x2")
+                tap(args.adb, 48, 52, 1.4)
+                tap(args.adb, 48, 52, 1.4)
             elif nt[2] == "COMMANDER_UPGRADE_MODAL":
                 print(f"[Step {step:02d}] Commander Upgrade Modal -> QUICK LEVEL (1225,371)x6 + Close (1380,112) + Back (48,52)")
                 for _ in range(6):
@@ -1168,8 +1326,9 @@ def main():
                 tap(args.adb, 1225, 525, 0.85)
                 tap(args.adb, 590, 675, 0.85)
             elif nt[2] == "ROW1_USE_SPEEDUP_MODAL":
-                print(f"[Step {step:02d}] Row 1 USE Speed Up Modal -> USE (1195,355) + CONFIRM (590,675)")
-                tap(args.adb, 1195, 355, 0.85)
+                print(f"[Step {step:02d}] Row 1 USE Speed Up Modal -> USE (1195,355) + Batch xN (971,355) + CONFIRM (590,675)")
+                tap(args.adb, 1195, 355, 0.65)
+                tap(args.adb, 971, 355, 0.75)
                 tap(args.adb, 590, 675, 0.85)
             elif nt[2] == "BUILDING_SPEEDUP_GEM_60M_KEEP_OPEN":
                 print(f"[Step {step:02d}] Building Speed Up (60m Gem 120, Keep Open) -> PURCHASE&USE (1194,636) + CONFIRM (590,675)")
@@ -1194,21 +1353,57 @@ def main():
                 tap(args.adb, 1196, 320, 1.0)
                 tap(args.adb, 590, 675, 1.0)
             elif nt[2] == "QUESTS_MODAL_CLAIM":
-                print(f"[Step {step:02d}] Quests Modal -> Claiming Completed Quests ({nt[0]}, {nt[1]}) x5 + Activity Chests + Reset Speedup Cooldown")
+                print(f"[Step {step:02d}] Quests Modal -> Claim Completed Quest ({nt[0]}, {nt[1]}) + Keep Open")
                 speedup_cooldown = 0
-                for _ in range(5):
-                    tap(args.adb, nt[0], nt[1], 0.48)
-                if nt[1] >= 390:
-                    for cx_chest in (440, 650, 875, 1095, 1300):
-                        tap(args.adb, cx_chest, 275, 0.45)
-                        tap(args.adb, 800, 750, 0.35)
+                quest_scroll_cooldown = 12
+                tap(args.adb, nt[0], nt[1], 1.1)
+            elif nt[2] == "DAILY_OBJECTIVES_CHESTS_AND_SWITCH_TAB1":
+                print(f"[Step {step:02d}] Daily Objectives Tab -> Claim Activity Chests (y=240) + Switch to Quests Tab (85, 240)")
+                checked_daily_tab = True
+                for cx_chest in (460, 660, 860, 1060, 1260):
+                    tap(args.adb, cx_chest, 240, 0.4)
+                    tap(args.adb, 800, 750, 0.4)
+                tap(args.adb, 85, 240, 1.0)
+            elif nt[2].startswith("QUESTS_SWITCH_TO_DAILY_TAB:"):
+                fb_act = nt[2].split(":", 1)[1]
+                if not checked_daily_tab:
+                    checked_daily_tab = True
+                    print(f"[Step {step:02d}] Quests Modal -> Switch to Daily Objectives Tab (85, 415)")
+                    tap(args.adb, 85, 415, 1.0)
+                else:
+                    checked_daily_tab = False
+                    quest_scroll_cooldown = 12
+                    if fb_act == "QUESTS_MODAL_MAIN_GO" and speedup_cooldown > 0:
+                        print(f"[Step {step:02d}] Quests Modal -> Tap Main Quest GO (1258, 325) while Building Timer Active")
+                        tap(args.adb, 1258, 325, 1.2)
+                    elif fb_act == "QUESTS_MODAL_SIDE_GO" and speedup_cooldown > 0:
+                        print(f"[Step {step:02d}] Quests Modal -> Tap Side Quest GO (1258, 550) while Building Timer Active")
+                        tap(args.adb, 1258, 550, 1.2)
+                    else:
+                        print(f"[Step {step:02d}] Quests Modal -> Close (1380, 108) & Return to CH8 Upgrade Loop")
+                        tap(args.adb, 1380, 108, 1.0)
             elif nt[2] == "QUESTS_MODAL_MAIN_GO":
-                print(f"[Step {step:02d}] Quests Modal -> Tap Main Quest GO (1258, 325)")
-                quest_scroll_cooldown = 10
-                tap(args.adb, 1258, 325, 1.4)
+                checked_daily_tab = False
+                quest_scroll_cooldown = 12
+                if speedup_cooldown > 0:
+                    print(f"[Step {step:02d}] Quests Modal -> Tap Main Quest GO (1258, 325) while Building Timer Active")
+                    tap(args.adb, 1258, 325, 1.2)
+                else:
+                    print(f"[Step {step:02d}] Quests Modal -> Close (1380, 108) & Return to CH8 Upgrade Loop")
+                    tap(args.adb, 1380, 108, 1.0)
+            elif nt[2] == "QUESTS_MODAL_SIDE_GO":
+                checked_daily_tab = False
+                quest_scroll_cooldown = 12
+                if speedup_cooldown > 0:
+                    print(f"[Step {step:02d}] Quests Modal -> Tap Side Quest GO (1258, 550) while Building Timer Active")
+                    tap(args.adb, 1258, 550, 1.2)
+                else:
+                    print(f"[Step {step:02d}] Quests Modal -> Close (1380, 108) & Return to CH8 Upgrade Loop")
+                    tap(args.adb, 1380, 108, 1.0)
             elif nt[2] == "QUESTS_MODAL_CLOSE":
-                print(f"[Step {step:02d}] Quests Modal (No Claim) -> Close (1380, 108)")
-                quest_scroll_cooldown = 8
+                checked_daily_tab = False
+                print(f"[Step {step:02d}] Quests Modal -> Close (1380, 108)")
+                quest_scroll_cooldown = 16
                 tap(args.adb, 1380, 108, 1.0)
             elif nt[2] == "SPEED_UP_OUT_OF_FREE_ITEMS":
                 speedup_cooldown = 12
@@ -1219,9 +1414,9 @@ def main():
                     tap(args.adb, 1045, 845, 1.2)
                     tap(args.adb, 200, 112, 0.8)
                 elif quest_scroll_cooldown == 0:
-                    print(f"[Step {step:02d}] Speed Up Out of Free Items -> Close (1380,108) + Open Quest Scroll (45,225) + Daily Objectives (85,415)")
+                    print(f"[Step {step:02d}] Speed Up Out of Free Items -> Close (1380,108) + Open Quest Scroll (45,225) + Quests Tab (85,240)")
                     tap(args.adb, 45, 225, 1.2)
-                    tap(args.adb, 85, 415, 1.0)
+                    tap(args.adb, 85, 240, 1.0)
                 else:
                     print(f"[Step {step:02d}] Speed Up Out of Free Items -> Close (1380,108)")
             elif nt[2] == "CLOSE_BUSY_AND_SELECT_CH":
@@ -1357,8 +1552,15 @@ def main():
                 consecutive_idle = 0
                 continue
 
-        # Tutorial spear ALWAYS has priority over heuristic building upgrade actions
-        if spear_xy and target_xy:
+        has_selected_building_ribbon = False
+        if is_city_hud(a2) and not is_world_map(a2):
+            rib_chk = a2[25:600, 175:1550]
+            is_rib_chk = (rib_chk[:, :, 2] >= 145) & (rib_chk[:, :, 0] <= 55) & ((rib_chk[:, :, 2].astype(np.int32) - rib_chk[:, :, 0].astype(np.int32)) >= 100)
+            if int(is_rib_chk.sum()) >= 3500:
+                has_selected_building_ribbon = True
+
+        # Tutorial spear ALWAYS has priority over heuristic building upgrade actions (unless a City Building ribbon is already selected, or bottom-right HUD buttons at x>=820, y>=795)
+        if not has_selected_building_ribbon and spear_xy and target_xy and not (target_xy[1] >= 795 and target_xy[0] >= 820):
             sx, sy = spear_xy
             tx, ty = target_xy
             if last_spear and abs(sx - last_spear[0]) < 35 and abs(sy - last_spear[1]) < 35:
@@ -1383,6 +1585,8 @@ def main():
             tap(args.adb, tx, ty, 1.0)
             consecutive_idle = 0
             continue
+
+        if is_city_hud(a2) and not is_world_map(a2):
             # Also check for Alliance Help red badge on bottom HUD (expanded at 1170,735 or collapsed at 1432,845)
             ah_exp_red_g = (a2[680:740, 1170:1220, 0] >= 185) & (a2[680:740, 1170:1220, 1] <= 65) & (a2[680:740, 1170:1220, 2] <= 65)
             if int(ah_exp_red_g.sum()) >= 80:
@@ -1402,7 +1606,7 @@ def main():
                 repeat_cnt = 0
                 continue
             # Also check if the top-left Quest Scroll icon (45, 225) has a red notification badge (completed quests inside modal)
-            if quest_scroll_cooldown == 0:
+            if quest_scroll_cooldown == 0 and not has_selected_building_ribbon:
                 q_badge = a2[165:215, 45:100]
                 is_q_red = (q_badge[:, :, 0] >= 190) & (q_badge[:, :, 1] <= 60) & (q_badge[:, :, 2] <= 60)
                 if int(is_q_red.sum()) >= 120:
@@ -1411,6 +1615,15 @@ def main():
                     last_spear = None
                     repeat_cnt = 0
                     continue
+            # Dismiss/Accept Top-Center Alliance Invite Popup (JOIN ALLIANCE at 703,320 / View at 895,320 / Close X at 1089,165)
+            inv_row = (a2[295:345, :, 2] >= 165) & (a2[295:345, :, 0] <= 45)
+            if int(inv_row[:, 615:785].sum()) >= 4000 and int(inv_row[:, 810:980].sum()) >= 4000 and int(inv_row[:, 785:810].sum()) <= 150:
+                print(f"[Step {step:02d}] Top-Center Alliance Invite Popup -> Tap JOIN ALLIANCE (703, 320) + Close X (1089, 165)")
+                tap(args.adb, 703, 320, 1.5)
+                tap(args.adb, 1089, 165, 1.0)
+                last_spear = None
+                repeat_cnt = 0
+                continue
             # If a City Building or Obstacle is selected (blue title ribbon at y=25..600, x=175..1550)
             rib = a2[25:600, 175:1550]
             is_rib = (rib[:, :, 2] >= 145) & (rib[:, :, 0] <= 55) & ((rib[:, :, 2].astype(np.int32) - rib[:, :, 0].astype(np.int32)) >= 100)
@@ -1484,6 +1697,12 @@ def main():
                     last_spear = None
                     repeat_cnt = 0
                     continue
+                if rib_cy >= 450 and (best_g >= 240 or best_y >= 350):
+                    print(f"[Step {step:02d}] Selected Building Too Low Near Bottom HUD (rib_cy={rib_cy}) -> Swipe Up (800,680)->(800,360)")
+                    swipe(args.adb, 800, 680, 800, 360, 400, 1.0)
+                    last_spear = None
+                    repeat_cnt = 0
+                    continue
                 rib_title = ""
                 if OCR is not None and (best_g >= 240 or best_y >= 350):
                     try:
@@ -1492,9 +1711,12 @@ def main():
                             rib_title = " ".join(r[1].strip() for r in r_res).lower()
                     except Exception:
                         pass
-                allowed_ch8_rib = ("city hall", "cityhall", "hall", "yh", "wall", "tavern", "vern", "quarry", "storehouse", "store", "scout", "sentry", "arry", "barracks", "rack", "farm", "stable", "siege", "workshop")
+                allowed_ch8_rib = ("city hall", "cityhall", "hall", "yh", "wall", "tavern", "vern", "quarry", "storehouse", "store", "scout", "sentry", "camp", "arry", "barracks", "rack", "farm", "stable", "siege", "workshop", "hospital", "hosp", "academy", "acad", "lumber", "mill", "archery", "range", "trading", "post", "alliance", "center")
                 is_ch_selected = ("hall" in rib_title) or ("yh" in rib_title) or (rib_title.strip() == "" and best_y >= 1800)
                 rib_nospace = rib_title.replace(" ", "").replace(".", "")
+                if is_ch_selected and ("level8" in rib_nospace or "evel8" in rib_nospace or "lv8" in rib_nospace) and best_g >= 240:
+                    print(f"[Step {step:02d}] TARGET REACHED: City Hall Level 8 confirmed ('{rib_title}')! Exiting.")
+                    break
                 is_already_lv7_prereq = (not is_ch_selected) and ("level7" in rib_nospace or "evel7" in rib_nospace)
                 is_non_ch8_rib = is_already_lv7_prereq or ((not is_ch_selected) and rib_title.strip() != "" and not any(b in rib_title for b in allowed_ch8_rib))
                 if is_non_ch8_rib and (best_g >= 240 or best_y >= 350):
@@ -1503,7 +1725,7 @@ def main():
                     last_spear = None
                     repeat_cnt = 0
                     continue
-                if any(k in rib_title for k in ("stable", "siege", "workshop")) and gx is not None and gy is not None:
+                if any(k in rib_title for k in ("stable", "siege", "workshop", "archery", "range")) and gx is not None and gy is not None:
                     tx_tr, ty_tr = min(1560, gx + 135), max(180, gy - 25)
                     print(f"[Step {step:02d}] Troop Building Selected ('{rib_title}') -> Tap Train Hex ({tx_tr}, {ty_tr}) + TRAIN (1215, 760)")
                     tap(args.adb, tx_tr, ty_tr, 1.4)
@@ -1517,9 +1739,9 @@ def main():
                         print(f"[Step {step:02d}] Selected Building SpeedUp Hex ({best_y}px, '{rib_title}') -> tap ({yx}, {yy})")
                         tap(args.adb, yx, yy, 1.2)
                     elif quest_scroll_cooldown == 0:
-                        print(f"[Step {step:02d}] Selected Building Actively Upgrading (cooldown={speedup_cooldown}) -> Open Quest Scroll (45,225) + Daily Objectives (85,415)")
+                        print(f"[Step {step:02d}] Selected Building Actively Upgrading (cooldown={speedup_cooldown}) -> Open Quest Scroll (45,225) + Quests Tab (85,240)")
                         tap(args.adb, 45, 225, 1.2)
-                        tap(args.adb, 85, 415, 1.0)
+                        tap(args.adb, 85, 240, 1.0)
                     else:
                         ah_col_red = (a2[795:840, 1440:1480, 0] >= 185) & (a2[795:840, 1440:1480, 1] <= 65) & (a2[795:840, 1440:1480, 2] <= 65)
                         ah_col_cream = float(a2[825:875, 1405:1455, 0].mean()) > float(a2[825:875, 1405:1455, 2].mean()) + 15.0
@@ -1527,7 +1749,7 @@ def main():
                         vip_red = (a2[55:80, 130:160, 0] >= 185) & (a2[55:80, 130:160, 1] <= 65) & (a2[55:80, 130:160, 2] <= 65)
                         mail_red = (a2[775:825, 1430:1475, 0] >= 185) & (a2[775:825, 1430:1475, 1] <= 65) & (a2[775:825, 1430:1475, 2] <= 65)
                         mq_side_txt = ""
-                        if "16384" in str(args.adb) and cavalry_cooldown == 0 and OCR is not None:
+                        if cavalry_cooldown == 0 and OCR is not None:
                             try:
                                 mq_res, _ = OCR(a2[280:385, 10:190].astype(np.uint8))
                                 if mq_res:
@@ -1552,8 +1774,16 @@ def main():
                             tap(args.adb, 1380, 108, 1.0)
                         elif (not checked_mail) and int(mail_red.sum()) >= 45:
                             checked_mail = True
-                            print(f"[Step {step:02d}] Building Actively Upgrading -> Check Mail Rewards (1415, 845)")
+                            speedup_cooldown = 0
+                            print(f"[Step {step:02d}] Building Actively Upgrading -> Check & Claim Mail Rewards (1415, 845)")
                             tap(args.adb, 1415, 845, 1.4)
+                            tap(args.adb, 445, 58, 1.0)
+                            tap(args.adb, 145, 845, 0.8)
+                            tap(args.adb, 800, 750, 0.8)
+                            tap(args.adb, 250, 200, 0.8)
+                            tap(args.adb, 1420, 820, 0.8)
+                            tap(args.adb, 800, 750, 0.8)
+                            tap(args.adb, 1563, 58, 1.0)
                         elif any(w in mq_side_txt for w in ("cavalry", "siege", "behemoth", "together", "alliance")):
                             cavalry_cooldown = 16
                             print(f"[Step {step:02d}] Building Actively Upgrading -> Tap Main Quest '{mq_side_txt[:24]}' (80, 330)")
