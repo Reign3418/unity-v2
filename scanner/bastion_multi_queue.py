@@ -104,10 +104,12 @@ def register_bot_on_screen(adb_serial: str, kingdom: str, ch_level: int = 3):
                 "instanceId": inst_id,
             },
         }).encode("utf-8")
+        from bastion_auth import bastion_headers
+
         req = urllib.request.Request(
             CLOUD_BASTION_URL,
             data=payload_bytes,
-            headers={"Content-Type": "application/json", "User-Agent": "BastionMultiQueue/1.0"},
+            headers=bastion_headers("BastionMultiQueue/1.0"),
             method="POST",
         )
         urllib.request.urlopen(req, timeout=10).read()

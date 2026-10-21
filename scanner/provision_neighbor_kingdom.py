@@ -201,7 +201,7 @@ def main():
     parser.add_argument("--adb", "--adb-serial", dest="adb", default="127.0.0.1:16384")
     parser.add_argument("--kingdom", required=True, help="Target kingdom number, e.g. 4044 or 4195")
     parser.add_argument("--mode", default="create", choices=["create", "switch", "probe"])
-    parser.add_argument("--tutorial-steps", type=int, default=55, help="Autonomous tutorial steps to run after spawn")
+    parser.add_argument("--tutorial-steps", type=int, default=350, help="Autonomous tutorial & CH8 upgrade steps to run after spawn")
     args = parser.parse_args()
 
     _CURRENT_ADB = args.adb
@@ -423,8 +423,8 @@ def main():
     tap(args.adb, 1488, 38, 6.0)      # Tap SKIP intro cutscene
 
     if args.tutorial_steps > 0:
-        print(f"[6/6] Running {args.tutorial_steps} autonomous tutorial steps in #{args.kingdom}...")
-        report_progress(args.kingdom, 6, 6, "PROVISIONING_BOT", f"[6/6] Clearing Ch.1 Tutorial in #{args.kingdom} ({args.tutorial_steps} steps)...")
+        print(f"[6/6] Running {args.tutorial_steps} autonomous CH8 upgrade steps in #{args.kingdom}...")
+        report_progress(args.kingdom, 6, 6, "PROVISIONING_BOT", f"[6/6] Upgrading to City Hall 8 in #{args.kingdom} ({args.tutorial_steps} steps)...")
         tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
         subprocess.run(
             [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", str(args.tutorial_steps)],
@@ -465,15 +465,17 @@ def main():
                 "kingdom": str(args.kingdom),
                 "govId": gov_id,
                 "name": gov_name,
-                "chLevel": 2,
-                "power": 4287,
+                "chLevel": 8,
+                "power": 15000,
                 "instanceId": inst_id,
             },
         }).encode("utf-8")
+        from bastion_auth import bastion_headers
+
         req = urllib.request.Request(
             "https://unity-v2-azure.vercel.app/api/bastion",
             data=payload_bytes,
-            headers={"Content-Type": "application/json", "User-Agent": "BastionProvisioner/2.0"},
+            headers=bastion_headers("BastionProvisioner/2.0"),
             method="POST",
         )
         urllib.request.urlopen(req, timeout=8).read()

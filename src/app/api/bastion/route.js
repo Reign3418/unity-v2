@@ -3,6 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import { readEpochLedger, writeEpochLedger, KVK_SCAN_PRESETS } from '@/lib/dozerReconciler';
 import { getGlobalConfig, updateGlobalConfig } from '@/lib/awsDynamo';
+import {
+  AGENT_ACTIONS,
+  BastionInputError,
+  isAgentRequest,
+  isSuperAdminSession,
+  cleanKingdom,
+  cleanInstanceId,
+  cleanAdbSerial,
+  cleanRankCount,
+  cleanText,
+} from '@/lib/bastionGuard';
 
 export const maxDuration = 300;
 
@@ -197,6 +208,9 @@ async function dispatchToClusterHub(psCommand, scanProgressPayload = null) {
 }
 
 export async function GET() {
+  if (!(await isSuperAdminSession())) {
+    return NextResponse.json({ error: 'Access Denied' }, { status: 403 });
+  }
   const state = await readBastionState();
   if (!state) {
     return NextResponse.json({ error: 'Bastion state file not found' }, { status: 404 });
@@ -288,6 +302,15 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const { action, payload = {} } = body;
+
+    // Access gate: machine agents may only call agent actions; everything else requires a Super Admin session.
+    if (AGENT_ACTIONS.has(action)) {
+      if (!isAgentRequest(request)) {
+        return NextResponse.json({ error: 'Unauthorized agent' }, { status: 401 });
+      }
+    } else if (!(await isSuperAdminSession())) {
+      return NextResponse.json({ error: 'Access Denied' }, { status: 403 });
+    }
 
     // 00. DIRECT SIDEKICK -> VERCEL CLOUD HEARTBEAT & COMMAND BUS (Zero MIXERV3 Dependency)
     if (action === 'SIDEKICK_CLOUD_HEARTBEAT') {
@@ -388,8 +411,9 @@ export async function POST(request) {
 
           if (dueKingdoms.length > 0) {
             const dueKd = dueKingdoms[0];
-            const targetKd = String(dueKd.kingdom);
-            const targetRanks = Number(dueKd.targetRanks) || 650;
+            // Re-validate stored values before they reach a shell string (state may predate input validation)
+            const targetKd = cleanKingdom(dueKd.kingdom);
+            const targetRanks = cleanRankCount(dueKd.targetRanks, 650);
             const cadenceHrs = Number(dueKd.cadenceHours) || (dueKd.mode === 'SURGE_3H' ? 3 : 12);
             const instanceId = (dueKd.assignedInstances && dueKd.assignedInstances[0]) || 'sidekick-mumu-0';
             const inst = (state.instances || []).find((i) => i.instanceId === instanceId);
@@ -472,7 +496,8 @@ export async function POST(request) {
 
     // 0A. SET KVK SCAN PRESET (465 Core / 650 Sweet Spot / 1000 Full + R5 Header)
     if (action === 'SET_SCAN_PRESET') {
-      const { kingdom = 'ALL', presetId = 'SWEET_650' } = payload;
+      const { presetId = 'SWEET_650' } = payload;
+      const kingdom = cleanKingdom(payload.kingdom ?? 'ALL', { allowAll: true });
       const preset = KVK_SCAN_PRESETS[presetId] || KVK_SCAN_PRESETS.SWEET_650;
 
       if (kingdom === 'ALL') {
@@ -510,7 +535,7 @@ export async function POST(request) {
 
     // 0B. EXECUTE EPOCH 0 ARCHIVAL CUTOVER (Archive Legacy Sheets & Zero Deltas Moving Forward)
     if (action === 'EXECUTE_EPOCH_CUTOVER') {
-      const targetKd = String(payload.kingdom || 'ALL');
+      const targetKd = cleanKingdom(payload.kingdom ?? 'ALL', { allowAll: true });
       const nowIso = new Date().toISOString();
 
       if (targetKd === 'ALL') {
@@ -593,7 +618,8 @@ export async function POST(request) {
 
     // 3. SET PER-RING LLM / SLM MODEL
     if (action === 'SET_RING_MODEL') {
-      const { ringKey, modelId } = payload;
+      const ringKey = cleanText(payload.ringKey, 40);
+      const modelId = cleanText(payload.modelId, 80);
       if (state.ringModels && state.ringModels[ringKey]) {
         const oldModel = state.ringModels[ringKey].selectedModel;
         state.ringModels[ringKey].selectedModel = modelId;
@@ -612,7 +638,12 @@ export async function POST(request) {
 
     // 4. SET KINGDOM CADENCE (12h Steady <-> 3h Surge <-> Paused)
     if (action === 'SET_KINGDOM_CADENCE') {
-      const { kingdom, mode, cadenceHours } = payload;
+      const kingdom = cleanKingdom(payload.kingdom);
+      const { cadenceHours } = payload;
+      const mode = cleanText(payload.mode, 24);
+      if (!['STEADY_12H', 'SURGE_3H', 'PAUSED', 'GENESIS_WATCH', 'GENESIS_BASELINE'].includes(mode)) {
+        throw new BastionInputError(`Invalid cadence mode "${mode}"`);
+      }
       const kdEntry = (state.kingdomSchedules || []).find((k) => String(k.kingdom) === String(kingdom));
       if (kdEntry) {
         kdEntry.mode = mode;
@@ -635,7 +666,8 @@ export async function POST(request) {
 
     // 5. SWITCH INSTANCE ACTIVE KINGDOM (22-second in-game character hop)
     if (action === 'SWITCH_INSTANCE_KINGDOM') {
-      const { instanceId = 'sidekick-mumu-0', kingdom } = payload;
+      const instanceId = cleanInstanceId(payload.instanceId || 'sidekick-mumu-0');
+      const kingdom = cleanKingdom(payload.kingdom);
       const gate = evaluateNumNumGate(state, { targetKingdom: kingdom, instanceId, operation: 'SWITCH_CHARACTER' });
       const inst = (state.instances || []).find((i) => i.instanceId === instanceId);
       const targetChar = (state.roster || []).find(
@@ -649,7 +681,7 @@ export async function POST(request) {
         inst.lastHeartbeat = new Date().toISOString();
       }
 
-      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const adbSerial = cleanAdbSerial(inst?.adbAddress || '127.0.0.1:16384');
       const switchTask = {
         running: true,
         status: 'SWITCHING_CHARACTER',
@@ -695,8 +727,8 @@ export async function POST(request) {
 
     // 6. PROVISION NEW KINGDOM / GENESIS BOT DEPLOYMENT
     if (action === 'PROVISION_NEW_KINGDOM' || action === 'TRIGGER_GENESIS_BOT') {
-      const targetKd = String(payload.kingdom || state.nextGenesisWatchKingdom || '4203').trim();
-      const instanceId = payload.instanceId || 'sidekick-mumu-0';
+      const targetKd = cleanKingdom(payload.kingdom || state.nextGenesisWatchKingdom || '4203');
+      const instanceId = cleanInstanceId(payload.instanceId || 'sidekick-mumu-0');
       const isGenesis = action === 'TRIGGER_GENESIS_BOT' || Number(targetKd) > Number(state.highestKnownKingdom || 4202);
 
       // Run NumNum Deterministic Gate first
@@ -767,8 +799,8 @@ export async function POST(request) {
       );
       if (existingCharIdx === -1) {
         state.roster.push({
-          govId: payload.govId || `BOT-${targetKd}`,
-          name: payload.name || `Governor (#${targetKd})`,
+          govId: cleanText(payload.govId, 24) || `BOT-${targetKd}`,
+          name: cleanText(payload.name, 48) || `Governor (#${targetKd})`,
           kingdom: targetKd,
           kingdomName: isGenesis ? `Genesis Kingdom #${targetKd}` : `Kingdom #${targetKd}`,
           chLevel: 2,
@@ -807,7 +839,7 @@ export async function POST(request) {
         state.nextGenesisWatchKingdom = Number(targetKd) + 1;
       }
 
-      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const adbSerial = cleanAdbSerial(inst?.adbAddress || '127.0.0.1:16384');
       const provTask = {
         running: true,
         status: 'PROVISIONING_BOT',
@@ -854,13 +886,13 @@ export async function POST(request) {
 
     // 6B. REGISTER COMPLETED BOT PROVISIONING FROM SIDEKICK OCR
     if (action === 'REGISTER_PROVISIONED_BOT') {
-      const targetKd = String(payload.kingdom || '4044').trim();
-      const instanceId = payload.instanceId || 'sidekick-mumu-0';
-      const govId = String(payload.govId || `BOT-${targetKd}`);
-      const name = String(payload.name || `Governor${govId}`);
-      const chLevel = Number(payload.chLevel) || 2;
-      const power = Number(payload.power) || 4287;
-      const kingdomName = payload.kingdomName || `Kingdom #${targetKd}`;
+      const targetKd = cleanKingdom(payload.kingdom);
+      const instanceId = cleanInstanceId(payload.instanceId || 'sidekick-mumu-0');
+      const govId = cleanText(payload.govId, 24) || `BOT-${targetKd}`;
+      const name = cleanText(payload.name, 48) || `Governor${govId}`;
+      const chLevel = Math.min(25, Math.max(1, Math.trunc(Number(payload.chLevel)) || 2));
+      const power = Math.max(0, Math.trunc(Number(payload.power)) || 4287);
+      const kingdomName = cleanText(payload.kingdomName, 48) || `Kingdom #${targetKd}`;
 
       state.roster = state.roster || [];
       const idx = state.roster.findIndex(
@@ -952,7 +984,7 @@ export async function POST(request) {
 
     // 7. RECORD UNITY API DEMAND PULSE (KENT -> NULL Auto-Scaler)
     if (action === 'RECORD_UNITY_DEMAND') {
-      const targetKd = String(payload.kingdom || '4194');
+      const targetKd = cleanKingdom(payload.kingdom || '4194');
       const entry = (state.kingdomSchedules || []).find((k) => String(k.kingdom) === targetKd);
       if (entry) {
         entry.unityApiCalls24h = (entry.unityApiCalls24h || 0) + (Number(payload.weight) || 1);
@@ -980,12 +1012,12 @@ export async function POST(request) {
 
     // 8. RUN IMMEDIATE PRIORITY SCAN (BIG JON Preemption -> CIPHER -> DOZER)
     if (action === 'RUN_IMMEDIATE_SCAN') {
-      const targetKd = String(payload.kingdom || '4194');
+      const targetKd = cleanKingdom(payload.kingdom || '4194');
       const kdEpoch = epochLedger.kingdomEpochs?.[targetKd];
       const presetId = payload.presetId || kdEpoch?.scanPreset || epochLedger.defaultScanPreset || 'SWEET_650';
       const preset = KVK_SCAN_PRESETS[presetId] || KVK_SCAN_PRESETS.SWEET_650;
-      const slice = payload.slice || `1-${preset.targetRanks}`;
-      const instanceId = payload.instanceId || 'sidekick-mumu-0';
+      const slice = /^\d{1,4}-\d{1,4}$/.test(String(payload.slice || '')) ? String(payload.slice) : `1-${preset.targetRanks}`;
+      const instanceId = cleanInstanceId(payload.instanceId || 'sidekick-mumu-0');
 
       appendLog(state, {
         agent: 'BIG JON',
@@ -1011,7 +1043,7 @@ export async function POST(request) {
         kdEntry.nextScanAt = new Date(Date.now() + cadence * 3600 * 1000).toISOString();
       }
 
-      const adbSerial = (inst?.adbAddress || '127.0.0.1:16384').split(' ')[0];
+      const adbSerial = cleanAdbSerial(inst?.adbAddress || '127.0.0.1:16384');
       const scanTask = {
         running: true,
         status: 'SCANNING_LIVE',
@@ -1051,7 +1083,7 @@ export async function POST(request) {
 
     // 9. STOP / ABORT ACTIVE SCAN OR TASK ON SIDEKICK (Supports Per-Instance or Global Stop)
     if (action === 'STOP_ACTIVE_SCAN') {
-      const targetInstanceId = payload.instanceId || null;
+      const targetInstanceId = payload.instanceId ? cleanInstanceId(payload.instanceId) : null;
       state.activeTasksByInstance = state.activeTasksByInstance || {};
 
       let killCmd = '';
@@ -1144,7 +1176,10 @@ export async function POST(request) {
 
     return NextResponse.json({ error: `Unknown Bastion action: ${action}` }, { status: 400 });
   } catch (err) {
+    if (err instanceof BastionInputError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     console.error('[BASTION POST ERROR]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

@@ -26,6 +26,8 @@ import sys
 import time
 import urllib.request
 
+from bastion_auth import bastion_headers
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROGRESS_FILE = os.path.join(SCRIPT_DIR, "scan_progress.json")
 STATE_CACHE_FILE = os.path.join(SCRIPT_DIR, "sidekick_agent_state.json")
@@ -228,10 +230,7 @@ def main():
             req = urllib.request.Request(
                 CLOUD_BASTION_URL,
                 data=json.dumps(hb_payload).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json",
-                    "User-Agent": "Valheon-Bastion-Sidekick-Agent/2.0",
-                },
+                headers=bastion_headers("Valheon-Bastion-Sidekick-Agent/2.0"),
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=6.0) as resp:

@@ -52,3 +52,6 @@ scanner/parse_35_fields_test.py
 scanner/ram_accum_*.json
 __pycache__/
 *.pyc
+
+# Bastion agent shared secret (SIDEKICK only, never commit)
+.bastion_agent_secret
