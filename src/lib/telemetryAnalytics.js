@@ -3,12 +3,115 @@
  * ==================================================
  * 100% Client & Server-side Algorithmic Math ($0.00 Tokens).
  * Calculates war kill percentages, T1 padding ratios, power distributions,
- * dead-to-power sacrifice indices, and tactical classifications from raw telemetry.
+ * dead-to-power sacrifice indices, in-game (X, Y) tile coordinates,
+ * and tactical classifications from raw telemetry.
  */
 
-export function cleanUtf8Name(str) {
-  if (!str || typeof str !== 'string') return str || '';
-  return str;
+// Known Kingdom #4194 Alliance Hive Sectors (1200x1200 RoK Map Scale)
+const KINGDOM_4194_ALLIANCE_HIVES = {
+  'LW=A': { x: 165, y: 1018, zone: 'Zone 1 (NW Outer Province)' },
+  '94-1': { x: 184, y: 762, zone: 'Zone 1 (West Outer Province)' },
+  WOM: { x: 158, y: 765, zone: 'Zone 1 (West Outer Province)' },
+  'I~94': { x: 240, y: 770, zone: 'Zone 2 (West Inner Province)' },
+  'S~94': { x: 265, y: 785, zone: 'Zone 2 (West-Central Province)' },
+  '5-MS': { x: 298, y: 185, zone: 'Zone 1 (SW Outer Province)' },
+  FaKE: { x: 640, y: 580, zone: 'Zone 3 / Inner Sanctum Border' },
+  'D-94': { x: 560, y: 630, zone: 'Zone 3 / Central War Sector' },
+  DP94: { x: 480, y: 520, zone: 'Zone 2 (NW Inner Province)' },
+  FOTN: { x: 690, y: 490, zone: 'Zone 2 (NE Inner Province)' },
+  'A~94': { x: 720, y: 680, zone: 'Zone 2 (SE Inner Province)' },
+  OE94: { x: 530, y: 710, zone: 'Zone 2 (South Inner Province)' },
+  'C~94': { x: 430, y: 640, zone: 'Zone 2 (SW Inner Province)' },
+  'I94~': { x: 390, y: 560, zone: 'Zone 2 (West Inner Province)' },
+  D94: { x: 585, y: 655, zone: 'Zone 3 / Central War Sector' },
+  TDF_: { x: 820, y: 540, zone: 'Zone 2 (East Inner Province)' },
+};
+
+export function resolveMapZone(x, y) {
+  if (!x || !y) return 'Unmapped Sector';
+  const cx = Math.abs(x - 600);
+  const cy = Math.abs(y - 600);
+  const maxDist = Math.max(cx, cy);
+
+  const ns = y >= 700 ? 'North' : y <= 500 ? 'South' : 'Central';
+  const ew = x <= 500 ? 'West' : x >= 700 ? 'East' : 'Central';
+  const compass = ns === 'Central' && ew === 'Central' ? 'Center' : `${ns}-${ew}`.replace('-Central', '').replace('Central-', '');
+
+  if (maxDist <= 180) return `Zone 3 · King's Land (${compass})`;
+  if (maxDist <= 380) return `Zone 2 · Inner Province (${compass})`;
+  return `Zone 1 · Outer Province (${compass})`;
+}
+
+export function normalizeInGameCoords(g = {}) {
+  const num = (v) => {
+    if (v === null || v === undefined || v === '') return 0;
+    const n = Number(v);
+    return Number.isNaN(n) ? 0 : n;
+  };
+
+  let rawTileX = num(g.mapTileX || g.tileX);
+  let rawTileY = num(g.mapTileY || g.tileY);
+
+  const cPos = g.castlePos || g.lastKnownCoords;
+  if ((!rawTileX || !rawTileY) && cPos && typeof cPos === 'object') {
+    const cx = num(cPos.X ?? cPos.x);
+    const cy = num(cPos.Y ?? cPos.y);
+    if (cx > 0 && cy > 0) {
+      // In RoK RAM/mailcache, world coordinates are 0..7200 (6x map tile 0..1200).
+      if (cx > 1200 || cy > 1200 || !Number.isInteger(cx) || !Number.isInteger(cy)) {
+        rawTileX = Math.round(cx / 6);
+        rawTileY = Math.round(cy / 6);
+      } else {
+        rawTileX = Math.round(cx);
+        rawTileY = Math.round(cy);
+      }
+    }
+  }
+
+  if (rawTileX > 0 && rawTileY > 0 && rawTileX <= 1200 && rawTileY <= 1200) {
+    return {
+      mapTileX: rawTileX,
+      mapTileY: rawTileY,
+      displayX: rawTileX,
+      displayY: rawTileY,
+      coordPrecision: g.coordSource === 'MANUAL_PIN' ? 'PINNED_TILE' : 'EXACT_TILE',
+      coordLabel: `#${g.kingdomId || g.kingdom || '4194'} X:${rawTileX} Y:${rawTileY}`,
+      mapZone: resolveMapZone(rawTileX, rawTileY),
+    };
+  }
+
+  // Fallback: Estimate Alliance Hive Sector + Deterministic offset within hive
+  const alliance = String(g.alliance || g.lastKnownAlliance || 'None').trim();
+  const hive = KINGDOM_4194_ALLIANCE_HIVES[alliance];
+  const gid = num(g.govId || g.id || 1);
+  const jitterX = ((gid % 29) - 14);
+  const jitterY = (((Math.floor(gid / 29)) % 29) - 14);
+
+  if (hive) {
+    const estX = Math.min(1180, Math.max(20, hive.x + jitterX));
+    const estY = Math.min(1180, Math.max(20, hive.y + jitterY));
+    return {
+      mapTileX: null,
+      mapTileY: null,
+      displayX: estX,
+      displayY: estY,
+      coordPrecision: 'ALLIANCE_HIVE_SECTOR',
+      coordLabel: `~X:${estX} Y:${estY} ([${alliance}] Hive)`,
+      mapZone: hive.zone,
+    };
+  }
+
+  const fallbackX = 200 + (gid % 800);
+  const fallbackY = 200 + ((Math.floor(gid / 100)) % 800);
+  return {
+    mapTileX: null,
+    mapTileY: null,
+    displayX: fallbackX,
+    displayY: fallbackY,
+    coordPrecision: 'UNMAPPED_LEADERBOARD',
+    coordLabel: 'Unpinned (Leaderboard Only)',
+    mapZone: resolveMapZone(fallbackX, fallbackY),
+  };
 }
 
 export function enrichGovernorWithRatios(g = {}) {
@@ -102,8 +205,11 @@ export function enrichGovernorWithRatios(g = {}) {
     classification = 'FARM_ACCOUNT';
   }
 
+  const coordData = normalizeInGameCoords(g);
+
   return {
     ...g,
+    ...coordData,
     power,
     highestPower,
     troopPower,

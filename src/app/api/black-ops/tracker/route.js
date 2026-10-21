@@ -6,6 +6,7 @@ import {
   getWatchlist,
   saveWatchlist,
   addTrackedTarget,
+  pinTargetCoordinates,
   removeTrackedTarget,
   dispatchBlackOpsNotification,
   dispatchBastionPinpointRecon,
@@ -44,7 +45,18 @@ function buildEnrichedWatchlist(watchlist, dataset) {
 
   const enrichedTargets = Object.values(watchlist.targets || {}).map((target) => {
     const live = targetMap.get(String(target.govId)) || target.initialSnapshot || null;
-    const enrichedLive = live ? enrichGovernorWithRatios(live) : null;
+    const pinnedOrLastCoords =
+      target.lastKnownCoords ||
+      live?.castlePos ||
+      (live?.mapTileX && live?.mapTileY ? { X: Number(live.mapTileX), Y: Number(live.mapTileY) } : null);
+    const enrichedLive = enrichGovernorWithRatios({
+      ...(live || {}),
+      govId: target.govId,
+      name: target.name || live?.name,
+      alliance: live?.alliance || target.lastKnownAlliance,
+      castlePos: pinnedOrLastCoords,
+      coordSource: target.coordSource || live?.coordSource,
+    });
     return {
       ...target,
       liveTelemetry: enrichedLive,
@@ -54,10 +66,9 @@ function buildEnrichedWatchlist(watchlist, dataset) {
       lastKnownKp: enrichedLive?.killPoints || target.lastKnownKp || 0,
       lastKnownDeads: enrichedLive?.dead || target.lastKnownDeads || 0,
       lastKnownCoords:
-        enrichedLive?.castlePos ||
-        (enrichedLive?.mapTileX && enrichedLive?.mapTileY
+        enrichedLive?.mapTileX && enrichedLive?.mapTileY
           ? { X: Number(enrichedLive.mapTileX), Y: Number(enrichedLive.mapTileY) }
-          : target.lastKnownCoords || null),
+          : pinnedOrLastCoords,
     };
   });
 
@@ -156,6 +167,24 @@ export async function POST(req) {
         target: enrichedTarget,
         watchlist: enrichedWatchlist,
         bastionSync,
+      });
+    }
+
+    if (action === 'PIN_COORDINATES') {
+      const { govId, x, y, source = 'MANUAL_PIN' } = body;
+      if (!govId) {
+        return NextResponse.json({ success: false, error: 'govId is required' }, { status: 400 });
+      }
+      const { target, watchlist, movedDetail } = await pinTargetCoordinates({ govId, x, y, source });
+      const enrichedWatchlist = buildEnrichedWatchlist(watchlist, dataset);
+      const enrichedTarget =
+        enrichedWatchlist.targetsList.find((t) => String(t.govId) === String(govId)) || target;
+
+      return NextResponse.json({
+        success: true,
+        message: movedDetail || `Pinned Castle Coordinates at #4194 X:${x} Y:${y}`,
+        target: enrichedTarget,
+        watchlist: enrichedWatchlist,
       });
     }
 

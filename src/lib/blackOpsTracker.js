@@ -366,6 +366,75 @@ export async function addTrackedTarget({
 }
 
 /**
+ * Pins or updates a target governor's exact in-game (X, Y) castle tile (0..1200)
+ * and records any relocation delta in Movement History + Bastion Ring 3 (DOZER).
+ */
+export async function pinTargetCoordinates({ govId, x, y, source = 'MANUAL_PIN' }) {
+  const list = await getWatchlist();
+  const idStr = String(govId);
+  const tileX = Math.max(0, Math.min(1200, Math.round(Number(x) || 0)));
+  const tileY = Math.max(0, Math.min(1200, Math.round(Number(y) || 0)));
+  const newCoords = { X: tileX, Y: tileY };
+  const nowIso = new Date().toISOString();
+
+  const existing = list.targets[idStr] || {
+    govId: Number(govId),
+    id: idStr,
+    name: `Governor_${govId}`,
+    kingdom: '4194',
+    priority: 'VIP',
+    addedAt: nowIso,
+    movementHistory: [],
+    active: true,
+  };
+
+  const oldCoords = existing.lastKnownCoords;
+  let movedDetail = `Pinned exact Castle Tile at #${existing.kingdom || '4194'} X:${tileX} Y:${tileY}`;
+  if (oldCoords && oldCoords.X && oldCoords.Y && (oldCoords.X !== tileX || oldCoords.Y !== tileY)) {
+    const oX = oldCoords.X > 1200 ? Math.round(oldCoords.X / 6) : Math.round(oldCoords.X);
+    const oY = oldCoords.Y > 1200 ? Math.round(oldCoords.Y / 6) : Math.round(oldCoords.Y);
+    const dist = Math.round(Math.sqrt((tileX - oX) ** 2 + (tileY - oY) ** 2));
+    if (!Array.isArray(existing.movementHistory)) existing.movementHistory = [];
+    existing.movementHistory.push({
+      from: { X: oX, Y: oY },
+      to: newCoords,
+      distance: dist,
+      timestamp: nowIso,
+      source,
+    });
+    movedDetail = `Target relocated ${dist} tiles: (${oX}, ${oY}) -> (${tileX}, ${tileY}) in #${existing.kingdom || '4194'}`;
+  }
+
+  existing.lastKnownCoords = newCoords;
+  existing.coordSource = source;
+  if (existing.initialSnapshot) {
+    existing.initialSnapshot.mapTileX = tileX;
+    existing.initialSnapshot.mapTileY = tileY;
+    existing.initialSnapshot.castlePos = newCoords;
+  }
+  list.targets[idStr] = existing;
+
+  const bastionRes = await syncWithBastionMoERing({
+    agent: 'DOZER + SCOUT',
+    ring: 'RING 1 -> RING 3',
+    model: 'DOZER_SLICE_MERGER_V1 (0 Tokens)',
+    action: 'BLACK_OPS_COORD_LOCK',
+    kingdom: existing.kingdom || '4194',
+    detail: `[${existing.lastKnownAlliance || 'None'}] ${existing.name} (${govId}): ${movedDetail}.`,
+    surgeCadenceHours: 1,
+    lockedTargetsCount: Object.keys(list.targets).length,
+  });
+
+  if (bastionRes?.event) {
+    if (!Array.isArray(list.bastionRingEvents)) list.bastionRingEvents = [];
+    list.bastionRingEvents.unshift(bastionRes.event);
+  }
+
+  await saveWatchlist(list);
+  return { target: list.targets[idStr], watchlist: list, bastionSync: bastionRes, movedDetail };
+}
+
+/**
  * Removes a target from active tracking and updates Bastion MoE Ring schedule.
  */
 export async function removeTrackedTarget(govId) {

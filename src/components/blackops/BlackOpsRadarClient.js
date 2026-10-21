@@ -19,6 +19,9 @@ import {
   Cpu,
   ShieldCheck,
   Radar,
+  Copy,
+  Check,
+  Navigation,
 } from 'lucide-react';
 import { enrichGovernorWithRatios } from '@/lib/telemetryAnalytics';
 
@@ -47,10 +50,9 @@ function buildClientTargetObject(gov, priority = 'VIP') {
   const enriched = enrichGovernorWithRatios(gov);
   const govId = Number(enriched.govId || enriched.id || 0);
   const coords =
-    enriched.castlePos ||
-    (enriched.mapTileX && enriched.mapTileY
+    enriched.mapTileX && enriched.mapTileY
       ? { X: Number(enriched.mapTileX), Y: Number(enriched.mapTileY) }
-      : null);
+      : enriched.castlePos || null;
 
   return {
     govId,
@@ -60,6 +62,7 @@ function buildClientTargetObject(gov, priority = 'VIP') {
     priority,
     addedAt: new Date().toISOString(),
     lastKnownCoords: coords,
+    coordSource: enriched.coordSource || null,
     lastKnownPower: Number(enriched.power || 0),
     lastKnownAlliance: enriched.alliance || 'None',
     lastKnownKp: Number(enriched.killPoints || 0),
@@ -97,6 +100,11 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
   const [bastionTelemetry, setBastionTelemetry] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [lockFeedback, setLockFeedback] = useState(null);
+  const [pinX, setPinX] = useState('');
+  const [pinY, setPinY] = useState('');
+  const [isPinningCoords, setIsPinningCoords] = useState(false);
+  const [copiedCoords, setCopiedCoords] = useState(false);
+  const [hoverMapCoords, setHoverMapCoords] = useState(null);
 
   const canvasRef = useRef(null);
   const renderedStarsRef = useRef([]);
@@ -113,6 +121,21 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     }
   }, []);
 
+  // Update pinX / pinY inputs when selectedTarget changes
+  useEffect(() => {
+    if (selectedTarget) {
+      const enriched = enrichGovernorWithRatios({
+        ...(selectedTarget.liveTelemetry || {}),
+        govId: selectedTarget.govId,
+        alliance: selectedTarget.lastKnownAlliance,
+        castlePos: selectedTarget.lastKnownCoords || selectedTarget.liveTelemetry?.castlePos,
+        coordSource: selectedTarget.coordSource,
+      });
+      setPinX(String(enriched.mapTileX || enriched.displayX || ''));
+      setPinY(String(enriched.mapTileY || enriched.displayY || ''));
+    }
+  }, [selectedTarget?.govId, selectedTarget?.lastKnownCoords?.X, selectedTarget?.lastKnownCoords?.Y]);
+
   // 1. Fetch Watchlist & Merge with Local Persistence
   const fetchWatchlist = async () => {
     try {
@@ -124,7 +147,20 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
 
         const mergedMap = new Map();
         localList.forEach((t) => mergedMap.set(String(t.govId), t));
-        serverList.forEach((t) => mergedMap.set(String(t.govId), t));
+        serverList.forEach((t) => {
+          const prevLocal = mergedMap.get(String(t.govId));
+          // Preserve locally pinned coordinates if server hasn't caught up yet
+          if (prevLocal?.lastKnownCoords && !t.lastKnownCoords) {
+            mergedMap.set(String(t.govId), {
+              ...t,
+              lastKnownCoords: prevLocal.lastKnownCoords,
+              coordSource: prevLocal.coordSource || 'MANUAL_PIN',
+              movementHistory: prevLocal.movementHistory || t.movementHistory || [],
+            });
+          } else {
+            mergedMap.set(String(t.govId), t);
+          }
+        });
 
         const mergedList = Array.from(mergedMap.values());
         saveLocalTargets(mergedList);
@@ -190,7 +226,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Check Notification permission
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPushEnabled(Notification.permission === 'granted');
@@ -300,6 +335,85 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       }
     } catch (e) {
       console.error('Track target server sync error:', e);
+    }
+  };
+
+  // 4b. Pin / Update Exact In-Game Castle Tile Coordinates (X, Y)
+  const handlePinCoordinates = async (customX = null, customY = null) => {
+    if (!selectedTarget) return;
+    const xVal = Math.max(0, Math.min(1200, Math.round(Number(customX ?? pinX) || 0)));
+    const yVal = Math.max(0, Math.min(1200, Math.round(Number(customY ?? pinY) || 0)));
+    if (!xVal || !yVal) return;
+
+    setIsPinningCoords(true);
+    const newCoords = { X: xVal, Y: yVal };
+
+    // Optimistic update in UI & localStorage
+    setWatchlist((prev) => {
+      const nextList = (prev.targetsList || []).map((t) => {
+        if (String(t.govId) !== String(selectedTarget.govId)) return t;
+        const old = t.lastKnownCoords;
+        const history = [...(t.movementHistory || [])];
+        if (old && old.X && old.Y && (old.X !== xVal || old.Y !== yVal)) {
+          const dist = Math.round(Math.sqrt((xVal - old.X) ** 2 + (yVal - old.Y) ** 2));
+          history.push({
+            from: old,
+            to: newCoords,
+            distance: dist,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        const updatedTarget = {
+          ...t,
+          lastKnownCoords: newCoords,
+          coordSource: 'MANUAL_PIN',
+          movementHistory: history,
+          liveTelemetry: {
+            ...(t.liveTelemetry || {}),
+            mapTileX: xVal,
+            mapTileY: yVal,
+            castlePos: newCoords,
+            coordSource: 'MANUAL_PIN',
+          },
+        };
+        setSelectedTarget(updatedTarget);
+        return updatedTarget;
+      });
+      saveLocalTargets(nextList);
+      return { ...prev, targetsList: nextList };
+    });
+
+    setLockFeedback(
+      `IN-GAME CASTLE TILE LOCKED: [${selectedTarget.lastKnownAlliance}] ${selectedTarget.name} pinned at #4194 X:${xVal} Y:${yVal}`
+    );
+
+    try {
+      const res = await fetch('/api/black-ops/tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'PIN_COORDINATES',
+          govId: selectedTarget.govId,
+          x: xVal,
+          y: yVal,
+          source: 'MANUAL_PIN',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.target) {
+        setSelectedTarget(data.target);
+        if (data.watchlist) {
+          setWatchlist((prev) => ({
+            ...prev,
+            bastionRingEvents: data.watchlist.bastionRingEvents || prev.bastionRingEvents,
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('Pin coordinates error:', e);
+    } finally {
+      setIsPinningCoords(false);
+      setTimeout(() => setLockFeedback(null), 4000);
     }
   };
 
@@ -425,7 +539,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     }
   };
 
-  // 9. 2D Interactive Star Cluster Canvas
+  // 9. 2D Interactive Star Cluster Canvas (1200x1200 In-Game Map Coordinate System)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -435,16 +549,6 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     const width = (canvas.width = canvas.parentElement.clientWidth);
     const height = (canvas.height = 460);
 
-    const clusterCenters = {
-      'D-94': { x: width * 0.35, y: height * 0.4, color: '#ef4444' },
-      FaKE: { x: width * 0.65, y: height * 0.35, color: '#f59e0b' },
-      FOTN: { x: width * 0.5, y: height * 0.7, color: '#3b82f6' },
-      DP94: { x: width * 0.25, y: height * 0.65, color: '#8b5cf6' },
-      'A~94': { x: width * 0.75, y: height * 0.65, color: '#10b981' },
-      OE94: { x: width * 0.45, y: height * 0.28, color: '#06b6d4' },
-      DEFAULT: { x: width * 0.5, y: height * 0.5, color: '#10b981' },
-    };
-
     let pulse = 0;
 
     const render = () => {
@@ -452,7 +556,8 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       ctx.fillStyle = '#020408';
       ctx.fillRect(0, 0, width, height);
 
-      ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
+      // Draw Zone 1 / Zone 2 / Zone 3 Rings
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.09)';
       ctx.lineWidth = 1;
       for (let r = 50; r < Math.max(width, height); r += 65) {
         ctx.beginPath();
@@ -460,7 +565,8 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         ctx.stroke();
       }
 
-      ctx.strokeStyle = 'rgba(16, 185, 129, 0.12)';
+      // Coordinate Axis Lines & Labels (0..1200 RoK Grid)
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.14)';
       ctx.beginPath();
       ctx.moveTo(0, height / 2);
       ctx.lineTo(width, height / 2);
@@ -468,6 +574,19 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       ctx.lineTo(width / 2, height);
       ctx.stroke();
 
+      // Draw Map Axis Labels
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('NW (X:0, Y:1200)', 8, 14);
+      ctx.fillText('SW (X:0, Y:0)', 8, height - 36);
+      ctx.textAlign = 'right';
+      ctx.fillText('NE (X:1200, Y:1200)', width - 8, 14);
+      ctx.fillText('SE (X:1200, Y:0)', width - 8, height - 36);
+      ctx.textAlign = 'center';
+      ctx.fillText('LOST TEMPLE (X:600, Y:600)', width / 2, height / 2 - 6);
+
+      // Radar Sweep Cone
       ctx.save();
       ctx.translate(width / 2, height / 2);
       ctx.rotate(pulse * 0.5);
@@ -486,34 +605,35 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
       const clickableNodes = [];
 
       targets.forEach((target, idx) => {
-        const alliance = target.lastKnownAlliance || 'DEFAULT';
-        const center = clusterCenters[alliance] || clusterCenters.DEFAULT;
-        const seed = Number(target.govId || idx + 1);
-        const angle = ((seed % 360) * Math.PI) / 180;
-        const radius = 25 + ((seed % 100) / 100) * 95;
+        const enriched = enrichGovernorWithRatios({
+          ...(target.liveTelemetry || {}),
+          govId: target.govId,
+          name: target.name,
+          alliance: target.lastKnownAlliance,
+          castlePos: target.lastKnownCoords || target.liveTelemetry?.castlePos,
+          coordSource: target.coordSource,
+        });
 
-        const x =
-          target.lastKnownCoords && target.lastKnownCoords.X
-            ? Math.min(width - 40, Math.max(40, (target.lastKnownCoords.X / 1200) * width))
-            : Math.min(width - 60, Math.max(60, center.x + Math.cos(angle) * radius));
-        const y =
-          target.lastKnownCoords && target.lastKnownCoords.Y
-            ? Math.min(height - 30, Math.max(30, (target.lastKnownCoords.Y / 1200) * height))
-            : Math.min(height - 40, Math.max(40, center.y + Math.sin(angle) * radius));
+        const tileX = enriched.displayX || 600;
+        const tileY = enriched.displayY || 600;
 
-        clickableNodes.push({ x, y, target });
+        // Convert RoK 0..1200 (where Y=1200 is North/Top) into Canvas X, Y
+        const x = Math.min(width - 28, Math.max(28, (tileX / 1200) * width));
+        const y = Math.min(height - 32, Math.max(28, ((1200 - tileY) / 1200) * height));
+
+        clickableNodes.push({ x, y, target, tileX, tileY });
 
         const isSelected = String(selectedTarget?.govId) === String(target.govId);
-        const isWhale = (target.lastKnownPower || 0) > 10000000;
-        const starRadius = isSelected ? 8 : isWhale ? 6.5 : 4.5;
+        const isExact = enriched.coordPrecision === 'EXACT_TILE' || enriched.coordPrecision === 'PINNED_TILE';
+        const starRadius = isSelected ? 8 : 6;
         const glowRadius = starRadius * (1.6 + Math.sin(pulse + idx) * 0.4);
 
         const glow = ctx.createRadialGradient(x, y, 0, x, y, glowRadius * 3.5);
         const color = isSelected
           ? '6, 182, 212'
-          : target.priority === 'ENEMY_WHALE'
-          ? '239, 68, 68'
-          : '16, 185, 129';
+          : isExact
+          ? '16, 185, 129'
+          : '245, 158, 11';
         glow.addColorStop(0, `rgba(${color}, 0.9)`);
         glow.addColorStop(0.5, `rgba(${color}, 0.25)`);
         glow.addColorStop(1, 'transparent');
@@ -527,7 +647,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         ctx.arc(x, y, starRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.strokeStyle = `rgba(${color}, ${isSelected ? 0.9 : 0.45 + Math.sin(pulse * 2) * 0.35})`;
+        ctx.strokeStyle = `rgba(${color}, ${isSelected ? 0.95 : 0.55 + Math.sin(pulse * 2) * 0.35})`;
         ctx.lineWidth = isSelected ? 2 : 1.5;
         ctx.beginPath();
         ctx.arc(x, y, starRadius + 9 + Math.sin(pulse * 3) * 3, 0, Math.PI * 2);
@@ -547,22 +667,24 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
           ctx.stroke();
         }
 
+        // Smart Label Alignment so right-side targets NEVER clip off the canvas edge
+        const placeLeft = x > width - 220;
+        ctx.textAlign = placeLeft ? 'right' : 'left';
+        const labelX = placeLeft ? x - 16 : x + 16;
+
         ctx.fillStyle = isSelected ? '#22d3ee' : '#f8fafc';
-        ctx.font = isSelected ? 'bold 11px monospace' : '10px monospace';
-        ctx.fillText(`[${target.lastKnownAlliance || 'None'}] ${target.name}`, x + 14, y - 4);
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px monospace';
-        ctx.fillText(
-          `${((target.lastKnownPower || 0) / 1e6).toFixed(2)}M Pwr • ${
-            target.lastKnownCoords
-              ? `(${target.lastKnownCoords.X}, ${target.lastKnownCoords.Y})`
-              : `Zone Sector [${alliance}]`
-          }`,
-          x + 14,
-          y + 9
-        );
+        ctx.font = isSelected ? 'bold 11px monospace' : 'bold 10px monospace';
+        ctx.fillText(`[${target.lastKnownAlliance || 'None'}] ${target.name}`, labelX, y - 4);
+
+        ctx.fillStyle = isExact ? '#34d399' : '#fbbf24';
+        ctx.font = 'bold 10px monospace';
+        const coordText = isExact
+          ? `#4194 X:${tileX} Y:${tileY} (EXACT)`
+          : `#4194 ~X:${tileX} Y:${tileY} ([${target.lastKnownAlliance}] Hive)`;
+        ctx.fillText(coordText, labelX, y + 10);
       });
 
+      ctx.textAlign = 'left';
       renderedStarsRef.current = clickableNodes;
       animationFrameId = requestAnimationFrame(render);
     };
@@ -571,6 +693,17 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     return () => cancelAnimationFrame(animationFrameId);
   }, [watchlist, selectedTarget]);
 
+  const handleCanvasMouseMove = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const mapX = Math.max(0, Math.min(1200, Math.round((clickX / canvas.width) * 1200)));
+    const mapY = Math.max(0, Math.min(1200, Math.round(((canvas.height - clickY) / canvas.height) * 1200)));
+    setHoverMapCoords({ X: mapX, Y: mapY });
+  };
+
   const handleCanvasClick = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -578,14 +711,21 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
+    // 1. Check if user clicked an existing star node
     for (const node of renderedStarsRef.current) {
       const dx = clickX - node.x;
       const dy = clickY - node.y;
       if (Math.sqrt(dx * dx + dy * dy) <= 28) {
         setSelectedTarget(node.target);
-        break;
+        return;
       }
     }
+
+    // 2. Otherwise, populate pinX / pinY with the clicked map coordinate for quick pinning
+    const mapX = Math.max(0, Math.min(1200, Math.round((clickX / canvas.width) * 1200)));
+    const mapY = Math.max(0, Math.min(1200, Math.round(((canvas.height - clickY) / canvas.height) * 1200)));
+    setPinX(String(mapX));
+    setPinY(String(mapY));
   };
 
   const activeDossier = selectedTarget
@@ -598,14 +738,26 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         killPoints: selectedTarget.liveTelemetry?.killPoints || selectedTarget.lastKnownKp,
         dead: selectedTarget.liveTelemetry?.dead || selectedTarget.lastKnownDeads,
         rank: selectedTarget.currentRank || selectedTarget.liveTelemetry?.rank,
+        castlePos: selectedTarget.lastKnownCoords || selectedTarget.liveTelemetry?.castlePos,
+        coordSource: selectedTarget.coordSource || selectedTarget.liveTelemetry?.coordSource,
       })
     : null;
+
+  const handleCopyBookmark = () => {
+    if (!activeDossier) return;
+    const str = `#4194 X:${activeDossier.displayX} Y:${activeDossier.displayY}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(str);
+      setCopiedCoords(true);
+      setTimeout(() => setCopiedCoords(false), 2500);
+    }
+  };
 
   const lockedCount = watchlist.targetsList?.length || 0;
   const combinedRingEvents = [
     ...(watchlist.bastionRingEvents || []),
-    ...((bastionTelemetry?.activityLog || []).filter((e) =>
-      String(e.action || '').includes('BLACK_OPS') || String(e.kingdom) === '4194'
+    ...((bastionTelemetry?.activityLog || []).filter(
+      (e) => String(e.action || '').includes('BLACK_OPS') || String(e.kingdom) === '4194'
     )),
   ].slice(0, 12);
 
@@ -628,7 +780,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
               GOV HUNTER & STAR CLUSTER RADAR
             </h1>
             <p className="text-xs text-slate-400 font-mono mt-0.5">
-              Two-Way Bastion MoE Command Loop • SCOUT Auto-Surge • TANK Pinpoint Recon • DOZER Delta Watch
+              In-Game Coordinate Tracking (#4194 X/Y) • Two-Way Bastion MoE Command Loop • Instant Mobile Dispatch
             </p>
           </div>
 
@@ -758,6 +910,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
             {searchResults.length > 0 && (
               <div className="mt-3 max-h-72 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-800/80">
                 {searchResults.map((gov) => {
+                  const enriched = enrichGovernorWithRatios(gov);
                   const isAlreadyTracked = (watchlist.targetsList || []).some(
                     (t) => String(t.govId) === String(gov.govId || gov.id)
                   );
@@ -772,9 +925,10 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                           <span className="text-emerald-400">[{gov.alliance || 'None'}]</span> {gov.name}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
-                          ID: {gov.govId || gov.id} • {((gov.power || 0) / 1e6).toFixed(2)}M Pwr • KP:{' '}
-                          {((gov.killPoints || 0) / 1e6).toFixed(2)}M •{' '}
-                          {gov.castlePos ? `(${gov.castlePos.X}, ${gov.castlePos.Y})` : 'Grid Locked'}
+                          ID: {gov.govId || gov.id} • {((gov.power || 0) / 1e6).toFixed(2)}M Pwr •{' '}
+                          <span className="text-cyan-300 font-bold">
+                            #4194 X:{enriched.displayX} Y:{enriched.displayY}
+                          </span>
                         </div>
                       </div>
                       <button
@@ -816,7 +970,17 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
               <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                 {watchlist.targetsList.map((target) => {
                   const isSelected = String(selectedTarget?.govId) === String(target.govId);
-                  const enriched = enrichGovernorWithRatios(target.liveTelemetry || target);
+                  const enriched = enrichGovernorWithRatios({
+                    ...(target.liveTelemetry || {}),
+                    govId: target.govId,
+                    name: target.name,
+                    alliance: target.lastKnownAlliance,
+                    castlePos: target.lastKnownCoords || target.liveTelemetry?.castlePos,
+                    coordSource: target.coordSource,
+                  });
+                  const isExact =
+                    enriched.coordPrecision === 'EXACT_TILE' || enriched.coordPrecision === 'PINNED_TILE';
+
                   return (
                     <div
                       key={target.govId}
@@ -851,7 +1015,24 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                         </button>
                       </div>
 
-                      <div className="mt-2.5 grid grid-cols-3 gap-2 text-[10px] font-mono">
+                      {/* Prominent In-Game Location Pill inside Watchlist Card */}
+                      <div className="mt-2 p-2 rounded-lg bg-slate-900/90 border border-cyan-500/30 flex items-center justify-between font-mono text-[10px]">
+                        <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          #4194 · X: {enriched.displayX} · Y: {enriched.displayY}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+                            isExact
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          }`}
+                        >
+                          {isExact ? 'EXACT TILE' : `[${target.lastKnownAlliance}] HIVE`}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] font-mono">
                         <div className="p-1.5 bg-slate-900/80 rounded border border-slate-800">
                           <span className="text-slate-400 block text-[9px]">POWER</span>
                           <span className="text-white font-bold">
@@ -962,6 +1143,134 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                     <UserX className="w-3.5 h-3.5" /> RELEASE
                   </button>
                 </div>
+              </div>
+
+              {/* ===================================================================== */}
+              {/* IN-GAME LOCATION, MAP COORDINATES & TELEPORT TRACKER BANNER           */}
+              {/* ===================================================================== */}
+              <div className="mb-4 p-4 rounded-xl bg-slate-950/90 border-2 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.12)] font-mono">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <Navigation className="w-3.5 h-3.5" /> IN-GAME KINGDOM & MAP COORDINATES
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                          activeDossier.coordPrecision === 'EXACT_TILE' ||
+                          activeDossier.coordPrecision === 'PINNED_TILE'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        }`}
+                      >
+                        {activeDossier.coordPrecision === 'EXACT_TILE'
+                          ? 'VERIFIED CASTLE TILE (RAM / MAILCACHE)'
+                          : activeDossier.coordPrecision === 'PINNED_TILE'
+                          ? 'SUPERADMIN PINNED TILE'
+                          : `ALLIANCE HIVE SECTOR ESTIMATE ([${activeDossier.alliance || 'None'}])`}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-baseline gap-3 pt-1">
+                      <div className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+                        <span className="text-emerald-400">#4194</span>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-cyan-300">X: {activeDossier.displayX}</span>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-cyan-300">Y: {activeDossier.displayY}</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyBookmark}
+                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        {copiedCoords ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-400" /> COPIED TO CLIPBOARD
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3 text-cyan-400" /> COPY #4194 X:{activeDossier.displayX} Y:
+                            {activeDossier.displayY}
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 pt-0.5">
+                      <span className="text-slate-300 font-bold">{activeDossier.mapZone}</span> • Alliance:{' '}
+                      <span className="text-emerald-400 font-bold">
+                        [{activeDossier.alliance || 'None'}] {activeDossier.allianceName || ''}
+                      </span>
+                      {activeDossier.coordPrecision === 'ALLIANCE_HIVE_SECTOR' && (
+                        <span className="block text-[10px] text-amber-300/90 mt-0.5">
+                          Note: RoK Leaderboards conceal exact castle tiles until map/report contact. Showing [
+                          {activeDossier.alliance}] Hive Sector — pin exact X/Y on the right whenever sighted!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Inline Coordinate Pin / Update Control */}
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-700/80 flex flex-col gap-2 shrink-0">
+                    <div className="text-[9px] font-bold uppercase text-cyan-300 flex items-center justify-between gap-2">
+                      <span>PIN / UPDATE EXACT IN-GAME TILE (0–1200)</span>
+                      <span className="text-slate-500">DOZER TELEPORT WATCH</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center bg-slate-950 border border-slate-700 rounded-lg px-2 py-1">
+                        <span className="text-[10px] text-emerald-400 font-bold mr-1.5">X:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="1200"
+                          value={pinX}
+                          onChange={(e) => setPinX(e.target.value)}
+                          placeholder="640"
+                          className="w-14 bg-transparent text-xs text-white font-bold focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center bg-slate-950 border border-slate-700 rounded-lg px-2 py-1">
+                        <span className="text-[10px] text-emerald-400 font-bold mr-1.5">Y:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="1200"
+                          value={pinY}
+                          onChange={(e) => setPinY(e.target.value)}
+                          placeholder="580"
+                          className="w-14 bg-transparent text-xs text-white font-bold focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isPinningCoords}
+                        onClick={() => handlePinCoordinates()}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black text-[10px] rounded-lg transition-all cursor-pointer whitespace-nowrap shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                      >
+                        {isPinningCoords ? 'LOCKING...' : 'LOCK COORDS'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Teleport / Relocation History Trail */}
+                {selectedTarget?.movementHistory && selectedTarget.movementHistory.length > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-slate-800 flex flex-wrap items-center gap-2 text-[10px]">
+                    <span className="text-rose-400 font-bold flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> TELEPORT TRAIL:
+                    </span>
+                    {selectedTarget.movementHistory.slice(-3).map((m, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-200"
+                      >
+                        ({m.from?.X}, {m.from?.Y}) → ({m.to?.X}, {m.to?.Y}) [{m.distance} tiles]
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 6-Card Strategic War Ratios ($0 Token Math) */}
@@ -1083,22 +1392,22 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
 
           {/* Tactical Star Cluster Canvas */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 backdrop-blur-sm shadow-xl">
-            <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 border-b border-slate-800 pb-2 gap-2">
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-emerald-400" />
                 <h2 className="text-xs font-mono font-bold uppercase text-slate-200">
-                  TACTICAL STAR CLUSTER & TERRITORY RADAR (1200x1200 GRID)
+                  TACTICAL STAR CLUSTER & TERRITORY RADAR (1200x1200 IN-GAME GRID)
                 </h2>
               </div>
               <div className="text-[10px] font-mono text-slate-400 flex items-center gap-3">
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" /> [D-94]
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" /> Verified Castle Tile
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" /> [FaKE]
+                  <span className="w-2 h-2 rounded-full bg-amber-400" /> Alliance Hive Sector
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" /> [FOTN]
+                  <span className="w-2 h-2 rounded-full bg-cyan-400" /> Active Selection
                 </span>
               </div>
             </div>
@@ -1107,12 +1416,19 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseLeave={() => setHoverMapCoords(null)}
                 className="w-full block cursor-crosshair"
               />
               <div className="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-mono text-slate-300">
-                Radar Range: Complete Kingdom #4194 Field • Locked Targets:{' '}
+                Kingdom #4194 Map (0–1200) • Locked Targets:{' '}
                 <span className="text-emerald-400 font-bold">{watchlist.targetsList?.length || 0}</span>
               </div>
+              {hoverMapCoords && (
+                <div className="absolute bottom-3 right-3 bg-slate-900/90 border border-cyan-500/40 px-3 py-1.5 rounded-lg text-[10px] font-mono text-cyan-300">
+                  Cursor: #4194 X:{hoverMapCoords.X} Y:{hoverMapCoords.Y} (Click to populate Pin X/Y)
+                </div>
+              )}
             </div>
           </div>
 
