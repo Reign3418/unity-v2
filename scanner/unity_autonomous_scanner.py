@@ -1330,15 +1330,18 @@ def run_kingdom_scan(args):
         })
         return
 
-    # Record any low-power governors sitting in MuMu RAM from a prior session (e.g. Rank 1000)
-    # so they are not reported as the active governor while stepping the top of the leaderboard.
+    # Record any governors already sitting in MuMu RAM from a prior session before Rank 1 is tapped
+    # so fresh_batch strictly tracks newly opened profiles and Rank 1 always reports active_ram[0].
     pre_existing_low_ids = set()
     seen_in_scan_ids = set()
+    cached_save_govs = {}
     try:
         for pg in extract_all_governors_from_ram(adb_serial=args.adb):
             pgid = int(pg.get("govId") or pg.get("id") or 0)
-            if pgid > 0 and int(pg.get("power") or 0) < 8_000_000:
-                pre_existing_low_ids.add(pgid)
+            if pgid > 0:
+                seen_in_scan_ids.add(pgid)
+                if int(pg.get("power") or 0) < 3_000_000:
+                    pre_existing_low_ids.add(pgid)
     except Exception:
         pass
 
@@ -1393,14 +1396,16 @@ def run_kingdom_scan(args):
             except Exception:
                 pass
             accum_ram_list = list(cumulative_ram_by_id.values())
-            save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
+            if not cached_save_govs or rank == 1 or rank % 50 == 0 or rank == args.end_rank:
+                cached_save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
+            save_govs = cached_save_govs
             merged_govs = merge_ram_and_mumu_save_telemetry(accum_ram_list, save_govs)
             total_extracted = len(merged_govs)
 
             # Pick the newly scanned governor from this batch (filtering out stale pre-existing low-power RAM entries)
             active_ram = [
                 g for g in ram_govs
-                if rank > 250 or int(g.get("govId") or g.get("id") or 0) not in pre_existing_low_ids
+                if rank > 450 or int(g.get("govId") or g.get("id") or 0) not in pre_existing_low_ids
             ]
             fresh_batch = [
                 g for g in active_ram
@@ -1409,7 +1414,11 @@ def run_kingdom_scan(args):
             for fg in fresh_batch:
                 seen_in_scan_ids.add(int(fg.get("govId") or fg.get("id") or 0))
 
-            if fresh_batch:
+            if rank == 1 and active_ram:
+                cur_live = active_ram[0]
+                last_gov_name = cur_live.get("name", last_gov_name)
+                last_gov_power = cur_live.get("power", last_gov_power)
+            elif fresh_batch:
                 cur_live = fresh_batch[-1]
                 last_gov_name = cur_live.get("name", last_gov_name)
                 last_gov_power = cur_live.get("power", last_gov_power)
