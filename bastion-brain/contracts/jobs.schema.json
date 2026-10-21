@@ -460,21 +460,311 @@
         },
         "created_at": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
         },
         "not_before": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
         },
         "deadline": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
         },
         "args": {
           "type": "object"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "probe_status"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/ProbeStatusArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "switch_character"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/SwitchCharacterArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "provision_character"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/ProvisionCharacterArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "grow_city"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/GrowCityArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "scan_kingdom"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/ScanKingdomArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "sleep"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/SleepArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "collect_rewards"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/CollectRewardsArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "alliance_help"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/AllianceHelpArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "gather"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/GatherArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "train_troops"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/TrainTroopsArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "research"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/ResearchArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "job_type": {
+                "const": "locate_governor"
+              }
+            },
+            "required": [
+              "job_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "$ref": "#/$defs/LocateGovernorArgs"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "instance_id": {
+                "const": "sidekick-mumu-0"
+              }
+            },
+            "required": [
+              "instance_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "adb_serial": {
+                "const": "127.0.0.1:16384"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "instance_id": {
+                "const": "sidekick-mumu-1"
+              }
+            },
+            "required": [
+              "instance_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "adb_serial": {
+                "const": "127.0.0.1:16416"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "instance_id": {
+                "const": "sidekick-mumu-2"
+              }
+            },
+            "required": [
+              "instance_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "adb_serial": {
+                "const": "127.0.0.1:16448"
+              }
+            }
+          }
+        }
+      ]
     },
     "ObservedState": {
       "type": "object",
@@ -640,11 +930,13 @@
         },
         "started_at": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
         },
         "completed_at": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
         },
         "duration_ms": {
           "type": "integer",
@@ -677,7 +969,8 @@
               },
               "timestamp": {
                 "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
               }
             },
             "additionalProperties": false

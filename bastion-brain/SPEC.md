@@ -4,7 +4,8 @@
 | :--- | :--- |
 | **Service Name** | `bastion-brain` |
 | **Runtime** | Python 3.11+ Asynchronous Worker on **Railway** (no inbound public HTTP port) |
-| **Default Operating Mode** | `AUTONOMOUS` with full **Oversight & Decision Audit Logging** |
+| **Contract Default Mode** | `AUTONOMOUS` with full **Oversight & Decision Audit Logging** |
+| **Boot Mode (`BRAIN_MODE` env var)** | Defaults to `DRY_RUN` until the Principal sets `BRAIN_MODE=AUTONOMOUS` on Railway (or flips the mode in Unity `/bastion`). `OFF` is the kill switch. |
 | **State & Transport** | AWS DynamoDB (`BastionBots`, `BastionEvents`, `BastionIntents`) + AWS SQS (`bastion-jobs.fifo`, `bastion-results`) |
 | **Executor** | `CIPHER` on `SIDEKICK` (`sidekick-mumu-0`, `sidekick-mumu-1`, `sidekick-mumu-2`) |
 | **Front Door** | **Unity** (`https://unity-v2-azure.vercel.app/bastion`) |
@@ -106,6 +107,12 @@ Every decision across all three rings writes a structured `BastionEvent` (define
 ---
 
 ## 6. Contract Files in `bastion-brain/contracts/`
+
+**Source of truth:** the JSON Schemas define all *shape* rules (types, enums, bounds, `args` bound to `job_type`, instance ↔ ADB serial ↔ account consistency, timestamp format). [`validator.py`](./contracts/validator.py) runs them with `jsonschema` and adds the *semantic* rules a schema cannot express (`not_before < deadline`, ring authority per event type, actor ↔ ring, 2-per-kingdom slot cap, helper tier/TTL/concurrency, results must echo the dispatched job). JS consumers (Vercel) can validate with the same schema files (e.g. `ajv`).
+
+**Fleet identity (confirmed):** one Google account per emulator instance — `mumu-account-0 ↔ sidekick-mumu-0 ↔ 127.0.0.1:16384`, `-1 ↔ 16416`, `-2 ↔ 16448`. Adding an emulator means updating the enums/`allOf` in `jobs.schema.json` and `bots.schema.json` plus `INSTANCE_TO_ADB` / `ACCOUNT_TO_INSTANCE` in `validator.py`; the regression suite fails if they drift apart.
+
+**Install & test:** `pip install -r bastion-brain/requirements.txt` then `python bastion-brain/contracts/validator.py` (runs [`tests/test_contracts.py`](./tests/test_contracts.py)).
 
 | File | Purpose |
 | :--- | :--- |
