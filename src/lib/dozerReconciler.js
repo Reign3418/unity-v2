@@ -267,6 +267,18 @@ export function reconcileGovernorBatch({
       kingdomId: kd,
     };
 
+    // Ensure alliance & allianceName always reflect latest live scan (and clear allianceName if unallied or tag changed)
+    if (rawGov.alliance !== undefined) {
+      merged.alliance = rawGov.alliance || 'None';
+      if (merged.alliance === 'None' || merged.alliance === '-') {
+        merged.allianceName = '';
+      } else if (rawGov.allianceName !== undefined) {
+        merged.allianceName = rawGov.allianceName;
+      } else if (prev.alliance && prev.alliance !== merged.alliance) {
+        merged.allianceName = '';
+      }
+    }
+
     // 1. Enforce Monotonic Lifetime Stat Guard (KP & Deads never go backwards)
     if (monotonicEnabled) {
       for (const field of MONOTONIC_FIELDS) {

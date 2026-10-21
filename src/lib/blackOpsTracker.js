@@ -126,10 +126,10 @@ export async function dispatchBastionPinpointRecon(target = {}) {
   const name = target.name || `Governor_${govId}`;
   const kingdom = target.kingdom || '4194';
   const targetRank = Number(target.currentRank || target.liveTelemetry?.rank || 1);
-  const startRank = Math.max(1, targetRank - 5);
-  const endRank = Math.min(650, targetRank + 15);
+  const startRank = 1;
+  const endRank = Math.max(25, Math.min(650, targetRank + 10));
 
-  const psCommand = `Start-Process python -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb 127.0.0.1:16384 --kd ${kingdom} --mode kingdom-scan --start-rank ${startRank} --end-rank ${endRank} --skip-switch' -WindowStyle Hidden`;
+  const psCommand = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb 127.0.0.1:16384 --kd ${kingdom} --mode kingdom-scan --start-rank ${startRank} --end-rank ${endRank} --skip-switch --push' -WindowStyle Hidden`;
   const cmdId = `bops-recon-${Date.now()}`;
   const scanProgressPayload = {
     running: true,

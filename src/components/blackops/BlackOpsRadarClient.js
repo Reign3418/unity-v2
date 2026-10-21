@@ -150,7 +150,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
         serverList.forEach((t) => {
           const prevLocal = mergedMap.get(String(t.govId));
           // Preserve locally pinned coordinates if server hasn't caught up yet
-          if (prevLocal?.lastKnownCoords && !t.lastKnownCoords) {
+          if (prevLocal?.coordSource === 'MANUAL_PIN' && prevLocal?.lastKnownCoords && !t.lastKnownCoords) {
             mergedMap.set(String(t.govId), {
               ...t,
               lastKnownCoords: prevLocal.lastKnownCoords,
@@ -162,19 +162,28 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
           }
         });
 
-        const mergedList = Array.from(mergedMap.values());
-        saveLocalTargets(mergedList);
+        let mergedList = Array.from(mergedMap.values());
+        const serverIds = new Set(serverList.map((s) => String(s.govId)));
+        const hasUnsyncedLocal = localList.some((l) => !serverIds.has(String(l.govId)));
 
-        if (localList.length > serverList.length) {
-          fetch('/api/black-ops/tracker', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'SYNC_LOCAL_TARGETS',
-              localTargets: mergedList,
-            }),
-          }).catch(() => {});
+        if (hasUnsyncedLocal) {
+          try {
+            const syncRes = await fetch('/api/black-ops/tracker', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'SYNC_LOCAL_TARGETS',
+                localTargets: mergedList,
+              }),
+            });
+            const syncData = await syncRes.json();
+            if (syncData?.success && syncData?.watchlist?.targetsList) {
+              mergedList = syncData.watchlist.targetsList;
+            }
+          } catch {}
         }
+
+        saveLocalTargets(mergedList);
 
         setWatchlist({
           ...data.watchlist,

@@ -12,14 +12,33 @@ import {
   dispatchBastionPinpointRecon,
 } from '@/lib/blackOpsTracker';
 import { readLiveTelemetryCache } from '@/app/api/ingest/kingdom-scan/route';
+import { getGlobalConfig } from '@/lib/awsDynamo';
 import { enrichGovernorWithRatios } from '@/lib/telemetryAnalytics';
 
 export const dynamic = 'force-dynamic';
 
-function get4194Dataset() {
+async function get4194Dataset() {
   const liveCache = readLiveTelemetryCache();
-  const govsById = liveCache.governorsById || {};
+  const govsById = { ...(liveCache.governorsById || {}) };
+
+  // Overlay latest real-time DynamoDB scan batch so Vercel Serverless reflects live scans in <1s
+  try {
+    const rawOverlay = await getGlobalConfig('LIVE_TELEMETRY_OVERLAY_4194');
+    if (rawOverlay) {
+      const parsedOverlay = JSON.parse(rawOverlay);
+      if (parsedOverlay && typeof parsedOverlay === 'object') {
+        for (const [gid, g] of Object.entries(parsedOverlay)) {
+          govsById[gid] = { ...(govsById[gid] || {}), ...g };
+        }
+      }
+    }
+  } catch {}
+
   const list = Object.values(govsById).filter((g) => String(g.kingdomId || g.kingdom || '4194') === '4194');
+  list.sort((a, b) => (Number(b.power) || 0) - (Number(a.power) || 0));
+  list.forEach((g, idx) => {
+    g.rank = idx + 1;
+  });
 
   if (list.length > 0) {
     return list.map((g) => enrichGovernorWithRatios(g));
@@ -45,17 +64,24 @@ function buildEnrichedWatchlist(watchlist, dataset) {
 
   const enrichedTargets = Object.values(watchlist.targets || {}).map((target) => {
     const live = targetMap.get(String(target.govId)) || target.initialSnapshot || null;
+    const allianceChanged =
+      live?.alliance && target.lastKnownAlliance && live.alliance !== target.lastKnownAlliance;
     const pinnedOrLastCoords =
-      target.lastKnownCoords ||
-      live?.castlePos ||
-      (live?.mapTileX && live?.mapTileY ? { X: Number(live.mapTileX), Y: Number(live.mapTileY) } : null);
+      target.coordSource === 'MANUAL_PIN'
+        ? target.lastKnownCoords
+        : !allianceChanged
+        ? target.lastKnownCoords ||
+          live?.castlePos ||
+          (live?.mapTileX && live?.mapTileY ? { X: Number(live.mapTileX), Y: Number(live.mapTileY) } : null)
+        : live?.castlePos || null;
     const enrichedLive = enrichGovernorWithRatios({
       ...(live || {}),
       govId: target.govId,
-      name: target.name || live?.name,
+      name: live?.name || target.name,
       alliance: live?.alliance || target.lastKnownAlliance,
+      allianceName: live?.allianceName ?? '',
       castlePos: pinnedOrLastCoords,
-      coordSource: target.coordSource || live?.coordSource,
+      coordSource: target.coordSource === 'MANUAL_PIN' ? 'MANUAL_PIN' : live?.coordSource,
     });
     return {
       ...target,
@@ -95,7 +121,7 @@ export async function GET(req) {
     const query = (searchParams.get('q') || '').trim().toLowerCase();
 
     const watchlist = await getWatchlist();
-    const dataset = get4194Dataset();
+    const dataset = await get4194Dataset();
 
     // If query provided, return matching governors for autocomplete / instant search
     let searchResults = [];
@@ -138,7 +164,7 @@ export async function POST(req) {
 
     const body = await req.json();
     const { action } = body;
-    const dataset = get4194Dataset();
+    const dataset = await get4194Dataset();
 
     if (action === 'TRACK_TARGET') {
       const { govId, name, kingdom, priority, notes, initialData } = body;
@@ -227,12 +253,12 @@ export async function POST(req) {
       let watchlist = await getWatchlist();
       for (const lt of localTargets) {
         const gid = lt.govId || lt.id;
-        if (gid && !watchlist.targets[String(gid)]) {
+        if (gid) {
           const fullRecord =
             dataset.find((g) => String(g.govId || g.id) === String(gid)) || lt.liveTelemetry || lt;
           const res = await addTrackedTarget({
             govId: gid,
-            name: lt.name || fullRecord.name,
+            name: fullRecord.name || lt.name,
             kingdom: lt.kingdom || '4194',
             priority: lt.priority || 'VIP',
             notes: lt.notes || '',

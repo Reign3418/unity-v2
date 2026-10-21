@@ -374,6 +374,8 @@ export async function POST(request) {
           const dueKingdoms = (state.kingdomSchedules || [])
             .filter((k) => {
               if (!k || k.mode === 'GENESIS_WATCH' || k.mode === 'PAUSED') return false;
+              // Keep sidekick-mumu-0 dedicated to Sovereign Kingdom #4194
+              if (String(k.kingdom) !== '4194') return false;
               if (!k.nextScanAt) return true;
               const nextMs = new Date(k.nextScanAt).getTime();
               return !isNaN(nextMs) && nextMs <= Date.now();
@@ -423,7 +425,7 @@ export async function POST(request) {
             };
             state.activeScanProgress = autoProgress;
 
-            const autoPsCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --mode kingdom-scan --kd ${targetKd} --end-rank ${targetRanks} --push' -WindowStyle Hidden`;
+            const autoPsCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb 127.0.0.1:16384 --mode kingdom-scan --kd ${targetKd} --end-rank ${targetRanks} --skip-switch --push' -WindowStyle Hidden`;
 
             appendLog(state, {
               agent: 'NULL',
@@ -1032,7 +1034,8 @@ export async function POST(request) {
       state.activeTasksByInstance[instanceId] = scanTask;
       state.activeScanProgress = scanTask;
 
-      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb ${adbSerial} --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks} --push' -WindowStyle Hidden`;
+      const skipSwitchArg = !needsSwitch ? ' --skip-switch' : '';
+      const psCmd = `try { Invoke-RestMethod "http://192.168.50.41:8888/files/provision_neighbor_kingdom.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\provision_neighbor_kingdom.py"; Invoke-RestMethod "http://192.168.50.41:8888/files/unity_autonomous_scanner.py" -TimeoutSec 2 -ErrorAction Stop -OutFile "C:\\UnityScanner\\unity_autonomous_scanner.py" } catch {}; Start-Process "C:\\UnityScanner\\.venv\\Scripts\\python.exe" -ArgumentList 'C:\\UnityScanner\\unity_autonomous_scanner.py --adb ${adbSerial} --mode kingdom-scan --kd ${targetKd} --end-rank ${preset.targetRanks}${skipSwitchArg} --push' -WindowStyle Hidden`;
       const dispatchResult = await dispatchToClusterHub(psCmd, scanTask);
 
       await writeBastionState(state);

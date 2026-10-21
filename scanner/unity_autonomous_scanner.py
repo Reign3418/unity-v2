@@ -121,6 +121,57 @@ def load_coords():
         return json.load(f)
 
 
+def decode_clean_lua_slot(raw_bytes: bytes, is_governor_name: bool = False) -> str:
+    """
+    Decodes a UTF-8 string from a Lua 8/16-byte inline buffer from left to right,
+    stopping immediately at the first null byte, invalid UTF-8 sequence, control char,
+    illegal RoK name symbol, or binary pointer tail.
+    """
+    had_null = b"\x00" in raw_bytes
+    chunk = raw_bytes.split(b"\x00", 1)[0]
+    out_chars = []
+    i = 0
+    n = len(chunk)
+    illegal_chars = set('[]/\\{};%|<>"`$') if is_governor_name else set('\\{};|<>"`')
+    while i < n:
+        b0 = chunk[i]
+        if b0 < 0x20 or b0 == 0x7F:
+            break
+        if b0 < 0x80:
+            seq_len = 1
+        elif (b0 & 0xE0) == 0xC0:
+            seq_len = 2
+        elif (b0 & 0xF0) == 0xE0:
+            seq_len = 3
+        elif (b0 & 0xF8) == 0xF0:
+            seq_len = 4
+        else:
+            break
+        if i + seq_len > n:
+            break
+        # If a multi-byte char is immediately followed by a stray continuation byte (0x80..0xBF),
+        # this 4-byte chunk is a binary integer/pointer, not UTF-8 text.
+        if seq_len >= 2 and (i + seq_len < n) and (0x80 <= chunk[i + seq_len] <= 0xBF):
+            break
+        try:
+            ch = chunk[i : i + seq_len].decode("utf-8", errors="strict")
+        except UnicodeDecodeError:
+            break
+        if not ch.isprintable() or ch in illegal_chars:
+            break
+        out_chars.append(ch)
+        i += seq_len
+
+    res = "".join(out_chars).strip()
+    # If buffer was NOT null-terminated and ran into binary bytes (i < n), strip 1-3 trailing ASCII residual bytes after Cyrillic/CJK words
+    if not had_null and i < n and len(res) >= 4:
+        has_cyrillic = any(0x0400 <= ord(c) <= 0x04FF for c in res)
+        if has_cyrillic:
+            while len(res) > 2 and ord(res[-1]) < 0x80 and res[-1].isalpha():
+                res = res[:-1]
+    return res.strip()
+
+
 def extract_utf8_name_from_header(header_bytes: bytes) -> str:
     """
     Extracts exact UTF-8 Governor Name from the Lua table header preceding
@@ -135,33 +186,17 @@ def extract_utf8_name_from_header(header_bytes: bytes) -> str:
     window = header_bytes[max(0, idx - 64) : idx]
     kp_marker = window.rfind(b"\xff\x20\xa8\xbd")
     if kp_marker != -1:
-        # Right after the 4-byte key hash 0xbda820ff is the governor's UTF-8 name!
         name_region = window[kp_marker + 4 :]
-        # Try decoding prefixes of name_region from longest to shortest
-        for end_pos in range(len(name_region), 1, -1):
-            sub = name_region[:end_pos].rstrip(b"\x00")
-            if len(sub) < 2:
-                continue
-            # If the last byte right before '{"avatar' was a 1-byte Lua tag (e.g. 'n' after 'krp\xc5n')
-            try:
-                txt = sub.decode("utf-8")
-                if all(c.isprintable() for c in txt) and any(c.isalnum() for c in txt):
-                    return txt.strip()
-            except UnicodeDecodeError:
-                continue
+        clean = decode_clean_lua_slot(name_region, is_governor_name=True)
+        if len(clean) >= 2 and any(c.isalnum() for c in clean):
+            return clean
 
     # Fallback: scan null-separated chunks before idx
     parts = [p for p in window.split(b"\x00") if len(p) >= 2]
     for cand in reversed(parts):
-        for trim_start in range(0, min(6, len(cand) - 1)):
-            for trim_end in range(0, min(4, len(cand) - trim_start - 1)):
-                sub = cand[trim_start : len(cand) - trim_end]
-                try:
-                    txt = sub.decode("utf-8").strip()
-                    if len(txt) >= 2 and all(c.isprintable() for c in txt) and any(c.isalnum() for c in txt):
-                        return txt
-                except UnicodeDecodeError:
-                    continue
+        clean = decode_clean_lua_slot(cand, is_governor_name=True)
+        if len(clean) >= 2 and any(c.isalnum() for c in clean):
+            return clean
     return ""
 
 
@@ -459,20 +494,21 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                 gov["civilization"] = CIV_NAMES.get(gov["civId"], "China")
                                 gov["name"] = extract_utf8_name_from_header(hdr)
 
-                                # Extract Alliance Full Name & 4-char Tag
+                                # Extract Alliance Full Name & 4-char Tag (ONLY when 0x4ebbe693 alliance marker exists in header)
                                 al_marker = hdr.find(b"\x93\xe6\xbb\x4e")
                                 if al_marker != -1:
-                                    al_slice = hdr[al_marker + 4 :]
-                                    al_parts = [p for p in al_slice.split(b"\x00") if len(p) >= 2]
-                                    if al_parts:
-                                        gov["allianceName"] = al_parts[0].decode("utf-8", "ignore").strip()
-                                tag_raw = hdr[-64:-60] if len(hdr) >= 64 else b""
-                                tag_str = "".join(chr(b) for b in tag_raw if 32 <= b <= 126).strip()
-                                if tag_str:
-                                    gov["alliance"] = tag_str
-                                    # Clean trailing tag if concatenated onto allianceName
-                                    if gov["allianceName"].endswith(tag_str) and len(gov["allianceName"]) > len(tag_str):
-                                        gov["allianceName"] = gov["allianceName"][: -len(tag_str)].strip()
+                                    al_end = len(hdr) - 64 if len(hdr) >= 64 and al_marker + 4 < len(hdr) - 64 else al_marker + 20
+                                    al_slice = hdr[al_marker + 4 : al_end]
+                                    gov["allianceName"] = decode_clean_lua_slot(al_slice, is_governor_name=True)
+                                    tag_raw = hdr[-64:-60] if len(hdr) >= 64 else b""
+                                    tag_str = "".join(chr(b) for b in tag_raw if 32 <= b <= 126).strip()
+                                    if tag_str:
+                                        gov["alliance"] = tag_str
+                                        if gov["allianceName"].endswith(tag_str) and len(gov["allianceName"]) > len(tag_str):
+                                            gov["allianceName"] = gov["allianceName"][: -len(tag_str)].strip()
+                                else:
+                                    gov["alliance"] = "None"
+                                    gov["allianceName"] = ""
 
                                 more = parse_tier_and_more_block(body)
                                 for mk, mv in more.items():
@@ -484,11 +520,34 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                     gov["id"] = str(gid)
                                     if not gov["name"]:
                                         gov["name"] = f"Governor_{gid}"
-                                    # Merge with any earlier record for same gid (keep non-zero values)
+                                    # Merge with any earlier record for same gid (keep latest alliance/power + non-zero deep stats)
                                     if gid in gov_by_id:
                                         existing = gov_by_id[gid]
                                         for fk, fv in gov.items():
-                                            if fv and (not existing.get(fk) or existing.get(fk) == "None" or existing.get(fk) == f"Governor_{gid}"):
+                                            if fk == "name":
+                                                if fv and fv != f"Governor_{gid}":
+                                                    old_n = existing.get("name", "")
+                                                    if old_n and old_n != f"Governor_{gid}":
+                                                        cp = os.path.commonprefix([old_n, fv]).strip()
+                                                        existing["name"] = cp if len(cp) >= 3 else fv
+                                                    else:
+                                                        existing["name"] = fv
+                                            elif fk == "alliance":
+                                                existing["alliance"] = fv
+                                            elif fk == "allianceName":
+                                                if gov.get("alliance") == "None":
+                                                    existing["allianceName"] = ""
+                                                elif fv:
+                                                    old_an = existing.get("allianceName", "")
+                                                    if old_an and existing.get("alliance") == gov.get("alliance"):
+                                                        cp = os.path.commonprefix([old_an, fv]).strip()
+                                                        existing["allianceName"] = cp if len(cp) >= 3 else fv
+                                                    else:
+                                                        existing["allianceName"] = fv
+                                            elif isinstance(fv, (int, float)):
+                                                if fv > 0:
+                                                    existing[fk] = fv
+                                            elif fv:
                                                 existing[fk] = fv
                                     else:
                                         gov_by_id[gid] = gov
@@ -498,6 +557,26 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
         k32.CloseHandle(h)
 
     gov_list = list(gov_by_id.values())
+
+    # Consensus-clean allianceName across members sharing the same 4-char alliance tag
+    by_tag = {}
+    for g in gov_list:
+        tag = g.get("alliance")
+        an = g.get("allianceName") or ""
+        if tag and tag != "None" and len(an) >= 3:
+            by_tag.setdefault(tag, []).append(an)
+    clean_tag_names = {}
+    for tag, names in by_tag.items():
+        if len(names) >= 2:
+            cp = os.path.commonprefix(names).strip()
+            if len(cp) >= 3:
+                clean_tag_names[tag] = cp
+    for g in gov_list:
+        tag = g.get("alliance")
+        if tag in clean_tag_names:
+            g["allianceName"] = clean_tag_names[tag]
+        elif tag == "None":
+            g["allianceName"] = ""
 
     # Link any detached More Info block where t1..t5 kills == totalUnitsKilled or t1..t5 kp == killPoints
     for g in gov_list:
@@ -806,7 +885,12 @@ def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> 
             ):
                 if s.get(k) is not None:
                     rec[k] = s[k]
-            if not rec.get("allianceName") and s.get("allianceName"):
+            if (
+                not rec.get("allianceName")
+                and s.get("allianceName")
+                and rec.get("alliance") not in (None, "", "None")
+                and rec.get("alliance") == s.get("alliance")
+            ):
                 rec["allianceName"] = s["allianceName"]
         rec["telemetrySource"] = "MUMU_45_FIELD_RAM_AND_SAVE" if s else "MUMU_35_FIELD_RAM"
         merged_by_id[pid] = rec
@@ -1003,14 +1087,24 @@ def get_screen_ocr_text(driver) -> str:
         return ""
 
 
-def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch: bool = False) -> bool:
+def ensure_individual_power_leaderboard_open(
+    driver, target_kd: str, skip_switch: bool = False, reset_to_top: bool = True
+) -> bool:
     """
     Guarantees the emulator is on the target kingdom character AND that the
-    INDIVIDUAL POWER RANKINGS modal is open before any row taps begin.
+    INDIVIDUAL POWER RANKINGS modal is open (and reset to Rank #1 when reset_to_top=True)
+    before any row taps begin.
     """
     screen_txt = get_screen_ocr_text(driver)
     if skip_switch and "INDIVIDUAL POWER RANKINGS" in screen_txt:
-        return True
+        if reset_to_top:
+            print("  [PREAMBLE] INDIVIDUAL POWER RANKINGS already open -> closing (1396,58) & reopening (380,560) to reset scroll to Rank #1...")
+            driver.tap(1396, 58, sleep_sec=1.5)
+            driver.tap(380, 560, sleep_sec=2.2)
+            if "INDIVIDUAL POWER RANKINGS" in get_screen_ocr_text(driver):
+                return True
+        else:
+            return True
 
     if not skip_switch:
         prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
@@ -1028,6 +1122,10 @@ def ensure_individual_power_leaderboard_open(driver, target_kd: str, skip_switch
     for attempt in range(1, 120):
         screen_txt = get_screen_ocr_text(driver)
         if "INDIVIDUAL POWER RANKINGS" in screen_txt:
+            if reset_to_top and attempt == 1:
+                print("  [PREAMBLE] Resetting INDIVIDUAL POWER RANKINGS scroll to Rank #1 (1396,58 -> 380,560)...")
+                driver.tap(1396, 58, sleep_sec=1.5)
+                driver.tap(380, 560, sleep_sec=2.2)
             print(f"  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open (attempt {attempt}).")
             return True
 
@@ -1226,9 +1324,9 @@ def run_kingdom_scan(args):
     for rank in range(args.start_rank, args.end_rank + 1):
         ry = first_rows_y[rank - 1] if rank <= 6 else settled_y
         print(f"  -> Stepping Rank #{rank} (y={ry})...")
-        driver.tap(600, ry, sleep_sec=0.58)        # Open Governor Profile from Leaderboard row
-        driver.tap(240, 755, sleep_sec=0.58)       # Open More Info
-        driver.tap(1395, 55, sleep_sec=0.42)       # Close More Info (X at 1395, 55)
+        driver.tap(600, ry, sleep_sec=0.78)        # Open Governor Profile from Leaderboard row
+        driver.tap(240, 755, sleep_sec=0.74)       # Open More Info
+        driver.tap(1395, 55, sleep_sec=0.45)       # Close More Info (X at 1395, 55)
         driver.tap(1455, 88, sleep_sec=0.48)       # Close Governor Profile (X at 1455, 88)
 
         if rank >= 6:
@@ -1244,7 +1342,7 @@ def run_kingdom_scan(args):
         if rank % 10 == 0 or rank == args.end_rank or rank == 1:
             if rank < args.end_rank and "INDIVIDUAL POWER" not in get_screen_ocr_text(driver):
                 print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus; restoring INDIVIDUAL POWER RANKINGS...")
-                ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True)
+                ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True, reset_to_top=False)
             if rank >= 6 and rank < args.end_rank:
                 settled_y = detect_bottom_card_center_y(driver, target_y=780)
             ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
@@ -1255,9 +1353,14 @@ def run_kingdom_scan(args):
                 if gid in cumulative_ram_by_id:
                     existing = cumulative_ram_by_id[gid]
                     for fk, fv in rg.items():
-                        if fv and (not existing.get(fk) or existing.get(fk) == "None" or existing.get(fk) == f"Governor_{gid}"):
+                        if fk == "name":
+                            if fv and fv != f"Governor_{gid}":
+                                existing["name"] = fv
+                        elif fk in ("alliance", "allianceName", "civilization"):
                             existing[fk] = fv
                         elif isinstance(fv, (int, float)) and fv > 0:
+                            existing[fk] = fv
+                        elif fv and not existing.get(fk):
                             existing[fk] = fv
                 else:
                     cumulative_ram_by_id[gid] = dict(rg)
@@ -1271,9 +1374,9 @@ def run_kingdom_scan(args):
             merged_govs = merge_ram_and_mumu_save_telemetry(accum_ram_list, save_govs)
             total_extracted = len(merged_govs)
             if ram_govs:
-                lowest_live = ram_govs[-1]
-                last_gov_name = lowest_live.get("name", last_gov_name)
-                last_gov_power = lowest_live.get("power", last_gov_power)
+                cur_live = ram_govs[min(rank - 1, len(ram_govs) - 1)]
+                last_gov_name = cur_live.get("name", last_gov_name)
+                last_gov_power = cur_live.get("power", last_gov_power)
             elif merged_govs:
                 top_latest = merged_govs[min(rank - 1, len(merged_govs) - 1)]
                 last_gov_name = top_latest.get("name", last_gov_name)

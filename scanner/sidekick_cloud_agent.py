@@ -243,8 +243,11 @@ def main():
                 cache["lastExecutedCmdId"] = cmd_id
                 save_agent_cache(cache)
 
-                # Execute if not already dispatched via local LAN
+                # Execute if not already dispatched via local LAN (and block non-4194 autopilot character switches on 16384)
                 if not pending.get("dispatchedViaLan"):
+                    if str(cmd_id).startswith("autopilot-") and not str(cmd_id).startswith("autopilot-4194-"):
+                        print(f"[SIDEKICK CLOUD AGENT] Skipping non-4194 autopilot switch command: {cmd_id}")
+                        continue
                     sp = pending.get("scanProgress")
                     if sp:
                         try:

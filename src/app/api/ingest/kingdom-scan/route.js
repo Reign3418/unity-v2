@@ -234,6 +234,20 @@ export async function POST(req) {
       }
     }
 
+    // Always persist a fast DynamoDB live overlay of the top 150 governors so Vercel serverless routes (/black-ops, etc.)
+    // immediately reflect every 10-rank scan batch without waiting for a static file rebuild!
+    try {
+      const sortedTop = [...fullKingdomRoster]
+        .sort((a, b) => (Number(b.power) || 0) - (Number(a.power) || 0))
+        .slice(0, 150);
+      const overlayMap = {};
+      sortedTop.forEach((g, idx) => {
+        const gid = String(g.govId || g.id || '');
+        if (gid) overlayMap[gid] = { ...g, rank: idx + 1 };
+      });
+      await updateGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}`, JSON.stringify(overlayMap)).catch(() => {});
+    } catch {}
+
     // Always sync lastScanAt & nextScanAt into BASTION_CLOUD_STATE in DynamoDB so Bastion UI shows live completion time
     try {
       const cloudRaw = await getGlobalConfig('BASTION_CLOUD_STATE');
