@@ -166,7 +166,50 @@ def main() -> int:
 
     cfn = session.client("cloudformation")
     iam = session.client("iam")
-    outputs = ensure_stack(cfn, "bastion-brain", TEMPLATE_PATH.read_text(encoding="utf-8"), caller_user)
+    temp_policy_name = "BastionStackDeployerTemp"
+    temp_policy_doc = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": ["cloudformation:*"],
+                    "Resource": "*",
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": ["sqs:*"],
+                    "Resource": f"arn:aws:sqs:{region}:{ident['Account']}:bastion-*",
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": ["s3:*"],
+                    "Resource": [
+                        f"arn:aws:s3:::bastion-evidence-{ident['Account']}-{region}",
+                        f"arn:aws:s3:::bastion-evidence-{ident['Account']}-{region}/*",
+                    ],
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": ["cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms"],
+                    "Resource": f"arn:aws:cloudwatch:{region}:{ident['Account']}:alarm:bastion-*",
+                },
+            ],
+        }
+    )
+    if caller_user:
+        print(f"[IAM] Attaching scoped temporary stack-deploy policy to {caller_user}...")
+        iam.put_user_policy(UserName=caller_user, PolicyName=temp_policy_name, PolicyDocument=temp_policy_doc)
+        time.sleep(8)
+    try:
+        outputs = ensure_stack(cfn, "bastion-brain", TEMPLATE_PATH.read_text(encoding="utf-8"), caller_user)
+    finally:
+        if caller_user:
+            try:
+                iam.delete_user_policy(UserName=caller_user, PolicyName=temp_policy_name)
+                print(f"[IAM] Removed temporary stack-deploy policy from {caller_user}.")
+            except Exception:
+                pass
 
     sidekick_keys = ensure_access_key(iam, outputs["SidekickUserName"], SIDEKICK_CREDS_CACHE)
     sidekick_content = "\n".join(

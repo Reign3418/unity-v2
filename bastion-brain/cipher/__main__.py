@@ -44,9 +44,9 @@ def run_check(cfg: CipherConfig) -> int:
     if not problems:
         try:
             t = SqsTransport(cfg)
-            for name, url in (("jobs queue", cfg.jobs_queue_url), ("results queue", cfg.results_queue_url)):
-                attrs = t.sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["ApproximateNumberOfMessages"])
-                line(name, True, f"visible={attrs['Attributes']['ApproximateNumberOfMessages']}")
+            attrs = t.sqs.get_queue_attributes(QueueUrl=cfg.jobs_queue_url, AttributeNames=["ApproximateNumberOfMessages"])
+            line("jobs queue", True, f"visible={attrs['Attributes']['ApproximateNumberOfMessages']}")
+            line("results queue url", cfg.results_queue_url.startswith("https://sqs."), cfg.results_queue_url.rsplit("/", 1)[-1])
         except Exception as exc:
             line("sqs", False, f"{type(exc).__name__}: {str(exc)[:160]}")
     adb = Adb(cfg.resolved_adb())

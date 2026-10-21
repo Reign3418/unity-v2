@@ -25,9 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from contracts import validator as V  # noqa: E402
 
 ARGS_BY_TYPE = {
-    "probe_status": lambda: {"capture_profile": True, "capture_resources": True},
-    "sleep": lambda: {"duration_minutes": 5, "close_app": False, "reason": "COOLDOWN"},
-    "grow_city": lambda: {"target_ch_level": 8, "max_steps": 20},
+    "probe_status": lambda steps: {"capture_profile": True, "capture_resources": True},
+    "sleep": lambda steps: {"duration_minutes": 5, "close_app": False, "reason": "COOLDOWN"},
+    "grow_city": lambda steps: {"target_ch_level": 8, "max_steps": steps},
 }
 
 
@@ -35,7 +35,7 @@ def iso(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def build_job(job_type: str, instance: str, kingdom: int, bot_id: str, deadline_minutes: int) -> dict:
+def build_job(job_type: str, instance: str, kingdom: int, bot_id: str, deadline_minutes: int, max_steps: int = 10) -> dict:
     now = datetime.now(timezone.utc)
     tag = uuid.uuid4().hex[:10]
     return {
@@ -52,7 +52,7 @@ def build_job(job_type: str, instance: str, kingdom: int, bot_id: str, deadline_
         "created_at": iso(now),
         "not_before": iso(now),
         "deadline": iso(now + timedelta(minutes=deadline_minutes)),
-        "args": ARGS_BY_TYPE[job_type](),
+        "args": ARGS_BY_TYPE[job_type](max_steps),
     }
 
 
@@ -62,6 +62,7 @@ def main() -> int:
     ap.add_argument("--instance", choices=sorted(V.INSTANCE_TO_ADB), default="sidekick-mumu-1")
     ap.add_argument("--kingdom", type=int, default=4021)
     ap.add_argument("--bot-id", default="bot_smoke_0001")
+    ap.add_argument("--max-steps", type=int, default=10)
     ap.add_argument("--deadline-minutes", type=int, default=30)
     ap.add_argument("--wait-seconds", type=int, default=900)
     args = ap.parse_args()
@@ -72,7 +73,7 @@ def main() -> int:
     sqs = boto3.client("sqs", region_name=region)
     jobs_url, results_url = os.environ["BASTION_JOBS_QUEUE_URL"], os.environ["BASTION_RESULTS_QUEUE_URL"]
 
-    job = build_job(args.job_type, args.instance, args.kingdom, args.bot_id, args.deadline_minutes)
+    job = build_job(args.job_type, args.instance, args.kingdom, args.bot_id, args.deadline_minutes, args.max_steps)
     V.validate_job(job)  # same gate the brain applies
     sqs.send_message(
         QueueUrl=jobs_url,
