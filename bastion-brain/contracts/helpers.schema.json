@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unity-v2-azure.vercel.app/schemas/bastion-brain/helpers.schema.json",
+  "title": "BastionRingRosterAndHelperTemplateContracts",
+  "description": "Contracts and canonical registry for the Bastion MoE Ring Leaders (LLM/SLM), Rule-Based Members (0 tokens), and Bounded Helper Templates.",
+  "$defs": {
+    "ModelTier": {
+      "type": "string",
+      "enum": [
+        "DETERMINISTIC_0_TOKEN",
+        "SLM_FLASH_LITE",
+        "LLM_FLASH",
+        "LLM_PRO"
+      ]
+    },
+    "HelperTemplateId": {
+      "type": "string",
+      "enum": [
+        "R1_KINGDOM_WATCHER",
+        "R1_LEAD_TRIAGE",
+        "R2_COHORT_SCHEDULER",
+        "R2_REPLACEMENT_PLANNER",
+        "R3_MIGRATION_ANALYST",
+        "R3_BAN_INVESTIGATOR"
+      ]
+    },
+    "HelperInstance": {
+      "type": "object",
+      "required": [
+        "helper_id",
+        "template_id",
+        "parent_ring",
+        "parent_leader",
+        "model_tier",
+        "scope",
+        "spawned_at",
+        "expires_at",
+        "hourly_token_cap",
+        "tokens_used_this_hour",
+        "status"
+      ],
+      "properties": {
+        "helper_id": {
+          "type": "string",
+          "pattern": "^HELPER:[A-Z0-9_-]{3,48}$"
+        },
+        "template_id": {
+          "$ref": "#/$defs/HelperTemplateId"
+        },
+        "parent_ring": {
+          "type": "string",
+          "enum": [
+            "RING_1_INTEL",
+            "RING_2_OPS",
+            "RING_3_AUDIT"
+          ]
+        },
+        "parent_leader": {
+          "type": "string",
+          "enum": [
+            "SCOUT",
+            "TANK",
+            "AUDIT"
+          ]
+        },
+        "model_tier": {
+          "$ref": "#/$defs/ModelTier"
+        },
+        "scope": {
+          "type": "object",
+          "required": [
+            "objective"
+          ],
+          "properties": {
+            "kingdom_id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1000,
+              "maximum": 9999
+            },
+            "instance_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "bot_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "objective": {
+              "type": "string",
+              "minLength": 5,
+              "maxLength": 240
+            }
+          },
+          "additionalProperties": false
+        },
+        "spawned_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "hourly_token_cap": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 50000
+        },
+        "tokens_used_this_hour": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "can_spawn_subhelpers": {
+          "type": "boolean",
+          "const": false
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "COMPLETED",
+            "EXPIRED_TTL",
+            "RETIRED_BY_LEADER",
+            "BUDGET_EXHAUSTED"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "x_canonical_registry": {
+    "guardrails": {
+      "max_concurrent_helpers_per_ring": 3,
+      "max_helper_ttl_hours": 24,
+      "allow_nested_helper_spawning": false
+    },
+    "leaders": {
+      "SCOUT": {
+        "ring": "RING_1_INTEL",
+        "model_tier": "SLM_FLASH_LITE",
+        "default_model": "gemini-2.5-flash-lite",
+        "authority": "EMIT_SIGNALS_ONLY"
+      },
+      "TANK": {
+        "ring": "RING_2_OPS",
+        "model_tier": "LLM_FLASH",
+        "default_model": "gemini-2.5-flash",
+        "authority": "PROPOSE_PLANS_AND_DISPATCH_VIA_NUMNUM"
+      },
+      "AUDIT": {
+        "ring": "RING_3_AUDIT",
+        "model_tier": "LLM_PRO",
+        "default_model": "gemini-2.5-pro",
+        "authority": "VERIFY_FACTS_AND_DECLARE_BOT_STATE"
+      }
+    },
+    "rule_based_members": {
+      "KENT": {
+        "ring": "RING_1_INTEL",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "R5 intent & Unity API demand intake normalizer"
+      },
+      "NULL": {
+        "ring": "RING_1_INTEL",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "Kingdom telemetry staleness, KP/Power delta & new-kingdom detector"
+      },
+      "BIG_JON": {
+        "ring": "RING_2_OPS",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "Emulator instance mutex, R5 mission preemption & idle sleep scheduler"
+      },
+      "NUMNUM": {
+        "ring": "RING_2_OPS",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "Hard deterministic policy gate (sleep windows, session caps, slot limits, schema bounds)"
+      },
+      "CIPHER": {
+        "ring": "RING_2_OPS",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "SIDEKICK SQS job consumer and typed Python skill executor"
+      },
+      "DOZER": {
+        "ring": "RING_3_AUDIT",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "OCR arithmetic validator, slice deduplicator & screenshot hash verifier"
+      }
+    },
+    "helper_templates": {
+      "R1_KINGDOM_WATCHER": {
+        "parent_ring": "RING_1_INTEL",
+        "parent_leader": "SCOUT",
+        "max_model_tier": "SLM_FLASH_LITE",
+        "default_hourly_token_cap": 8000,
+        "description": "Monitors a specific kingdom's scan freshness, KvK window, and power/KP surges."
+      },
+      "R1_LEAD_TRIAGE": {
+        "parent_ring": "RING_1_INTEL",
+        "parent_leader": "SCOUT",
+        "max_model_tier": "SLM_FLASH_LITE",
+        "default_hourly_token_cap": 8000,
+        "description": "Validates and deduplicates incoming R5 requests and data leads from Unity."
+      },
+      "R2_COHORT_SCHEDULER": {
+        "parent_ring": "RING_2_OPS",
+        "parent_leader": "TANK",
+        "max_model_tier": "LLM_FLASH",
+        "default_hourly_token_cap": 15000,
+        "description": "Plans human-like upgrade/gather/train/sleep rotations across characters sharing an emulator."
+      },
+      "R2_REPLACEMENT_PLANNER": {
+        "parent_ring": "RING_2_OPS",
+        "parent_leader": "TANK",
+        "max_model_tier": "LLM_FLASH",
+        "default_hourly_token_cap": 12000,
+        "description": "Finds an open Google account slot (<2 in target kingdom) for self-healing or escalates HUMAN_ACCOUNT_REQUIRED."
+      },
+      "R3_MIGRATION_ANALYST": {
+        "parent_ring": "RING_3_AUDIT",
+        "parent_leader": "AUDIT",
+        "max_model_tier": "LLM_PRO",
+        "default_hourly_token_cap": 20000,
+        "description": "Reconciles scan snapshots to identify migrating governors, power drops, and shell alliances."
+      },
+      "R3_BAN_INVESTIGATOR": {
+        "parent_ring": "RING_3_AUDIT",
+        "parent_leader": "AUDIT",
+        "max_model_tier": "LLM_PRO",
+        "default_hourly_token_cap": 15000,
+        "description": "Inspects failure evidence to distinguish temporary maintenance/popups from true character loss."
+      }
+    }
+  }
+}

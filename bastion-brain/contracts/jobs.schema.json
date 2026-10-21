@@ -1,0 +1,741 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unity-v2-azure.vercel.app/schemas/bastion-brain/jobs.schema.json",
+  "title": "BastionJobAndResultContracts",
+  "description": "Strict contracts for typed jobs dispatched from Ring 2 (TANK + NUMNUM) to CIPHER on SIDEKICK, and structured execution results returned to Ring 3 (AUDIT + DOZER).",
+  "$defs": {
+    "InstanceId": {
+      "type": "string",
+      "enum": [
+        "sidekick-mumu-0",
+        "sidekick-mumu-1",
+        "sidekick-mumu-2"
+      ]
+    },
+    "AdbSerial": {
+      "type": "string",
+      "enum": [
+        "127.0.0.1:16384",
+        "127.0.0.1:16416",
+        "127.0.0.1:16448"
+      ]
+    },
+    "JobType": {
+      "type": "string",
+      "enum": [
+        "probe_status",
+        "switch_character",
+        "provision_character",
+        "grow_city",
+        "scan_kingdom",
+        "sleep",
+        "collect_rewards",
+        "alliance_help",
+        "gather",
+        "train_troops",
+        "research",
+        "locate_governor"
+      ]
+    },
+    "ProbeStatusArgs": {
+      "type": "object",
+      "properties": {
+        "capture_profile": {
+          "type": "boolean",
+          "default": true
+        },
+        "capture_resources": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "SwitchCharacterArgs": {
+      "type": "object",
+      "required": [
+        "target_kingdom_id"
+      ],
+      "properties": {
+        "target_kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "target_governor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{5,15}$"
+        },
+        "target_governor_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        }
+      },
+      "additionalProperties": false
+    },
+    "ProvisionCharacterArgs": {
+      "type": "object",
+      "required": [
+        "target_kingdom_id",
+        "account_id",
+        "character_slot"
+      ],
+      "properties": {
+        "target_kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "account_id": {
+          "type": "string",
+          "enum": [
+            "mumu-account-0",
+            "mumu-account-1",
+            "mumu-account-2"
+          ]
+        },
+        "character_slot": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ],
+          "description": "RoK allows max 2 characters per kingdom per Google account."
+        },
+        "preferred_civilization": {
+          "type": "string",
+          "enum": [
+            "CHINA",
+            "BRITAIN",
+            "FRANCE",
+            "GERMANY",
+            "SPAIN",
+            "KOREA",
+            "JAPAN",
+            "ARABIA",
+            "OTTOMAN",
+            "BYZANTIUM",
+            "ROME",
+            "VIKINGS",
+            "EGYPT",
+            "GREECE"
+          ],
+          "default": "CHINA"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GrowCityArgs": {
+      "type": "object",
+      "required": [
+        "target_ch_level",
+        "max_steps"
+      ],
+      "properties": {
+        "target_ch_level": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 25
+        },
+        "max_steps": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 120
+        },
+        "claim_quests": {
+          "type": "boolean",
+          "default": true
+        },
+        "use_free_speedups": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScanKingdomArgs": {
+      "type": "object",
+      "required": [
+        "target_kingdom_id",
+        "max_ranks"
+      ],
+      "properties": {
+        "target_kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "max_ranks": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 1000
+        },
+        "boards": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "INDIVIDUAL_POWER",
+              "INDIVIDUAL_KILLPOINTS",
+              "ALLIANCE_POWER"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "SleepArgs": {
+      "type": "object",
+      "required": [
+        "duration_minutes",
+        "close_app"
+      ],
+      "properties": {
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 720
+        },
+        "close_app": {
+          "type": "boolean",
+          "default": true
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "SLEEP_WINDOW",
+            "SESSION_BREAK",
+            "DAILY_CAP_REACHED",
+            "PREEMPTED_BY_MISSION",
+            "COOLDOWN"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CollectRewardsArgs": {
+      "type": "object",
+      "properties": {
+        "claim_daily_objectives": {
+          "type": "boolean",
+          "default": true
+        },
+        "claim_vip_chest": {
+          "type": "boolean",
+          "default": true
+        },
+        "claim_expedition": {
+          "type": "boolean",
+          "default": true
+        },
+        "harvest_city_nodes": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "AllianceHelpArgs": {
+      "type": "object",
+      "properties": {
+        "donate_tech": {
+          "type": "boolean",
+          "default": true
+        },
+        "claim_alliance_gifts": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "GatherArgs": {
+      "type": "object",
+      "required": [
+        "resource_types",
+        "max_marches"
+      ],
+      "properties": {
+        "resource_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "FOOD",
+              "WOOD",
+              "STONE",
+              "GOLD"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "max_marches": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "preferred_node_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        }
+      },
+      "additionalProperties": false
+    },
+    "TrainTroopsArgs": {
+      "type": "object",
+      "required": [
+        "troop_types"
+      ],
+      "properties": {
+        "troop_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "INFANTRY",
+              "ARCHER",
+              "CAVALRY",
+              "SIEGE"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "tier_preference": {
+          "type": "string",
+          "enum": [
+            "HIGHEST_UNLOCKED",
+            "T1_SIEGE_FOR_GATHERING"
+          ],
+          "default": "HIGHEST_UNLOCKED"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResearchArgs": {
+      "type": "object",
+      "required": [
+        "branch_preference"
+      ],
+      "properties": {
+        "branch_preference": {
+          "type": "string",
+          "enum": [
+            "ECONOMY",
+            "MILITARY",
+            "LOWEST_DURATION"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "LocateGovernorArgs": {
+      "type": "object",
+      "required": [
+        "target_kingdom_id"
+      ],
+      "properties": {
+        "target_kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "target_governor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{5,15}$"
+        },
+        "target_governor_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "target_alliance_tag": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 8
+        }
+      },
+      "additionalProperties": false
+    },
+    "BastionJob": {
+      "type": "object",
+      "required": [
+        "job_id",
+        "idempotency_key",
+        "correlation_id",
+        "job_type",
+        "instance_id",
+        "adb_serial",
+        "bot_id",
+        "kingdom_id",
+        "priority",
+        "issued_by",
+        "created_at",
+        "not_before",
+        "deadline",
+        "args"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "pattern": "^job_[a-zA-Z0-9_-]{8,64}$"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "correlation_id": {
+          "type": "string",
+          "pattern": "^corr_[a-zA-Z0-9_-]{6,64}$"
+        },
+        "job_type": {
+          "$ref": "#/$defs/JobType"
+        },
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "adb_serial": {
+          "$ref": "#/$defs/AdbSerial"
+        },
+        "bot_id": {
+          "type": "string",
+          "pattern": "^bot_[a-zA-Z0-9_-]{4,64}$"
+        },
+        "kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "issued_by": {
+          "type": "object",
+          "required": [
+            "ring",
+            "leader",
+            "numnum_approval_id"
+          ],
+          "properties": {
+            "ring": {
+              "type": "string",
+              "const": "RING_2_OPS"
+            },
+            "leader": {
+              "type": "string",
+              "const": "TANK"
+            },
+            "helper_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "numnum_approval_id": {
+              "type": "string",
+              "pattern": "^nn_[a-zA-Z0-9_-]{6,64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "not_before": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "args": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ObservedState": {
+      "type": "object",
+      "required": [
+        "kingdom_id",
+        "screen_state"
+      ],
+      "properties": {
+        "governor_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "governor_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kingdom_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "ch_level": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 25
+        },
+        "power": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "kill_points": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "action_points": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gems": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "screen_state": {
+          "type": "string",
+          "enum": [
+            "CITY_VIEW",
+            "WORLD_MAP",
+            "GOVERNOR_PROFILE",
+            "CHARACTER_MANAGEMENT",
+            "RANKINGS_BOARD",
+            "SLEEP_APP_CLOSED",
+            "TUTORIAL_OVERLAY",
+            "VERIFICATION_POPUP",
+            "BANNED_OR_SUSPENDED",
+            "NETWORK_DISCONNECTED",
+            "UNKNOWN"
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "food": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wood": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stone": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "gold": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "BastionJobResult": {
+      "type": "object",
+      "required": [
+        "job_id",
+        "idempotency_key",
+        "correlation_id",
+        "job_type",
+        "instance_id",
+        "bot_id",
+        "kingdom_id",
+        "status",
+        "started_at",
+        "completed_at",
+        "duration_ms",
+        "observed_state",
+        "steps_executed",
+        "evidence"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "pattern": "^job_[a-zA-Z0-9_-]{8,64}$"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "correlation_id": {
+          "type": "string",
+          "pattern": "^corr_[a-zA-Z0-9_-]{6,64}$"
+        },
+        "job_type": {
+          "$ref": "#/$defs/JobType"
+        },
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "bot_id": {
+          "type": "string",
+          "pattern": "^bot_[a-zA-Z0-9_-]{4,64}$"
+        },
+        "kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "SUCCEEDED",
+            "PARTIAL",
+            "FAILED",
+            "REJECTED_SCHEMA",
+            "TIMEOUT",
+            "ACCOUNT_LOCKED_OR_BANNED"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_state": {
+          "$ref": "#/$defs/ObservedState"
+        },
+        "steps_executed": {
+          "type": "array",
+          "description": "Step-by-step execution trace returned by CIPHER for operator oversight.",
+          "items": {
+            "type": "object",
+            "required": [
+              "step_index",
+              "action",
+              "detail",
+              "timestamp"
+            ],
+            "properties": {
+              "step_index": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "action": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "required": [
+            "screenshot_uri",
+            "screenshot_sha256",
+            "ocr_lines"
+          ],
+          "properties": {
+            "screenshot_uri": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "screenshot_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "ocr_lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "metrics": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "error": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

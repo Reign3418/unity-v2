@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unity-v2-azure.vercel.app/schemas/bastion-brain/bots.schema.json",
+  "title": "BastionBotAndAccountPoolContracts",
+  "description": "Contracts for Bot Lifecycle State Machine, New-Player Anti-Detection Routine Profiles, and Google Account Slot Pool tracking (max 2 characters per kingdom per account).",
+  "$defs": {
+    "BotLifecycleState": {
+      "type": "string",
+      "enum": [
+        "PROVISIONING",
+        "GROWING",
+        "ACTIVE",
+        "SLEEPING",
+        "ON_MISSION",
+        "SUSPECT",
+        "LOST",
+        "RETIRED"
+      ]
+    },
+    "RoutineProfile": {
+      "type": "object",
+      "required": [
+        "timezone",
+        "sleep_window_start_hour",
+        "sleep_window_end_hour",
+        "max_session_minutes",
+        "min_break_minutes",
+        "daily_active_cap_minutes",
+        "active_minutes_today",
+        "target_ch_level",
+        "preferred_gather_types"
+      ],
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "default": "America/New_York"
+        },
+        "sleep_window_start_hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23,
+          "description": "Local hour (0-23) when the bot goes to sleep for the night."
+        },
+        "sleep_window_end_hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23,
+          "description": "Local hour (0-23) when the bot wakes up."
+        },
+        "max_session_minutes": {
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 120,
+          "default": 60
+        },
+        "min_break_minutes": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 180,
+          "default": 30
+        },
+        "daily_active_cap_minutes": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 480,
+          "default": 300
+        },
+        "active_minutes_today": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "target_ch_level": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 25,
+          "default": 16
+        },
+        "preferred_gather_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "FOOD",
+              "WOOD",
+              "STONE",
+              "GOLD"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "troop_tier_target": {
+          "type": "string",
+          "enum": [
+            "T1_SIEGE",
+            "T2_MIXED",
+            "T3_MIXED",
+            "T4_UNLOCK"
+          ],
+          "default": "T2_MIXED"
+        }
+      },
+      "additionalProperties": false
+    },
+    "VerifiedBotState": {
+      "type": "object",
+      "required": [
+        "ch_level",
+        "power",
+        "last_verified_at"
+      ],
+      "properties": {
+        "ch_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "power": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kill_points": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "vip_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18,
+          "default": 1
+        },
+        "alliance_tag": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_verified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_screenshot_uri": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "BotHealth": {
+      "type": "object",
+      "required": [
+        "consecutive_failures",
+        "ban_suspected"
+      ],
+      "properties": {
+        "consecutive_failures": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "last_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ban_suspected": {
+          "type": "boolean",
+          "default": false
+        },
+        "replaces_bot_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "replaced_by_bot_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "BastionBot": {
+      "type": "object",
+      "required": [
+        "bot_id",
+        "account_id",
+        "instance_id",
+        "adb_serial",
+        "character_slot",
+        "kingdom_id",
+        "governor_name",
+        "lifecycle_state",
+        "verified_state",
+        "routine_profile",
+        "health"
+      ],
+      "properties": {
+        "bot_id": {
+          "type": "string",
+          "pattern": "^bot_[a-zA-Z0-9_-]{4,64}$"
+        },
+        "account_id": {
+          "type": "string",
+          "enum": [
+            "mumu-account-0",
+            "mumu-account-1",
+            "mumu-account-2"
+          ]
+        },
+        "instance_id": {
+          "type": "string",
+          "enum": [
+            "sidekick-mumu-0",
+            "sidekick-mumu-1",
+            "sidekick-mumu-2"
+          ]
+        },
+        "adb_serial": {
+          "type": "string",
+          "enum": [
+            "127.0.0.1:16384",
+            "127.0.0.1:16416",
+            "127.0.0.1:16448"
+          ]
+        },
+        "character_slot": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "kingdom_id": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "governor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{5,15}$"
+        },
+        "governor_name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "lifecycle_state": {
+          "$ref": "#/$defs/BotLifecycleState"
+        },
+        "verified_state": {
+          "$ref": "#/$defs/VerifiedBotState"
+        },
+        "routine_profile": {
+          "$ref": "#/$defs/RoutineProfile"
+        },
+        "health": {
+          "$ref": "#/$defs/BotHealth"
+        }
+      },
+      "additionalProperties": false
+    },
+    "BastionAccountSlotRecord": {
+      "type": "object",
+      "description": "Tracks how many character slots (max 2 per kingdom) are occupied on an existing MuMu Google account.",
+      "required": [
+        "account_id",
+        "instance_id",
+        "adb_serial",
+        "account_status",
+        "max_slots_per_kingdom",
+        "kingdom_slots"
+      ],
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "enum": [
+            "mumu-account-0",
+            "mumu-account-1",
+            "mumu-account-2"
+          ]
+        },
+        "instance_id": {
+          "type": "string",
+          "enum": [
+            "sidekick-mumu-0",
+            "sidekick-mumu-1",
+            "sidekick-mumu-2"
+          ]
+        },
+        "adb_serial": {
+          "type": "string",
+          "enum": [
+            "127.0.0.1:16384",
+            "127.0.0.1:16416",
+            "127.0.0.1:16448"
+          ]
+        },
+        "account_status": {
+          "type": "string",
+          "enum": [
+            "HEALTHY",
+            "CAPTCHA_LOCKED",
+            "BANNED",
+            "LOGGED_OUT"
+          ]
+        },
+        "max_slots_per_kingdom": {
+          "type": "integer",
+          "const": 2
+        },
+        "kingdom_slots": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]{4}$": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^bot_[a-zA-Z0-9_-]{4,64}$"
+              },
+              "maxItems": 2,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

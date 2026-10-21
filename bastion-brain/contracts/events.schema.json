@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unity-v2-azure.vercel.app/schemas/bastion-brain/events.schema.json",
+  "title": "BastionOversightEventAndIntentContracts",
+  "description": "Contracts for Unity intents entering the brain and the Detailed Oversight & Decision Audit Log (BastionEvents) persisted in DynamoDB and rendered in Unity /bastion.",
+  "$defs": {
+    "OperatingMode": {
+      "type": "string",
+      "enum": [
+        "AUTONOMOUS",
+        "SUPERVISED",
+        "DRY_RUN",
+        "OFF"
+      ],
+      "default": "AUTONOMOUS"
+    },
+    "RingId": {
+      "type": "string",
+      "enum": [
+        "RING_1_INTEL",
+        "RING_2_OPS",
+        "RING_3_AUDIT",
+        "SYSTEM"
+      ]
+    },
+    "ActorId": {
+      "type": "string",
+      "description": "Ring Leader (SCOUT, TANK, AUDIT), Rule Member (KENT, NULL, BIG_JON, NUMNUM, CIPHER, DOZER), or Helper (HELPER:*).",
+      "pattern": "^(SCOUT|KENT|NULL|TANK|BIG_JON|NUMNUM|CIPHER|AUDIT|DOZER|OPERATOR|HELPER:[A-Z0-9_-]{3,48})$"
+    },
+    "EventType": {
+      "type": "string",
+      "enum": [
+        "INTENT_RECEIVED",
+        "SIGNAL",
+        "PLAN_PROPOSED",
+        "PLAN_APPROVED",
+        "PLAN_REJECTED",
+        "JOB_DISPATCHED",
+        "JOB_STARTED",
+        "JOB_RESULT",
+        "FACT_VERIFIED",
+        "BOT_STATE_CHANGED",
+        "BOT_LOST",
+        "HUMAN_ACCOUNT_REQUIRED",
+        "HELPER_SPAWNED",
+        "HELPER_RETIRED",
+        "MODE_CHANGED"
+      ]
+    },
+    "NumNumRuleCheck": {
+      "type": "object",
+      "required": [
+        "rule_id",
+        "passed",
+        "detail"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "enum": [
+            "SLEEP_WINDOW_CHECK",
+            "SESSION_DURATION_CAP",
+            "DAILY_ACTIVE_MINUTES_CAP",
+            "INSTANCE_SINGLE_TENANT_MUTEX",
+            "ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM",
+            "JOB_SCHEMA_BOUNDS",
+            "IDEMPOTENCY_DEDUP",
+            "RING_TOKEN_BUDGET",
+            "HELPER_CONCURRENCY_CAP"
+          ]
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "actual_value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "limit_value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OversightBlock": {
+      "type": "object",
+      "description": "Rich audit record explaining WHY a decision was made, what triggered it, which NUMNUM rules were evaluated, and what proof backs it.",
+      "required": [
+        "why",
+        "trigger_inputs",
+        "numnum_checks",
+        "evidence_refs"
+      ],
+      "properties": {
+        "why": {
+          "type": "string",
+          "minLength": 5,
+          "description": "Plain-English explanation of the ring leader or deterministic member's decision."
+        },
+        "trigger_inputs": {
+          "type": "object",
+          "description": "Key signals, telemetry deltas, or schedule timers that prompted this event."
+        },
+        "numnum_checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NumNumRuleCheck"
+          }
+        },
+        "llm_telemetry": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "prompt_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completion_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "latency_ms": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "operator_action_required": {
+          "type": "boolean",
+          "default": false
+        },
+        "operator_instructions": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "BastionEvent": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "correlation_id",
+        "timestamp",
+        "epoch_day",
+        "operating_mode",
+        "ring",
+        "actor",
+        "event_type",
+        "severity",
+        "summary",
+        "oversight"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "pattern": "^evt_[a-zA-Z0-9_-]{8,64}$"
+        },
+        "correlation_id": {
+          "type": "string",
+          "pattern": "^corr_[a-zA-Z0-9_-]{6,64}$"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "epoch_day": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "operating_mode": {
+          "$ref": "#/$defs/OperatingMode"
+        },
+        "ring": {
+          "$ref": "#/$defs/RingId"
+        },
+        "actor": {
+          "$ref": "#/$defs/ActorId"
+        },
+        "event_type": {
+          "$ref": "#/$defs/EventType"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "INFO",
+            "NOTICE",
+            "WARN",
+            "CRITICAL"
+          ]
+        },
+        "kingdom_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "bot_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "instance_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 280
+        },
+        "oversight": {
+          "$ref": "#/$defs/OversightBlock"
+        }
+      },
+      "additionalProperties": false
+    },
+    "BastionIntent": {
+      "type": "object",
+      "required": [
+        "intent_id",
+        "correlation_id",
+        "created_at",
+        "source",
+        "intent_type",
+        "priority",
+        "status",
+        "payload"
+      ],
+      "properties": {
+        "intent_id": {
+          "type": "string",
+          "pattern": "^int_[a-zA-Z0-9_-]{8,64}$"
+        },
+        "correlation_id": {
+          "type": "string",
+          "pattern": "^corr_[a-zA-Z0-9_-]{6,64}$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "R5_COMMAND_DESK",
+            "UNITY_API_DEMAND",
+            "DATA_LEAD_INGEST",
+            "OPERATOR_OVERRIDE"
+          ]
+        },
+        "intent_type": {
+          "type": "string",
+          "enum": [
+            "SCAN_KINGDOM",
+            "LOCATE_GOVERNOR",
+            "EXPAND_TO_KINGDOM",
+            "PRIORITIZE_GROWTH",
+            "PAUSE_INSTANCE",
+            "SET_OPERATING_MODE"
+          ]
+        },
+        "kingdom_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1000,
+          "maximum": 9999
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "TRIAGED_BY_SCOUT",
+            "PLANNED_BY_TANK",
+            "IN_PROGRESS",
+            "VERIFIED_BY_AUDIT",
+            "REJECTED",
+            "FAILED"
+          ]
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
