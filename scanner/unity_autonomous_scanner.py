@@ -1095,6 +1095,9 @@ def ensure_individual_power_leaderboard_open(
     INDIVIDUAL POWER RANKINGS modal is open (and reset to Rank #1 when reset_to_top=True)
     before any row taps begin.
     """
+    if str(target_kd) == "4194" and "16384" in str(driver.serial):
+        skip_switch = True
+
     screen_txt = get_screen_ocr_text(driver)
     if skip_switch and "INDIVIDUAL POWER RANKINGS" in screen_txt:
         if reset_to_top:
@@ -1264,9 +1267,13 @@ def run_kingdom_scan(args):
     print(f"  ADB Emulator: {args.adb} | Scan ID: {scan_date_iso}")
     print("==================================================================")
 
-    # Exact measured row card centers on 1600x900 Individual Power Rankings (101px row pitch)
-    first_rows_y = [290, 384, 485, 585, 686, 785]
-    settled_y = 780
+    # Rise of Kingdoms' Individual Power Rankings ScrollView automatically centers any tapped row
+    # into Row 3 (y=485) when tapped below the midpoint. Therefore:
+    # - Ranks 1..3 tap Rows 1..3 (y = 290, 384, 485)
+    # - Ranks 4..998 tap Row 4 (y = 585), which auto-advances the list by 1.000 exact rank per step with zero manual swipes!
+    # - Ranks 999..1000 tap Rows 5..6 (y = 686, 785) at the bottom boundary of the 1000-row list.
+    top3_rows_y = [290, 384, 485]
+    auto_advance_y = 585
     last_gov_name = "Preparing Leaderboard..."
     last_gov_power = 0
     total_extracted = 0
@@ -1292,15 +1299,16 @@ def run_kingdom_scan(args):
     write_scan_progress({
         "running": True,
         "status": "PREPARING_LEADERBOARD",
+        "preset": "SWEET_650",
         "kingdom": str(args.kd),
         "currentRank": 0,
         "targetRanks": args.end_rank,
         "percent": 0.0,
-        "lastGovernorName": f"Switching to #{args.kd} & opening Individual Power Rankings...",
+        "lastGovernorName": f"Opening Individual Power Rankings on #{args.kd}...",
         "lastGovernorPower": 0,
         "governorsExtracted": len(cumulative_ram_by_id),
         "startedAt": started_at_iso,
-        "etaSeconds": int((args.end_rank - args.start_rank + 1) * 3.1),
+        "etaSeconds": int((args.end_rank - args.start_rank + 1) * 2.8),
         "workerSerial": args.adb,
     })
 
@@ -1308,6 +1316,7 @@ def run_kingdom_scan(args):
         write_scan_progress({
             "running": False,
             "status": "LEADERBOARD_NAV_FAILED",
+            "preset": "SWEET_650",
             "kingdom": str(args.kd),
             "currentRank": 0,
             "targetRanks": args.end_rank,
@@ -1321,17 +1330,32 @@ def run_kingdom_scan(args):
         })
         return
 
-    for rank in range(args.start_rank, args.end_rank + 1):
-        ry = first_rows_y[rank - 1] if rank <= 6 else settled_y
-        print(f"  -> Stepping Rank #{rank} (y={ry})...")
-        driver.tap(600, ry, sleep_sec=0.78)        # Open Governor Profile from Leaderboard row
-        driver.tap(240, 755, sleep_sec=0.74)       # Open More Info
-        driver.tap(1395, 55, sleep_sec=0.45)       # Close More Info (X at 1395, 55)
-        driver.tap(1455, 88, sleep_sec=0.48)       # Close Governor Profile (X at 1455, 88)
+    # Record any low-power governors sitting in MuMu RAM from a prior session (e.g. Rank 1000)
+    # so they are not reported as the active governor while stepping the top of the leaderboard.
+    pre_existing_low_ids = set()
+    seen_in_scan_ids = set()
+    try:
+        for pg in extract_all_governors_from_ram(adb_serial=args.adb):
+            pgid = int(pg.get("govId") or pg.get("id") or 0)
+            if pgid > 0 and int(pg.get("power") or 0) < 8_000_000:
+                pre_existing_low_ids.add(pgid)
+    except Exception:
+        pass
 
-        if rank >= 6:
-            # 82px drag over 950ms advances exactly 101.0px (1.00 row) with zero inertia coasting
-            driver.swipe(600, 780, 600, 698, duration_ms=950, sleep_sec=0.45)
+    for rank in range(args.start_rank, args.end_rank + 1):
+        if rank <= 3:
+            ry = top3_rows_y[rank - 1]
+        elif rank == 999:
+            ry = 686
+        elif rank >= 1000:
+            ry = 785
+        else:
+            ry = auto_advance_y
+        print(f"  -> Stepping Rank #{rank} (y={ry})...")
+        driver.tap(600, ry, sleep_sec=0.82)        # Open Governor Profile from Leaderboard row (auto-centers Row 4 -> Row 3)
+        driver.tap(240, 755, sleep_sec=0.78)       # Open More Info
+        driver.tap(1395, 55, sleep_sec=0.58)       # Close More Info (X at 1395, 55)
+        driver.tap(1455, 88, sleep_sec=0.58)       # Close Governor Profile (X at 1455, 88)
 
         elapsed = max(1.0, time.time() - t_start)
         done_steps = max(1, rank - args.start_rank + 1)
@@ -1340,11 +1364,10 @@ def run_kingdom_scan(args):
         pct = round((rank / max(1, args.end_rank)) * 100, 1)
 
         if rank % 10 == 0 or rank == args.end_rank or rank == 1:
-            if rank < args.end_rank and "INDIVIDUAL POWER" not in get_screen_ocr_text(driver):
+            screen_now = get_screen_ocr_text(driver)
+            if rank < args.end_rank and "INDIVIDUAL POWER" not in screen_now:
                 print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus; restoring INDIVIDUAL POWER RANKINGS...")
                 ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True, reset_to_top=False)
-            if rank >= 6 and rank < args.end_rank:
-                settled_y = detect_bottom_card_center_y(driver, target_y=780)
             ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
             for rg in ram_govs:
                 gid = int(rg.get("govId") or rg.get("id") or 0)
@@ -1373,8 +1396,25 @@ def run_kingdom_scan(args):
             save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
             merged_govs = merge_ram_and_mumu_save_telemetry(accum_ram_list, save_govs)
             total_extracted = len(merged_govs)
-            if ram_govs:
-                cur_live = ram_govs[min(rank - 1, len(ram_govs) - 1)]
+
+            # Pick the newly scanned governor from this batch (filtering out stale pre-existing low-power RAM entries)
+            active_ram = [
+                g for g in ram_govs
+                if rank > 250 or int(g.get("govId") or g.get("id") or 0) not in pre_existing_low_ids
+            ]
+            fresh_batch = [
+                g for g in active_ram
+                if int(g.get("govId") or g.get("id") or 0) not in seen_in_scan_ids
+            ]
+            for fg in fresh_batch:
+                seen_in_scan_ids.add(int(fg.get("govId") or fg.get("id") or 0))
+
+            if fresh_batch:
+                cur_live = fresh_batch[-1]
+                last_gov_name = cur_live.get("name", last_gov_name)
+                last_gov_power = cur_live.get("power", last_gov_power)
+            elif active_ram:
+                cur_live = active_ram[min(rank - 1, len(active_ram) - 1)]
                 last_gov_name = cur_live.get("name", last_gov_name)
                 last_gov_power = cur_live.get("power", last_gov_power)
             elif merged_govs:
@@ -1382,7 +1422,7 @@ def run_kingdom_scan(args):
                 last_gov_name = top_latest.get("name", last_gov_name)
                 last_gov_power = top_latest.get("power", last_gov_power)
             print(
-                f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} live RAM ({len(accum_ram_list)} accum) + {len(save_govs)} Save -> {len(merged_govs)} governors!"
+                f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} live RAM ({len(accum_ram_list)} accum) + {len(save_govs)} Save -> {len(merged_govs)} governors | Active: {last_gov_name} ({last_gov_power:,})"
             )
             if merged_govs and (rank % 10 == 0 or rank == args.end_rank):
                 push_batch_to_unity(
@@ -1405,6 +1445,7 @@ def run_kingdom_scan(args):
         write_scan_progress({
             "running": True,
             "status": "SCANNING_LIVE",
+            "preset": "SWEET_650",
             "kingdom": str(args.kd),
             "currentRank": rank,
             "targetRanks": args.end_rank,
@@ -1420,6 +1461,7 @@ def run_kingdom_scan(args):
     write_scan_progress({
         "running": False,
         "status": "COMPLETED",
+        "preset": "SWEET_650",
         "kingdom": str(args.kd),
         "currentRank": args.end_rank,
         "targetRanks": args.end_rank,

@@ -195,6 +195,11 @@ const server = http.createServer((req, res) => {
         const updatedTask = {
           ...prevInst,
           ...data,
+          preset:
+            data.preset ||
+            (['SCANNING_LIVE', 'PREPARING_LEADERBOARD', 'COMPLETED'].includes(data.status)
+              ? 'SWEET_650'
+              : prevInst.preset || 'SWEET_650'),
           instanceId: instId,
           percent: pct,
           updatedAt: new Date().toISOString(),
@@ -225,6 +230,11 @@ const server = http.createServer((req, res) => {
           const merged = {
             ...(activeTasksByInstance[instId] || {}),
             ...data.scanProgress,
+            preset:
+              data.scanProgress.preset ||
+              (['SCANNING_LIVE', 'PREPARING_LEADERBOARD', 'COMPLETED'].includes(data.scanProgress.status)
+                ? 'SWEET_650'
+                : (activeTasksByInstance[instId] || {}).preset || 'SWEET_650'),
             instanceId: instId,
             running: typeof data.scannerRunning === 'boolean' ? data.scannerRunning : Boolean(data.scanProgress.running),
             scannerPid: data.scannerPid || data.scanProgress.pid || null,
