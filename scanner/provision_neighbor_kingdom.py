@@ -78,14 +78,19 @@ def inspect_kingdom_viewport(img_path: str, kingdom_num: str):
             already_in_kd_list = True
         for m in re.findall(r"#(\d{4})", t):
             visible_kds.append(int(m))
-        if target_tag in t or re.search(rf"\b{re.escape(str(kingdom_num))}\b", t):
-            xs = [p[0] for p in box]
-            ys = [p[1] for p in box]
-            cx = int(sum(xs) / 4.0)
-            cy = int(sum(ys) / 4.0)
-            if 280 <= cy <= 860:
-                if found_target is None or cy < found_target[1]:
-                    found_target = (cx, cy, t)
+
+    # ONLY match kingdom coords if confirmed inside the Kingdom List / Character Roster
+    if already_in_kd_list:
+        for box, text, conf in res:
+            t = text.strip()
+            if target_tag in t or re.search(rf"\b{re.escape(str(kingdom_num))}\b", t):
+                xs = [p[0] for p in box]
+                ys = [p[1] for p in box]
+                cx = int(sum(xs) / 4.0)
+                cy = int(sum(ys) / 4.0)
+                if 280 <= cy <= 860:
+                    if found_target is None or cy < found_target[1]:
+                        found_target = (cx, cy, t)
     return found_target, sorted(set(visible_kds)), already_in_kd_list
 
 
@@ -254,12 +259,14 @@ def main():
         tap(args.adb, 45, 45, 2.2)        # Top-left Avatar
 
         # Verify Governor Profile opened; if blocked by forced intro tutorial on a fresh emulator, clear tutorial first
+        profile_opened = False
         for tut_round in range(1, 6):
             screencap(args.adb, snap_path)
             ocr = get_ocr()
             res_prof, _ = ocr(snap_path)
             prof_texts = " ".join([item[1].upper() for item in (res_prof or [])])
             if any(k in prof_texts for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
+                profile_opened = True
                 break
             print(f"  -> Avatar (45,45) blocked by active tutorial (round {tut_round}); running 32 tutorial steps on {args.adb}...")
             report_progress(
@@ -276,6 +283,19 @@ def main():
             )
             _clear_to_hud()
             tap(args.adb, 45, 45, 2.2)
+
+        if not profile_opened:
+            screencap(args.adb, snap_path)
+            ocr = get_ocr()
+            res_prof, _ = ocr(snap_path)
+            prof_texts = " ".join([item[1].upper() for item in (res_prof or [])])
+            if any(k in prof_texts for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
+                profile_opened = True
+
+        if not profile_opened:
+            print(f"[ERROR] Governor Profile (45, 45) failed to open after 5 tutorial rounds on {args.adb}!")
+            report_progress(args.kingdom, 1, 6, "TUTORIAL_INCOMPLETE", f"Governor Profile locked by tutorial on {args.adb}", running=False)
+            sys.exit(1)
 
         tap(args.adb, 1325, 760, 2.2)     # Settings gear
         tap_characters_in_settings(args.adb, snap_path)
@@ -460,8 +480,12 @@ def main():
     except Exception as e:
         print(f"[WARN] Could not auto-register bot in cloud: {e}")
 
-    report_progress(args.kingdom, 6, 6, "COMPLETED", f"Provisioned {gov_name} in Kingdom #{args.kingdom}", running=False)
-    print(f"[DONE] Provisioned #{args.kingdom} character ({gov_name}, ID={gov_id}).")
+    if gov_id.startswith("BOT-"):
+        print(f"[WARN] Governor Profile was not accessible to extract live ID. Character tutorial may still be in progress.")
+        report_progress(args.kingdom, 6, 6, "TUTORIAL_INCOMPLETE", f"Tutorial active on #{args.kingdom} — Governor ID not yet unlocked", running=False)
+    else:
+        report_progress(args.kingdom, 6, 6, "COMPLETED", f"Provisioned {gov_name} in Kingdom #{args.kingdom}", running=False)
+        print(f"[DONE] Provisioned #{args.kingdom} character ({gov_name}, ID={gov_id}).")
 
 
 if __name__ == "__main__":

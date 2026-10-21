@@ -155,7 +155,12 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
 
 def detect_counselor_dialogue(a: np.ndarray) -> bool:
     box = a[745:835, 480:1120]
-    cream = (box[:, :, 0] > 220) & (box[:, :, 1] > 210) & (box[:, :, 2] > 195) & (np.abs(box[:, :, 0] - box[:, :, 1]) < 25)
+    cream = (
+        (box[:, :, 0] > 220)
+        & (box[:, :, 1] > 210)
+        & (box[:, :, 2] > 195)
+        & (np.abs(box[:, :, 0].astype(np.int32) - box[:, :, 1].astype(np.int32)) < 25)
+    )
     return float(np.mean(cream)) > 0.52
 
 
@@ -207,7 +212,7 @@ def detect_new_troop_modal(a: np.ndarray):
         & (q_hdr[:, :, 1] >= 150)
         & (q_hdr[:, :, 1] <= 225)
         & (q_hdr[:, :, 2] >= 140)
-        & (np.abs(q_hdr[:, :, 0] - q_hdr[:, :, 1]) < 22)
+        & (np.abs(q_hdr[:, :, 0].astype(np.int32) - q_hdr[:, :, 1].astype(np.int32)) < 22)
     )
     q_tab = a[165:500, 30:155]
     is_q_tab = (q_tab[:, :, 2] >= 165) & (q_tab[:, :, 0] <= 75) & ((q_tab[:, :, 2].astype(np.int32) - q_tab[:, :, 0].astype(np.int32)) >= 95)
@@ -276,29 +281,29 @@ def detect_new_troop_modal(a: np.ndarray):
     # AND ensure we are NOT inside the Quests modal (where q_hdr is grey-cream)
     nt_panel = a[280:450, 700:1100]
     is_nt_panel = (
-        float(nt_panel[:, :, 0].mean()) < 45.0
+        float(nt_panel[:, :, 0].mean()) < 85.0
         and float(nt_panel[:, :, 2].mean()) > 80.0
         and float(np.mean(is_q_hdr)) < 0.35
     )
 
     if is_nt_panel:
-        # 1. Golden MARCH button at x=1010..1315, y=745..830 -> tap MARCH (1160, 785)
-        march_btn = a[745:830, 1010:1315]
-        gold_march = (march_btn[:, :, 0] >= 220) & (march_btn[:, :, 1] >= 145) & (march_btn[:, :, 2] <= 75)
-        if float(np.mean(gold_march)) > 0.35:
-            return (1160, 785, "New Troop -> Tap MARCH")
+        # 1. Golden MARCH button at x=1010..1315, y=770..855 -> tap MARCH (1160, 815)
+        march_btn = a[770:855, 1010:1315]
+        gold_march = (march_btn[:, :, 0] >= 220) & (march_btn[:, :, 1] >= 140) & (march_btn[:, :, 2] <= 75)
+        if float(np.mean(gold_march)) > 0.30:
+            return (1160, 815, "New Troop -> Tap MARCH")
 
-        # 2. "Please select me as commander." white speech bubble at x=115..395, y=230..295 -> tap Sun Tzu (60, 260)
-        bubble = a[230:295, 115:395]
+        # 2. "Please select me as commander." white speech bubble at x=115..395, y=215..295 -> tap Sun Tzu (66, 250)
+        bubble = a[215:295, 115:395]
         white_bubble = (bubble[:, :, 0] >= 210) & (bubble[:, :, 1] >= 210) & (bubble[:, :, 2] >= 210)
-        if float(np.mean(white_bubble)) > 0.60:
-            return (60, 260, "New Troop -> Select Primary Commander (Sun Tzu)")
+        if float(np.mean(white_bubble)) > 0.50:
+            return (66, 250, "New Troop -> Select Primary Commander (Sun Tzu)")
 
-        # 3. Empty Primary Commander glowing white '+' circle at x=265..325, y=465..525 -> tap '+' (295, 495)
-        plus = a[465:525, 265:325]
-        white_plus = (plus[:, :, 0] >= 242) & (plus[:, :, 1] >= 248) & (plus[:, :, 2] >= 248)
-        if float(np.mean(white_plus)) > 0.45:
-            return (295, 495, "New Troop -> Tap Primary Commander '+' Slot")
+        # 3. Empty Primary Commander glowing white/cyan '+' circle at x=440..530, y=415..500 -> tap '+' (483, 457)
+        plus = a[415:500, 440:530]
+        white_plus = (plus[:, :, 1] >= 200) & (plus[:, :, 2] >= 210)
+        if float(np.mean(white_plus)) > 0.35:
+            return (483, 457, "New Troop -> Tap Primary Commander '+' Slot")
 
     # 3b. City Hall Upgraded full-width golden ribbon at x=450..1150, y=85..205 -> tap (800, 830) to dismiss
     ch_rib = a[85:205, 450:1150]
@@ -306,13 +311,13 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(gold_rib)) > 0.45:
         return (800, 830, "City Hall Upgraded Banner -> Tap (800, 830)")
 
-    # 3c. Barbarians Search Panel: Cream panel at x=80..580, y=280..500 + Cyan SEARCH button at x=235..445, y=615..705
+    # 3c. Barbarians Search Panel: Cream panel at x=80..580, y=280..500 + Cyan SEARCH button at x=230..450, y=550..660
     b_pan = a[350:480, 100:550]
     is_b_pan = (b_pan[:, :, 0] >= 215) & (b_pan[:, :, 1] >= 200) & (b_pan[:, :, 2] >= 175)
-    b_srch = a[615:705, 235:445]
+    b_srch = a[550:660, 230:450]
     is_b_srch = (b_srch[:, :, 2] >= 195) & (b_srch[:, :, 1] >= 140) & ((b_srch[:, :, 2].astype(np.int32) - b_srch[:, :, 0].astype(np.int32)) >= 65)
     if float(np.mean(is_b_pan)) > 0.55 and float(np.mean(is_b_srch)) > 0.30:
-        return (340, 660, "Barbarians Modal -> Tap SEARCH")
+        return (340, 595, "Barbarians Modal -> Tap SEARCH")
 
     # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
     # ONLY valid on the World Map (is_world_map(a)), never inside the City where (1260, 225) is the Stable roof!
@@ -379,7 +384,7 @@ def detect_new_troop_modal(a: np.ndarray):
     cf_btn = a[600:750, 440:740]
     is_cf_gold = (cf_btn[:, :, 0] >= 195) & (cf_btn[:, :, 1] >= 130) & (cf_btn[:, :, 2] <= 75)
     back_btn = a[20:85, 20:85]
-    is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)
+    is_back_grey = (back_btn[:, :, 0] >= 115) & (np.abs(back_btn[:, :, 0].astype(np.int32) - back_btn[:, :, 1].astype(np.int32)) < 25)
     if float(np.mean(is_ig_hdr)) > 0.65 and float(np.mean(is_no_cyan)) > 0.30 and float(np.mean(is_cf_gold)) > 0.30:
         if float(np.mean(is_back_grey)) > 0.50:
             return (1027, 675, "NOTICE_NO_AND_EXIT")
@@ -502,6 +507,37 @@ def detect_new_troop_modal(a: np.ndarray):
     is_pan = (pan[:, :, 2] >= 120) & (pan[:, :, 0] <= 45)
     if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
         return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
+
+    # 11a. Troop Training Modal (grey header y=85..140, x=250..1350 + bottom-right cyan TRAIN button at x=1100..1360, y=700..815)
+    b_hdr = a[85:140, 250:1350]
+    is_b_hdr = (b_hdr[:, :, 0] >= 160) & (np.abs(b_hdr[:, :, 0].astype(np.int32) - b_hdr[:, :, 1].astype(np.int32)) < 22)
+    trn_btn = a[700:815, 1100:1360]
+    is_trn_cyan = (
+        (trn_btn[:, :, 1] >= 140)
+        & (trn_btn[:, :, 2] >= 175)
+        & (trn_btn[:, :, 0] <= 95)
+        & ((trn_btn[:, :, 2].astype(np.int32) - trn_btn[:, :, 0].astype(np.int32)) >= 80)
+    )
+    inst_btn_early = a[625:820, 780:1035]
+    inst_gold_early = (
+        (inst_btn_early[:, :, 0] >= 200)
+        & (inst_btn_early[:, :, 1] >= 135)
+        & (inst_btn_early[:, :, 2] <= 95)
+        & ((inst_btn_early[:, :, 0].astype(np.int32) - inst_btn_early[:, :, 2].astype(np.int32)) >= 110)
+    )
+    if not is_city_hud(a) and float(np.mean(is_b_hdr)) > 0.50 and int(is_trn_cyan.sum()) >= 2500:
+        hdr_title = ""
+        if OCR is not None:
+            try:
+                h_res, _ = OCR(a[85:140, 480:1120].astype(np.uint8))
+                if h_res:
+                    hdr_title = " ".join(r[1].strip() for r in h_res).lower()
+            except Exception:
+                pass
+        if "train" in hdr_title or (not any(k in hdr_title for k in ("upgrade", "vip", "speed", "busy", "notice")) and int(inst_gold_early.sum()) < 800):
+            tys, txs = np.where(is_trn_cyan)
+            tx, ty = int(np.median(txs) + 1100), int(np.median(tys) + 700)
+            return (tx, ty, f"TROOP_TRAIN_START:{hdr_title}")
 
     # 11b. Building Upgrade Modal (grey header y=85..140, x=250..1350 + left teal 3D building panel x=220..650, y=200..750)
     b_hdr = a[85:140, 250:1350]
@@ -632,9 +668,14 @@ def detect_new_troop_modal(a: np.ndarray):
             return (1390, 112, "Items Bag Open -> Close (1390, 112)")
 
     # 11c4. Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580)
-    if not is_city_hud(a):
+    if not is_city_hud(a) and not is_nt_panel:
         m_hdr = a[35:80, 200:1580]
-        is_m_hdr = (m_hdr[:, :, 0] >= 150) & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 1].astype(np.int32)) < 25)
+        is_m_hdr = (
+            (m_hdr[:, :, 0] >= 140)
+            & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 1].astype(np.int32)) < 25)
+            & (np.abs(m_hdr[:, :, 1].astype(np.int32) - m_hdr[:, :, 2].astype(np.int32)) < 25)
+            & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 2].astype(np.int32)) < 25)
+        )
         if float(np.mean(is_m_hdr[:, :1150])) > 0.55:
             if float(np.mean(is_m_hdr[:, 1260:])) < 0.35:
                 return (1395, 58, "Joined Alliance Modal Open -> Close (1395, 58)")
@@ -687,7 +728,7 @@ def spear_mask(a: np.ndarray) -> np.ndarray:
         & (a[:, :, 1] <= 238)
         & (a[:, :, 2] >= 180)
         & (a[:, :, 2] <= 252)
-        & ((a[:, :, 2] - a[:, :, 0]) >= 20)
+        & ((a[:, :, 2].astype(np.int32) - a[:, :, 0].astype(np.int32)) >= 20)
         & (a[:, :, 2] > a[:, :, 1])
     )
 
@@ -695,13 +736,12 @@ def spear_mask(a: np.ndarray) -> np.ndarray:
 def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     diff = np.abs(a1 - a2).sum(axis=2)
     sp = (spear_mask(a1) | spear_mask(a2)) & (diff >= 20)
-    # Exclude bottom-right HUD cyan icons & bouncing resource cart (Items, Alliance, Commander, Mail, Menu at x>=850, y>=720)
-    sp[720:, 850:] = False
     # Exclude bottom-left HUD blue Build/Map buttons themselves (x<=115, y>=685; spears pointing at them sit at y=520..665)
     sp[685:, :115] = False
-    # Exclude bottom-center marching soldiers & chat bar (x=165..850, y>=685) and top-right event/pack icons (x>=1100, y<=215)
+    # Exclude bottom-right HUD menu icons, chat bar, and top-right event icons ONLY when on City HUD
     if is_city_hud(a2):
-        sp[685:, 165:850] = False
+        sp[825:, 1150:] = False
+        sp[845:, :] = False
         sp[:215, 1100:] = False
     if is_world_map(a2):
         sp[:, 260:] = False
@@ -720,7 +760,7 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
                 ys, xs = np.where(sp[gy : gy + 75, gx : gx + 75])
                 sx, sy = int(np.median(xs) + gx), int(np.median(ys) + gy)
 
-    if best_s < 220:
+    if best_s < 120:
         return None, None, 0
 
     # Top-left corner shortcut: City HUD Quest Scroll (40, 235) vs Modal Back Arrow (48, 52)
@@ -735,9 +775,15 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
             return (sx, sy), (45, 735), best_s
         if sx < 165 and 700 <= sy <= 860:
             return (sx, sy), (55, 845), best_s
+    else:
+        # Build Drawer open: left stone pillar Military tab is at (50, 660)
+        if sx < 185 and 450 <= sy <= 750:
+            return (sx, sy), (50, 660), best_s
 
-    # Build Drawer Slot #1 & New Troop Primary Commander '+' slot shortcut
-    if 280 <= sx <= 435 and 245 <= sy <= 430:
+    # Build Drawer Slot #1 (Tavern / Farm at x=100..435, y=245..550) & New Troop Primary Commander '+' slot shortcut
+    if 100 <= sx <= 435 and 245 <= sy <= 550:
+        if not is_city_hud(a2):
+            return (sx, sy), (210, 600), best_s
         return (sx, sy), (315, 515), best_s
 
     Y, X = np.ogrid[:H, :W]
@@ -918,25 +964,31 @@ def detect_quest_sidebar_action(a: np.ndarray, step: int):
         # If full-screen or top-aligned modal header bar (Items/Quests/Settings/ELM/Governor/DLC/Mail/Train) is open, tap its exact X button (right_edge - 38)
         for y_center in (105, 58):
             row = a[y_center - 15 : y_center + 15, 500:1590]
-            is_hdr = (row.mean(axis=2) > 125.0) & (np.abs(row[:, :, 0] - row[:, :, 1]) < 25)
+            is_hdr = (row.mean(axis=2) > 125.0) & (np.abs(row[:, :, 0].astype(np.int32) - row[:, :, 1].astype(np.int32)) < 25)
             xs_hdr = np.where(is_hdr.mean(axis=0) > 0.50)[0]
             if len(xs_hdr) > 400:
                 right_edge = int(xs_hdr.max() + 500)
                 if right_edge < 1585 or y_center == 58:
                     x_close = right_edge - 38
                     return (x_close, y_center, f"Modal Open -> Close ({x_close}, {y_center})")
-        # Check if Build Drawer Slot #1 (x=320..450, y=755..800) has an unlocked bright-cyan card
-        slot1 = a[755:800, 320:450]
-        unlocked = (slot1[:, :, 0] >= 85) & (slot1[:, :, 1] >= 190) & (slot1[:, :, 2] >= 230)
-        if float(np.mean(unlocked)) > 0.45:
-            return (345, 560, "Build Drawer -> Tap Unlocked Slot #1")
+        # Check if Build Drawer Military tab on pillar has a glowing gold circle (x=10..90, y=580..660) -> tap (60, 620)
+        mil_box = a[580:660, 10:90]
+        mil_gold = (mil_box[:, :, 0] >= 195) & (mil_box[:, :, 1] >= 165) & (mil_box[:, :, 2] <= 125)
+        if float(np.mean(mil_gold)) > 0.07:
+            return (60, 620, "Build Drawer -> Tap Glowing Military Tab (60, 620)")
+
+        # Check if Build Drawer Slot #1 (x=100..320, y=700..820) has an unlocked bright-cyan card
+        slot1 = a[700:820, 100:320]
+        unlocked = (slot1[:, :, 0] <= 140) & (slot1[:, :, 1] >= 145) & (slot1[:, :, 2] >= 170)
+        if float(np.mean(unlocked)) > 0.10:
+            return (210, 600, "Build Drawer -> Tap Unlocked Slot #1")
         # If Build Drawer stone pillar is visible on left (x=10..80, y=500..850) with locked Slot #1, tap (800, 200) to close
         pillar = a[500:850, 10:80]
-        if float(pillar.mean()) > 95.0 and float(np.mean(np.abs(pillar[:, :, 0] - pillar[:, :, 1]) < 25)) > 0.55:
+        if float(pillar.mean()) > 95.0 and float(np.mean(np.abs(pillar[:, :, 0].astype(np.int32) - pillar[:, :, 1].astype(np.int32)) < 25)) > 0.55:
             return (800, 200, "Build Drawer Locked -> Close (800, 200)")
         # If top-left Back button (48, 52) is visible (Commander/Tavern view), tap (48, 52)
         back_btn = a[20:85, 20:85]
-        if float(back_btn.mean()) > 110.0 and float(np.mean(np.abs(back_btn[:, :, 0] - back_btn[:, :, 1]) < 25)) > 0.55:
+        if float(back_btn.mean()) > 110.0 and float(np.mean(np.abs(back_btn[:, :, 0].astype(np.int32) - back_btn[:, :, 1].astype(np.int32)) < 25)) > 0.55:
             return (48, 52, "Sub-Screen Open -> Tap Back (48, 52)")
         return None
 
@@ -1042,6 +1094,7 @@ def main():
     last_rib_xy = None
     rib_retry_cnt = 0
     chk_repeat = 0
+    consecutive_idle = 0
 
     for step in range(1, args.steps + 1):
         if speedup_cooldown > 0:
@@ -1301,7 +1354,35 @@ def main():
                 tap(args.adb, 120, gy + 15, 1.1)
                 last_spear = None
                 repeat_cnt = 0
+                consecutive_idle = 0
                 continue
+
+        # Tutorial spear ALWAYS has priority over heuristic building upgrade actions
+        if spear_xy and target_xy:
+            sx, sy = spear_xy
+            tx, ty = target_xy
+            if last_spear and abs(sx - last_spear[0]) < 35 and abs(sy - last_spear[1]) < 35:
+                repeat_cnt += 1
+            else:
+                repeat_cnt = 0
+            last_spear = spear_xy
+
+            if repeat_cnt == 2:
+                act = detect_ocr_action(p2, a2)
+                if act:
+                    print(f"[Step {step:02d}] Retry OCR Override '{act[2]}' -> tap ({act[0]}, {act[1]})")
+                    tap(args.adb, act[0], act[1], 1.1)
+                    consecutive_idle = 0
+                    continue
+            elif repeat_cnt >= 3:
+                shifts = [(0, 35), (0, -35), (45, 0), (-45, 0)]
+                dx, dy = shifts[(repeat_cnt - 3) % len(shifts)]
+                tx, ty = tx + dx, ty + dy
+
+            print(f"[Step {step:02d}] Spear({sx},{sy}) + Starburst({bcnt}px r={repeat_cnt}) -> tap ({tx}, {ty})")
+            tap(args.adb, tx, ty, 1.0)
+            consecutive_idle = 0
+            continue
             # Also check for Alliance Help red badge on bottom HUD (expanded at 1170,735 or collapsed at 1432,845)
             ah_exp_red_g = (a2[680:740, 1170:1220, 0] >= 185) & (a2[680:740, 1170:1220, 1] <= 65) & (a2[680:740, 1170:1220, 2] <= 65)
             if int(ah_exp_red_g.sum()) >= 80:
@@ -1550,30 +1631,6 @@ def main():
                     repeat_cnt = 0
                     continue
 
-        if spear_xy and target_xy:
-            sx, sy = spear_xy
-            tx, ty = target_xy
-            if last_spear and abs(sx - last_spear[0]) < 35 and abs(sy - last_spear[1]) < 35:
-                repeat_cnt += 1
-            else:
-                repeat_cnt = 0
-            last_spear = spear_xy
-
-            if repeat_cnt == 2:
-                act = detect_ocr_action(p2, a2)
-                if act:
-                    print(f"[Step {step:02d}] Retry OCR Override '{act[2]}' -> tap ({act[0]}, {act[1]})")
-                    tap(args.adb, act[0], act[1], 1.1)
-                    continue
-            elif repeat_cnt >= 3:
-                shifts = [(0, 35), (0, -35), (45, 0), (-45, 0)]
-                dx, dy = shifts[(repeat_cnt - 3) % len(shifts)]
-                tx, ty = tx + dx, ty + dy
-
-            print(f"[Step {step:02d}] Spear({sx},{sy}) + Starburst({bcnt}px r={repeat_cnt}) -> tap ({tx}, {ty})")
-            tap(args.adb, tx, ty, 1.0)
-            continue
-
         act = detect_ocr_action(p2, a2)
         if act:
             print(f"[Step {step:02d}] OCR '{act[2]}' -> tap ({act[0]}, {act[1]})")
@@ -1590,8 +1647,13 @@ def main():
                 tap(args.adb, q_act[0], q_act[1], 1.1)
             continue
 
-        print(f"[Step {step:02d}] Idle/Popup -> tap (800, 780)")
-        tap(args.adb, 800, 780, 0.85)
+        consecutive_idle += 1
+        if consecutive_idle % 4 == 0:
+            print(f"[Step {step:02d}] Idle Streak ({consecutive_idle}x) -> Tap Quest Scroll / Main Quest to prompt next objective (40, 235)")
+            tap(args.adb, 40, 235, 1.2)
+        else:
+            print(f"[Step {step:02d}] Idle/Popup -> tap (800, 780)")
+            tap(args.adb, 800, 780, 0.85)
 
     _, a_final = screencap_pair(args.adb, p1, p2)
     chk_final = detect_green_checkmark(a_final)
