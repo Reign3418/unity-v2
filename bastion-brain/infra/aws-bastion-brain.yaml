@@ -1,0 +1,437 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Bastion Brain foundation (Step 2): SQS job/result transport, DynamoDB state + oversight log,
+  S3 evidence bucket, and least-privilege IAM identities for Railway (brain), SIDEKICK (CIPHER)
+  and Unity on Vercel. Contains NO access keys and NO secrets.
+
+Parameters:
+  Prefix:
+    Type: String
+    Default: bastion
+    AllowedPattern: "^[a-z][a-z0-9-]{2,20}$"
+    Description: Lowercase prefix for queue, user and bucket names.
+  VercelIamUserName:
+    Type: String
+    Default: ""
+    Description: >-
+      Existing IAM user whose access keys Vercel already uses. If set, the Bastion Vercel policy is
+      attached to it. Leave empty to attach the policy yourself (its ARN is in the Outputs).
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: Optional. Email address that receives alarm notifications (dead-letter messages, stalled executor).
+  EvidenceRetentionDays:
+    Type: Number
+    Default: 30
+    MinValue: 7
+    MaxValue: 365
+    Description: Days to keep screenshot evidence in S3.
+
+Conditions:
+  HasVercelUser: !Not [!Equals [!Ref VercelIamUserName, ""]]
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+
+Resources:
+  # ------------------------------------------------------------------ SQS: jobs (Ring 2 -> CIPHER)
+  JobsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Prefix}-jobs-dlq.fifo"
+      FifoQueue: true
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  JobsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Prefix}-jobs.fifo"
+      FifoQueue: true
+      # Brain sets MessageGroupId=instance_id (ordered per emulator) and MessageDeduplicationId=idempotency_key.
+      ContentBasedDeduplication: false
+      DeduplicationScope: messageGroup
+      FifoThroughputLimit: perMessageGroupId
+      VisibilityTimeout: 1800
+      MessageRetentionPeriod: 86400
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobsDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  # ------------------------------------------------------------------ SQS: results (CIPHER -> Ring 3)
+  ResultsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Prefix}-results-dlq"
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  ResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${Prefix}-results"
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ResultsDeadLetterQueue.Arn
+        maxReceiveCount: 5
+
+  # ------------------------------------------------------------------ DynamoDB
+  BotsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: BastionBots
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: bot_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: bot_id, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Append-only oversight log. Item = contract BastionEvent + sort_key ("<timestamp>#<event_id>") + expires_at_epoch (TTL).
+  # Null contract fields (bot_id, job_id, ...) must be omitted on write so GSIs stay sparse and valid.
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: BastionEvents
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: epoch_day, AttributeType: S }
+        - { AttributeName: sort_key, AttributeType: S }
+        - { AttributeName: correlation_id, AttributeType: S }
+        - { AttributeName: bot_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: epoch_day, KeyType: HASH }
+        - { AttributeName: sort_key, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: correlation-index
+          KeySchema:
+            - { AttributeName: correlation_id, KeyType: HASH }
+            - { AttributeName: sort_key, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        - IndexName: bot-index
+          KeySchema:
+            - { AttributeName: bot_id, KeyType: HASH }
+            - { AttributeName: sort_key, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      TimeToLiveSpecification:
+        AttributeName: expires_at_epoch
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  IntentsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: BastionIntents
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: intent_id, AttributeType: S }
+        - { AttributeName: status, AttributeType: S }
+        - { AttributeName: created_at, AttributeType: S }
+      KeySchema:
+        - { AttributeName: intent_id, KeyType: HASH }
+      GlobalSecondaryIndexes:
+        - IndexName: status-index
+          KeySchema:
+            - { AttributeName: status, KeyType: HASH }
+            - { AttributeName: created_at, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  AccountSlotsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: BastionAccountSlots
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: account_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: account_id, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Operator controls written by Unity, read by the brain: MODE (OFF/DRY_RUN/SUPERVISED/AUTONOMOUS), token budgets, helper caps.
+  ControlTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: BastionControl
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: control_key, AttributeType: S }
+      KeySchema:
+        - { AttributeName: control_key, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # ------------------------------------------------------------------ S3: screenshot evidence
+  EvidenceBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${Prefix}-evidence-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireEvidence
+            Status: Enabled
+            ExpirationInDays: !Ref EvidenceRetentionDays
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  EvidenceBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref EvidenceBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt EvidenceBucket.Arn
+              - !Sub "${EvidenceBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # ------------------------------------------------------------------ IAM: Railway brain
+  BrainUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${Prefix}-brain"
+      Policies:
+        - PolicyName: BastionBrainAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: SendJobs
+                Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt JobsQueue.Arn
+              - Sid: ReceiveResults
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:ChangeMessageVisibility
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt ResultsQueue.Arn
+              - Sid: ReadWriteState
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                  - dynamodb:BatchGetItem
+                Resource:
+                  - !GetAtt BotsTable.Arn
+                  - !GetAtt AccountSlotsTable.Arn
+                  - !GetAtt ControlTable.Arn
+                  - !GetAtt IntentsTable.Arn
+                  - !Sub "${IntentsTable.Arn}/index/*"
+              - Sid: AppendOversightLog
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt EventsTable.Arn
+                  - !Sub "${EventsTable.Arn}/index/*"
+              - Sid: ReadEvidence
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "${EvidenceBucket.Arn}/*"
+
+  # ------------------------------------------------------------------ IAM: SIDEKICK (CIPHER)
+  SidekickUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${Prefix}-sidekick"
+      Policies:
+        - PolicyName: BastionSidekickAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReceiveJobs
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:ChangeMessageVisibility
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt JobsQueue.Arn
+              - Sid: SendResults
+                Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt ResultsQueue.Arn
+              - Sid: UploadEvidence
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${EvidenceBucket.Arn}/evidence/*"
+
+  # ------------------------------------------------------------------ IAM: Unity on Vercel
+  VercelAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${Prefix}-vercel-access"
+      Users: !If [HasVercelUser, [!Ref VercelIamUserName], !Ref "AWS::NoValue"]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: SubmitIntentsAndControls
+            Effect: Allow
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !GetAtt IntentsTable.Arn
+              - !Sub "${IntentsTable.Arn}/index/*"
+              - !GetAtt ControlTable.Arn
+          - Sid: ReadDashboardState
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !GetAtt BotsTable.Arn
+              - !GetAtt AccountSlotsTable.Arn
+              - !GetAtt EventsTable.Arn
+              - !Sub "${EventsTable.Arn}/index/*"
+          - Sid: ReadEvidence
+            Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${EvidenceBucket.Arn}/*"
+
+  # ------------------------------------------------------------------ Alarms
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasAlertEmail
+    Properties:
+      TopicName: !Sub "${Prefix}-alerts"
+      Subscription:
+        - { Protocol: email, Endpoint: !Ref AlertEmail }
+
+  JobsDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Prefix}-jobs-dlq-not-empty"
+      AlarmDescription: A job failed to process 3 times (poison message or CIPHER crash loop).
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - { Name: QueueName, Value: !GetAtt JobsDeadLetterQueue.QueueName }
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlertEmail, [!Ref AlertTopic], !Ref "AWS::NoValue"]
+
+  ResultsDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Prefix}-results-dlq-not-empty"
+      AlarmDescription: A job result could not be processed by the brain 5 times.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - { Name: QueueName, Value: !GetAtt ResultsDeadLetterQueue.QueueName }
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlertEmail, [!Ref AlertTopic], !Ref "AWS::NoValue"]
+
+  ExecutorStalledAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${Prefix}-executor-stalled"
+      AlarmDescription: >-
+        The oldest queued job has waited over an hour. SIDEKICK/CIPHER is offline or stuck.
+        The brain only enqueues due jobs, so queue age is a direct health signal.
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions:
+        - { Name: QueueName, Value: !GetAtt JobsQueue.QueueName }
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 3600
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlertEmail, [!Ref AlertTopic], !Ref "AWS::NoValue"]
+
+Outputs:
+  Region:
+    Value: !Ref "AWS::Region"
+  JobsQueueUrl:
+    Value: !Ref JobsQueue
+  ResultsQueueUrl:
+    Value: !Ref ResultsQueue
+  JobsDeadLetterQueueUrl:
+    Value: !Ref JobsDeadLetterQueue
+  ResultsDeadLetterQueueUrl:
+    Value: !Ref ResultsDeadLetterQueue
+  EvidenceBucketName:
+    Value: !Ref EvidenceBucket
+  BotsTableName:
+    Value: !Ref BotsTable
+  EventsTableName:
+    Value: !Ref EventsTable
+  IntentsTableName:
+    Value: !Ref IntentsTable
+  AccountSlotsTableName:
+    Value: !Ref AccountSlotsTable
+  ControlTableName:
+    Value: !Ref ControlTable
+  BrainUserName:
+    Value: !Ref BrainUser
+  SidekickUserName:
+    Value: !Ref SidekickUser
+  VercelAccessPolicyArn:
+    Description: Attach to Vercel's IAM user if VercelIamUserName was left empty.
+    Value: !Ref VercelAccessPolicy
