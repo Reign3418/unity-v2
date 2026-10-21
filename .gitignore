@@ -59,3 +59,6 @@ __pycache__/
 # Bastion Brain CIPHER credentials/settings (SIDEKICK only, never commit)
 .bastion_aws_credentials
 bastion-brain/cipher_state/
+
+bastion-brain/.env.railway
+bastion-brain/.sidekick_aws_credentials.cache

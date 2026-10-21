@@ -50,15 +50,18 @@ def run_check(cfg: CipherConfig) -> int:
         except Exception as exc:
             line("sqs", False, f"{type(exc).__name__}: {str(exc)[:160]}")
     adb = Adb(cfg.resolved_adb())
-    for inst in ALL_INSTANCES:
+    online_emulators = 0
+    for inst in cfg.served_instances:
         from contracts.validator import INSTANCE_TO_ADB
 
         serial = INSTANCE_TO_ADB[inst]
         try:
             running = adb.app_running(serial)
+            online_emulators += 1
             line(f"adb {inst} ({serial})", True, f"RoK running={running}")
         except Exception as exc:
-            line(f"adb {inst} ({serial})", False, f"{type(exc).__name__}: {str(exc)[:120]}")
+            print(f"[WARN] adb {inst} ({serial}) - powered off or unreachable ({str(exc)[:100]})")
+    line("emulator fleet", online_emulators > 0, f"{online_emulators}/{len(cfg.served_instances)} instance(s) online")
     for script in ("auto_tutorial_ch8.py",):
         line(f"skill script {script}", (cfg.scanner_dir / script).exists())
     print("PREFLIGHT " + ("PASSED" if ok else "FAILED"))
