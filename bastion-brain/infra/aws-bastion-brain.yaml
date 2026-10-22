@@ -93,7 +93,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
-        SSEEnabled: true
+        SSEEnabled: false
 
   # Append-only oversight log. Item = contract BastionEvent + sort_key ("<timestamp>#<event_id>") + expires_at_epoch (TTL).
   # Null contract fields (bot_id, job_id, ...) must be omitted on write so GSIs stay sparse and valid.
@@ -127,7 +127,7 @@ Resources:
         AttributeName: expires_at_epoch
         Enabled: true
       SSESpecification:
-        SSEEnabled: true
+        SSEEnabled: false
 
   IntentsTable:
     Type: AWS::DynamoDB::Table
@@ -151,7 +151,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
-        SSEEnabled: true
+        SSEEnabled: false
 
   AccountSlotsTable:
     Type: AWS::DynamoDB::Table
@@ -167,7 +167,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
-        SSEEnabled: true
+        SSEEnabled: false
 
   # Operator controls written by Unity, read by the brain: MODE (OFF/DRY_RUN/SUPERVISED/AUTONOMOUS), token budgets, helper caps.
   ControlTable:
@@ -184,7 +184,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
-        SSEEnabled: true
+        SSEEnabled: false
 
   # ------------------------------------------------------------------ S3: screenshot evidence
   EvidenceBucket:

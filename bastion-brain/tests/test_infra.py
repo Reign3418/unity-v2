@@ -103,11 +103,11 @@ class InfraTemplate(unittest.TestCase):
                 for forbidden in ("BotsTable", "EventsTable", "AccountSlotsTable"):
                     self.assertNotIn(forbidden, res)
 
-    def test_state_tables_retained_and_encrypted(self):
+    def test_state_tables_retained_and_aws_owned_encryption(self):
         for name in ("BotsTable", "EventsTable", "IntentsTable", "AccountSlotsTable", "ControlTable"):
             res = self.r[name]
             self.assertEqual(res["DeletionPolicy"], "Retain")
-            self.assertTrue(res["Properties"]["SSESpecification"]["SSEEnabled"])
+            self.assertFalse(res["Properties"]["SSESpecification"]["SSEEnabled"])
 
     def test_jobs_queue_is_fifo_with_dlq(self):
         q = self.r["JobsQueue"]["Properties"]

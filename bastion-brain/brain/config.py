@@ -78,7 +78,7 @@ class BrainConfig:
     node_id: str = "railway-primary"
     node_role: str = "PRIMARY"
     node_priority: int = 1
-    lease_ttl_seconds: int = 180
+    lease_ttl_seconds: int = 300
 
     def problems(self) -> List[str]:
         out = []
@@ -114,5 +114,5 @@ class BrainConfig:
             node_id=node_id,
             node_role=node_role,
             node_priority=node_priority,
-            lease_ttl_seconds=int(e.get("BRAIN_LEASE_TTL_SECONDS", "180")),
+            lease_ttl_seconds=int(e.get("BRAIN_LEASE_TTL_SECONDS", "300")),
         )

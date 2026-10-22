@@ -246,9 +246,14 @@ class Brain:
                  node_role=self.cfg.node_role, priority=self.cfg.node_priority,
                  boot_mode=self.cfg.boot_mode, tick_seconds=self.cfg.tick_seconds)
         while not stop.is_set():
+            wait_s = self.cfg.tick_seconds
             try:
-                self.tick()
+                summary = self.tick()
+                plans = (summary or {}).get("plans") or {}
+                idle_plans = bool(plans) and all(v in ("IDLE", "NO_ACTIVE_BOT", "DEDUPED", "REJECTED") for v in plans.values())
+                if (summary or {}).get("mode") in ("OFF", "STANDBY_WATCH") or (idle_plans and (summary or {}).get("results", 0) == 0):
+                    wait_s = max(self.cfg.tick_seconds, min(180, self.cfg.tick_seconds * 3))
             except Exception as exc:  # never die: Railway restarts would lose dedupe state
                 self.log(level="ERROR", msg="tick crashed", error=f"{type(exc).__name__}: {exc}", trace=traceback.format_exc()[-800:])
-            stop.wait(self.cfg.tick_seconds)
+            stop.wait(wait_s)
         self.log(level="INFO", msg="brain stopped", node_id=self.cfg.node_id)
