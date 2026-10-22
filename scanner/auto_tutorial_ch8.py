@@ -769,10 +769,19 @@ def detect_new_troop_modal(a: np.ndarray):
                     return (cx, 284, "ITEMS_REDEEM_GEMS_AND_CLOSE")
             return (1390, 112, "Items Bag Open -> Close (1390, 112)")
 
-    # 11c3b. Early Tutorial "Return to the city" banner (white speech banner at x=165..720, y=795..855 + bright bottom-left City button)
+    # 11c3b. Early Tutorial "Return to the city" banner (short white speech banner at x=165..720, y=795..855; NOT tall Counselor dialogue)
     rtc_ban = a[795:855, 165:720]
     is_rtc_white = (rtc_ban[:, :, 0] >= 225) & (rtc_ban[:, :, 1] >= 225) & (rtc_ban[:, :, 2] >= 220)
-    if float(np.mean(is_rtc_white)) > 0.55 and float(a[760:880, 15:135, 2].mean()) > 130.0:
+    rtc_above = a[680:750, 250:700]
+    is_above_white = (rtc_above[:, :, 0] >= 210) & (rtc_above[:, :, 1] >= 210) & (rtc_above[:, :, 2] >= 200)
+    rtc_right = a[795:855, 850:1250]
+    is_right_white = (rtc_right[:, :, 0] >= 210) & (rtc_right[:, :, 1] >= 210) & (rtc_right[:, :, 2] >= 200)
+    if (
+        float(np.mean(is_rtc_white)) > 0.55
+        and float(np.mean(is_above_white)) < 0.20
+        and float(np.mean(is_right_white)) < 0.20
+        and float(a[760:880, 15:135, 2].mean()) > 130.0
+    ):
         return (60, 815, "Tutorial Return to City Banner -> Tap (60, 815)")
 
     # 11c4. Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580; top-left blue avatar ribbon must be covered)
