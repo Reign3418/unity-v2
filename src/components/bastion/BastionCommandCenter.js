@@ -43,14 +43,14 @@ const MODES = [
     label: 'SUPERVISED (Routine Ops)',
     cls: 'border-amber-500/50 text-amber-300',
     activeCls: 'bg-amber-500/25 border-amber-400 text-amber-200 ring-1 ring-amber-400/40',
-    hint: 'Dispatches NUMNUM-approved routine jobs (probe_status, sleep, grow_city); holds character creation/switching',
+    hint: 'Auto-dispatches NUMNUM-approved probe_status, sleep, grow_city, switch_character & scan_kingdom; holds provision_character for operator approval',
   },
   {
     key: 'AUTONOMOUS',
     label: 'AUTONOMOUS (Full Fleet)',
     cls: 'border-pink-500/50 text-pink-300',
     activeCls: 'bg-pink-500/25 border-pink-400 text-pink-200 ring-1 ring-pink-400/40',
-    hint: 'Dispatches all NUMNUM-approved jobs within implemented CIPHER capabilities',
+    hint: 'Dispatches all NUMNUM-approved jobs including self-healing & cross-instance twin provisioning',
   },
 ];
 
@@ -67,24 +67,24 @@ const AGENT_DEFINITIONS = [
     color: '#06b6d4',
     defaultModelType: 'gemini-2.5-flash-lite + Deterministic Fallback',
     helpers: ['R1_KINGDOM_WATCHER', 'R1_LEAD_TRIAGE'],
-    output: 'Triaged Demand Signals (SCAN_REQUESTED · SCAN_DUE · BOT_LOST · REDUNDANCY_GAP) → Ring 2',
+    output: 'Triaged Demand Signals (SCAN_REQUESTED · LOCATE_REQUESTED · EXPAND_REQUESTED · GROWTH_REQUESTED · SCAN_DUE · BOT_LOST · REDUNDANCY_GAP) → Ring 2',
     directive:
-      'Leads Ring 1 (Intelligence). Coordinates KENT (Unity intent ingestion) and NULL (watched-kingdom staleness, BOT_LOST & REDUNDANCY_GAP math) to emit prioritized Demand signals into Ring 2. Spawns bounded R1 helpers when surge demand requires triage.',
+      'Leads Ring 1 (Intelligence). Coordinates KENT (R5 & Unity intent ingestion across 4 mission types) and NULL (watched-kingdom staleness, BOT_LOST & REDUNDANCY_GAP math) to emit prioritized Demand signals into Ring 2. Spawns bounded R1 helpers when surge demand requires triage.',
   },
   {
     id: 'kent',
     actorKey: 'KENT',
     name: 'KENT',
     icon: '📋',
-    role: 'Unity Intent & Demand Ingestor',
+    role: 'Unity R5 & Demand Intent Ingestor',
     ringKey: 'RING_1_INTEL',
     cadence: 'Every Tick (0 Tokens)',
     color: '#38bdf8',
     defaultModelType: 'DETERMINISTIC_RULE (0 Tokens)',
     helpers: ['R1_LEAD_TRIAGE'],
-    output: 'Validated BastionIntents (PENDING → TRIAGED_BY_SCOUT)',
+    output: 'Validated BastionIntents (PENDING → TRIAGED_BY_SCOUT → PLANNED_BY_TANK)',
     directive:
-      'Queries BastionIntents (status-index = PENDING) submitted by SuperAdmins or R5 Command Desks. Validates every intent against events.schema.json, rejects malformed payloads, and promotes valid SCAN_KINGDOM requests into high-priority Ring 1 signals.',
+      'Queries BastionIntents (status-index = PENDING, TRIAGED_BY_SCOUT, PLANNED_BY_TANK) submitted by R5 Command Desks, Unity API Demand, Data Leads, or Operators. Validates against events.schema.json and promotes SCAN_KINGDOM, LOCATE_GOVERNOR, EXPAND_TO_KINGDOM, and PRIORITIZE_GROWTH requests into Ring 1 signals.',
   },
   {
     id: 'null',
@@ -116,7 +116,7 @@ const AGENT_DEFINITIONS = [
     helpers: ['R2_COHORT_SCHEDULER', 'R2_REPLACEMENT_PLANNER'],
     output: 'Typed BastionJob Proposals → NUMNUM Gate → bastion-jobs.fifo',
     directive:
-      'Leads Ring 2 (Operations). Evaluates each SIDEKICK instance’s active bot, enforces human-like sleep windows, session breaks, daily active caps, CH8 growth progression, self-healing replacements, cross-instance twins, and kingdom scan missions before submitting typed job proposals to NUMNUM.',
+      'Leads Ring 2 (Operations). Evaluates each SIDEKICK instance’s active bot, enforces human-like sleep windows, session breaks, daily active caps, CH8 growth progression, self-healing replacements, cross-instance twins, and R5/scheduled kingdom scan missions before submitting typed job proposals to NUMNUM.',
   },
   {
     id: 'bigjon',
@@ -129,9 +129,9 @@ const AGENT_DEFINITIONS = [
     color: '#f97316',
     defaultModelType: 'DETERMINISTIC_RULE (0 Tokens)',
     helpers: [],
-    output: 'Mission Preemption (Self-Heal > Twin > R5 Scan > Due Scan > CH8 Growth > Probe)',
+    output: 'Mission Preemption (Self-Heal > R5 Expand/Scan/Locate > Twin Convergence > Due Scan > R5 Growth > CH8 Growth > Probe)',
     directive:
-      'Deterministic priority referee inside Ring 2. Ensures self-healing replacements, cross-instance twin convergence, urgent R5/Operator scan intents, and overdue kingdom scans preempt routine city growth or status probes whenever the stationed bot is awake.',
+      'Deterministic priority referee inside Ring 2. Ensures self-healing replacements, R5/Operator mission intents, cross-instance twin convergence, and overdue kingdom scans preempt routine city growth or status probes whenever the stationed bot is awake.',
   },
   {
     id: 'numnum',
@@ -144,9 +144,9 @@ const AGENT_DEFINITIONS = [
     color: '#a78bfa',
     defaultModelType: 'PURE_MATH_GATE (0 Tokens)',
     helpers: [],
-    output: 'Pass/Fail Rule Table · Approval ID (nn_*) or Hard Hold',
+    output: 'Pass/Fail 11-Rule Table · Approval ID (nn_*) or Hard Hold',
     directive:
-      'Non-bypassable deterministic veto gate. Evaluates EXECUTOR_CAPABILITY, INSTANCE_SINGLE_FLIGHT, SLEEP_WINDOW, DAILY_ACTIVE_CAP, SESSION_DURATION_CAP, COOLDOWN_BREAK, ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM, CROSS_INSTANCE_REDUNDANCY, HELPER_CONCURRENCY_CAP, RING_TOKEN_BUDGET, and IDEMPOTENCY_KEY_UNIQUE.',
+      'Non-bypassable 11-rule deterministic veto gate. Evaluates SLEEP_WINDOW_CHECK, SESSION_DURATION_CAP, DAILY_ACTIVE_MINUTES_CAP, INSTANCE_SINGLE_TENANT_MUTEX, ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM, CROSS_INSTANCE_REDUNDANCY, JOB_SCHEMA_BOUNDS, IDEMPOTENCY_DEDUP, RING_TOKEN_BUDGET, HELPER_CONCURRENCY_CAP, and EXECUTOR_CAPABILITY.',
   },
   {
     id: 'cipher',
@@ -176,9 +176,9 @@ const AGENT_DEFINITIONS = [
     color: '#ec4899',
     defaultModelType: 'gemini-2.5-pro + Deterministic Fallback',
     helpers: ['R3_MIGRATION_ANALYST', 'R3_BAN_INVESTIGATOR'],
-    output: 'Sole Writer of BastionBots · Lifecycle Transitions · KINGDOM#<id> Stamp',
+    output: 'Sole Writer of BastionBots · BastionAccountSlots · KINGDOM#<id> · VERIFIED_BY_AUDIT',
     directive:
-      'Leads Ring 3 (Audit). The ONLY component permitted to mutate BastionBots, BastionAccountSlots, or mark a kingdom scan verified. Inspects CIPHER results + DOZER checks, updates verified CH level/power/screenshots, registers newly provisioned characters with staggered twin sleep windows, and spawns R3_BAN_INVESTIGATOR on anomalies.',
+      'Leads Ring 3 (Audit). The ONLY component permitted to mutate BastionBots, BastionAccountSlots, stamp KINGDOM#<id>, or transition BastionIntents to VERIFIED_BY_AUDIT. Inspects CIPHER results + DOZER checks, updates verified CH level/power/screenshots, registers newly provisioned characters with staggered twin sleep windows, and spawns R3_BAN_INVESTIGATOR on anomalies.',
   },
   {
     id: 'dozer',
@@ -200,25 +200,25 @@ const AGENT_DEFINITIONS = [
 const RING_GROUPS = [
   {
     key: 'RING_1_INTEL',
-    badge: 'RING 01 // INTELLIGENCE, UNITY INTENT INGEST & STALENESS DETECTION',
+    badge: 'RING 01 // INTELLIGENCE, R5 INTENT INGEST, TWIN REDUNDANCY & STALENESS DETECTION',
     leader: 'SCOUT',
-    members: 'SCOUT (Leader) · KENT (Intent Ingest) · NULL (Staleness Math)',
+    members: 'SCOUT (Leader) · KENT (R5 & Demand Intake) · NULL (Staleness, Loss & Twin Math)',
     accent: 'border-cyan-500/40 from-cyan-950/30 via-[#0b0e17] to-[#0b0e17]',
     badgeCls: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
   },
   {
     key: 'RING_2_OPS',
-    badge: 'RING 02 // FLEET OPERATIONS, PRIORITY PREEMPTION, NUMNUM GATE & CIPHER',
+    badge: 'RING 02 // FLEET OPERATIONS, PRIORITY PREEMPTION, NUMNUM 11-RULE GATE & CIPHER',
     leader: 'TANK',
-    members: 'TANK (Leader) · BIG JON (Priority) · NUMNUM (8-Rule Gate) · CIPHER (SIDEKICK Executor)',
+    members: 'TANK (Leader) · BIG JON (Priority) · NUMNUM (11-Rule Gate) · CIPHER (6-Skill Executor)',
     accent: 'border-amber-500/40 from-amber-950/30 via-[#0b0e17] to-[#0b0e17]',
     badgeCls: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
   },
   {
     key: 'RING_3_AUDIT',
-    badge: 'RING 03 // EVIDENCE VERIFICATION, DOZER RECONCILIATION & BOT LIFECYCLE',
+    badge: 'RING 03 // EVIDENCE VERIFICATION, DOZER RECONCILIATION, BOT LIFECYCLE & MISSION PROOF',
     leader: 'AUDIT',
-    members: 'AUDIT (Leader & Sole Bot-State Writer) · DOZER (SHA-256 & Evidence Math)',
+    members: 'AUDIT (Leader & Sole Bot/Intent Verifier) · DOZER (SHA-256 & Evidence Math)',
     accent: 'border-pink-500/40 from-pink-950/30 via-[#0b0e17] to-[#0b0e17]',
     badgeCls: 'bg-pink-500/20 text-pink-300 border-pink-500/40',
   },
@@ -422,6 +422,7 @@ export default function BastionCommandCenter() {
   const [scanSource, setScanSource] = useState('R5_COMMAND_DESK');
   const [scanRanks, setScanRanks] = useState('650');
   const [scanPriority, setScanPriority] = useState('85');
+  const [scanTargetGov, setScanTargetGov] = useState('');
 
   // Fleet & Event filters
   const [instanceFilter, setInstanceFilter] = useState('ALL');
@@ -531,11 +532,18 @@ export default function BastionCommandCenter() {
   const hb = data?.heartbeat || null;
   const online = Boolean(hb?.ts && nowMs - new Date(hb.ts).getTime() < 180000);
   const requestedMode = data?.requestedMode?.mode || null;
-  const effectiveMode = hb?.mode || requestedMode || 'DRY_RUN';
+  const effectiveMode = hb?.mode || requestedMode || 'SUPERVISED';
   const fleet = data?.fleet || {};
   const activeByInstance = fleet.active_by_instance || {};
   const config = data?.config || {};
-  const capabilities = config.capabilities || ['probe_status', 'sleep', 'grow_city'];
+  const capabilities = config.capabilities || [
+    'probe_status',
+    'grow_city',
+    'sleep',
+    'switch_character',
+    'provision_character',
+    'scan_kingdom',
+  ];
   const watchedKingdoms = [...(config.watched_kingdoms || [])].sort(
     (a, b) => Number(a.kingdom_id || 0) - Number(b.kingdom_id || 0)
   );
@@ -553,6 +561,11 @@ export default function BastionCommandCenter() {
   const helpers = data?.helpers || [];
   const ringBudget = data?.ringBudget || {};
   const approvedPlans = data?.approvedPlans || [];
+
+  const activeIntentsCount = intents.filter((i) =>
+    ['PENDING', 'TRIAGED_BY_SCOUT', 'PLANNED_BY_TANK', 'IN_PROGRESS'].includes(i.status)
+  ).length;
+  const verifiedIntentsCount = intents.filter((i) => i.status === 'VERIFIED_BY_AUDIT').length;
 
   // Count events per actor in loaded window
   const actorEventCounts = {};
@@ -583,7 +596,7 @@ export default function BastionCommandCenter() {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black tracking-widest uppercase">
-                ◈ BASTION BRAIN v{hb?.version || '0.4.0'} // SPEC-DRIVEN 3-RING MOE ORCHESTRATOR
+                ◈ BASTION BRAIN v{hb?.version || '0.7.0-step7'} // SPEC-DRIVEN 3-RING MOE ORCHESTRATOR
               </span>
               <span
                 className={`px-2.5 py-0.5 rounded text-[10px] font-black border flex items-center gap-1.5 ${
@@ -636,7 +649,38 @@ export default function BastionCommandCenter() {
               <div className="text-[10px] text-slate-500 uppercase">CIPHER SKILLS</div>
               <div className="text-xs font-black text-purple-300">{capabilities.length} LIVE</div>
             </div>
+            <div className="text-center px-2 border-l border-slate-800">
+              <div className="text-[10px] text-slate-500 uppercase">R5 MISSIONS</div>
+              <div className="text-xs font-black text-cyan-300">
+                {verifiedIntentsCount} VERIFIED · {activeIntentsCount} ACTIVE
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* 7-Stage Build Architecture Status Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1">
+          {[
+            { step: 'STEP 1', label: 'Contracts & Schemas', detail: '4 JSON Schemas Live' },
+            { step: 'STEP 2', label: 'AWS CloudFormation', detail: 'SQS FIFO + 4 DDB Tables' },
+            { step: 'STEP 3', label: 'CIPHER v2 Executor', detail: 'CH8 Verified on SIDEKICK' },
+            { step: 'STEP 4', label: '3-Ring Brain + NUMNUM', detail: '11-Rule Gate + Audit Log' },
+            { step: 'STEP 5', label: 'Self-Heal & Twin Rule', detail: 'M0 ↔ M1 Convergence' },
+            { step: 'STEP 6', label: 'Gemini Leaders + Helpers', detail: 'SUPERVISED + 6 Live Skills' },
+            { step: 'STEP 7', label: 'R5 Mission Desk Intake', detail: '5-Stage Verified Loop' },
+          ].map((s) => (
+            <div
+              key={s.step}
+              className="px-2.5 py-2 rounded-xl bg-[#06080d]/90 border border-emerald-500/30 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between text-[9px] font-black text-emerald-400">
+                <span>{s.step}</span>
+                <span>✓ LIVE</span>
+              </div>
+              <div className="text-[10px] font-bold text-white mt-0.5 truncate">{s.label}</div>
+              <div className="text-[9px] text-slate-400 font-sans truncate">{s.detail}</div>
+            </div>
+          ))}
         </div>
 
         {/* Mode Switcher + On-Demand Scan Intent Bar */}
@@ -718,24 +762,47 @@ export default function BastionCommandCenter() {
               <option value="DATA_LEAD_INGEST">DATA_LEAD_INGEST</option>
             </select>
 
-            <select
-              value={scanKingdom}
-              onChange={(e) => setScanKingdom(e.target.value)}
-              className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-amber-200 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
-            >
-              {Array.from(
-                new Set([
-                  ...watchedKingdoms.map((w) => String(w.kingdom_id)),
-                  ...bots.map((b) => String(b.kingdom_id)),
-                ])
-              )
-                .sort((a, b) => Number(a) - Number(b))
-                .map((kd) => (
-                  <option key={kd} value={kd}>
-                    Kingdom #{kd}
-                  </option>
-                ))}
-            </select>
+            {scanIntentType === 'EXPAND_TO_KINGDOM' ? (
+              <input
+                type="number"
+                min={1000}
+                max={9999}
+                value={scanKingdom}
+                onChange={(e) => setScanKingdom(e.target.value)}
+                placeholder="4-digit KD"
+                className="w-24 px-2.5 py-1 rounded-lg bg-[#0f1420] border border-amber-500/50 text-xs text-amber-200 font-bold focus:outline-none focus:border-cyan-400"
+                title="Enter any 4-digit Kingdom ID (1000-9999) to expand Bastion coverage"
+              />
+            ) : (
+              <select
+                value={scanKingdom}
+                onChange={(e) => setScanKingdom(e.target.value)}
+                className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-amber-200 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+              >
+                {Array.from(
+                  new Set([
+                    ...watchedKingdoms.map((w) => String(w.kingdom_id)),
+                    ...bots.map((b) => String(b.kingdom_id)),
+                  ])
+                )
+                  .sort((a, b) => Number(a) - Number(b))
+                  .map((kd) => (
+                    <option key={kd} value={kd}>
+                      Kingdom #{kd}
+                    </option>
+                  ))}
+              </select>
+            )}
+
+            {scanIntentType === 'LOCATE_GOVERNOR' && (
+              <input
+                type="text"
+                value={scanTargetGov}
+                onChange={(e) => setScanTargetGov(e.target.value)}
+                placeholder="Target Gov Name/ID"
+                className="w-36 px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-400"
+              />
+            )}
 
             {(scanIntentType === 'SCAN_KINGDOM' || scanIntentType === 'LOCATE_GOVERNOR') && (
               <select
@@ -772,6 +839,9 @@ export default function BastionCommandCenter() {
                     kingdom_id: Number(scanKingdom),
                     max_ranks: Number(scanRanks),
                     priority: Number(scanPriority),
+                    ...(scanIntentType === 'LOCATE_GOVERNOR' && scanTargetGov.trim()
+                      ? { target_governor_name: scanTargetGov.trim() }
+                      : {}),
                   },
                   'submit-scan-intent'
                 )
@@ -1126,12 +1196,28 @@ export default function BastionCommandCenter() {
                 const ageHours = lastIso ? (nowMs - new Date(lastIso).getTime()) / 3600000 : null;
                 const isDue = ageHours === null || ageHours >= cadenceH;
                 const stationedBots = bots.filter((b) => Number(b.kingdom_id) === kdId);
+                const hasM0 = stationedBots.some((b) => b.instance_id === 'sidekick-mumu-0');
+                const hasM1 = stationedBots.some((b) => b.instance_id === 'sidekick-mumu-1');
+                const isConverged = hasM0 && hasM1;
+                const hasActiveCh8 = stationedBots.some((b) => b.lifecycle_state === 'ACTIVE');
+                const hasGrowing = stationedBots.some((b) => b.lifecycle_state === 'GROWING');
 
                 return (
                   <tr key={kdId} className="hover:bg-white/[0.02]">
                     <td className="py-3 px-3">
-                      <div className="font-black text-white text-sm">#{kdId}</div>
-                      <div className="text-[10px] text-slate-400 font-sans">{w.source || 'Watched Kingdom'}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-white text-sm">#{kdId}</span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-mono border ${
+                            isConverged
+                              ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300 font-bold'
+                              : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
+                          }`}
+                        >
+                          {isConverged ? 'M0+M1 ✓' : '1x INST · TWIN QUEUED'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-sans mt-0.5">{w.source || 'Watched Kingdom'}</div>
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex flex-wrap gap-1.5">
@@ -1161,8 +1247,18 @@ export default function BastionCommandCenter() {
                       </span>
                     </td>
                     <td className="py-3 px-3">
-                      <div className="text-slate-200 font-bold text-[11px]">{ago(lastIso, nowMs)}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{lastIso || 'Never AUDIT-verified'}</div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-slate-200 font-bold text-[11px]">{ago(lastIso, nowMs)}</span>
+                        {kdRec.governors_extracted != null && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[9px] font-mono font-bold">
+                            ✓ {kdRec.governors_extracted} govs
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        {lastIso || 'Never AUDIT-verified'}
+                        {kdRec.verified_by_bot ? ` · ${kdRec.verified_by_bot}` : ''}
+                      </div>
                     </td>
                     <td className="py-3 px-3">
                       <span
@@ -1176,7 +1272,29 @@ export default function BastionCommandCenter() {
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        {!hasActiveCh8 && hasGrowing && (
+                          <button
+                            type="button"
+                            disabled={busyAction === `growth-${kdId}`}
+                            onClick={() =>
+                              postBrainAction(
+                                {
+                                  action: 'SUBMIT_INTENT',
+                                  intent_type: 'PRIORITIZE_GROWTH',
+                                  source: 'OPERATOR_OVERRIDE',
+                                  kingdom_id: kdId,
+                                  priority: 88,
+                                },
+                                `growth-${kdId}`
+                              )
+                            }
+                            className="px-2 py-1 rounded-lg bg-lime-500/20 hover:bg-lime-500/35 border border-lime-500/40 text-lime-200 font-bold text-[10px] cursor-pointer"
+                            title="Prioritize CH8 growth for stationed governor"
+                          >
+                            ⚡ Boost CH8
+                          </button>
+                        )}
                         <button
                           type="button"
                           disabled={busyAction === `cadence-${kdId}`}
@@ -1201,6 +1319,8 @@ export default function BastionCommandCenter() {
                             postBrainAction(
                               {
                                 action: 'SUBMIT_INTENT',
+                                intent_type: 'SCAN_KINGDOM',
+                                source: 'OPERATOR_OVERRIDE',
                                 kingdom_id: kdId,
                                 max_ranks: 650,
                                 priority: 85,
@@ -1315,256 +1435,359 @@ export default function BastionCommandCenter() {
       {/* =====================================================================
           SECTION 4: GOOGLE ACCOUNT SLOT POOL & 15-BOT PROVISIONED FLEET
       ===================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Left 5 cols: Google Account Slot Pool & Cross-Instance Convergence */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-              <Layers size={15} />
-              <span>GOOGLE ACCOUNT SLOT POOL (≤ 2 CHARS / KINGDOM)</span>
-            </div>
-            <span className="text-[10px] text-emerald-300 font-mono">NUMNUM + Twin Rule Enforced</span>
-          </div>
-          <p className="text-xs text-slate-400 font-sans">
-            Rise of Kingdoms permits at most 2 characters per kingdom per Google account (`ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM`), and `CROSS_INSTANCE_REDUNDANCY` ensures every active kingdom on `sidekick-mumu-0` also has a twin governor on `sidekick-mumu-1` (and vice versa) for convergence and failover.
-          </p>
-
-          {/* Cross-Instance Convergence Matrix (sidekick-mumu-0 <-> sidekick-mumu-1) */}
-          {(() => {
-            const slotM0 = accountSlots.find((s) => s.instance_id === 'sidekick-mumu-0')?.kingdom_slots || {};
-            const slotM1 = accountSlots.find((s) => s.instance_id === 'sidekick-mumu-1')?.kingdom_slots || {};
-            const activeKds = Array.from(
-              new Set([
-                ...watchedKingdoms.map((w) => String(w.kingdom_id)),
-                ...Object.keys(slotM0).filter((k) => Number(k) >= 4000),
-                ...Object.keys(slotM1).filter((k) => Number(k) >= 4000),
-              ])
-            ).sort((a, b) => Number(a) - Number(b));
-            const convergedCount = activeKds.filter((k) => (slotM0[k]?.length || 0) > 0 && (slotM1[k]?.length || 0) > 0).length;
-            return (
-              <div className="p-3 rounded-xl bg-[#06080d] border border-cyan-500/25 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-cyan-300 uppercase tracking-wider">
-                    Cross-Instance Twin Convergence (`mumu-0` ↔ `mumu-1`)
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-300">
-                    {convergedCount}/{activeKds.length} Converged
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {activeKds.map((kd) => {
-                    const hasM0 = (slotM0[kd]?.length || 0) > 0;
-                    const hasM1 = (slotM1[kd]?.length || 0) > 0;
-                    const converged = hasM0 && hasM1;
-                    const missingInst = !hasM0 ? 'mumu-0' : !hasM1 ? 'mumu-1' : null;
-                    return (
-                      <div
-                        key={kd}
-                        className={`px-2 py-1.5 rounded border text-[10px] flex items-center justify-between ${
-                          converged
-                            ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-200'
-                            : 'bg-cyan-500/10 border-cyan-500/25 text-slate-200'
-                        }`}
-                      >
-                        <span className="font-bold">#{kd}</span>
-                        <span className={`text-[9px] font-mono ${converged ? 'text-emerald-300 font-bold' : 'text-cyan-300'}`}>
-                          {converged ? 'M0+M1 ✓' : `+${missingInst} twin`}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+        <div className="lg:col-span-5 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 flex flex-col justify-between space-y-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                <Layers size={15} />
+                <span>GOOGLE ACCOUNT SLOT POOL (≤ 2 CHARS / KINGDOM)</span>
               </div>
-            );
-          })()}
+              <span className="text-[10px] text-emerald-300 font-mono">NUMNUM + Twin Rule Enforced</span>
+            </div>
+            <p className="text-xs text-slate-400 font-sans">
+              Rise of Kingdoms permits at most 2 characters per kingdom per Google account (`ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM`), and `CROSS_INSTANCE_REDUNDANCY` ensures every active kingdom on `sidekick-mumu-0` also has a twin governor on `sidekick-mumu-1` (and vice versa) for convergence and failover.
+            </p>
 
-          <div className="space-y-3">
-            {accountSlots.map((slot) => {
-              const kdEntries = Object.entries(slot.kingdom_slots || {}).sort(
-                (a, b) => Number(a[0]) - Number(b[0])
-              );
-              const peerInst =
-                slot.instance_id === 'sidekick-mumu-0'
-                  ? 'sidekick-mumu-1'
-                  : slot.instance_id === 'sidekick-mumu-1'
-                  ? 'sidekick-mumu-0'
-                  : null;
-              const peerSlots = peerInst
-                ? accountSlots.find((s) => s.instance_id === peerInst)?.kingdom_slots || {}
-                : {};
-              const totalChars = kdEntries.reduce((acc, [, arr]) => acc + (arr?.length || 0), 0);
+            {/* Cross-Instance Convergence Matrix (sidekick-mumu-0 <-> sidekick-mumu-1) */}
+            {(() => {
+              const slotM0 = accountSlots.find((s) => s.instance_id === 'sidekick-mumu-0')?.kingdom_slots || {};
+              const slotM1 = accountSlots.find((s) => s.instance_id === 'sidekick-mumu-1')?.kingdom_slots || {};
+              const activeKds = Array.from(
+                new Set([
+                  ...watchedKingdoms.map((w) => String(w.kingdom_id)),
+                  ...Object.keys(slotM0).filter((k) => Number(k) >= 4000),
+                  ...Object.keys(slotM1).filter((k) => Number(k) >= 4000),
+                ])
+              ).sort((a, b) => Number(a) - Number(b));
+              const convergedCount = activeKds.filter((k) => (slotM0[k]?.length || 0) > 0 && (slotM1[k]?.length || 0) > 0).length;
               return (
-                <div key={slot.account_id} className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 space-y-2.5">
+                <div className="p-3 rounded-xl bg-[#06080d] border border-cyan-500/25 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-white">{slot.account_id}</span>
-                      <span className="text-[10px] text-slate-400 ml-2">
-                        ({slot.instance_id} · {slot.adb_serial})
-                      </span>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-black border ${
-                        slot.account_status === 'HEALTHY'
-                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {slot.account_status}
+                    <span className="text-[10px] font-black text-cyan-300 uppercase tracking-wider">
+                      Cross-Instance Twin Convergence (`mumu-0` ↔ `mumu-1`)
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-300">
+                      {convergedCount}/{activeKds.length} Converged
                     </span>
                   </div>
-
-                  <div className="text-[10px] text-slate-400 font-sans">
-                    Occupied Kingdom Slots: <strong className="text-slate-200">{kdEntries.length} Kingdoms</strong> ·{' '}
-                    <strong className="text-cyan-300">{totalChars} Characters</strong> (Max {slot.max_slots_per_kingdom}/kingdom)
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {activeKds.map((kd) => {
+                      const hasM0 = (slotM0[kd]?.length || 0) > 0;
+                      const hasM1 = (slotM1[kd]?.length || 0) > 0;
+                      const converged = hasM0 && hasM1;
+                      const missingInst = !hasM0 ? 'mumu-0' : !hasM1 ? 'mumu-1' : null;
+                      return (
+                        <div
+                          key={kd}
+                          className={`px-2 py-1.5 rounded border text-[10px] flex items-center justify-between ${
+                            converged
+                              ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-200'
+                              : 'bg-cyan-500/10 border-cyan-500/25 text-slate-200'
+                          }`}
+                        >
+                          <span className="font-bold">#{kd}</span>
+                          <span className={`text-[9px] font-mono ${converged ? 'text-emerald-300 font-bold' : 'text-cyan-300'}`}>
+                            {converged ? 'M0+M1 ✓' : `+${missingInst} twin`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  {kdEntries.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                      {kdEntries.map(([kd, botIdList]) => {
-                        const count = (botIdList || []).length;
-                        const full = count >= slot.max_slots_per_kingdom;
-                        const hasPeerTwin = (peerSlots[kd]?.length || 0) > 0;
-                        return (
-                          <div
-                            key={kd}
-                            className={`p-2 rounded border text-[10px] ${
-                              full
-                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
-                                : 'bg-[#0b101b] border-slate-800 text-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between font-bold">
-                              <span>#{kd}</span>
-                              <div className="flex items-center gap-1">
-                                {peerInst && Number(kd) >= 4000 && (
-                                  <span
-                                    className={`px-1 rounded text-[8px] font-mono ${
-                                      hasPeerTwin
-                                        ? 'bg-emerald-500/20 text-emerald-300'
-                                        : 'bg-cyan-500/20 text-cyan-300'
-                                    }`}
-                                    title={
-                                      hasPeerTwin
-                                        ? `Converged: ${peerInst} also has a governor in #${kd}`
-                                        : `Twin queued on ${peerInst} via CROSS_INSTANCE_REDUNDANCY`
-                                    }
-                                  >
-                                    {hasPeerTwin ? '2xINST' : '1xINST'}
-                                  </span>
-                                )}
-                                <span className={full ? 'text-amber-300' : 'text-emerald-300'}>
-                                  {count}/{slot.max_slots_per_kingdom}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-[9px] text-slate-400 truncate mt-0.5">
-                              {(botIdList || []).map((id) => botsById[id]?.governor_name || id).join(', ')}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-slate-500 italic">0 slots occupied (all kingdoms 0/2 open)</div>
-                  )}
                 </div>
               );
-            })}
+            })()}
+
+            <div className="space-y-3">
+              {accountSlots.map((slot) => {
+                const kdEntries = Object.entries(slot.kingdom_slots || {}).sort(
+                  (a, b) => Number(a[0]) - Number(b[0])
+                );
+                const peerInst =
+                  slot.instance_id === 'sidekick-mumu-0'
+                    ? 'sidekick-mumu-1'
+                    : slot.instance_id === 'sidekick-mumu-1'
+                    ? 'sidekick-mumu-0'
+                    : null;
+                const peerSlots = peerInst
+                  ? accountSlots.find((s) => s.instance_id === peerInst)?.kingdom_slots || {}
+                  : {};
+                const totalChars = kdEntries.reduce((acc, [, arr]) => acc + (arr?.length || 0), 0);
+                return (
+                  <div key={slot.account_id} className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-black text-white">{slot.account_id}</span>
+                        <span className="text-[10px] text-slate-400 ml-2">
+                          ({slot.instance_id} · {slot.adb_serial})
+                        </span>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                          slot.account_status === 'HEALTHY'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        {slot.account_status}
+                      </span>
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 font-sans">
+                      Occupied Kingdom Slots: <strong className="text-slate-200">{kdEntries.length} Kingdoms</strong> ·{' '}
+                      <strong className="text-cyan-300">{totalChars} Characters</strong> (Max {slot.max_slots_per_kingdom}/kingdom)
+                    </div>
+
+                    {kdEntries.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                        {kdEntries.map(([kd, botIdList]) => {
+                          const count = (botIdList || []).length;
+                          const full = count >= slot.max_slots_per_kingdom;
+                          const hasPeerTwin = (peerSlots[kd]?.length || 0) > 0;
+                          return (
+                            <div
+                              key={kd}
+                              className={`p-2 rounded border text-[10px] ${
+                                full
+                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                                  : 'bg-[#0b101b] border-slate-800 text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between font-bold">
+                                <span>#{kd}</span>
+                                <div className="flex items-center gap-1">
+                                  {peerInst && Number(kd) >= 4000 && (
+                                    <span
+                                      className={`px-1 rounded text-[8px] font-mono ${
+                                        hasPeerTwin
+                                          ? 'bg-emerald-500/20 text-emerald-300'
+                                          : 'bg-cyan-500/20 text-cyan-300'
+                                      }`}
+                                      title={
+                                        hasPeerTwin
+                                          ? `Converged: ${peerInst} also has a governor in #${kd}`
+                                          : `Twin queued on ${peerInst} via CROSS_INSTANCE_REDUNDANCY`
+                                      }
+                                    >
+                                      {hasPeerTwin ? '2xINST' : '1xINST'}
+                                    </span>
+                                  )}
+                                  <span className={full ? 'text-amber-300' : 'text-emerald-300'}>
+                                    {count}/{slot.max_slots_per_kingdom}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-[9px] text-slate-400 truncate mt-0.5">
+                                {(botIdList || []).map((id) => botsById[id]?.governor_name || id).join(', ')}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-500 italic">0 slots occupied (all kingdoms 0/2 open)</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* COOP & Red-Team Fleet Continuity Summary Card at bottom of Left Column */}
+          <div className="p-3.5 rounded-xl bg-[#06080d] border border-purple-500/30 space-y-1.5 text-[10px] font-sans">
+            <div className="font-mono font-black text-purple-300 uppercase flex items-center justify-between">
+              <span>🛡️ COOP & Red-Team Fleet Continuity</span>
+              <span className="text-emerald-300">ACTIVE</span>
+            </div>
+            <p className="text-slate-400 leading-relaxed">
+              Every active kingdom maintains staggered sleep windows across <code className="text-slate-200">sidekick-mumu-0</code> (`2:00–9:00 EDT`) and <code className="text-slate-200">sidekick-mumu-1</code> (`4:00–11:00 EDT`) so at least one governor is awake for urgent R5 scans while `AUDIT` + `TANK` self-heal any lost slot.
+            </p>
           </div>
         </div>
 
-        {/* Right 7 cols: 15-Bot Provisioned Fleet */}
-        <div className="lg:col-span-7 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-              <Bot size={15} />
-              <span>BASTION BOTS FLEET ({filteredBots.length} OF {bots.length} GOVERNORS)</span>
+        {/* Right 7 cols: Full-Height 15-Bot Provisioned Fleet (Extended All the Way Down) */}
+        <div className="lg:col-span-7 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 flex flex-col justify-between space-y-4">
+          <div className="space-y-4 flex-1 flex flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                  <Bot size={15} />
+                  <span>BASTION BOTS FLEET ({filteredBots.length} OF {bots.length} GOVERNORS)</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-sans mt-0.5">
+                  Full governor roster across all instances (`BastionBots` · Solely mutated by Ring 3 `AUDIT` with S3 SHA-256 proof).
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {['ALL', 'sidekick-mumu-0', 'sidekick-mumu-1', 'sidekick-mumu-2'].map((f) => {
+                  const count = f === 'ALL' ? bots.length : bots.filter((b) => b.instance_id === f).length;
+                  return (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setInstanceFilter(f)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                        instanceFilter === f
+                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
+                          : 'bg-[#06080d] border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {f === 'ALL' ? `All (${count})` : `${f.replace('sidekick-', '')} (${count})`}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              {['ALL', 'sidekick-mumu-0', 'sidekick-mumu-1'].map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setInstanceFilter(f)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
-                    instanceFilter === f
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
-                      : 'bg-[#06080d] border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {f === 'ALL' ? `All (${bots.length})` : f.replace('sidekick-', '')}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <div className="space-y-2 max-h-[34rem] overflow-y-auto pr-1">
-            {filteredBots.map((b) => {
-              const isActiveOnInstance = activeByInstance[b.instance_id] === b.bot_id;
-              const vs = b.verified_state || {};
-              const prof = b.routine_profile || {};
-              return (
-                <div
-                  key={b.bot_id}
-                  className={`p-3 rounded-xl border transition-all flex flex-wrap items-center justify-between gap-3 ${
-                    isActiveOnInstance
-                      ? 'bg-emerald-950/20 border-emerald-500/45'
-                      : 'bg-[#06080d] border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black">
-                        #{b.kingdom_id}
-                      </span>
-                      <span className="text-xs font-bold text-white">{b.governor_name}</span>
-                      {b.governor_id && <span className="text-[10px] text-slate-400">ID: {b.governor_id}</span>}
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold">
-                        CH{vs.ch_level}
-                      </span>
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded border font-black ${
-                          STATE_BADGE_CLS[b.lifecycle_state] || ''
-                        }`}
-                      >
-                        {b.lifecycle_state}
-                      </span>
-                      {isActiveOnInstance && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black">
-                          ★ ACTIVE ON {b.instance_id.toUpperCase()}
+            <div className="space-y-2 flex-1">
+              {filteredBots.map((b) => {
+                const isActiveOnInstance = activeByInstance[b.instance_id] === b.bot_id;
+                const vs = b.verified_state || {};
+                const prof = b.routine_profile || {};
+                const peerInst =
+                  b.instance_id === 'sidekick-mumu-0'
+                    ? 'sidekick-mumu-1'
+                    : b.instance_id === 'sidekick-mumu-1'
+                    ? 'sidekick-mumu-0'
+                    : null;
+                const peerBot = peerInst
+                  ? bots.find(
+                      (other) =>
+                        other.instance_id === peerInst &&
+                        Number(other.kingdom_id) === Number(b.kingdom_id) &&
+                        other.lifecycle_state !== 'RETIRED'
+                    )
+                  : null;
+                return (
+                  <div
+                    key={b.bot_id}
+                    className={`p-3 rounded-xl border transition-all flex flex-wrap items-center justify-between gap-3 ${
+                      isActiveOnInstance
+                        ? 'bg-emerald-950/20 border-emerald-500/45'
+                        : 'bg-[#06080d] border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black">
+                          #{b.kingdom_id}
                         </span>
+                        <span className="text-xs font-bold text-white">{b.governor_name}</span>
+                        {b.governor_id && <span className="text-[10px] text-slate-400">ID: {b.governor_id}</span>}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold">
+                          CH{vs.ch_level}
+                        </span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded border font-black ${
+                            STATE_BADGE_CLS[b.lifecycle_state] || ''
+                          }`}
+                        >
+                          {b.lifecycle_state}
+                        </span>
+                        {peerInst && Number(b.kingdom_id) >= 4000 && (
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded border font-mono ${
+                              peerBot
+                                ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300'
+                                : 'bg-cyan-500/15 border-cyan-500/35 text-cyan-300'
+                            }`}
+                            title={
+                              peerBot
+                                ? `Twin on ${peerInst}: ${peerBot.governor_name} (CH${peerBot.verified_state?.ch_level})`
+                                : `Twin governor queued on ${peerInst} via CROSS_INSTANCE_REDUNDANCY`
+                            }
+                          >
+                            {peerBot ? `✓ Twin on ${peerInst.replace('sidekick-', '')}` : `+ Twin queued (${peerInst.replace('sidekick-', '')})`}
+                          </span>
+                        )}
+                        {isActiveOnInstance && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black">
+                            ★ ACTIVE ON {b.instance_id.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-sans flex flex-wrap items-center gap-3">
+                        <span>Instance: <strong className="text-slate-200 font-mono">{b.instance_id}</strong></span>
+                        <span>Slot: <strong className="text-slate-200">{b.character_slot}/2</strong></span>
+                        <span>Power: <strong className="text-cyan-300 font-mono">{Number(vs.power || 0).toLocaleString()}</strong></span>
+                        <span>Sleep: <strong className="text-slate-300">{prof.sleep_window_start_hour}:00–{prof.sleep_window_end_hour}:00 EDT</strong></span>
+                        <span>Verified: <strong className="text-slate-300">{ago(vs.last_verified_at, nowMs)}</strong></span>
+                        {vs.last_screenshot_uri && (
+                          <span className="text-emerald-400/90 font-mono" title={vs.last_screenshot_uri}>
+                            📸 Proof Verified
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {b.lifecycle_state === 'GROWING' && Number(b.kingdom_id) >= 4000 && (
+                        <button
+                          type="button"
+                          disabled={busyAction === `bot-grow-${b.bot_id}`}
+                          onClick={() =>
+                            postBrainAction(
+                              {
+                                action: 'SUBMIT_INTENT',
+                                intent_type: 'PRIORITIZE_GROWTH',
+                                source: 'OPERATOR_OVERRIDE',
+                                kingdom_id: Number(b.kingdom_id),
+                                priority: 88,
+                              },
+                              `bot-grow-${b.bot_id}`
+                            )
+                          }
+                          className="px-2 py-1 rounded-lg bg-lime-500/15 hover:bg-lime-500/30 border border-lime-500/40 text-lime-200 text-[10px] font-bold cursor-pointer"
+                          title={`Queue PRIORITIZE_GROWTH mission for #${b.kingdom_id}`}
+                        >
+                          ⚡ Boost CH8
+                        </button>
+                      )}
+                      {b.lifecycle_state === 'ACTIVE' && Number(b.kingdom_id) >= 4000 && (
+                        <button
+                          type="button"
+                          disabled={busyAction === `bot-scan-${b.bot_id}`}
+                          onClick={() =>
+                            postBrainAction(
+                              {
+                                action: 'SUBMIT_INTENT',
+                                intent_type: 'SCAN_KINGDOM',
+                                source: 'OPERATOR_OVERRIDE',
+                                kingdom_id: Number(b.kingdom_id),
+                                max_ranks: 650,
+                                priority: 85,
+                              },
+                              `bot-scan-${b.bot_id}`
+                            )
+                          }
+                          className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 text-[10px] font-bold cursor-pointer"
+                          title={`Queue SCAN_KINGDOM mission for #${b.kingdom_id}`}
+                        >
+                          📡 Scan #{b.kingdom_id}
+                        </button>
+                      )}
+                      {!isActiveOnInstance && (
+                        <button
+                          type="button"
+                          disabled={busyAction === `set-active-${b.bot_id}`}
+                          onClick={() =>
+                            postBrainAction(
+                              { action: 'SET_ACTIVE_BOT', instance_id: b.instance_id, bot_id: b.bot_id },
+                              `set-active-${b.bot_id}`
+                            )
+                          }
+                          className="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <ArrowRightLeft size={11} />
+                          <span>Bind Active</span>
+                        </button>
                       )}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-sans flex flex-wrap items-center gap-3">
-                      <span>Instance: <strong className="text-slate-200 font-mono">{b.instance_id}</strong></span>
-                      <span>Slot: <strong className="text-slate-200">{b.character_slot}/2</strong></span>
-                      <span>Power: <strong className="text-cyan-300 font-mono">{Number(vs.power || 0).toLocaleString()}</strong></span>
-                      <span>Sleep: <strong className="text-slate-300">{prof.sleep_window_start_hour}:00–{prof.sleep_window_end_hour}:00 EDT</strong></span>
-                      <span>Verified: <strong className="text-slate-300">{ago(vs.last_verified_at, nowMs)}</strong></span>
-                    </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    {!isActiveOnInstance && (
-                      <button
-                        type="button"
-                        disabled={busyAction === `set-active-${b.bot_id}`}
-                        onClick={() =>
-                          postBrainAction(
-                            { action: 'SET_ACTIVE_BOT', instance_id: b.instance_id, bot_id: b.bot_id },
-                            `set-active-${b.bot_id}`
-                          )
-                        }
-                        className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-                      >
-                        <ArrowRightLeft size={11} />
-                        <span>Bind Active</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -1580,7 +1803,7 @@ export default function BastionCommandCenter() {
               <span>BASTION BRAIN DECISION AUDIT LOG (`BastionEvents` · NEWEST FIRST)</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 font-sans">
-              Every Ring 1 signal, Ring 2 plan proposal, `NUMNUM` 8-rule evaluation, `CIPHER` execution result, and Ring 3 `AUDIT` verification is permanently logged with a mandatory `oversight` block (`why`, `trigger_inputs`, `numnum_checks`, `evidence_refs`). Click any row to expand.
+              Every Ring 1 signal, Ring 2 plan proposal, `NUMNUM` 11-rule evaluation, `CIPHER` execution result, and Ring 3 `AUDIT` verification is permanently logged with a mandatory `oversight` block (`why`, `trigger_inputs`, `numnum_checks`, `evidence_refs`). Click any row to expand.
             </p>
           </div>
 
