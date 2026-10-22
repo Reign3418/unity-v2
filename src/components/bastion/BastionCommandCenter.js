@@ -492,6 +492,14 @@ export default function BastionCommandCenter() {
           type: 'success',
           text: `Approved held plan for ${payload.bot_id}. Ring 2 (TANK) will dispatch on the next 60s tick.`,
         });
+      } else if (payload.action === 'SET_BRAIN_LEASE_OVERRIDE') {
+        setBannerMsg({
+          type: 'success',
+          text:
+            payload.forced_leader === 'AUTO'
+              ? 'Brain leader selection set to AUTO (Priority Failover: Railway P1 -> SIDEKICK P2 -> MIXERV3 P3).'
+              : `Pinned active Brain leader to ${payload.forced_leader}. Takes effect on the next 60s tick.`,
+        });
       }
       await fetchBrain();
     } catch (err) {
@@ -561,6 +569,10 @@ export default function BastionCommandCenter() {
   const helpers = data?.helpers || [];
   const ringBudget = data?.ringBudget || {};
   const approvedPlans = data?.approvedPlans || [];
+  const brainLease = data?.brainLease || null;
+  const brainNodes = data?.brainNodes || {};
+  const forcedLeader = brainLease?.forced_leader || 'AUTO';
+  const activeLeaderNode = brainLease?.holder_id || hb?.node_id || 'railway-primary';
 
   const activeIntentsCount = intents.filter((i) =>
     ['PENDING', 'TRIAGED_BY_SCOUT', 'PLANNED_BY_TANK', 'IN_PROGRESS'].includes(i.status)
@@ -606,10 +618,12 @@ export default function BastionCommandCenter() {
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-                {online ? `BRAIN ONLINE · TICK #${hb?.tick || 1} (${ago(hb?.ts, nowMs)})` : 'BRAIN HEARTBEAT STALE'}
+                {online
+                  ? `BRAIN ONLINE (${activeLeaderNode.toUpperCase()}) · TICK #${hb?.tick || 1} (${ago(hb?.ts, nowMs)})`
+                  : 'BRAIN HEARTBEAT STALE'}
               </span>
               <span className="px-2.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px]">
-                AWS SQS FIFO + DYNAMODB + S3 EVIDENCE
+                HA FAILOVER LEASE: {activeLeaderNode.toUpperCase()} ({forcedLeader === 'AUTO' ? 'AUTO-PRIORITY' : `PINNED: ${forcedLeader}`})
               </span>
             </div>
 
@@ -681,6 +695,106 @@ export default function BastionCommandCenter() {
               <div className="text-[9px] text-slate-400 font-sans truncate">{s.detail}</div>
             </div>
           ))}
+        </div>
+
+        {/* High-Availability Brain Failover & Outage Continuity Bar (Railway P1 <-> SIDEKICK P2 <-> MIXERV3 P3) */}
+        <div className="p-3.5 rounded-xl bg-[#06080d]/95 border border-purple-500/35 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black text-purple-300 uppercase tracking-wider">
+                🛡️ High-Availability Brain Failover Lease (`BRAIN_LEASE` · 180s Auto-Promotion)
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                Leader: {activeLeaderNode}
+              </span>
+              {brainLease?.failover_count > 0 && (
+                <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[10px]">
+                  Failovers: {brainLease.failover_count}
+                </span>
+              )}
+              {brainLease?.last_transition_reason && (
+                <span className="text-[10px] text-slate-400 font-sans truncate max-w-md" title={brainLease.last_transition_reason}>
+                  · {brainLease.last_transition_reason}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-slate-400 mr-1">Leader Policy:</span>
+              {[
+                { key: 'AUTO', label: 'AUTO (P1→P2→P3)' },
+                { key: 'sidekick', label: 'Pin SIDEKICK' },
+                { key: 'mixerv3', label: 'Pin MIXERV3' },
+                { key: 'railway-primary', label: 'Pin Railway' },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  disabled={busyAction === `lease-${opt.key}`}
+                  onClick={() =>
+                    postBrainAction(
+                      { action: 'SET_BRAIN_LEASE_OVERRIDE', forced_leader: opt.key },
+                      `lease-${opt.key}`
+                    )
+                  }
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border cursor-pointer transition-all ${
+                    forcedLeader === opt.key
+                      ? 'bg-purple-500/25 border-purple-400 text-purple-200'
+                      : 'bg-[#0b101b] border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[10px]">
+            {[
+              { id: 'railway-primary', title: 'railway-primary', subtitle: 'Cloud Primary (Priority 1)' },
+              { id: 'sidekick', title: 'sidekick', subtitle: 'On-Prem Standby #1 (Priority 2)' },
+              { id: 'mixerv3', title: 'mixerv3', subtitle: 'On-Prem Standby #2 (Priority 3)' },
+            ].map((nodeDef) => {
+              const n = brainNodes[nodeDef.id] || null;
+              const seenMs = n?.last_seen_at ? nowMs - new Date(n.last_seen_at).getTime() : Infinity;
+              const isFresh = seenMs < 180000;
+              const isLeader = activeLeaderNode === nodeDef.id && isFresh;
+              return (
+                <div
+                  key={nodeDef.id}
+                  className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 ${
+                    isLeader
+                      ? 'bg-emerald-950/25 border-emerald-500/45'
+                      : isFresh
+                      ? 'bg-[#0b101b] border-cyan-500/35'
+                      : 'bg-[#0b101b]/60 border-slate-800'
+                  }`}
+                >
+                  <div>
+                    <div className="font-black text-white flex items-center gap-1.5">
+                      <span>{nodeDef.title}</span>
+                      <span className="text-[9px] text-slate-400 font-normal">({nodeDef.subtitle})</span>
+                    </div>
+                    <div className="text-[9px] text-slate-400 font-sans mt-0.5">
+                      Last heartbeat: <span className="text-slate-200 font-mono">{ago(n?.last_seen_at, nowMs)}</span>
+                      {n?.version ? ` · v${n.version}` : ''}
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded border text-[9px] font-black shrink-0 ${
+                      isLeader
+                        ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                        : isFresh
+                        ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300'
+                        : 'bg-rose-500/15 border-rose-500/35 text-rose-300'
+                    }`}
+                  >
+                    {isLeader ? '★ ACTIVE LEADER' : isFresh ? 'HOT STANDBY' : 'OFFLINE / OUTAGE'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Mode Switcher + On-Demand Scan Intent Bar */}

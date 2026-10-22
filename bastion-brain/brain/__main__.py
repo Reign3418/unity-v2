@@ -28,6 +28,7 @@ def _run_loss_rehearsal(base_store, cfg: BrainConfig, bot_id: str, clock) -> int
     from .transport import MemoryBrainTransport
 
     store = ReadOnlyOverlay(base_store)
+    store.put_control("BRAIN_LEASE", {"holder_id": cfg.node_id, "forced_leader": cfg.node_id})
     transport = MemoryBrainTransport()
     cfg.results_wait_seconds = 0
     brain = Brain(cfg, store, transport, **({"clock": clock} if clock else {}), strict_events=True, force_mode="AUTONOMOUS")
@@ -113,6 +114,9 @@ def _run_loss_rehearsal(base_store, cfg: BrainConfig, bot_id: str, clock) -> int
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="brain")
     ap.add_argument("--env-file", default=None, help="KEY=VALUE file (local runs only)")
+    ap.add_argument("--node-id", default=None, help="Override BRAIN_NODE_ID (e.g., railway-primary, sidekick, mixerv3)")
+    ap.add_argument("--node-role", default=None, help="Override BRAIN_NODE_ROLE (PRIMARY or STANDBY)")
+    ap.add_argument("--node-priority", type=int, default=None, help="Override BRAIN_NODE_PRIORITY (1=Primary, 2=Sidekick, 3=MixerV3)")
     ap.add_argument("--once", action="store_true", help="run a single tick and exit")
     ap.add_argument("--simulate-time", default=None, help="ISO UTC time for a DRY_RUN rehearsal tick")
     ap.add_argument("--simulate-bot-lost", default=None, help="bot_id for a read-only self-healing replacement rehearsal")
@@ -121,6 +125,12 @@ def main(argv=None) -> int:
     env = dict(os.environ)
     if args.env_file:
         env.update(load_env_file(args.env_file))
+    if args.node_id:
+        env["BRAIN_NODE_ID"] = args.node_id
+    if args.node_role:
+        env["BRAIN_NODE_ROLE"] = args.node_role
+    if args.node_priority is not None:
+        env["BRAIN_NODE_PRIORITY"] = str(args.node_priority)
     cfg = BrainConfig.from_env(env)
     problems = cfg.problems()
     if problems:
@@ -144,6 +154,7 @@ def main(argv=None) -> int:
         from .store import NullTransport, ReadOnlyOverlay
 
         store, transport = ReadOnlyOverlay(store), NullTransport()
+        store.put_control("BRAIN_LEASE", {"holder_id": cfg.node_id, "forced_leader": cfg.node_id})
     brain = Brain(cfg, store, transport, **({"clock": clock} if clock else {}), force_mode=force_mode)
 
     if args.simulate_time:

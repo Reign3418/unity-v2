@@ -782,5 +782,86 @@ class Stage7UnityIntakeAndVerifiedMissions(unittest.TestCase):
         self.assertEqual(w.store.intents["int_grow_4021"]["status"], "VERIFIED_BY_AUDIT")
 
 
+class HighAvailabilityFailoverTests(unittest.TestCase):
+    """Multi-node BRAIN_LEASE & BRAIN_NODES failover: Railway (P1) <-> SIDEKICK (P2) <-> MIXERV3 (P3)."""
+
+    def test_automatic_failover_cascade_and_primary_failback_and_operator_pin(self):
+        w = World(control_mode="SUPERVISED")
+        # Build 3 Brain runtimes sharing the same DynamoDB store & SQS transport
+        cfg_railway = BrainConfig(
+            jobs_queue_url="https://sqs/jobs.fifo", results_queue_url="https://sqs/results",
+            boot_mode="SUPERVISED", results_wait_seconds=0,
+            node_id="railway-primary", node_role="PRIMARY", node_priority=1, lease_ttl_seconds=180,
+        )
+        cfg_sidekick = BrainConfig(
+            jobs_queue_url="https://sqs/jobs.fifo", results_queue_url="https://sqs/results",
+            boot_mode="SUPERVISED", results_wait_seconds=0,
+            node_id="sidekick", node_role="STANDBY", node_priority=2, lease_ttl_seconds=180,
+        )
+        cfg_mixerv3 = BrainConfig(
+            jobs_queue_url="https://sqs/jobs.fifo", results_queue_url="https://sqs/results",
+            boot_mode="SUPERVISED", results_wait_seconds=0,
+            node_id="mixerv3", node_role="STANDBY", node_priority=3, lease_ttl_seconds=180,
+        )
+        b_railway = Brain(cfg_railway, w.store, w.transport, clock=w.clock, strict_events=True, log=lambda *_: None)
+        b_sidekick = Brain(cfg_sidekick, w.store, w.transport, clock=w.clock, strict_events=True, log=lambda *_: None)
+        b_mixerv3 = Brain(cfg_mixerv3, w.store, w.transport, clock=w.clock, strict_events=True, log=lambda *_: None)
+
+        # 1. Railway ticks first -> acquires BRAIN_LEASE; SIDEKICK and MIXERV3 tick in STANDBY_WATCH
+        s_r = b_railway.tick()
+        s_s = b_sidekick.tick()
+        s_m = b_mixerv3.tick()
+        self.assertEqual(s_r["mode"], "SUPERVISED")
+        self.assertEqual(s_s["mode"], "STANDBY_WATCH")
+        self.assertEqual(s_m["mode"], "STANDBY_WATCH")
+        self.assertEqual(w.store.get_control("BRAIN_LEASE")["holder_id"], "railway-primary")
+        nodes = w.store.get_control("BRAIN_NODES")["nodes"]
+        self.assertEqual(nodes["railway-primary"]["state"], "ACTIVE_LEADER")
+        self.assertEqual(nodes["sidekick"]["state"], "HOT_STANDBY")
+        self.assertEqual(nodes["mixerv3"]["state"], "HOT_STANDBY")
+
+        # 2. Simulate Railway major outage: 185s pass without Railway ticking.
+        # SIDEKICK (priority=2) automatically promotes to ACTIVE_LEADER; MIXERV3 (priority=3) stays STANDBY_WATCH.
+        w.clock.t += timedelta(seconds=185)
+        s_s2 = b_sidekick.tick()
+        s_m2 = b_mixerv3.tick()
+        self.assertEqual(s_s2["mode"], "SUPERVISED")
+        self.assertEqual(s_m2["mode"], "STANDBY_WATCH")
+        lease2 = w.store.get_control("BRAIN_LEASE")
+        self.assertEqual(lease2["holder_id"], "sidekick")
+        self.assertEqual(lease2["previous_holder"], "railway-primary")
+        self.assertEqual(lease2["failover_count"], 1)
+        self.assertEqual(w.store.get_control("BRAIN_HEARTBEAT")["node_id"], "sidekick")
+
+        # 3. Simulate SIDEKICK also going dark for 185s -> MIXERV3 (priority=3) promotes to ACTIVE_LEADER
+        w.clock.t += timedelta(seconds=185)
+        s_m3 = b_mixerv3.tick()
+        self.assertEqual(s_m3["mode"], "SUPERVISED")
+        lease3 = w.store.get_control("BRAIN_LEASE")
+        self.assertEqual(lease3["holder_id"], "mixerv3")
+        self.assertEqual(lease3["previous_holder"], "sidekick")
+        self.assertEqual(lease3["failover_count"], 2)
+
+        # 4. Railway recovers -> automatically reclaims BRAIN_LEASE because priority 1 < priority 3
+        w.clock.t += timedelta(seconds=30)
+        s_r4 = b_railway.tick()
+        s_s4 = b_sidekick.tick()
+        s_m4 = b_mixerv3.tick()
+        self.assertEqual(s_r4["mode"], "SUPERVISED")
+        self.assertEqual(s_s4["mode"], "STANDBY_WATCH")
+        self.assertEqual(s_m4["mode"], "STANDBY_WATCH")
+        self.assertEqual(w.store.get_control("BRAIN_LEASE")["holder_id"], "railway-primary")
+
+        # 5. Operator pins MIXERV3 in /bastion (forced_leader="mixerv3") -> MIXERV3 leads even while Railway is online
+        lease_pin = dict(w.store.get_control("BRAIN_LEASE"), forced_leader="mixerv3")
+        w.store.put_control("BRAIN_LEASE", lease_pin)
+        w.clock.t += timedelta(seconds=30)
+        s_r5 = b_railway.tick()
+        s_m5 = b_mixerv3.tick()
+        self.assertEqual(s_r5["mode"], "STANDBY_WATCH")
+        self.assertEqual(s_m5["mode"], "SUPERVISED")
+        self.assertEqual(w.store.get_control("BRAIN_LEASE")["holder_id"], "mixerv3")
+
+
 if __name__ == "__main__":
     unittest.main()

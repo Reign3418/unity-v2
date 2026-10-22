@@ -146,15 +146,18 @@ export async function GET() {
     return NextResponse.json({ error: 'SuperAdmin clearance required' }, { status: 403 });
   }
   try {
-    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl] = await Promise.all([
-      getControl('MODE'),
-      getControl('BRAIN_HEARTBEAT'),
-      getControl('FLEET'),
-      getControl('CONFIG'),
-      getControl('HELPERS'),
-      getControl('RING_BUDGET'),
-      getControl('APPROVED_PLANS'),
-    ]);
+    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl, brainLease, brainNodesCtrl] =
+      await Promise.all([
+        getControl('MODE'),
+        getControl('BRAIN_HEARTBEAT'),
+        getControl('FLEET'),
+        getControl('CONFIG'),
+        getControl('HELPERS'),
+        getControl('RING_BUDGET'),
+        getControl('APPROVED_PLANS'),
+        getControl('BRAIN_LEASE'),
+        getControl('BRAIN_NODES'),
+      ]);
 
     const botIds = fleet?.bot_ids || [];
     const accountIds = fleet?.account_ids || DEFAULT_ACCOUNT_IDS;
@@ -230,6 +233,8 @@ export async function GET() {
     return NextResponse.json({
       heartbeat,
       requestedMode: mode,
+      brainLease: brainLease || null,
+      brainNodes: brainNodesCtrl?.nodes || {},
       fleet,
       config,
       helpers: helpersCtrl?.active || helpersCtrl?.helpers || [],
@@ -441,8 +446,37 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, action: 'APPROVE_HELD_PLAN', bot_id: botId, bot_ids: botIds });
   }
 
+  if (body?.action === 'SET_BRAIN_LEASE_OVERRIDE') {
+    const validForced = ['AUTO', 'railway-primary', 'sidekick', 'mixerv3'];
+    const forcedLeader = String(body?.forced_leader || 'AUTO').trim();
+    if (!validForced.includes(forcedLeader)) {
+      return NextResponse.json(
+        { error: `forced_leader must be one of ${validForced.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    const existingLease = (await getControl('BRAIN_LEASE')) || { control_key: 'BRAIN_LEASE' };
+    const updatedLease = {
+      ...existingLease,
+      control_key: 'BRAIN_LEASE',
+      forced_leader: forcedLeader,
+      updated_by: setBy,
+      updated_at: nowIso,
+    };
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: marshall(updatedLease),
+      })
+    );
+    return NextResponse.json({ ok: true, action: 'SET_BRAIN_LEASE_OVERRIDE', forced_leader: forcedLeader });
+  }
+
   return NextResponse.json(
-    { error: 'Unsupported action. Expected SET_MODE, SUBMIT_INTENT, SET_ACTIVE_BOT, SET_KINGDOM_CADENCE, or APPROVE_HELD_PLAN.' },
+    {
+      error:
+        'Unsupported action. Expected SET_MODE, SUBMIT_INTENT, SET_ACTIVE_BOT, SET_KINGDOM_CADENCE, APPROVE_HELD_PLAN, or SET_BRAIN_LEASE_OVERRIDE.',
+    },
     { status: 400 }
   );
 }
