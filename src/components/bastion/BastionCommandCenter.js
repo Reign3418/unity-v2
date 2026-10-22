@@ -418,6 +418,8 @@ export default function BastionCommandCenter() {
 
   // Intent / Scan dispatch form
   const [scanKingdom, setScanKingdom] = useState('4194');
+  const [scanIntentType, setScanIntentType] = useState('SCAN_KINGDOM');
+  const [scanSource, setScanSource] = useState('R5_COMMAND_DESK');
   const [scanRanks, setScanRanks] = useState('650');
   const [scanPriority, setScanPriority] = useState('85');
 
@@ -470,7 +472,9 @@ export default function BastionCommandCenter() {
       } else if (payload.action === 'SUBMIT_INTENT') {
         setBannerMsg({
           type: 'success',
-          text: `Submitted SCAN_KINGDOM intent (${json.intent?.intent_id}) for Kingdom #${payload.kingdom_id} (Top ${payload.max_ranks}). Ring 1 (KENT) will triage on the next tick.`,
+          text: json.deduped
+            ? `Intent ${json.intent?.intent_id} (${json.intent?.intent_type}) is already active in ${json.intent?.status} for Kingdom #${payload.kingdom_id}.`
+            : `Submitted ${json.intent?.intent_type || 'SCAN_KINGDOM'} intent (${json.intent?.intent_id}) for Kingdom #${payload.kingdom_id}. Ring 1 (KENT) will triage on the next tick.`,
         });
       } else if (payload.action === 'SET_ACTIVE_BOT') {
         setBannerMsg({
@@ -689,9 +693,31 @@ export default function BastionCommandCenter() {
             </div>
           </div>
 
-          {/* Submit Scan Intent to Ring 1 (KENT) */}
+          {/* Submit R5 / Demand Intent to Ring 1 (KENT) */}
           <div className="flex flex-wrap items-center gap-2 bg-[#06080d] border border-cyan-500/30 p-2 rounded-xl">
-            <span className="text-[10px] font-bold text-cyan-300 px-1.5 uppercase">Queue Scan Intent (→ KENT):</span>
+            <span className="text-[10px] font-bold text-cyan-300 px-1.5 uppercase">Queue Mission (→ KENT):</span>
+            <select
+              value={scanIntentType}
+              onChange={(e) => setScanIntentType(e.target.value)}
+              className="px-2 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-cyan-200 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+            >
+              <option value="SCAN_KINGDOM">SCAN_KINGDOM</option>
+              <option value="LOCATE_GOVERNOR">LOCATE_GOVERNOR</option>
+              <option value="EXPAND_TO_KINGDOM">EXPAND_TO_KINGDOM</option>
+              <option value="PRIORITIZE_GROWTH">PRIORITIZE_GROWTH</option>
+            </select>
+
+            <select
+              value={scanSource}
+              onChange={(e) => setScanSource(e.target.value)}
+              className="px-2 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            >
+              <option value="R5_COMMAND_DESK">R5_COMMAND_DESK</option>
+              <option value="OPERATOR_OVERRIDE">OPERATOR_OVERRIDE</option>
+              <option value="UNITY_API_DEMAND">UNITY_API_DEMAND</option>
+              <option value="DATA_LEAD_INGEST">DATA_LEAD_INGEST</option>
+            </select>
+
             <select
               value={scanKingdom}
               onChange={(e) => setScanKingdom(e.target.value)}
@@ -711,16 +737,18 @@ export default function BastionCommandCenter() {
                 ))}
             </select>
 
-            <select
-              value={scanRanks}
-              onChange={(e) => setScanRanks(e.target.value)}
-              className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-400 cursor-pointer"
-            >
-              <option value="300">Top 300 Ranks</option>
-              <option value="465">Top 465 (Core 3 Alliances)</option>
-              <option value="650">Top 650 (KvK Sweet Spot)</option>
-              <option value="1000">Top 1,000 (Full Census)</option>
-            </select>
+            {(scanIntentType === 'SCAN_KINGDOM' || scanIntentType === 'LOCATE_GOVERNOR') && (
+              <select
+                value={scanRanks}
+                onChange={(e) => setScanRanks(e.target.value)}
+                className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-400 cursor-pointer"
+              >
+                <option value="300">Top 300 Ranks</option>
+                <option value="465">Top 465 (Core 3 Alliances)</option>
+                <option value="650">Top 650 (KvK Sweet Spot)</option>
+                <option value="1000">Top 1,000 (Full Census)</option>
+              </select>
+            )}
 
             <select
               value={scanPriority}
@@ -739,6 +767,8 @@ export default function BastionCommandCenter() {
                 postBrainAction(
                   {
                     action: 'SUBMIT_INTENT',
+                    intent_type: scanIntentType,
+                    source: scanSource,
                     kingdom_id: Number(scanKingdom),
                     max_ranks: Number(scanRanks),
                     priority: Number(scanPriority),
@@ -749,7 +779,7 @@ export default function BastionCommandCenter() {
               className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Play size={12} />
-              <span>Submit Intent #{scanKingdom}</span>
+              <span>Dispatch #{scanKingdom}</span>
             </button>
           </div>
         </div>
@@ -1189,6 +1219,96 @@ export default function BastionCommandCenter() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Step 7: R5 & Unity Demand Intake Mission Pipeline (PENDING -> TRIAGED -> PLANNED -> IN_PROGRESS -> VERIFIED_BY_AUDIT) */}
+        <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-[11px] font-black text-cyan-300 uppercase tracking-wider">
+              Step 7 // R5 Command Desk & Unity Demand Intake Pipeline (`BastionIntents` · End-to-End Verification)
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono">
+              5-Stage Loop: <span className="text-slate-200">PENDING → TRIAGED_BY_SCOUT → PLANNED_BY_TANK → IN_PROGRESS → VERIFIED_BY_AUDIT</span>
+            </div>
+          </div>
+
+          {intents.length === 0 ? (
+            <div className="p-3 rounded-xl bg-[#06080d] border border-slate-800 text-xs text-slate-500 font-sans">
+              No R5 or Unity demand intents in history yet. Submit a mission above or from the R5 Kingdom Workbench (`/[locale]/analysis/kingdom`).
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-[#06080d]/90">
+              <table className="w-full text-left border-collapse text-[11px]">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase bg-black/40">
+                    <th className="py-2 px-3">Age</th>
+                    <th className="py-2 px-3">Kingdom</th>
+                    <th className="py-2 px-3">Mission Type</th>
+                    <th className="py-2 px-3">Source</th>
+                    <th className="py-2 px-3">Priority</th>
+                    <th className="py-2 px-3">Pipeline Stage</th>
+                    <th className="py-2 px-3">AUDIT Verification & Execution Telemetry</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {intents.slice(0, 15).map((it) => {
+                    const rm = it.result_meta || {};
+                    const pl = it.payload || {};
+                    return (
+                      <tr key={it.intent_id} className="hover:bg-white/[0.02]">
+                        <td className="py-2 px-3 text-slate-400">{ago(it.created_at, nowMs)}</td>
+                        <td className="py-2 px-3 font-black text-amber-300">#{it.kingdom_id}</td>
+                        <td className="py-2 px-3">
+                          <span className="px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-bold">
+                            {it.intent_type}
+                          </span>
+                          {pl.max_ranks && <span className="text-[10px] text-slate-400 ml-1.5">Top {pl.max_ranks}</span>}
+                        </td>
+                        <td className="py-2 px-3 text-[10px] text-slate-300">{it.source}</td>
+                        <td className="py-2 px-3 font-bold text-slate-200">{it.priority}</td>
+                        <td className="py-2 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                              it.status === 'VERIFIED_BY_AUDIT'
+                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                : it.status === 'IN_PROGRESS'
+                                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 animate-pulse'
+                                : it.status === 'FAILED' || it.status === 'REJECTED'
+                                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                                : 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                            }`}
+                          >
+                            {it.status}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-[10px] text-slate-300 font-sans">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {rm.instance_id && <span className="font-mono text-slate-400">{rm.instance_id}</span>}
+                            {rm.governor_name && <span className="text-amber-200 font-semibold">{rm.governor_name}</span>}
+                            {rm.governors_extracted != null && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-mono font-bold">
+                                ✓ {rm.governors_extracted} govs synced
+                              </span>
+                            )}
+                            {rm.verified_by_job && <span className="font-mono text-slate-500">{rm.verified_by_job}</span>}
+                            {rm.screenshot_uri && (
+                              <span className="font-mono text-emerald-400 truncate max-w-[14rem]" title={rm.screenshot_uri}>
+                                📸 {rm.screenshot_uri.split('/').slice(-2).join('/')}
+                              </span>
+                            )}
+                            {rm.rejected_reason && <span className="text-rose-300">{rm.rejected_reason}</span>}
+                            {!rm.instance_id && !rm.verified_by_job && !rm.rejected_reason && (
+                              <span className="text-slate-500">Awaiting Ring 1/2 scheduling ({it.intent_id})</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

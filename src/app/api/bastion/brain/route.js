@@ -162,17 +162,33 @@ export async function GET() {
     const watchedKingdoms = config?.watched_kingdoms || [];
     const activeBotIds = Object.values(fleet?.active_by_instance || {}).filter(Boolean);
 
-    const [rawBots, rawSlots, rawInstances, rawRuntimes, rawKingdoms, pendingIntents, triagedIntents, inProgIntents] =
-      await Promise.all([
-        Promise.all(botIds.slice(0, 50).map((id) => getBot(id))),
-        Promise.all(accountIds.map((id) => getAccountSlot(id))),
-        Promise.all(instanceIds.map((inst) => getControl(`INSTANCE#${inst}`))),
-        Promise.all(activeBotIds.map((bId) => getControl(`BOTRUNTIME#${bId}`))),
-        Promise.all(watchedKingdoms.map((w) => getControl(`KINGDOM#${w.kingdom_id}`))),
-        queryIntentsByStatus('PENDING', 20),
-        queryIntentsByStatus('TRIAGED_BY_SCOUT', 20),
-        queryIntentsByStatus('IN_PROGRESS', 20),
-      ]);
+    const [
+      rawBots,
+      rawSlots,
+      rawInstances,
+      rawRuntimes,
+      rawKingdoms,
+      pendingIntents,
+      triagedIntents,
+      plannedIntents,
+      inProgIntents,
+      verifiedIntents,
+      failedIntents,
+      rejectedIntents,
+    ] = await Promise.all([
+      Promise.all(botIds.slice(0, 50).map((id) => getBot(id))),
+      Promise.all(accountIds.map((id) => getAccountSlot(id))),
+      Promise.all(instanceIds.map((inst) => getControl(`INSTANCE#${inst}`))),
+      Promise.all(activeBotIds.map((bId) => getControl(`BOTRUNTIME#${bId}`))),
+      Promise.all(watchedKingdoms.map((w) => getControl(`KINGDOM#${w.kingdom_id}`))),
+      queryIntentsByStatus('PENDING', 20),
+      queryIntentsByStatus('TRIAGED_BY_SCOUT', 20),
+      queryIntentsByStatus('PLANNED_BY_TANK', 20),
+      queryIntentsByStatus('IN_PROGRESS', 20),
+      queryIntentsByStatus('VERIFIED_BY_AUDIT', 25),
+      queryIntentsByStatus('FAILED', 15),
+      queryIntentsByStatus('REJECTED', 10),
+    ]);
 
     const bots = rawBots.filter(Boolean);
     const accountSlots = rawSlots.filter(Boolean);
@@ -195,9 +211,15 @@ export async function GET() {
       };
     });
 
-    const intents = [...inProgIntents, ...triagedIntents, ...pendingIntents].sort((a, b) =>
-      String(b.created_at || '').localeCompare(String(a.created_at || ''))
-    );
+    const intents = [
+      ...inProgIntents,
+      ...plannedIntents,
+      ...triagedIntents,
+      ...pendingIntents,
+      ...verifiedIntents,
+      ...failedIntents,
+      ...rejectedIntents,
+    ].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
@@ -265,22 +287,51 @@ export async function POST(request) {
     if (!Number.isInteger(kingdomId) || kingdomId < 1000 || kingdomId > 9999) {
       return NextResponse.json({ error: 'kingdom_id must be a 4-digit integer (1000-9999)' }, { status: 400 });
     }
+    const validTypes = ['SCAN_KINGDOM', 'LOCATE_GOVERNOR', 'EXPAND_TO_KINGDOM', 'PRIORITIZE_GROWTH'];
+    const intentType = validTypes.includes(body?.intent_type) ? body.intent_type : 'SCAN_KINGDOM';
+    const validSources = ['R5_COMMAND_DESK', 'UNITY_API_DEMAND', 'DATA_LEAD_INGEST', 'OPERATOR_OVERRIDE'];
+    const source = validSources.includes(body?.source) ? body.source : 'OPERATOR_OVERRIDE';
     const maxRanks = Math.max(10, Math.min(1000, Number(body?.max_ranks || 650)));
     const priority = Math.max(1, Math.min(100, Number(body?.priority || 80)));
+
+    // Deduplicate against currently active intents for the same (kingdom_id, intent_type)
+    const [pList, tList, plList, ipList] = await Promise.all([
+      queryIntentsByStatus('PENDING', 20),
+      queryIntentsByStatus('TRIAGED_BY_SCOUT', 20),
+      queryIntentsByStatus('PLANNED_BY_TANK', 20),
+      queryIntentsByStatus('IN_PROGRESS', 20),
+    ]);
+    const existingActive = [...pList, ...tList, ...plList, ...ipList].find(
+      (i) => Number(i.kingdom_id) === kingdomId && i.intent_type === intentType
+    );
+    if (existingActive) {
+      return NextResponse.json({
+        ok: true,
+        action: 'SUBMIT_INTENT',
+        deduped: true,
+        intent: existingActive,
+      });
+    }
+
     const tag = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const payloadObj = {
+      requested_by: setBy,
+      ...(intentType === 'SCAN_KINGDOM' || intentType === 'LOCATE_GOVERNOR' ? { max_ranks: maxRanks } : {}),
+      ...(body?.target_governor_id ? { target_governor_id: String(body.target_governor_id).slice(0, 32) } : {}),
+      ...(body?.target_governor_name ? { target_governor_name: String(body.target_governor_name).slice(0, 64) } : {}),
+      ...(intentType === 'EXPAND_TO_KINGDOM' ? { cadence_hours: Number(body?.cadence_hours || 12) } : {}),
+      ...(intentType === 'PRIORITIZE_GROWTH' ? { max_steps: Number(body?.max_steps || 40) } : {}),
+    };
     const intent = {
       intent_id: `int_ui_${tag}`,
       correlation_id: `corr_ui_${tag}`,
       created_at: nowIso,
-      source: body?.source === 'R5_COMMAND_DESK' ? 'R5_COMMAND_DESK' : 'OPERATOR_OVERRIDE',
-      intent_type: 'SCAN_KINGDOM',
+      source,
+      intent_type: intentType,
       kingdom_id: kingdomId,
       priority,
       status: 'PENDING',
-      payload: {
-        max_ranks: maxRanks,
-        requested_by: setBy,
-      },
+      payload: payloadObj,
     };
     await db.send(
       new PutItemCommand({

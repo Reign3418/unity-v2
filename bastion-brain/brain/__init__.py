@@ -5,4 +5,4 @@ plans and gates jobs, Ring 3 (DOZER/AUDIT) verifies results and owns bot state. 
 deterministic SCOUT/TANK/AUDIT planners in Step 6 without changing these contracts.
 """
 
-__version__ = "0.6.0-step6"
+__version__ = "0.7.0-step7"

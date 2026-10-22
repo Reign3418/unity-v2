@@ -26,6 +26,7 @@ import MemberPortal from "@/components/member/MemberPortal";
 import { useTranslations } from "next-intl";
 import KingdomVault from "@/app/[locale]/vault/page";
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
+import R5BastionMissionDesk from "@/components/bastion/R5BastionMissionDesk";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -507,6 +508,17 @@ export default function KingdomAnalysis() {
               <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
             )}
           </select>
+
+          {/* Step 7: R5 Bastion Mission Intake & Verified Scan Feedback Desk (R5 Leader / SuperAdmin) */}
+          {(isLeader || isSuperAdmin || effectiveIsValheonFounder) && targetKd && (
+            <R5BastionMissionDesk
+              kingdomId={targetKd}
+              onMissionVerified={() => {
+                fetchTrends(targetKd);
+                fetchRoster(targetKd, rosterSourceMode);
+              }}
+            />
+          )}
 
           {/* Bastion Bot Epoch 0 vs Archive Toggle Chip (Founder / SuperAdmin Only) */}
           {(effectiveIsValheonFounder || isSuperAdmin) && (

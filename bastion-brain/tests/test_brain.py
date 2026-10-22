@@ -672,5 +672,115 @@ class Stage6LeadersAndHelpers(unittest.TestCase):
         ))
 
 
+class Stage7UnityIntakeAndVerifiedMissions(unittest.TestCase):
+    def make_intent(self, intent_id="int_r5_step7_01", intent_type="SCAN_KINGDOM", kingdom_id=4194,
+                    priority=85, source="R5_COMMAND_DESK", payload=None):
+        return {
+            "intent_id": intent_id,
+            "correlation_id": f"corr_{intent_id[-8:]}",
+            "created_at": "2026-10-21T23:00:00Z",
+            "source": source,
+            "intent_type": intent_type,
+            "kingdom_id": kingdom_id,
+            "priority": priority,
+            "status": "PENDING",
+            "payload": payload or {"max_ranks": 650},
+        }
+
+    def test_r5_scan_intent_flows_to_verified_by_audit_with_metadata(self):
+        w = World(control_mode="AUTONOMOUS", kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, capabilities=list(numnum.STAGE6_CAPABILITIES), watched_kingdoms=[]))
+        w.store.intents["int_r5_step7_01"] = self.make_intent()
+
+        # Tick 1: KENT triages -> TANK dispatches scan_kingdom -> status becomes IN_PROGRESS
+        w.tick()
+        self.assertEqual(w.store.intents["int_r5_step7_01"]["status"], "IN_PROGRESS")
+        scan_job = next(j for j in w.transport.sent if j["job_type"] == "scan_kingdom")
+        self.assertEqual(scan_job["kingdom_id"], 4194)
+        self.assertEqual(scan_job["args"]["max_ranks"], 650)
+
+        # CIPHER returns scan result with 650 extracted governors -> AUDIT verifies -> VERIFIED_BY_AUDIT
+        res = w.result_for(scan_job, screen="RANKINGS_BOARD", duration_ms=120000)
+        res["evidence"]["metrics"] = {"governors_extracted": 650, "max_ranks": 650}
+        w.transport.push_result(res)
+        w.tick()
+
+        updated_intent = w.store.get_intent("int_r5_step7_01")
+        self.assertEqual(updated_intent["status"], "VERIFIED_BY_AUDIT")
+        self.assertEqual(updated_intent["result_meta"]["verified_by_job"], scan_job["job_id"])
+        self.assertEqual(updated_intent["result_meta"]["governors_extracted"], 650)
+        kd_rec = w.store.get_control("KINGDOM#4194")
+        self.assertEqual(kd_rec["verified_by_intent"], "int_r5_step7_01")
+        self.assertEqual(kd_rec["governors_extracted"], 650)
+
+    def test_r5_scan_on_sibling_kingdom_switches_then_scans_then_verifies(self):
+        b_4194 = make_bot("bot_4194_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4194)
+        b_4197 = make_bot("bot_4197_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4197)
+        w = World(control_mode="AUTONOMOUS", bots=[b_4194, b_4197], kingdom_last="2026-10-21T23:55:00Z")
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, capabilities=list(numnum.STAGE6_CAPABILITIES), watched_kingdoms=[]))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4194_m0", "bot_4197_m0"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4194_m0"},
+        })
+        w.store.intents["int_r5_4197_01"] = self.make_intent("int_r5_4197_01", "SCAN_KINGDOM", 4197, payload={"max_ranks": 465})
+
+        # Tick 1: dispatches switch_character to #4197 and sets intent to PLANNED_BY_TANK
+        w.tick()
+        self.assertEqual(w.store.intents["int_r5_4197_01"]["status"], "PLANNED_BY_TANK")
+        sw_job = w.transport.sent[-1]
+        self.assertEqual((sw_job["job_type"], sw_job["args"]["target_kingdom_id"]), ("switch_character", 4197))
+
+        # Tick 2: AUDIT processes switch_character (active bot on mumu-0 is now bot_4197_m0); next tick dispatches scan_kingdom
+        w.transport.push_result(w.result_for(sw_job, screen="CITY_VIEW"))
+        w.tick()  # Ring 3 switches active_by_instance during this tick
+        w.clock.t += timedelta(minutes=2)
+        w.tick()  # Ring 2 now sees bot_4197_m0 active and dispatches scan_kingdom!
+        self.assertEqual(w.store.intents["int_r5_4197_01"]["status"], "IN_PROGRESS")
+        scan_job = w.transport.sent[-1]
+        self.assertEqual((scan_job["job_type"], scan_job["bot_id"], scan_job["kingdom_id"]), ("scan_kingdom", "bot_4197_m0", 4197))
+
+        # Tick 3: AUDIT verifies scan_kingdom -> intent becomes VERIFIED_BY_AUDIT
+        w.transport.push_result(w.result_for(scan_job, screen="RANKINGS_BOARD"))
+        w.tick()
+        self.assertEqual(w.store.intents["int_r5_4197_01"]["status"], "VERIFIED_BY_AUDIT")
+
+    def test_expand_to_kingdom_and_prioritize_growth_and_locate_governor(self):
+        b_grow = make_bot("bot_4021_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4021, ch=4, state="GROWING")
+        b_active = make_bot("bot_4194_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4194, ch=8, state="ACTIVE")
+        w = World(control_mode="AUTONOMOUS", bots=[b_active, b_grow], kingdom_last="2026-10-21T23:55:00Z")
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, capabilities=list(numnum.STAGE6_CAPABILITIES), watched_kingdoms=[]))
+        w.store.put_account_slots({
+            "account_id": "mumu-account-0", "instance_id": "sidekick-mumu-0", "adb_serial": "127.0.0.1:16384",
+            "account_status": "HEALTHY", "max_slots_per_kingdom": 2, "kingdom_slots": {"4194": ["bot_4194_m0"]},
+        })
+
+        w.store.intents["int_expand_4200"] = self.make_intent(
+            "int_expand_4200", "EXPAND_TO_KINGDOM", 4200, priority=90,
+            payload={"cadence_hours": 12, "instance_id": "sidekick-mumu-0"},
+        )
+        w.store.intents["int_grow_4021"] = self.make_intent(
+            "int_grow_4021", "PRIORITIZE_GROWTH", 4021, priority=88,
+            payload={"max_steps": 50},
+        )
+
+        w.tick()
+        self.assertEqual(w.store.intents["int_expand_4200"]["status"], "IN_PROGRESS")
+        self.assertEqual(w.store.intents["int_grow_4021"]["status"], "IN_PROGRESS")
+        watched_kds = [x["kingdom_id"] for x in w.store.get_control("CONFIG")["watched_kingdoms"]]
+        self.assertIn(4200, watched_kds)
+
+        prov_job = next(j for j in w.transport.sent if j["job_type"] == "provision_character")
+        grow_job = next(j for j in w.transport.sent if j["job_type"] == "grow_city")
+        self.assertEqual(prov_job["kingdom_id"], 4200)
+        self.assertEqual((grow_job["priority"], grow_job["args"]["max_steps"]), (88, 50))
+
+        # Complete both -> both intents transition to VERIFIED_BY_AUDIT
+        w.transport.push_result(w.result_for(prov_job, ch=2, screen="CITY_VIEW"))
+        w.transport.push_result(w.result_for(grow_job, ch=8, screen="CITY_VIEW"))
+        w.tick()
+        self.assertEqual(w.store.intents["int_expand_4200"]["status"], "VERIFIED_BY_AUDIT")
+        self.assertEqual(w.store.intents["int_grow_4021"]["status"], "VERIFIED_BY_AUDIT")
+
+
 if __name__ == "__main__":
     unittest.main()

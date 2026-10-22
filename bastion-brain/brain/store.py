@@ -70,9 +70,17 @@ class MemoryStore:
     def query_intents(self, status: str) -> List[Dict[str, Any]]:
         return [copy.deepcopy(i) for i in self.intents.values() if i["status"] == status]
 
-    def update_intent_status(self, intent_id: str, status: str) -> None:
+    def get_intent(self, intent_id: str) -> Optional[Dict[str, Any]]:
+        v = self.intents.get(intent_id)
+        return copy.deepcopy(v) if v else None
+
+    def update_intent_status(self, intent_id: str, status: str, result_meta: Optional[Dict[str, Any]] = None) -> None:
         if intent_id in self.intents:
             self.intents[intent_id]["status"] = status
+            if result_meta is not None:
+                existing = dict(self.intents[intent_id].get("result_meta") or {})
+                existing.update(result_meta)
+                self.intents[intent_id]["result_meta"] = copy.deepcopy(existing)
 
     def append_event(self, event: Dict[str, Any]) -> None:
         self.events.append(event_item(event, self.retention_days))
@@ -132,13 +140,25 @@ class DynamoStore:
         resp = self.intents_t.query(IndexName="status-index", KeyConditionExpression=Key("status").eq(status), Limit=50)
         return [from_ddb(i) for i in resp.get("Items", [])]
 
-    def update_intent_status(self, intent_id: str, status: str) -> None:
-        self.intents_t.update_item(
-            Key={"intent_id": intent_id},
-            UpdateExpression="SET #s = :s",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":s": status},
-        )
+    def get_intent(self, intent_id: str) -> Optional[Dict[str, Any]]:
+        item = self.intents_t.get_item(Key={"intent_id": intent_id}, ConsistentRead=True).get("Item")
+        return from_ddb(item) if item else None
+
+    def update_intent_status(self, intent_id: str, status: str, result_meta: Optional[Dict[str, Any]] = None) -> None:
+        if result_meta is not None:
+            self.intents_t.update_item(
+                Key={"intent_id": intent_id},
+                UpdateExpression="SET #s = :s, result_meta = :m",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":s": status, ":m": to_ddb(result_meta)},
+            )
+        else:
+            self.intents_t.update_item(
+                Key={"intent_id": intent_id},
+                UpdateExpression="SET #s = :s",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":s": status},
+            )
 
     def append_event(self, event: Dict[str, Any]) -> None:
         self.events_t.put_item(Item=to_ddb(event_item(event, self.retention_days)))
@@ -181,7 +201,10 @@ class ReadOnlyOverlay:
     def query_intents(self, status):
         return self.base.query_intents(status)
 
-    def update_intent_status(self, intent_id, status):
+    def get_intent(self, intent_id):
+        return self.base.get_intent(intent_id) if hasattr(self.base, "get_intent") else None
+
+    def update_intent_status(self, intent_id, status, result_meta=None):
         pass
 
     def append_event(self, event):

@@ -152,12 +152,18 @@ class Ring1:
 
     def _kent_intents(self, config: Optional[Dict[str, Any]] = None) -> List[Demand]:
         demands: List[Demand] = []
-        cfg = config or {}
+        cfg = config if config is not None else {}
+        supported_types = {
+            "SCAN_KINGDOM": "SCAN_REQUESTED",
+            "LOCATE_GOVERNOR": "LOCATE_REQUESTED",
+            "EXPAND_TO_KINGDOM": "EXPAND_REQUESTED",
+            "PRIORITIZE_GROWTH": "GROWTH_REQUESTED",
+        }
         for intent in self.store.query_intents("PENDING"):
             try:
                 V.validate_intent(intent)
             except ContractValidationError as exc:
-                self.store.update_intent_status(intent["intent_id"], "REJECTED")
+                self.store.update_intent_status(intent["intent_id"], "REJECTED", {"rejected_reason": str(exc)[:200]})
                 self.emitter.emit(ring="RING_1_INTEL", actor="KENT", event_type="INTENT_RECEIVED", severity="WARN",
                                   summary=f"Rejected malformed intent {intent.get('intent_id')}",
                                   why=f"Intent failed the contract: {exc}", trigger_inputs={"intent_id": intent.get("intent_id")})
@@ -167,40 +173,71 @@ class Ring1:
                               summary=f"{intent['source']} intent {intent['intent_type']} for #{intent.get('kingdom_id')}",
                               why="New intent from Unity entered the brain; triaging into a signal.",
                               trigger_inputs={"intent_id": intent["intent_id"], "priority": intent["priority"], "payload": intent["payload"]})
-            if intent["intent_type"] == "SCAN_KINGDOM" and intent.get("kingdom_id"):
+            itype = intent["intent_type"]
+            kd = intent.get("kingdom_id")
+            if itype in supported_types and kd:
+                sig_kind = supported_types[itype]
+                kd_int = int(kd)
+                if itype == "EXPAND_TO_KINGDOM":
+                    stored_cfg = self.store.get_control("CONFIG") or dict(DEFAULT_CONFIG, **cfg)
+                    watched = list(stored_cfg.get("watched_kingdoms") or [])
+                    if not any(int(w["kingdom_id"]) == kd_int for w in watched):
+                        cadence_h = float((intent.get("payload") or {}).get("cadence_hours", 12))
+                        watched.append({"kingdom_id": kd_int, "cadence_hours": cadence_h, "source": f"{intent['source']}_EXPAND"})
+                        stored_cfg["watched_kingdoms"] = watched
+                        self.store.put_control("CONFIG", stored_cfg)
+                        cfg["watched_kingdoms"] = watched
                 if cfg.get("enable_helpers") and self.helpers:
                     self.helpers.spawn_helper(
                         "R1_LEAD_TRIAGE",
-                        f"Triage R5 scan intent {intent['intent_id']} for #{intent['kingdom_id']}.",
-                        kingdom_id=int(intent["kingdom_id"]),
+                        f"Triage {intent['source']} {itype} intent {intent['intent_id']} for #{kd_int}.",
+                        kingdom_id=kd_int,
                         ttl_hours=4,
                         correlation_id=intent["correlation_id"],
                     )
                 self.store.update_intent_status(intent["intent_id"], "TRIAGED_BY_SCOUT")
-                why_text = "R5 asked for a kingdom scan; missions preempt routine upkeep."
+                why_text = {
+                    "SCAN_KINGDOM": "R5 asked for a kingdom scan; missions preempt routine upkeep.",
+                    "LOCATE_GOVERNOR": "R5 requested governor target verification in this kingdom.",
+                    "EXPAND_TO_KINGDOM": "R5/Unity requested Bastion bot deployment into a new kingdom.",
+                    "PRIORITIZE_GROWTH": "R5/Unity requested accelerated CH8 growth for this kingdom's bot.",
+                }[itype]
                 llm_tel = None
                 if self.advisor:
                     why_text, llm_tel = self.advisor.advise(
                         "SCOUT",
-                        f"Triage SCAN_KINGDOM intent for #{intent['kingdom_id']}",
+                        f"Triage {itype} intent for #{kd_int}",
                         {"intent_id": intent["intent_id"], "priority": intent["priority"], "payload": intent["payload"]},
                         why_text,
                     )
+                summary_text = (
+                    f"R5 scan request for #{kd_int}"
+                    if itype == "SCAN_KINGDOM"
+                    else f"{intent['source']} {itype} signal for #{kd_int}"
+                )
                 self.emitter.emit(ring="RING_1_INTEL", actor="KENT", event_type="SIGNAL", correlation_id=intent["correlation_id"],
-                                  kingdom_id=intent["kingdom_id"], summary=f"R5 scan request for #{intent['kingdom_id']}",
+                                  kingdom_id=kd_int, summary=summary_text,
                                   why=why_text, llm_telemetry=llm_tel,
-                                  trigger_inputs={"signal": "SCAN_REQUESTED", "intent_id": intent["intent_id"]})
+                                  trigger_inputs={"signal": sig_kind, "intent_id": intent["intent_id"], "intent_type": itype})
             else:
-                self.store.update_intent_status(intent["intent_id"], "REJECTED")
+                self.store.update_intent_status(intent["intent_id"], "REJECTED", {"rejected_reason": f"Unsupported intent_type {itype}"})
                 self.emitter.emit(ring="RING_1_INTEL", actor="KENT", event_type="SIGNAL", severity="NOTICE",
                                   correlation_id=intent["correlation_id"], kingdom_id=intent.get("kingdom_id"),
                                   summary=f"Intent {intent['intent_type']} not supported in brain v0",
-                                  why="Only SCAN_KINGDOM intents are planned in the deterministic v0 brain.",
+                                  why="Only SCAN_KINGDOM, LOCATE_GOVERNOR, EXPAND_TO_KINGDOM, and PRIORITIZE_GROWTH intents are planned via BastionIntents.",
                                   trigger_inputs={"intent_id": intent["intent_id"]})
-        for intent in self.store.query_intents("TRIAGED_BY_SCOUT"):
-            if intent["intent_type"] == "SCAN_KINGDOM" and intent.get("kingdom_id"):
-                demands.append(Demand("SCAN_REQUESTED", int(intent["kingdom_id"]), int(intent["priority"]),
-                                      intent["correlation_id"], {"payload": intent["payload"]}, intent["intent_id"]))
+        for status_key in ("TRIAGED_BY_SCOUT", "PLANNED_BY_TANK"):
+            for intent in self.store.query_intents(status_key):
+                itype = intent.get("intent_type")
+                if itype in supported_types and intent.get("kingdom_id"):
+                    demands.append(Demand(
+                        supported_types[itype],
+                        int(intent["kingdom_id"]),
+                        int(intent["priority"]),
+                        intent["correlation_id"],
+                        {"payload": intent.get("payload") or {}, "intent_type": itype, "source": intent.get("source")},
+                        intent["intent_id"],
+                    ))
         return demands
 
     def _null_staleness(self, config: Dict[str, Any]) -> List[Demand]:
@@ -286,7 +323,7 @@ class Ring2:
                 )
 
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
-        gap_demand = self._redundancy_gap_for(instance_id, bot, rt, demands, now)
+        gap_demand = self._redundancy_gap_for(instance_id, bot, rt, demands, now, all_bots)
         if gap_demand is not None:
             return self._plan_redundancy_twin(instance_id, bot, gap_demand, inst, config, mode, all_bots, now)
 
@@ -341,8 +378,14 @@ class Ring2:
         V.validate_job(job, now=now)
         self.transport.send_job(job)
         self.recent_keys = (self.recent_keys + [job["idempotency_key"]])[-500:]
-        inst.update({"in_flight": job, "dispatched_at": iso(now), "last_idempotency_key": job["idempotency_key"],
-                     "active_bot_id": inst.get("active_bot_id") or bot["bot_id"]})
+        is_prep_switch = job_type == "switch_character" and demand is not None and demand.intent_id is not None
+        inst.update({
+            "in_flight": job,
+            "dispatched_at": iso(now),
+            "last_idempotency_key": job["idempotency_key"],
+            "active_bot_id": inst.get("active_bot_id") or bot["bot_id"],
+            "active_intent_id": None if is_prep_switch else (demand.intent_id if demand else None),
+        })
         self.store.put_control(instance_key(instance_id), inst)
         if job_type in numnum.REST_JOB_TYPES:
             rt["session_started_at"] = None
@@ -352,7 +395,29 @@ class Ring2:
             rt["session_started_at"] = iso(now)
         self.store.put_control(runtime_key(bot["bot_id"]), rt)
         if demand and demand.intent_id:
-            self.store.update_intent_status(demand.intent_id, "IN_PROGRESS")
+            if is_prep_switch:
+                self.store.update_intent_status(
+                    demand.intent_id,
+                    "PLANNED_BY_TANK",
+                    {
+                        "planned_at": iso(now),
+                        "switch_job_id": job["job_id"],
+                        "instance_id": instance_id,
+                        "target_kingdom_id": job["args"].get("target_kingdom_id"),
+                    },
+                )
+            else:
+                self.store.update_intent_status(
+                    demand.intent_id,
+                    "IN_PROGRESS",
+                    {
+                        "started_at": iso(now),
+                        "job_id": job["job_id"],
+                        "job_type": job_type,
+                        "instance_id": instance_id,
+                        "bot_id": bot["bot_id"],
+                    },
+                )
         self.emitter.emit(ring="RING_2_OPS", actor="TANK", event_type="JOB_DISPATCHED",
                           summary=f"Dispatched {job_type} to {instance_id} (deadline {job['deadline']})",
                           why="NUMNUM-approved job sent to bastion-jobs.fifo for CIPHER.",
@@ -474,10 +539,11 @@ class Ring2:
         )
         return "DISPATCHED"
 
-    # ------------------------------------------------------------------ Cross-instance twin convergence planner
+    # ------------------------------------------------------------------ Cross-instance twin & R5 expansion planner
     @staticmethod
     def _redundancy_gap_for(instance_id: str, bot: Dict[str, Any], rt: Dict[str, Any],
-                            demands: List[Demand], now: datetime) -> Optional[Demand]:
+                            demands: List[Demand], now: datetime,
+                            all_bots: Optional[Dict[str, Dict[str, Any]]] = None) -> Optional[Demand]:
         if bot["lifecycle_state"] != "ACTIVE" or bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
             return None
         p = bot["routine_profile"]
@@ -486,8 +552,21 @@ class Ring2:
         started = numnum.parse_ts(rt.get("session_started_at"))
         if started and numnum.minutes_between(started, now) >= p["max_session_minutes"]:
             return None
-        if any(d.kind == "SCAN_REQUESTED" and d.kingdom_id == bot["kingdom_id"] for d in demands):
+        if any(d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED") and d.kingdom_id == bot["kingdom_id"] for d in demands):
             return None
+        bots_map = all_bots or {}
+        expands = sorted([d for d in demands if d.kind == "EXPAND_REQUESTED"], key=lambda d: d.priority, reverse=True)
+        for exp in expands:
+            pref_inst = (exp.detail.get("payload") or {}).get("instance_id")
+            if pref_inst and pref_inst != instance_id:
+                continue
+            has_here = any(
+                b["instance_id"] == instance_id and int(b["kingdom_id"]) == int(exp.kingdom_id)
+                and b.get("lifecycle_state") not in ("RETIRED", "LOST")
+                for b in bots_map.values()
+            )
+            if not has_here:
+                return exp
         gaps = [d for d in demands if d.kind == "REDUNDANCY_GAP" and d.detail.get("target_instance_id") == instance_id]
         return gaps[0] if gaps else None
 
@@ -505,8 +584,8 @@ class Ring2:
         occupied = len(existing)
         slot_num = min(2, occupied + 1)
         twin_bot_id = f"bot_{kd}_twin_m{instance_id[-1]}"
-        peer_bots = gap.detail.get("peer_bots") or []
-        peer_names = ", ".join(b["governor_name"] for b in peer_bots) or gap.detail.get("peer_instance_id", "peer")
+        peer_bots = (gap.detail.get("peer_bots") or []) if gap.kind == "REDUNDANCY_GAP" else None
+        peer_names = ", ".join(b["governor_name"] for b in (peer_bots or [])) or gap.detail.get("peer_instance_id", "expansion")
 
         if config.get("enable_helpers") and self.helpers:
             self.helpers.spawn_helper(
@@ -581,8 +660,21 @@ class Ring2:
             "last_idempotency_key": job["idempotency_key"],
             "active_bot_id": twin_bot_id,
             "replacing_bot_id": None,
+            "active_intent_id": gap.intent_id,
         })
         self.store.put_control(instance_key(instance_id), inst)
+        if gap.intent_id:
+            self.store.update_intent_status(
+                gap.intent_id,
+                "IN_PROGRESS",
+                {
+                    "started_at": iso(now),
+                    "job_id": job["job_id"],
+                    "job_type": "provision_character",
+                    "instance_id": instance_id,
+                    "bot_id": twin_bot_id,
+                },
+            )
         self.emitter.emit(
             ring="RING_2_OPS", actor="TANK", event_type="JOB_DISPATCHED",
             summary=f"Dispatched twin provision_character ({twin_bot_id}) to {instance_id}",
@@ -638,10 +730,15 @@ class Ring2:
                     dict(base, demand=mission.kind, demand_detail=mission.detail), mission)
 
         if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
-            return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": 40}, 30,
-                    f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.", base, None)
+            growth_demand = next((d for d in demands if d.kind == "GROWTH_REQUESTED" and d.kingdom_id == bot["kingdom_id"]), None)
+            g_prio = max(30, growth_demand.priority) if growth_demand else 30
+            g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 40)))) if growth_demand else 40
+            return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": g_steps}, g_prio,
+                    f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.",
+                    dict(base, **({"demand": growth_demand.kind, "demand_detail": growth_demand.detail} if growth_demand else {})),
+                    growth_demand)
 
-        # Check if a high-priority R5 scan intent targets another kingdom where this instance has an ACTIVE sibling bot
+        # Check if a high-priority R5 scan/locate/growth intent targets another kingdom where this instance has a sibling bot
         switch_target = self._sibling_for_r5_demand(bot, demands, all_bots, now)
         if switch_target is not None:
             sib, sib_demand = switch_target
@@ -664,17 +761,21 @@ class Ring2:
 
     @staticmethod
     def _mission_for(bot, demands: List[Demand]) -> Optional[Demand]:
-        mine = [d for d in demands if d.kingdom_id == bot["kingdom_id"]]
+        mine = [d for d in demands if d.kingdom_id == bot["kingdom_id"] and d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED", "SCAN_DUE")]
         return max(mine, key=lambda d: d.priority) if mine else None
 
     @staticmethod
     def _sibling_for_r5_demand(bot, demands: List[Demand], all_bots: Dict[str, Dict[str, Any]], now: datetime) -> Optional[Tuple[Dict[str, Any], Demand]]:
-        r5_demands = sorted([d for d in demands if d.kind == "SCAN_REQUESTED" and d.kingdom_id != bot["kingdom_id"]],
-                            key=lambda d: d.priority, reverse=True)
+        r5_demands = sorted(
+            [d for d in demands if d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED", "GROWTH_REQUESTED") and d.kingdom_id != bot["kingdom_id"]],
+            key=lambda d: d.priority,
+            reverse=True,
+        )
         for d in r5_demands:
+            expected_state = "GROWING" if d.kind == "GROWTH_REQUESTED" else "ACTIVE"
             for sib in all_bots.values():
                 if (sib["instance_id"] == bot["instance_id"] and sib["kingdom_id"] == d.kingdom_id
-                        and sib["lifecycle_state"] == "ACTIVE" and not numnum.in_sleep_window(now, sib["routine_profile"])):
+                        and sib["lifecycle_state"] == expected_state and not numnum.in_sleep_window(now, sib["routine_profile"])):
                     return sib, d
         return None
 
@@ -771,13 +872,15 @@ class Ring3:
             return
 
         replacing_bot_id = inst.get("replacing_bot_id")
+        active_intent_id = inst.get("active_intent_id")
         inst["in_flight"] = None
         inst["replacing_bot_id"] = None
+        inst["active_intent_id"] = None
         inst["last_result_at"] = result["completed_at"]
         self.store.put_control(instance_key(result["instance_id"]), inst)
 
         if result["job_type"] == "provision_character":
-            self._audit_provision(job, result, replacing_bot_id, dozer, common)
+            self._audit_provision(job, result, replacing_bot_id, dozer, common, active_intent_id=active_intent_id)
             return
 
         bots = self.store.get_bots([result["bot_id"]])
@@ -788,11 +891,12 @@ class Ring3:
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
         if result["job_type"] not in numnum.REST_JOB_TYPES:
             rt["active_minutes_today"] = int(rt["active_minutes_today"]) + max(1, math.ceil(result["duration_ms"] / 60000))
-        self._audit(bot, job, result, rt, dozer, common)
+        self._audit(bot, job, result, rt, dozer, common, active_intent_id=active_intent_id)
         self.store.put_control(runtime_key(bot["bot_id"]), rt)
 
     def _audit_provision(self, job: Dict[str, Any], result: Dict[str, Any], replacing_bot_id: Optional[str],
-                         dozer: Dict[str, Any], common: Dict[str, Any]) -> None:
+                         dozer: Dict[str, Any], common: Dict[str, Any],
+                         active_intent_id: Optional[str] = None) -> None:
         status = result["status"]
         obs = result["observed_state"]
         now = self.clock()
@@ -800,6 +904,18 @@ class Ring3:
         lost_bot = self.store.get_bots([replacing_bot_id]).get(replacing_bot_id) if replacing_bot_id else None
 
         if status not in ("SUCCEEDED", "PARTIAL"):
+            if active_intent_id:
+                self.store.update_intent_status(
+                    active_intent_id,
+                    "FAILED",
+                    {
+                        "failed_at": result["completed_at"],
+                        "job_id": result["job_id"],
+                        "job_type": "provision_character",
+                        "status": status,
+                        "error": result.get("error"),
+                    },
+                )
             if lost_bot:
                 inst = self.store.get_control(instance_key(result["instance_id"])) or {}
                 inst["active_bot_id"] = lost_bot["bot_id"]
@@ -926,6 +1042,24 @@ class Ring3:
             V.validate_bot(lost_bot)
             self.store.put_bot(lost_bot)
 
+        if active_intent_id:
+            self.store.update_intent_status(
+                active_intent_id,
+                "VERIFIED_BY_AUDIT",
+                {
+                    "verified_at": result["completed_at"],
+                    "verified_by_job": result["job_id"],
+                    "bot_id": rep_bot["bot_id"],
+                    "governor_name": rep_bot["governor_name"],
+                    "instance_id": rep_bot["instance_id"],
+                    "kingdom_id": rep_bot["kingdom_id"],
+                    "job_type": "provision_character",
+                    "status": status,
+                    "ch_level": ch_level,
+                    "screenshot_uri": result["evidence"].get("screenshot_uri"),
+                },
+            )
+
     @staticmethod
     def _dozer(result: Dict[str, Any]) -> Dict[str, Any]:
         ev = result["evidence"]
@@ -946,13 +1080,26 @@ class Ring3:
                           summary=f"{bot['governor_name']}: {old} -> {new_state}", why=why,
                           trigger_inputs=dict(inputs or {}, from_state=old, to_state=new_state), **common)
 
-    def _audit(self, bot, job, result, rt, dozer, common) -> None:
+    def _audit(self, bot, job, result, rt, dozer, common, active_intent_id: Optional[str] = None) -> None:
         status, jt = result["status"], result["job_type"]
         obs = result["observed_state"]
         now = self.clock()
         health = bot["health"]
+        ev_metrics = result["evidence"].get("metrics") or {}
 
         if status == "ACCOUNT_LOCKED_OR_BANNED":
+            if active_intent_id:
+                self.store.update_intent_status(
+                    active_intent_id,
+                    "FAILED",
+                    {
+                        "failed_at": result["completed_at"],
+                        "job_id": result["job_id"],
+                        "job_type": jt,
+                        "status": status,
+                        "error": result.get("error"),
+                    },
+                )
             already_suspect = bot["lifecycle_state"] == "SUSPECT" or bool(health.get("ban_suspected"))
             health["ban_suspected"] = True
             health["last_error"] = (result.get("error") or {}).get("message", "ban screen")[:200]
@@ -1003,8 +1150,18 @@ class Ring3:
             if bot["lifecycle_state"] == "GROWING" and vs["ch_level"] >= GROW_TARGET_CH:
                 self._set_state(bot, "ACTIVE", f"Reached CH{vs['ch_level']}.", common)
             if jt == "scan_kingdom" and status == "SUCCEEDED":
-                self.store.put_control(f"KINGDOM#{result['kingdom_id']}", {"last_scan_verified_at": result["completed_at"],
-                                                                           "verified_by_job": result["job_id"]})
+                kd_rec: Dict[str, Any] = {
+                    "last_scan_verified_at": result["completed_at"],
+                    "verified_by_job": result["job_id"],
+                    "verified_by_bot": bot["bot_id"],
+                }
+                if active_intent_id:
+                    kd_rec["verified_by_intent"] = active_intent_id
+                if ev_metrics.get("governors_extracted") is not None:
+                    kd_rec["governors_extracted"] = ev_metrics["governors_extracted"]
+                if result["evidence"].get("screenshot_uri"):
+                    kd_rec["last_screenshot_uri"] = result["evidence"]["screenshot_uri"]
+                self.store.put_control(f"KINGDOM#{result['kingdom_id']}", kd_rec)
                 cfg_ctl = self.store.get_control("CONFIG") or {}
                 if cfg_ctl.get("enable_helpers") and self.helpers:
                     self.helpers.spawn_helper(
@@ -1017,7 +1174,38 @@ class Ring3:
                     )
             if jt == "switch_character" and status == "SUCCEEDED":
                 self._apply_switch(bot, job, result)
+            if active_intent_id and jt != "switch_character":
+                self.store.update_intent_status(
+                    active_intent_id,
+                    "VERIFIED_BY_AUDIT",
+                    {
+                        "verified_at": result["completed_at"],
+                        "verified_by_job": result["job_id"],
+                        "bot_id": bot["bot_id"],
+                        "governor_name": bot["governor_name"],
+                        "instance_id": result["instance_id"],
+                        "kingdom_id": result["kingdom_id"],
+                        "job_type": jt,
+                        "status": status,
+                        "ch_level": vs["ch_level"],
+                        "power": vs["power"],
+                        "screenshot_uri": result["evidence"].get("screenshot_uri"),
+                        **({"governors_extracted": ev_metrics["governors_extracted"]} if ev_metrics.get("governors_extracted") is not None else {}),
+                    },
+                )
         else:
+            if active_intent_id:
+                self.store.update_intent_status(
+                    active_intent_id,
+                    "FAILED",
+                    {
+                        "failed_at": result["completed_at"],
+                        "job_id": result["job_id"],
+                        "job_type": jt,
+                        "status": status,
+                        "error": result.get("error"),
+                    },
+                )
             err = result.get("error") or {}
             health["last_error"] = f"{err.get('code')}: {err.get('message', '')}"[:200]
             if err.get("code") not in ("DEVICE_OFFLINE", "INSTANCE_BUSY", "UNSUPPORTED_JOB_TYPE"):
@@ -1079,9 +1267,23 @@ class Ring3:
             deadline = numnum.parse_ts(job["deadline"])
             if now < deadline + timedelta(minutes=STALE_INFLIGHT_GRACE_MINUTES):
                 continue
+            stale_intent_id = inst.get("active_intent_id")
             inst["in_flight"] = None
             inst["replacing_bot_id"] = None
+            inst["active_intent_id"] = None
             self.store.put_control(instance_key(instance_id), inst)
+            if stale_intent_id:
+                self.store.update_intent_status(
+                    stale_intent_id,
+                    "FAILED",
+                    {
+                        "failed_at": iso(now),
+                        "job_id": job["job_id"],
+                        "job_type": job["job_type"],
+                        "status": "TIMEOUT",
+                        "error": {"code": "DEADLINE_EXPIRED", "message": "No result from CIPHER before deadline + grace."},
+                    },
+                )
             self.emitter.emit(ring="RING_3_AUDIT", actor="AUDIT", event_type="JOB_RESULT", severity="WARN",
                               correlation_id=job["correlation_id"], kingdom_id=job["kingdom_id"], bot_id=job["bot_id"],
                               instance_id=instance_id, job_id=job["job_id"],
