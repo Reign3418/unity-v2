@@ -396,5 +396,144 @@ class StoreHelpers(unittest.TestCase):
         self.assertTrue(any(e["event_type"] == "PLAN_APPROVED" for e in overlay.events))
 
 
+class SelfHealingAndSwitching(unittest.TestCase):
+    def _account(self, account_id, inst, serial, kingdom_slots):
+        rec = {
+            "account_id": account_id,
+            "instance_id": inst,
+            "adb_serial": serial,
+            "account_status": "HEALTHY",
+            "max_slots_per_kingdom": 2,
+            "kingdom_slots": kingdom_slots,
+        }
+        V.validate_account_slot_record(rec)
+        return rec
+
+    def test_self_healing_replacement_and_ch8_growth(self):
+        w = World(control_mode="AUTONOMOUS", kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, watched_kingdoms=[]))
+        w.store.put_account_slots(self._account(
+            "mumu-account-1", "sidekick-mumu-1", "127.0.0.1:16416",
+            {"4021": ["bot_4021_m1"]},
+        ))
+        w.brain.declare_bot_lost("bot_4021_m1", "confirmed ban in #4021")
+        self.assertEqual(w.bot("bot_4021_m1")["lifecycle_state"], "LOST")
+        self.assertEqual(len(w.events("BOT_LOST")), 1)
+
+        # Tick 1: Ring 2 proposes provision_character, NUMNUM approves (1/2 slots used), dispatches
+        s1 = w.tick()
+        self.assertEqual(s1["plans"]["sidekick-mumu-1"], "DISPATCHED")
+        prov_job = w.transport.sent[-1]
+        self.assertEqual(prov_job["job_type"], "provision_character")
+        self.assertEqual(prov_job["args"]["target_kingdom_id"], 4021)
+        self.assertEqual(prov_job["args"]["character_slot"], 2)
+        new_id = prov_job["bot_id"]
+        self.assertNotIn(new_id, w.store.bots)  # Single-writer invariant: Ring 2 did not write BastionBots
+
+        # CIPHER finishes provision_character at CH2 -> Ring 3 creates GROWING bot, retires LOST bot, Ring 2 dispatches grow_city
+        res = w.result_for(prov_job, screen="CITY_VIEW", ch=2, duration_ms=120000)
+        res["observed_state"]["kingdom_id"] = 4021
+        res["observed_state"]["governor_id"] = "237099999"
+        res["observed_state"]["governor_name"] = "Rep4021"
+        res["observed_state"]["power"] = 1800
+        w.transport.push_result(res)
+
+        s2 = w.tick()
+        self.assertEqual(s2["plans"]["sidekick-mumu-1"], "BUSY")
+        self.assertEqual(w.bot("bot_4021_m1")["lifecycle_state"], "RETIRED")
+        self.assertEqual(w.bot(new_id)["lifecycle_state"], "GROWING")
+        self.assertEqual(w.bot(new_id)["verified_state"]["ch_level"], 2)
+        self.assertEqual(w.store.control["FLEET"]["active_by_instance"]["sidekick-mumu-1"], new_id)
+        acct = w.store.get_account_slots("mumu-account-1")
+        self.assertEqual(acct["kingdom_slots"]["4021"], ["bot_4021_m1", new_id])
+
+        # Tick 3: Ring 2 plans & dispatches grow_city to CH8 for the new GROWING bot
+        s3 = w.tick()
+        self.assertEqual(s3["plans"]["sidekick-mumu-1"], "DISPATCHED")
+        grow_job = w.transport.sent[-1]
+        self.assertEqual((grow_job["job_type"], grow_job["bot_id"], grow_job["args"]["target_ch_level"]),
+                         ("grow_city", new_id, 8))
+
+        # CIPHER finishes grow_city at CH8 -> Ring 3 transitions GROWING -> ACTIVE
+        w.transport.push_result(w.result_for(grow_job, screen="CITY_VIEW", ch=8, duration_ms=300000))
+        w.tick()
+        self.assertEqual(w.bot(new_id)["lifecycle_state"], "ACTIVE")
+        self.assertEqual(w.bot(new_id)["verified_state"]["ch_level"], 8)
+
+    def test_slot_limit_2_per_kingdom_rejects_and_requests_human_account(self):
+        w = World(control_mode="AUTONOMOUS", kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, watched_kingdoms=[]))
+        w.store.put_account_slots(self._account(
+            "mumu-account-0", "sidekick-mumu-0", "127.0.0.1:16384",
+            {"4194": ["bot_4194_m0", "bot_4194_alt_m0"]},
+        ))
+        w.brain.declare_bot_lost("bot_4194_m0", "confirmed ban in #4194")
+        s = w.tick()
+        self.assertEqual(s["plans"]["sidekick-mumu-0"], "REJECTED")
+        rej = [e for e in w.events("PLAN_REJECTED") if e.get("instance_id") == "sidekick-mumu-0"][-1]
+        failed = [c["rule_id"] for c in rej["oversight"]["numnum_checks"] if not c["passed"]]
+        self.assertIn("ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM", failed)
+        human_evs = w.events("HUMAN_ACCOUNT_REQUIRED")
+        self.assertEqual(len(human_evs), 1)
+        self.assertEqual(human_evs[0]["kingdom_id"], 4194)
+
+    def test_second_ban_confirms_suspect_to_lost(self):
+        b = make_bot("bot_4021_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4021, state="SUSPECT")
+        b["health"] = {"consecutive_failures": 1, "ban_suspected": True}
+        w = World(control_mode="AUTONOMOUS", kingdom_last=None, bots=[b])
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, watched_kingdoms=[]))
+        fake_job = {
+            "job_id": "job_ban_confirm1", "idempotency_key": "idem_ban_confirm1", "correlation_id": "corr_ban_confirm01",
+            "job_type": "probe_status", "instance_id": "sidekick-mumu-1", "adb_serial": "127.0.0.1:16416",
+            "bot_id": "bot_4021_m1", "kingdom_id": 4021, "deadline": "2026-10-22T01:00:00Z",
+        }
+        w.store.put_control(instance_key("sidekick-mumu-1"), {"in_flight": fake_job, "recent_keys": []})
+        w.transport.push_result(w.result_for(
+            fake_job, status="ACCOUNT_LOCKED_OR_BANNED", screen="BANNED_OR_SUSPENDED",
+            error={"code": "ACCOUNT_BANNED_SCREEN", "message": "banned", "retryable": False},
+        ))
+        w.tick()
+        self.assertEqual(w.bot("bot_4021_m1")["lifecycle_state"], "LOST")
+        self.assertEqual(len(w.events("BOT_LOST")), 1)
+
+    def test_supervised_holds_provision_character(self):
+        w = World(control_mode="SUPERVISED", kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, watched_kingdoms=[]))
+        w.store.put_account_slots(self._account(
+            "mumu-account-1", "sidekick-mumu-1", "127.0.0.1:16416",
+            {"4021": ["bot_4021_m1"]},
+        ))
+        w.brain.declare_bot_lost("bot_4021_m1", "test supervised hold")
+        s = w.tick()
+        self.assertEqual(s["plans"]["sidekick-mumu-1"], "APPROVED_NOT_DISPATCHED")
+        self.assertEqual(w.transport.sent, [])
+
+    def test_sibling_switch_character_on_r5_scan_demand(self):
+        b1 = make_bot("bot_4021_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4021)
+        b2 = make_bot("bot_4198_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4198)
+        w = World(control_mode="AUTONOMOUS", kingdom_last=None, bots=[b1, b2])
+        w.store.put_control("FLEET", {"bot_ids": ["bot_4021_m1", "bot_4198_m1"],
+                                      "active_by_instance": {"sidekick-mumu-1": "bot_4021_m1"}})
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, watched_kingdoms=[]))
+        w.store.intents["int_r5scan_4198"] = {
+            "intent_id": "int_r5scan_4198", "correlation_id": "corr_r5_4198_scan",
+            "created_at": "2026-10-21T23:00:00Z", "source": "R5_COMMAND_DESK",
+            "intent_type": "SCAN_KINGDOM", "kingdom_id": 4198, "priority": 80,
+            "status": "PENDING", "payload": {"max_ranks": 100},
+        }
+        s1 = w.tick()
+        self.assertEqual(s1["plans"]["sidekick-mumu-1"], "DISPATCHED")
+        sw_job = w.transport.sent[-1]
+        self.assertEqual(sw_job["job_type"], "switch_character")
+        self.assertEqual(sw_job["args"]["target_governor_name"], "Gov4198")
+        self.assertEqual(sw_job["args"]["target_kingdom_id"], 4198)
+
+        res = w.result_for(sw_job, screen="CITY_VIEW", ch=8, duration_ms=25000)
+        res["observed_state"]["kingdom_id"] = 4198
+        w.transport.push_result(res)
+        w.tick()
+        self.assertEqual(w.store.control["FLEET"]["active_by_instance"]["sidekick-mumu-1"], "bot_4198_m1")
+
+
 if __name__ == "__main__":
     unittest.main()

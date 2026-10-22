@@ -67,6 +67,14 @@ class Brain:
         bots = self.store.get_bots(bot_ids) if bot_ids else {}
         return {"bots": bots, "active": dict(fleet.get("active_by_instance", {}))}
 
+    def declare_bot_lost(self, bot_id: str, why: str) -> Dict[str, Any]:
+        """Helper to invoke Ring 3 AUDIT loss declaration by bot_id."""
+        bot = self.store.get_bots([bot_id]).get(bot_id)
+        if not bot:
+            raise ValueError(f"Unknown bot_id: {bot_id}")
+        self.ring3.declare_bot_lost(bot, why)
+        return bot
+
     def tick(self) -> Dict[str, Any]:
         self.tick_count += 1
         summary: Dict[str, Any] = {"tick": self.tick_count, "errors": []}
@@ -95,7 +103,7 @@ class Brain:
                 bot_id = fleet["active"].get(instance_id)
                 bot = fleet["bots"].get(bot_id) if bot_id else None
                 outcomes[instance_id] = guarded(f"ring2:{instance_id}",
-                                                lambda i=instance_id, b=bot: self.ring2.plan_instance(i, b, demands, config, mode))
+                                                lambda i=instance_id, b=bot: self.ring2.plan_instance(i, b, demands, config, mode, fleet["bots"]))
             summary["plans"] = outcomes
         summary["results"] = guarded("ring3", lambda: self.ring3.process(instances)) or 0
 

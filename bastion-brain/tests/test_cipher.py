@@ -27,6 +27,9 @@ def make_job(job_type="probe_status", args=None, **over):
         "probe_status": {"capture_profile": True, "capture_resources": True},
         "grow_city": {"target_ch_level": 8, "max_steps": 40},
         "sleep": {"duration_minutes": 60, "close_app": True, "reason": "SLEEP_WINDOW"},
+        "switch_character": {"target_kingdom_id": 4194, "target_governor_id": "236425783", "target_governor_name": "[Lova]lilfarmer"},
+        "provision_character": {"target_kingdom_id": 4021, "account_id": "mumu-account-1", "character_slot": 2, "preferred_civilization": "CHINA"},
+        "scan_kingdom": {"target_kingdom_id": 4194, "max_ranks": 300, "boards": ["INDIVIDUAL_POWER"]},
         "gather": {"resource_types": ["FOOD"], "max_marches": 1},
     }
     job = {
@@ -426,6 +429,45 @@ class Config(unittest.TestCase):
     def test_missing_settings_reported(self):
         cfg = CipherConfig.load(r"Z:\nope", env={})
         self.assertIn("missing setting: access_key_id", cfg.problems())
+
+
+class Step5Skills(Base):
+    def test_switch_character_succeeded_and_not_found(self):
+        sw_ok = "[1/6] Opening Governor Profile\n[5/6] Switching to #4194\nActive on Kingdom #4194\n"
+        r = self.rig([make_job("switch_character")], runner=FakeRunner(sw_ok))
+        self.assertEqual(r.run(), ["SUCCEEDED"])
+        res = r.results()[0]
+        V.validate_job_result(res, make_job("switch_character"))
+        self.assertEqual(res["observed_state"]["kingdom_id"], 4194)
+        self.assertEqual(res["observed_state"]["governor_id"], "236425783")
+
+        sw_miss = "[3/6] Searching Character Roster\nCharacter for #4194 not found in roster\n"
+        r2 = self.rig([make_job("switch_character")], runner=FakeRunner(sw_miss))
+        self.assertEqual(r2.run(), ["FAILED"])
+        self.assertEqual(r2.results()[0]["error"]["code"], "CHARACTER_NOT_FOUND")
+        self.assertFalse(r2.results()[0]["error"]["retryable"])
+
+    def test_provision_character_succeeded_and_tutorial_partial(self):
+        prov_ok = "[1/6] Opening Profile\n[4/6] Confirming Character Creation\n[DONE] Provisioned #4021 character (Governor236999111, ID=236999111).\n"
+        r = self.rig([make_job("provision_character")], runner=FakeRunner(prov_ok))
+        self.assertEqual(r.run(), ["SUCCEEDED"])
+        res = r.results()[0]
+        V.validate_job_result(res, make_job("provision_character"))
+        self.assertEqual((res["observed_state"]["governor_id"], res["observed_state"]["ch_level"]), ("236999111", 2))
+
+        prov_part = "[6/6] Running tutorial\n[WARN] Governor Profile was not accessible to extract live ID. Character tutorial may still be in progress.\n"
+        r2 = self.rig([make_job("provision_character")], runner=FakeRunner(prov_part))
+        self.assertEqual(r2.run(), ["PARTIAL"])
+        self.assertEqual(r2.results()[0]["observed_state"]["screen_state"], "TUTORIAL_OVERLAY")
+
+    def test_scan_kingdom_skill(self):
+        scan_out = "Synced 300 accumulated #4194 governors (@ Rank 300/300).\n#4194 scan completed!\n"
+        r = self.rig([make_job("scan_kingdom")], runner=FakeRunner(scan_out))
+        self.assertEqual(r.run(), ["SUCCEEDED"])
+        res = r.results()[0]
+        V.validate_job_result(res, make_job("scan_kingdom"))
+        self.assertEqual(res["observed_state"]["screen_state"], "RANKINGS_BOARD")
+        self.assertEqual(res["evidence"]["metrics"]["governors_extracted"], 300)
 
 
 if __name__ == "__main__":

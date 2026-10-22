@@ -1,4 +1,4 @@
-"""The three rings (deterministic v0).
+"""The three rings (deterministic v0 + Step 5 self-healing & character switching).
 
 Ring 1 (KENT, NULL, SCOUT)  -> demands (signals). Never dispatches.
 Ring 2 (TANK, BIG_JON, NUMNUM) -> plans, gates, and (mode permitting) dispatches typed jobs.
@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import json
 import math
-import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from contracts import validator as V
@@ -22,11 +21,19 @@ from .events import iso, new_id
 
 PLANNABLE_STATES = ("ACTIVE", "GROWING", "SLEEPING")
 DISPATCH_HOLD_IN_SUPERVISED = frozenset({"provision_character", "switch_character"})
-DEADLINE_MINUTES = {"probe_status": 15, "sleep": 10, "grow_city": 60, "scan_kingdom": 120}
+DEADLINE_MINUTES = {
+    "probe_status": 15,
+    "sleep": 10,
+    "grow_city": 60,
+    "scan_kingdom": 120,
+    "switch_character": 15,
+    "provision_character": 60,
+}
 PROBE_STALE_MINUTES = 180
 STALE_INFLIGHT_GRACE_MINUTES = 10
 WAKE_RETRY_MINUTES = 10
 SUSPECT_AFTER_FAILURES = 3
+LOST_AFTER_FAILURES = 4
 GROW_TARGET_CH = 8
 SCAN_DEFAULT_RANKS = 300
 
@@ -53,6 +60,22 @@ def runtime_key(bot_id: str) -> str:
 
 def instance_key(instance_id: str) -> str:
     return f"INSTANCE#{instance_id}"
+
+
+def infer_account_slots(account_id: str, instance_id: str, adb_serial: str, fleet_bots: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """Fallback BastionAccountSlots record synthesized from known fleet bots when not explicitly stored."""
+    kd_slots: Dict[str, List[str]] = {}
+    for b in fleet_bots.values():
+        if b.get("account_id") == account_id and b.get("lifecycle_state") != "RETIRED":
+            kd_slots.setdefault(str(b["kingdom_id"]), []).append(b["bot_id"])
+    return {
+        "account_id": account_id,
+        "instance_id": instance_id,
+        "adb_serial": adb_serial,
+        "account_status": "HEALTHY",
+        "max_slots_per_kingdom": 2,
+        "kingdom_slots": kd_slots,
+    }
 
 
 # =========================================================================== Ring 1
@@ -130,19 +153,31 @@ class Ring2:
         self.recent_keys: List[str] = []
 
     def plan_instance(self, instance_id: str, bot: Optional[Dict[str, Any]], demands: List[Demand],
-                      config: Dict[str, Any], mode: str) -> Optional[str]:
+                      config: Dict[str, Any], mode: str,
+                      fleet_bots: Optional[Dict[str, Dict[str, Any]]] = None) -> Optional[str]:
         """Plans at most one job for the instance's active bot. Returns an outcome label."""
         now = self.clock()
         inst = self.store.get_control(instance_key(instance_id)) or {}
         if inst.get("in_flight"):
             return "BUSY"
+        all_bots = fleet_bots or ({bot["bot_id"]: bot} if bot else {})
+        lost_on_instance = next(
+            (b for b in all_bots.values()
+             if b["instance_id"] == instance_id and b["lifecycle_state"] == "LOST"
+             and not b.get("health", {}).get("replaced_by_bot_id")),
+            None,
+        )
+        if lost_on_instance is not None:
+            return self._plan_replacement(instance_id, lost_on_instance, inst, config, mode, all_bots, now)
+
         if bot is None:
             return "NO_ACTIVE_BOT"
+
         if bot["lifecycle_state"] not in PLANNABLE_STATES:
             return f"STATE_{bot['lifecycle_state']}"
 
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
-        choice = self._choose(bot, rt, demands, now)
+        choice = self._choose(bot, rt, demands, now, all_bots)
         if choice is None:
             return "IDLE"
         job_type, args, priority, why, inputs, demand = choice
@@ -199,8 +234,109 @@ class Ring2:
                                           "deadline": job["deadline"]}, **common)
         return "DISPATCHED"
 
-    # ------------------------------------------------------------------ TANK + BIG_JON (deterministic v0)
-    def _choose(self, bot, rt, demands, now) -> Optional[Tuple[str, Dict[str, Any], int, str, Dict[str, Any], Optional[Demand]]]:
+    # ------------------------------------------------------------------ Self-healing replacement planner
+    def _plan_replacement(self, instance_id: str, lost_bot: Dict[str, Any], inst: Dict[str, Any],
+                          config: Dict[str, Any], mode: str, all_bots: Dict[str, Dict[str, Any]], now: datetime) -> str:
+        if lost_bot.get("health", {}).get("replaced_by_bot_id"):
+            return "STATE_LOST"
+
+        acct_id = lost_bot["account_id"]
+        slots = self.store.get_account_slots(acct_id)
+        if slots is None:
+            slots = infer_account_slots(acct_id, instance_id, lost_bot["adb_serial"], all_bots)
+
+        kd_str = str(lost_bot["kingdom_id"])
+        existing = list(slots.get("kingdom_slots", {}).get(kd_str, []))
+        occupied = len(existing)
+        slot_num = min(2, occupied + 1)
+        suffix = lost_bot["bot_id"].replace("bot_", "")[-8:]
+        rep_bot_id = f"bot_{lost_bot['kingdom_id']}_rep_{suffix}"
+
+        args = {
+            "target_kingdom_id": int(lost_bot["kingdom_id"]),
+            "account_id": acct_id,
+            "character_slot": slot_num,
+            "preferred_civilization": "CHINA",
+        }
+        job = self._build_job("provision_character", args, 90, lost_bot, None, now, bot_id_override=rep_bot_id)
+        fresh_rt = {"day": numnum.local_now(now, lost_bot["routine_profile"]["timezone"]).strftime("%Y-%m-%d"),
+                    "active_minutes_today": 0, "session_started_at": None, "last_session_end": None, "sleep_until": None}
+        ok, checks = numnum.evaluate(job, lost_bot, fresh_rt, inst, now, config.get("capabilities", []),
+                                     self.recent_keys, account_slots=slots)
+        failed = sorted(c["rule_id"] for c in checks if not c["passed"])
+        will_dispatch = ok and mode == "AUTONOMOUS"
+        fingerprint = None if will_dispatch else f"REPLACE:{lost_bot['bot_id']}:{ok}:{','.join(failed)}:{mode}"
+        if not self.emitter.should_emit(fingerprint):
+            return "DEDUPED"
+
+        common = dict(correlation_id=job["correlation_id"], kingdom_id=lost_bot["kingdom_id"], bot_id=rep_bot_id,
+                      instance_id=instance_id, job_id=job["job_id"])
+        self.emitter.emit(
+            ring="RING_2_OPS", actor="TANK", event_type="PLAN_PROPOSED",
+            summary=f"TANK proposes provision_character replacement {rep_bot_id} for lost {lost_bot['governor_name']} (#{lost_bot['kingdom_id']}) on {instance_id}",
+            why=f"Self-healing: {lost_bot['bot_id']} is LOST; provisioning replacement in #{lost_bot['kingdom_id']} on {acct_id} (slot {slot_num}/2).",
+            trigger_inputs={"replaces_bot_id": lost_bot["bot_id"], "account_id": acct_id, "occupied_slots": occupied, "args": args},
+            **common,
+        )
+        if not ok:
+            self.emitter.emit(
+                ring="RING_2_OPS", actor="NUMNUM", event_type="PLAN_REJECTED", severity="WARN",
+                summary=f"NUMNUM held replacement provision_character for #{lost_bot['kingdom_id']}: {', '.join(failed)}",
+                why="Replacement provisioning blocked by NUMNUM hard rules.",
+                numnum_checks=checks, trigger_inputs={"failed_rules": failed, "replaces_bot_id": lost_bot["bot_id"]},
+                **common,
+            )
+            if "ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM" in failed:
+                self.emitter.emit(
+                    ring="RING_2_OPS", actor="TANK", event_type="HUMAN_ACCOUNT_REQUIRED", severity="CRITICAL",
+                    summary=f"Cannot auto-replace {lost_bot['governor_name']} in #{lost_bot['kingdom_id']}: {acct_id} has no healthy character slots left",
+                    why="RoK limits each Google account to 2 characters per kingdom (or the account is not HEALTHY). Operator must log in a fresh Google account.",
+                    numnum_checks=checks,
+                    trigger_inputs={"account_id": acct_id, "kingdom_id": lost_bot["kingdom_id"], "occupied_slots": occupied,
+                                    "account_status": slots.get("account_status")},
+                    operator_action_required=True,
+                    operator_instructions=f"Log in a new Google account on {instance_id} ({lost_bot['adb_serial']}) and reset BastionAccountSlots for {acct_id}.",
+                    **common,
+                )
+            return "REJECTED"
+
+        approval = new_id("nn")
+        job["issued_by"]["numnum_approval_id"] = approval
+        self.emitter.emit(
+            ring="RING_2_OPS", actor="NUMNUM", event_type="PLAN_APPROVED",
+            summary=f"NUMNUM approved replacement provision_character {rep_bot_id} in #{lost_bot['kingdom_id']}"
+                    + ("" if will_dispatch else f" ({mode}: held for approval)"),
+            why="All 8 NUMNUM rules (including 2-character/kingdom account slot cap) passed."
+                + ("" if will_dispatch else f" Operating mode {mode} holds character creation."),
+            numnum_checks=checks, trigger_inputs={"numnum_approval_id": approval, "mode": mode, "replaces_bot_id": lost_bot["bot_id"]},
+            **common,
+        )
+        if not will_dispatch:
+            return "APPROVED_NOT_DISPATCHED"
+
+        V.validate_job(job, now=now)
+        self.transport.send_job(job)
+        self.recent_keys = (self.recent_keys + [job["idempotency_key"]])[-500:]
+        inst.update({
+            "in_flight": job,
+            "dispatched_at": iso(now),
+            "last_idempotency_key": job["idempotency_key"],
+            "active_bot_id": rep_bot_id,
+            "replacing_bot_id": lost_bot["bot_id"],
+        })
+        self.store.put_control(instance_key(instance_id), inst)
+        self.emitter.emit(
+            ring="RING_2_OPS", actor="TANK", event_type="JOB_DISPATCHED",
+            summary=f"Dispatched replacement provision_character ({rep_bot_id}) to {instance_id}",
+            why="NUMNUM-approved self-healing provisioning sent to bastion-jobs.fifo for CIPHER.",
+            trigger_inputs={"idempotency_key": job["idempotency_key"], "numnum_approval_id": approval,
+                            "replaces_bot_id": lost_bot["bot_id"], "deadline": job["deadline"]},
+            **common,
+        )
+        return "DISPATCHED"
+
+    # ------------------------------------------------------------------ TANK + BIG_JON (deterministic v0 + switch)
+    def _choose(self, bot, rt, demands, now, all_bots: Dict[str, Dict[str, Any]]) -> Optional[Tuple[str, Dict[str, Any], int, str, Dict[str, Any], Optional[Demand]]]:
         p = bot["routine_profile"]
         tz = p["timezone"]
         state = bot["lifecycle_state"]
@@ -234,7 +370,7 @@ class Ring2:
                     "Session hit its maximum length; take a human-length break.",
                     dict(base, session_started_at=rt.get("session_started_at")), None)
 
-        mission = self._mission_for(bot, demands)
+        mission = self._mission_for(bot, demands) if bot["verified_state"]["ch_level"] >= GROW_TARGET_CH else None
         if mission is not None:
             ranks = int((mission.detail.get("payload") or {}).get("max_ranks", SCAN_DEFAULT_RANKS))
             ranks = max(10, min(1000, ranks))
@@ -246,6 +382,19 @@ class Ring2:
         if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
             return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": 40}, 30,
                     f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.", base, None)
+
+        # Check if a high-priority R5 scan intent targets another kingdom where this instance has an ACTIVE sibling bot
+        switch_target = self._sibling_for_r5_demand(bot, demands, all_bots, now)
+        if switch_target is not None:
+            sib, sib_demand = switch_target
+            sw_args: Dict[str, Any] = {"target_kingdom_id": int(sib["kingdom_id"])}
+            if sib.get("governor_id"):
+                sw_args["target_governor_id"] = sib["governor_id"]
+            if sib.get("governor_name"):
+                sw_args["target_governor_name"] = sib["governor_name"]
+            return ("switch_character", sw_args, sib_demand.priority,
+                    f"BIG_JON: {sib_demand.kind} for #{sib['kingdom_id']} requires switching {bot['instance_id']} to sibling bot {sib['governor_name']}.",
+                    dict(base, target_bot_id=sib["bot_id"], demand=sib_demand.kind), sib_demand)
 
         last = numnum.parse_ts(bot["verified_state"].get("last_verified_at"))
         age = None if last is None else int(numnum.minutes_between(last, now))
@@ -260,17 +409,30 @@ class Ring2:
         mine = [d for d in demands if d.kingdom_id == bot["kingdom_id"]]
         return max(mine, key=lambda d: d.priority) if mine else None
 
-    def _build_job(self, job_type, args, priority, bot, demand: Optional[Demand], now) -> Dict[str, Any]:
+    @staticmethod
+    def _sibling_for_r5_demand(bot, demands: List[Demand], all_bots: Dict[str, Dict[str, Any]], now: datetime) -> Optional[Tuple[Dict[str, Any], Demand]]:
+        r5_demands = sorted([d for d in demands if d.kind == "SCAN_REQUESTED" and d.kingdom_id != bot["kingdom_id"]],
+                            key=lambda d: d.priority, reverse=True)
+        for d in r5_demands:
+            for sib in all_bots.values():
+                if (sib["instance_id"] == bot["instance_id"] and sib["kingdom_id"] == d.kingdom_id
+                        and sib["lifecycle_state"] == "ACTIVE" and not numnum.in_sleep_window(now, sib["routine_profile"])):
+                    return sib, d
+        return None
+
+    def _build_job(self, job_type, args, priority, bot, demand: Optional[Demand], now,
+                   bot_id_override: Optional[str] = None) -> Dict[str, Any]:
         stamp = now.strftime("%Y%m%dT%H%M")
+        effective_bot_id = bot_id_override or bot["bot_id"]
         return {
             "job_id": new_id("job"),
-            "idempotency_key": f"idem_{bot['bot_id']}_{job_type}_{stamp}",
+            "idempotency_key": f"idem_{effective_bot_id}_{job_type}_{stamp}",
             "correlation_id": demand.correlation_id if demand else new_id("corr"),
             "job_type": job_type,
             "instance_id": bot["instance_id"],
             "adb_serial": bot["adb_serial"],
-            "bot_id": bot["bot_id"],
-            "kingdom_id": bot["kingdom_id"],
+            "bot_id": effective_bot_id,
+            "kingdom_id": int(args.get("target_kingdom_id", bot["kingdom_id"])),
             "priority": int(max(1, min(100, priority))),
             "issued_by": {"ring": "RING_2_OPS", "leader": "TANK", "numnum_approval_id": "nn_pending_gate"},
             "created_at": iso(now),
@@ -301,6 +463,27 @@ class Ring3:
         self._release_stale(instances)
         return handled
 
+    def declare_bot_lost(self, bot: Dict[str, Any], why: str, correlation_id: Optional[str] = None,
+                         inputs: Optional[Dict[str, Any]] = None, evidence_refs: Optional[List[str]] = None) -> None:
+        """AUDIT authority: transitions a SUSPECT/ACTIVE/GROWING bot to LOST and emits BOT_LOST."""
+        common = dict(
+            correlation_id=correlation_id or new_id("corr"),
+            kingdom_id=bot["kingdom_id"],
+            bot_id=bot["bot_id"],
+            instance_id=bot["instance_id"],
+            evidence_refs=evidence_refs or [],
+        )
+        self._set_state(bot, "LOST", why, common, severity="CRITICAL", inputs=inputs)
+        self.emitter.emit(
+            ring="RING_3_AUDIT", actor="AUDIT", event_type="BOT_LOST", severity="CRITICAL",
+            summary=f"BOT_LOST declared for {bot['governor_name']} (#{bot['kingdom_id']}) on {bot['instance_id']}",
+            why=why,
+            trigger_inputs=dict(inputs or {}, bot_id=bot["bot_id"], account_id=bot["account_id"], kingdom_id=bot["kingdom_id"]),
+            **common,
+        )
+        V.validate_bot(bot)
+        self.store.put_bot(bot)
+
     # ------------------------------------------------------------------ result handling
     def _handle(self, body: str) -> None:
         result = json.loads(body)
@@ -327,9 +510,15 @@ class Ring3:
         if not matched:
             return
 
+        replacing_bot_id = inst.get("replacing_bot_id")
         inst["in_flight"] = None
+        inst["replacing_bot_id"] = None
         inst["last_result_at"] = result["completed_at"]
         self.store.put_control(instance_key(result["instance_id"]), inst)
+
+        if result["job_type"] == "provision_character":
+            self._audit_provision(job, result, replacing_bot_id, dozer, common)
+            return
 
         bots = self.store.get_bots([result["bot_id"]])
         bot = bots.get(result["bot_id"])
@@ -341,6 +530,125 @@ class Ring3:
             rt["active_minutes_today"] = int(rt["active_minutes_today"]) + max(1, math.ceil(result["duration_ms"] / 60000))
         self._audit(bot, job, result, rt, dozer, common)
         self.store.put_control(runtime_key(bot["bot_id"]), rt)
+
+    def _audit_provision(self, job: Dict[str, Any], result: Dict[str, Any], replacing_bot_id: Optional[str],
+                         dozer: Dict[str, Any], common: Dict[str, Any]) -> None:
+        status = result["status"]
+        obs = result["observed_state"]
+        now = self.clock()
+        fleet = self.store.get_control("FLEET") or {"bot_ids": [], "active_by_instance": {}}
+        lost_bot = self.store.get_bots([replacing_bot_id]).get(replacing_bot_id) if replacing_bot_id else None
+
+        if status not in ("SUCCEEDED", "PARTIAL"):
+            if lost_bot:
+                inst = self.store.get_control(instance_key(result["instance_id"])) or {}
+                inst["active_bot_id"] = lost_bot["bot_id"]
+                self.store.put_control(instance_key(result["instance_id"]), inst)
+            self.emitter.emit(
+                ring="RING_3_AUDIT", actor="AUDIT", event_type="FACT_VERIFIED", severity="WARN",
+                summary=f"Replacement provision_character {result['bot_id']} failed ({status}); lost bot remains queued for retry",
+                why="CIPHER could not confirm new character creation; no replacement bot written to BastionBots.",
+                trigger_inputs={"status": status, "error": result.get("error"), "replaces_bot_id": replacing_bot_id},
+                **common,
+            )
+            return
+
+        ch_level = int(obs.get("ch_level") or 2)
+        gov_id = obs.get("governor_id") if isinstance(obs.get("governor_id"), str) else None
+        gov_name = obs.get("governor_name") or f"Governor ({result['kingdom_id']} S{job['args']['character_slot']})"
+        base_profile = (
+            dict(lost_bot["routine_profile"], active_minutes_today=0)
+            if lost_bot
+            else {
+                "timezone": "America/New_York", "sleep_window_start_hour": 1, "sleep_window_end_hour": 8,
+                "max_session_minutes": 60, "min_break_minutes": 30, "daily_active_cap_minutes": 300,
+                "active_minutes_today": 0, "target_ch_level": 16, "preferred_gather_types": ["FOOD", "WOOD"],
+            }
+        )
+        used_mins = max(1, math.ceil(result["duration_ms"] / 60000))
+        base_profile["active_minutes_today"] = min(used_mins, int(base_profile["daily_active_cap_minutes"]))
+
+        verified: Dict[str, Any] = {
+            "ch_level": ch_level,
+            "power": int(obs.get("power") or 1500),
+            "last_verified_at": result["completed_at"],
+        }
+        if result["evidence"].get("screenshot_uri"):
+            verified["last_screenshot_uri"] = result["evidence"]["screenshot_uri"]
+
+        new_state = "ACTIVE" if ch_level >= GROW_TARGET_CH else "GROWING"
+        rep_bot: Dict[str, Any] = {
+            "bot_id": result["bot_id"],
+            "account_id": job["args"]["account_id"],
+            "instance_id": result["instance_id"],
+            "adb_serial": job["adb_serial"],
+            "character_slot": int(job["args"]["character_slot"]),
+            "kingdom_id": int(result["kingdom_id"]),
+            "governor_id": gov_id,
+            "governor_name": gov_name,
+            "lifecycle_state": new_state,
+            "verified_state": verified,
+            "routine_profile": base_profile,
+            "health": {
+                "consecutive_failures": 0,
+                "ban_suspected": False,
+                **({"replaces_bot_id": replacing_bot_id} if replacing_bot_id else {}),
+            },
+        }
+        V.validate_bot(rep_bot)
+        self.store.put_bot(rep_bot)
+
+        rt = numnum.fresh_runtime(None, rep_bot, now)
+        rt["active_minutes_today"] = used_mins
+        rt["session_started_at"] = result["started_at"]
+        self.store.put_control(runtime_key(rep_bot["bot_id"]), rt)
+
+        # Update BastionAccountSlots
+        acct_id = rep_bot["account_id"]
+        slots = self.store.get_account_slots(acct_id)
+        if slots is None:
+            all_bots = self.store.get_bots(fleet.get("bot_ids", []))
+            slots = infer_account_slots(acct_id, rep_bot["instance_id"], rep_bot["adb_serial"], all_bots)
+        kd_str = str(rep_bot["kingdom_id"])
+        kd_list = list(slots.get("kingdom_slots", {}).get(kd_str, []))
+        if rep_bot["bot_id"] not in kd_list:
+            kd_list.append(rep_bot["bot_id"])
+        slots.setdefault("kingdom_slots", {})[kd_str] = kd_list[:2]
+        V.validate_account_slot_record(slots)
+        self.store.put_account_slots(slots)
+
+        # Update FLEET and retire lost_bot
+        bot_ids = list(dict.fromkeys(list(fleet.get("bot_ids", [])) + [rep_bot["bot_id"]]))
+        active_map = dict(fleet.get("active_by_instance", {}))
+        active_map[rep_bot["instance_id"]] = rep_bot["bot_id"]
+        fleet.update({"bot_ids": bot_ids, "active_by_instance": active_map})
+        self.store.put_control("FLEET", fleet)
+
+        self.emitter.emit(
+            ring="RING_3_AUDIT", actor="AUDIT", event_type="FACT_VERIFIED", severity="NOTICE",
+            summary=f"Verified new replacement character {rep_bot['governor_name']} ({rep_bot['bot_id']}) in #{rep_bot['kingdom_id']} at CH{ch_level}",
+            why="CIPHER provision_character returned valid screenshot evidence; replacement bot written to BastionBots and BastionAccountSlots.",
+            trigger_inputs={"observed_state": obs, "replaces_bot_id": replacing_bot_id, "character_slot": rep_bot["character_slot"], "dozer_checks": dozer},
+            **common,
+        )
+        self.emitter.emit(
+            ring="RING_3_AUDIT", actor="AUDIT", event_type="BOT_STATE_CHANGED", severity="NOTICE",
+            summary=f"{rep_bot['governor_name']}: PROVISIONING -> {new_state}",
+            why=f"Replacement character created in #{rep_bot['kingdom_id']}; ready for CH{GROW_TARGET_CH} growth progression.",
+            trigger_inputs={"from_state": "PROVISIONING", "to_state": new_state, "replaces_bot_id": replacing_bot_id},
+            **common,
+        )
+
+        if lost_bot:
+            lost_bot["health"]["replaced_by_bot_id"] = rep_bot["bot_id"]
+            old_common = dict(common, bot_id=lost_bot["bot_id"])
+            self._set_state(
+                lost_bot, "RETIRED",
+                f"Replaced by verified bot {rep_bot['bot_id']} ({rep_bot['governor_name']}) on slot {rep_bot['character_slot']}/2.",
+                old_common, severity="NOTICE", inputs={"replaced_by_bot_id": rep_bot["bot_id"]},
+            )
+            V.validate_bot(lost_bot)
+            self.store.put_bot(lost_bot)
 
     @staticmethod
     def _dozer(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -369,10 +677,22 @@ class Ring3:
         health = bot["health"]
 
         if status == "ACCOUNT_LOCKED_OR_BANNED":
+            already_suspect = bot["lifecycle_state"] == "SUSPECT" or bool(health.get("ban_suspected"))
             health["ban_suspected"] = True
             health["last_error"] = (result.get("error") or {}).get("message", "ban screen")[:200]
-            self._set_state(bot, "SUSPECT", "Ban/suspension screen detected in evidence; bot pulled from rotation pending investigation (Step 5 decides LOST).",
-                            common, severity="CRITICAL", inputs={"error": result.get("error")})
+            if already_suspect:
+                self._set_state(bot, "LOST", "Second ban/suspension confirmation in evidence; declaring BOT_LOST for self-healing replacement.",
+                                common, severity="CRITICAL", inputs={"error": result.get("error")})
+                self.emitter.emit(
+                    ring="RING_3_AUDIT", actor="AUDIT", event_type="BOT_LOST", severity="CRITICAL",
+                    summary=f"BOT_LOST declared for {bot['governor_name']} (#{bot['kingdom_id']}) on {bot['instance_id']}",
+                    why="Ban/suspension screen confirmed on already-SUSPECT bot; triggering Ring 2 replacement planning.",
+                    trigger_inputs={"bot_id": bot["bot_id"], "account_id": bot["account_id"], "kingdom_id": bot["kingdom_id"], "error": result.get("error")},
+                    **common,
+                )
+            else:
+                self._set_state(bot, "SUSPECT", "Ban/suspension screen detected in evidence; bot pulled from rotation pending investigation (Step 5 decides LOST).",
+                                common, severity="CRITICAL", inputs={"error": result.get("error")})
         elif status in ("SUCCEEDED", "PARTIAL"):
             vs = bot["verified_state"]
             changes = {}
@@ -395,9 +715,11 @@ class Ring3:
             screen = obs["screen_state"]
             if jt == "sleep" and screen == "SLEEP_APP_CLOSED":
                 self._set_state(bot, "SLEEPING", "Sleep job closed the game.", common, inputs={"reason": job["args"].get("reason")})
-            elif screen in ("CITY_VIEW", "WORLD_MAP") and bot["lifecycle_state"] == "SLEEPING":
+            elif screen in ("CITY_VIEW", "WORLD_MAP") and bot["lifecycle_state"] in ("SLEEPING", "SUSPECT"):
                 rt["sleep_until"] = None
-                self._set_state(bot, "ACTIVE", "Game is running and in-world again.", common)
+                health["ban_suspected"] = False
+                target_state = "ACTIVE" if vs["ch_level"] >= GROW_TARGET_CH else "GROWING"
+                self._set_state(bot, target_state, "Game is running and in-world again.", common)
             elif jt == "probe_status" and job["args"].get("launch_if_closed") and screen not in ("CITY_VIEW", "WORLD_MAP"):
                 health["consecutive_failures"] = int(health["consecutive_failures"]) + 1
                 rt["sleep_until"] = iso(now + timedelta(minutes=WAKE_RETRY_MINUTES))
@@ -407,13 +729,25 @@ class Ring3:
             if jt == "scan_kingdom" and status == "SUCCEEDED":
                 self.store.put_control(f"KINGDOM#{result['kingdom_id']}", {"last_scan_verified_at": result["completed_at"],
                                                                            "verified_by_job": result["job_id"]})
+            if jt == "switch_character" and status == "SUCCEEDED":
+                self._apply_switch(bot, job, result)
         else:
             err = result.get("error") or {}
             health["last_error"] = f"{err.get('code')}: {err.get('message', '')}"[:200]
             if err.get("code") not in ("DEVICE_OFFLINE", "INSTANCE_BUSY", "UNSUPPORTED_JOB_TYPE"):
                 health["consecutive_failures"] = int(health["consecutive_failures"]) + 1
 
-        if int(health["consecutive_failures"]) >= SUSPECT_AFTER_FAILURES and bot["lifecycle_state"] in PLANNABLE_STATES:
+        if int(health["consecutive_failures"]) >= LOST_AFTER_FAILURES and bot["lifecycle_state"] == "SUSPECT":
+            self._set_state(bot, "LOST", f"{health['consecutive_failures']} consecutive failures on SUSPECT bot; declaring LOST for self-healing replacement.",
+                            common, severity="CRITICAL", inputs={"last_error": health.get("last_error")})
+            self.emitter.emit(
+                ring="RING_3_AUDIT", actor="AUDIT", event_type="BOT_LOST", severity="CRITICAL",
+                summary=f"BOT_LOST declared for {bot['governor_name']} (#{bot['kingdom_id']}) after {health['consecutive_failures']} failures",
+                why="Bot failed repeatedly after entering SUSPECT; triggering Ring 2 self-healing replacement.",
+                trigger_inputs={"bot_id": bot["bot_id"], "consecutive_failures": health["consecutive_failures"], "last_error": health.get("last_error")},
+                **common,
+            )
+        elif int(health["consecutive_failures"]) >= SUSPECT_AFTER_FAILURES and bot["lifecycle_state"] in PLANNABLE_STATES:
             self._set_state(bot, "SUSPECT", f"{health['consecutive_failures']} consecutive failures; pulled from rotation.",
                             common, severity="WARN", inputs={"last_error": health.get("last_error")})
 
@@ -421,6 +755,21 @@ class Ring3:
         prof["active_minutes_today"] = min(int(rt["active_minutes_today"]), int(prof["daily_active_cap_minutes"]))
         V.validate_bot(bot)
         self.store.put_bot(bot)
+
+    def _apply_switch(self, current_bot: Dict[str, Any], job: Dict[str, Any], result: Dict[str, Any]) -> None:
+        target_kd = int(job["args"]["target_kingdom_id"])
+        fleet = self.store.get_control("FLEET") or {}
+        all_bots = self.store.get_bots(fleet.get("bot_ids", []))
+        target_bot = next(
+            (b for b in all_bots.values()
+             if b["instance_id"] == current_bot["instance_id"] and int(b["kingdom_id"]) == target_kd and b["lifecycle_state"] != "RETIRED"),
+            None,
+        )
+        if target_bot:
+            active_map = dict(fleet.get("active_by_instance", {}))
+            active_map[current_bot["instance_id"]] = target_bot["bot_id"]
+            fleet["active_by_instance"] = active_map
+            self.store.put_control("FLEET", fleet)
 
     def _release_stale(self, instances: List[str]) -> None:
         now = self.clock()
@@ -433,6 +782,7 @@ class Ring3:
             if now < deadline + timedelta(minutes=STALE_INFLIGHT_GRACE_MINUTES):
                 continue
             inst["in_flight"] = None
+            inst["replacing_bot_id"] = None
             self.store.put_control(instance_key(instance_id), inst)
             self.emitter.emit(ring="RING_3_AUDIT", actor="AUDIT", event_type="JOB_RESULT", severity="WARN",
                               correlation_id=job["correlation_id"], kingdom_id=job["kingdom_id"], bot_id=job["bot_id"],

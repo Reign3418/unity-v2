@@ -28,7 +28,13 @@ EST_MINUTES: Dict[str, int] = {
     "research": 5,
     "locate_governor": 15,
 }
-DEFAULT_CAPABILITIES: Tuple[str, ...] = ("probe_status", "grow_city", "sleep")
+DEFAULT_CAPABILITIES: Tuple[str, ...] = (
+    "probe_status",
+    "grow_city",
+    "sleep",
+    "switch_character",
+    "provision_character",
+)
 
 
 # --------------------------------------------------------------------------- time helpers
@@ -88,8 +94,16 @@ def _check(rule_id: str, passed: bool, actual: Any, limit: Any, detail: str) -> 
     return {"rule_id": rule_id, "passed": bool(passed), "actual_value": actual, "limit_value": limit, "detail": detail[:240]}
 
 
-def evaluate(job: Dict[str, Any], bot: Dict[str, Any], runtime: Dict[str, Any], instance_state: Dict[str, Any],
-             now: datetime, capabilities: Iterable[str], recent_keys: Iterable[str]) -> Tuple[bool, List[Dict[str, Any]]]:
+def evaluate(
+    job: Dict[str, Any],
+    bot: Dict[str, Any],
+    runtime: Dict[str, Any],
+    instance_state: Dict[str, Any],
+    now: datetime,
+    capabilities: Iterable[str],
+    recent_keys: Iterable[str],
+    account_slots: Optional[Dict[str, Any]] = None,
+) -> Tuple[bool, List[Dict[str, Any]]]:
     checks: List[Dict[str, Any]] = []
     jt = job["job_type"]
     profile = bot["routine_profile"]
@@ -113,6 +127,24 @@ def evaluate(job: Dict[str, Any], bot: Dict[str, Any], runtime: Dict[str, Any], 
 
     dup = job["idempotency_key"] in set(recent_keys)
     checks.append(_check("IDEMPOTENCY_DEDUP", not dup, job["idempotency_key"], "unique", "First issue of this idempotency key" if not dup else "Duplicate job key"))
+
+    if jt == "provision_character":
+        target_kd = str(job["args"].get("target_kingdom_id", job.get("kingdom_id")))
+        acct_id = str(job["args"].get("account_id", bot["account_id"]))
+        max_slots = int((account_slots or {}).get("max_slots_per_kingdom", 2))
+        acct_status = (account_slots or {}).get("account_status", "MISSING")
+        existing = [b for b in (account_slots or {}).get("kingdom_slots", {}).get(target_kd, []) if b != job["bot_id"]]
+        occupied = len(existing)
+        slot_ok = bool(account_slots and acct_status == "HEALTHY" and occupied < max_slots)
+        if not account_slots:
+            slot_detail = f"No BastionAccountSlots record found for {acct_id}"
+        elif acct_status != "HEALTHY":
+            slot_detail = f"Account {acct_id} status is {acct_status} (must be HEALTHY)"
+        elif occupied >= max_slots:
+            slot_detail = f"Account {acct_id} already has {occupied}/{max_slots} characters in #{target_kd} ({', '.join(existing)})"
+        else:
+            slot_detail = f"Account {acct_id} is HEALTHY with {occupied}/{max_slots} characters in #{target_kd}; slot {occupied + 1} available"
+        checks.append(_check("ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM", slot_ok, occupied, max_slots, slot_detail))
 
     loc = local_now(now, profile["timezone"])
     window = f"{profile['sleep_window_start_hour']:02d}:00-{profile['sleep_window_end_hour']:02d}:00 {profile['timezone']}"
