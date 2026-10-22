@@ -1504,10 +1504,12 @@ def main():
                 tap(args.adb, 1196, 320, 1.0)
                 tap(args.adb, 590, 675, 1.0)
             elif nt[2] == "QUESTS_MODAL_CLAIM":
-                print(f"[Step {step:02d}] Quests Modal -> Claim Completed Quest ({nt[0]}, {nt[1]}) + Keep Open")
+                print(f"[Step {step:02d}] Quests Modal -> Claim Completed Quest ({nt[0]}, {nt[1]}) x3 + Keep Open")
                 speedup_cooldown = 0
                 quest_scroll_cooldown = 12
-                tap(args.adb, nt[0], nt[1], 1.1)
+                tap(args.adb, nt[0], nt[1], 0.55)
+                tap(args.adb, nt[0], nt[1], 0.55)
+                tap(args.adb, nt[0], nt[1], 0.8)
             elif nt[2] == "DAILY_OBJECTIVES_CHESTS_AND_SWITCH_TAB1":
                 print(f"[Step {step:02d}] Daily Objectives Tab -> Claim Activity Chests (y=240) + Switch to Quests Tab (85, 240)")
                 checked_daily_tab = True
