@@ -233,7 +233,8 @@ def is_city_hud(a: np.ndarray) -> bool:
     if float(diff_br.mean()) <= 28.0:
         return False
     # Any open modal (Items, Upgrade, Speed Up, VIP, Quests) hides/darkens the bottom-left Map/City button (10:100, 800:890)
-    if float(a[800:890, 10:100].mean()) < 55.0:
+    bl_mean = float(a[800:890, 10:100].mean())
+    if bl_mean < 55.0:
         return False
     b_hdr = a[85:140, 400:1200]
     is_b_hdr = (
@@ -242,7 +243,7 @@ def is_city_hud(a: np.ndarray) -> bool:
         & (np.abs(b_hdr[:, :, 0].astype(np.int32) - b_hdr[:, :, 1].astype(np.int32)) < 20)
         & (np.abs(b_hdr[:, :, 1].astype(np.int32) - b_hdr[:, :, 2].astype(np.int32)) < 25)
     )
-    if float(np.mean(is_b_hdr)) > 0.55:
+    if float(np.mean(is_b_hdr)) > 0.55 and bl_mean < 95.0:
         return False
     return True
 
@@ -768,8 +769,15 @@ def detect_new_troop_modal(a: np.ndarray):
                     return (cx, 284, "ITEMS_REDEEM_GEMS_AND_CLOSE")
             return (1390, 112, "Items Bag Open -> Close (1390, 112)")
 
-    # 11c4. Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580)
-    if not is_city_hud(a) and not is_nt_panel:
+    # 11c3b. Early Tutorial "Return to the city" banner (white speech banner at x=165..720, y=795..855 + bright bottom-left City button)
+    rtc_ban = a[795:855, 165:720]
+    is_rtc_white = (rtc_ban[:, :, 0] >= 225) & (rtc_ban[:, :, 1] >= 225) & (rtc_ban[:, :, 2] >= 220)
+    if float(np.mean(is_rtc_white)) > 0.55 and float(a[760:880, 15:135, 2].mean()) > 130.0:
+        return (60, 815, "Tutorial Return to City Banner -> Tap (60, 815)")
+
+    # 11c4. Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580; top-left blue avatar ribbon must be covered)
+    tl_rib_diff = float((a[85:125, 15:70, 2].astype(np.float32) - a[85:125, 15:70, 0].astype(np.float32)).mean())
+    if not is_city_hud(a) and not is_nt_panel and tl_rib_diff <= 28.0:
         m_hdr = a[35:80, 200:1580]
         is_m_hdr = (
             (m_hdr[:, :, 0] >= 140)
@@ -1331,6 +1339,8 @@ def main():
     checked_daily_tab = False
     last_rib_xy = None
     rib_retry_cnt = 0
+    last_hex_rib_xy = None
+    rib_hex_repeat = 0
     chk_repeat = 0
     consecutive_idle = 0
 
@@ -1652,7 +1662,7 @@ def main():
         if is_city_hud(a2) and not is_world_map(a2):
             rib_chk = a2[25:600, 175:1550]
             is_rib_chk = (rib_chk[:, :, 2] >= 145) & (rib_chk[:, :, 0] <= 55) & ((rib_chk[:, :, 2].astype(np.int32) - rib_chk[:, :, 0].astype(np.int32)) >= 100)
-            if int(is_rib_chk.sum()) >= 3500:
+            if int(is_rib_chk.sum()) >= 3500 and rib_hex_repeat < 1:
                 has_selected_building_ribbon = True
 
         # Tutorial spear ALWAYS has priority over heuristic building upgrade actions (unless a City Building ribbon is already selected, or bottom-right HUD buttons at x>=820, y>=795)
@@ -1891,6 +1901,31 @@ def main():
                     repeat_cnt = 0
                     continue
                 if (best_g >= 550 or (best_g >= 240 and best_i >= 500)) and gx is not None and gy is not None:
+                    tx_tr = min(1560, gx + 164)
+                    ty_tr = max(180, gy - 6)
+                    tr_patch = a2[max(0, ty_tr - 55) : min(900, ty_tr + 55), max(0, tx_tr - 55) : min(1600, tx_tr + 55)]
+                    tr_glow = int(((tr_patch[:, :, 0] >= 245) & (tr_patch[:, :, 1] >= 245) & (tr_patch[:, :, 2] >= 240)).sum())
+                    if tr_glow >= 1200:
+                        print(f"[Step {step:02d}] Tutorial Glowing Right Action/Train Hex ({tr_glow}px, '{rib_title}') -> tap ({tx_tr}, {ty_tr})")
+                        tap(args.adb, tx_tr, ty_tr, 1.5)
+                        last_spear = None
+                        repeat_cnt = 0
+                        continue
+                    if last_hex_rib_xy and abs(rib_cx - last_hex_rib_xy[0]) < 35 and abs(rib_cy - last_hex_rib_xy[1]) < 35:
+                        rib_hex_repeat += 1
+                    else:
+                        rib_hex_repeat = 0
+                    last_hex_rib_xy = (rib_cx, rib_cy)
+                    if rib_hex_repeat == 1:
+                        print(f"[Step {step:02d}] Selected Building Upgrade Hex Blocked ({rib_cx},{rib_cy}, '{rib_title}') -> Try Right Action/Train Hex ({tx_tr},{ty_tr})")
+                        tap(args.adb, tx_tr, ty_tr, 1.5)
+                        continue
+                    if rib_hex_repeat >= 2:
+                        print(f"[Step {step:02d}] Selected Building Hex Still Blocked ({rib_cx},{rib_cy}, '{rib_title}') -> Deselect (250,200)")
+                        rib_hex_repeat = 0
+                        last_hex_rib_xy = None
+                        tap(args.adb, 250, 200, 1.0)
+                        continue
                     gy_safe = min(785, gy)
                     print(f"[Step {step:02d}] Selected Building Pure-Green Upgrade Hex ({best_g}px, '{rib_title}') -> tap ({gx}, {gy_safe})")
                     tap(args.adb, gx, gy_safe, 1.2)
