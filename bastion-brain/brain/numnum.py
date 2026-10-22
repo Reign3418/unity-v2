@@ -35,6 +35,7 @@ DEFAULT_CAPABILITIES: Tuple[str, ...] = (
     "switch_character",
     "provision_character",
 )
+STAGE6_CAPABILITIES: Tuple[str, ...] = DEFAULT_CAPABILITIES + ("scan_kingdom",)
 
 
 # --------------------------------------------------------------------------- time helpers
@@ -104,6 +105,7 @@ def evaluate(
     recent_keys: Iterable[str],
     account_slots: Optional[Dict[str, Any]] = None,
     peer_bots: Optional[List[Dict[str, Any]]] = None,
+    ring_tokens: Optional[Tuple[int, int]] = None,
 ) -> Tuple[bool, List[Dict[str, Any]]]:
     checks: List[Dict[str, Any]] = []
     jt = job["job_type"]
@@ -183,5 +185,15 @@ def evaluate(
     else:
         checks.append(_check("SLEEP_WINDOW_CHECK", True, loc.strftime("%H:%M"), window, "Rest job: always allowed"))
 
-    checks.append(_check("RING_TOKEN_BUDGET", True, 0, "ring budget", "Deterministic v0 planner: 0 LLM tokens"))
+    if ring_tokens is not None:
+        r_used, r_cap = int(ring_tokens[0]), int(ring_tokens[1])
+        checks.append(_check(
+            "RING_TOKEN_BUDGET",
+            r_used < r_cap,
+            r_used,
+            r_cap,
+            f"{r_used}/{r_cap} hourly tokens used in RING_2_OPS" if r_used < r_cap else f"RING_2_OPS hourly token budget exhausted ({r_used}/{r_cap})",
+        ))
+    else:
+        checks.append(_check("RING_TOKEN_BUDGET", True, 0, "ring budget", "Deterministic v0 planner: 0 LLM tokens"))
     return all(c["passed"] for c in checks), checks

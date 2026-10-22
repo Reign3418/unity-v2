@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 from . import __version__
 from .config import VALID_MODES, BrainConfig
 from .events import Emitter, iso
+from .leaders import HelperManager, LeaderAdvisor
 from .rings import DEFAULT_CONFIG, Ring1, Ring2, Ring3, instance_key
 
 
@@ -29,13 +30,16 @@ def resolve_mode(boot_mode: str, control: Optional[Dict[str, Any]]) -> str:
 
 class Brain:
     def __init__(self, cfg: BrainConfig, store, transport, clock: Callable[[], datetime] = utcnow,
-                 strict_events: bool = False, log: Optional[Callable[[str], None]] = None, force_mode: Optional[str] = None):
+                 strict_events: bool = False, log: Optional[Callable[[str], None]] = None,
+                 force_mode: Optional[str] = None, llm_fn=None):
         self.cfg, self.store, self.transport, self.clock = cfg, store, transport, clock
         self._log = log or (lambda line: print(line, file=sys.stdout, flush=True))
         self.emitter = Emitter(store, clock, strict=strict_events, dedupe_minutes=cfg.event_dedupe_minutes, log=self._log)
-        self.ring1 = Ring1(store, self.emitter, clock)
-        self.ring2 = Ring2(store, transport, self.emitter, clock)
-        self.ring3 = Ring3(store, transport, self.emitter, clock, cfg.results_wait_seconds)
+        self.advisor = LeaderAdvisor(store, clock, api_key=cfg.gemini_api_key, llm_fn=llm_fn)
+        self.helpers = HelperManager(store, self.emitter, clock, advisor=self.advisor)
+        self.ring1 = Ring1(store, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
+        self.ring2 = Ring2(store, transport, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
+        self.ring3 = Ring3(store, transport, self.emitter, clock, cfg.results_wait_seconds, advisor=self.advisor, helpers=self.helpers)
         self.force_mode = force_mode
         self.mode: Optional[str] = None
         self.tick_count = 0
@@ -96,6 +100,7 @@ class Brain:
                 return None
 
         if mode != "OFF":
+            guarded("helpers:reap", self.helpers.reap_expired)
             demands = guarded("ring1", lambda: self.ring1.collect(config, fleet["bots"])) or []
             summary["demands"] = [f"{d.kind}#{d.kingdom_id}" for d in demands]
             outcomes = {}

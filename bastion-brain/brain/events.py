@@ -51,6 +51,7 @@ class Emitter:
     def emit(self, *, ring: str, actor: str, event_type: str, summary: str, why: str,
              severity: str = "INFO", correlation_id: Optional[str] = None,
              trigger_inputs: Optional[Dict[str, Any]] = None, numnum_checks: Optional[List[Dict[str, Any]]] = None,
+             llm_telemetry: Optional[Dict[str, Any]] = None,
              evidence_refs: Optional[List[str]] = None, kingdom_id: Optional[int] = None,
              bot_id: Optional[str] = None, instance_id: Optional[str] = None, job_id: Optional[str] = None,
              operator_action_required: bool = False, operator_instructions: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -59,7 +60,7 @@ class Emitter:
             "why": why,
             "trigger_inputs": trigger_inputs or {},
             "numnum_checks": numnum_checks or [],
-            "llm_telemetry": None,
+            "llm_telemetry": llm_telemetry,
             "evidence_refs": [r for r in (evidence_refs or []) if r],
         }
         if operator_action_required:

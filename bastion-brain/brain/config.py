@@ -41,6 +41,7 @@ class BrainConfig:
     results_wait_seconds: int = 10
     event_dedupe_minutes: int = 60
     event_retention_days: int = 90
+    gemini_api_key: str = field(default="", repr=False)
 
     def problems(self) -> List[str]:
         out = []
@@ -67,4 +68,5 @@ class BrainConfig:
             control_table=e.get("BASTION_CONTROL_TABLE", "BastionControl"),
             boot_mode=(e.get("BRAIN_MODE") or "DRY_RUN").strip().upper(),
             tick_seconds=int(e.get("BRAIN_TICK_SECONDS", "60")),
+            gemini_api_key=e.get("GEMINI_API_KEY") or e.get("GOOGLE_GENERATIVE_AI_API_KEY") or "",
         )

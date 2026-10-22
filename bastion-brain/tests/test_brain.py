@@ -578,5 +578,99 @@ class SelfHealingAndSwitching(unittest.TestCase):
         self.assertEqual((grow_job["job_type"], grow_job["bot_id"]), ("grow_city", "bot_4197_twin_m1"))
 
 
+class Stage6LeadersAndHelpers(unittest.TestCase):
+    def test_llm_leaders_structured_advice_and_token_budget_tracking(self):
+        def fake_llm(leader, model, req):
+            return (
+                {"why": f"{leader} LLM rationale: execute {req['objective']}"},
+                {"model": model, "prompt_tokens": 350, "completion_tokens": 90, "latency_ms": 185},
+            )
+
+        w = World(t=NIGHT, control_mode="AUTONOMOUS")
+        w.brain = Brain(
+            BrainConfig(jobs_queue_url="q", results_queue_url="r", boot_mode="DRY_RUN"),
+            w.store, w.transport, clock=w.clock, strict_events=True, log=w.lines.append, llm_fn=fake_llm,
+        )
+        w.tick()
+        prop = w.events("PLAN_PROPOSED")[0]
+        self.assertEqual(prop["oversight"]["llm_telemetry"]["model"], "gemini-2.5-flash")
+        self.assertEqual(prop["oversight"]["llm_telemetry"]["prompt_tokens"], 350)
+        self.assertIn("TANK LLM rationale:", prop["oversight"]["why"])
+        used, cap = w.brain.advisor.ring_budget("RING_2_OPS", w.clock())
+        self.assertEqual(used, 880)  # 2 instances planned x 440 tokens each
+
+        # Exhaust RING_2_OPS hourly token budget -> NUMNUM rejects with RING_TOKEN_BUDGET
+        w.brain.advisor.record_tokens("RING_2_OPS", cap, w.clock())
+        w.store.put_control(instance_key("sidekick-mumu-1"), {"in_flight": None})
+        w.clock.t += timedelta(minutes=2)
+        s2 = w.tick()
+        self.assertEqual(s2["plans"]["sidekick-mumu-1"], "REJECTED")
+        rej = [e for e in w.events("PLAN_REJECTED") if e.get("instance_id") == "sidekick-mumu-1"][-1]
+        failed = [c["rule_id"] for c in rej["oversight"]["numnum_checks"] if not c["passed"]]
+        self.assertIn("RING_TOKEN_BUDGET", failed)
+
+    def test_bounded_helper_spawning_cap_and_ttl_retirement(self):
+        b1 = make_bot("bot_4194_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4194)
+        b2 = make_bot("bot_4197_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4197)
+        w = World(control_mode="AUTONOMOUS", bots=[b1, b2])
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            capabilities=list(numnum.STAGE6_CAPABILITIES),
+            watched_kingdoms=[{"kingdom_id": 4194, "cadence_hours": 3}],
+            enable_helpers=True,
+        ))
+        w.tick()
+        spawned = w.events("HELPER_SPAWNED")
+        templates = {e["oversight"]["trigger_inputs"]["helper"]["template_id"] for e in spawned}
+        self.assertIn("R1_KINGDOM_WATCHER", templates)
+        self.assertIn("R2_COHORT_SCHEDULER", templates)
+
+        # Enforce max 3 helpers per ring (RING_1_INTEL already has 1 active)
+        h2, ok2 = w.brain.helpers.spawn_helper("R1_KINGDOM_WATCHER", "Watch #4021", kingdom_id=4021)
+        h3, ok3 = w.brain.helpers.spawn_helper("R1_LEAD_TRIAGE", "Triage #4198", kingdom_id=4198)
+        h4, ok4 = w.brain.helpers.spawn_helper("R1_KINGDOM_WATCHER", "Watch #4044 (4th should block)", kingdom_id=4044)
+        self.assertTrue(ok2 and ok3)
+        self.assertIsNone(h4)
+        self.assertFalse(ok4)
+
+        # Advance clock past helper TTL -> all 3 expired helpers reaped & fresh #4194 surge watcher spawned
+        w.clock.t += timedelta(hours=13)
+        w.tick()
+        self.assertGreaterEqual(len(w.events("HELPER_RETIRED")), 3)
+        self.assertEqual(len(w.brain.helpers.active_helpers("RING_1_INTEL")), 1)
+
+    def test_supervised_operator_approval_dispatches_held_provision_and_scan_spawns_analyst(self):
+        w = World(control_mode="SUPERVISED", kingdom_last=None)
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            capabilities=list(numnum.STAGE6_CAPABILITIES),
+            watched_kingdoms=[{"kingdom_id": 4194, "cadence_hours": 3}],
+            enable_helpers=True,
+        ))
+        w.store.put_account_slots({
+            "account_id": "mumu-account-1", "instance_id": "sidekick-mumu-1", "adb_serial": "127.0.0.1:16416",
+            "account_status": "HEALTHY", "max_slots_per_kingdom": 2, "kingdom_slots": {"4021": ["bot_4021_m1"]},
+        })
+        w.brain.declare_bot_lost("bot_4021_m1", "test supervised approval")
+
+        # Tick 1: sidekick-mumu-0 auto-dispatches scan_kingdom (#4194) in SUPERVISED; sidekick-mumu-1 holds provision_character
+        s1 = w.tick()
+        self.assertEqual(s1["plans"]["sidekick-mumu-0"], "DISPATCHED")
+        self.assertEqual(s1["plans"]["sidekick-mumu-1"], "APPROVED_NOT_DISPATCHED")
+        scan_job = w.transport.sent[0]
+        self.assertEqual(scan_job["job_type"], "scan_kingdom")
+
+        # Operator clicks Approve & Dispatch on bot_4021_rep_4021_m1 -> next tick dispatches in SUPERVISED!
+        w.store.put_control("APPROVED_PLANS", {"bot_ids": ["bot_4021_rep_4021_m1"]})
+        w.transport.push_result(w.result_for(scan_job, screen="RANKINGS_BOARD", duration_ms=90000))
+        s2 = w.tick()
+        self.assertEqual(s2["plans"]["sidekick-mumu-1"], "DISPATCHED")
+        self.assertEqual(w.store.get_control("APPROVED_PLANS")["bot_ids"], [])
+        self.assertTrue(any(
+            e["oversight"]["trigger_inputs"]["helper"]["template_id"] == "R3_MIGRATION_ANALYST"
+            for e in w.events("HELPER_SPAWNED")
+        ))
+
+
 if __name__ == "__main__":
     unittest.main()

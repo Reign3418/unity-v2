@@ -146,11 +146,14 @@ export async function GET() {
     return NextResponse.json({ error: 'SuperAdmin clearance required' }, { status: 403 });
   }
   try {
-    const [mode, heartbeat, fleet, config] = await Promise.all([
+    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl] = await Promise.all([
       getControl('MODE'),
       getControl('BRAIN_HEARTBEAT'),
       getControl('FLEET'),
       getControl('CONFIG'),
+      getControl('HELPERS'),
+      getControl('RING_BUDGET'),
+      getControl('APPROVED_PLANS'),
     ]);
 
     const botIds = fleet?.bot_ids || [];
@@ -207,6 +210,9 @@ export async function GET() {
       requestedMode: mode,
       fleet,
       config,
+      helpers: helpersCtrl?.active || helpersCtrl?.helpers || [],
+      ringBudget: ringBudgetCtrl?.rings || {},
+      approvedPlans: approvedPlansCtrl?.bot_ids || [],
       bots,
       accountSlots,
       instances,
@@ -363,8 +369,29 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, action: 'SET_KINGDOM_CADENCE', kingdom: entry });
   }
 
+  if (body?.action === 'APPROVE_HELD_PLAN') {
+    const botId = String(body?.bot_id || '').trim();
+    if (!botId || !botId.startsWith('bot_')) {
+      return NextResponse.json({ error: 'Valid bot_id (bot_*) required' }, { status: 400 });
+    }
+    const existing = (await getControl('APPROVED_PLANS')) || { control_key: 'APPROVED_PLANS', bot_ids: [] };
+    const botIds = Array.from(new Set([...(existing.bot_ids || []), botId]));
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: marshall({
+          control_key: 'APPROVED_PLANS',
+          bot_ids: botIds,
+          updated_by: setBy,
+          updated_at: nowIso,
+        }),
+      })
+    );
+    return NextResponse.json({ ok: true, action: 'APPROVE_HELD_PLAN', bot_id: botId, bot_ids: botIds });
+  }
+
   return NextResponse.json(
-    { error: 'Unsupported action. Expected SET_MODE, SUBMIT_INTENT, SET_ACTIVE_BOT, or SET_KINGDOM_CADENCE.' },
+    { error: 'Unsupported action. Expected SET_MODE, SUBMIT_INTENT, SET_ACTIVE_BOT, SET_KINGDOM_CADENCE, or APPROVE_HELD_PLAN.' },
     { status: 400 }
   );
 }

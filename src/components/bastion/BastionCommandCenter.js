@@ -65,11 +65,11 @@ const AGENT_DEFINITIONS = [
     ringKey: 'RING_1_INTEL',
     cadence: 'Every 60s Tick',
     color: '#06b6d4',
-    defaultModelType: 'Deterministic v0 · SLM Ready',
-    helpers: ['helper_genesis_watcher', 'helper_demand_surge_detector'],
-    output: 'Triaged Demand Signals (SCAN_REQUESTED · SCAN_DUE) → Ring 2',
+    defaultModelType: 'gemini-2.5-flash-lite + Deterministic Fallback',
+    helpers: ['R1_KINGDOM_WATCHER', 'R1_LEAD_TRIAGE'],
+    output: 'Triaged Demand Signals (SCAN_REQUESTED · SCAN_DUE · BOT_LOST · REDUNDANCY_GAP) → Ring 2',
     directive:
-      'Leads Ring 1 (Intelligence). Coordinates KENT (Unity intent ingestion) and NULL (watched-kingdom staleness math) to emit prioritized Demand signals into Ring 2. Never dispatches jobs directly to emulators.',
+      'Leads Ring 1 (Intelligence). Coordinates KENT (Unity intent ingestion) and NULL (watched-kingdom staleness, BOT_LOST & REDUNDANCY_GAP math) to emit prioritized Demand signals into Ring 2. Spawns bounded R1 helpers when surge demand requires triage.',
   },
   {
     id: 'kent',
@@ -81,7 +81,7 @@ const AGENT_DEFINITIONS = [
     cadence: 'Every Tick (0 Tokens)',
     color: '#38bdf8',
     defaultModelType: 'DETERMINISTIC_RULE (0 Tokens)',
-    helpers: ['helper_demand_surge_detector'],
+    helpers: ['R1_LEAD_TRIAGE'],
     output: 'Validated BastionIntents (PENDING → TRIAGED_BY_SCOUT)',
     directive:
       'Queries BastionIntents (status-index = PENDING) submitted by SuperAdmins or R5 Command Desks. Validates every intent against events.schema.json, rejects malformed payloads, and promotes valid SCAN_KINGDOM requests into high-priority Ring 1 signals.',
@@ -91,15 +91,15 @@ const AGENT_DEFINITIONS = [
     actorKey: 'NULL',
     name: 'NULL',
     icon: '🧮',
-    role: 'Watched-Kingdom Cadence & Staleness Calculator',
+    role: 'Watched-Kingdom Cadence, Self-Heal & Twin Redundancy Calculator',
     ringKey: 'RING_1_INTEL',
     cadence: 'Every Tick (0 Tokens)',
     color: '#22d3ee',
     defaultModelType: 'PURE_MATH (0 Tokens)',
     helpers: [],
-    output: 'SCAN_DUE Signals (3h Surge vs 12h Steady)',
+    output: 'SCAN_DUE · BOT_LOST · REDUNDANCY_GAP Signals',
     directive:
-      'Pure math cadence evaluator in Ring 1. Compares each watched kingdom’s last AUDIT-verified scan timestamp (KINGDOM#<id>) against its configured cadence (3h Surge or 12h Steady) and emits deduplicated SCAN_DUE demands.',
+      'Pure math cadence & redundancy evaluator in Ring 1. Compares each watched kingdom’s last AUDIT-verified scan timestamp (KINGDOM#<id>) against its configured cadence (3h Surge or 12h Steady), detects SUSPECT/LOST bots, and verifies mumu-0 <-> mumu-1 twin coverage.',
   },
 
   // ================= RING 2: FLEET OPERATIONS & SAFETY GATE =================
@@ -112,11 +112,11 @@ const AGENT_DEFINITIONS = [
     ringKey: 'RING_2_OPS',
     cadence: 'Every 60s Tick',
     color: '#f59e0b',
-    defaultModelType: 'Deterministic v0 · LLM Ready',
-    helpers: ['helper_bot_routine_scheduler', 'helper_account_slot_planner', 'helper_slice_coordinator'],
+    defaultModelType: 'gemini-2.5-flash + Deterministic Fallback',
+    helpers: ['R2_COHORT_SCHEDULER', 'R2_REPLACEMENT_PLANNER'],
     output: 'Typed BastionJob Proposals → NUMNUM Gate → bastion-jobs.fifo',
     directive:
-      'Leads Ring 2 (Operations). Evaluates each SIDEKICK instance’s active bot, enforces human-like sleep windows, session breaks, daily active caps, CH8 growth progression, and kingdom scan missions before submitting typed job proposals to NUMNUM.',
+      'Leads Ring 2 (Operations). Evaluates each SIDEKICK instance’s active bot, enforces human-like sleep windows, session breaks, daily active caps, CH8 growth progression, self-healing replacements, cross-instance twins, and kingdom scan missions before submitting typed job proposals to NUMNUM.',
   },
   {
     id: 'bigjon',
@@ -129,16 +129,16 @@ const AGENT_DEFINITIONS = [
     color: '#f97316',
     defaultModelType: 'DETERMINISTIC_RULE (0 Tokens)',
     helpers: [],
-    output: 'Mission Preemption (R5 Scan > Due Scan > CH8 Growth > Status Probe)',
+    output: 'Mission Preemption (Self-Heal > Twin > R5 Scan > Due Scan > CH8 Growth > Probe)',
     directive:
-      'Deterministic priority referee inside Ring 2. Ensures urgent R5/Operator scan intents and overdue kingdom scans preempt routine city growth or status probes whenever the stationed bot is awake and within human session limits.',
+      'Deterministic priority referee inside Ring 2. Ensures self-healing replacements, cross-instance twin convergence, urgent R5/Operator scan intents, and overdue kingdom scans preempt routine city growth or status probes whenever the stationed bot is awake.',
   },
   {
     id: 'numnum',
     actorKey: 'NUMNUM',
     name: 'NUMNUM',
     icon: '🔢',
-    role: 'Deterministic 8-Rule Safety & Anti-Detection Gate',
+    role: 'Deterministic 11-Rule Safety, Redundancy & Budget Gate',
     ringKey: 'RING_2_OPS',
     cadence: 'Every Job (0 Tokens)',
     color: '#a78bfa',
@@ -146,7 +146,7 @@ const AGENT_DEFINITIONS = [
     helpers: [],
     output: 'Pass/Fail Rule Table · Approval ID (nn_*) or Hard Hold',
     directive:
-      'Non-bypassable deterministic veto gate. Evaluates 8 hard rules on every proposed job: EXECUTOR_CAPABILITY, INSTANCE_SINGLE_FLIGHT, SLEEP_WINDOW, DAILY_ACTIVE_CAP, SESSION_DURATION_CAP, COOLDOWN_BREAK, ACCOUNT_KINGDOM_SLOT_CAP (<=2 chars/kd/account), and IDEMPOTENCY_DEDUPE.',
+      'Non-bypassable deterministic veto gate. Evaluates EXECUTOR_CAPABILITY, INSTANCE_SINGLE_FLIGHT, SLEEP_WINDOW, DAILY_ACTIVE_CAP, SESSION_DURATION_CAP, COOLDOWN_BREAK, ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM, CROSS_INSTANCE_REDUNDANCY, HELPER_CONCURRENCY_CAP, RING_TOKEN_BUDGET, and IDEMPOTENCY_KEY_UNIQUE.',
   },
   {
     id: 'cipher',
@@ -157,11 +157,11 @@ const AGENT_DEFINITIONS = [
     ringKey: 'RING_2_OPS',
     cadence: 'Continuous SQS Poller',
     color: '#10b981',
-    defaultModelType: 'ADB + RapidOCR + SQLite Ledger',
+    defaultModelType: 'ADB + RapidOCR + SQLite Ledger (6 Live Skills)',
     helpers: [],
     output: 'BastionJobResult → bastion-results + PNG Proof → S3',
     directive:
-      'Runs on SIDEKICK (C:\\UnityScanner) polling bastion-jobs.fifo. Validates incoming jobs against jobs.schema.json, enforces SQLite idempotency, executes ADB/OCR skills on MuMu instances (:16384, :16416, :16448), uploads SHA-256 screenshot proof to S3, and posts results to bastion-results.',
+      'Runs on SIDEKICK (C:\\UnityScanner) polling bastion-jobs.fifo. Executes probe_status, sleep, grow_city, switch_character, provision_character, and scan_kingdom on MuMu instances (:16384, :16416, :16448), uploads SHA-256 screenshot proof to S3, and posts results to bastion-results.',
   },
 
   // ================= RING 3: VERIFICATION, RECONCILIATION & LIFECYCLE =================
@@ -174,11 +174,11 @@ const AGENT_DEFINITIONS = [
     ringKey: 'RING_3_AUDIT',
     cadence: 'On Every Job Result',
     color: '#ec4899',
-    defaultModelType: 'Deterministic v0 · LLM Ready',
-    helpers: ['helper_ban_forensics'],
+    defaultModelType: 'gemini-2.5-pro + Deterministic Fallback',
+    helpers: ['R3_MIGRATION_ANALYST', 'R3_BAN_INVESTIGATOR'],
     output: 'Sole Writer of BastionBots · Lifecycle Transitions · KINGDOM#<id> Stamp',
     directive:
-      'Leads Ring 3 (Audit). The ONLY component permitted to mutate BastionBots or mark a kingdom scan verified. Inspects CIPHER results + DOZER checks, updates verified CH level/power/screenshots, transitions bot states (GROWING → ACTIVE, SLEEPING ↔ ACTIVE, SUSPECT on 3 failures or ban screen), and releases stale in-flight locks.',
+      'Leads Ring 3 (Audit). The ONLY component permitted to mutate BastionBots, BastionAccountSlots, or mark a kingdom scan verified. Inspects CIPHER results + DOZER checks, updates verified CH level/power/screenshots, registers newly provisioned characters with staggered twin sleep windows, and spawns R3_BAN_INVESTIGATOR on anomalies.',
   },
   {
     id: 'dozer',
@@ -278,10 +278,16 @@ function ago(iso, nowMs) {
   return `${Math.round(s / 86400)}d ago`;
 }
 
-function EventAuditRow({ ev, nowMs }) {
+function EventAuditRow({ ev, nowMs, onApprovePlan, approvedPlans = [], busyAction }) {
   const [open, setOpen] = useState(false);
   const o = ev.oversight || {};
   const checks = o.numnum_checks || [];
+  const isHeldPlan =
+    ev.event_type === 'PLAN_APPROVED' &&
+    Boolean(ev.bot_id) &&
+    Boolean(o.operator_action_required) &&
+    String(ev.summary || '').includes('held for approval');
+  const isAlreadyApproved = isHeldPlan && approvedPlans.includes(ev.bot_id);
 
   return (
     <div className="border-b border-slate-800/80">
@@ -319,8 +325,24 @@ function EventAuditRow({ ev, nowMs }) {
           </div>
 
           {o.operator_action_required && (
-            <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/40 text-red-200 font-bold">
-              ⚠️ OPERATOR ACTION REQUIRED: {o.operator_instructions}
+            <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/40 text-red-200 font-bold flex flex-wrap items-center justify-between gap-2">
+              <span>⚠️ OPERATOR ACTION REQUIRED: {o.operator_instructions}</span>
+              {isHeldPlan && onApprovePlan && (
+                isAlreadyApproved ? (
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-[10px] font-mono">
+                    ✓ APPROVED · DISPATCHES ON NEXT TICK
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busyAction === `approve-${ev.bot_id}`}
+                    onClick={() => onApprovePlan(ev.bot_id)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] font-mono cursor-pointer transition-all"
+                  >
+                    ✓ Approve & Dispatch ({ev.bot_id})
+                  </button>
+                )
+              )}
             </div>
           )}
 
@@ -460,6 +482,11 @@ export default function BastionCommandCenter() {
           type: 'success',
           text: `Updated Kingdom #${payload.kingdom_id} scan cadence to ${payload.cadence_hours}h.`,
         });
+      } else if (payload.action === 'APPROVE_HELD_PLAN') {
+        setBannerMsg({
+          type: 'success',
+          text: `Approved held plan for ${payload.bot_id}. Ring 2 (TANK) will dispatch on the next 60s tick.`,
+        });
       }
       await fetchBrain();
     } catch (err) {
@@ -519,6 +546,9 @@ export default function BastionCommandCenter() {
   const kingdomRecords = data?.kingdomRecords || {};
   const intents = data?.intents || [];
   const allEvents = data?.events || [];
+  const helpers = data?.helpers || [];
+  const ringBudget = data?.ringBudget || {};
+  const approvedPlans = data?.approvedPlans || [];
 
   // Count events per actor in loaded window
   const actorEventCounts = {};
@@ -904,6 +934,11 @@ export default function BastionCommandCenter() {
       <div className="space-y-4">
         {RING_GROUPS.map((rg) => {
           const ringAgents = AGENT_DEFINITIONS.filter((a) => a.ringKey === rg.key);
+          const defaultCap = rg.key === 'RING_1_INTEL' ? 30000 : rg.key === 'RING_2_OPS' ? 50000 : 40000;
+          const rb = ringBudget[rg.key] || null;
+          const activeRingHelpers = helpers.filter(
+            (h) => (h.parent_ring === rg.key || h.ring === rg.key) && (h.status === 'ACTIVE' || h.status === 'RUNNING')
+          );
           return (
             <div
               key={rg.key}
@@ -918,10 +953,50 @@ export default function BastionCommandCenter() {
                     Roster: <span className="text-slate-200 font-semibold">{rg.members}</span>
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono bg-[#06080d] border border-slate-800 px-3 py-1.5 rounded-xl">
-                  Ring Leader: <span className="text-white font-black">{rg.leader}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-[10px] text-slate-400 font-mono bg-[#06080d] border border-slate-800 px-3 py-1.5 rounded-xl">
+                    Hourly Budget:{' '}
+                    <span className="text-emerald-300 font-bold">
+                      {Number(rb?.used ?? rb?.tokens_used_hour ?? 0).toLocaleString()} /{' '}
+                      {Number(rb?.cap ?? rb?.hourly_cap ?? defaultCap).toLocaleString()} tok
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono bg-[#06080d] border border-slate-800 px-3 py-1.5 rounded-xl">
+                    Bounded Helpers:{' '}
+                    <span className="text-purple-300 font-bold">{activeRingHelpers.length}/3 Active</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono bg-[#06080d] border border-slate-800 px-3 py-1.5 rounded-xl">
+                    Ring Leader: <span className="text-white font-black">{rg.leader}</span>
+                  </div>
                 </div>
               </div>
+
+              {activeRingHelpers.length > 0 && (
+                <div className="p-3 rounded-xl bg-[#06080d]/90 border border-purple-500/35 space-y-2">
+                  <div className="text-[10px] font-mono font-bold text-purple-300 uppercase">
+                    Active Bounded Helpers (`helpers.schema.json` · Max 3/Ring · Auto-Reaped on TTL)
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    {activeRingHelpers.map((h) => (
+                      <div key={h.helper_id} className="p-2.5 rounded-lg bg-[#0b101b] border border-purple-500/30 text-[10px] space-y-1">
+                        <div className="flex items-center justify-between font-mono">
+                          <span className="font-black text-purple-300">{h.template_id}</span>
+                          <span className="text-emerald-300">
+                            {Number(h.tokens_used_this_hour ?? h.tokens_used ?? 0).toLocaleString()}/
+                            {Number(h.hourly_token_cap ?? h.max_tokens ?? 12000).toLocaleString()} tok · {h.model_tier || 'LLM'}
+                          </span>
+                        </div>
+                        <div className="text-slate-300 font-sans truncate" title={h.scope?.objective || h.objective}>
+                          {h.scope?.objective || h.objective}
+                        </div>
+                        <div className="text-slate-500 font-mono text-[9px]">
+                          {h.helper_id} · spawned {ago(h.spawned_at, nowMs)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {ringAgents.map((ag) => {
@@ -1409,13 +1484,25 @@ export default function BastionCommandCenter() {
               className="bg-[#06080d] border border-slate-700 rounded-lg text-[10px] px-2.5 py-1.5 text-slate-200 cursor-pointer"
             >
               <option value="ALL">All Actors</option>
-              {['SCOUT', 'KENT', 'NULL', 'TANK', 'BIG_JON', 'NUMNUM', 'CIPHER', 'AUDIT', 'DOZER', 'OPERATOR'].map(
-                (act) => (
-                  <option key={act} value={act}>
-                    {act} ({actorEventCounts[act] || 0})
-                  </option>
-                )
-              )}
+              {Array.from(
+                new Set([
+                  'SCOUT',
+                  'KENT',
+                  'NULL',
+                  'TANK',
+                  'BIG_JON',
+                  'NUMNUM',
+                  'CIPHER',
+                  'AUDIT',
+                  'DOZER',
+                  'OPERATOR',
+                  ...Object.keys(actorEventCounts).filter((k) => k.startsWith('HELPER:')),
+                ])
+              ).map((act) => (
+                <option key={act} value={act}>
+                  {act} ({actorEventCounts[act] || 0})
+                </option>
+              ))}
             </select>
 
             <select
@@ -1434,7 +1521,20 @@ export default function BastionCommandCenter() {
 
         <div className="max-h-[32rem] overflow-y-auto rounded-xl border border-slate-800 bg-[#06080d]/90">
           {filteredEvents.map((ev) => (
-            <EventAuditRow key={ev.event_id} ev={ev} nowMs={nowMs} />
+            <EventAuditRow
+              key={ev.event_id}
+              ev={ev}
+              nowMs={nowMs}
+              approvedPlans={approvedPlans}
+              busyAction={busyAction}
+              onApprovePlan={(botId) =>
+                postBrainAction(
+                  { action: 'APPROVE_HELD_PLAN', bot_id: botId },
+                  `approve-${botId}`,
+                  `Approve held plan for ${botId} to dispatch on the next 60s tick?`
+                )
+              }
+            />
           ))}
           {filteredEvents.length === 0 && (
             <div className="p-4 text-xs text-slate-500 text-center font-sans">

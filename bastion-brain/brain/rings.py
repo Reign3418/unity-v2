@@ -85,12 +85,24 @@ def infer_account_slots(account_id: str, instance_id: str, adb_serial: str, flee
 # =========================================================================== Ring 1
 
 class Ring1:
-    def __init__(self, store, emitter, clock):
+    def __init__(self, store, emitter, clock, advisor=None, helpers=None):
         self.store, self.emitter, self.clock = store, emitter, clock
+        self.advisor = advisor
+        self.helpers = helpers
 
     def collect(self, config: Dict[str, Any], fleet_bots: Optional[Dict[str, Dict[str, Any]]] = None) -> List[Demand]:
+        if config.get("enable_helpers") and self.helpers:
+            for w in config.get("watched_kingdoms", []):
+                if float(w.get("cadence_hours", 12)) <= 3:
+                    k = int(w["kingdom_id"])
+                    self.helpers.spawn_helper(
+                        "R1_KINGDOM_WATCHER",
+                        f"Monitor #{k} 3h surge cadence, scan staleness, and power/KP deltas.",
+                        kingdom_id=k,
+                        ttl_hours=12,
+                    )
         return (
-            self._kent_intents()
+            self._kent_intents(config)
             + self._null_redundancy_gaps(config, fleet_bots or {})
             + self._null_staleness(config)
         )
@@ -138,8 +150,9 @@ class Ring1:
             ))
         return out
 
-    def _kent_intents(self) -> List[Demand]:
+    def _kent_intents(self, config: Optional[Dict[str, Any]] = None) -> List[Demand]:
         demands: List[Demand] = []
+        cfg = config or {}
         for intent in self.store.query_intents("PENDING"):
             try:
                 V.validate_intent(intent)
@@ -155,10 +168,27 @@ class Ring1:
                               why="New intent from Unity entered the brain; triaging into a signal.",
                               trigger_inputs={"intent_id": intent["intent_id"], "priority": intent["priority"], "payload": intent["payload"]})
             if intent["intent_type"] == "SCAN_KINGDOM" and intent.get("kingdom_id"):
+                if cfg.get("enable_helpers") and self.helpers:
+                    self.helpers.spawn_helper(
+                        "R1_LEAD_TRIAGE",
+                        f"Triage R5 scan intent {intent['intent_id']} for #{intent['kingdom_id']}.",
+                        kingdom_id=int(intent["kingdom_id"]),
+                        ttl_hours=4,
+                        correlation_id=intent["correlation_id"],
+                    )
                 self.store.update_intent_status(intent["intent_id"], "TRIAGED_BY_SCOUT")
+                why_text = "R5 asked for a kingdom scan; missions preempt routine upkeep."
+                llm_tel = None
+                if self.advisor:
+                    why_text, llm_tel = self.advisor.advise(
+                        "SCOUT",
+                        f"Triage SCAN_KINGDOM intent for #{intent['kingdom_id']}",
+                        {"intent_id": intent["intent_id"], "priority": intent["priority"], "payload": intent["payload"]},
+                        why_text,
+                    )
                 self.emitter.emit(ring="RING_1_INTEL", actor="KENT", event_type="SIGNAL", correlation_id=intent["correlation_id"],
                                   kingdom_id=intent["kingdom_id"], summary=f"R5 scan request for #{intent['kingdom_id']}",
-                                  why="R5 asked for a kingdom scan; missions preempt routine upkeep.",
+                                  why=why_text, llm_telemetry=llm_tel,
                                   trigger_inputs={"signal": "SCAN_REQUESTED", "intent_id": intent["intent_id"]})
             else:
                 self.store.update_intent_status(intent["intent_id"], "REJECTED")
@@ -199,9 +229,27 @@ class Ring1:
 # =========================================================================== Ring 2
 
 class Ring2:
-    def __init__(self, store, transport, emitter, clock):
+    def __init__(self, store, transport, emitter, clock, advisor=None, helpers=None):
         self.store, self.transport, self.emitter, self.clock = store, transport, emitter, clock
+        self.advisor = advisor
+        self.helpers = helpers
         self.recent_keys: List[str] = []
+
+    def _consume_operator_approval(self, bot_id: str) -> bool:
+        rec = self.store.get_control("APPROVED_PLANS") or {}
+        ids = list(rec.get("bot_ids") or [])
+        if bot_id in ids:
+            rec["bot_ids"] = [b for b in ids if b != bot_id]
+            self.store.put_control("APPROVED_PLANS", rec)
+            return True
+        return False
+
+    def _is_operator_approved(self, bot_id: str) -> bool:
+        rec = self.store.get_control("APPROVED_PLANS") or {}
+        return bot_id in (rec.get("bot_ids") or [])
+
+    def _ring_tokens(self, now: datetime) -> Optional[Tuple[int, int]]:
+        return self.advisor.ring_budget("RING_2_OPS", now) if self.advisor else None
 
     def plan_instance(self, instance_id: str, bot: Optional[Dict[str, Any]], demands: List[Demand],
                       config: Dict[str, Any], mode: str,
@@ -227,6 +275,16 @@ class Ring2:
         if bot["lifecycle_state"] not in PLANNABLE_STATES:
             return f"STATE_{bot['lifecycle_state']}"
 
+        if config.get("enable_helpers") and self.helpers:
+            inst_bots = [b for b in all_bots.values() if b["instance_id"] == instance_id and b.get("lifecycle_state") != "RETIRED"]
+            if len(inst_bots) >= 2:
+                self.helpers.spawn_helper(
+                    "R2_COHORT_SCHEDULER",
+                    f"Coordinate human-like sleep/grow/scan rotation across {len(inst_bots)} characters on {instance_id}.",
+                    instance_id=instance_id,
+                    ttl_hours=12,
+                )
+
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
         gap_demand = self._redundancy_gap_for(instance_id, bot, rt, demands, now)
         if gap_demand is not None:
@@ -238,19 +296,31 @@ class Ring2:
         job_type, args, priority, why, inputs, demand = choice
         job = self._build_job(job_type, args, priority, bot, demand, now)
 
-        ok, checks = numnum.evaluate(job, bot, rt, inst, now, config.get("capabilities", []), self.recent_keys)
+        ok, checks = numnum.evaluate(job, bot, rt, inst, now, config.get("capabilities", []), self.recent_keys,
+                                     ring_tokens=self._ring_tokens(now))
         failed = sorted(c["rule_id"] for c in checks if not c["passed"])
-        will_dispatch = ok and mode in ("AUTONOMOUS", "SUPERVISED") and not (
-            mode == "SUPERVISED" and job_type in DISPATCH_HOLD_IN_SUPERVISED)
+        op_approved = self._is_operator_approved(bot["bot_id"])
+        will_dispatch = ok and mode in ("AUTONOMOUS", "SUPERVISED") and (
+            mode == "AUTONOMOUS" or job_type not in DISPATCH_HOLD_IN_SUPERVISED or op_approved
+        )
         fingerprint = None if will_dispatch else f"PLAN:{bot['bot_id']}:{job_type}:{ok}:{','.join(failed)}:{mode}"
         if not self.emitter.should_emit(fingerprint):
             return "DEDUPED"
+
+        llm_tel = None
+        if self.advisor:
+            why, llm_tel = self.advisor.advise(
+                "TANK",
+                f"Plan {job_type} for {bot['governor_name']} (#{bot['kingdom_id']}) on {instance_id}",
+                {"job_type": job_type, "args": args, "inputs": inputs},
+                why,
+            )
 
         common = dict(correlation_id=job["correlation_id"], kingdom_id=bot["kingdom_id"], bot_id=bot["bot_id"],
                       instance_id=instance_id, job_id=job["job_id"])
         self.emitter.emit(ring="RING_2_OPS", actor="TANK", event_type="PLAN_PROPOSED",
                           summary=f"TANK proposes {job_type} for {bot['governor_name']} (#{bot['kingdom_id']}) on {instance_id}",
-                          why=why, trigger_inputs=dict(inputs, args=args, priority=priority), **common)
+                          why=why, llm_telemetry=llm_tel, trigger_inputs=dict(inputs, args=args, priority=priority), **common)
         if not ok:
             self.emitter.emit(ring="RING_2_OPS", actor="NUMNUM", event_type="PLAN_REJECTED", severity="NOTICE",
                               summary=f"NUMNUM held {job_type} for {bot['governor_name']}: {', '.join(failed)}",
@@ -267,6 +337,7 @@ class Ring2:
         if not will_dispatch:
             return "APPROVED_NOT_DISPATCHED"
 
+        self._consume_operator_approval(bot["bot_id"])
         V.validate_job(job, now=now)
         self.transport.send_job(job)
         self.recent_keys = (self.recent_keys + [job["idempotency_key"]])[-500:]
@@ -307,6 +378,16 @@ class Ring2:
         suffix = lost_bot["bot_id"].replace("bot_", "")[-8:]
         rep_bot_id = f"bot_{lost_bot['kingdom_id']}_rep_{suffix}"
 
+        if config.get("enable_helpers") and self.helpers:
+            self.helpers.spawn_helper(
+                "R2_REPLACEMENT_PLANNER",
+                f"Plan character slot allocation on {acct_id} to replace lost {lost_bot['bot_id']} in #{lost_bot['kingdom_id']}.",
+                kingdom_id=int(lost_bot["kingdom_id"]),
+                instance_id=instance_id,
+                bot_id=lost_bot["bot_id"],
+                ttl_hours=4,
+            )
+
         args = {
             "target_kingdom_id": int(lost_bot["kingdom_id"]),
             "account_id": acct_id,
@@ -317,9 +398,10 @@ class Ring2:
         fresh_rt = {"day": numnum.local_now(now, lost_bot["routine_profile"]["timezone"]).strftime("%Y-%m-%d"),
                     "active_minutes_today": 0, "session_started_at": None, "last_session_end": None, "sleep_until": None}
         ok, checks = numnum.evaluate(job, lost_bot, fresh_rt, inst, now, config.get("capabilities", []),
-                                     self.recent_keys, account_slots=slots)
+                                     self.recent_keys, account_slots=slots, ring_tokens=self._ring_tokens(now))
         failed = sorted(c["rule_id"] for c in checks if not c["passed"])
-        will_dispatch = ok and mode == "AUTONOMOUS"
+        op_approved = self._is_operator_approved(rep_bot_id) or self._is_operator_approved(lost_bot["bot_id"])
+        will_dispatch = ok and (mode == "AUTONOMOUS" or (mode == "SUPERVISED" and op_approved))
         fingerprint = None if will_dispatch else f"REPLACE:{lost_bot['bot_id']}:{ok}:{','.join(failed)}:{mode}"
         if not self.emitter.should_emit(fingerprint):
             return "DEDUPED"
@@ -369,6 +451,8 @@ class Ring2:
         if not will_dispatch:
             return "APPROVED_NOT_DISPATCHED"
 
+        self._consume_operator_approval(rep_bot_id)
+        self._consume_operator_approval(lost_bot["bot_id"])
         V.validate_job(job, now=now)
         self.transport.send_job(job)
         self.recent_keys = (self.recent_keys + [job["idempotency_key"]])[-500:]
@@ -424,6 +508,16 @@ class Ring2:
         peer_bots = gap.detail.get("peer_bots") or []
         peer_names = ", ".join(b["governor_name"] for b in peer_bots) or gap.detail.get("peer_instance_id", "peer")
 
+        if config.get("enable_helpers") and self.helpers:
+            self.helpers.spawn_helper(
+                "R2_REPLACEMENT_PLANNER",
+                f"Converge #{kd} on {instance_id} ({acct_id}) to pair with {gap.detail.get('peer_instance_id')}.",
+                kingdom_id=kd,
+                instance_id=instance_id,
+                bot_id=twin_bot_id,
+                ttl_hours=4,
+            )
+
         args = {
             "target_kingdom_id": kd,
             "account_id": acct_id,
@@ -434,9 +528,11 @@ class Ring2:
         fresh_rt = {"day": numnum.local_now(now, current_bot["routine_profile"]["timezone"]).strftime("%Y-%m-%d"),
                     "active_minutes_today": 0, "session_started_at": None, "last_session_end": None, "sleep_until": None}
         ok, checks = numnum.evaluate(job, current_bot, fresh_rt, inst, now, config.get("capabilities", []),
-                                     self.recent_keys, account_slots=slots, peer_bots=peer_bots)
+                                     self.recent_keys, account_slots=slots, peer_bots=peer_bots,
+                                     ring_tokens=self._ring_tokens(now))
         failed = sorted(c["rule_id"] for c in checks if not c["passed"])
-        will_dispatch = ok and mode == "AUTONOMOUS"
+        op_approved = self._is_operator_approved(twin_bot_id)
+        will_dispatch = ok and (mode == "AUTONOMOUS" or (mode == "SUPERVISED" and op_approved))
         fingerprint = None if will_dispatch else f"TWIN:{twin_bot_id}:{ok}:{','.join(failed)}:{mode}"
         if not self.emitter.should_emit(fingerprint):
             return "DEDUPED"
@@ -475,6 +571,7 @@ class Ring2:
         if not will_dispatch:
             return "APPROVED_NOT_DISPATCHED"
 
+        self._consume_operator_approval(twin_bot_id)
         V.validate_job(job, now=now)
         self.transport.send_job(job)
         self.recent_keys = (self.recent_keys + [job["idempotency_key"]])[-500:]
@@ -606,9 +703,11 @@ class Ring2:
 # =========================================================================== Ring 3
 
 class Ring3:
-    def __init__(self, store, transport, emitter, clock, wait_seconds: int = 10):
+    def __init__(self, store, transport, emitter, clock, wait_seconds: int = 10, advisor=None, helpers=None):
         self.store, self.transport, self.emitter, self.clock = store, transport, emitter, clock
         self.wait_seconds = wait_seconds
+        self.advisor = advisor
+        self.helpers = helpers
 
     def process(self, instances: List[str]) -> int:
         handled = 0
@@ -906,6 +1005,16 @@ class Ring3:
             if jt == "scan_kingdom" and status == "SUCCEEDED":
                 self.store.put_control(f"KINGDOM#{result['kingdom_id']}", {"last_scan_verified_at": result["completed_at"],
                                                                            "verified_by_job": result["job_id"]})
+                cfg_ctl = self.store.get_control("CONFIG") or {}
+                if cfg_ctl.get("enable_helpers") and self.helpers:
+                    self.helpers.spawn_helper(
+                        "R3_MIGRATION_ANALYST",
+                        f"Reconcile leaderboard scan snapshot from {result['job_id']} in #{result['kingdom_id']}.",
+                        kingdom_id=int(result["kingdom_id"]),
+                        bot_id=bot["bot_id"],
+                        ttl_hours=6,
+                        correlation_id=result["correlation_id"],
+                    )
             if jt == "switch_character" and status == "SUCCEEDED":
                 self._apply_switch(bot, job, result)
         else:
@@ -927,6 +1036,18 @@ class Ring3:
         elif int(health["consecutive_failures"]) >= SUSPECT_AFTER_FAILURES and bot["lifecycle_state"] in PLANNABLE_STATES:
             self._set_state(bot, "SUSPECT", f"{health['consecutive_failures']} consecutive failures; pulled from rotation.",
                             common, severity="WARN", inputs={"last_error": health.get("last_error")})
+
+        if bot["lifecycle_state"] in ("SUSPECT", "LOST") and self.helpers:
+            cfg_ctl = self.store.get_control("CONFIG") or {}
+            if cfg_ctl.get("enable_helpers"):
+                self.helpers.spawn_helper(
+                    "R3_BAN_INVESTIGATOR",
+                    f"Inspect failure/ban evidence on {bot['bot_id']} ({bot['lifecycle_state']}) in #{bot['kingdom_id']}.",
+                    kingdom_id=int(bot["kingdom_id"]),
+                    instance_id=bot["instance_id"],
+                    bot_id=bot["bot_id"],
+                    ttl_hours=8,
+                )
 
         prof = bot["routine_profile"]
         prof["active_minutes_today"] = min(int(rt["active_minutes_today"]), int(prof["daily_active_cap_minutes"]))
