@@ -307,6 +307,9 @@ def detect_new_troop_modal(a: np.ndarray):
             return (1380, 108, "Alliance Modal (No Open Join) -> Close (1380, 108)")
         if "replenish" in q_hdr_txt or "resource" in q_hdr_txt or (float(np.mean(is_q_tab3)) > 0.14 and "quest" not in q_hdr_txt and "objective" not in q_hdr_txt):
             return (1355, 112, "Replenish Resources Modal -> Close (1355, 112)")
+        # If forced tutorial spear is pointing down at the Main Quest GO/CLAIM button (x=1150..1360, y=70..260), it blocks Side Quests!
+        if int(spear_mask(a[70:260, 1150:1360]).sum()) >= 400:
+            return (1258, 315, "QUESTS_MODAL_MAIN_GO")
         # Check for green CLAIM button (Daily Objectives tab) OR OCR-verified 'CLAIM' button (Quests tab) at x=1160..1355, y=275..865
         q_claims = a[275:865, 1170:1345]
         is_grn_claim = (
