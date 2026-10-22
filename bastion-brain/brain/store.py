@@ -42,6 +42,7 @@ class MemoryStore:
     def __init__(self):
         self.control: Dict[str, Dict[str, Any]] = {}
         self.bots: Dict[str, Dict[str, Any]] = {}
+        self.slots: Dict[str, Dict[str, Any]] = {}
         self.intents: Dict[str, Dict[str, Any]] = {}
         self.events: List[Dict[str, Any]] = []
         self.retention_days = 90
@@ -58,6 +59,13 @@ class MemoryStore:
 
     def put_bot(self, bot: Dict[str, Any]) -> None:
         self.bots[bot["bot_id"]] = copy.deepcopy(bot)
+
+    def get_account_slots(self, account_id: str) -> Optional[Dict[str, Any]]:
+        v = self.slots.get(account_id)
+        return copy.deepcopy(v) if v else None
+
+    def put_account_slots(self, record: Dict[str, Any]) -> None:
+        self.slots[record["account_id"]] = copy.deepcopy(record)
 
     def query_intents(self, status: str) -> List[Dict[str, Any]]:
         return [copy.deepcopy(i) for i in self.intents.values() if i["status"] == status]
@@ -83,6 +91,7 @@ class DynamoStore:
         self.cfg = cfg
         self.control_t = self.ddb.Table(cfg.control_table)
         self.bots_t = self.ddb.Table(cfg.bots_table)
+        self.slots_t = self.ddb.Table(cfg.slots_table)
         self.intents_t = self.ddb.Table(cfg.intents_table)
         self.events_t = self.ddb.Table(cfg.events_table)
         self.retention_days = cfg.event_retention_days
@@ -109,6 +118,13 @@ class DynamoStore:
 
     def put_bot(self, bot: Dict[str, Any]) -> None:
         self.bots_t.put_item(Item=to_ddb(bot))
+
+    def get_account_slots(self, account_id: str) -> Optional[Dict[str, Any]]:
+        item = self.slots_t.get_item(Key={"account_id": account_id}, ConsistentRead=True).get("Item")
+        return from_ddb(item) if item else None
+
+    def put_account_slots(self, record: Dict[str, Any]) -> None:
+        self.slots_t.put_item(Item=to_ddb(record))
 
     def query_intents(self, status: str) -> List[Dict[str, Any]]:
         from boto3.dynamodb.conditions import Key
@@ -153,6 +169,14 @@ class ReadOnlyOverlay:
 
     def put_bot(self, bot):
         self.mem.put_bot(bot)
+
+    def get_account_slots(self, account_id):
+        if account_id in self.mem.slots:
+            return self.mem.get_account_slots(account_id)
+        return self.base.get_account_slots(account_id)
+
+    def put_account_slots(self, record):
+        self.mem.put_account_slots(record)
 
     def query_intents(self, status):
         return self.base.query_intents(status)

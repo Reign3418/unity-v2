@@ -2,17 +2,21 @@ import { NextResponse } from 'next/server';
 import {
   DynamoDBClient,
   GetItemCommand,
-  BatchGetItemCommand,
   QueryCommand,
   PutItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { auth } from '@/lib/auth';
 
 /**
- * Bastion Brain oversight API (Step 4).
- *   GET  -> brain heartbeat, requested mode, fleet + bots, newest oversight events (SuperAdmin only)
- *   POST -> { action: 'SET_MODE', mode } writes BastionControl MODE; the brain picks it up next tick (SuperAdmin only)
- * Unity never writes bots or events: the brain (Ring 3) is the only writer of bot state and the oversight log.
+ * Bastion Brain Command & Oversight API (Step 4+).
+ *   GET  -> brain heartbeat, requested mode, fleet, config, bots, accountSlots, instance states,
+ *           bot runtimes, watched kingdom verification timestamps, active intents, and oversight events.
+ *   POST -> SuperAdmin controls:
+ *           - { action: 'SET_MODE', mode }
+ *           - { action: 'SUBMIT_INTENT', intent_type: 'SCAN_KINGDOM', kingdom_id, priority, max_ranks }
+ *           - { action: 'SET_ACTIVE_BOT', instance_id, bot_id }
+ *           - { action: 'SET_KINGDOM_CADENCE', kingdom_id, cadence_hours, source }
+ * Unity never directly mutates BastionBots or BastionEvents: Ring 3 (AUDIT) is the sole writer of verified bot state.
  */
 
 export const dynamic = 'force-dynamic';
@@ -20,8 +24,12 @@ export const dynamic = 'force-dynamic';
 const REGION = process.env.BASTION_AWS_REGION || 'us-east-2';
 const CONTROL_TABLE = process.env.BASTION_CONTROL_TABLE || 'BastionControl';
 const BOTS_TABLE = process.env.BASTION_BOTS_TABLE || 'BastionBots';
+const SLOTS_TABLE = process.env.BASTION_ACCOUNT_SLOTS_TABLE || 'BastionAccountSlots';
+const INTENTS_TABLE = process.env.BASTION_INTENTS_TABLE || 'BastionIntents';
 const EVENTS_TABLE = process.env.BASTION_EVENTS_TABLE || 'BastionEvents';
 const VALID_MODES = ['OFF', 'DRY_RUN', 'SUPERVISED', 'AUTONOMOUS'];
+const VALID_INSTANCES = ['sidekick-mumu-0', 'sidekick-mumu-1', 'sidekick-mumu-2'];
+const DEFAULT_ACCOUNT_IDS = ['mumu-account-0', 'mumu-account-1', 'mumu-account-2'];
 const EVENT_LIMIT = 150;
 
 const db = new DynamoDBClient({ region: REGION });
@@ -46,6 +54,30 @@ function unmarshall(item) {
   return out;
 }
 
+function marshallValue(v) {
+  if (v === null || v === undefined) return { NULL: true };
+  if (typeof v === 'string') return { S: v };
+  if (typeof v === 'number') return { N: String(v) };
+  if (typeof v === 'boolean') return { BOOL: v };
+  if (Array.isArray(v)) return { L: v.map(marshallValue) };
+  if (typeof v === 'object') {
+    const m = {};
+    for (const [k, val] of Object.entries(v)) {
+      if (val !== undefined) m[k] = marshallValue(val);
+    }
+    return { M: m };
+  }
+  return { S: String(v) };
+}
+
+function marshall(obj) {
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) out[k] = marshallValue(v);
+  }
+  return out;
+}
+
 async function requireSuperAdmin() {
   try {
     const session = await auth();
@@ -63,6 +95,20 @@ async function getControl(key) {
   return unmarshall(res.Item);
 }
 
+async function getBot(botId) {
+  const res = await db.send(
+    new GetItemCommand({ TableName: BOTS_TABLE, Key: { bot_id: { S: botId } }, ConsistentRead: true })
+  );
+  return unmarshall(res.Item);
+}
+
+async function getAccountSlot(accountId) {
+  const res = await db.send(
+    new GetItemCommand({ TableName: SLOTS_TABLE, Key: { account_id: { S: accountId } }, ConsistentRead: true })
+  );
+  return unmarshall(res.Item);
+}
+
 async function queryDay(day, limit) {
   const res = await db.send(
     new QueryCommand({
@@ -74,6 +120,25 @@ async function queryDay(day, limit) {
     })
   );
   return (res.Items || []).map(unmarshall);
+}
+
+async function queryIntentsByStatus(status, limit = 25) {
+  try {
+    const res = await db.send(
+      new QueryCommand({
+        TableName: INTENTS_TABLE,
+        IndexName: 'status-index',
+        KeyConditionExpression: '#s = :s',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: { ':s': { S: status } },
+        ScanIndexForward: false,
+        Limit: limit,
+      })
+    );
+    return (res.Items || []).map(unmarshall);
+  } catch {
+    return [];
+  }
 }
 
 export async function GET() {
@@ -88,16 +153,48 @@ export async function GET() {
       getControl('CONFIG'),
     ]);
 
-    let bots = [];
     const botIds = fleet?.bot_ids || [];
-    if (botIds.length) {
-      const res = await db.send(
-        new BatchGetItemCommand({
-          RequestItems: { [BOTS_TABLE]: { Keys: botIds.slice(0, 100).map((id) => ({ bot_id: { S: id } })) } },
-        })
-      );
-      bots = (res.Responses?.[BOTS_TABLE] || []).map(unmarshall);
-    }
+    const accountIds = fleet?.account_ids || DEFAULT_ACCOUNT_IDS;
+    const instanceIds = config?.instances || VALID_INSTANCES;
+    const watchedKingdoms = config?.watched_kingdoms || [];
+    const activeBotIds = Object.values(fleet?.active_by_instance || {}).filter(Boolean);
+
+    const [rawBots, rawSlots, rawInstances, rawRuntimes, rawKingdoms, pendingIntents, triagedIntents, inProgIntents] =
+      await Promise.all([
+        Promise.all(botIds.slice(0, 50).map((id) => getBot(id))),
+        Promise.all(accountIds.map((id) => getAccountSlot(id))),
+        Promise.all(instanceIds.map((inst) => getControl(`INSTANCE#${inst}`))),
+        Promise.all(activeBotIds.map((bId) => getControl(`BOTRUNTIME#${bId}`))),
+        Promise.all(watchedKingdoms.map((w) => getControl(`KINGDOM#${w.kingdom_id}`))),
+        queryIntentsByStatus('PENDING', 20),
+        queryIntentsByStatus('TRIAGED_BY_SCOUT', 20),
+        queryIntentsByStatus('IN_PROGRESS', 20),
+      ]);
+
+    const bots = rawBots.filter(Boolean);
+    const accountSlots = rawSlots.filter(Boolean);
+
+    const instances = {};
+    instanceIds.forEach((inst, idx) => {
+      instances[inst] = rawInstances[idx] || { control_key: `INSTANCE#${inst}`, in_flight: null };
+    });
+
+    const botRuntimes = {};
+    activeBotIds.forEach((bId, idx) => {
+      if (rawRuntimes[idx]) botRuntimes[bId] = rawRuntimes[idx];
+    });
+
+    const kingdomRecords = {};
+    watchedKingdoms.forEach((w, idx) => {
+      kingdomRecords[String(w.kingdom_id)] = rawKingdoms[idx] || {
+        control_key: `KINGDOM#${w.kingdom_id}`,
+        last_scan_verified_at: null,
+      };
+    });
+
+    const intents = [...inProgIntents, ...triagedIntents, ...pendingIntents].sort((a, b) =>
+      String(b.created_at || '').localeCompare(String(a.created_at || ''))
+    );
 
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
@@ -111,6 +208,11 @@ export async function GET() {
       fleet,
       config,
       bots,
+      accountSlots,
+      instances,
+      botRuntimes,
+      kingdomRecords,
+      intents,
       events,
       serverTime: now.toISOString(),
     });
@@ -130,20 +232,139 @@ export async function POST(request) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  if (body?.action !== 'SET_MODE' || !VALID_MODES.includes(body?.mode)) {
-    return NextResponse.json({ error: `action must be SET_MODE with mode in ${VALID_MODES.join(', ')}` }, { status: 400 });
-  }
+
   const setBy = String(session.user?.email || session.user?.name || 'superadmin').slice(0, 120);
-  await db.send(
-    new PutItemCommand({
-      TableName: CONTROL_TABLE,
-      Item: {
-        control_key: { S: 'MODE' },
-        mode: { S: body.mode },
-        set_by: { S: setBy },
-        set_at: { S: new Date().toISOString() },
+  const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+  if (body?.action === 'SET_MODE') {
+    if (!VALID_MODES.includes(body?.mode)) {
+      return NextResponse.json({ error: `mode must be one of ${VALID_MODES.join(', ')}` }, { status: 400 });
+    }
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: marshall({
+          control_key: 'MODE',
+          mode: body.mode,
+          set_by: setBy,
+          set_at: nowIso,
+        }),
+      })
+    );
+    return NextResponse.json({ ok: true, action: 'SET_MODE', mode: body.mode });
+  }
+
+  if (body?.action === 'SUBMIT_INTENT') {
+    const kingdomId = Number(body?.kingdom_id);
+    if (!Number.isInteger(kingdomId) || kingdomId < 1000 || kingdomId > 9999) {
+      return NextResponse.json({ error: 'kingdom_id must be a 4-digit integer (1000-9999)' }, { status: 400 });
+    }
+    const maxRanks = Math.max(10, Math.min(1000, Number(body?.max_ranks || 650)));
+    const priority = Math.max(1, Math.min(100, Number(body?.priority || 80)));
+    const tag = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const intent = {
+      intent_id: `int_ui_${tag}`,
+      correlation_id: `corr_ui_${tag}`,
+      created_at: nowIso,
+      source: body?.source === 'R5_COMMAND_DESK' ? 'R5_COMMAND_DESK' : 'OPERATOR_OVERRIDE',
+      intent_type: 'SCAN_KINGDOM',
+      kingdom_id: kingdomId,
+      priority,
+      status: 'PENDING',
+      payload: {
+        max_ranks: maxRanks,
+        requested_by: setBy,
       },
-    })
+    };
+    await db.send(
+      new PutItemCommand({
+        TableName: INTENTS_TABLE,
+        Item: marshall(intent),
+      })
+    );
+    return NextResponse.json({ ok: true, action: 'SUBMIT_INTENT', intent });
+  }
+
+  if (body?.action === 'SET_ACTIVE_BOT') {
+    const instanceId = String(body?.instance_id || '');
+    const botId = String(body?.bot_id || '');
+    if (!VALID_INSTANCES.includes(instanceId) || !botId) {
+      return NextResponse.json({ error: 'Valid instance_id and bot_id required' }, { status: 400 });
+    }
+    const [fleet, bot] = await Promise.all([getControl('FLEET'), getBot(botId)]);
+    if (!bot) {
+      return NextResponse.json({ error: `Bot ${botId} not found in BastionBots` }, { status: 404 });
+    }
+    if (bot.instance_id !== instanceId) {
+      return NextResponse.json(
+        { error: `Bot ${botId} belongs to ${bot.instance_id}, cannot bind to ${instanceId}` },
+        { status: 400 }
+      );
+    }
+    const updatedFleet = {
+      ...(fleet || {}),
+      control_key: 'FLEET',
+      bot_ids: fleet?.bot_ids || [botId],
+      active_by_instance: {
+        ...(fleet?.active_by_instance || {}),
+        [instanceId]: botId,
+      },
+      updated_by: setBy,
+      updated_at: nowIso,
+    };
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: marshall(updatedFleet),
+      })
+    );
+    return NextResponse.json({ ok: true, action: 'SET_ACTIVE_BOT', instance_id: instanceId, bot_id: botId });
+  }
+
+  if (body?.action === 'SET_KINGDOM_CADENCE') {
+    const kingdomId = Number(body?.kingdom_id);
+    const cadenceHours = Number(body?.cadence_hours);
+    if (!Number.isInteger(kingdomId) || kingdomId < 1000 || kingdomId > 9999) {
+      return NextResponse.json({ error: 'kingdom_id must be 1000-9999' }, { status: 400 });
+    }
+    if (!Number.isFinite(cadenceHours) || cadenceHours < 1 || cadenceHours > 72) {
+      return NextResponse.json({ error: 'cadence_hours must be 1-72' }, { status: 400 });
+    }
+    const config = (await getControl('CONFIG')) || {
+      capabilities: ['probe_status', 'sleep', 'grow_city'],
+      instances: VALID_INSTANCES,
+      watched_kingdoms: [],
+    };
+    const watched = Array.isArray(config.watched_kingdoms) ? [...config.watched_kingdoms] : [];
+    const idx = watched.findIndex((w) => Number(w.kingdom_id) === kingdomId);
+    const entry = {
+      kingdom_id: kingdomId,
+      cadence_hours: cadenceHours,
+      source: String(body?.source || (cadenceHours <= 3 ? `SURGE_3H (set by ${setBy})` : `STEADY_${cadenceHours}H (set by ${setBy})`)),
+    };
+    if (idx >= 0) {
+      watched[idx] = entry;
+    } else {
+      watched.push(entry);
+    }
+    const updatedConfig = {
+      ...config,
+      control_key: 'CONFIG',
+      watched_kingdoms: watched,
+      updated_by: setBy,
+      updated_at: nowIso,
+    };
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: marshall(updatedConfig),
+      })
+    );
+    return NextResponse.json({ ok: true, action: 'SET_KINGDOM_CADENCE', kingdom: entry });
+  }
+
+  return NextResponse.json(
+    { error: 'Unsupported action. Expected SET_MODE, SUBMIT_INTENT, SET_ACTIVE_BOT, or SET_KINGDOM_CADENCE.' },
+    { status: 400 }
   );
-  return NextResponse.json({ ok: true, mode: body.mode });
 }

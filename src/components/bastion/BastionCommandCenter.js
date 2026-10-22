@@ -2,305 +2,466 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
-import BrainOversightPanel from '@/components/bastion/BrainOversightPanel';
 import {
   Shield,
   Cpu,
-  Zap,
   Activity,
   Bot,
   Play,
-  Pause,
   RefreshCw,
   PlusCircle,
   ArrowRightLeft,
-  Sparkles,
   CheckCircle2,
   AlertTriangle,
   Server,
   Clock,
-  Layers,
-  Globe,
   Terminal,
-  Sliders,
-  Eye,
-  Compass,
   Database,
   Lock,
   X,
+  Layers,
+  Eye,
 } from 'lucide-react';
 
-const AGENT_DEFINITIONS = [
+const MODES = [
   {
-    id: 'kent',
-    name: 'KENT',
-    icon: '📋',
-    role: 'Unity Demand & API Traffic Watcher',
-    ringKey: 'ring1_intelligence',
-    cadence: 'Real-Time Hook',
-    color: '#06b6d4',
-    defaultModelType: 'SLM',
-    output: 'unityApiCalls24h · Demand Surge Triggers → NULL',
-    directive:
-      'Hooks directly into Unity API routes (/api/aws/roster, /vanguard, /theater). Counts live user queries per kingdom. When a quiet 12h kingdom crosses the demand threshold (5+ hits), KENT alerts NULL to promote that kingdom into the 3h Surge Lane.',
+    key: 'OFF',
+    label: 'OFF (Kill Switch)',
+    cls: 'border-slate-500/50 text-slate-300',
+    activeCls: 'bg-slate-500/25 border-slate-400 text-white ring-1 ring-slate-400/40',
+    hint: 'Hard kill switch: no Ring 1/2 planning or job dispatch',
   },
   {
-    id: 'scout',
-    name: 'SCOUT',
-    icon: '🔭',
-    role: 'Genesis Kingdom Watcher & 30m KP Probe',
-    ringKey: 'ring1_intelligence',
-    cadence: 'Every 30m',
-    color: '#f472b6',
-    defaultModelType: 'SLM',
-    output: 'New Kingdom Spawn Alerts (#4203+) · Top-10 KP Surge Detection',
-    directive:
-      'Polls the Rise of Kingdoms Continent & Character Creation list every 30 minutes. The moment Lilith opens a brand-new kingdom (#4203+), SCOUT auto-triggers CIPHER to drop a Day-1 bot in, clear the tutorial, and capture the initial native governors (Genesis Birth Certificate) so future migrants and jumpers are permanently identifiable.',
+    key: 'DRY_RUN',
+    label: 'DRY_RUN (Plan Only)',
+    cls: 'border-cyan-500/50 text-cyan-300',
+    activeCls: 'bg-cyan-500/25 border-cyan-400 text-cyan-200 ring-1 ring-cyan-400/40',
+    hint: 'Full Ring 1 -> Ring 2 -> NUMNUM evaluation & audit logging, zero SQS dispatch',
   },
   {
-    id: 'tank',
-    name: 'TANK',
-    icon: '🎯',
-    role: 'Chief of Fleet Operations',
-    ringKey: 'ring2_dispatch',
-    cadence: 'Every 12h',
-    color: '#818cf8',
-    defaultModelType: 'LLM',
-    output: '12h Steady-State Master Schedule · Node Health Posture',
-    directive:
-      'Owns the 12-hour Steady-State baseline rotation across all tracked kingdoms and monitors CPU/RAM headroom across SIDEKICK (64GB RAM) and MIXERV3 (RTX 4070). Demotes surged kingdoms back to 12h Steady-State once user demand and KP deltas cool down.',
+    key: 'SUPERVISED',
+    label: 'SUPERVISED (Routine Ops)',
+    cls: 'border-amber-500/50 text-amber-300',
+    activeCls: 'bg-amber-500/25 border-amber-400 text-amber-200 ring-1 ring-amber-400/40',
+    hint: 'Dispatches NUMNUM-approved routine jobs (probe_status, sleep, grow_city); holds character creation/switching',
   },
   {
-    id: 'null',
-    name: 'NULL',
-    icon: '🧠',
-    role: 'Dynamic Cadence & Slice Dispatcher',
-    ringKey: 'ring2_dispatch',
-    cadence: 'Every 60m + Reactive',
-    color: '#38bdf8',
-    defaultModelType: 'LLM',
-    output: '12h ↔ 3h Cadence Shifts · Parallel Rank Slices (1-500 / 501-1000)',
-    directive:
-      'Reads KENT demand signals and SCOUT war probes. Dynamically moves accounts across instances to speed up high-demand scans (splitting Ranks 1-500 and 501-1000 across multiple instances) or slows quiet kingdoms down to 12h steady state.',
-  },
-  {
-    id: 'bigjon',
-    name: 'BIG JON',
-    icon: '🥊',
-    role: 'Priority & Operator Intervention Referee',
-    ringKey: 'ring2_dispatch',
-    cadence: 'Per Task',
-    color: '#f97316',
-    defaultModelType: 'SLM',
-    output: 'Queue Preemption · Live Lookup Priority Enforcement',
-    directive:
-      'Ensures background 12-hour steady-state scans never block a live operator intervention, R4/R5 priority refresh, or interactive Governor Coordinate Lookup.',
-  },
-  {
-    id: 'numnum',
-    name: 'NUMNUM',
-    icon: '🔢',
-    role: 'Deterministic Hardware & Cap Gate',
-    ringKey: 'ring2_dispatch',
-    cadence: 'Every Action (0 Tokens)',
-    color: '#a78bfa',
-    defaultModelType: 'PURE_MATH',
-    output: 'Hard Veto: CPU < 85% · Free RAM >= 3GB · <= 2 Chars/Kingdom/Email',
-    directive:
-      'Pure deterministic code gate (zero LLM hallucinations). Verifies node RAM/CPU capacity and enforces Lilith’s 2-character-per-kingdom-per-email rule before CIPHER ever spawns an emulator or attempts character creation.',
-  },
-  {
-    id: 'cipher',
-    name: 'CIPHER',
-    icon: '⚡',
-    role: 'Tactical ADB Executor & Account Builder',
-    ringKey: 'ring2_dispatch',
-    cadence: 'Continuous Worker',
-    color: '#10b981',
-    defaultModelType: 'VISION_SLM',
-    output: '22s Character Switches · Auto-Tutorial CH2/CH8 · 45-Field OCR Scans',
-    directive:
-      'Executes physical ADB workflows on SIDEKICK and MIXERV3: hops between existing kingdoms in 22 seconds (provision_neighbor_kingdom.py), builds brand-new accounts through the tutorial (auto_tutorial_ch8.py), and runs 45-field governor scans.',
-  },
-  {
-    id: 'dozer',
-    name: 'DOZER',
-    icon: '🏗️',
-    role: 'Parallel Slice Merger & DynamoDB Reconciler',
-    ringKey: 'ring3_forensics',
-    cadence: 'Post-Scan (0 Tokens)',
-    color: '#f59e0b',
-    defaultModelType: 'PURE_MATH',
-    output: 'Deduplicated 1,000-Gov Roster · OCR Math Verification → Unity2AWSRoster',
-    directive:
-      'Pure math reconciler. Takes partial rank slices scanned by multiple instances (e.g., Ranks 1-500 + 501-1000), deduplicates by Governor ID, checks T1-T5 kill arithmetic, stamps Genesis birth kingdoms, and batch-writes into AWS DynamoDB.',
-  },
-  {
-    id: 'audit',
-    name: 'BASTION AUDIT',
-    icon: '🔍',
-    role: 'Genesis Birth-Certificate & Migration Forensics',
-    ringKey: 'ring3_forensics',
-    cadence: 'On-Demand + Post-Ingest',
-    color: '#ec4899',
-    defaultModelType: 'LLM',
-    output: 'Migrant Detection · Sleeper/Jumper Tagging · Passport Wave Alerts',
-    directive:
-      'Compares every newly scanned kingdom roster against our Day-1 Genesis Snapshots. Automatically flags governors who migrated in from other kingdoms, tracks name changes, and identifies coordinated jumper/sleeper alliances.',
+    key: 'AUTONOMOUS',
+    label: 'AUTONOMOUS (Full Fleet)',
+    cls: 'border-pink-500/50 text-pink-300',
+    activeCls: 'bg-pink-500/25 border-pink-400 text-pink-200 ring-1 ring-pink-400/40',
+    hint: 'Dispatches all NUMNUM-approved jobs within implemented CIPHER capabilities',
   },
 ];
 
+const AGENT_DEFINITIONS = [
+  // ================= RING 1: INTELLIGENCE & DEMAND =================
+  {
+    id: 'scout',
+    actorKey: 'SCOUT',
+    name: 'SCOUT',
+    icon: '🔭',
+    role: 'Ring 1 Leader — Intelligence & Genesis Discovery',
+    ringKey: 'RING_1_INTEL',
+    cadence: 'Every 60s Tick',
+    color: '#06b6d4',
+    defaultModelType: 'Deterministic v0 · SLM Ready',
+    helpers: ['helper_genesis_watcher', 'helper_demand_surge_detector'],
+    output: 'Triaged Demand Signals (SCAN_REQUESTED · SCAN_DUE) → Ring 2',
+    directive:
+      'Leads Ring 1 (Intelligence). Coordinates KENT (Unity intent ingestion) and NULL (watched-kingdom staleness math) to emit prioritized Demand signals into Ring 2. Never dispatches jobs directly to emulators.',
+  },
+  {
+    id: 'kent',
+    actorKey: 'KENT',
+    name: 'KENT',
+    icon: '📋',
+    role: 'Unity Intent & Demand Ingestor',
+    ringKey: 'RING_1_INTEL',
+    cadence: 'Every Tick (0 Tokens)',
+    color: '#38bdf8',
+    defaultModelType: 'DETERMINISTIC_RULE (0 Tokens)',
+    helpers: ['helper_demand_surge_detector'],
+    output: 'Validated BastionIntents (PENDING → TRIAGED_BY_SCOUT)',
+    directive:
+      'Queries BastionIntents (status-index = PENDING) submitted by SuperAdmins or R5 Command Desks. Validates every intent against events.schema.json, rejects malformed payloads, and promotes valid SCAN_KINGDOM requests into high-priority Ring 1 signals.',
+  },
+  {
+    id: 'null',
+    actorKey: 'NULL',
+    name: 'NULL',
+    icon: '🧮',
+    role: 'Watched-Kingdom Cadence & Staleness Calculator',
+    ringKey: 'RING_1_INTEL',
+    cadence: 'Every Tick (0 Tokens)',
+    color: '#22d3ee',
+    defaultModelType: 'PURE_MATH (0 Tokens)',
+    helpers: [],
+    output: 'SCAN_DUE Signals (3h Surge vs 12h Steady)',
+    directive:
+      'Pure math cadence evaluator in Ring 1. Compares each watched kingdom’s last AUDIT-verified scan timestamp (KINGDOM#<id>) against its configured cadence (3h Surge or 12h Steady) and emits deduplicated SCAN_DUE demands.',
+  },
+
+  // ================= RING 2: FLEET OPERATIONS & SAFETY GATE =================
+  {
+    id: 'tank',
+    actorKey: 'TANK',
+    name: 'TANK',
+    icon: '🎯',
+    role: 'Ring 2 Leader — Chief of Fleet Operations',
+    ringKey: 'RING_2_OPS',
+    cadence: 'Every 60s Tick',
+    color: '#f59e0b',
+    defaultModelType: 'Deterministic v0 · LLM Ready',
+    helpers: ['helper_bot_routine_scheduler', 'helper_account_slot_planner', 'helper_slice_coordinator'],
+    output: 'Typed BastionJob Proposals → NUMNUM Gate → bastion-jobs.fifo',
+    directive:
+      'Leads Ring 2 (Operations). Evaluates each SIDEKICK instance’s active bot, enforces human-like sleep windows, session breaks, daily active caps, CH8 growth progression, and kingdom scan missions before submitting typed job proposals to NUMNUM.',
+  },
+  {
+    id: 'bigjon',
+    actorKey: 'BIG_JON',
+    name: 'BIG JON',
+    icon: '🥊',
+    role: 'Mission Priority & Preemption Referee',
+    ringKey: 'RING_2_OPS',
+    cadence: 'Per Plan (0 Tokens)',
+    color: '#f97316',
+    defaultModelType: 'DETERMINISTIC_RULE (0 Tokens)',
+    helpers: [],
+    output: 'Mission Preemption (R5 Scan > Due Scan > CH8 Growth > Status Probe)',
+    directive:
+      'Deterministic priority referee inside Ring 2. Ensures urgent R5/Operator scan intents and overdue kingdom scans preempt routine city growth or status probes whenever the stationed bot is awake and within human session limits.',
+  },
+  {
+    id: 'numnum',
+    actorKey: 'NUMNUM',
+    name: 'NUMNUM',
+    icon: '🔢',
+    role: 'Deterministic 8-Rule Safety & Anti-Detection Gate',
+    ringKey: 'RING_2_OPS',
+    cadence: 'Every Job (0 Tokens)',
+    color: '#a78bfa',
+    defaultModelType: 'PURE_MATH_GATE (0 Tokens)',
+    helpers: [],
+    output: 'Pass/Fail Rule Table · Approval ID (nn_*) or Hard Hold',
+    directive:
+      'Non-bypassable deterministic veto gate. Evaluates 8 hard rules on every proposed job: EXECUTOR_CAPABILITY, INSTANCE_SINGLE_FLIGHT, SLEEP_WINDOW, DAILY_ACTIVE_CAP, SESSION_DURATION_CAP, COOLDOWN_BREAK, ACCOUNT_KINGDOM_SLOT_CAP (<=2 chars/kd/account), and IDEMPOTENCY_DEDUPE.',
+  },
+  {
+    id: 'cipher',
+    actorKey: 'CIPHER',
+    name: 'CIPHER',
+    icon: '⚡',
+    role: 'SIDEKICK SQS Executor & S3 Evidence Producer',
+    ringKey: 'RING_2_OPS',
+    cadence: 'Continuous SQS Poller',
+    color: '#10b981',
+    defaultModelType: 'ADB + RapidOCR + SQLite Ledger',
+    helpers: [],
+    output: 'BastionJobResult → bastion-results + PNG Proof → S3',
+    directive:
+      'Runs on SIDEKICK (C:\\UnityScanner) polling bastion-jobs.fifo. Validates incoming jobs against jobs.schema.json, enforces SQLite idempotency, executes ADB/OCR skills on MuMu instances (:16384, :16416, :16448), uploads SHA-256 screenshot proof to S3, and posts results to bastion-results.',
+  },
+
+  // ================= RING 3: VERIFICATION, RECONCILIATION & LIFECYCLE =================
+  {
+    id: 'audit',
+    actorKey: 'AUDIT',
+    name: 'BASTION AUDIT',
+    icon: '🔍',
+    role: 'Ring 3 Leader — Chief Verification & Lifecycle Officer',
+    ringKey: 'RING_3_AUDIT',
+    cadence: 'On Every Job Result',
+    color: '#ec4899',
+    defaultModelType: 'Deterministic v0 · LLM Ready',
+    helpers: ['helper_ban_forensics'],
+    output: 'Sole Writer of BastionBots · Lifecycle Transitions · KINGDOM#<id> Stamp',
+    directive:
+      'Leads Ring 3 (Audit). The ONLY component permitted to mutate BastionBots or mark a kingdom scan verified. Inspects CIPHER results + DOZER checks, updates verified CH level/power/screenshots, transitions bot states (GROWING → ACTIVE, SLEEPING ↔ ACTIVE, SUSPECT on 3 failures or ban screen), and releases stale in-flight locks.',
+  },
+  {
+    id: 'dozer',
+    actorKey: 'DOZER',
+    name: 'DOZER',
+    icon: '🏗️',
+    role: 'Evidence Integrity & OCR Reconciler',
+    ringKey: 'RING_3_AUDIT',
+    cadence: 'Per Result (0 Tokens)',
+    color: '#c084fc',
+    defaultModelType: 'PURE_MATH (0 Tokens)',
+    helpers: [],
+    output: 'SHA-256 Proof Verification · OCR Line Count · Step Count Audit',
+    directive:
+      'Pure math evidence verifier in Ring 3. Validates every BastionJobResult from bastion-results against jobs.schema.json, verifies S3 screenshot presence and 64-char SHA-256 digest integrity, and feeds structured verification checks to AUDIT.',
+  },
+];
+
+const RING_GROUPS = [
+  {
+    key: 'RING_1_INTEL',
+    badge: 'RING 01 // INTELLIGENCE, UNITY INTENT INGEST & STALENESS DETECTION',
+    leader: 'SCOUT',
+    members: 'SCOUT (Leader) · KENT (Intent Ingest) · NULL (Staleness Math)',
+    accent: 'border-cyan-500/40 from-cyan-950/30 via-[#0b0e17] to-[#0b0e17]',
+    badgeCls: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+  },
+  {
+    key: 'RING_2_OPS',
+    badge: 'RING 02 // FLEET OPERATIONS, PRIORITY PREEMPTION, NUMNUM GATE & CIPHER',
+    leader: 'TANK',
+    members: 'TANK (Leader) · BIG JON (Priority) · NUMNUM (8-Rule Gate) · CIPHER (SIDEKICK Executor)',
+    accent: 'border-amber-500/40 from-amber-950/30 via-[#0b0e17] to-[#0b0e17]',
+    badgeCls: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  },
+  {
+    key: 'RING_3_AUDIT',
+    badge: 'RING 03 // EVIDENCE VERIFICATION, DOZER RECONCILIATION & BOT LIFECYCLE',
+    leader: 'AUDIT',
+    members: 'AUDIT (Leader & Sole Bot-State Writer) · DOZER (SHA-256 & Evidence Math)',
+    accent: 'border-pink-500/40 from-pink-950/30 via-[#0b0e17] to-[#0b0e17]',
+    badgeCls: 'bg-pink-500/20 text-pink-300 border-pink-500/40',
+  },
+];
+
+const INSTANCE_META = {
+  'sidekick-mumu-0': {
+    adb: '127.0.0.1:16384',
+    accountId: 'mumu-account-0',
+    label: 'Primary Multi-Kingdom Fleet Worker (8 Chars / 7 Kingdoms)',
+  },
+  'sidekick-mumu-1': {
+    adb: '127.0.0.1:16416',
+    accountId: 'mumu-account-1',
+    label: 'Parallel Multi-Kingdom Fleet Worker (7 Tracked Chars / 7 Kingdoms)',
+  },
+  'sidekick-mumu-2': {
+    adb: '127.0.0.1:16448',
+    accountId: 'mumu-account-2',
+    label: 'Standby Reserve / Expansion Instance',
+  },
+};
+
+const SEVERITY_CLS = {
+  INFO: 'text-slate-300',
+  NOTICE: 'text-cyan-300',
+  WARN: 'text-amber-300',
+  CRITICAL: 'text-red-400 font-bold',
+};
+
+const RING_PILL_CLS = {
+  RING_1_INTEL: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+  RING_2_OPS: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  RING_3_AUDIT: 'bg-pink-500/15 text-pink-300 border-pink-500/30',
+  SYSTEM: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+};
+
+const STATE_BADGE_CLS = {
+  ACTIVE: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+  GROWING: 'bg-lime-500/15 text-lime-300 border-lime-500/40',
+  SLEEPING: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40',
+  ON_MISSION: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40',
+  SUSPECT: 'bg-amber-500/20 text-amber-300 border-amber-500/50',
+  LOST: 'bg-red-500/20 text-red-300 border-red-500/50',
+  RETIRED: 'bg-slate-700/30 text-slate-400 border-slate-600/40',
+  PROVISIONING: 'bg-sky-500/15 text-sky-300 border-sky-500/40',
+};
+
+function ago(iso, nowMs) {
+  if (!iso) return 'Never';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '—';
+  const s = Math.max(0, Math.round((nowMs - t) / 1000));
+  if (s < 90) return `${s}s ago`;
+  if (s < 5400) return `${Math.round(s / 60)}m ago`;
+  if (s < 172800) return `${(s / 3600).toFixed(1)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+}
+
+function EventAuditRow({ ev, nowMs }) {
+  const [open, setOpen] = useState(false);
+  const o = ev.oversight || {};
+  const checks = o.numnum_checks || [];
+
+  return (
+    <div className="border-b border-slate-800/80">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800/40 flex flex-wrap items-center gap-2.5 text-[11px] cursor-pointer transition-colors"
+      >
+        <span className="text-slate-500 w-16 shrink-0 font-mono">{ago(ev.timestamp, nowMs)}</span>
+        <span className={`px-2 py-0.5 rounded border text-[10px] font-black ${RING_PILL_CLS[ev.ring] || RING_PILL_CLS.SYSTEM}`}>
+          {ev.actor}
+        </span>
+        <span className="text-slate-400 w-36 shrink-0 font-mono text-[10px]">{ev.event_type}</span>
+        {ev.kingdom_id && (
+          <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold">
+            #{ev.kingdom_id}
+          </span>
+        )}
+        {ev.instance_id && (
+          <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px]">
+            {ev.instance_id}
+          </span>
+        )}
+        <span className={`flex-1 min-w-[14rem] font-sans ${SEVERITY_CLS[ev.severity] || 'text-slate-200'}`}>
+          {ev.summary}
+        </span>
+        <span className="text-slate-500 text-xs">{open ? '▾' : '▸'}</span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3.5 pt-1 space-y-2.5 text-[11px] font-sans bg-[#070a11]/90 border-t border-slate-800/50">
+          <div className="p-2.5 rounded-lg bg-[#0b101b] border border-slate-800">
+            <span className="text-amber-400 font-mono font-bold text-[10px] uppercase mr-2">WHY //</span>
+            <span className="text-slate-200">{o.why}</span>
+          </div>
+
+          {o.operator_action_required && (
+            <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/40 text-red-200 font-bold">
+              ⚠️ OPERATOR ACTION REQUIRED: {o.operator_instructions}
+            </div>
+          )}
+
+          {checks.length > 0 && (
+            <div className="rounded-lg border border-slate-800 overflow-hidden">
+              <div className="bg-slate-900/90 px-3 py-1.5 text-[10px] font-mono font-bold text-purple-300 uppercase">
+                NUMNUM DETERMINISTIC SAFETY GATE EVALUATION ({checks.filter((c) => c.passed).length}/{checks.length} PASSED)
+              </div>
+              <table className="w-full text-[10px] font-mono">
+                <thead className="bg-black/40 text-slate-500">
+                  <tr className="text-left">
+                    <th className="py-1 px-2.5">STATUS</th>
+                    <th className="py-1 px-2.5">RULE ID</th>
+                    <th className="py-1 px-2.5">ACTUAL / LIMIT</th>
+                    <th className="py-1 px-2.5">DETAIL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {checks.map((c) => (
+                    <tr key={c.rule_id} className="border-t border-slate-800/80">
+                      <td className={`py-1 px-2.5 font-black ${c.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {c.passed ? '✓ PASS' : '✗ HOLD'}
+                      </td>
+                      <td className="py-1 px-2.5 text-slate-200 font-bold">{c.rule_id}</td>
+                      <td className="py-1 px-2.5 text-slate-400">
+                        {String(c.actual_value ?? '—')} / {String(c.limit_value ?? '—')}
+                      </td>
+                      <td className="py-1 px-2.5 text-slate-300 font-sans">{c.detail}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {o.trigger_inputs && Object.keys(o.trigger_inputs).length > 0 && (
+            <div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase mb-1">Trigger Inputs</div>
+              <pre className="bg-black/50 border border-slate-800 rounded-lg p-2.5 text-[10px] text-slate-300 font-mono overflow-x-auto max-h-48">
+                {JSON.stringify(o.trigger_inputs, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {(o.evidence_refs || []).length > 0 && (
+            <div className="text-[10px] font-mono text-emerald-300 break-all bg-emerald-950/20 border border-emerald-500/30 rounded-lg p-2">
+              📸 S3 EVIDENCE: {o.evidence_refs.join('  ')}
+            </div>
+          )}
+
+          <div className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-3 pt-1">
+            <span>event: {ev.event_id}</span>
+            <span>corr: {ev.correlation_id}</span>
+            <span>ts: {ev.timestamp}</span>
+            <span>mode: {ev.operating_mode}</span>
+            {ev.bot_id && <span>bot: {ev.bot_id}</span>}
+            {ev.job_id && <span>job: {ev.job_id}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BastionCommandCenter() {
-  const { isRealValheonFounder, isRealSuperAdmin, effectiveIsValheonFounder, effectiveIsSuperAdmin } = useRolePreview();
-  const [isLocalHost, setIsLocalHost] = useState(true);
-  const [state, setState] = useState(null);
-  const [clusterLive, setClusterLive] = useState(null);
-  const [epochLedger, setEpochLedger] = useState(null);
-  const [kvkPresets, setKvkPresets] = useState(null);
-  const [activeScanProgress, setActiveScanProgress] = useState(null);
-  const [activeTasks, setActiveTasks] = useState([]);
-  const [quickScanKingdom, setQuickScanKingdom] = useState('4194');
-  const [quickScanInstance, setQuickScanInstance] = useState('sidekick-mumu-0');
+  const { effectiveIsValheonFounder, effectiveIsSuperAdmin } = useRolePreview();
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState(null);
-  const [selectedAgent, setSelectedAgent] = useState(null);
-  const [newKingdomInput, setNewKingdomInput] = useState('4203');
-  const [selectedInstanceForNewKd, setSelectedInstanceForNewKd] = useState('sidekick-mumu-0');
   const [bannerMsg, setBannerMsg] = useState(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [selectedAgent, setSelectedAgent] = useState(null);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const h = window.location.hostname;
-      setIsLocalHost(h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.'));
-    }
-  }, []);
+  // Intent / Scan dispatch form
+  const [scanKingdom, setScanKingdom] = useState('4194');
+  const [scanRanks, setScanRanks] = useState('650');
+  const [scanPriority, setScanPriority] = useState('85');
 
-  const fetchBastion = useCallback(async () => {
+  // Fleet & Event filters
+  const [instanceFilter, setInstanceFilter] = useState('ALL');
+  const [ringFilter, setRingFilter] = useState('ALL');
+  const [actorFilter, setActorFilter] = useState('ALL');
+  const [severityFloor, setSeverityFloor] = useState('INFO');
+
+  const fetchBrain = useCallback(async () => {
     try {
-      const res = await fetch('/api/bastion');
-      if (res.ok) {
-        const data = await res.json();
-        setState(data.state);
-        if (data.epochLedger) setEpochLedger(data.epochLedger);
-        if (data.kvkPresets) setKvkPresets(data.kvkPresets);
-
-        let liveHub = data.clusterLive;
-        let mergedProgress = data.activeScanProgress;
-        const tasksByInst = {};
-        if (Array.isArray(data.activeTasks)) {
-          data.activeTasks.forEach((t) => {
-            if (t) {
-              const id = t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
-              tasksByInst[id] = { ...t, instanceId: id };
-            }
-          });
-        }
-
-        // If served from Vercel Cloud, bridge directly from Browser -> Local Cluster Hub (127.0.0.1:8888)
-        if (!liveHub) {
-          try {
-            const hubRes = await fetch('http://127.0.0.1:8888/status');
-            if (hubRes.ok) {
-              liveHub = await hubRes.json();
-              const hubProg = liveHub?.liveScanProgress;
-              const sidekickNode = liveHub?.nodes?.SIDEKICK;
-              if (Array.isArray(liveHub?.activeTasks)) {
-                liveHub.activeTasks.forEach((t) => {
-                  if (t) {
-                    const id = t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
-                    tasksByInst[id] = { ...(tasksByInst[id] || {}), ...t, instanceId: id };
-                  }
-                });
-              }
-              if (hubProg && (hubProg.running || hubProg.currentRank > 0)) {
-                const id = hubProg.instanceId || (String(hubProg.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
-                tasksByInst[id] = { ...(tasksByInst[id] || {}), ...hubProg, instanceId: id };
-                mergedProgress = {
-                  ...mergedProgress,
-                  ...hubProg,
-                  sidekickOnline: Boolean(sidekickNode),
-                  sidekickLastSeen: sidekickNode?.lastSeen || null,
-                  scannerPid: sidekickNode?.scannerPid || hubProg.scannerPid || null,
-                };
-              }
-            }
-          } catch {}
-        }
-
-        setClusterLive(liveHub);
-        const taskList = Object.values(tasksByInst).sort((a, b) =>
-          String(a.instanceId || '').localeCompare(String(b.instanceId || ''))
-        );
-        setActiveTasks(taskList);
-        if (mergedProgress) setActiveScanProgress(mergedProgress);
-      }
+      const res = await fetch('/api/bastion/brain', { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setData(json);
     } catch (err) {
-      console.error('Failed to load Bastion state:', err);
+      setBannerMsg((prev) => prev || { type: 'error', text: err.message });
     } finally {
+      setNowMs(Date.now());
       setLoading(false);
     }
   }, []);
 
-  const anyTaskRunning = activeScanProgress?.running || activeTasks.some((t) => t?.running);
-
   useEffect(() => {
-    fetchBastion();
-    const pollMs = anyTaskRunning ? 2500 : 6000;
-    const iv = setInterval(fetchBastion, pollMs);
+    fetchBrain();
+    const iv = setInterval(fetchBrain, 10000);
     return () => clearInterval(iv);
-  }, [fetchBastion, anyTaskRunning]);
+  }, [fetchBrain]);
 
-  const dispatchAction = async (action, payload = {}, label = action) => {
+  const postBrainAction = async (payload, label, confirmText = null) => {
+    if (confirmText && typeof window !== 'undefined' && !window.confirm(confirmText)) {
+      return;
+    }
     setBusyAction(label);
     setBannerMsg(null);
     try {
-      const res = await fetch('/api/bastion', {
+      const res = await fetch('/api/bastion/brain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, payload }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.state) setState(data.state);
-      if (data.epochLedger) setEpochLedger(data.epochLedger);
-      if (data.kvkPresets) setKvkPresets(data.kvkPresets);
-      if (data.activeScanProgress) setActiveScanProgress(data.activeScanProgress);
-      if (Array.isArray(data.activeTasks)) setActiveTasks(data.activeTasks);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
-      // If /api/bastion ran on Vercel Cloud, forward command + progress directly from Browser -> 127.0.0.1:8888
-      if (data.dispatchResult && data.dispatchResult.mode !== 'DIRECT_LAN' && data.dispatchResult.psCommand) {
-        try {
-          if (data.activeScanProgress) {
-            await fetch('http://127.0.0.1:8888/scan-progress', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data.activeScanProgress),
-            });
-          }
-          await fetch('http://127.0.0.1:8888/exec', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              command: data.dispatchResult.psCommand,
-              cmd: data.dispatchResult.psCommand,
-              async: true,
-            }),
-          });
-        } catch {}
-      }
-
-      if (!res.ok || data.vetoed) {
-        setBannerMsg({
-          type: 'error',
-          text: data.gate?.reason || data.error || 'Action blocked by NumNum safety gate.',
-        });
-      } else {
+      if (payload.action === 'SET_MODE') {
         setBannerMsg({
           type: 'success',
-          text:
-            data.gate?.reason ||
-            `Bastion executed ${action} (${payload.kingdom ? 'Kingdom #' + payload.kingdom : 'Global'}).`,
+          text: `Requested operating mode ${payload.mode}. Bastion Brain applies mode changes on its next 60s tick.`,
+        });
+      } else if (payload.action === 'SUBMIT_INTENT') {
+        setBannerMsg({
+          type: 'success',
+          text: `Submitted SCAN_KINGDOM intent (${json.intent?.intent_id}) for Kingdom #${payload.kingdom_id} (Top ${payload.max_ranks}). Ring 1 (KENT) will triage on the next tick.`,
+        });
+      } else if (payload.action === 'SET_ACTIVE_BOT') {
+        setBannerMsg({
+          type: 'success',
+          text: `Bound ${payload.bot_id} as the active bot on ${payload.instance_id}.`,
+        });
+      } else if (payload.action === 'SET_KINGDOM_CADENCE') {
+        setBannerMsg({
+          type: 'success',
+          text: `Updated Kingdom #${payload.kingdom_id} scan cadence to ${payload.cadence_hours}h.`,
         });
       }
+      await fetchBrain();
     } catch (err) {
       setBannerMsg({ type: 'error', text: err.message });
     } finally {
@@ -317,7 +478,7 @@ export default function BastionCommandCenter() {
             SUPERADMIN / FOUNDER CLEARANCE REQUIRED
           </div>
           <p className="text-xs text-slate-400 font-sans">
-            The Bastion Autonomous Fleet Orchestrator is restricted exclusively to SuperAdmin and Principal Systems
+            The Bastion Brain Autonomous Fleet Orchestrator is restricted exclusively to SuperAdmin and Principal Systems
             Architect clearance.
           </p>
         </div>
@@ -325,190 +486,240 @@ export default function BastionCommandCenter() {
     );
   }
 
-  if (loading || !state) {
+  if (loading && !data) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center font-mono">
-        <RefreshCw className="animate-spin text-amber-400 mb-3" size={32} />
+        <RefreshCw className="animate-spin text-emerald-400 mb-3" size={32} />
         <div className="text-sm font-bold text-slate-200 tracking-widest uppercase">
-          INITIALIZING BASTION MOE RING TELEMETRY...
+          CONNECTING TO BASTION BRAIN (AWS DYNAMODB · US-EAST-2)...
         </div>
       </div>
     );
   }
 
-  const ringModels = state.ringModels || {};
-  const schedules = [...(state.kingdomSchedules || [])].sort(
-    (a, b) => Number(a.kingdom || 0) - Number(b.kingdom || 0)
+  const hb = data?.heartbeat || null;
+  const online = Boolean(hb?.ts && nowMs - new Date(hb.ts).getTime() < 180000);
+  const requestedMode = data?.requestedMode?.mode || null;
+  const effectiveMode = hb?.mode || requestedMode || 'DRY_RUN';
+  const fleet = data?.fleet || {};
+  const activeByInstance = fleet.active_by_instance || {};
+  const config = data?.config || {};
+  const capabilities = config.capabilities || ['probe_status', 'sleep', 'grow_city'];
+  const watchedKingdoms = [...(config.watched_kingdoms || [])].sort(
+    (a, b) => Number(a.kingdom_id || 0) - Number(b.kingdom_id || 0)
   );
-  const instances = state.instances || [];
-  const roster = [...(state.roster || [])].sort(
-    (a, b) => Number(a.kingdom || 0) - Number(b.kingdom || 0)
-  );
-  const nodes = state.nodes || [];
-  const logs = state.activityLog || [];
+  const bots = [...(data?.bots || [])].sort((a, b) => {
+    if (a.instance_id !== b.instance_id) return String(a.instance_id).localeCompare(String(b.instance_id));
+    return Number(b.verified_state?.power || 0) - Number(a.verified_state?.power || 0);
+  });
+  const botsById = Object.fromEntries(bots.map((b) => [b.bot_id, b]));
+  const accountSlots = data?.accountSlots || [];
+  const instancesMap = data?.instances || {};
+  const botRuntimes = data?.botRuntimes || {};
+  const kingdomRecords = data?.kingdomRecords || {};
+  const intents = data?.intents || [];
+  const allEvents = data?.events || [];
 
-  const ringGroups = [
-    {
-      key: 'ring1_intelligence',
-      badge: 'RING 01 // INTELLIGENCE, DEMAND & GENESIS DISCOVERY',
-      accent: 'border-cyan-500/40 from-cyan-950/30 via-[#0b0e17] to-[#0b0e17]',
-      badgeCls: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-      agents: AGENT_DEFINITIONS.filter((a) => a.ringKey === 'ring1_intelligence'),
-    },
-    {
-      key: 'ring2_dispatch',
-      badge: 'RING 02 // BASTION OPERATIONS, DYNAMIC DISPATCH & PROVISIONING',
-      accent: 'border-amber-500/40 from-amber-950/30 via-[#0b0e17] to-[#0b0e17]',
-      badgeCls: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-      agents: AGENT_DEFINITIONS.filter((a) => a.ringKey === 'ring2_dispatch'),
-    },
-    {
-      key: 'ring3_forensics',
-      badge: 'RING 03 // BACK-OFFICE RECONCILIATION & MIGRATION FORENSICS',
-      accent: 'border-purple-500/40 from-purple-950/30 via-[#0b0e17] to-[#0b0e17]',
-      badgeCls: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
-      agents: AGENT_DEFINITIONS.filter((a) => a.ringKey === 'ring3_forensics'),
-    },
-  ];
+  // Count events per actor in loaded window
+  const actorEventCounts = {};
+  allEvents.forEach((ev) => {
+    actorEventCounts[ev.actor] = (actorEventCounts[ev.actor] || 0) + 1;
+  });
+
+  const severityOrder = ['INFO', 'NOTICE', 'WARN', 'CRITICAL'];
+  const filteredEvents = allEvents.filter((ev) => {
+    if (ringFilter !== 'ALL' && ev.ring !== ringFilter) return false;
+    if (actorFilter !== 'ALL' && ev.actor !== actorFilter) return false;
+    if (severityOrder.indexOf(ev.severity) < severityOrder.indexOf(severityFloor)) return false;
+    return true;
+  });
+
+  const filteredBots = bots.filter((b) => instanceFilter === 'ALL' || b.instance_id === instanceFilter);
+  const activeCount = bots.filter((b) => b.lifecycle_state === 'ACTIVE').length;
+  const growingCount = bots.filter((b) => b.lifecycle_state === 'GROWING').length;
+  const healthyAccounts = accountSlots.filter((a) => a.account_status === 'HEALTHY').length;
 
   return (
     <div className="space-y-6 pb-14 font-mono text-slate-200">
-      {/* Step 4: Railway brain heartbeat, mode control, roster, and decision audit log */}
-      <BrainOversightPanel />
-
-      {/* Top Command Header & Autopilot Telemetry Strip */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0b0e17] via-[#13192b] to-[#0b0e17] border border-amber-500/35 shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+      {/* =====================================================================
+          TOP COMMAND HEADER & OPERATING MODE CONTROL BAR
+      ===================================================================== */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0b0e17] via-[#101829] to-[#0b0e17] border border-emerald-500/35 shadow-2xl space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black tracking-widest uppercase">
-                ◈ BASTION MOE RING // AUTONOMOUS FLEET ORCHESTRATOR
+              <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black tracking-widest uppercase">
+                ◈ BASTION BRAIN v{hb?.version || '0.4.0'} // SPEC-DRIVEN 3-RING MOE ORCHESTRATOR
               </span>
-              <span className="px-2.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px]">
-                12H STEADY-STATE ↔ 3H DEMAND SURGE
+              <span
+                className={`px-2.5 py-0.5 rounded text-[10px] font-black border flex items-center gap-1.5 ${
+                  online
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                    : 'bg-rose-500/15 text-rose-300 border-rose-500/40'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+                {online ? `BRAIN ONLINE · TICK #${hb?.tick || 1} (${ago(hb?.ts, nowMs)})` : 'BRAIN HEARTBEAT STALE'}
               </span>
-              <span className="px-2.5 py-0.5 rounded bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[10px]">
-                GENESIS WATCH: #{state.nextGenesisWatchKingdom || 4203}
+              <span className="px-2.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px]">
+                AWS SQS FIFO + DYNAMODB + S3 EVIDENCE
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide mt-2 flex items-center gap-3">
-              <Shield className="text-amber-400" size={28} />
-              <span>BASTION AUTONOMOUS COMMAND & INTERVENTION DECK</span>
+
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-3 pt-1">
+              <Shield className="text-emerald-400 shrink-0" size={28} />
+              <span>BASTION BRAIN AUTONOMOUS COMMAND & OVERSIGHT DECK</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-1 max-w-3xl font-sans">
-              Self-sufficient 3-Ring Mixture-of-Experts orchestrating MuMu Player instances across{' '}
-              <span className="text-amber-300 font-semibold">SIDEKICK</span> &{' '}
-              <span className="text-cyan-300 font-semibold">MIXERV3</span>. Dynamically scales scan frequency based on
-              live Unity API traffic, provisions new accounts on demand, and auto-captures Day-1 Genesis rosters when
-              new kingdoms spawn.
+            <p className="text-xs text-slate-400 max-w-3xl font-sans leading-relaxed">
+              Contract-validated 3-Ring Mixture-of-Experts (<span className="text-cyan-300 font-semibold">Ring 1: SCOUT · KENT · NULL</span>,{' '}
+              <span className="text-amber-300 font-semibold">Ring 2: TANK · BIG JON · NUMNUM · CIPHER</span>,{' '}
+              <span className="text-pink-300 font-semibold">Ring 3: AUDIT · DOZER</span>) orchestrating{' '}
+              <span className="text-emerald-300 font-semibold">SIDEKICK</span> MuMu instances via AWS SQS FIFO queues and S3 SHA-256 screenshot proof.
             </p>
           </div>
 
-          {/* Live Status Counters */}
-          <div className="flex flex-wrap items-center gap-4 bg-[#06080d]/90 border border-slate-800 px-4 py-3 rounded-xl">
+          {/* Live Fleet Telemetry Strip */}
+          <div className="flex flex-wrap items-center gap-3 bg-[#06080d]/90 border border-slate-800 px-4 py-3 rounded-xl">
             <div className="text-center px-2">
-              <div className="text-[10px] text-slate-500 uppercase">SYSTEM</div>
-              <div className="text-xs font-black text-emerald-400">{state.systemStatus || 'HEALTHY'}</div>
+              <div className="text-[10px] text-slate-500 uppercase">EFFECTIVE MODE</div>
+              <div className="text-xs font-black text-emerald-400">{effectiveMode}</div>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
-              <div className="text-[10px] text-slate-500 uppercase">AUTOPILOT</div>
-              <div className={`text-xs font-black ${state.autopilotEnabled ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {state.autopilotEnabled ? 'ENGAGED' : 'MANUAL'}
+              <div className="text-[10px] text-slate-500 uppercase">FLEET BOTS</div>
+              <div className="text-xs font-black text-amber-300">
+                {bots.length} ({activeCount} CH8+ · {growingCount} GROWING)
               </div>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
-              <div className="text-[10px] text-slate-500 uppercase">GENESIS BOT</div>
-              <div className={`text-xs font-black ${state.autoGenesisEnabled ? 'text-pink-400' : 'text-slate-500'}`}>
-                {state.autoGenesisEnabled ? `ARMED (#${state.nextGenesisWatchKingdom})` : 'OFF'}
-              </div>
+              <div className="text-[10px] text-slate-500 uppercase">ACCOUNT POOL</div>
+              <div className="text-xs font-black text-cyan-300">{healthyAccounts}/3 HEALTHY (≤2/KD)</div>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
-              <div className="text-[10px] text-slate-500 uppercase">ACTIVE CHARS</div>
-              <div className="text-xs font-black text-amber-300">{roster.length} GOVS</div>
+              <div className="text-[10px] text-slate-500 uppercase">WATCHED KDS</div>
+              <div className="text-xs font-black text-pink-300">{watchedKingdoms.length} KINGDOMS</div>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
-              <div className="text-[10px] text-slate-500 uppercase">CLUSTER HUB</div>
-              <div className="text-xs font-black text-cyan-400">
-                {clusterLive?.nodes && Object.keys(clusterLive.nodes).length > 0 ? 'SIDEKICK LINKED' : 'LOCAL + LAN'}
-              </div>
+              <div className="text-[10px] text-slate-500 uppercase">CIPHER SKILLS</div>
+              <div className="text-xs font-black text-purple-300">{capabilities.length} LIVE</div>
             </div>
           </div>
         </div>
 
-        {/* Operator Global Intervention Bar */}
-        <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => dispatchAction('TOGGLE_AUTOPILOT', {}, 'autopilot')}
-              disabled={busyAction === 'autopilot'}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer ${
-                state.autopilotEnabled
-                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
-                  : 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
-              }`}
-            >
-              {state.autopilotEnabled ? <Pause size={14} /> : <Play size={14} />}
-              <span>{state.autopilotEnabled ? 'Pause Bastion Autopilot' : 'Resume Bastion Autopilot'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => dispatchAction('TOGGLE_AUTO_GENESIS', {}, 'genesis-toggle')}
-              disabled={busyAction === 'genesis-toggle'}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer ${
-                state.autoGenesisEnabled
-                  ? 'bg-pink-500/15 border-pink-500/40 text-pink-300 hover:bg-pink-500/25'
-                  : 'bg-slate-800 border-slate-700 text-slate-400'
-              }`}
-            >
-              <Compass size={14} />
-              <span>
-                {state.autoGenesisEnabled
-                  ? `Auto-Genesis ON (Watching #${state.nextGenesisWatchKingdom})`
-                  : 'Enable Auto-Genesis Watcher'}
-              </span>
-            </button>
+        {/* Mode Switcher + On-Demand Scan Intent Bar */}
+        <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">Operating Mode:</span>
+              {MODES.map((m) => {
+                const isSelected = (requestedMode || effectiveMode) === m.key;
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    title={m.hint}
+                    disabled={busyAction === `mode-${m.key}`}
+                    onClick={() =>
+                      postBrainAction(
+                        { action: 'SET_MODE', mode: m.key },
+                        `mode-${m.key}`,
+                        m.key === 'SUPERVISED' || m.key === 'AUTONOMOUS'
+                          ? `Switch Bastion Brain to ${m.key}? NUMNUM-approved jobs will dispatch to SIDEKICK emulators.`
+                          : null
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      isSelected ? m.activeCls : `${m.cls} opacity-70 hover:opacity-100 bg-[#06080d]`
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={fetchBrain}
+                className="p-2 rounded-xl bg-[#06080d] border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                title="Refresh Brain Telemetry"
+              >
+                <RefreshCw size={14} />
+              </button>
+            </div>
+            <div className="text-[10px] text-slate-500 font-sans">
+              Effective mode on last tick: <span className="text-slate-200 font-bold font-mono">{effectiveMode}</span>
+              {requestedMode && requestedMode !== effectiveMode && (
+                <span className="text-amber-300 ml-2">
+                  · Requested <span className="font-mono font-bold">{requestedMode}</span> (applies on next tick ≤60s)
+                </span>
+              )}
+              {data?.requestedMode?.set_by && (
+                <span className="ml-2">
+                  · Last set by <span className="text-slate-300">{data.requestedMode.set_by}</span> ({ago(data.requestedMode.set_at, nowMs)})
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* On-Demand Account / Genesis Bot Provisioner */}
-          <div className="flex flex-wrap items-center gap-2 bg-[#06080d] border border-amber-500/30 p-1.5 rounded-xl">
-            <span className="text-[10px] font-bold text-amber-300 px-2 uppercase">
-              Deploy Bot / New Kingdom:
-            </span>
-            <input
-              type="text"
-              value={newKingdomInput}
-              onChange={(e) => setNewKingdomInput(e.target.value)}
-              placeholder="e.g. 4203"
-              className="w-20 px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
-            />
+          {/* Submit Scan Intent to Ring 1 (KENT) */}
+          <div className="flex flex-wrap items-center gap-2 bg-[#06080d] border border-cyan-500/30 p-2 rounded-xl">
+            <span className="text-[10px] font-bold text-cyan-300 px-1.5 uppercase">Queue Scan Intent (→ KENT):</span>
             <select
-              value={selectedInstanceForNewKd}
-              onChange={(e) => setSelectedInstanceForNewKd(e.target.value)}
-              className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+              value={scanKingdom}
+              onChange={(e) => setScanKingdom(e.target.value)}
+              className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-amber-200 font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
             >
-              {instances.map((inst) => (
-                <option key={inst.instanceId} value={inst.instanceId}>
-                  {inst.instanceId} ({inst.nodeId})
-                </option>
-              ))}
+              {Array.from(
+                new Set([
+                  ...watchedKingdoms.map((w) => String(w.kingdom_id)),
+                  ...bots.map((b) => String(b.kingdom_id)),
+                ])
+              )
+                .sort((a, b) => Number(a) - Number(b))
+                .map((kd) => (
+                  <option key={kd} value={kd}>
+                    Kingdom #{kd}
+                  </option>
+                ))}
             </select>
+
+            <select
+              value={scanRanks}
+              onChange={(e) => setScanRanks(e.target.value)}
+              className="px-2.5 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            >
+              <option value="300">Top 300 Ranks</option>
+              <option value="465">Top 465 (Core 3 Alliances)</option>
+              <option value="650">Top 650 (KvK Sweet Spot)</option>
+              <option value="1000">Top 1,000 (Full Census)</option>
+            </select>
+
+            <select
+              value={scanPriority}
+              onChange={(e) => setScanPriority(e.target.value)}
+              className="px-2 py-1 rounded-lg bg-[#0f1420] border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            >
+              <option value="70">Priority 70 (Standard)</option>
+              <option value="85">Priority 85 (R5 Urgent)</option>
+              <option value="95">Priority 95 (Immediate Preempt)</option>
+            </select>
+
             <button
               type="button"
-              onClick={() => {
-                setQuickScanKingdom(newKingdomInput);
-                dispatchAction(
-                  'TRIGGER_GENESIS_BOT',
-                  { kingdom: newKingdomInput, instanceId: selectedInstanceForNewKd },
-                  'deploy-genesis'
-                );
-              }}
-              disabled={busyAction === 'deploy-genesis'}
-              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              disabled={busyAction === 'submit-scan-intent'}
+              onClick={() =>
+                postBrainAction(
+                  {
+                    action: 'SUBMIT_INTENT',
+                    kingdom_id: Number(scanKingdom),
+                    max_ranks: Number(scanRanks),
+                    priority: Number(scanPriority),
+                  },
+                  'submit-scan-intent'
+                )
+              }
+              className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <PlusCircle size={13} />
-              <span>Stand Up Account & Capture Genesis</span>
+              <Play size={12} />
+              <span>Submit Intent #{scanKingdom}</span>
             </button>
           </div>
         </div>
@@ -516,13 +727,13 @@ export default function BastionCommandCenter() {
         {/* Feedback Banner */}
         {bannerMsg && (
           <div
-            className={`mt-4 p-3 rounded-xl border text-xs flex items-center justify-between ${
+            className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
               bannerMsg.type === 'error'
                 ? 'bg-rose-500/15 border-rose-500/40 text-rose-200'
                 : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 font-sans">
               {bannerMsg.type === 'error' ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
               <span>{bannerMsg.text}</span>
             </div>
@@ -533,262 +744,166 @@ export default function BastionCommandCenter() {
         )}
       </div>
 
-      {/* LIVE SIMULTANEOUS MULTI-INSTANCE EXECUTION & RANK-BY-RANK PROGRESS MONITOR */}
-      {(() => {
-        const mergedMap = {};
-        if (activeScanProgress) {
-          const id =
-            activeScanProgress.instanceId ||
-            (String(activeScanProgress.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
-          mergedMap[id] = { ...activeScanProgress, instanceId: id };
-        }
-        (activeTasks || []).forEach((t) => {
-          if (t) {
-            const id =
-              t.instanceId || (String(t.workerSerial || '').includes('16416') ? 'sidekick-mumu-1' : 'sidekick-mumu-0');
-            mergedMap[id] = { ...(mergedMap[id] || {}), ...t, instanceId: id };
-          }
-        });
-        const allTaskCards = Object.values(mergedMap).sort((a, b) => {
-          if (Boolean(b.running) !== Boolean(a.running)) return b.running ? 1 : -1;
-          return String(a.instanceId || '').localeCompare(String(b.instanceId || ''));
-        });
-        const runningTaskCards = allTaskCards.filter((t) => t.running);
-        const visibleTasks = runningTaskCards.length > 0 ? allTaskCards.filter((t) => t.running || t.status === 'COMPLETED' || t.status === 'NEEDS_CONTINENT_SELECT') : allTaskCards.slice(0, 2);
+      {/* =====================================================================
+          SECTION 1: LIVE SIDEKICK EMULATOR INSTANCES & ACTIVE BOT BINDINGS
+      ===================================================================== */}
+      <div className="p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 shadow-xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+              <Server size={15} />
+              <span>SIDEKICK EMULATOR INSTANCES · SINGLE-FLIGHT LOCKS & HUMAN ROUTINE PROFILES</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5 font-sans">
+              Each MuMu Player instance on <span className="text-emerald-300 font-semibold">SIDEKICK</span> is permanently bound to a single Google account (`mumu-account-0..2`) and dispatches through its own SQS FIFO `MessageGroupId`.
+            </p>
+          </div>
+          <div className="text-[11px] text-slate-400 font-mono">
+            Implemented CIPHER Skills: <span className="text-emerald-300 font-bold">{capabilities.join(' · ')}</span>
+          </div>
+        </div>
 
-        return (
-          <div
-            className={`p-5 rounded-2xl border shadow-xl transition-all space-y-4 ${
-              runningTaskCards.length > 0
-                ? 'bg-gradient-to-r from-emerald-950/40 via-[#0d1922] to-[#0b0e17] border-emerald-500/50'
-                : 'bg-[#0b0e17] border-slate-800'
-            }`}
-          >
-            {/* Header Bar + Quick Launch Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {['sidekick-mumu-0', 'sidekick-mumu-1', 'sidekick-mumu-2'].map((instId) => {
+            const meta = INSTANCE_META[instId];
+            const activeBotId = activeByInstance[instId] || null;
+            const activeBot = activeBotId ? botsById[activeBotId] : null;
+            const instCtrl = instancesMap[instId] || {};
+            const inFlight = instCtrl.in_flight || null;
+            const lastPlan = hb?.plans?.[instId] || '—';
+            const instanceBots = bots.filter((b) => b.instance_id === instId);
+            const rt = activeBotId ? botRuntimes[activeBotId] : null;
+            const prof = activeBot?.routine_profile || null;
+            const vs = activeBot?.verified_state || null;
+
+            return (
+              <div
+                key={instId}
+                className={`p-4 rounded-xl border space-y-3 ${
+                  inFlight
+                    ? 'bg-emerald-950/20 border-emerald-500/50'
+                    : activeBot
+                    ? 'bg-[#06080d] border-slate-800'
+                    : 'bg-[#06080d]/60 border-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-cyan-300">🖥️ {instId}</span>
+                      <span className="text-[10px] text-slate-500">({meta.adb})</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-sans mt-0.5">{meta.label}</div>
+                  </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${
-                      runningTaskCards.length > 0
-                        ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 animate-pulse'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                    className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                      inFlight
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
+                        : activeBot
+                        ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                        : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    <Activity size={12} />
-                    <span>
-                      {runningTaskCards.length > 1
-                        ? `🟢 ${runningTaskCards.length} SIMULTANEOUS TASKS RUNNING ON SIDEKICK`
-                        : runningTaskCards.length === 1
-                        ? `🟢 1 ACTIVE TASK RUNNING ON SIDEKICK (${runningTaskCards[0].instanceId || 'sidekick-mumu-0'})`
-                        : '⚪ NO ACTIVE TASKS RUNNING (ALL SIDEKICK INSTANCES READY)'}
-                    </span>
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-sans">
-                    Per-instance telemetry isolation enabled (`sidekick-mumu-0 :16384` · `sidekick-mumu-1 :16416` · `sidekick-mumu-2 :16448`)
+                    {inFlight ? `IN-FLIGHT: ${inFlight.job_type}` : `PLAN: ${lastPlan}`}
                   </span>
                 </div>
-              </div>
 
-              {/* Quick Launch / Stop Scan Controls */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <select
-                  value={quickScanKingdom}
-                  onChange={(e) => setQuickScanKingdom(e.target.value)}
-                  className="bg-[#06080d] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-amber-400 cursor-pointer"
-                >
-                  {Array.from(
-                    new Set([
-                      '4194',
-                      '4193',
-                      '4195',
-                      '4196',
-                      '4202',
-                      ...schedules.map((s) => String(s.kingdom)),
-                      ...(activeScanProgress?.kingdom ? [String(activeScanProgress.kingdom)] : []),
-                    ])
-                  ).map((kd) => (
-                    <option key={kd} value={kd}>
-                      Kingdom #{kd}
-                    </option>
-                  ))}
-                </select>
+                {/* Active Bot Selector for this Instance */}
+                <div className="p-2.5 rounded-lg bg-[#0b101b] border border-slate-800/90 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Bound Active Bot:</span>
+                    {instanceBots.length > 0 ? (
+                      <select
+                        value={activeBotId || ''}
+                        disabled={busyAction === `bind-${instId}`}
+                        onChange={(e) =>
+                          postBrainAction(
+                            { action: 'SET_ACTIVE_BOT', instance_id: instId, bot_id: e.target.value },
+                            `bind-${instId}`
+                          )
+                        }
+                        className="bg-[#06080d] border border-slate-700 text-amber-200 text-[11px] font-bold px-2 py-1 rounded focus:outline-none focus:border-amber-400 cursor-pointer"
+                      >
+                        {instanceBots.map((b) => (
+                          <option key={b.bot_id} value={b.bot_id}>
+                            #{b.kingdom_id} · {b.governor_name} (CH{b.verified_state?.ch_level})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-[10px] text-slate-500">Standby (No bots provisioned)</span>
+                    )}
+                  </div>
 
-                <select
-                  value={quickScanInstance}
-                  onChange={(e) => setQuickScanInstance(e.target.value)}
-                  className="bg-[#06080d] border border-slate-700 text-cyan-200 text-xs font-bold px-2.5 py-2 rounded-xl focus:outline-none focus:border-cyan-400 cursor-pointer"
-                >
-                  {instances.map((inst) => (
-                    <option key={inst.instanceId} value={inst.instanceId}>
-                      {inst.instanceId} ({(inst.adbAddress || '').split(' ')[0] || inst.nodeId})
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    dispatchAction(
-                      'RUN_IMMEDIATE_SCAN',
-                      {
-                        kingdom: quickScanKingdom,
-                        presetId: epochLedger?.defaultScanPreset || 'SWEET_650',
-                        instanceId: quickScanInstance,
-                      },
-                      'quick-launch-scan'
-                    )
-                  }
-                  disabled={busyAction === 'quick-launch-scan'}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Play size={13} />
-                  <span>{`Launch #${quickScanKingdom} Scan on ${quickScanInstance}`}</span>
-                </button>
-
-                {runningTaskCards.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => dispatchAction('STOP_ACTIVE_SCAN', {}, 'stop-all-scans')}
-                    disabled={busyAction === 'stop-all-scans'}
-                    className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/50 text-rose-200 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Pause size={13} />
-                    <span>Stop All ({runningTaskCards.length})</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Stacked / Grid Simultaneous Per-Instance Task Cards */}
-            <div className={`grid grid-cols-1 ${visibleTasks.length > 1 ? 'xl:grid-cols-2' : ''} gap-3`}>
-              {visibleTasks.map((task) => {
-                const instId = task.instanceId || 'sidekick-mumu-0';
-                const portStr =
-                  task.adbPort ||
-                  (instId.includes('mumu-1') ? '16416' : instId.includes('mumu-2') ? '16448' : '16384');
-                const isProv = task.status === 'PROVISIONING_BOT' || task.preset === 'BOT_PROVISION';
-                const isSwitch = task.status === 'SWITCHING_CHARACTER';
-                const pidVal = task.scannerPid || task.pid;
-
-                return (
-                  <div
-                    key={instId}
-                    className={`p-4 rounded-xl border transition-all ${
-                      task.running
-                        ? isProv
-                          ? 'bg-[#09131c]/90 border-amber-500/45'
-                          : 'bg-[#071615]/90 border-emerald-500/45'
-                        : 'bg-[#06080d]/90 border-slate-800/90'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/35 text-cyan-300 text-[10px] font-black">
-                          🖥️ {instId} (:{portStr})
+                  {activeBot ? (
+                    <div className="space-y-1.5 text-[11px] pt-1 border-t border-slate-800/70">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-bold">
+                          {activeBot.governor_name}{' '}
+                          <span className="text-amber-300 font-mono">(#{activeBot.kingdom_id})</span>
                         </span>
-
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${
-                            task.running
-                              ? isProv
-                                ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
-                                : isSwitch
-                                ? 'bg-blue-500/20 border-blue-400/50 text-blue-300'
-                                : 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
-                              : task.status === 'COMPLETED'
-                              ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
-                              : 'bg-slate-800 border-slate-700 text-slate-400'
+                          className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${
+                            STATE_BADGE_CLS[activeBot.lifecycle_state] || ''
                           }`}
                         >
-                          {task.running
-                            ? isProv
-                              ? `⚡ PROVISIONING BOT IN #${task.kingdom}`
-                              : isSwitch
-                              ? `🔄 SWITCHING TO #${task.kingdom}`
-                              : `🟢 LIVE SCANNING #${task.kingdom}`
-                            : task.status === 'COMPLETED'
-                            ? `✅ COMPLETED (#${task.kingdom})`
-                            : task.status === 'STOPPED_BY_OPERATOR'
-                            ? '🛑 STOPPED BY OPERATOR'
-                            : '⚪ STANDBY READY'}
-                          {pidVal && task.running ? ` · PID ${pidVal}` : ''}
+                          {activeBot.lifecycle_state}
                         </span>
-
-                        <span className="text-xs font-bold text-white">
-                          {isProv || isSwitch ? 'Step' : 'Rank'}{' '}
-                          <span className="text-amber-300">{task.currentRank || 0}</span> /{' '}
-                          <span>{task.targetRanks || 650}</span> (
-                          <span className="text-cyan-300">{task.percent || 0}%</span>)
-                        </span>
-
-                        {task.etaSeconds > 0 && task.running && (
-                          <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">
-                            ETA: ~{Math.max(1, Math.round(task.etaSeconds / 60))}m
-                          </span>
-                        )}
                       </div>
 
-                      {task.running && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            dispatchAction('STOP_ACTIVE_SCAN', { instanceId: instId }, `stop-${instId}`)
-                          }
-                          disabled={busyAction === `stop-${instId}`}
-                          className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/50 text-rose-200 font-black text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-                        >
-                          <Pause size={11} />
-                          <span>Stop {instId}</span>
-                        </button>
+                      <div className="grid grid-cols-3 gap-1.5 text-[10px] pt-0.5">
+                        <div className="bg-[#06080d] p-1.5 rounded border border-slate-800/80">
+                          <div className="text-slate-500">VERIFIED CH</div>
+                          <div className="font-bold text-emerald-300">CH {vs?.ch_level} → {prof?.target_ch_level}</div>
+                        </div>
+                        <div className="bg-[#06080d] p-1.5 rounded border border-slate-800/80">
+                          <div className="text-slate-500">POWER</div>
+                          <div className="font-bold text-cyan-300">{Number(vs?.power || 0).toLocaleString()}</div>
+                        </div>
+                        <div className="bg-[#06080d] p-1.5 rounded border border-slate-800/80">
+                          <div className="text-slate-500">VERIFIED</div>
+                          <div className="font-bold text-slate-300">{ago(vs?.last_verified_at, nowMs)}</div>
+                        </div>
+                      </div>
+
+                      {prof && (
+                        <div className="text-[10px] text-slate-400 font-sans flex flex-wrap items-center justify-between gap-1 pt-1">
+                          <span>
+                            🌙 Sleep: <strong className="text-slate-200">{prof.sleep_window_start_hour}:00–{prof.sleep_window_end_hour}:00</strong> EDT
+                          </span>
+                          <span>
+                            ⏱️ Active Today:{' '}
+                            <strong className="text-emerald-300">
+                              {rt?.active_minutes_today ?? prof.active_minutes_today ?? 0}/{prof.daily_active_cap_minutes}m
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+
+                      {vs?.last_screenshot_uri && (
+                        <div className="text-[9px] font-mono text-emerald-400/90 truncate pt-0.5" title={vs.last_screenshot_uri}>
+                          📸 Proof: {vs.last_screenshot_uri.split('/').slice(-2).join('/')}
+                        </div>
                       )}
                     </div>
-
-                    <div className="mt-2 text-[11px] text-slate-400 font-sans">
-                      {isProv || isSwitch ? 'Current Step:' : 'Latest Governor Scanned:'}{' '}
-                      <span className="text-emerald-300 font-semibold font-mono">
-                        {task.lastGovernorName || (task.running ? 'Stepping Leaderboard...' : 'Idle Ready')}
-                      </span>
-                      {task.lastGovernorPower > 0 && (
-                        <span className="ml-2 text-slate-300 font-mono">
-                          ({(task.lastGovernorPower / 1_000_000).toFixed(2)}M Power)
-                        </span>
-                      )}
-                      {!isProv && !isSwitch && (
-                        <span className="ml-3 text-cyan-300 font-mono">
-                          · 45-Field Govs Cached: {task.governorsExtracted || 0}
-                        </span>
-                      )}
+                  ) : (
+                    <div className="text-[10px] text-slate-500 font-sans">
+                      Instance powered off / reserve slot. Ready when mumu-account-2 is launched on SIDEKICK.
                     </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-                    <div className="mt-2.5 w-full h-2 bg-[#06080d] rounded-full overflow-hidden border border-slate-800">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          task.running
-                            ? isProv
-                              ? 'bg-gradient-to-r from-amber-500 via-orange-400 to-yellow-300'
-                              : 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-amber-400'
-                            : task.status === 'COMPLETED'
-                            ? 'bg-cyan-500'
-                            : 'bg-slate-700'
-                        }`}
-                        style={{
-                          width: `${Math.min(100, Math.max(task.running ? 3 : 0, Number(task.percent || 0)))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* SECTION 1: THE 3 BASTION MOE RINGS + INDEPENDENT LLM / SLM ROUTING */}
+      {/* =====================================================================
+          SECTION 2: THE 3-RING MOE ARCHITECTURE & HELPER REGISTRY
+      ===================================================================== */}
       <div className="space-y-4">
-        {ringGroups.map((rg) => {
-          const ringCfg = ringModels[rg.key] || {};
+        {RING_GROUPS.map((rg) => {
+          const ringAgents = AGENT_DEFINITIONS.filter((a) => a.ringKey === rg.key);
           return (
             <div
               key={rg.key}
@@ -800,183 +915,88 @@ export default function BastionCommandCenter() {
                     {rg.badge}
                   </span>
                   <div className="text-xs text-slate-400 mt-1.5 font-sans">
-                    Tier: <span className="text-slate-200 font-semibold">{ringCfg.tier}</span>
-                    {ringCfg.mathGate && (
-                      <span className="ml-3 px-2 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-mono">
-                        Gate: {ringCfg.mathGate}
-                      </span>
-                    )}
-                    {ringCfg.reconcilerEngine && (
-                      <span className="ml-3 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono">
-                        Engine: {ringCfg.reconcilerEngine}
-                      </span>
-                    )}
+                    Roster: <span className="text-slate-200 font-semibold">{rg.members}</span>
                   </div>
                 </div>
-
-                {/* Per-Ring Independent LLM / SLM Selector */}
-                <div className="flex items-center gap-2 bg-[#06080d] border border-slate-800 px-3 py-1.5 rounded-xl">
-                  <Cpu size={14} className="text-amber-400" />
-                  <span className="text-[10px] text-slate-400 uppercase font-bold">Ring LLM/SLM:</span>
-                  <select
-                    value={ringCfg.selectedModel || 'gemini-3.1-flash-lite'}
-                    onChange={(e) =>
-                      dispatchAction(
-                        'SET_RING_MODEL',
-                        { ringKey: rg.key, modelId: e.target.value },
-                        `model-${rg.key}`
-                      )
-                    }
-                    className="bg-[#0f1420] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer"
-                  >
-                    {(ringCfg.options || []).map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="text-[10px] text-slate-400 font-mono bg-[#06080d] border border-slate-800 px-3 py-1.5 rounded-xl">
+                  Ring Leader: <span className="text-white font-black">{rg.leader}</span>
                 </div>
               </div>
 
-              {/* Agent Cards in this Ring */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-                {rg.agents.map((ag) => (
-                  <div
-                    key={ag.id}
-                    onClick={() => setSelectedAgent(ag)}
-                    className="p-3.5 rounded-xl bg-[#070a12]/90 border border-slate-800/90 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between group"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{ag.icon}</span>
-                          <span className="text-sm font-black tracking-wider" style={{ color: ag.color }}>
-                            {ag.name}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {ringAgents.map((ag) => {
+                  const evCount = actorEventCounts[ag.actorKey] || 0;
+                  return (
+                    <div
+                      key={ag.id}
+                      onClick={() => setSelectedAgent(ag)}
+                      className="p-3.5 rounded-xl bg-[#070a12]/90 border border-slate-800/90 hover:border-emerald-500/50 transition-all cursor-pointer flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{ag.icon}</span>
+                            <span className="text-sm font-black tracking-wider" style={{ color: ag.color }}>
+                              {ag.name}
+                            </span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
+                            {ag.cadence}
                           </span>
                         </div>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
-                          {ag.cadence}
-                        </span>
+                        <div className="text-[11px] font-bold text-slate-200 mt-1.5 font-sans">{ag.role}</div>
+                        <p className="text-[10px] text-slate-400 mt-1.5 line-clamp-3 font-sans leading-relaxed">
+                          {ag.directive}
+                        </p>
                       </div>
-                      <div className="text-[11px] font-bold text-slate-200 mt-1.5 font-sans">{ag.role}</div>
-                      <p className="text-[10px] text-slate-400 mt-1.5 line-clamp-3 font-sans leading-relaxed">
-                        {ag.directive}
-                      </p>
-                    </div>
 
-                    <div className="mt-3 pt-2 border-t border-slate-800/70 flex items-center justify-between text-[9px] text-slate-400">
-                      <span className="truncate max-w-[160px]" title={ag.output}>
-                        Out: {ag.output}
-                      </span>
-                      <span className="text-amber-400 group-hover:underline shrink-0">Inspect →</span>
+                      <div className="mt-3 pt-2 border-t border-slate-800/70 space-y-1.5">
+                        {ag.helpers.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {ag.helpers.map((h) => (
+                              <span
+                                key={h}
+                                className="px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[9px] font-mono"
+                              >
+                                +{h}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-[9px] text-slate-400">
+                          <span>Events (48h): <strong className="text-emerald-300">{evCount}</strong></span>
+                          <span className="text-emerald-400 group-hover:underline">Inspect Spec →</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* SECTION 1B: DOZER EPOCH 0 ARCHIVAL CUTOVER & KVK SCAN DEPTH ENGINE */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-[#0b0e17] via-[#131124] to-[#0b0e17] border border-purple-500/35 shadow-xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-black uppercase">
-                🏗️ DOZER EPOCH 0 ARCHIVAL CUTOVER & MONOTONIC GUARD
-              </span>
-              <span className="px-2.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px]">
-                KP & DEADS MONOTONIC GUARD: ACTIVE
-              </span>
-              <span className="px-2.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">
-                256K-POWER R5 ALLIANCE HEADER CAPTURE: ON
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1.5 font-sans max-w-3xl">
-              Once a kingdom has a Bastion Bot, all legacy spreadsheets are moved to the{' '}
-              <span className="text-purple-300 font-semibold">🏛️ Historical Archive (View-Only)</span> and{' '}
-              <span className="text-emerald-300 font-semibold">zeroed out from active delta math (Epoch 0)</span>.
-              Spreadsheets uploaded for unclaimed kingdoms act as a Trojan-Horse lead trigger to deploy a bot.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Global Default KvK Scan Depth Selector */}
-            <div className="flex items-center gap-2 bg-[#06080d] border border-amber-500/30 px-3 py-1.5 rounded-xl">
-              <Sliders size={14} className="text-amber-400" />
-              <span className="text-[10px] text-slate-400 uppercase font-bold">Default KvK Depth:</span>
-              <select
-                value={epochLedger?.defaultScanPreset || 'SWEET_650'}
-                onChange={(e) =>
-                  dispatchAction(
-                    'SET_SCAN_PRESET',
-                    { kingdom: 'ALL', presetId: e.target.value },
-                    'global-scan-preset'
-                  )
-                }
-                className="bg-[#0f1420] border border-slate-700 text-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer"
-              >
-                <option value="CORE_465">465 · Top 3 Alliances (155×3 Core · 14m)</option>
-                <option value="SWEET_650">650 · KvK Sweet Spot (Default · 19m)</option>
-                <option value="FULL_1000">1,000 · Full Deep Census + R5 Header (29m)</option>
-              </select>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => dispatchAction('EXECUTE_EPOCH_CUTOVER', { kingdom: 'ALL' }, 'epoch-cutover-all')}
-              disabled={busyAction === 'epoch-cutover-all'}
-              className="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Database size={14} />
-              <span>Lock Global Epoch 0 Cutover</span>
-            </button>
-          </div>
-        </div>
-
-        {/* DOZER Live Telemetry Counters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-          <div className="p-3 rounded-xl bg-[#06080d] border border-slate-800">
-            <div className="text-[10px] text-slate-500 uppercase">BOT-SOVEREIGN KINGDOMS</div>
-            <div className="text-sm font-black text-emerald-400 mt-0.5">
-              {Object.keys(epochLedger?.kingdomEpochs || {}).length} Kingdoms (Epoch 0)
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-[#06080d] border border-slate-800">
-            <div className="text-[10px] text-slate-500 uppercase">MONOTONIC KP/DEADS REPAIRS</div>
-            <div className="text-sm font-black text-amber-300 mt-0.5">
-              {epochLedger?.dozerStats?.monotonicFixesApplied || 14} Prevented Drops
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-[#06080d] border border-slate-800">
-            <div className="text-[10px] text-slate-500 uppercase">LEGACY SHEETS ARCHIVED</div>
-            <div className="text-sm font-black text-purple-300 mt-0.5">
-              {epochLedger?.dozerStats?.archivedSheetSnapshots || 163} View-Only (0 Delta)
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-[#06080d] border border-slate-800">
-            <div className="text-[10px] text-slate-500 uppercase">ALLIANCE R5 HEADER PROBE</div>
-            <div className="text-sm font-black text-cyan-300 mt-0.5">Top 10 R5s (Catches 256k R5s)</div>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 2: DYNAMIC KINGDOM CADENCE MATRIX (12H STEADY <-> 3H SURGE <-> GENESIS WATCH) */}
+      {/* =====================================================================
+          SECTION 3: WATCHED KINGDOM CADENCE MATRIX & QUEUED INTENTS
+      ===================================================================== */}
       <div className="p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 shadow-xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-black text-amber-400 uppercase tracking-widest">
-              DYNAMIC KINGDOM CADENCE, SCAN DEPTH (465 / 650 / 1000) & EPOCH MATRIX
+            <div className="text-xs font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+              <Clock size={15} />
+              <span>WATCHED KINGDOM CADENCE MATRIX (NULL STALENESS ENGINE) & ACTIVE INTENTS</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 font-sans">
-              Quiet kingdoms cruise on a <span className="text-cyan-300 font-semibold">12-Hour Steady-State</span>{' '}
-              schedule. When Unity API calls spike (<span className="text-amber-300 font-semibold">KENT</span>) or war
-              breaks out (<span className="text-pink-300 font-semibold">SCOUT</span>),{' '}
-              <span className="text-sky-300 font-semibold">NULL</span> promotes the kingdom to{' '}
-              <span className="text-emerald-300 font-semibold">3-Hour Surge Mode</span>.
+              Ring 1 (<span className="text-cyan-300 font-semibold">NULL</span>) compares each watched kingdom’s{' '}
+              <span className="text-pink-300 font-semibold">AUDIT-verified</span> scan timestamp (`KINGDOM#&lt;id&gt;`) against its cadence (`3h Surge` vs `12h Steady`) and emits `SCAN_DUE` demands when stale.
             </p>
           </div>
+          {intents.length > 0 && (
+            <span className="px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold">
+              {intents.length} Active Scan Intent(s) in Queue
+            </span>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -984,227 +1004,109 @@ export default function BastionCommandCenter() {
             <thead>
               <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase">
                 <th className="py-2.5 px-3">Kingdom</th>
-                <th className="py-2.5 px-3">Data Provenance / Epoch</th>
-                <th className="py-2.5 px-3">Active Mode / Cadence</th>
-                <th className="py-2.5 px-3">Last Scan Completed / Next Scan</th>
-                <th className="py-2.5 px-3">KvK Scan Depth</th>
-                <th className="py-2.5 px-3">Unity API Demand (KENT)</th>
-                <th className="py-2.5 px-3">Genesis Birth Roster</th>
-                <th className="py-2.5 px-3 text-right">Operator Intervention</th>
+                <th className="py-2.5 px-3">Stationed Bastion Bots</th>
+                <th className="py-2.5 px-3">Cadence Mode</th>
+                <th className="py-2.5 px-3">Last Verified Scan (AUDIT)</th>
+                <th className="py-2.5 px-3">Staleness Status</th>
+                <th className="py-2.5 px-3 text-right">Operator Controls</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {schedules.map((kd) => {
-                const isSurge = kd.mode === 'SURGE_3H';
-                const isGenesisWatch = kd.mode === 'GENESIS_WATCH';
-                const isGenesisBase = kd.mode === 'GENESIS_BASELINE';
-                const kdEpoch = epochLedger?.kingdomEpochs?.[String(kd.kingdom)];
-                const activePreset = kd.scanPreset || kdEpoch?.scanPreset || epochLedger?.defaultScanPreset || 'SWEET_650';
-
-                const lastScanDate = kd.lastScanAt ? new Date(kd.lastScanAt) : null;
-                const nextScanDate = kd.nextScanAt && !isNaN(new Date(kd.nextScanAt).getTime()) ? new Date(kd.nextScanAt) : null;
-                const agoMins = lastScanDate ? Math.max(0, Math.round((Date.now() - lastScanDate.getTime()) / 60000)) : null;
-                const agoLabel =
-                  agoMins === null
-                    ? 'Never'
-                    : agoMins < 60
-                    ? `${agoMins}m ago`
-                    : `${Math.floor(agoMins / 60)}h ${agoMins % 60}m ago`;
-
-                const nextMins = nextScanDate ? Math.round((nextScanDate.getTime() - Date.now()) / 60000) : null;
-                const nextLabel =
-                  nextMins === null
-                    ? kd.nextScanAt || '—'
-                    : nextMins <= 0
-                    ? 'Due Now (Queued)'
-                    : nextMins < 60
-                    ? `in ${nextMins}m`
-                    : `in ${Math.floor(nextMins / 60)}h ${nextMins % 60}m`;
+              {watchedKingdoms.map((w) => {
+                const kdId = Number(w.kingdom_id);
+                const cadenceH = Number(w.cadence_hours || 12);
+                const isSurge = cadenceH <= 3;
+                const kdRec = kingdomRecords[String(kdId)] || {};
+                const lastIso = kdRec.last_scan_verified_at || null;
+                const ageHours = lastIso ? (nowMs - new Date(lastIso).getTime()) / 3600000 : null;
+                const isDue = ageHours === null || ageHours >= cadenceH;
+                const stationedBots = bots.filter((b) => Number(b.kingdom_id) === kdId);
 
                 return (
-                  <tr key={kd.kingdom} className="hover:bg-white/[0.02]">
+                  <tr key={kdId} className="hover:bg-white/[0.02]">
                     <td className="py-3 px-3">
-                      <div className="font-black text-white text-sm">#{kd.kingdom}</div>
-                      <div className="text-[10px] text-slate-400 font-sans">{kd.name}</div>
+                      <div className="font-black text-white text-sm">#{kdId}</div>
+                      <div className="text-[10px] text-slate-400 font-sans">{w.source || 'Watched Kingdom'}</div>
                     </td>
                     <td className="py-3 px-3">
-                      {isGenesisWatch ? (
-                        <span className="px-2 py-0.5 rounded bg-pink-500/15 border border-pink-500/30 text-pink-300 text-[10px] font-bold">
-                          🌱 AWAITING SPAWN
-                        </span>
-                      ) : (
-                        <div className="space-y-0.5">
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold inline-block">
-                            🤖 BOT-SOVEREIGN (EPOCH 0)
+                      <div className="flex flex-wrap gap-1.5">
+                        {stationedBots.map((b) => (
+                          <span
+                            key={b.bot_id}
+                            className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] text-slate-200"
+                          >
+                            {b.governor_name} <span className="text-emerald-300">CH{b.verified_state?.ch_level}</span>{' '}
+                            <span className="text-slate-400">({b.instance_id.replace('sidekick-', '')})</span>
                           </span>
-                          <div className="text-[9px] text-slate-500">Legacy Sheets: Archived (0 Delta)</div>
-                        </div>
-                      )}
+                        ))}
+                        {stationedBots.length === 0 && (
+                          <span className="text-[10px] text-rose-300">No bot stationed</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-3">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${
                           isSurge
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : isGenesisWatch
-                            ? 'bg-pink-500/20 text-pink-300 border-pink-500/40 animate-pulse'
-                            : isGenesisBase
-                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
                             : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
                         }`}
                       >
-                        {kd.mode} ({kd.cadenceHours}h)
+                        {isSurge ? `SURGE (${cadenceH}h)` : `STEADY (${cadenceH}h)`}
                       </span>
                     </td>
                     <td className="py-3 px-3">
-                      {isGenesisWatch ? (
-                        <span className="text-[10px] text-slate-500">Triggers on Spawn</span>
-                      ) : (
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-white font-bold text-[11px]">
-                              {lastScanDate
-                                ? lastScanDate.toLocaleString([], {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                                : 'No Scan Yet'}
-                            </span>
-                            {agoMins !== null && (
-                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[9px] font-bold">
-                                {agoLabel}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            Next:{' '}
-                            <span className={nextMins !== null && nextMins <= 0 ? 'text-amber-300 font-bold' : 'text-slate-300'}>
-                              {nextScanDate
-                                ? `${nextScanDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${nextLabel})`
-                                : nextLabel}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      <div className="text-slate-200 font-bold text-[11px]">{ago(lastIso, nowMs)}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{lastIso || 'Never AUDIT-verified'}</div>
                     </td>
                     <td className="py-3 px-3">
-                      {isGenesisWatch ? (
-                        <span className="text-[10px] text-slate-500">Day-1 Seed (465)</span>
-                      ) : (
-                        <select
-                          value={activePreset}
-                          onChange={(e) =>
-                            dispatchAction(
-                              'SET_SCAN_PRESET',
-                              { kingdom: kd.kingdom, presetId: e.target.value },
-                              `preset-${kd.kingdom}`
-                            )
-                          }
-                          className="bg-[#06080d] border border-slate-700 text-amber-200 text-[11px] font-bold px-2 py-1 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer"
-                        >
-                          <option value="CORE_465">465 (3 Alliances × 155)</option>
-                          <option value="SWEET_650">650 (KvK Sweet Spot)</option>
-                          <option value="FULL_1000">1,000 (Full + R5 Header)</option>
-                        </select>
-                      )}
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-amber-300">{kd.unityApiCalls24h || 0} calls</span>
-                        <button
-                          type="button"
-                          title="Simulate Unity API demand spike (+5 calls) to test KENT → NULL auto-promotion"
-                          onClick={() =>
-                            dispatchAction(
-                              'RECORD_UNITY_DEMAND',
-                              { kingdom: kd.kingdom, weight: 5 },
-                              `demand-${kd.kingdom}`
-                            )
-                          }
-                          className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 cursor-pointer"
-                        >
-                          +5 Demand Pulse
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3">
-                      {kd.genesisCaptured ? (
-                        <span className="text-emerald-400 font-bold text-[11px]">
-                          ✓ Locked ({kd.genesisGovernorsTracked || 1000} Native IDs)
-                        </span>
-                      ) : (
-                        <span className="text-pink-300 text-[11px]">Armed for Day-1 Capture</span>
-                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          isDue
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        }`}
+                      >
+                        {isDue ? 'SCAN_DUE (Signaled by NULL)' : 'FRESH (Within Cadence)'}
+                      </span>
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                        {isGenesisWatch ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              dispatchAction(
-                                'TRIGGER_GENESIS_BOT',
-                                { kingdom: kd.kingdom, instanceId: 'sidekick-mumu-0' },
-                                `genesis-${kd.kingdom}`
-                              )
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-pink-500 hover:bg-pink-400 text-black font-black text-[10px] cursor-pointer"
-                          >
-                            ⚡ Spawn Genesis Bot Now
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                dispatchAction(
-                                  'SET_KINGDOM_CADENCE',
-                                  {
-                                    kingdom: kd.kingdom,
-                                    mode: isSurge ? 'STEADY_12H' : 'SURGE_3H',
-                                    cadenceHours: isSurge ? 12 : 3,
-                                  },
-                                  `cadence-${kd.kingdom}`
-                                )
-                              }
-                              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200 cursor-pointer"
-                            >
-                              {isSurge ? 'Slow to 12h Steady' : 'Boost to 3h Surge'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                dispatchAction(
-                                  'SWITCH_INSTANCE_KINGDOM',
-                                  { instanceId: 'sidekick-mumu-0', kingdom: kd.kingdom },
-                                  `switch-${kd.kingdom}`
-                                )
-                              }
-                              className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[10px] cursor-pointer"
-                            >
-                              Hop Here (22s)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                dispatchAction(
-                                  'RUN_IMMEDIATE_SCAN',
-                                  {
-                                    kingdom: kd.kingdom,
-                                    presetId: activePreset,
-                                    instanceId: 'sidekick-mumu-0',
-                                  },
-                                  `scan-${kd.kingdom}`
-                                )
-                              }
-                              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-[10px] cursor-pointer"
-                            >
-                              Scan Now ({activePreset === 'CORE_465' ? '465' : activePreset === 'FULL_1000' ? '1000' : '650'})
-                            </button>
-                          </>
-                        )}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={busyAction === `cadence-${kdId}`}
+                          onClick={() =>
+                            postBrainAction(
+                              {
+                                action: 'SET_KINGDOM_CADENCE',
+                                kingdom_id: kdId,
+                                cadence_hours: isSurge ? 12 : 3,
+                              },
+                              `cadence-${kdId}`
+                            )
+                          }
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200 cursor-pointer"
+                        >
+                          {isSurge ? 'Set 12h Steady' : 'Promote 3h Surge'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyAction === `intent-${kdId}`}
+                          onClick={() =>
+                            postBrainAction(
+                              {
+                                action: 'SUBMIT_INTENT',
+                                kingdom_id: kdId,
+                                max_ranks: 650,
+                                priority: 85,
+                              },
+                              `intent-${kdId}`
+                            )
+                          }
+                          className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-500/40 text-cyan-200 font-bold text-[10px] cursor-pointer"
+                        >
+                          Queue Scan Intent
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1215,171 +1117,253 @@ export default function BastionCommandCenter() {
         </div>
       </div>
 
-      {/* SECTION 3: HARDWARE NODES, MUMU INSTANCES & 6-GOVERNOR PROVISIONED ROSTER */}
+      {/* =====================================================================
+          SECTION 4: GOOGLE ACCOUNT SLOT POOL & 15-BOT PROVISIONED FLEET
+      ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left 6 cols: Hardware Nodes & MuMu Instances */}
-        <div className="lg:col-span-6 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
-          <div className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-            <Server size={15} />
-            <span>HARDWARE NODES & MUMU EMULATOR FLEET</span>
+        {/* Left 5 cols: Google Account Slot Pool */}
+        <div className="lg:col-span-5 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+              <Layers size={15} />
+              <span>GOOGLE ACCOUNT SLOT POOL (≤ 2 CHARS / KINGDOM)</span>
+            </div>
+            <span className="text-[10px] text-emerald-300 font-mono">NUMNUM Enforced</span>
           </div>
+          <p className="text-xs text-slate-400 font-sans">
+            Rise of Kingdoms permits at most 2 characters per kingdom on each Google account. `BastionAccountSlots` tracks every slot so `NUMNUM` (`ACCOUNT_KINGDOM_SLOT_CAP`) prevents invalid character creation.
+          </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {nodes.map((n) => (
-              <div key={n.nodeId} className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-black text-white">
-                    {n.nodeId} <span className="text-[10px] text-slate-400">({n.ip})</span>
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                    {n.status}
-                  </span>
-                </div>
-                <div className="text-[10px] text-slate-400 font-sans">{n.specs}</div>
-                <div className="grid grid-cols-2 gap-2 pt-1 text-[10px]">
-                  <div className="bg-[#0c101b] p-2 rounded border border-slate-800/80">
-                    <div className="text-slate-500">CPU LOAD</div>
-                    <div className="text-xs font-bold text-cyan-300">{n.cpuLoadPct}%</div>
-                  </div>
-                  <div className="bg-[#0c101b] p-2 rounded border border-slate-800/80">
-                    <div className="text-slate-500">RAM HEADROOM</div>
-                    <div className="text-xs font-bold text-emerald-300">
-                      {n.ramUsedGb} / {n.ramTotalGb} GB
+          <div className="space-y-3">
+            {accountSlots.map((slot) => {
+              const kdEntries = Object.entries(slot.kingdom_slots || {}).sort(
+                (a, b) => Number(a[0]) - Number(b[0])
+              );
+              const totalChars = kdEntries.reduce((acc, [, arr]) => acc + (arr?.length || 0), 0);
+              return (
+                <div key={slot.account_id} className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-black text-white">{slot.account_id}</span>
+                      <span className="text-[10px] text-slate-400 ml-2">
+                        ({slot.instance_id} · {slot.adb_serial})
+                      </span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-2.5 pt-2">
-            {instances.map((inst) => (
-              <div
-                key={inst.instanceId}
-                className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 flex flex-wrap items-center justify-between gap-3"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-amber-300">{inst.instanceId}</span>
-                    <span className="text-[10px] text-slate-500">({inst.adbAddress})</span>
                     <span
-                      className={`text-[9px] px-2 py-0.5 rounded font-bold ${
-                        inst.status.includes('ACTIVE') || inst.status.includes('SCANNING')
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-slate-800 text-slate-400'
+                      className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                        slot.account_status === 'HEALTHY'
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
                       }`}
                     >
-                      {inst.status}
+                      {slot.account_status}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-300 mt-1 font-sans">{inst.accountSlot}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    Active Kingdom: <span className="text-white font-bold">#{inst.activeKingdom}</span> · Character:{' '}
-                    <span className="text-cyan-300">{inst.activeCharacter}</span> · Slice:{' '}
-                    <span className="text-amber-300">{inst.assignedSlice}</span>
+
+                  <div className="text-[10px] text-slate-400 font-sans">
+                    Occupied Kingdom Slots: <strong className="text-slate-200">{kdEntries.length} Kingdoms</strong> ·{' '}
+                    <strong className="text-cyan-300">{totalChars} Characters</strong> (Max {slot.max_slots_per_kingdom}/kingdom)
                   </div>
+
+                  {kdEntries.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                      {kdEntries.map(([kd, botIdList]) => {
+                        const count = (botIdList || []).length;
+                        const full = count >= slot.max_slots_per_kingdom;
+                        return (
+                          <div
+                            key={kd}
+                            className={`p-2 rounded border text-[10px] ${
+                              full
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                                : 'bg-[#0b101b] border-slate-800 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between font-bold">
+                              <span>#{kd}</span>
+                              <span className={full ? 'text-amber-300' : 'text-emerald-300'}>
+                                {count}/{slot.max_slots_per_kingdom}
+                              </span>
+                            </div>
+                            <div className="text-[9px] text-slate-400 truncate mt-0.5">
+                              {(botIdList || []).map((id) => botsById[id]?.governor_name || id).join(', ')}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-slate-500 italic">0 slots occupied (all kingdoms 0/2 open)</div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Right 6 cols: Provisioned Multi-Kingdom Character Roster */}
-        <div className="lg:col-span-6 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Right 7 cols: 15-Bot Provisioned Fleet */}
+        <div className="lg:col-span-7 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-xs font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
               <Bot size={15} />
-              <span>PROVISIONED BASTION BOT ROSTER ({roster.length} GOVERNORS)</span>
+              <span>BASTION BOTS FLEET ({filteredBots.length} OF {bots.length} GOVERNORS)</span>
             </div>
-            <span className="text-[10px] text-slate-400">22s Instant Kingdom Hop</span>
+            <div className="flex items-center gap-1.5">
+              {['ALL', 'sidekick-mumu-0', 'sidekick-mumu-1'].map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setInstanceFilter(f)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                    instanceFilter === f
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
+                      : 'bg-[#06080d] border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {f === 'ALL' ? `All (${bots.length})` : f.replace('sidekick-', '')}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-2.5">
-            {roster.map((char) => (
-              <div
-                key={char.govId}
-                className="p-3 rounded-xl bg-[#06080d] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-wrap items-center justify-between gap-2"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black">
-                      #{char.kingdom}
-                    </span>
-                    <span className="text-xs font-bold text-white">{char.name}</span>
-                    <span className="text-[10px] text-slate-400">ID: {char.govId}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300">
-                      CH{char.chLevel}
-                    </span>
+          <div className="space-y-2 max-h-[34rem] overflow-y-auto pr-1">
+            {filteredBots.map((b) => {
+              const isActiveOnInstance = activeByInstance[b.instance_id] === b.bot_id;
+              const vs = b.verified_state || {};
+              const prof = b.routine_profile || {};
+              return (
+                <div
+                  key={b.bot_id}
+                  className={`p-3 rounded-xl border transition-all flex flex-wrap items-center justify-between gap-3 ${
+                    isActiveOnInstance
+                      ? 'bg-emerald-950/20 border-emerald-500/45'
+                      : 'bg-[#06080d] border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black">
+                        #{b.kingdom_id}
+                      </span>
+                      <span className="text-xs font-bold text-white">{b.governor_name}</span>
+                      {b.governor_id && <span className="text-[10px] text-slate-400">ID: {b.governor_id}</span>}
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold">
+                        CH{vs.ch_level}
+                      </span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded border font-black ${
+                          STATE_BADGE_CLS[b.lifecycle_state] || ''
+                        }`}
+                      >
+                        {b.lifecycle_state}
+                      </span>
+                      {isActiveOnInstance && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black">
+                          ★ ACTIVE ON {b.instance_id.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-sans flex flex-wrap items-center gap-3">
+                      <span>Instance: <strong className="text-slate-200 font-mono">{b.instance_id}</strong></span>
+                      <span>Slot: <strong className="text-slate-200">{b.character_slot}/2</strong></span>
+                      <span>Power: <strong className="text-cyan-300 font-mono">{Number(vs.power || 0).toLocaleString()}</strong></span>
+                      <span>Sleep: <strong className="text-slate-300">{prof.sleep_window_start_hour}:00–{prof.sleep_window_end_hour}:00 EDT</strong></span>
+                      <span>Verified: <strong className="text-slate-300">{ago(vs.last_verified_at, nowMs)}</strong></span>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1 font-sans">
-                    {char.kingdomName} · Power: {Number(char.power).toLocaleString()} · Role:{' '}
-                    <span className="text-slate-200">{char.role}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dispatchAction(
-                        'SWITCH_INSTANCE_KINGDOM',
-                        { instanceId: char.instanceId, kingdom: char.kingdom },
-                        `char-hop-${char.govId}`
-                      )
-                    }
-                    className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    <ArrowRightLeft size={11} />
-                    <span>Activate in 22s</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {!isActiveOnInstance && (
+                      <button
+                        type="button"
+                        disabled={busyAction === `set-active-${b.bot_id}`}
+                        onClick={() =>
+                          postBrainAction(
+                            { action: 'SET_ACTIVE_BOT', instance_id: b.instance_id, bot_id: b.bot_id },
+                            `set-active-${b.bot_id}`
+                          )
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowRightLeft size={11} />
+                        <span>Bind Active</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* SECTION 4: LIVE BASTION MULTI-RING ACTIVITY & DECISION LOG */}
-      <div className="p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-            <Terminal size={15} />
-            <span>BASTION RING LIVE DECISION & INTERVENTION LOG</span>
+      {/* =====================================================================
+          SECTION 5: DETAILED DECISION AUDIT LOG (BASTIONEVENTS)
+      ===================================================================== */}
+      <div className="p-5 rounded-2xl bg-[#0b0e17] border border-emerald-500/30 shadow-2xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+              <Terminal size={15} />
+              <span>BASTION BRAIN DECISION AUDIT LOG (`BastionEvents` · NEWEST FIRST)</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5 font-sans">
+              Every Ring 1 signal, Ring 2 plan proposal, `NUMNUM` 8-rule evaluation, `CIPHER` execution result, and Ring 3 `AUDIT` verification is permanently logged with a mandatory `oversight` block (`why`, `trigger_inputs`, `numnum_checks`, `evidence_refs`). Click any row to expand.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={fetchBastion}
-            className="text-[10px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 cursor-pointer"
-          >
-            <RefreshCw size={11} />
-            <span>Refresh Feed</span>
-          </button>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={ringFilter}
+              onChange={(e) => setRingFilter(e.target.value)}
+              className="bg-[#06080d] border border-slate-700 rounded-lg text-[10px] px-2.5 py-1.5 text-slate-200 cursor-pointer"
+            >
+              <option value="ALL">All Rings</option>
+              <option value="RING_1_INTEL">Ring 1 (Intel)</option>
+              <option value="RING_2_OPS">Ring 2 (Ops & Gate)</option>
+              <option value="RING_3_AUDIT">Ring 3 (Audit)</option>
+              <option value="SYSTEM">System / Mode</option>
+            </select>
+
+            <select
+              value={actorFilter}
+              onChange={(e) => setActorFilter(e.target.value)}
+              className="bg-[#06080d] border border-slate-700 rounded-lg text-[10px] px-2.5 py-1.5 text-slate-200 cursor-pointer"
+            >
+              <option value="ALL">All Actors</option>
+              {['SCOUT', 'KENT', 'NULL', 'TANK', 'BIG_JON', 'NUMNUM', 'CIPHER', 'AUDIT', 'DOZER', 'OPERATOR'].map(
+                (act) => (
+                  <option key={act} value={act}>
+                    {act} ({actorEventCounts[act] || 0})
+                  </option>
+                )
+              )}
+            </select>
+
+            <select
+              value={severityFloor}
+              onChange={(e) => setSeverityFloor(e.target.value)}
+              className="bg-[#06080d] border border-slate-700 rounded-lg text-[10px] px-2.5 py-1.5 text-slate-200 cursor-pointer"
+            >
+              {severityOrder.map((s) => (
+                <option key={s} value={s}>
+                  Severity: {s}+
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-          {logs.map((entry) => (
-            <div
-              key={entry.id}
-              className="p-2.5 rounded-xl bg-[#06080d] border border-slate-800/80 text-xs flex flex-wrap items-start justify-between gap-2"
-            >
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-black">
-                    {entry.agent}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[9px]">
-                    {entry.model}
-                  </span>
-                  <span className="text-[10px] font-bold text-cyan-300">{entry.action}</span>
-                  <span className="text-[10px] text-slate-400">Kingdom #{entry.kingdom}</span>
-                </div>
-                <div className="text-[11px] text-slate-300 font-sans pt-0.5">{entry.detail}</div>
-              </div>
-              <span className="text-[10px] text-slate-500 shrink-0">
-                {new Date(entry.timestamp).toLocaleTimeString()}
-              </span>
-            </div>
+        <div className="max-h-[32rem] overflow-y-auto rounded-xl border border-slate-800 bg-[#06080d]/90">
+          {filteredEvents.map((ev) => (
+            <EventAuditRow key={ev.event_id} ev={ev} nowMs={nowMs} />
           ))}
+          {filteredEvents.length === 0 && (
+            <div className="p-4 text-xs text-slate-500 text-center font-sans">
+              No oversight events match the current filter criteria.
+            </div>
+          )}
         </div>
       </div>
 
@@ -1391,7 +1375,7 @@ export default function BastionCommandCenter() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-[#0c111d] border border-amber-500/40 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4"
+            className="bg-[#0c111d] border border-emerald-500/40 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1410,8 +1394,8 @@ export default function BastionCommandCenter() {
             </div>
 
             <div className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 space-y-2 text-xs font-sans">
-              <div className="text-[10px] font-mono text-amber-400 uppercase font-bold">
-                Operating Directive & Role in Ring
+              <div className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
+                Contract Directive & Role in Ring
               </div>
               <p className="text-slate-300 leading-relaxed">{selectedAgent.directive}</p>
             </div>
@@ -1422,13 +1406,29 @@ export default function BastionCommandCenter() {
                 <div className="font-bold text-cyan-300 mt-0.5">{selectedAgent.cadence}</div>
               </div>
               <div className="p-2.5 rounded-xl bg-[#06080d] border border-slate-800">
-                <div className="text-[10px] text-slate-500">DEFAULT ENGINE</div>
+                <div className="text-[10px] text-slate-500">EXECUTION ENGINE</div>
                 <div className="font-bold text-amber-300 mt-0.5">{selectedAgent.defaultModelType}</div>
               </div>
             </div>
 
+            {selectedAgent.helpers?.length > 0 && (
+              <div className="p-2.5 rounded-xl bg-[#06080d] border border-slate-800 text-xs">
+                <div className="text-[10px] text-slate-500">BOUNDED HELPER TEMPLATES (`helpers.schema.json`)</div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {selectedAgent.helpers.map((h) => (
+                    <span
+                      key={h}
+                      className="px-2 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-mono"
+                    >
+                      {h}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="p-2.5 rounded-xl bg-[#06080d] border border-slate-800 text-xs">
-              <div className="text-[10px] text-slate-500">PIPELINE OUTPUTS</div>
+              <div className="text-[10px] text-slate-500">CONTRACT OUTPUTS</div>
               <div className="text-slate-200 mt-0.5">{selectedAgent.output}</div>
             </div>
           </div>
