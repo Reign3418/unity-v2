@@ -47,6 +47,11 @@
         "capture_resources": {
           "type": "boolean",
           "default": true
+        },
+        "launch_if_closed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wake: launch Rise of Kingdoms first if it is closed (used to end a sleep)."
         }
       },
       "additionalProperties": false

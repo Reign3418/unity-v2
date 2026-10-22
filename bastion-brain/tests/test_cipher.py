@@ -163,6 +163,17 @@ class Happy(Base):
         self.assertIn(("force_stop", "127.0.0.1:16416"), adb.calls)
         self.assertEqual(r.results()[0]["observed_state"]["screen_state"], "SLEEP_APP_CLOSED")
 
+    def test_probe_wake_launches_closed_app_only_when_asked(self):
+        adb = FakeAdb(running=False)
+        r = self.rig([make_job("probe_status", {"launch_if_closed": True})], adb=adb)
+        self.assertEqual(r.run(), ["SUCCEEDED"])
+        self.assertIn(("launch", "127.0.0.1:16416"), adb.calls)
+        adb2 = FakeAdb(running=False)
+        r2 = self.rig([make_job("probe_status")], adb=adb2)
+        r2.run()
+        self.assertNotIn(("launch", "127.0.0.1:16416"), adb2.calls)
+        self.assertEqual(r2.results()[0]["observed_state"]["screen_state"], "SLEEP_APP_CLOSED")
+
 
 class Safety(Base):
     def test_unsupported_ch_never_runs_script(self):

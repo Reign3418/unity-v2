@@ -99,6 +99,10 @@ def parse_grow_output(stdout: str) -> Dict[str, Any]:
 # --------------------------------------------------------------------------- skills
 
 def probe_status(ctx: SkillContext) -> SkillOutcome:
+    if ctx.job["args"].get("launch_if_closed") and not ctx.adb.app_running(ctx.serial):
+        ctx.adb.launch_app(ctx.serial)
+        ctx.step("launch_app", f"Wake: app was closed; launched and waiting {APP_BOOT_WAIT_SECONDS}s")
+        ctx.sleeper(APP_BOOT_WAIT_SECONDS)
     cap = ctx.capture()
     ctx.step("capture", f"screen_state={cap.screen_state} ocr_lines={len(cap.lines)}")
     observed = {"screen_state": cap.screen_state, "kingdom_id": cap.kingdom_id}

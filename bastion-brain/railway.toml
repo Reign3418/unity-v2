@@ -1,0 +1,4 @@
+# Railway config-as-code for the bastion-brain worker (service Root Directory: /bastion-brain).
+[deploy]
+startCommand = "python -m brain"
+restartPolicyType = "ALWAYS"

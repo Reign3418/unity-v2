@@ -67,7 +67,8 @@
             "JOB_SCHEMA_BOUNDS",
             "IDEMPOTENCY_DEDUP",
             "RING_TOKEN_BUDGET",
-            "HELPER_CONCURRENCY_CAP"
+            "HELPER_CONCURRENCY_CAP",
+            "EXECUTOR_CAPABILITY"
           ]
         },
         "passed": {

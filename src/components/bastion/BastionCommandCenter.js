@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
+import BrainOversightPanel from '@/components/bastion/BrainOversightPanel';
 import {
   Shield,
   Cpu,
@@ -372,6 +373,9 @@ export default function BastionCommandCenter() {
 
   return (
     <div className="space-y-6 pb-14 font-mono text-slate-200">
+      {/* Step 4: Railway brain heartbeat, mode control, roster, and decision audit log */}
+      <BrainOversightPanel />
+
       {/* Top Command Header & Autopilot Telemetry Strip */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0b0e17] via-[#13192b] to-[#0b0e17] border border-amber-500/35 shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-4">

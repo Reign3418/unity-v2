@@ -188,6 +188,7 @@ class FakeAdb:
         return self.png
 
     def app_running(self, serial: str) -> bool:
+        self.calls.append(("app_running", serial))
         return self.running
 
     def force_stop_app(self, serial: str) -> None:
