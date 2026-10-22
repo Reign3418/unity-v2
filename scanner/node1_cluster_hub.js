@@ -43,10 +43,11 @@ $ErrorActionPreference = "Continue"
 $HubUrl = "http://${HOST_IP}:${PORT}"
 $WorkDir = "C:\\UnityScanner"
 Set-Location $WorkDir
+[System.Net.ServicePointManager]::DefaultConnectionLimit = 50
 
 while ($true) {
     try {
-        $pyProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*provision_neighbor*" } | Select-Object -First 1
+        $pyProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*provision_neighbor*" -or $_.CommandLine -like "*auto_tutorial_ch8*" } | Select-Object -First 1
         $progObj = $null
         if (Test-Path "$WorkDir\\scan_progress.json") {
             try { $progObj = Get-Content "$WorkDir\\scan_progress.json" -Raw | ConvertFrom-Json } catch {}
@@ -77,8 +78,7 @@ while ($true) {
                 stdout = [string]$out
                 stderr = [string]$err
             } | ConvertTo-Json -Compress -Depth 4
-            $bytes = [System.Text.Encoding]::UTF8.GetBytes($resPayload)
-            Invoke-RestMethod -Uri "$HubUrl/result" -Method Post -Body $bytes -ContentType "application/json; charset=utf-8" -TimeoutSec 30 | Out-Null
+            Invoke-RestMethod -Uri "$HubUrl/result" -Method Post -Body $resPayload -ContentType "application/json; charset=utf-8" -TimeoutSec 30 | Out-Null
             Write-Host "[DONE] Sent output to MIXERV3." -ForegroundColor Cyan
         }
     } catch {
@@ -86,6 +86,97 @@ while ($true) {
     }
     Start-Sleep -Milliseconds 1200
 }
+`;
+
+const UNSTICK_PS1 = `
+$ErrorActionPreference = "Continue"
+$HubUrl = "http://${HOST_IP}:${PORT}"
+$WorkDir = "C:\\UnityScanner"
+Set-Location $WorkDir
+
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host "  AUTONOMOUS RESILIENCE & UNSTICK PROCEDURE (SIDEKICK)" -ForegroundColor Cyan
+Write-Host "==================================================================" -ForegroundColor Cyan
+
+# 1. Pull latest auto_tutorial_ch8.py with dynamic OCR & idle recovery
+Write-Host "[1/4] Pulling updated auto_tutorial_ch8.py from Cluster Hub..." -ForegroundColor Yellow
+Invoke-RestMethod "$HubUrl/files/auto_tutorial_ch8.py" -OutFile "$WorkDir\\auto_tutorial_ch8.py"
+Write-Host "  -> auto_tutorial_ch8.py updated successfully ($((Get-Item "$WorkDir\\auto_tutorial_ch8.py").Length) bytes)." -ForegroundColor Green
+
+# 2. Run inline Python inspector to detect and tap stuck buttons on both emulators
+Write-Host "[2/4] Detecting stuck modals and pushing buttons autonomously..." -ForegroundColor Yellow
+$py = "$WorkDir\\.venv\\Scripts\\python.exe"
+if (-not (Test-Path $py)) { $py = "python.exe" }
+
+$unstickScript = @'
+import os, sys, time, subprocess
+from PIL import Image
+try:
+    from rapidocr_onnxruntime import RapidOCR
+    ocr = RapidOCR()
+except Exception:
+    ocr = None
+
+adb = r"C:\\UnityScanner\\platform-tools\\adb.exe"
+if not os.path.exists(adb): adb = "adb"
+
+def tap(serial, x, y, s=1.0):
+    subprocess.run([adb, "-s", serial, "shell", "input", "tap", str(int(x)), str(int(y))], capture_output=True)
+    if s > 0: time.sleep(s)
+
+def unstick_serial(serial):
+    p = rf"C:\\UnityScanner\\unstick_{serial.split(':')[-1]}.png"
+    subprocess.run([adb, "-s", serial, "shell", "screencap -p /sdcard/u.png"], capture_output=True)
+    subprocess.run([adb, "-s", serial, "pull", "/sdcard/u.png", p], capture_output=True)
+    if not os.path.exists(p) or ocr is None:
+        print(f"[{serial}] No screencap or OCR unavailable")
+        return
+    res, _ = ocr(p)
+    lines = [item[1].strip() for item in (res or [])]
+    print(f"[{serial}] Screen OCR lines ({len(lines)}): {lines[:6]}")
+
+    targets = ["CLAIM ALL", "CLAIM", "CONFIRM", "OK", "YES", "GOT IT", "CONTINUE", "TAP TO CONTINUE", "START", "COLLECT", "RECEIVE", "SPEED UP", "USE", "UPGRADE", "BUILD", "FREE"]
+    tapped = False
+    for t in targets:
+        for box, txt, score in (res or []):
+            t_upper = txt.strip().upper()
+            if t == t_upper or (t in t_upper and len(t_upper) <= 25):
+                cx = int(sum(pt[0] for pt in box) / 4)
+                cy = int(sum(pt[1] for pt in box) / 4)
+                if cy > 90 and not (cx < 260 and cy < 650):
+                    print(f"[{serial}] -> Found '{txt}' at ({cx}, {cy}) (score={score:.2f}) -> PUSHING BUTTON!")
+                    tap(serial, cx, cy, 1.2)
+                    tapped = True
+                    break
+        if tapped: break
+
+    if not tapped:
+        print(f"[{serial}] -> No direct target match; sending Dismiss cycle (Close X 1380,108 + Back 48,52 + Android Back Key)")
+        tap(serial, 1380, 108, 0.8)
+        tap(serial, 48, 52, 0.8)
+        subprocess.run([adb, "-s", serial, "shell", "input", "keyevent", "4"], capture_output=True)
+
+unstick_serial("127.0.0.1:16384")
+unstick_serial("127.0.0.1:16416")
+'@
+
+[System.IO.File]::WriteAllText("$WorkDir\\unstick_now.py", $unstickScript)
+& $py "$WorkDir\\unstick_now.py"
+
+# 3. Download updated worker.ps1 and ensure background link is running
+Write-Host "[3/4] Ensuring background link daemon is active..." -ForegroundColor Yellow
+Invoke-RestMethod "$HubUrl/worker.ps1" -OutFile "$WorkDir\\worker.ps1"
+Get-Process powershell -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID -and $_.CommandLine -like "*worker.ps1*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\\UnityScanner\\worker.ps1" -WindowStyle Hidden
+
+# 4. Resume auto_tutorial_ch8.py on both emulators to CH8
+Write-Host "[4/4] Resuming autonomous CH8 auto-builder on both instances..." -ForegroundColor Yellow
+$p0 = Start-Process -FilePath $py -ArgumentList "$WorkDir\\auto_tutorial_ch8.py","--adb","127.0.0.1:16384","--kingdom","4021","--steps","350" -WorkingDirectory $WorkDir -PassThru -WindowStyle Hidden
+$p1 = Start-Process -FilePath $py -ArgumentList "$WorkDir\\auto_tutorial_ch8.py","--adb","127.0.0.1:16416","--kingdom","4197","--steps","350" -WorkingDirectory $WorkDir -PassThru -WindowStyle Hidden
+
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host "  AUTONOMOUS FIX COMPLETE! Bots resumed: PID $($p0.Id) & PID $($p1.Id)" -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Green
 `;
 
 const BOOTSTRAP_PS1 = `
@@ -137,6 +228,12 @@ const server = http.createServer((req, res) => {
     console.log(`[JOIN] Serving bootstrap to ${req.socket.remoteAddress}`);
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end(BOOTSTRAP_PS1);
+  }
+
+  if (req.method === 'GET' && url.pathname === '/unstick') {
+    console.log(`[UNSTICK] Serving unstick procedure to ${req.socket.remoteAddress}`);
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end(UNSTICK_PS1);
   }
 
   if (req.method === 'GET' && url.pathname === '/worker.ps1') {

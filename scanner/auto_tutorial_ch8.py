@@ -833,6 +833,36 @@ def detect_new_troop_modal(a: np.ndarray):
                 right_edge = 220 + int(cols[-1])
                 return (right_edge - 38, y_c, f"Info Modal Open -> Close ({right_edge - 38}, {y_c})")
 
+    # 13. Beginner's Teleport Confirmation Warning (when City Hall level 8 is upgrading)
+    if OCR is not None and not is_city_hud(a):
+        try:
+            nt_res, _ = OCR(a[150:750, 300:1300].astype(np.uint8))
+            nt_text = " ".join([r[1].lower() for r in (nt_res or [])])
+            if any(k in nt_text for k in ("teleport", "beginner", "disappear", "level 8", "lv.8")):
+                for nbox, ntxt, _ in (nt_res or []):
+                    if any(c in ntxt.lower() for c in ("yes", "confirm", "ok")):
+                        ncx = int(sum(pt[0] for pt in nbox) / 4 + 300)
+                        ncy = int(sum(pt[1] for pt in nbox) / 4 + 150)
+                        return (ncx, ncy, f"Beginner Teleport Confirm ({ntxt}) -> Tap ({ncx}, {ncy})")
+                return (582, 704, "Beginner Teleport Confirm -> Tap Yes (582, 704)")
+        except Exception:
+            pass
+
+    # 14. Chapter Completion / Monument Reward banner
+    if OCR is not None:
+        try:
+            c_res, _ = OCR(a[200:700, 400:1200].astype(np.uint8))
+            c_text = " ".join([r[1].lower() for r in (c_res or [])])
+            if any(k in c_text for k in ("chapter completed", "era unlocked", "tap anywhere", "claim all")):
+                for cbox, ctxt, _ in (c_res or []):
+                    if "claim" in ctxt.lower() or "continue" in ctxt.lower():
+                        ccx = int(sum(pt[0] for pt in cbox) / 4 + 400)
+                        ccy = int(sum(pt[1] for pt in cbox) / 4 + 200)
+                        return (ccx, ccy, f"Chapter Reward ({ctxt}) -> Tap ({ccx}, {ccy})")
+                return (800, 750, "Chapter Completion -> Dismiss Tap (800, 750)")
+        except Exception:
+            pass
+
     return None
 
 
@@ -1017,13 +1047,18 @@ def detect_green_checkmark(a: np.ndarray):
     return best_pt
 
 
-def is_colored_button(a: np.ndarray, cx: int, cy: int) -> bool:
+def is_colored_button(a: np.ndarray, cx: int, cy: int, score: float = 0.0) -> bool:
+    if score >= 0.70:
+        return True
     H, W, _ = a.shape
     patch = a[max(0, cy - 12) : min(H, cy + 12), max(0, cx - 28) : min(W, cx + 28)]
     if patch.size == 0:
         return False
     sat = np.max(patch, axis=2) - np.min(patch, axis=2)
-    return float(np.mean(sat >= 55)) >= 0.45
+    if float(np.mean(sat >= 25)) >= 0.25:
+        return True
+    brightness = patch.mean(axis=2)
+    return float(brightness.max() - brightness.min()) >= 50.0
 
 
 def detect_ocr_action(img_path: str, a: np.ndarray):
@@ -1053,8 +1088,24 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
         "BUILD",
         "Confirm",
         "CONFIRM",
+        "OK",
+        "Ok",
+        "ok",
+        "Yes",
+        "YES",
+        "yes",
+        "Got it",
+        "GOT IT",
+        "Claim All",
+        "CLAIM ALL",
         "Claim",
         "CLAIM",
+        "Collect",
+        "COLLECT",
+        "Receive",
+        "RECEIVE",
+        "Continue",
+        "CONTINUE",
         "Open",
         "OPEN",
         "Send",
@@ -1065,24 +1116,46 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
         "VISIT",
         "Recruit",
         "Train",
+        "TRAIN",
         "Explore",
         "Create",
+        "CREATE",
         "Help",
         "Speed Up",
+        "SPEED UP",
+        "Use",
+        "USE",
+        "Join",
+        "JOIN",
+        "Complete",
+        "COMPLETE",
+        "Level Up",
+        "LEVEL UP",
+        "Instant",
+        "INSTANT",
+        "Agree",
+        "AGREE",
+        "Accept",
+        "ACCEPT",
+        "Next",
+        "NEXT",
+        "Unlock",
+        "UNLOCK",
     ]
     for kw in priority_keywords:
         for box, txt, score in res:
             t_clean = txt.strip()
-            if len(t_clean) > 14:
+            if len(t_clean) > 28:
                 continue
             is_match = (kw.lower() == t_clean.lower()) or (
-                kw.lower() in ("new troop", "speed up", "free", "bronze age") and kw.lower() in t_clean.lower()
+                kw.lower() in ("new troop", "speed up", "free", "bronze age", "claim all", "got it", "tap to continue", "level up")
+                and kw.lower() in t_clean.lower()
             )
             if is_match:
                 xs = [pt[0] for pt in box]
                 ys = [pt[1] for pt in box]
                 cx, cy = int(sum(xs) / 4), int(sum(ys) / 4)
-                if kw == "SKIP" and cy < 120:
+                if kw.upper() in ("SKIP", "CONFIRM", "OK", "YES", "GOT IT", "CLAIM ALL", "CONTINUE", "AGREE", "ACCEPT"):
                     return (cx, cy, t_clean)
                 # Ignore left quest tracker text (x < 260, y < 650) and top status bar (y <= 100)
                 if (cx < 260 and cy < 650) or cy <= 100:
@@ -1092,7 +1165,7 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
                     continue
                 if kw.lower() == "help" and cy < 720:
                     continue
-                if is_colored_button(a, cx, cy):
+                if is_colored_button(a, cx, cy, float(score)):
                     return (cx, cy, t_clean)
     return None
 
@@ -1200,7 +1273,30 @@ def report_tut_progress(adb_serial: str, kingdom: str, step: int, total_steps: i
         pass
 
 
+def check_for_script_update():
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://192.168.50.41:8888/files/auto_tutorial_ch8.py")
+        with urllib.request.urlopen(req, timeout=1.8) as resp:
+            if resp.status == 200:
+                remote_code = resp.read().decode("utf-8")
+                if len(remote_code) > 10000 and "VALHEON UNITY" in remote_code:
+                    my_path = os.path.abspath(__file__)
+                    if os.path.exists(my_path):
+                        with open(my_path, "r", encoding="utf-8") as f:
+                            cur_code = f.read()
+                        if cur_code != remote_code:
+                            tmp_path = my_path + ".tmp"
+                            with open(tmp_path, "w", encoding="utf-8") as tf:
+                                tf.write(remote_code)
+                            os.replace(tmp_path, my_path)
+                            print("  [SelfUpdate] Updated auto_tutorial_ch8.py to latest version from Cluster Hub!")
+    except Exception:
+        pass
+
+
 def main():
+    check_for_script_update()
     parser = argparse.ArgumentParser()
     parser.add_argument("--adb", default="127.0.0.1:16384")
     parser.add_argument("--kingdom", default="4194")
@@ -1878,12 +1974,41 @@ def main():
             continue
 
         consecutive_idle += 1
-        if consecutive_idle % 4 == 0:
-            print(f"[Step {step:02d}] Idle Streak ({consecutive_idle}x) -> Tap Quest Scroll / Main Quest to prompt next objective (40, 235)")
+        if consecutive_idle == 1:
+            print(f"[Step {step:02d}] Idle (1x) -> Tap default dismiss (800, 780)")
+            tap(args.adb, 800, 780, 0.85)
+        elif consecutive_idle == 2:
+            act_idle = detect_ocr_action(p2, a2)
+            if act_idle:
+                print(f"[Step {step:02d}] Idle Recovery -> Detected Button '{act_idle[2]}' at ({act_idle[0]}, {act_idle[1]})")
+                tap(args.adb, act_idle[0], act_idle[1], 1.2)
+                consecutive_idle = 0
+                continue
+            if not is_city_hud(a2):
+                print(f"[Step {step:02d}] Idle in Sub-Screen/Modal -> Tap Modal Close (1380, 108) + Back (48, 52)")
+                tap(args.adb, 1380, 108, 1.0)
+                tap(args.adb, 48, 52, 1.0)
+            else:
+                print(f"[Step {step:02d}] Idle (2x) -> Tap Center Dialogue/Reward (800, 650)")
+                tap(args.adb, 800, 650, 0.85)
+        elif consecutive_idle == 3:
+            print(f"[Step {step:02d}] Idle Streak (3x) -> Sending Android Back key (keyevent 4) + Close X (1380, 108)")
+            subprocess.run([ADB_BIN, "-s", args.adb, "shell", "input", "keyevent", "4"], capture_output=True)
+            time.sleep(0.6)
+            tap(args.adb, 1380, 108, 0.8)
+            tap(args.adb, 48, 52, 0.8)
+        elif consecutive_idle % 4 == 0:
+            print(f"[Step {step:02d}] Idle Streak ({consecutive_idle}x) -> Tap Quest Scroll (40, 235) to refocus objective")
             tap(args.adb, 40, 235, 1.2)
         else:
-            print(f"[Step {step:02d}] Idle/Popup -> tap (800, 780)")
-            tap(args.adb, 800, 780, 0.85)
+            print(f"[Step {step:02d}] Idle Recovery ({consecutive_idle}x) -> Dismiss cycle (Back key + 1380,108 + 1563,58 + 48,52)")
+            subprocess.run([ADB_BIN, "-s", args.adb, "shell", "input", "keyevent", "4"], capture_output=True)
+            time.sleep(0.5)
+            tap(args.adb, 1380, 108, 0.6)
+            tap(args.adb, 1563, 58, 0.6)
+            tap(args.adb, 48, 52, 0.8)
+            if is_world_map(a2):
+                tap(args.adb, 55, 845, 1.0)
 
     _, a_final = screencap_pair(args.adb, p1, p2)
     chk_final = detect_green_checkmark(a_final)

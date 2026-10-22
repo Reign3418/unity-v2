@@ -247,7 +247,7 @@ def main():
             arr = screencap(args.adb, snap_path)
             if _is_hud(arr):
                 return
-            for cx_close, cy_close in [(1388, 56), (1363, 110), (1455, 88)]:
+            for cx_close, cy_close in [(1380, 108), (1388, 56), (1363, 110), (1455, 88), (48, 52)]:
                 tap(args.adb, cx_close, cy_close, 1.2)
                 arr = screencap(args.adb, snap_path)
                 if _is_hud(arr):
