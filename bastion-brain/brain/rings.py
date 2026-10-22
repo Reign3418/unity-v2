@@ -41,12 +41,16 @@ DEFAULT_CONFIG = {
     "capabilities": list(numnum.DEFAULT_CAPABILITIES),
     "watched_kingdoms": [],
     "instances": list(V.INSTANCE_TO_ADB),
+    "enforce_cross_instance_redundancy": False,
 }
+
+REDUNDANT_INSTANCE_PAIR = ("sidekick-mumu-0", "sidekick-mumu-1")
+INSTANCE_TO_ACCOUNT = {v: k for k, v in V.ACCOUNT_TO_INSTANCE.items()}
 
 
 @dataclass
 class Demand:
-    kind: str  # SCAN_REQUESTED (R5) | SCAN_DUE (NULL)
+    kind: str  # SCAN_REQUESTED (R5) | REDUNDANCY_GAP (NULL) | SCAN_DUE (NULL)
     kingdom_id: int
     priority: int
     correlation_id: str
@@ -84,8 +88,55 @@ class Ring1:
     def __init__(self, store, emitter, clock):
         self.store, self.emitter, self.clock = store, emitter, clock
 
-    def collect(self, config: Dict[str, Any]) -> List[Demand]:
-        return self._kent_intents() + self._null_staleness(config)
+    def collect(self, config: Dict[str, Any], fleet_bots: Optional[Dict[str, Dict[str, Any]]] = None) -> List[Demand]:
+        return (
+            self._kent_intents()
+            + self._null_redundancy_gaps(config, fleet_bots or {})
+            + self._null_staleness(config)
+        )
+
+    def _null_redundancy_gaps(self, config: Dict[str, Any], fleet_bots: Dict[str, Dict[str, Any]]) -> List[Demand]:
+        if not config.get("enforce_cross_instance_redundancy"):
+            return []
+        inst_a, inst_b = REDUNDANT_INSTANCE_PAIR
+        live = [b for b in fleet_bots.values() if b.get("lifecycle_state") not in ("RETIRED", "LOST")]
+        by_kd_inst: Dict[Tuple[int, str], List[Dict[str, Any]]] = {}
+        for b in live:
+            if b["instance_id"] in REDUNDANT_INSTANCE_PAIR:
+                by_kd_inst.setdefault((int(b["kingdom_id"]), b["instance_id"]), []).append(b)
+
+        watched_order = [int(w["kingdom_id"]) for w in config.get("watched_kingdoms", [])]
+        candidate_kds = list(dict.fromkeys(watched_order + sorted({int(b["kingdom_id"]) for b in live if int(b["kingdom_id"]) >= 4000})))
+        out: List[Demand] = []
+        for k in candidate_kds:
+            bots_a = by_kd_inst.get((k, inst_a), [])
+            bots_b = by_kd_inst.get((k, inst_b), [])
+            if bool(bots_a) == bool(bots_b):
+                continue  # Either both have governors (converged!) or neither does
+            missing_inst = inst_b if bots_a else inst_a
+            peer_inst = inst_a if bots_a else inst_b
+            peer_bots = bots_a if bots_a else bots_b
+            corr = f"corr_redundancy_{k}_{missing_inst[-1]}"
+            peer_names = ", ".join(b["governor_name"] for b in peer_bots)
+            if self.emitter.should_emit(f"REDUNDANCY_GAP:{k}:{missing_inst}"):
+                self.emitter.emit(
+                    ring="RING_1_INTEL", actor="NULL", event_type="SIGNAL", severity="NOTICE",
+                    correlation_id=corr, kingdom_id=k, instance_id=missing_inst,
+                    summary=f"#{k} has governor on {peer_inst} ({peer_names}) but no twin on {missing_inst}; convergence required",
+                    why="Cross-instance redundancy rule: every active kingdom on sidekick-mumu-0 must also have a twin governor on sidekick-mumu-1 (and vice versa) for convergence and failover.",
+                    trigger_inputs={
+                        "signal": "REDUNDANCY_GAP",
+                        "kingdom_id": k,
+                        "peer_instance_id": peer_inst,
+                        "peer_bot_ids": [b["bot_id"] for b in peer_bots],
+                        "target_instance_id": missing_inst,
+                    },
+                )
+            out.append(Demand(
+                "REDUNDANCY_GAP", k, 65, corr,
+                {"target_instance_id": missing_inst, "peer_instance_id": peer_inst, "peer_bots": peer_bots},
+            ))
+        return out
 
     def _kent_intents(self) -> List[Demand]:
         demands: List[Demand] = []
@@ -177,6 +228,10 @@ class Ring2:
             return f"STATE_{bot['lifecycle_state']}"
 
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
+        gap_demand = self._redundancy_gap_for(instance_id, bot, rt, demands, now)
+        if gap_demand is not None:
+            return self._plan_redundancy_twin(instance_id, bot, gap_demand, inst, config, mode, all_bots, now)
+
         choice = self._choose(bot, rt, demands, now, all_bots)
         if choice is None:
             return "IDLE"
@@ -331,6 +386,112 @@ class Ring2:
             why="NUMNUM-approved self-healing provisioning sent to bastion-jobs.fifo for CIPHER.",
             trigger_inputs={"idempotency_key": job["idempotency_key"], "numnum_approval_id": approval,
                             "replaces_bot_id": lost_bot["bot_id"], "deadline": job["deadline"]},
+            **common,
+        )
+        return "DISPATCHED"
+
+    # ------------------------------------------------------------------ Cross-instance twin convergence planner
+    @staticmethod
+    def _redundancy_gap_for(instance_id: str, bot: Dict[str, Any], rt: Dict[str, Any],
+                            demands: List[Demand], now: datetime) -> Optional[Demand]:
+        if bot["lifecycle_state"] != "ACTIVE" or bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
+            return None
+        p = bot["routine_profile"]
+        if numnum.in_sleep_window(now, p) or rt["active_minutes_today"] >= p["daily_active_cap_minutes"]:
+            return None
+        started = numnum.parse_ts(rt.get("session_started_at"))
+        if started and numnum.minutes_between(started, now) >= p["max_session_minutes"]:
+            return None
+        if any(d.kind == "SCAN_REQUESTED" and d.kingdom_id == bot["kingdom_id"] for d in demands):
+            return None
+        gaps = [d for d in demands if d.kind == "REDUNDANCY_GAP" and d.detail.get("target_instance_id") == instance_id]
+        return gaps[0] if gaps else None
+
+    def _plan_redundancy_twin(self, instance_id: str, current_bot: Dict[str, Any], gap: Demand,
+                              inst: Dict[str, Any], config: Dict[str, Any], mode: str,
+                              all_bots: Dict[str, Dict[str, Any]], now: datetime) -> str:
+        acct_id = INSTANCE_TO_ACCOUNT.get(instance_id, current_bot["account_id"])
+        slots = self.store.get_account_slots(acct_id)
+        if slots is None:
+            slots = infer_account_slots(acct_id, instance_id, current_bot["adb_serial"], all_bots)
+
+        kd = int(gap.kingdom_id)
+        kd_str = str(kd)
+        existing = list(slots.get("kingdom_slots", {}).get(kd_str, []))
+        occupied = len(existing)
+        slot_num = min(2, occupied + 1)
+        twin_bot_id = f"bot_{kd}_twin_m{instance_id[-1]}"
+        peer_bots = gap.detail.get("peer_bots") or []
+        peer_names = ", ".join(b["governor_name"] for b in peer_bots) or gap.detail.get("peer_instance_id", "peer")
+
+        args = {
+            "target_kingdom_id": kd,
+            "account_id": acct_id,
+            "character_slot": slot_num,
+            "preferred_civilization": "CHINA",
+        }
+        job = self._build_job("provision_character", args, gap.priority, current_bot, gap, now, bot_id_override=twin_bot_id)
+        fresh_rt = {"day": numnum.local_now(now, current_bot["routine_profile"]["timezone"]).strftime("%Y-%m-%d"),
+                    "active_minutes_today": 0, "session_started_at": None, "last_session_end": None, "sleep_until": None}
+        ok, checks = numnum.evaluate(job, current_bot, fresh_rt, inst, now, config.get("capabilities", []),
+                                     self.recent_keys, account_slots=slots, peer_bots=peer_bots)
+        failed = sorted(c["rule_id"] for c in checks if not c["passed"])
+        will_dispatch = ok and mode == "AUTONOMOUS"
+        fingerprint = None if will_dispatch else f"TWIN:{twin_bot_id}:{ok}:{','.join(failed)}:{mode}"
+        if not self.emitter.should_emit(fingerprint):
+            return "DEDUPED"
+
+        common = dict(correlation_id=job["correlation_id"], kingdom_id=kd, bot_id=twin_bot_id,
+                      instance_id=instance_id, job_id=job["job_id"])
+        self.emitter.emit(
+            ring="RING_2_OPS", actor="TANK", event_type="PLAN_PROPOSED",
+            summary=f"TANK proposes provision_character twin {twin_bot_id} in #{kd} on {instance_id} (pairing with {peer_names})",
+            why=f"Cross-instance convergence & redundancy: {gap.detail.get('peer_instance_id')} has a governor in #{kd}, so {instance_id} ({acct_id}) must also have a twin governor in #{kd}.",
+            trigger_inputs={"signal": "REDUNDANCY_GAP", "peer_instance_id": gap.detail.get("peer_instance_id"),
+                            "account_id": acct_id, "occupied_slots": occupied, "args": args},
+            **common,
+        )
+        if not ok:
+            self.emitter.emit(
+                ring="RING_2_OPS", actor="NUMNUM", event_type="PLAN_REJECTED", severity="WARN",
+                summary=f"NUMNUM held twin provision_character for #{kd} on {instance_id}: {', '.join(failed)}",
+                why="Twin provisioning held by NUMNUM hard rules.",
+                numnum_checks=checks, trigger_inputs={"failed_rules": failed, "twin_bot_id": twin_bot_id},
+                **common,
+            )
+            return "REJECTED"
+
+        approval = new_id("nn")
+        job["issued_by"]["numnum_approval_id"] = approval
+        self.emitter.emit(
+            ring="RING_2_OPS", actor="NUMNUM", event_type="PLAN_APPROVED",
+            summary=f"NUMNUM approved twin provision_character {twin_bot_id} in #{kd} on {instance_id}"
+                    + ("" if will_dispatch else f" ({mode}: held for approval)"),
+            why="All NUMNUM hard rules (including 2-character/kingdom slot cap and CROSS_INSTANCE_REDUNDANCY) passed."
+                + ("" if will_dispatch else f" Operating mode {mode} holds character creation."),
+            numnum_checks=checks, trigger_inputs={"numnum_approval_id": approval, "mode": mode, "twin_bot_id": twin_bot_id},
+            **common,
+        )
+        if not will_dispatch:
+            return "APPROVED_NOT_DISPATCHED"
+
+        V.validate_job(job, now=now)
+        self.transport.send_job(job)
+        self.recent_keys = (self.recent_keys + [job["idempotency_key"]])[-500:]
+        inst.update({
+            "in_flight": job,
+            "dispatched_at": iso(now),
+            "last_idempotency_key": job["idempotency_key"],
+            "active_bot_id": twin_bot_id,
+            "replacing_bot_id": None,
+        })
+        self.store.put_control(instance_key(instance_id), inst)
+        self.emitter.emit(
+            ring="RING_2_OPS", actor="TANK", event_type="JOB_DISPATCHED",
+            summary=f"Dispatched twin provision_character ({twin_bot_id}) to {instance_id}",
+            why="NUMNUM-approved cross-instance twin provisioning sent to bastion-jobs.fifo for CIPHER.",
+            trigger_inputs={"idempotency_key": job["idempotency_key"], "numnum_approval_id": approval,
+                            "deadline": job["deadline"]},
             **common,
         )
         return "DISPATCHED"
@@ -556,15 +717,31 @@ class Ring3:
         ch_level = int(obs.get("ch_level") or 2)
         gov_id = obs.get("governor_id") if isinstance(obs.get("governor_id"), str) else None
         gov_name = obs.get("governor_name") or f"Governor ({result['kingdom_id']} S{job['args']['character_slot']})"
-        base_profile = (
-            dict(lost_bot["routine_profile"], active_minutes_today=0)
-            if lost_bot
-            else {
+        peer_bot = None
+        if not lost_bot:
+            all_known = self.store.get_bots(fleet.get("bot_ids", []))
+            peer_bot = next(
+                (b for b in all_known.values()
+                 if int(b["kingdom_id"]) == int(result["kingdom_id"]) and b["instance_id"] != result["instance_id"]
+                 and b.get("lifecycle_state") not in ("RETIRED", "LOST")),
+                None,
+            )
+        if lost_bot:
+            base_profile = dict(lost_bot["routine_profile"], active_minutes_today=0)
+        elif peer_bot:
+            pp = peer_bot["routine_profile"]
+            base_profile = dict(
+                pp,
+                sleep_window_start_hour=(int(pp["sleep_window_start_hour"]) + 3) % 24,
+                sleep_window_end_hour=(int(pp["sleep_window_end_hour"]) + 3) % 24,
+                active_minutes_today=0,
+            )
+        else:
+            base_profile = {
                 "timezone": "America/New_York", "sleep_window_start_hour": 1, "sleep_window_end_hour": 8,
                 "max_session_minutes": 60, "min_break_minutes": 30, "daily_active_cap_minutes": 300,
                 "active_minutes_today": 0, "target_ch_level": 16, "preferred_gather_types": ["FOOD", "WOOD"],
             }
-        )
         used_mins = max(1, math.ceil(result["duration_ms"] / 60000))
         base_profile["active_minutes_today"] = min(used_mins, int(base_profile["daily_active_cap_minutes"]))
 

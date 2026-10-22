@@ -534,6 +534,49 @@ class SelfHealingAndSwitching(unittest.TestCase):
         w.tick()
         self.assertEqual(w.store.control["FLEET"]["active_by_instance"]["sidekick-mumu-1"], "bot_4198_m1")
 
+    def test_cross_instance_redundancy_provisions_twin_with_staggered_sleep(self):
+        b_m0 = make_bot("bot_4197_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4197, ch=5, state="GROWING", window=(2, 9))
+        b_m1 = make_bot("bot_4021_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4021, ch=8, state="ACTIVE", window=(1, 8))
+        w = World(control_mode="AUTONOMOUS", kingdom_last=None, bots=[b_m0, b_m1])
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            watched_kingdoms=[{"kingdom_id": 4197, "cadence_hours": 12}],
+            enforce_cross_instance_redundancy=True,
+        ))
+        w.store.put_account_slots(self._account("mumu-account-0", "sidekick-mumu-0", "127.0.0.1:16384", {"4197": ["bot_4197_m0"]}))
+        w.store.put_account_slots(self._account("mumu-account-1", "sidekick-mumu-1", "127.0.0.1:16416", {"4021": ["bot_4021_m1"]}))
+
+        # Tick 1: sidekick-mumu-0 grows bot_4197_m0 (CH5->CH8), while sidekick-mumu-1 provisions twin bot_4197_twin_m1 in #4197
+        s1 = w.tick()
+        self.assertIn("REDUNDANCY_GAP#4197", s1["demands"])
+        self.assertEqual(s1["plans"]["sidekick-mumu-0"], "DISPATCHED")
+        self.assertEqual(s1["plans"]["sidekick-mumu-1"], "DISPATCHED")
+        twin_job = next(j for j in w.transport.sent if j["instance_id"] == "sidekick-mumu-1")
+        self.assertEqual((twin_job["job_type"], twin_job["bot_id"], twin_job["args"]["target_kingdom_id"]),
+                         ("provision_character", "bot_4197_twin_m1", 4197))
+        app_ev = [e for e in w.events("PLAN_APPROVED") if e.get("bot_id") == "bot_4197_twin_m1"][-1]
+        rules = {c["rule_id"]: c["passed"] for c in app_ev["oversight"]["numnum_checks"]}
+        self.assertTrue(rules["CROSS_INSTANCE_REDUNDANCY"])
+        self.assertTrue(rules["ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM"])
+
+        # CIPHER completes twin provision_character -> Ring 3 creates bot_4197_twin_m1 with staggered sleep window (5, 12)
+        res = w.result_for(twin_job, screen="CITY_VIEW", ch=2, duration_ms=120000)
+        res["observed_state"]["kingdom_id"] = 4197
+        res["observed_state"]["governor_id"] = "237041971"
+        res["observed_state"]["governor_name"] = "Twin4197M1"
+        w.transport.push_result(res)
+        w.tick()
+        twin = w.bot("bot_4197_twin_m1")
+        self.assertEqual(twin["lifecycle_state"], "GROWING")
+        self.assertEqual((twin["routine_profile"]["sleep_window_start_hour"], twin["routine_profile"]["sleep_window_end_hour"]), (5, 12))
+        self.assertEqual(w.bot("bot_4021_m1")["lifecycle_state"], "ACTIVE")  # existing bot on mumu-1 is NOT retired!
+
+        # Next tick: sidekick-mumu-1 immediately dispatches grow_city to CH8 for bot_4197_twin_m1
+        s3 = w.tick()
+        self.assertEqual(s3["plans"]["sidekick-mumu-1"], "DISPATCHED")
+        grow_job = w.transport.sent[-1]
+        self.assertEqual((grow_job["job_type"], grow_job["bot_id"]), ("grow_city", "bot_4197_twin_m1"))
+
 
 if __name__ == "__main__":
     unittest.main()

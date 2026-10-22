@@ -64,6 +64,7 @@
             "DAILY_ACTIVE_MINUTES_CAP",
             "INSTANCE_SINGLE_TENANT_MUTEX",
             "ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM",
+            "CROSS_INSTANCE_REDUNDANCY",
             "JOB_SCHEMA_BOUNDS",
             "IDEMPOTENCY_DEDUP",
             "RING_TOKEN_BUDGET",

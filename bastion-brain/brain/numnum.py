@@ -103,6 +103,7 @@ def evaluate(
     capabilities: Iterable[str],
     recent_keys: Iterable[str],
     account_slots: Optional[Dict[str, Any]] = None,
+    peer_bots: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[bool, List[Dict[str, Any]]]:
     checks: List[Dict[str, Any]] = []
     jt = job["job_type"]
@@ -145,6 +146,16 @@ def evaluate(
         else:
             slot_detail = f"Account {acct_id} is HEALTHY with {occupied}/{max_slots} characters in #{target_kd}; slot {occupied + 1} available"
         checks.append(_check("ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM", slot_ok, occupied, max_slots, slot_detail))
+        if peer_bots is not None:
+            peer_names = [f"{b['governor_name']} ({b['instance_id']})" for b in peer_bots]
+            checks.append(_check(
+                "CROSS_INSTANCE_REDUNDANCY",
+                bool(peer_bots),
+                len(peer_bots),
+                "2 instances per kingdom",
+                f"Converging #{target_kd} on {job['instance_id']} to pair with {', '.join(peer_names)}"
+                if peer_bots else f"No peer governor in #{target_kd}",
+            ))
 
     loc = local_now(now, profile["timezone"])
     window = f"{profile['sleep_window_start_hour']:02d}:00-{profile['sleep_window_end_hour']:02d}:00 {profile['timezone']}"

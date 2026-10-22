@@ -1121,24 +1121,82 @@ export default function BastionCommandCenter() {
           SECTION 4: GOOGLE ACCOUNT SLOT POOL & 15-BOT PROVISIONED FLEET
       ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left 5 cols: Google Account Slot Pool */}
+        {/* Left 5 cols: Google Account Slot Pool & Cross-Instance Convergence */}
         <div className="lg:col-span-5 p-5 rounded-2xl bg-[#0b0e17] border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <div className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
               <Layers size={15} />
               <span>GOOGLE ACCOUNT SLOT POOL (≤ 2 CHARS / KINGDOM)</span>
             </div>
-            <span className="text-[10px] text-emerald-300 font-mono">NUMNUM Enforced</span>
+            <span className="text-[10px] text-emerald-300 font-mono">NUMNUM + Twin Rule Enforced</span>
           </div>
           <p className="text-xs text-slate-400 font-sans">
-            Rise of Kingdoms permits at most 2 characters per kingdom on each Google account. `BastionAccountSlots` tracks every slot so `NUMNUM` (`ACCOUNT_KINGDOM_SLOT_CAP`) prevents invalid character creation.
+            Rise of Kingdoms permits at most 2 characters per kingdom per Google account (`ACCOUNT_SLOT_LIMIT_2_PER_KINGDOM`), and `CROSS_INSTANCE_REDUNDANCY` ensures every active kingdom on `sidekick-mumu-0` also has a twin governor on `sidekick-mumu-1` (and vice versa) for convergence and failover.
           </p>
+
+          {/* Cross-Instance Convergence Matrix (sidekick-mumu-0 <-> sidekick-mumu-1) */}
+          {(() => {
+            const slotM0 = accountSlots.find((s) => s.instance_id === 'sidekick-mumu-0')?.kingdom_slots || {};
+            const slotM1 = accountSlots.find((s) => s.instance_id === 'sidekick-mumu-1')?.kingdom_slots || {};
+            const activeKds = Array.from(
+              new Set([
+                ...watchedKingdoms.map((w) => String(w.kingdom_id)),
+                ...Object.keys(slotM0).filter((k) => Number(k) >= 4000),
+                ...Object.keys(slotM1).filter((k) => Number(k) >= 4000),
+              ])
+            ).sort((a, b) => Number(a) - Number(b));
+            const convergedCount = activeKds.filter((k) => (slotM0[k]?.length || 0) > 0 && (slotM1[k]?.length || 0) > 0).length;
+            return (
+              <div className="p-3 rounded-xl bg-[#06080d] border border-cyan-500/25 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-cyan-300 uppercase tracking-wider">
+                    Cross-Instance Twin Convergence (`mumu-0` ↔ `mumu-1`)
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-300">
+                    {convergedCount}/{activeKds.length} Converged
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {activeKds.map((kd) => {
+                    const hasM0 = (slotM0[kd]?.length || 0) > 0;
+                    const hasM1 = (slotM1[kd]?.length || 0) > 0;
+                    const converged = hasM0 && hasM1;
+                    const missingInst = !hasM0 ? 'mumu-0' : !hasM1 ? 'mumu-1' : null;
+                    return (
+                      <div
+                        key={kd}
+                        className={`px-2 py-1.5 rounded border text-[10px] flex items-center justify-between ${
+                          converged
+                            ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-200'
+                            : 'bg-cyan-500/10 border-cyan-500/25 text-slate-200'
+                        }`}
+                      >
+                        <span className="font-bold">#{kd}</span>
+                        <span className={`text-[9px] font-mono ${converged ? 'text-emerald-300 font-bold' : 'text-cyan-300'}`}>
+                          {converged ? 'M0+M1 ✓' : `+${missingInst} twin`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="space-y-3">
             {accountSlots.map((slot) => {
               const kdEntries = Object.entries(slot.kingdom_slots || {}).sort(
                 (a, b) => Number(a[0]) - Number(b[0])
               );
+              const peerInst =
+                slot.instance_id === 'sidekick-mumu-0'
+                  ? 'sidekick-mumu-1'
+                  : slot.instance_id === 'sidekick-mumu-1'
+                  ? 'sidekick-mumu-0'
+                  : null;
+              const peerSlots = peerInst
+                ? accountSlots.find((s) => s.instance_id === peerInst)?.kingdom_slots || {}
+                : {};
               const totalChars = kdEntries.reduce((acc, [, arr]) => acc + (arr?.length || 0), 0);
               return (
                 <div key={slot.account_id} className="p-3.5 rounded-xl bg-[#06080d] border border-slate-800 space-y-2.5">
@@ -1170,6 +1228,7 @@ export default function BastionCommandCenter() {
                       {kdEntries.map(([kd, botIdList]) => {
                         const count = (botIdList || []).length;
                         const full = count >= slot.max_slots_per_kingdom;
+                        const hasPeerTwin = (peerSlots[kd]?.length || 0) > 0;
                         return (
                           <div
                             key={kd}
@@ -1181,9 +1240,27 @@ export default function BastionCommandCenter() {
                           >
                             <div className="flex items-center justify-between font-bold">
                               <span>#{kd}</span>
-                              <span className={full ? 'text-amber-300' : 'text-emerald-300'}>
-                                {count}/{slot.max_slots_per_kingdom}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                {peerInst && Number(kd) >= 4000 && (
+                                  <span
+                                    className={`px-1 rounded text-[8px] font-mono ${
+                                      hasPeerTwin
+                                        ? 'bg-emerald-500/20 text-emerald-300'
+                                        : 'bg-cyan-500/20 text-cyan-300'
+                                    }`}
+                                    title={
+                                      hasPeerTwin
+                                        ? `Converged: ${peerInst} also has a governor in #${kd}`
+                                        : `Twin queued on ${peerInst} via CROSS_INSTANCE_REDUNDANCY`
+                                    }
+                                  >
+                                    {hasPeerTwin ? '2xINST' : '1xINST'}
+                                  </span>
+                                )}
+                                <span className={full ? 'text-amber-300' : 'text-emerald-300'}>
+                                  {count}/{slot.max_slots_per_kingdom}
+                                </span>
+                              </div>
                             </div>
                             <div className="text-[9px] text-slate-400 truncate mt-0.5">
                               {(botIdList || []).map((id) => botsById[id]?.governor_name || id).join(', ')}

@@ -96,7 +96,7 @@ class Brain:
                 return None
 
         if mode != "OFF":
-            demands = guarded("ring1", lambda: self.ring1.collect(config)) or []
+            demands = guarded("ring1", lambda: self.ring1.collect(config, fleet["bots"])) or []
             summary["demands"] = [f"{d.kind}#{d.kingdom_id}" for d in demands]
             outcomes = {}
             for instance_id in instances:
