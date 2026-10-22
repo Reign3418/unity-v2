@@ -236,6 +236,16 @@ def is_city_hud(a: np.ndarray) -> bool:
     bl_mean = float(a[800:890, 10:100].mean())
     if bl_mean < 55.0:
         return False
+    # Build Drawer Open hides bottom-left HUD under the grey stone tab bar (x=10..80, y=500..850)
+    pil = a[500:850, 10:80]
+    is_pil_grey = (
+        (np.abs(pil[:, :, 0].astype(np.int32) - pil[:, :, 1].astype(np.int32)) < 15)
+        & (np.abs(pil[:, :, 1].astype(np.int32) - pil[:, :, 2].astype(np.int32)) < 18)
+        & (pil[:, :, 0] >= 95)
+        & (pil[:, :, 0] <= 205)
+    )
+    if float(np.mean(is_pil_grey)) > 0.45:
+        return False
     b_hdr = a[85:140, 400:1200]
     is_b_hdr = (
         (b_hdr[:, :, 0] >= 150)
@@ -811,11 +821,16 @@ def detect_new_troop_modal(a: np.ndarray):
         pillar = a[500:850, 10:80]
         is_grey_pillar = float(np.mean(np.abs(pillar[:, :, 0].astype(np.int32) - pillar[:, :, 1].astype(np.int32)) < 18)) > 0.65
         if float(np.mean(is_top_hdr)) < 0.40 and float(np.mean(is_top_hdr2)) < 0.40 and float(pillar.mean()) > 80.0 and is_grey_pillar and float(a[470:510, 200:1400].mean()) > 60.0:
-            sp_bd = spear_mask(a[330:680, 90:1550])
+            mil_red = ((a[570:625, 0:45, 0] >= 180) & (a[570:625, 0:45, 1] <= 70) & (a[570:625, 0:45, 2] <= 70)).sum()
+            econ_yel = ((a[485:580, 15:80, 0] >= 200) & (a[485:580, 15:80, 1] >= 160) & (a[485:580, 15:80, 2] <= 70)).sum()
+            sp_mil = spear_mask(a[450:720, 80:245])
+            if int(econ_yel) >= 180 and (int(sp_mil.sum()) >= 120 or int(mil_red) >= 150):
+                return (65, 665, "Build Drawer -> Switch to Military Tab (65, 665)")
+            sp_bd = spear_mask(a[250:435, 180:1550])
             if int(sp_bd.sum()) >= 85:
                 s_ys, s_xs = np.where(sp_bd)
-                bsx = int(np.median(s_xs) + 90)
-                return (max(250, min(1450, bsx)), 620, f"Build Drawer -> Tap Spear Card ({max(250, min(1450, bsx))}, 620)")
+                bsx = int(np.median(s_xs) + 180)
+                return (max(280, min(1450, bsx)), 620, f"Build Drawer -> Tap Spear Card ({max(280, min(1450, bsx))}, 620)")
             if OCR is not None:
                 try:
                     bd_res, _ = OCR(a[450:880, 90:1550].astype(np.uint8))
@@ -823,17 +838,13 @@ def detect_new_troop_modal(a: np.ndarray):
                         bt_low = btxt.strip().lower().replace(" ", "")
                         if "0/1" in bt_low or "0/2" in bt_low or "0/4" in bt_low:
                             bcx = int(sum(pt[0] for pt in bbox) / 4 + 90)
-                            return (max(250, bcx - 75), 620, f"Build Drawer -> Tap Unbuilt Card ({max(250, bcx - 75)}, 620)")
+                            return (max(280, bcx - 75), 620, f"Build Drawer -> Tap Unbuilt Card ({max(280, bcx - 75)}, 620)")
                 except Exception:
                     pass
             slot1 = a[755:800, 320:450]
             unlocked = (slot1[:, :, 0] >= 85) & (slot1[:, :, 1] >= 190) & (slot1[:, :, 2] >= 230)
             if float(np.mean(unlocked)) > 0.40:
                 return (345, 560, "Build Drawer -> Tap Unlocked Slot #1 (345, 560)")
-            mil_red = ((a[570:625, 0:45, 0] >= 180) & (a[570:625, 0:45, 1] <= 70) & (a[570:625, 0:45, 2] <= 70)).sum()
-            econ_yel = ((a[485:580, 15:80, 0] >= 200) & (a[485:580, 15:80, 1] >= 160) & (a[485:580, 15:80, 2] <= 70)).sum()
-            if int(mil_red) >= 150 and int(econ_yel) >= 200:
-                return (45, 650, "Build Drawer -> Switch to Military Tab (45, 650)")
             return (800, 200, "BUILD_DRAWER_LOCKED_SELECT_CH")
 
     # 12. Decorative Info / Non-Actionable Grey Modal (e.g. ELM, OAK, MORE INFO, DLC, MAIL) with no action buttons on the right half
