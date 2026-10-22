@@ -407,6 +407,16 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_b_pan)) > 0.55 and float(np.mean(is_b_srch)) > 0.30:
         return (340, 595, "Barbarians Modal -> Tap SEARCH")
 
+    # 3d. Barbarians Target Popup ('Lvl 1 Barbarians' tan card at x=1100..1350, y=320..480 + spear pointing right at ATTACK 1142,600)
+    b_atk_body = a[320:480, 1100:1350]
+    is_b_atk = (
+        (b_atk_body[:, :, 0] >= 165)
+        & (b_atk_body[:, :, 1] >= 140)
+        & ((b_atk_body[:, :, 0].astype(np.int32) - b_atk_body[:, :, 2].astype(np.int32)) >= 60)
+    )
+    if float(np.mean(is_b_atk)) > 0.45 and int(spear_mask(a[500:630, 740:1030]).sum()) >= 500:
+        return (1142, 600, "Barbarians Popup -> Tap ATTACK (1142, 600)")
+
     # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
     # ONLY valid on the World Map (is_world_map(a)), never inside the City where (1260, 225) is the Stable roof!
     if is_world_map(a):
@@ -416,6 +426,18 @@ def detect_new_troop_modal(a: np.ndarray):
         if len(g_xs) >= 1800:
             gy = int(np.median(g_ys) + 140)
             return (1260, gy, f"Map Popup Golden Button -> Tap (1260, {gy})")
+
+    # 4b. Top-Right 'New Troop' Dispatch Sub-Screen (Cyan/Gold button at x=1140..1380, y=140..325 + tutorial spear at x=820..1140, y=90..260)
+    if not is_city_hud(a) and int(spear_mask(a[90:260, 820:1140]).sum()) >= 400:
+        tr_box2 = a[140:325, 1140:1380]
+        cyan_tr2 = (
+            ((tr_box2[:, :, 2] >= 190) & (tr_box2[:, :, 1] >= 140) & (tr_box2[:, :, 0] <= 95))
+            | ((tr_box2[:, :, 0] >= 215) & (tr_box2[:, :, 1] >= 140) & (tr_box2[:, :, 2] <= 75))
+        )
+        c_ys2, c_xs2 = np.where(cyan_tr2)
+        if len(c_xs2) >= 1000:
+            cy2 = int(np.median(c_ys2) + 140)
+            return (1263, cy2, f"Dispatch New Troop Popup -> Tap (1263, {cy2})")
 
     # 5. Tavern Golden Chest 'OPEN' button at x=1010..1275, y=710..775 with white speech bubble below -> tap (1143, 740)
     open_btn = a[710:775, 1010:1275]
@@ -1689,7 +1711,7 @@ def main():
         if not has_selected_building_ribbon and spear_xy and target_xy and not (target_xy[1] >= 795 and target_xy[0] >= 820):
             sx, sy = spear_xy
             tx, ty = target_xy
-            if last_spear and abs(sx - last_spear[0]) < 35 and abs(sy - last_spear[1]) < 35:
+            if last_spear and abs(sx - last_spear[0]) < 95 and abs(sy - last_spear[1]) < 95:
                 repeat_cnt += 1
             else:
                 repeat_cnt = 0
