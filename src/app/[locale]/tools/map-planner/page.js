@@ -7,6 +7,7 @@ import {
   Castle, Navigation, Share2, Copy, Check, FileText, ChevronRight, Sliders, Crosshair
 } from "lucide-react";
 import region8Data from "@/data/region8_nodes.json";
+import KingdomInteractiveMap from "@/components/analysis/kingdom/KingdomInteractiveMap";
 
 // Default Preset for 5 Ideal Crystal Mines
 const DEFAULT_5_ALLIANCES = [
@@ -100,6 +101,7 @@ function computeMST(points) {
 }
 
 export default function KvKMapPlanner() {
+  const [plannerMode, setPlannerMode] = useState("LIVE_KINGDOM"); // "LIVE_KINGDOM" | "REGION_8"
   const canvasRef = useRef(null);
   const mapImageRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -658,7 +660,7 @@ export default function KvKMapPlanner() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-[#0a0c0f] text-gray-200 overflow-hidden select-none">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#0a0c0f] text-gray-200 select-none">
       
       {/* Top Tactical Control Ribbon */}
       <div className="h-14 px-6 border-b border-[#1e222b] bg-[#0f1115] flex items-center justify-between z-20 shrink-0">
@@ -668,19 +670,50 @@ export default function KvKMapPlanner() {
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-wider text-white flex items-center gap-2">
-              KVK CRYSTAL MAP &amp; ALLIANCE PLANNER
+              {plannerMode === "LIVE_KINGDOM"
+                ? "KINGDOM #4194 LIVE 1200×1200 TACTICAL COORDINATE MAP"
+                : "KVK CRYSTAL MAP & ALLIANCE PLANNER"}
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 uppercase">
-                Region #8
+                {plannerMode === "LIVE_KINGDOM" ? "2,934 Live Entities" : "Region #8"}
               </span>
             </h1>
-            <p className="text-[11px] text-gray-400">128 Crystal Nodes • Minimum Spanning Tree Constellations</p>
+            <p className="text-[11px] text-gray-400">
+              {plannerMode === "LIVE_KINGDOM"
+                ? "7-Layer Coordinate Radar • Cities, Flags, R4 Markers, Forts, Holy Sites, RSS Nodes & 2,144 Caves/Villages"
+                : "128 Crystal Nodes • Minimum Spanning Tree Constellations"}
+            </p>
           </div>
         </div>
 
-        {/* Spot Switcher & Quick Actions */}
+        {/* Mode Switcher */}
         <div className="flex items-center gap-2">
-          {/* Spots count selector */}
           <div className="flex items-center bg-[#161a22] p-1 rounded-lg border border-[#262c38]">
+            <button
+              onClick={() => setPlannerMode("LIVE_KINGDOM")}
+              className={`px-3 py-1 text-xs font-bold rounded transition-all ${
+                plannerMode === "LIVE_KINGDOM"
+                  ? "bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Kingdom #4194 Live Radar (1200×1200)
+            </button>
+            <button
+              onClick={() => setPlannerMode("REGION_8")}
+              className={`px-3 py-1 text-xs font-bold rounded transition-all ${
+                plannerMode === "REGION_8"
+                  ? "bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              KvK Region #8 Crystal Planner
+            </button>
+          </div>
+
+          {plannerMode === "REGION_8" && (
+            <>
+              {/* Spots count selector */}
+              <div className="flex items-center bg-[#161a22] p-1 rounded-lg border border-[#262c38]">
             <button
               onClick={() => handleSetSpotsCount(5)}
               className={`px-3 py-1 text-xs font-semibold rounded transition-all ${
@@ -757,10 +790,17 @@ export default function KvKMapPlanner() {
             <Download size={14} />
             <span>Export Map</span>
           </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Main Workspace Body */}
+      {plannerMode === "LIVE_KINGDOM" ? (
+        <div className="p-4 md:p-6 flex-1 overflow-y-auto">
+          <KingdomInteractiveMap targetKd="4194" />
+        </div>
+      ) : (
+      /* Main Workspace Body */
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* Left Side: Alliance / Kingdom Customization Drawer */}
@@ -1043,6 +1083,7 @@ export default function KvKMapPlanner() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

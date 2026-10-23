@@ -11143,8 +11143,10 @@
           "linkedAltGovIds": "",
           "allianceNumericId": 8908939,
           "castlePos": {
-            "Y": 6006.27,
-            "X": 1117.62
+            "X": 186.3,
+            "Y": 1001.0,
+            "worldX": 1117.62,
+            "worldY": 6006.27
           },
           "mapCityEntityId": 8206095,
           "masterAccountCId": "1140565501",
@@ -11872,8 +11874,10 @@
           "linkedAltGovIds": "",
           "allianceNumericId": 8908939,
           "castlePos": {
-            "Y": 6109.47,
-            "X": 1113.07
+            "X": 177.2,
+            "Y": 992.8,
+            "worldX": 1063.2,
+            "worldY": 5956.8
           },
           "mapCityEntityId": 8454214,
           "masterAccountCId": "1181518801",
@@ -11968,8 +11972,10 @@
           "linkedAltGovIds": "",
           "allianceNumericId": 8908939,
           "castlePos": {
-            "Y": 5605.37,
-            "X": 1283.06
+            "X": 180.5,
+            "Y": 952.0,
+            "worldX": 1083.0,
+            "worldY": 5712.0
           },
           "mapCityEntityId": 8493236,
           "masterAccountCId": "1187606601",
@@ -13766,8 +13772,10 @@
           "scanDtg": "2026-10-23 04:31:06 UTC",
           "scanSessionStartedAt": "2026-10-23T04:15:23.459270+00:00",
           "castlePos": {
-            "Y": 6281.53,
-            "X": 1567.35
+            "X": 146.1,
+            "Y": 1014.0,
+            "worldX": 876.6,
+            "worldY": 6084.0
           },
           "ralliesLed": 614,
           "ralliesJoined": 699,
@@ -13939,8 +13947,10 @@
           "linkedAltGovIds": "",
           "allianceNumericId": 8908939,
           "castlePos": {
-            "Y": 6085.41,
-            "X": 833.5
+            "X": 177.2,
+            "Y": 992.8,
+            "worldX": 1063.2,
+            "worldY": 5956.8
           },
           "mapCityEntityId": 7859877,
           "masterAccountCId": "1087592201",

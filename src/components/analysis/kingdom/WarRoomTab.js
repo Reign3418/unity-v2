@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush, Image as ImageIcon, Pipette, MapPin } from "lucide-react";
 import io from 'socket.io-client';
+import KingdomInteractiveMap from "@/components/analysis/kingdom/KingdomInteractiveMap";
 
 const RAILWAY_WS = 'https://unity-app-production.up.railway.app';
 
-export default function WarRoomTab({ targetKd }) {
+export default function WarRoomTab({ targetKd, rosterData = [] }) {
+  const [warRoomMode, setWarRoomMode] = useState('LIVE_RADAR');
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -287,9 +289,35 @@ export default function WarRoomTab({ targetKd }) {
                 </div>
             </div>
         </div>
+
+        <div className="flex items-center gap-2 bg-[#090b0e] border border-[#1e222b] p-1 rounded-xl relative z-10 mt-4 md:mt-0">
+            <button
+                onClick={() => setWarRoomMode('LIVE_RADAR')}
+                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                    warRoomMode === 'LIVE_RADAR'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                        : 'text-gray-400 hover:text-white'
+                }`}
+            >
+                Live 1200×1200 Coordinate Radar
+            </button>
+            <button
+                onClick={() => setWarRoomMode('WHITEBOARD')}
+                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                    warRoomMode === 'WHITEBOARD'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'text-gray-400 hover:text-white'
+                }`}
+            >
+                Collaborative Whiteboard
+            </button>
+        </div>
       </div>
 
-      {/* Main Canvas Engine */}
+      {warRoomMode === 'LIVE_RADAR' ? (
+          <KingdomInteractiveMap targetKd={targetKd} rosterData={rosterData} />
+      ) : (
+      /* Main Canvas Engine */
       <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl overflow-hidden shadow-xl flex flex-col h-[75vh]">
           {/* Toolbar */}
           <div className="bg-[#0a0c0f] px-6 py-4 flex flex-wrap items-center justify-between border-b border-[#1e222b] gap-4">
@@ -398,6 +426,7 @@ export default function WarRoomTab({ targetKd }) {
              })}
           </div>
       </div>
+      )}
 
     </div>
   );

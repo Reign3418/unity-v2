@@ -11,6 +11,7 @@ import {
 // Maps every tab name to its lucide icon
 const ICON_MAP = {
   'Overview':         LayoutTemplate,
+  'Kingdom Map':      Map,
   'Compare':          Users,
   'Kingdom Analysis': BarChart2,
   'Growth Analysis':  TrendingUp,
@@ -32,6 +33,7 @@ const ICON_MAP = {
 
 // Tabs that receive merged roster + behavioral data when a secondary KD is stacked
 const STACK_SUPPORTED = new Set([
+  'Kingdom Map',
   'Kingdom Analysis',
   'Scatter Plot',
   'T5 Push Radar',
@@ -50,7 +52,7 @@ const CATEGORIES = [
     colorClass: 'text-cyan-400',
     borderClass: 'border-cyan-500/30',
     bgActiveClass: 'bg-cyan-500/10 border-cyan-500/30',
-    tabs: ['Overview', 'Compare', 'Kingdom Analysis', 'Growth Analysis', 'Scatter Plot', 'T5 Push Radar'],
+    tabs: ['Overview', 'Kingdom Map', 'Compare', 'Kingdom Analysis', 'Growth Analysis', 'Scatter Plot', 'T5 Push Radar'],
   },
   {
     name: 'Planning',

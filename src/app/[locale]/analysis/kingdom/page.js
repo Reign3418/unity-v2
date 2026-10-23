@@ -15,6 +15,7 @@ import ConfigurationTab from "@/components/analysis/kingdom/ConfigurationTab";
 import ResultsTab from "@/components/analysis/kingdom/ResultsTab";
 import AccountLinkerTab from "@/components/analysis/kingdom/AccountLinkerTab";
 import WarRoomTab from "@/components/analysis/kingdom/WarRoomTab";
+import KingdomInteractiveMap from "@/components/analysis/kingdom/KingdomInteractiveMap";
 import PresenceRadarTab from "@/components/analysis/kingdom/PresenceRadarTab";
 import RosterViewTab from "@/components/analysis/kingdom/RosterViewTab";
 import FortTrackerTab from "@/components/analysis/kingdom/FortTrackerTab";
@@ -30,6 +31,7 @@ import R5BastionMissionDesk from "@/components/bastion/R5BastionMissionDesk";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
+  { name: "Kingdom Map", label: "Kingdom Map", icon: Map },
   { name: "Compare", icon: Users },
   { name: "Kingdom Analysis", icon: BarChart2 },
   { name: "Growth Analysis", icon: TrendingUp },
@@ -306,10 +308,18 @@ export default function KingdomAnalysis() {
                       endDate={endDate}
                   />
               );
+          case 'Kingdom Map':
+              return (
+                  <KingdomInteractiveMap
+                      targetKd={targetKd}
+                      rosterData={mergedRosterData}
+                  />
+              );
           case 'War Room':
               return (
                   <WarRoomTab 
                       targetKd={targetKd}
+                      rosterData={mergedRosterData}
                   />
               );
           case 'Presence Radar':

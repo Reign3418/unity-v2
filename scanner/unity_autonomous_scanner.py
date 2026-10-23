@@ -1839,15 +1839,102 @@ def run_kingdom_scan(args):
     })
 
 
+def jump_to_map_coordinates(serial: str, kd: str, tile_x: float, tile_y: float):
+    """Jump the in-game camera to exact (X, Y) km tile coordinates (0..1200) via the Coordinate Search bar."""
+    ix, iy = int(round(tile_x)), int(round(tile_y))
+    print(f"[MAP HUNTER] Jumping camera on {serial} to Kingdom #{kd} X:{ix} Y:{iy} ...")
+    try:
+        # Tap top-left coordinate magnifying glass (255, 18 on 1600x900)
+        adb_tap(serial, 255, 18, 0.9)
+        # Tap Kingdom input if needed or X input box (680, 145)
+        adb_tap(serial, 680, 145, 0.5)
+        subprocess.run(f'adb -s {serial} shell "input keyevent 67 67 67 67; input text {ix}; input keyevent 66"', shell=True, timeout=5)
+        time.sleep(0.4)
+        # Tap Y input box (810, 145)
+        adb_tap(serial, 810, 145, 0.5)
+        subprocess.run(f'adb -s {serial} shell "input keyevent 67 67 67 67; input text {iy}; input keyevent 66"', shell=True, timeout=5)
+        time.sleep(0.4)
+        # Tap Search button (905, 145)
+        adb_tap(serial, 905, 145, 1.8)
+        return True
+    except Exception as e:
+        print(f"[MAP HUNTER] ADB jump warning: {e}")
+        return False
+
+
+def run_map_sweep(args):
+    """Harvest all 7 layers of map coordinate entities from save/mailcache and optional ADB Hive jumps."""
+    from harvest_kingdom_map_entities import main as harvest_map_main
+    print(f"[MAP SWEEP] Harvesting 7-layer coordinate entities for Kingdom #{args.kd}...")
+    harvest_map_main()
+
+
+def run_hunt_governor(args):
+    """Locate a governor by ID or Name using exact verified coordinates or Alliance Hive triangulation."""
+    from harvest_kingdom_map_entities import main as harvest_map_main
+    harvest_map_main()
+    map_path = os.path.join(os.path.dirname(SCRIPT_DIR), "src", "data", "live_kingdom_map_entities.json")
+    tel_path = os.path.join(os.path.dirname(SCRIPT_DIR), "src", "data", "live_kingdom_telemetry.json")
+    if not os.path.exists(map_path):
+        print("[MAP HUNTER] Map entities file not found.")
+        return
+    mdata = json.load(open(map_path, "r", encoding="utf-8"))
+    tdata = json.load(open(tel_path, "r", encoding="utf-8")) if os.path.exists(tel_path) else {}
+    govs = tdata.get("kingdoms", {}).get(str(args.kd), {}).get("governors", {})
+    query = (args.target_gov or "").strip().lower()
+
+    if args.target_x is not None and args.target_y is not None:
+        jump_to_map_coordinates(args.adb, args.kd, args.target_x, args.target_y)
+        return
+
+    matched_city = None
+    for c in mdata.get("governorCities", []):
+        if str(c.get("govId", "")).lower() == query or query in str(c.get("name", "")).lower():
+            matched_city = c
+            break
+
+    if matched_city:
+        print(
+            f"[MAP HUNTER] EXACT LOCK: {matched_city['name']} ({matched_city['govId']}) [{matched_city.get('alliance')}] "
+            f"-> In-Game Tile X:{matched_city['x']} Y:{matched_city['y']} (World: {matched_city['worldX']}, {matched_city['worldY']})"
+        )
+        if args.jump:
+            jump_to_map_coordinates(args.adb, args.kd, matched_city["x"], matched_city["y"])
+        return
+
+    # Check roster and triangulate via Alliance Hive
+    for gid, g in govs.items():
+        if str(gid).lower() == query or query in str(g.get("name", "")).lower():
+            ally = g.get("alliance", "None")
+            ally_cities = [c for c in mdata.get("governorCities", []) if c.get("alliance") == ally]
+            if ally_cities:
+                hx = round(sum(c["x"] for c in ally_cities) / len(ally_cities), 1)
+                hy = round(sum(c["y"] for c in ally_cities) / len(ally_cities), 1)
+                print(
+                    f"[MAP HUNTER] HIVE TRIANGULATION LOCK: {g['name']} ({gid}) [{ally}] "
+                    f"-> Alliance Hive Centroid X:{hx} Y:{hy}"
+                )
+                if args.jump:
+                    jump_to_map_coordinates(args.adb, args.kd, hx, hy)
+                return
+            print(f"[MAP HUNTER] Found {g['name']} ({gid}) in roster [{ally}]; dispatch Hive sweep to lock exact tile.")
+            return
+    print(f"[MAP HUNTER] No governor matching '{args.target_gov}' found.")
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Unity Autonomous 45-Field MuMu RAM + Binary Save Telemetry Scanner")
-    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan"], default="kingdom-scan")
+    parser = argparse.ArgumentParser(description="Unity Autonomous 67-Field MuMu RAM + Binary Save + Tactical Map Scanner")
+    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan", "map-sweep", "hunt-governor"], default="kingdom-scan")
     parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial")
     parser.add_argument("--kd", "--kingdom", dest="kd", default="4194", help="Target Kingdom ID")
     parser.add_argument("--start-rank", type=int, default=1)
     parser.add_argument("--end-rank", "--max-ranks", dest="end_rank", type=int, default=650)
     parser.add_argument("--scan-date", default=None)
-    parser.add_argument("--push", action="store_true", default=True, help="Push extracted 45-field governors to Unity API")
+    parser.add_argument("--target-gov", default="", help="Governor ID or Name to locate on map")
+    parser.add_argument("--target-x", type=float, default=None, help="Target map X tile (0..1200)")
+    parser.add_argument("--target-y", type=float, default=None, help="Target map Y tile (0..1200)")
+    parser.add_argument("--jump", action="store_true", default=False, help="Jump emulator camera to target coordinate")
+    parser.add_argument("--push", action="store_true", default=True, help="Push extracted 67-field governors to Unity API")
     parser.add_argument("--unity-url", default=os.environ.get("UNITY_URL", "http://192.168.50.41:3000"))
     parser.add_argument("--scanner-key", default=os.environ.get("UNITY_SCANNER_KEY", "unity-local-node2-telemetry"))
     parser.add_argument("--skip-switch", action="store_true", default=False, help="Skip character switch if already on target kingdom")
@@ -1857,5 +1944,9 @@ if __name__ == "__main__":
         run_ram_dump(args)
     elif args.mode == "kingdom-scan":
         run_kingdom_scan(args)
+    elif args.mode == "map-sweep":
+        run_map_sweep(args)
+    elif args.mode == "hunt-governor":
+        run_hunt_governor(args)
 
 
