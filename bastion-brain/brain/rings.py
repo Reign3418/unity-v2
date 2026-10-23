@@ -323,6 +323,9 @@ class Ring2:
                 )
 
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
+        if bot["lifecycle_state"] == "SLEEPING":
+            rt["session_started_at"] = None
+            rt["last_session_end"] = None
         gap_demand = self._redundancy_gap_for(instance_id, bot, rt, demands, now, all_bots)
         if gap_demand is not None:
             return self._plan_redundancy_twin(instance_id, bot, gap_demand, inst, config, mode, all_bots, now)
@@ -333,7 +336,13 @@ class Ring2:
         job_type, args, priority, why, inputs, demand = choice
         job = self._build_job(job_type, args, priority, bot, demand, now)
 
-        ok, checks = numnum.evaluate(job, bot, rt, inst, now, config.get("capabilities", []), self.recent_keys,
+        eval_bot = bot
+        eval_rt = rt
+        if job_type == "switch_character" and inputs.get("target_bot_id") and inputs["target_bot_id"] in all_bots:
+            eval_bot = all_bots[inputs["target_bot_id"]]
+            eval_rt = numnum.fresh_runtime(self.store.get_control(runtime_key(eval_bot["bot_id"])), eval_bot, now)
+
+        ok, checks = numnum.evaluate(job, eval_bot, eval_rt, inst, now, config.get("capabilities", []), self.recent_keys,
                                      ring_tokens=self._ring_tokens(now))
         failed = sorted(c["rule_id"] for c in checks if not c["passed"])
         op_approved = self._is_operator_approved(bot["bot_id"])
@@ -693,6 +702,24 @@ class Ring2:
         base = {"lifecycle_state": state, "local_time": numnum.local_now(now, tz).strftime("%H:%M"),
                 "active_minutes_today": rt["active_minutes_today"], "ch_level": bot["verified_state"]["ch_level"]}
 
+        mission = self._mission_for(bot, demands) if bot["verified_state"]["ch_level"] >= GROW_TARGET_CH else None
+        switch_target = self._sibling_for_r5_demand(bot, demands, all_bots, now)
+
+        # High-priority R5 sibling missions (priority >= 80, e.g. OPERATOR_OVERRIDE / R5_COMMAND_DESK scans)
+        # preempt a sleeping or low-CH mounted bot when no higher-priority local mission exists on this bot.
+        if switch_target is not None:
+            sib, sib_demand = switch_target
+            local_prio = mission.priority if mission is not None else 0
+            if sib_demand.priority >= 80 and sib_demand.priority > local_prio:
+                sw_args: Dict[str, Any] = {"target_kingdom_id": int(sib["kingdom_id"])}
+                if sib.get("governor_id"):
+                    sw_args["target_governor_id"] = sib["governor_id"]
+                if sib.get("governor_name"):
+                    sw_args["target_governor_name"] = sib["governor_name"]
+                return ("switch_character", sw_args, sib_demand.priority,
+                        f"BIG_JON: {sib_demand.kind} for #{sib['kingdom_id']} requires switching {bot['instance_id']} to sibling bot {sib['governor_name']}.",
+                        dict(base, target_bot_id=sib["bot_id"], demand=sib_demand.kind), sib_demand)
+
         if numnum.in_sleep_window(now, p):
             if state == "SLEEPING":
                 return None
@@ -720,7 +747,6 @@ class Ring2:
                     "Session hit its maximum length; take a human-length break.",
                     dict(base, session_started_at=rt.get("session_started_at")), None)
 
-        mission = self._mission_for(bot, demands) if bot["verified_state"]["ch_level"] >= GROW_TARGET_CH else None
         if mission is not None:
             ranks = int((mission.detail.get("payload") or {}).get("max_ranks", SCAN_DEFAULT_RANKS))
             ranks = max(10, min(1000, ranks))
@@ -729,20 +755,13 @@ class Ring2:
                     f"BIG_JON: {mission.kind} for #{mission.kingdom_id} preempts routine upkeep; this bot lives in that kingdom.",
                     dict(base, demand=mission.kind, demand_detail=mission.detail), mission)
 
-        if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
-            growth_demand = next((d for d in demands if d.kind == "GROWTH_REQUESTED" and d.kingdom_id == bot["kingdom_id"]), None)
-            g_prio = max(30, growth_demand.priority) if growth_demand else 30
-            g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 40)))) if growth_demand else 40
-            return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": g_steps}, g_prio,
-                    f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.",
-                    dict(base, **({"demand": growth_demand.kind, "demand_detail": growth_demand.detail} if growth_demand else {})),
-                    growth_demand)
+        growth_demand = next((d for d in demands if d.kind == "GROWTH_REQUESTED" and d.kingdom_id == bot["kingdom_id"]), None)
+        g_prio = max(30, growth_demand.priority) if growth_demand else 30
 
-        # Check if a high-priority R5 scan/locate/growth intent targets another kingdom where this instance has a sibling bot
-        switch_target = self._sibling_for_r5_demand(bot, demands, all_bots, now)
-        if switch_target is not None:
+        # Check if an R5 scan/locate/growth intent targets another kingdom where this instance has a sibling bot
+        if switch_target is not None and switch_target[1].priority > (g_prio if bot["verified_state"]["ch_level"] < GROW_TARGET_CH else 0):
             sib, sib_demand = switch_target
-            sw_args: Dict[str, Any] = {"target_kingdom_id": int(sib["kingdom_id"])}
+            sw_args = {"target_kingdom_id": int(sib["kingdom_id"])}
             if sib.get("governor_id"):
                 sw_args["target_governor_id"] = sib["governor_id"]
             if sib.get("governor_name"):
@@ -750,6 +769,13 @@ class Ring2:
             return ("switch_character", sw_args, sib_demand.priority,
                     f"BIG_JON: {sib_demand.kind} for #{sib['kingdom_id']} requires switching {bot['instance_id']} to sibling bot {sib['governor_name']}.",
                     dict(base, target_bot_id=sib["bot_id"], demand=sib_demand.kind), sib_demand)
+
+        if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
+            g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 40)))) if growth_demand else 40
+            return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": g_steps}, g_prio,
+                    f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.",
+                    dict(base, **({"demand": growth_demand.kind, "demand_detail": growth_demand.detail} if growth_demand else {})),
+                    growth_demand)
 
         last = numnum.parse_ts(bot["verified_state"].get("last_verified_at"))
         age = None if last is None else int(numnum.minutes_between(last, now))
@@ -1145,6 +1171,7 @@ class Ring3:
                 self._set_state(bot, target_state, "Game is running and in-world again.", common)
             elif jt == "probe_status" and job["args"].get("launch_if_closed") and screen not in ("CITY_VIEW", "WORLD_MAP"):
                 health["consecutive_failures"] = int(health["consecutive_failures"]) + 1
+                rt["session_started_at"] = None
                 rt["sleep_until"] = iso(now + timedelta(minutes=WAKE_RETRY_MINUTES))
                 health["last_error"] = f"wake did not reach the world (screen {screen})"
             if bot["lifecycle_state"] == "GROWING" and vs["ch_level"] >= GROW_TARGET_CH:
