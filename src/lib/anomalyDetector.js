@@ -183,6 +183,9 @@ export function analyzeKingdomPolygraphAnomalies(sortedRoster = [], serverAgeDay
     const sandbaggers = [];
     const deadweightWhales = [];
     const hyperCombatants = [];
+    const commanderBloatSuspects = [];
+    let bloatPctSum = 0;
+    let bloatCount = 0;
 
     const top50 = sortedRoster.slice(0, 50);
     const top50Power = top50.reduce((sum, g) => sum + (g.powerEnd || 0), 0);
@@ -233,6 +236,31 @@ export function analyzeKingdomPolygraphAnomalies(sortedRoster = [], serverAgeDay
                 powerDelta: pDelta,
                 kpDelta,
                 reason: `${(power / 1e6).toFixed(1)}M Power with near-zero delta (${(kpDelta/1e3).toFixed(0)}k KP, 0 Deads)`
+            });
+        }
+
+        // 3b. COMMANDER BLOAT (Peacekeeper / Gatherer Power Padding vs Fighting Marches)
+        const cmdEnd = gov.cmdEnd || gov.commanderPower || 0;
+        const troopEnd = gov.troopEnd || gov.troopPower || 0;
+        const techEnd = gov.techEnd || gov.techPower || 0;
+        const buildEnd = gov.buildEnd || gov.buildingPower || 0;
+        const mmPower = (troopEnd + techEnd + buildEnd) > 0 ? (troopEnd + techEnd + buildEnd) : Math.max(0, power - cmdEnd);
+        const cmdBloatPct = power > 0 && cmdEnd > 0 ? Number(((cmdEnd / power) * 100).toFixed(1)) : 0;
+        if (cmdBloatPct > 0) {
+            bloatPctSum += cmdBloatPct;
+            bloatCount += 1;
+        }
+        if (power >= 2_500_000 && cmdBloatPct >= 16.0) {
+            commanderBloatSuspects.push({
+                id: gov.id,
+                name: gov.name,
+                alliance: gov.alliance,
+                rank: i + 1,
+                power,
+                commanderPower: cmdEnd,
+                matchmakingPower: mmPower,
+                commanderBloatPct: cmdBloatPct,
+                reason: `${cmdBloatPct}% Commander Bloat (${(cmdEnd / 1e6).toFixed(2)}M Cmdr vs ${(mmPower / 1e6).toFixed(2)}M Matchmaking Power — Peacekeeper/Gatherer Padding)`
             });
         }
 
@@ -294,6 +322,8 @@ export function analyzeKingdomPolygraphAnomalies(sortedRoster = [], serverAgeDay
         sandbaggers: sandbaggers.slice(0, 15),
         deadweightWhales: deadweightWhales.slice(0, 15),
         hyperCombatants: hyperCombatants.slice(0, 15),
+        commanderBloatSuspects: commanderBloatSuspects.sort((a, b) => b.commanderBloatPct - a.commanderBloatPct).slice(0, 15),
+        avgCommanderBloatPct: bloatCount > 0 ? Number((bloatPctSum / bloatCount).toFixed(1)) : 0,
         deadweightPowerTotal,
         deadweightPowerPercentage,
         top50Power,

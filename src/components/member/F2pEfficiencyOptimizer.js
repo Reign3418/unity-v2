@@ -300,10 +300,12 @@ export default function F2pEfficiencyOptimizer({ initialGovId = '', initialKd = 
                     tone: 'text-amber-400 border-amber-500/30 bg-amber-500/5',
                   },
                   {
-                    label: 'Commander Pwr',
+                    label: 'Cmdr Bloat',
                     val: selectedGov.commanderPower,
                     pct: report.ratios.cmdrPct,
-                    tone: 'text-purple-400 border-purple-500/30 bg-purple-500/5',
+                    tone: report.ratios.cmdrPct >= 16
+                      ? 'text-rose-400 border-rose-500/40 bg-rose-500/10'
+                      : 'text-purple-400 border-purple-500/30 bg-purple-500/5',
                   },
                 ].map((item) => (
                   <div

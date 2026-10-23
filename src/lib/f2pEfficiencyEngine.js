@@ -26,10 +26,11 @@ export const ALL_35_FIELD_GROUPS = [
     ],
   },
   {
-    group: '02 // Hidden Power Architecture (6 Fields)',
+    group: '02 // Hidden Power Architecture (7 Fields)',
     fields: [
       { key: 'power', label: 'Current Power', format: 'number' },
       { key: 'highestPower', label: 'Highest Power', format: 'number' },
+      { key: 'matchmakingPower', label: 'Matchmaking Power (No Cmdr)', format: 'number', highlight: 'cyan' },
       { key: 'troopPower', label: 'Troop Power (RAM)', format: 'number', highlight: 'cyan' },
       { key: 'techPower', label: 'Tech Power (RAM)', format: 'number', highlight: 'emerald' },
       { key: 'buildingPower', label: 'Building Power (RAM)', format: 'number', highlight: 'amber' },
@@ -103,6 +104,7 @@ export function evaluateF2pGovernorReport(gov) {
   const techPower = Number(gov.techPower) || 0;
   const buildingPower = Number(gov.buildingPower) || 0;
   const commanderPower = Number(gov.commanderPower) || 0;
+  const matchmakingPower = Number(gov.matchmakingPower) || (troopPower + techPower + buildingPower > 0 ? troopPower + techPower + buildingPower : Math.max(0, power - commanderPower));
 
   const killPoints = Number(gov.killPoints) || 0;
   const dead = Number(gov.dead ?? gov.deads) || 0;
@@ -249,7 +251,36 @@ export function evaluateF2pGovernorReport(gov) {
     });
   }
 
-  // Check 6: MuMu Binary Save / Mailcache Commander Skill-Lock Verification (5-1-1-1 Law)
+  // Check 6: Commander Bloat Audit (Peacekeepers/Gatherers vs. Open-Field Fighting Marches)
+  if (cmdrPct >= 16) {
+    efficiencyScore -= 12;
+    diagnostics.push({
+      severity: 'critical',
+      title: `High Commander Bloat Detected (${cmdrPct}% of Total Power)`,
+      metric: `${(commanderPower / 1e6).toFixed(2)}M Cmdr Power (${cmdrPct}%) | Matchmaking Power: ${(matchmakingPower / 1e6).toFixed(2)}M`,
+      problem: `${cmdrPct}% of your account power (${(commanderPower / 1e6).toFixed(2)}M) sits in Commander Power while your actual fighting weight (Troops + Tech + Buildings) is ${(matchmakingPower / 1e6).toFixed(2)}M. Leveling every Peacekeeper and Gatherer past Level 37—or starring up unused Gold Key tavern commanders—bloats your visible power without adding a single point of open-field combat strength.`,
+      fix: 'STOP leveling Peacekeepers and Gathering commanders past exact Level 37 (once "Superior Tools" and "More the Better" are maxed). Never put stars or XP tomes into bench commanders; funnel 100% of XP, stars, and sculptures into 1–2 primary open-field fighting pairs.',
+    });
+  } else if (cmdrPct >= 12.5) {
+    diagnostics.push({
+      severity: 'warning',
+      title: `Moderate Commander Bloat (${cmdrPct}% Commander Share)`,
+      metric: `${(commanderPower / 1e6).toFixed(2)}M Cmdr Power | ${(matchmakingPower / 1e6).toFixed(2)}M Matchmaking Power`,
+      problem: `Your Commander Power accounts for ${cmdrPct}% of your total power (True Matchmaking Power without commanders: ${(matchmakingPower / 1e6).toFixed(2)}M). Spreading XP tomes and stars across too many secondary peacekeepers or gatherers dilutes your march strength.`,
+      fix: 'Keep all 5 Gathering commanders parked at Level 37 and invest XP/sculptures strictly into the 1–2 combat pairs you actively bring to the open field.',
+    });
+  } else if (cmdrPct > 0) {
+    efficiencyScore += 4;
+    diagnostics.push({
+      severity: 'optimal',
+      title: `Lean Commander Bloat Profile (${cmdrPct}% Commander Share)`,
+      metric: `${(commanderPower / 1e6).toFixed(2)}M Cmdr Power | ${(matchmakingPower / 1e6).toFixed(2)}M Matchmaking Power`,
+      problem: `Only ${cmdrPct}% of your total power is tied up in commanders, meaning ${(100 - cmdrPct).toFixed(1)}% of your account is real fighting weight (Troops, Academy Tech, and Buildings).`,
+      fix: 'Maintain this discipline: keep gatherers parked at Lv. 37 and only level/star the exact primary commanders leading your fighting marches.',
+    });
+  }
+
+  // Check 7: MuMu Binary Save / Mailcache Commander Skill-Lock Verification (5-1-1-1 Law)
   if (gov.primaryCommander && typeof gov.primaryCommander === 'object' && gov.primaryCommander.skills) {
     const skillParts = String(gov.primaryCommander.skills)
       .split('-')
@@ -386,6 +417,7 @@ export function evaluateF2pGovernorReport(gov) {
       techPower,
       buildingPower,
       commanderPower,
+      matchmakingPower,
       troopRatio: troopPct / 100,
       techRatio: techPct / 100,
       bldgRatio: buildPct / 100,

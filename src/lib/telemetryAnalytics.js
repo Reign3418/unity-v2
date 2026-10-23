@@ -52,7 +52,10 @@ export function normalizeInGameCoords(g = {}) {
   let rawTileX = num(g.mapTileX || g.tileX);
   let rawTileY = num(g.mapTileY || g.tileY);
 
-  const cPos = g.castlePos || g.lastKnownCoords;
+  let cPos = g.castlePos || g.lastKnownCoords;
+  if (typeof cPos === 'string' && cPos.startsWith('{')) {
+    try { cPos = JSON.parse(cPos); } catch {}
+  }
   if ((!rawTileX || !rawTileY) && cPos && typeof cPos === 'object') {
     const cx = num(cPos.X ?? cPos.x);
     const cy = num(cPos.Y ?? cPos.y);
@@ -127,6 +130,7 @@ export function enrichGovernorWithRatios(g = {}) {
   const techPower = num(g.techPower || g.TechPower);
   const buildingPower = num(g.buildingPower || g.BuildingPower);
   const commanderPower = num(g.commanderPower || g.CommanderPower);
+  const matchmakingPower = num(g.matchmakingPower || g.MatchmakingPower) || (troopPower + techPower + buildingPower > 0 ? troopPower + techPower + buildingPower : Math.max(0, power - commanderPower));
 
   const killPoints = num(g.killPoints || g.KillPoints);
   const totalKills = num(g.totalUnitsKilled || g.totalKills || g.TotalKills);
@@ -181,6 +185,9 @@ export function enrichGovernorWithRatios(g = {}) {
 
   const cmdrPowerPctNum = power > 0 ? (commanderPower / power) * 100 : 0;
   const cmdrPowerPct = cmdrPowerPctNum.toFixed(1) + '%';
+  const cmdrBloatPctNum = cmdrPowerPctNum;
+  const cmdrBloatPct = cmdrPowerPct;
+  const cmdrBloatStatus = cmdrPowerPctNum >= 16 ? 'PEACEKEEPER_BLOATED' : cmdrPowerPctNum <= 10 ? 'LEAN_FIGHTER' : 'BALANCED';
 
   const winRateNum = totalBattles > 0 ? (victories / totalBattles) * 100 : 0;
   const winRatePct = winRateNum.toFixed(1) + '%';
@@ -216,6 +223,7 @@ export function enrichGovernorWithRatios(g = {}) {
     techPower,
     buildingPower,
     commanderPower,
+    matchmakingPower,
     killPoints,
     totalKills,
     t1Kills,
@@ -243,6 +251,10 @@ export function enrichGovernorWithRatios(g = {}) {
     techPowerPct,
     buildingPowerPct,
     cmdrPowerPct,
+    cmdrPowerPctNum,
+    cmdrBloatPct,
+    cmdrBloatPctNum,
+    cmdrBloatStatus,
     victories,
     defeats,
     totalBattles,

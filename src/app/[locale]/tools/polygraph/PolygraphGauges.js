@@ -241,10 +241,12 @@ export function DeceptionRadarCard({ anomalies, t, onInspect }) {
     : status === 'ELEVATED' ? t("deception_elevated")
     : t("deception_fraud");
 
-  const statPaddersCount = anomalies?.summary?.statPadderCount ?? 0;
-  const sandbaggersCount = anomalies?.summary?.sandbaggerCount ?? 0;
-  const deadweightWhalesCount = anomalies?.summary?.deadweightWhaleCount ?? 0;
-  const hyperCombatantsCount = anomalies?.summary?.hyperCombatantCount ?? 0;
+  const statPaddersCount = anomalies?.summary?.statPadderCount ?? anomalies?.statPadders?.length ?? 0;
+  const sandbaggersCount = anomalies?.summary?.sandbaggerCount ?? anomalies?.sandbaggers?.length ?? 0;
+  const deadweightWhalesCount = anomalies?.summary?.deadweightWhaleCount ?? anomalies?.deadweightWhales?.length ?? 0;
+  const hyperCombatantsCount = anomalies?.summary?.hyperCombatantCount ?? anomalies?.hyperCombatants?.length ?? 0;
+  const commanderBloatCount = anomalies?.commanderBloatSuspects?.length ?? 0;
+  const avgCmdrBloatPct = anomalies?.avgCommanderBloatPct ?? 0;
 
   const circleOffset = 251.3 - (251.3 * score) / 100;
   const ringStroke = score >= 90 ? '#10b981' : score >= 70 ? '#f59e0b' : '#f43f5e';
@@ -317,7 +319,7 @@ export function DeceptionRadarCard({ anomalies, t, onInspect }) {
             {statusText}
           </span>
           <span className="text-[10px] text-gray-500 font-mono mt-2">
-            Deadweight Burden: {deadweightRatio}%
+            Deadweight Burden: {deadweightRatio}% • Avg Cmdr Bloat: {avgCmdrBloatPct}%
           </span>
         </div>
 
@@ -400,6 +402,27 @@ export function DeceptionRadarCard({ anomalies, t, onInspect }) {
             </div>
           </div>
 
+          {/* Commander Bloat (Peacekeeper / Gatherer Padding) */}
+          <div 
+            onClick={() => onInspect('commanderBloatSuspects')}
+            className="sm:col-span-2 bg-[#0a0c0f] border border-[#1e222b] hover:border-violet-500/50 rounded-xl p-3.5 transition-all cursor-pointer group hover:bg-[#12151e]"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-gray-300 group-hover:text-violet-400 transition-colors">
+                Commander Bloat (&ge;16% Peacekeeper / Gatherer Power Padding)
+              </span>
+              <span className={`text-sm font-black font-mono px-2 py-0.5 rounded ${commanderBloatCount > 0 ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-gray-800 text-gray-400'}`}>
+                {commanderBloatCount}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-snug">
+              Governors inflating total power by leveling peacekeepers/gatherers past Lv. 37 instead of open-field fighting marches &amp; Academy tech (Kingdom Avg: {avgCmdrBloatPct}%).
+            </p>
+            <div className="text-[10px] text-violet-400/80 font-mono mt-2 flex items-center gap-1 group-hover:underline">
+              Inspect bloated commander rosters &rarr;
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -416,7 +439,8 @@ export function SuspectsModal({ isOpen, onClose, category, list, t }) {
     statPadders: t("stat_padders_label"),
     sandbaggers: t("sandbaggers_label"),
     deadweightWhales: t("deadweight_label"),
-    hyperCombatants: t("hyper_combatants_label")
+    hyperCombatants: t("hyper_combatants_label"),
+    commanderBloatSuspects: "Commander Bloat Audit (Peacekeeper / Gatherer Padding)"
   };
 
   const currentTitle = titles[category] || t("suspects_modal_title");

@@ -44,8 +44,8 @@ function fmtJson(g) {
 }
 
 function fmtBool(v) {
-  if (v === true || v === "true" || v === "TRUE") return "YES (5555)";
-  if (v === false || v === "false" || v === "FALSE") return "NO";
+  if (v === true || v === "true" || v === "TRUE") return "TRUE";
+  if (v === false || v === "false" || v === "FALSE") return "FALSE";
   return "";
 }
 
@@ -86,89 +86,63 @@ async function main() {
   const scanCompletedUtc = toUtcDtg(scanUpdatedIso);
 
   const govList = Object.values(kdObj.governors)
-    .map((g) => {
-      const power = Number(g.power || 0);
-      const troopPower = Number(g.troopPower || 0);
-      const techPower = Number(g.techPower || 0);
-      const buildingPower = Number(g.buildingPower || 0);
-      const commanderPower = Number(g.commanderPower || 0);
-      const killPoints = Number(g.killPoints || 0);
-      const totalUnitsKilled = Number(g.totalUnitsKilled || 0);
-      const dead = Number(g.dead || 0);
-      const matchmakingPower =
-        Number(g.matchmakingPower || 0) ||
-        (troopPower + techPower + buildingPower > 0 ? troopPower + techPower + buildingPower : 0);
-      const commanderBloatPct =
-        Number(g.commanderBloatPct || 0) ||
-        (power > 0 && commanderPower > 0 ? Number(((commanderPower / power) * 100).toFixed(2)) : 0);
-      const killToDeadRatio =
-        Number(g.killToDeadRatio || 0) ||
-        (dead > 0 ? Number((totalUnitsKilled / dead).toFixed(2)) : totalUnitsKilled);
-      const combatEfficiencyScore =
-        Number(g.combatEfficiencyScore || 0) ||
-        (power > 0 ? Number((killPoints / power).toFixed(2)) : 0);
-
-      return {
-        ...g,
-        id: String(g.id || g.govId || ""),
-        govId: Number(g.govId || g.id || 0),
-        allianceNumericId: Number(g.allianceNumericId || 0),
-        power,
-        highestPower: Number(g.highestPower || 0),
-        matchmakingPower,
-        commanderBloatPct,
-        killPoints,
-        totalUnitsKilled,
-        killToDeadRatio,
-        combatEfficiencyScore,
-        dead,
-        healedTroops: Number(g.healedTroops || 0),
-        troopPower,
-        techPower,
-        buildingPower,
-        commanderPower,
-        t1Kills: Number(g.t1Kills || 0),
-        t2Kills: Number(g.t2Kills || 0),
-        t3Kills: Number(g.t3Kills || 0),
-        t4Kills: Number(g.t4Kills || 0),
-        t5Kills: Number(g.t5Kills || 0),
-        t1Kp: Number(g.t1Kp || 0),
-        t2Kp: Number(g.t2Kp || 0),
-        t3Kp: Number(g.t3Kp || 0),
-        t4Kp: Number(g.t4Kp || 0),
-        t5Kp: Number(g.t5Kp || 0),
-        rangedPoints: Number(g.rangedPoints || 0),
-        acclaim: Number(g.acclaim || 0),
-        victories: Number(g.victories || 0),
-        defeats: Number(g.defeats || 0),
-        scoutTimes: Number(g.scoutTimes || 0),
-        gathered: Number(g.gathered || 0),
-        assistance: Number(g.assistance || 0),
-        helps: Number(g.helps || 0),
-        cityHall: Number(g.cityHall || 0),
-        vipLevel: Number(g.vipLevel || 0),
-        civId: Number(g.civId || 0),
-        ralliesLed: Number(g.ralliesLed || 0),
-        ralliesJoined: Number(g.ralliesJoined || 0),
-        kvkHighestKp: Number(g.kvkHighestKp || 0),
-        kvkMostKills: Number(g.kvkMostKills || 0),
-        kvkMostHealed: Number(g.kvkMostHealed || 0),
-        kvkMostDead: Number(g.kvkMostDead || 0),
-        kvkCount: Number(g.kvkCount || 0),
-        aooWins: Number(g.aooWins || 0),
-        aooLosses: Number(g.aooLosses || 0),
-        aooLeaves: Number(g.aooLeaves || 0),
-        aooKillStocks: Number(g.aooKillStocks || 0),
-        aooHighestScore: Number(g.aooHighestScore || 0),
-        kvkMorale: Number(g.kvkMorale || 0),
-        mapCityEntityId: Number(g.mapCityEntityId || 0),
-        lilithAccountUid: Number(g.lilithAccountUid || 0),
-        avatarFrameId: Number(g.avatarFrameId || 0),
-        internalServerId: Number(g.internalServerId || 0),
-        originServerId: Number(g.originServerId || 0),
-        mapServerId: Number(g.mapServerId || 0),
-      };
-    })
+    .map((g) => ({
+      ...g,
+      id: String(g.id || g.govId || ""),
+      govId: Number(g.govId || g.id || 0),
+      allianceNumericId: Number(g.allianceNumericId || 0),
+      power: Number(g.power || 0),
+      highestPower: Number(g.highestPower || 0),
+      matchmakingPower: Number(g.matchmakingPower || 0),
+      killPoints: Number(g.killPoints || 0),
+      totalUnitsKilled: Number(g.totalUnitsKilled || 0),
+      dead: Number(g.dead || 0),
+      healedTroops: Number(g.healedTroops || 0),
+      troopPower: Number(g.troopPower || 0),
+      techPower: Number(g.techPower || 0),
+      buildingPower: Number(g.buildingPower || 0),
+      commanderPower: Number(g.commanderPower || 0),
+      t1Kills: Number(g.t1Kills || 0),
+      t2Kills: Number(g.t2Kills || 0),
+      t3Kills: Number(g.t3Kills || 0),
+      t4Kills: Number(g.t4Kills || 0),
+      t5Kills: Number(g.t5Kills || 0),
+      t1Kp: Number(g.t1Kp || 0),
+      t2Kp: Number(g.t2Kp || 0),
+      t3Kp: Number(g.t3Kp || 0),
+      t4Kp: Number(g.t4Kp || 0),
+      t5Kp: Number(g.t5Kp || 0),
+      rangedPoints: Number(g.rangedPoints || 0),
+      acclaim: Number(g.acclaim || 0),
+      victories: Number(g.victories || 0),
+      defeats: Number(g.defeats || 0),
+      scoutTimes: Number(g.scoutTimes || 0),
+      gathered: Number(g.gathered || 0),
+      assistance: Number(g.assistance || 0),
+      helps: Number(g.helps || 0),
+      cityHall: Number(g.cityHall || 0),
+      vipLevel: Number(g.vipLevel || 0),
+      civId: Number(g.civId || 0),
+      ralliesLed: Number(g.ralliesLed || 0),
+      ralliesJoined: Number(g.ralliesJoined || 0),
+      kvkHighestKp: Number(g.kvkHighestKp || 0),
+      kvkMostKills: Number(g.kvkMostKills || 0),
+      kvkMostHealed: Number(g.kvkMostHealed || 0),
+      kvkMostDead: Number(g.kvkMostDead || 0),
+      kvkCount: Number(g.kvkCount || 0),
+      aooWins: Number(g.aooWins || 0),
+      aooLosses: Number(g.aooLosses || 0),
+      aooLeaves: Number(g.aooLeaves || 0),
+      aooKillStocks: Number(g.aooKillStocks || 0),
+      aooHighestScore: Number(g.aooHighestScore || 0),
+      kvkMorale: Number(g.kvkMorale || 0),
+      mapCityEntityId: Number(g.mapCityEntityId || 0),
+      lilithAccountUid: Number(g.lilithAccountUid || 0),
+      avatarFrameId: Number(g.avatarFrameId || 0),
+      internalServerId: Number(g.internalServerId || 0),
+      originServerId: Number(g.originServerId || 0),
+      mapServerId: Number(g.mapServerId || 0),
+    }))
     .sort((a, b) => b.power - a.power || (b.ralliesLed + b.ralliesJoined) - (a.ralliesLed + a.ralliesJoined));
 
   govList.forEach((g, idx) => {
@@ -176,10 +150,10 @@ async function main() {
   });
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Valheon / Unity 67-Field Sovereign Weapon Engine";
+  workbook.creator = "Valheon / Unity Raw Telemetry Engine";
   workbook.created = new Date(scanUpdatedIso);
 
-  // SINGLE SHEET ONLY: "ALL" (contains every governor from the scan & every extracted weapon field)
+  // SINGLE SHEET ONLY: "ALL" — strictly raw Lilith telemetry data (no custom derived ratios)
   const wsAll = workbook.addWorksheet("ALL", {
     views: [{ state: "frozen", xSplit: 6, ySplit: 1 }],
   });
@@ -195,12 +169,9 @@ async function main() {
     { header: "Alliance Numeric ID", key: "allianceNumericId", width: 18 },
     { header: "Power", key: "power", width: 15 },
     { header: "Highest Power", key: "highestPower", width: 15 },
-    { header: "Matchmaking Power (No Cmdr)", key: "matchmakingPower", width: 24 },
-    { header: "Commander Bloat %", key: "commanderBloatPct", width: 17 },
+    { header: "Matchmaking Power (0xcfc63861)", key: "matchmakingPower", width: 26 },
     { header: "Kill Points", key: "killPoints", width: 15 },
-    { header: "Combat Efficiency (KP/Power)", key: "combatEfficiencyScore", width: 24 },
     { header: "Dead Troops", key: "dead", width: 14 },
-    { header: "Kill-to-Dead Ratio", key: "killToDeadRatio", width: 17 },
     { header: "Healed Troops", key: "healedTroops", width: 15 },
     { header: "City Hall", key: "cityHall", width: 10 },
     { header: "VIP Level", key: "vipLevel", width: 10 },
@@ -215,7 +186,6 @@ async function main() {
     { header: "T3 Kills", key: "t3Kills", width: 14 },
     { header: "T4 Kills", key: "t4Kills", width: 14 },
     { header: "T5 Kills", key: "t5Kills", width: 14 },
-    { header: "T4+T5 Kills", key: "t4t5Kills", width: 15 },
     { header: "T1 KP", key: "t1Kp", width: 14 },
     { header: "T2 KP", key: "t2Kp", width: 14 },
     { header: "T3 KP", key: "t3Kp", width: 14 },
@@ -250,12 +220,10 @@ async function main() {
     { header: "Commander Armaments", key: "armamentsStr", width: 24 },
     { header: "KvK Morale", key: "kvkMorale", width: 12 },
     { header: "Titan Legion", key: "titanLegionStr", width: 22 },
-    { header: "Castle Pos (X,Y)", key: "castlePosStr", width: 16 },
+    { header: "Castle Pos (Raw Engine X,Y)", key: "castlePosStr", width: 24 },
     { header: "Map City Entity ID", key: "mapCityEntityId", width: 17 },
-    { header: "Linked Alt / Farm Accounts", key: "linkedAltGovIds", width: 42 },
-    { header: "Device UDID (Hardware Fingerprint)", key: "udid", width: 36 },
+    { header: "Device UDID", key: "udid", width: 36 },
     { header: "Lilith Account UID", key: "lilithAccountUid", width: 18 },
-    { header: "Account Vintage Cohort", key: "accountVintage", width: 22 },
     { header: "Master Account CId", key: "masterAccountCId", width: 20 },
     { header: "App UID", key: "appUid", width: 16 },
     { header: "Client Platform", key: "clientPlatform", width: 22 },
@@ -264,7 +232,6 @@ async function main() {
     { header: "Avatar Frame ID", key: "avatarFrameId", width: 15 },
     { header: "Badge Showcase Vector", key: "badgeShowcaseVector", width: 22 },
     { header: "Active Hours (UTC)", key: "activeHoursUtc", width: 22 },
-    { header: "Est. Sleep Window (UTC)", key: "estSleepWindowUtc", width: 24 },
     { header: "Internal Server ID", key: "internalServerId", width: 16 },
     { header: "Origin Server ID", key: "originServerId", width: 16 },
     { header: "Map Server ID", key: "mapServerId", width: 15 },
@@ -279,7 +246,6 @@ async function main() {
       rowDtgUtc: toUtcDtg(gIso),
       rowDtgEdt: toEdtDtg(gIso),
       scanStartedUtc,
-      t4t5Kills: g.t4Kills + g.t5Kills,
       primaryCmdrStr: fmtCmdr(g.primaryCommander),
       primaryAwakenedStr: fmtBool(g.primaryCmdrAwakened),
       secondaryCmdrStr: fmtCmdr(g.secondaryCommander),
@@ -288,9 +254,7 @@ async function main() {
       armamentsStr: fmtJson(g.commanderArmaments),
       titanLegionStr: fmtJson(g.titanLegion),
       castlePosStr: fmtPos(g.castlePos),
-      linkedAltGovIds: g.linkedAltGovIds || "",
       udid: g.udid || "",
-      accountVintage: g.accountVintage || "",
       masterAccountCId: g.masterAccountCId || "",
       appUid: g.appUid || "",
       clientPlatform: g.clientPlatform || "",
@@ -298,7 +262,6 @@ async function main() {
       avatarImageMd5: g.avatarImageMd5 || "",
       badgeShowcaseVector: g.badgeShowcaseVector || "",
       activeHoursUtc: g.activeHoursUtc || "",
-      estSleepWindowUtc: g.estSleepWindowUtc || "",
     });
   }
 
@@ -341,7 +304,7 @@ async function main() {
       await workbook.xlsx.writeFile(p);
       const st = fs.statSync(p);
       console.log(
-        `Wrote single-sheet ALL (${govList.length} rows, ${wsAll.columns.length} cols) -> ${p} (${st.size} bytes)`
+        `Wrote single-sheet ALL (${govList.length} rows, ${wsAll.columns.length} raw cols) -> ${p} (${st.size} bytes)`
       );
     } catch (err) {
       console.warn(`Could not write ${p}: ${err.message}`);

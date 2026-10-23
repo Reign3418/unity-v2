@@ -545,6 +545,8 @@ ${anomalies.statPadders.slice(0, 3).map(s => `  ${s.name} [${s.alliance}]: ${s.r
 ${anomalies.sandbaggers.slice(0, 3).map(s => `  ${s.name} [${s.alliance}]: ${s.reason}`).join('\n')}
 - Deadweight Whales: ${anomalies.deadweightWhales.length} detected (${(anomalies.deadweightPowerTotal/1e6).toFixed(1)}M power, ${anomalies.deadweightPowerPercentage}% of Top 50 power)
 - Frontline Hyper-Combatants: ${anomalies.hyperCombatants.length} detected
+- Kingdom Avg Commander Bloat: ${anomalies.avgCommanderBloatPct || 0}% | High Commander Bloat Accounts (Peacekeeper/Gatherer Bloat >=16%): ${(anomalies.commanderBloatSuspects || []).length} detected
+${(anomalies.commanderBloatSuspects || []).slice(0, 4).map(s => `  ${s.name} [${s.alliance}]: ${s.reason}`).join('\n')}
 
 BEHAVIORAL SIGNATURES (Age-Calibrated for ${era}, Age: ${serverAgeDays ?? 'Uncalibrated'}d, Window: ${windowDays}d):
 - Operators (high KP ≥ ${calibration.kpOperatorThreshold.toLocaleString()}, low power grind — combat leaders/coordinators): ${operators.length} detected
@@ -589,7 +591,7 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
   "posture": "Peaceful Farming | Active Skirmishing | Civil War | Whale Surge | Rapid Expansion",
   "diagnosis": "2-3 sentences on overall kingdom health based on power vs deads ratio and growth pattern.",
   "stabilityIndex": "${isNascent ? '1 sentence on roster churn and alliance switching.' : '1 sentence on roster churn, migration volume, and alliance switching.'}",
-  "economicIntel": "1 sentence analyzing the balance of troop power vs commander vs tech growth.",
+  "economicIntel": "1-2 sentences analyzing the balance of troop power vs tech growth vs Commander Bloat % (call out if players are inflating power with Peacekeeper/Gatherer commander bloat instead of real fighting troops and Academy tech).",
   "conflictTheories": ["Deduce which alliances are fighting based on deads + troop drops. Be specific with alliance tags.", "Second theory if applicable."],
   "followAnalysis": "${isNascent ? '1-2 sentences: Which alliances are consolidating the top active player base? Is there a gravitational center forming? Call out specific tags.' : '1-2 sentences: Which alliances are attracting new migrants? Is there a gravitational center forming? Call out specific tags.'}",
   "leadershipAssessment": "1-2 sentences assessing influence structure based on BEHAVIORAL signals (operators, veterans, gravity centers). Do NOT assume power rank = leadership. Note if combat-active governors suggest an organized command structure vs a fragmented leaderless state.",

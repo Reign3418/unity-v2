@@ -81,6 +81,8 @@ const ANALYTICS_COLS = [
     { key: "t5KillPct",              label: "T5 Kill %",     color: "text-fuchsia-400 font-mono" },
     { key: "dead",                   label: "Deads",         color: "text-rose-400" },
     { key: "deadToPowerPct",         label: "Dead/Power %",  color: "text-rose-300 font-mono font-bold" },
+    { key: "matchmakingPower",       label: "MM Power",      color: "text-cyan-200 font-mono" },
+    { key: "cmdrPowerPct",           label: "Cmdr Bloat %",  color: "text-violet-400 font-mono font-bold" },
     { key: "troopPowerPct",          label: "Troop %",       color: "text-sky-400 font-mono" },
     { key: "techPowerPct",           label: "Tech %",        color: "text-cyan-300 font-mono" },
     { key: "buildingPowerPct",       label: "Bldg %",        color: "text-amber-200 font-mono" },
@@ -369,10 +371,10 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
                             <span className="text-pink-400 font-mono font-bold text-sm">{spotlightGovernor.deadToPowerPct || "0.00%"}</span>
                             <span className="text-[9px] text-gray-500 block">Dead / Power</span>
                         </div>
-                        <div className="p-2 bg-[#080b10] border border-sky-500/20 rounded-lg">
-                            <span className="text-[10px] uppercase font-mono text-gray-400 block">Power Split</span>
-                            <span className="text-sky-300 font-mono text-xs block font-bold">Troop: {spotlightGovernor.troopPowerPct}</span>
-                            <span className="text-[9px] text-gray-400 block">Tech {spotlightGovernor.techPowerPct} • Bldg {spotlightGovernor.buildingPowerPct}</span>
+                        <div className="p-2 bg-[#080b10] border border-violet-500/25 rounded-lg">
+                            <span className="text-[10px] uppercase font-mono text-gray-400 block">Cmdr Bloat & Split</span>
+                            <span className="text-violet-300 font-mono text-xs block font-bold">Cmdr Bloat: {spotlightGovernor.cmdrPowerPct}</span>
+                            <span className="text-[9px] text-gray-400 block">Troop {spotlightGovernor.troopPowerPct} • Tech {spotlightGovernor.techPowerPct}</span>
                         </div>
                         <div className="p-2 bg-[#080b10] border border-emerald-500/20 rounded-lg">
                             <span className="text-[10px] uppercase font-mono text-gray-400 block">Battle Record</span>
