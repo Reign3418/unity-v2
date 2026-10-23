@@ -21,8 +21,9 @@ import {
   EyeOff,
   Compass,
   Users,
-  AlertTriangle,
   Activity,
+  Pickaxe,
+  Camera,
 } from 'lucide-react';
 
 const MAP_SIZE = 1200; // 1200 x 1200 km RoK Kingdom Map
@@ -43,6 +44,29 @@ const ALLIANCE_COLORS = {
   'VIKS': '#f43f5e',
 };
 
+const RSS_META = {
+  FOOD: { label: 'Food (Cropland)', short: '🌽 Food', color: '#84cc16', stroke: '#1a2e05' },
+  WOOD: { label: 'Wood (Logging Camp)', short: '🪵 Wood', color: '#d97706', stroke: '#451a03' },
+  STONE: { label: 'Stone (Quarry)', short: '🪨 Stone', color: '#cbd5e1', stroke: '#1e293b' },
+  GOLD: { label: 'Gold (Gold Mine)', short: '🪙 Gold', color: '#facc15', stroke: '#422006' },
+  GEMS: { label: 'Gems / Crystal', short: '💎 Gems', color: '#f43f5e', stroke: '#4c0519' },
+  PIT: { label: 'Alliance Resource Pit', short: '🏭 Pit', color: '#ec4899', stroke: '#500724' },
+};
+
+// Standard RoK Kingdom Pass Gate Choke-Points on the 1200x1200 Home Map
+const KINGDOM_PASSES = [
+  { id: 'pass_z1_nw', label: 'Pass Lv.1 (NW Gate)', level: 1, x: 360, y: 1020 },
+  { id: 'pass_z1_ne', label: 'Pass Lv.1 (NE Gate)', level: 1, x: 840, y: 1020 },
+  { id: 'pass_z1_sw', label: 'Pass Lv.1 (SW Gate)', level: 1, x: 360, y: 180 },
+  { id: 'pass_z1_se', label: 'Pass Lv.1 (SE Gate)', level: 1, x: 840, y: 180 },
+  { id: 'pass_z1_w', label: 'Pass Lv.2 (West Corridor)', level: 2, x: 180, y: 600 },
+  { id: 'pass_z1_e', label: 'Pass Lv.2 (East Corridor)', level: 2, x: 1020, y: 600 },
+  { id: 'pass_z3_n', label: "Pass Lv.3 (North King's Gate)", level: 3, x: 600, y: 820 },
+  { id: 'pass_z3_s', label: "Pass Lv.3 (South King's Gate)", level: 3, x: 600, y: 380 },
+  { id: 'pass_z3_w', label: "Pass Lv.3 (West King's Gate)", level: 3, x: 380, y: 600 },
+  { id: 'pass_z3_e', label: "Pass Lv.3 (East King's Gate)", level: 3, x: 820, y: 600 },
+];
+
 function getAllianceColor(tag) {
   if (!tag || tag === 'None') return '#38bdf8';
   if (ALLIANCE_COLORS[tag]) return ALLIANCE_COLORS[tag];
@@ -61,16 +85,25 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
   const [loading, setLoading] = useState(true);
   const [mapPayload, setMapPayload] = useState(null);
   const [theatre, setTheatre] = useState('HOME_3194'); // 'HOME_3194' | 'KVK_16130' | 'ALL'
+  const [mapVisualStyle, setMapVisualStyle] = useState('IN_GAME_TERRAIN'); // 'IN_GAME_TERRAIN' | 'TACTICAL_RADAR'
+  const [directoryTab, setDirectoryTab] = useState('CITIES'); // 'CITIES' | 'RSS_NODES'
   const [searchQuery, setSearchQuery] = useState('');
   const [allianceFilter, setAllianceFilter] = useState('ALL');
+
+  // Fine-Tuned Resource Node Filters
+  const [rssTypeFilter, setRssTypeFilter] = useState('ALL'); // 'ALL' | 'FOOD' | 'WOOD' | 'STONE' | 'GOLD' | 'PIT'
+  const [rssMinLevel, setRssMinLevel] = useState(1); // 1..6 or 10 (Alliance Pit)
+  const [huntRssLevel, setHuntRssLevel] = useState(5);
+
   const [selectedEntity, setSelectedEntity] = useState(null);
   const [hoveredEntity, setHoveredEntity] = useState(null);
   const [cursorTile, setCursorTile] = useState({ x: 600, y: 600 });
   const [copiedCoord, setCopiedCoord] = useState(false);
   const [botStatusMsg, setBotStatusMsg] = useState('');
   const [isSweeping, setIsSweeping] = useState(false);
+  const [liveViewportStamp, setLiveViewportStamp] = useState(null);
 
-  // Viewport Pan & Zoom (in canvas pixels relative to 1200x1200 world)
+  // Viewport Pan & Zoom
   const [zoom, setZoom] = useState(0.62);
   const [pan, setPan] = useState({ x: 80, y: 30 });
   const [isDragging, setIsDragging] = useState(false);
@@ -86,6 +119,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     resources: true,
     caves: true,
     zones: true,
+    territoryOverlay: true,
   });
 
   const fetchMapData = useCallback(async () => {
@@ -193,7 +227,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     });
 
     const holySites = [
-      // Always include the Lost Temple at exact center (600, 600) on Home Map
       ...(theatre === 'HOME_3194' || theatre === 'ALL'
         ? [
             {
@@ -206,19 +239,67 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
               worldY: 3600.0,
               serverId: 3194,
             },
+            ...KINGDOM_PASSES.map((p) => ({
+              ...p,
+              type: 'KINGDOM_PASS',
+              worldX: p.x * 6,
+              worldY: p.y * 6,
+              serverId: 3194,
+            })),
           ]
         : []),
       ...(mapPayload.holySitesAndRuins || []).filter((h) => matchServer(h.serverId)),
     ];
 
     const forts = (mapPayload.barbarianForts || []).filter((f) => matchServer(f.serverId));
-    const resources = (mapPayload.resourceNodes || []).filter((r) => matchServer(r.serverId));
+
+    // Fine-Tuned Resource Node Filtering (by Category + Minimum Level)
+    const resources = (mapPayload.resourceNodes || [])
+      .filter((r) => {
+        if (!matchServer(r.serverId)) return false;
+        const cat = r.rssCategory || (r.isAlliancePit ? 'PIT' : 'FOOD');
+        const lvl = Number(r.level || 1);
+        if (rssTypeFilter !== 'ALL') {
+          if (rssTypeFilter === 'PIT') {
+            if (!r.isAlliancePit && cat !== 'PIT' && cat !== 'GEMS') return false;
+          } else if (cat !== rssTypeFilter) {
+            return false;
+          }
+        }
+        if (lvl < rssMinLevel) return false;
+        if (q) {
+          const hit =
+            String(r.label || '').toLowerCase().includes(q) ||
+            String(cat).toLowerCase().includes(q);
+          if (!hit) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => Number(b.level || 0) - Number(a.level || 0) || Number(b.totalYield || 0) - Number(a.totalYield || 0));
+
     const caves = theatre === 'KVK_16130' ? [] : mapPayload.cavesAndVillages || [];
 
     return { cities, structures, markers, holySites, forts, resources, caves };
-  }, [mapPayload, matchServer, allianceFilter, searchQuery, theatre]);
+  }, [mapPayload, matchServer, allianceFilter, searchQuery, theatre, rssTypeFilter, rssMinLevel]);
 
-  // Search results across ALL 300 #4194 governors + map entities so ANY governor can be tracked
+  // Resource node breakdown counts for the fine-tuning bar
+  const rssCategoryCounts = useMemo(() => {
+    const counts = { ALL: 0, FOOD: 0, WOOD: 0, STONE: 0, GOLD: 0, PIT: 0 };
+    for (const r of mapPayload?.resourceNodes || []) {
+      if (!matchServer(r.serverId)) continue;
+      if (Number(r.level || 1) < rssMinLevel) continue;
+      counts.ALL += 1;
+      const cat = r.rssCategory || (r.isAlliancePit ? 'PIT' : 'FOOD');
+      if (r.isAlliancePit || cat === 'PIT' || cat === 'GEMS') {
+        counts.PIT += 1;
+      } else if (counts[cat] !== undefined) {
+        counts[cat] += 1;
+      }
+    }
+    return counts;
+  }, [mapPayload, matchServer, rssMinLevel]);
+
+  // Universal Search Results across ALL 300 #4194 governors + map entities
   const universalSearchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q || !mapPayload) return [];
@@ -226,7 +307,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     const results = [];
     const seenGovIds = new Set();
 
-    // 1. Direct coordinate cities
     for (const c of mapPayload.governorCities || []) {
       if (
         String(c.govId || '').toLowerCase().includes(q) ||
@@ -241,7 +321,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       }
     }
 
-    // 2. R4 Builder Cities & Markers matching query
     for (const s of mapPayload.allianceStructures || []) {
       if (
         s.type === 'R4_BUILDER_CITY' &&
@@ -256,7 +335,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       }
     }
 
-    // 3. All 300 active #4194 roster governors (even if not yet in a battle report)
     const fullRoster = mapPayload.rosterList?.length ? mapPayload.rosterList : rosterData;
     for (const g of fullRoster || []) {
       const gid = String(g.govId || g.id);
@@ -290,7 +368,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     return results.slice(0, 12);
   }, [searchQuery, mapPayload, rosterData, allianceCentroids]);
 
-  // Available alliances in current view + roster
   const availableAlliances = useMemo(() => {
     const s = new Set();
     for (const c of mapPayload?.governorCities || []) {
@@ -302,14 +379,13 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     return Array.from(s).sort();
   }, [mapPayload]);
 
-  // Center map onto a specific (x, y) in-game tile (0..1200)
   const focusOnTile = useCallback((tileX, tileY, targetZoom = 1.65) => {
     if (tileX === null || tileY === null || isNaN(tileX) || isNaN(tileY)) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const cx = Number(tileX);
-    const cy = MAP_SIZE - Number(tileY); // Invert Y so Y=0 is bottom-left, Y=1200 is top-right
+    const cy = MAP_SIZE - Number(tileY);
     setZoom(targetZoom);
     setPan({
       x: rect.width / 2 - cx * targetZoom,
@@ -329,13 +405,11 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     });
   }, []);
 
-  // Trigger initial viewport fit
   useEffect(() => {
     const t = setTimeout(resetViewport, 80);
     return () => clearTimeout(t);
   }, [resetViewport]);
 
-  // Convert screen (clientX, clientY) -> in-game tile (x, y)
   const screenToTile = useCallback(
     (clientX, clientY) => {
       const canvas = canvasRef.current;
@@ -352,7 +426,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     [pan, zoom]
   );
 
-  // Find nearest interactive entity under cursor
   const findEntityAtScreenPos = useCallback(
     (clientX, clientY) => {
       const canvas = canvasRef.current;
@@ -361,7 +434,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       const sx = clientX - rect.left;
       const sy = clientY - rect.top;
 
-      const hitRadiusPx = 11;
+      const hitRadiusPx = 12;
       let best = null;
       let bestDist = hitRadiusPx;
 
@@ -379,13 +452,12 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         }
       };
 
-      // Priority order: Cities -> Holy Sites -> Structures -> Markers -> Forts -> Resources -> Caves
       checkList(filteredData.cities, layers.cities);
+      checkList(filteredData.resources, layers.resources);
       checkList(filteredData.holySites, layers.holySites);
       checkList(filteredData.structures, layers.structures);
       checkList(filteredData.markers, layers.markers);
       checkList(filteredData.forts, layers.forts);
-      checkList(filteredData.resources, layers.resources);
       if (!best && zoom >= 1.1) {
         checkList(filteredData.caves, layers.caves);
       }
@@ -395,7 +467,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     [filteredData, layers, pan, zoom]
   );
 
-  // Canvas Render Loop (60 FPS for all 2,934 points)
+  // Canvas Render Loop (Supports Both In-Game Terrain View & Tactical Cyber Radar)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -408,58 +480,100 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    // 1. Deep Radar Background
-    ctx.fillStyle = '#07090d';
+    const isInGameView = mapVisualStyle === 'IN_GAME_TERRAIN';
+
+    // 1. Viewport Canvas Background
+    ctx.fillStyle = isInGameView ? '#0e1712' : '#07090d';
     ctx.fillRect(0, 0, rect.width, rect.height);
 
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
 
-    // 2. 1200 x 1200 Kingdom Map Base Surface
-    const grad = ctx.createRadialGradient(600, 600, 40, 600, 600, 750);
-    grad.addColorStop(0, '#131c2e');
-    grad.addColorStop(0.55, '#0d131f');
-    grad.addColorStop(1, '#090d14');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+    // 2. 1200 x 1200 Kingdom Surface (In-Game Biome Topography vs Dark Radar)
+    if (isInGameView) {
+      // Zone 1 Outer Emerald Forest Terrain
+      const z1Grad = ctx.createRadialGradient(600, 600, 120, 600, 600, 860);
+      z1Grad.addColorStop(0, '#3d4426'); // Zone 3 Sacred Golden-Olive Basin
+      z1Grad.addColorStop(0.32, '#2d4528'); // Zone 2 Lush Valley Plains
+      z1Grad.addColorStop(0.7, '#1f3622'); // Zone 1 Outer Highlands
+      z1Grad.addColorStop(1, '#162819');
+      ctx.fillStyle = z1Grad;
+      ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
 
-    // 3. Zone 1 / Zone 2 / Zone 3 Concentric Kingdom Rings & Grid
+      // Subtle River Waterways cutting across the Kingdom Basin
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.28)';
+      ctx.lineWidth = 14 / zoom;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 320);
+      ctx.bezierCurveTo(280, 360, 360, 420, 380, 600);
+      ctx.moveTo(1200, 880);
+      ctx.bezierCurveTo(920, 840, 840, 780, 820, 600);
+      ctx.stroke();
+    } else {
+      const grad = ctx.createRadialGradient(600, 600, 40, 600, 600, 750);
+      grad.addColorStop(0, '#131c2e');
+      grad.addColorStop(0.55, '#0d131f');
+      grad.addColorStop(1, '#090d14');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+    }
+
+    // 3. Zone 1 / Zone 2 / Zone 3 Mountain Ridge Boundaries & Resource Level Contours
     if (layers.zones) {
-      // Zone 2 Boundary
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
-      ctx.lineWidth = 2 / zoom;
-      ctx.setLineDash([8 / zoom, 6 / zoom]);
-      ctx.strokeRect(180, 180, 840, 840);
+      if (isInGameView) {
+        // Zone 2 Mountain Range Ridge
+        ctx.strokeStyle = 'rgba(120, 113, 108, 0.65)';
+        ctx.lineWidth = 6 / zoom;
+        ctx.strokeRect(180, 180, 840, 840);
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.35)';
+        ctx.lineWidth = 1.5 / zoom;
+        ctx.setLineDash([10 / zoom, 6 / zoom]);
+        ctx.strokeRect(180, 180, 840, 840);
 
-      // Zone 3 (King's Land) Inner Sanctum
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.28)';
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.03)';
-      ctx.fillRect(380, 380, 440, 440);
-      ctx.strokeRect(380, 380, 440, 440);
-      ctx.setLineDash([]);
+        // Zone 3 (King's Land) High Mountain Range & Golden Sanctum Border
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.06)';
+        ctx.fillRect(380, 380, 440, 440);
+        ctx.strokeStyle = 'rgba(168, 162, 158, 0.75)';
+        ctx.lineWidth = 7 / zoom;
+        ctx.strokeRect(380, 380, 440, 440);
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.65)';
+        ctx.lineWidth = 2 / zoom;
+        ctx.strokeRect(380, 380, 440, 440);
+      } else {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
+        ctx.lineWidth = 2 / zoom;
+        ctx.setLineDash([8 / zoom, 6 / zoom]);
+        ctx.strokeRect(180, 180, 840, 840);
 
-      // Zone Labels
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.28)';
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.03)';
+        ctx.fillRect(380, 380, 440, 440);
+        ctx.strokeRect(380, 380, 440, 440);
+        ctx.setLineDash([]);
+      }
+
+      // Zone & Resource Tier Labels
       ctx.font = `bold ${Math.max(11, 13 / zoom)}px monospace`;
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
-      ctx.fillText('ZONE 1 (OUTER PROVINCES)', 24, 34);
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
-      ctx.fillText('ZONE 2 (INNER VALLEYS)', 195, 204);
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.55)';
-      ctx.fillText("ZONE 3 (KING'S LAND / LOST TEMPLE)", 395, 404);
+      ctx.fillStyle = isInGameView ? 'rgba(217, 249, 157, 0.6)' : 'rgba(148, 163, 184, 0.35)';
+      ctx.fillText('ZONE 1 · OUTER PROVINCES (RSS LV.1–4)', 24, 34);
+      ctx.fillStyle = isInGameView ? 'rgba(167, 243, 208, 0.7)' : 'rgba(56, 189, 248, 0.4)';
+      ctx.fillText('ZONE 2 · INNER VALLEYS (RSS LV.3–5 · PASS LV.1/2)', 195, 204);
+      ctx.fillStyle = isInGameView ? 'rgba(253, 224, 71, 0.85)' : 'rgba(245, 158, 11, 0.55)';
+      ctx.fillText("ZONE 3 · KING'S LAND & LOST TEMPLE (RSS LV.5–6 · PASS LV.3)", 395, 404);
     }
 
     // Coordinate Grid Lines every 100 km
-    ctx.strokeStyle = 'rgba(30, 41, 59, 0.55)';
+    ctx.strokeStyle = isInGameView ? 'rgba(255, 255, 255, 0.08)' : 'rgba(30, 41, 59, 0.55)';
     ctx.lineWidth = 1 / zoom;
     ctx.font = `${Math.max(9, 10 / zoom)}px monospace`;
-    ctx.fillStyle = 'rgba(100, 116, 139, 0.65)';
+    ctx.fillStyle = isInGameView ? 'rgba(226, 232, 240, 0.55)' : 'rgba(100, 116, 139, 0.65)';
     for (let g = 0; g <= MAP_SIZE; g += 100) {
-      // Vertical line (X = g)
       ctx.beginPath();
       ctx.moveTo(g, 0);
       ctx.lineTo(g, MAP_SIZE);
       ctx.stroke();
-      // Horizontal line (Y = MAP_SIZE - g)
       ctx.beginPath();
       ctx.moveTo(0, g);
       ctx.lineTo(MAP_SIZE, g);
@@ -472,13 +586,28 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     }
 
     // Outer Map Border
-    ctx.strokeStyle = 'rgba(6, 182, 212, 0.45)';
-    ctx.lineWidth = 2 / zoom;
+    ctx.strokeStyle = isInGameView ? 'rgba(250, 204, 21, 0.55)' : 'rgba(6, 182, 212, 0.45)';
+    ctx.lineWidth = 2.5 / zoom;
     ctx.strokeRect(0, 0, MAP_SIZE, MAP_SIZE);
 
-    // 4. LAYER: 2,144 Caves & Tribal Villages (Fast Batch Render)
+    // 3B. In-Game Style Alliance Territory Polygons around Flags & Hives
+    if (layers.territoryOverlay && layers.structures && filteredData.structures.length > 0) {
+      const territorySpan = 16; // 16x16 km flag footprint
+      ctx.fillStyle = isInGameView ? 'rgba(59, 130, 246, 0.16)' : 'rgba(99, 102, 241, 0.10)';
+      ctx.strokeStyle = isInGameView ? 'rgba(96, 165, 250, 0.45)' : 'rgba(99, 102, 241, 0.25)';
+      ctx.lineWidth = 1 / zoom;
+      for (const s of filteredData.structures) {
+        if (s.status === 'DEMOLISHED') continue;
+        const sx = s.x;
+        const sy = MAP_SIZE - s.y;
+        ctx.fillRect(sx - territorySpan / 2, sy - territorySpan / 2, territorySpan, territorySpan);
+        ctx.strokeRect(sx - territorySpan / 2, sy - territorySpan / 2, territorySpan, territorySpan);
+      }
+    }
+
+    // 4. LAYER: 2,144 Caves & Tribal Villages
     if (layers.caves && filteredData.caves.length > 0) {
-      ctx.fillStyle = 'rgba(45, 212, 191, 0.28)';
+      ctx.fillStyle = isInGameView ? 'rgba(253, 230, 138, 0.28)' : 'rgba(45, 212, 191, 0.28)';
       const caveSize = Math.max(1.8, 2.2 / zoom);
       ctx.beginPath();
       for (const c of filteredData.caves) {
@@ -489,20 +618,37 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       ctx.fill();
     }
 
-    // 5. LAYER: Resource Nodes (Food / Wood / Stone / Gold / Gems)
+    // 5. LAYER: Fine-Tuned Resource Nodes (Food / Wood / Stone / Gold / Gems / Pits)
     if (layers.resources && filteredData.resources.length > 0) {
-      const rRadius = Math.max(3, 4.5 / zoom);
       for (const r of filteredData.resources) {
         const rx = r.x;
         const ry = MAP_SIZE - r.y;
-        ctx.fillStyle = r.label?.includes('Gold')
-          ? '#facc15'
-          : r.label?.includes('Gem')
-          ? '#f43f5e'
-          : '#22c55e';
+        const cat = r.rssCategory || (r.isAlliancePit ? 'PIT' : 'FOOD');
+        const meta = RSS_META[cat] || RSS_META.FOOD;
+        const lvl = Number(r.level || 1);
+        const rRadius = r.isAlliancePit ? Math.max(6, 8 / zoom) : Math.max(4, (3.5 + lvl * 0.45) / zoom);
+
+        ctx.fillStyle = meta.color;
+        ctx.strokeStyle = meta.stroke;
+        ctx.lineWidth = 1.4 / zoom;
+
+        // Draw Hexagon for Resource Nodes, Diamond for Pits
         ctx.beginPath();
-        ctx.arc(rx, ry, rRadius, 0, Math.PI * 2);
+        if (r.isAlliancePit) {
+          ctx.rect(rx - rRadius, ry - rRadius, rRadius * 2, rRadius * 2);
+        } else {
+          ctx.arc(rx, ry, rRadius, 0, Math.PI * 2);
+        }
         ctx.fill();
+        ctx.stroke();
+
+        // Show Node Level & Type Tag when zoomed in or when RSS is being filtered
+        if (zoom > 0.75 || rssTypeFilter !== 'ALL' || rssMinLevel >= 4) {
+          ctx.font = `bold ${Math.max(8, 9.5 / zoom)}px monospace`;
+          ctx.fillStyle = '#ffffff';
+          const badgeText = r.isAlliancePit ? `PIT (${cat})` : `${cat[0]}·Lv.${lvl}`;
+          ctx.fillText(badgeText, rx + rRadius + 3 / zoom, ry + 3 / zoom);
+        }
       }
     }
 
@@ -513,9 +659,9 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         const fx = f.x;
         const fy = MAP_SIZE - f.y;
         const isFort = f.type === 'BARBARIAN_FORT';
-        ctx.fillStyle = isFort ? 'rgba(239, 68, 68, 0.85)' : 'rgba(249, 115, 22, 0.75)';
+        ctx.fillStyle = isFort ? 'rgba(239, 68, 68, 0.9)' : 'rgba(249, 115, 22, 0.8)';
         ctx.strokeStyle = '#450a0a';
-        ctx.lineWidth = 1 / zoom;
+        ctx.lineWidth = 1.2 / zoom;
         ctx.beginPath();
         ctx.arc(fx, fy, fRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -532,9 +678,8 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         const isFortress = s.type === 'CENTER_FORTRESS';
         const isDemolished = s.status === 'DEMOLISHED';
 
-        // Draw line from flag to R4 builder city when zoomed in
         if (!isR4City && s.builderX && s.builderY && zoom > 0.9) {
-          ctx.strokeStyle = 'rgba(99, 102, 241, 0.25)';
+          ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
           ctx.lineWidth = 1 / zoom;
           ctx.beginPath();
           ctx.moveTo(sx, sy);
@@ -542,7 +687,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
           ctx.stroke();
         }
 
-        const sz = isFortress ? Math.max(7, 9 / zoom) : Math.max(4.5, 6 / zoom);
+        const sz = isFortress ? Math.max(7.5, 9.5 / zoom) : Math.max(4.5, 6 / zoom);
         ctx.fillStyle = isR4City
           ? '#a855f7'
           : isDemolished
@@ -586,15 +731,16 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       }
     }
 
-    // 9. LAYER: Holy Sites, Sanctums, Altars & Lost Temple
+    // 9. LAYER: Holy Sites, Sanctums, Passes & Lost Temple
     if (layers.holySites && filteredData.holySites.length > 0) {
       for (const h of filteredData.holySites) {
         const hx = h.x;
         const hy = MAP_SIZE - h.y;
         const isTemple = h.type === 'LOST_TEMPLE';
-        const r = isTemple ? Math.max(9, 12 / zoom) : Math.max(6, 8 / zoom);
+        const isPass = h.type === 'KINGDOM_PASS';
+        const r = isTemple ? Math.max(9.5, 12.5 / zoom) : isPass ? Math.max(5.5, 7 / zoom) : Math.max(6, 8 / zoom);
 
-        ctx.fillStyle = isTemple ? '#fbbf24' : '#c084fc';
+        ctx.fillStyle = isTemple ? '#fbbf24' : isPass ? '#fb923c' : '#c084fc';
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5 / zoom;
         ctx.beginPath();
@@ -602,9 +748,11 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         ctx.fill();
         ctx.stroke();
 
-        ctx.font = `bold ${Math.max(9, 11 / zoom)}px sans-serif`;
-        ctx.fillStyle = isTemple ? '#fde047' : '#f3e8ff';
-        ctx.fillText(h.label, hx + r + 4 / zoom, hy + 3 / zoom);
+        if (isTemple || zoom > 0.65) {
+          ctx.font = `bold ${Math.max(8.5, 10.5 / zoom)}px sans-serif`;
+          ctx.fillStyle = isTemple ? '#fde047' : isPass ? '#fed7aa' : '#f3e8ff';
+          ctx.fillText(h.label, hx + r + 4 / zoom, hy + 3 / zoom);
+        }
       }
     }
 
@@ -616,7 +764,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         const color = getAllianceColor(c.alliance);
         const r = Math.max(5.5, 7.5 / zoom);
 
-        // Outer glow ring
         ctx.fillStyle = color;
         ctx.strokeStyle = '#090b0e';
         ctx.lineWidth = 1.6 / zoom;
@@ -625,7 +772,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         ctx.fill();
         ctx.stroke();
 
-        // City Label (Alliance + Name)
         if (zoom > 0.55) {
           const tag = c.alliance && c.alliance !== 'None' ? `[${c.alliance}] ` : '';
           ctx.font = `bold ${Math.max(8.5, 10.5 / zoom)}px sans-serif`;
@@ -648,7 +794,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       ctx.arc(tx, ty, pulseR, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Crosshair ticks
       ctx.beginPath();
       ctx.moveTo(tx - pulseR * 1.4, ty);
       ctx.lineTo(tx + pulseR * 1.4, ty);
@@ -658,9 +803,8 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     }
 
     ctx.restore();
-  }, [filteredData, layers, pan, zoom, selectedEntity, hoveredEntity]);
+  }, [filteredData, layers, pan, zoom, selectedEntity, hoveredEntity, mapVisualStyle, rssTypeFilter, rssMinLevel]);
 
-  // Mouse handlers
   const handleMouseDown = (e) => {
     const hit = findEntityAtScreenPos(e.clientX, e.clientY);
     if (hit) {
@@ -727,7 +871,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
   const handleDispatchBotJump = async (entity) => {
     if (!entity) return;
-    setBotStatusMsg('Dispatching SIDEKICK Coordinate Hunter...');
+    setBotStatusMsg('Dispatching SIDEKICK Camera Jump & Capturing Live In-Game View...');
     try {
       const res = await fetch('/api/aws/map-entities', {
         method: 'POST',
@@ -743,15 +887,44 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       });
       const data = await res.json();
       setBotStatusMsg(data.message || 'Coordinate jump dispatched.');
-      setTimeout(() => setBotStatusMsg(''), 4500);
+      setTimeout(() => {
+        setLiveViewportStamp(Date.now());
+      }, 2800);
+      setTimeout(() => setBotStatusMsg(''), 5000);
     } catch (err) {
       setBotStatusMsg('Failed to dispatch bot jump.');
     }
   };
 
+  const handleHuntLiveRss = async () => {
+    const targetType = rssTypeFilter === 'ALL' || rssTypeFilter === 'PIT' ? 'GOLD' : rssTypeFilter;
+    setBotStatusMsg(`Dispatching bot to search Kingdom #${targetKd || '4194'} for Lv.${huntRssLevel} ${targetType} nodes...`);
+    try {
+      const res = await fetch('/api/aws/map-entities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'hunt-rss',
+          kd: targetKd || '4194',
+          rssType: targetType,
+          rssLevel: huntRssLevel,
+        }),
+      });
+      const data = await res.json();
+      setBotStatusMsg(data.message || 'Dispatched RSS search.');
+      setTimeout(async () => {
+        await fetchMapData();
+        setLiveViewportStamp(Date.now());
+      }, 3000);
+      setTimeout(() => setBotStatusMsg(''), 5500);
+    } catch (err) {
+      setBotStatusMsg('Failed to dispatch RSS hunter.');
+    }
+  };
+
   const handleRunMapSweep = async () => {
     setIsSweeping(true);
-    setBotStatusMsg('Synchronizing 7-layer map coordinates from Valheon Optical Telemetry...');
+    setBotStatusMsg('Harvesting 7-layer map coordinates from save & mailcache...');
     try {
       await fetch('/api/aws/map-entities', {
         method: 'POST',
@@ -786,20 +959,44 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
               </div>
               <div>
                 <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  Kingdom #{targetKd || '4194'} Interactive Tactical Map (1200 × 1200 km)
+                  Kingdom #{targetKd || '4194'} Interactive Map (1200 × 1200 km)
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     WorldPos ÷ 6 Calibrated
                   </span>
                 </h2>
                 <p className="text-xs text-gray-400">
-                  Live 7-layer coordinate intelligence harvested from RoK engine binary cache &amp; SIDEKICK telemetry
+                  In-Game Kingdom Terrain &amp; Territory View + Fine-Tuned Resource Node Radar
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Theatre Selector & Refresh */}
+          {/* Map Visual Style Toggle + Theatre Selector + Refresh */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* In-Game Map View vs Dark Tactical Radar */}
+            <div className="flex items-center bg-[#090b0e] border border-[#1e222b] rounded-lg p-1 text-xs font-bold">
+              <button
+                onClick={() => setMapVisualStyle('IN_GAME_TERRAIN')}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  mapVisualStyle === 'IN_GAME_TERRAIN'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                🎮 In-Game Terrain View
+              </button>
+              <button
+                onClick={() => setMapVisualStyle('TACTICAL_RADAR')}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  mapVisualStyle === 'TACTICAL_RADAR'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                🛰️ Dark Radar
+              </button>
+            </div>
+
             <div className="flex items-center bg-[#090b0e] border border-[#1e222b] rounded-lg p-1 text-xs font-bold">
               <button
                 onClick={() => setTheatre('HOME_3194')}
@@ -809,7 +1006,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Home Map #4194 (3194)
+                Home Map #4194
               </button>
               <button
                 onClick={() => setTheatre('KVK_16130')}
@@ -829,7 +1026,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                All Servers ({mapPayload?.counts?.totalMapEntities || 2934})
+                All ({mapPayload?.counts?.totalMapEntities || 2936})
               </button>
             </div>
 
@@ -846,7 +1043,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
         {/* Universal Target Search + Layer Toggle Pills */}
         <div className="mt-4 pt-3 border-t border-[#1e222b] flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between">
-          {/* Search & Alliance Filter */}
           <div className="flex flex-wrap items-center gap-2 flex-1">
             <div className="relative flex-1 min-w-[260px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400" />
@@ -854,7 +1050,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Find & Track ANY Governor (Name, ID, Alliance Tag, R4 Marker)..."
+                placeholder="Find & Track ANY Governor (Name, ID, Alliance Tag, R4 Marker, RSS Node)..."
                 className="w-full pl-9 pr-8 py-2 bg-[#090b0e] border border-[#1e222b] focus:border-cyan-500 rounded-lg text-xs text-white outline-none font-mono"
               />
               {searchQuery && (
@@ -866,7 +1062,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                 </button>
               )}
 
-              {/* Instant Dropdown for Universal Governor & Coordinate Tracking */}
               {universalSearchResults.length > 0 && (
                 <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#0b0e14] border border-cyan-500/40 rounded-xl shadow-2xl max-h-72 overflow-y-auto divide-y divide-[#1e222b]">
                   {universalSearchResults.map((item, idx) => (
@@ -894,13 +1089,11 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                           )}
                         </div>
                         <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-2">
-                          {item.power > 0 && (
-                            <span>Power: {(item.power / 1e6).toFixed(2)}M</span>
-                          )}
+                          {item.power > 0 && <span>Power: {(item.power / 1e6).toFixed(2)}M</span>}
                           {item.commanderBloatPct !== undefined && (
                             <span
                               className={
-                                item.commanderBloatPct >= 28
+                                item.commanderBloatPct >= 16
                                   ? 'text-red-400 font-bold'
                                   : 'text-emerald-400'
                               }
@@ -965,7 +1158,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
               },
               {
                 key: 'holySites',
-                label: `Holy Sites (${filteredData.holySites.length})`,
+                label: `Holy Sites & Passes (${filteredData.holySites.length})`,
                 color: 'border-purple-500/40 text-purple-300 bg-purple-500/15',
               },
               {
@@ -1000,6 +1193,84 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
           </div>
         </div>
 
+        {/* Fine-Tuned Resource Node Radar Bar (Hone In by Resource Type, Node Level & Active Bot Search) */}
+        <div className="mt-3 pt-3 border-t border-[#1e222b] flex flex-wrap items-center justify-between gap-3 bg-[#090b0e]/80 rounded-xl px-3.5 py-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1 mr-1">
+              <Pickaxe size={13} /> Fine-Tune RSS Nodes:
+            </span>
+            {[
+              { id: 'ALL', label: `All RSS (${rssCategoryCounts.ALL})` },
+              { id: 'FOOD', label: `🌽 Food (${rssCategoryCounts.FOOD})` },
+              { id: 'WOOD', label: `🪵 Wood (${rssCategoryCounts.WOOD})` },
+              { id: 'STONE', label: `🪨 Stone (${rssCategoryCounts.STONE})` },
+              { id: 'GOLD', label: `🪙 Gold (${rssCategoryCounts.GOLD})` },
+              { id: 'PIT', label: `🏭 Alliance Pits (${rssCategoryCounts.PIT})` },
+            ].map((btn) => (
+              <button
+                key={btn.id}
+                onClick={() => {
+                  setRssTypeFilter(btn.id);
+                  setLayers((prev) => ({ ...prev, resources: true }));
+                  setDirectoryTab('RSS_NODES');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                  rssTypeFilter === btn.id
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm'
+                    : 'bg-[#0f1115] text-gray-400 border-[#1e222b] hover:text-white'
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Minimum Node Level Filter */}
+            <div className="flex items-center gap-1 bg-[#0f1115] border border-[#1e222b] rounded-lg px-2 py-1 text-[11px] font-mono">
+              <span className="text-gray-500">Min Level:</span>
+              {[1, 3, 4, 5, 6, 10].map((lvl) => (
+                <button
+                  key={lvl}
+                  onClick={() => {
+                    setRssMinLevel(lvl);
+                    setDirectoryTab('RSS_NODES');
+                  }}
+                  className={`px-1.5 py-0.5 rounded font-bold transition-all ${
+                    rssMinLevel === lvl
+                      ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {lvl === 1 ? 'All' : lvl === 10 ? 'Pit' : `Lv.${lvl}+`}
+                </button>
+              ))}
+            </div>
+
+            {/* Active Bot In-Game RSS Node Hunter */}
+            <div className="flex items-center gap-1">
+              <select
+                value={huntRssLevel}
+                onChange={(e) => setHuntRssLevel(Number(e.target.value))}
+                className="bg-[#0f1115] border border-[#1e222b] rounded-lg px-2 py-1 text-[11px] text-amber-300 font-mono outline-none"
+              >
+                {[6, 5, 4, 3, 2, 1].map((l) => (
+                  <option key={l} value={l}>
+                    Hunt Lv.{l}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleHuntLiveRss}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-all"
+              >
+                <Target size={12} />
+                Bot Hunt RSS
+              </button>
+            </div>
+          </div>
+        </div>
+
         {botStatusMsg && (
           <div className="mt-3 px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono flex items-center gap-2">
             <Activity size={14} className="animate-pulse" />
@@ -1010,7 +1281,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
       {/* Main Map Viewport + Right-Hand Tactical Inspector */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* 1200 x 1200 Interactive Radar Canvas (8 cols) */}
+        {/* 1200 x 1200 Interactive Map Canvas (8 cols) */}
         <div
           ref={containerRef}
           className="lg:col-span-8 bg-[#090b0e] border border-[#1e222b] rounded-xl relative overflow-hidden shadow-2xl"
@@ -1093,6 +1364,11 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                   (World {hoveredEntity.worldX}, {hoveredEntity.worldY})
                 </span>
               </div>
+              {hoveredEntity.totalYield > 0 && (
+                <div className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                  Harvested Yield: {hoveredEntity.totalYield.toLocaleString()}
+                </div>
+              )}
               {hoveredEntity.author && (
                 <div className="text-[10px] text-amber-300 mt-0.5">Officer: {hoveredEntity.author}</div>
               )}
@@ -1100,7 +1376,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
           )}
         </div>
 
-        {/* Right-Hand Target Dossier & Quick Directory (4 cols) */}
+        {/* Right-Hand Target Dossier & Dual-Mode Directory (4 cols) */}
         <div className="lg:col-span-4 space-y-4">
           {/* Selected Target Dossier Card */}
           <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 shadow-xl">
@@ -1177,7 +1453,39 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                   </div>
                 </div>
 
-                {/* If Governor: Show 67-Field Combat + Commander Bloat Diagnostics */}
+                {/* Resource Node Telemetry Details */}
+                {(selectedEntity.type === 'RESOURCE_NODE' ||
+                  selectedEntity.type === 'ALLIANCE_RESOURCE_PIT') && (
+                  <div className="bg-[#090b0e] border border-[#1e222b] rounded-lg p-3 space-y-2 text-xs font-mono">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Resource Category:</span>
+                      <span className="text-emerald-400 font-bold">
+                        {RSS_META[selectedEntity.rssCategory]?.label || selectedEntity.rssCategory}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Node Level:</span>
+                      <span className="text-amber-300 font-bold">
+                        {selectedEntity.isAlliancePit
+                          ? 'Lv. 10 (Alliance Mother Lode)'
+                          : `Level ${selectedEntity.level}`}
+                      </span>
+                    </div>
+                    {selectedEntity.totalYield > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Recorded Yield:</span>
+                        <span className="text-white font-bold">
+                          {selectedEntity.totalYield.toLocaleString()}
+                          {selectedEntity.talentBonus > 0
+                            ? ` (+${selectedEntity.talentBonus.toLocaleString()} Bonus)`
+                            : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Governor Telemetry + Commander Bloat Diagnostics */}
                 {selectedEntity.type === 'GOVERNOR_CITY' && (
                   <div className="space-y-2.5">
                     <div className="grid grid-cols-2 gap-2">
@@ -1205,7 +1513,6 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                       </div>
                     </div>
 
-                    {/* Commander Bloat Diagnostic Bar */}
                     {selectedEntity.commanderBloatPct !== undefined && (
                       <div className="bg-[#090b0e] border border-[#1e222b] rounded-lg p-3">
                         <div className="flex items-center justify-between text-xs mb-1">
@@ -1214,9 +1521,9 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                           </span>
                           <span
                             className={`font-mono font-black ${
-                              selectedEntity.commanderBloatPct >= 28
+                              selectedEntity.commanderBloatPct >= 16
                                 ? 'text-red-400'
-                                : selectedEntity.commanderBloatPct >= 20
+                                : selectedEntity.commanderBloatPct >= 12
                                 ? 'text-amber-400'
                                 : 'text-emerald-400'
                             }`}
@@ -1227,79 +1534,21 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                         <div className="w-full h-2 bg-[#1e222b] rounded-full overflow-hidden">
                           <div
                             className={`h-full ${
-                              selectedEntity.commanderBloatPct >= 28
+                              selectedEntity.commanderBloatPct >= 16
                                 ? 'bg-red-500'
-                                : selectedEntity.commanderBloatPct >= 20
+                                : selectedEntity.commanderBloatPct >= 12
                                 ? 'bg-amber-500'
                                 : 'bg-emerald-500'
                             }`}
-                            style={{ width: `${Math.min(100, selectedEntity.commanderBloatPct * 2)}%` }}
+                            style={{ width: `${Math.min(100, selectedEntity.commanderBloatPct * 3)}%` }}
                           />
                         </div>
                       </div>
                     )}
-
-                    {/* Scouted City Defense / Loadout / Fingerprint */}
-                    {(selectedEntity.primaryCommander ||
-                      selectedEntity.wallHp ||
-                      selectedEntity.udid) && (
-                      <div className="bg-[#090b0e] border border-[#1e222b] rounded-lg p-2.5 text-xs space-y-1 font-mono">
-                        {selectedEntity.primaryCommander && (
-                          <div className="text-gray-300">
-                            <span className="text-gray-500">March Loadout: </span>
-                            <span className="text-cyan-300 font-bold">
-                              {selectedEntity.primaryCommander}
-                              {selectedEntity.secondaryCommander
-                                ? ` + ${selectedEntity.secondaryCommander}`
-                                : ''}
-                            </span>
-                          </div>
-                        )}
-                        {selectedEntity.wallHp > 0 && (
-                          <div className="text-gray-300">
-                            <span className="text-gray-500">City Wall HP: </span>
-                            <span className="text-amber-400">
-                              {selectedEntity.wallHp.toLocaleString()} /{' '}
-                              {selectedEntity.wallMaxHp?.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                        {selectedEntity.udid && (
-                          <div className="text-[10px] text-gray-500 truncate">
-                            UDID: <span className="text-gray-400">{selectedEntity.udid}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {/* Marker / Structure Extra Info */}
-                {(selectedEntity.author || selectedEntity.officerName || selectedEntity.builderX) && (
-                  <div className="bg-[#090b0e] border border-[#1e222b] rounded-lg p-2.5 text-xs space-y-1 font-mono">
-                    {(selectedEntity.author || selectedEntity.officerName) && (
-                      <div>
-                        <span className="text-gray-500">R4/R5 Officer: </span>
-                        <span className="text-amber-300 font-bold">
-                          {selectedEntity.author || selectedEntity.officerName}
-                        </span>
-                      </div>
-                    )}
-                    {selectedEntity.builderX > 0 && (
-                      <div>
-                        <span className="text-gray-500">R4 Builder City Tile: </span>
-                        <button
-                          onClick={() => focusOnTile(selectedEntity.builderX, selectedEntity.builderY, 2.0)}
-                          className="text-cyan-400 underline hover:text-cyan-300"
-                        >
-                          X:{selectedEntity.builderX} Y:{selectedEntity.builderY}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Action Buttons: Center Map & Dispatch Bot */}
+                {/* Action Buttons: Zoom to Tile & Capture Live In-Game View */}
                 <div className="flex items-center gap-2 pt-1">
                   {selectedEntity.x != null && selectedEntity.y != null && (
                     <button
@@ -1312,72 +1561,155 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                   )}
                   <button
                     onClick={() => handleDispatchBotJump(selectedEntity)}
-                    className="flex-1 py-2 px-3 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                    className="flex-1 py-2 px-3 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
                   >
-                    <Navigation size={14} />
-                    Jump Bot Camera
+                    <Camera size={14} />
+                    Live In-Game View
                   </button>
                 </div>
+
+                {/* Live Captured In-Game Viewport Preview */}
+                {liveViewportStamp && (
+                  <div className="mt-2 bg-[#090b0e] border border-emerald-500/40 rounded-lg p-2">
+                    <div className="text-[10px] font-mono text-emerald-400 mb-1 flex items-center justify-between">
+                      <span>LIVE IN-GAME VIEWPORT (SIDEKICK)</span>
+                      <button
+                        onClick={() => setLiveViewportStamp(Date.now())}
+                        className="underline hover:text-white"
+                      >
+                        Refresh Frame
+                      </button>
+                    </div>
+                    <img
+                      src={`/maps/live_viewport_capture.png?t=${liveViewportStamp}`}
+                      alt="Live In-Game Viewport"
+                      className="w-full rounded border border-[#1e222b]"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="text-center py-6 text-gray-500 text-xs">
-                Click any Governor City, Alliance Flag, R4 Marker, Holy Site, or Barbarian Fort on the
-                1200 × 1200 map (or use the universal search bar above) to inspect its dossier and lock
-                coordinates.
+              <div className="text-center py-5 text-gray-500 text-xs">
+                Click any Governor City, Resource Node, Alliance Flag, R4 Marker, Holy Site, or Pass on
+                the 1200 × 1200 map to inspect its dossier or capture a live in-game viewport.
               </div>
             )}
           </div>
 
-          {/* Quick Directory of Verified #4194 Governor & R4 City Coordinates */}
+          {/* Dual-Tab Directory: Verified Governor Castles vs Fine-Tuned Resource Nodes */}
           <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-4 shadow-xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-                <Users size={15} className="text-emerald-400" />
-                Verified Governor &amp; R4 Coordinates ({filteredData.cities.length})
-              </h3>
-              <span className="text-[10px] font-mono text-gray-500">Click to Lock</span>
+            <div className="flex items-center gap-1.5 bg-[#090b0e] border border-[#1e222b] p-1 rounded-lg mb-3">
+              <button
+                onClick={() => setDirectoryTab('CITIES')}
+                className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                  directoryTab === 'CITIES'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Users size={13} />
+                Cities ({filteredData.cities.length})
+              </button>
+              <button
+                onClick={() => setDirectoryTab('RSS_NODES')}
+                className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                  directoryTab === 'RSS_NODES'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Pickaxe size={13} />
+                RSS Nodes ({filteredData.resources.length})
+              </button>
             </div>
 
-            <div className="max-h-[310px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-[#1e222b]">
-              {filteredData.cities.map((c) => (
-                <button
-                  key={c.id || c.govId}
-                  onClick={() => {
-                    setSelectedEntity(c);
-                    focusOnTile(c.x, c.y, 2.0);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-lg border transition-all flex items-center justify-between ${
-                    selectedEntity?.govId === c.govId
-                      ? 'bg-cyan-500/15 border-cyan-500/40 text-white'
-                      : 'bg-[#090b0e] border-[#1e222b] hover:border-cyan-500/30 text-gray-300'
-                  }`}
-                >
-                  <div className="min-w-0 pr-2">
-                    <div className="text-xs font-bold truncate flex items-center gap-1.5">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: getAllianceColor(c.alliance) }}
-                      />
-                      {c.alliance && c.alliance !== 'None' && (
-                        <span className="text-cyan-400 font-mono">[{c.alliance}]</span>
-                      )}
-                      <span className="truncate">{c.name}</span>
+            {directoryTab === 'CITIES' ? (
+              <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-[#1e222b]">
+                {filteredData.cities.map((c) => (
+                  <button
+                    key={c.id || c.govId}
+                    onClick={() => {
+                      setSelectedEntity(c);
+                      focusOnTile(c.x, c.y, 2.0);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg border transition-all flex items-center justify-between ${
+                      selectedEntity?.govId === c.govId
+                        ? 'bg-cyan-500/15 border-cyan-500/40 text-white'
+                        : 'bg-[#090b0e] border-[#1e222b] hover:border-cyan-500/30 text-gray-300'
+                    }`}
+                  >
+                    <div className="min-w-0 pr-2">
+                      <div className="text-xs font-bold truncate flex items-center gap-1.5">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: getAllianceColor(c.alliance) }}
+                        />
+                        {c.alliance && c.alliance !== 'None' && (
+                          <span className="text-cyan-400 font-mono">[{c.alliance}]</span>
+                        )}
+                        <span className="truncate">{c.name}</span>
+                      </div>
+                      <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                        ID: {c.govId} · {c.source === 'R4_FLAG_BUILDER_POS' ? 'R4 Flag Builder' : 'Battle/Scout'}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-gray-500 font-mono mt-0.5">
-                      ID: {c.govId} · {c.source === 'R4_FLAG_BUILDER_POS' ? 'R4 Flag Builder' : 'Battle/Scout'}
+                    <div className="text-right shrink-0 font-mono">
+                      <div className="text-xs font-bold text-cyan-300">
+                        X:{c.x} Y:{c.y}
+                      </div>
+                      <div className="text-[9px] text-gray-500">Srv {c.serverId}</div>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0 font-mono">
-                    <div className="text-xs font-bold text-cyan-300">
-                      X:{c.x} Y:{c.y}
-                    </div>
-                    <div className="text-[9px] text-gray-500">
-                      Srv {c.serverId}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-[#1e222b]">
+                {filteredData.resources.map((r) => {
+                  const cat = r.rssCategory || (r.isAlliancePit ? 'PIT' : 'FOOD');
+                  const meta = RSS_META[cat] || RSS_META.FOOD;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => {
+                        setSelectedEntity(r);
+                        focusOnTile(r.x, r.y, 2.2);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg border transition-all flex items-center justify-between ${
+                        selectedEntity?.id === r.id
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-white'
+                          : 'bg-[#090b0e] border-[#1e222b] hover:border-emerald-500/30 text-gray-300'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="text-xs font-bold truncate flex items-center gap-1.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-sm shrink-0"
+                            style={{ backgroundColor: meta.color }}
+                          />
+                          <span>{r.label}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                          {r.totalYield > 0
+                            ? `Yield: ${r.totalYield.toLocaleString()} (${meta.short})`
+                            : `${meta.short} · Srv ${r.serverId}`}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 font-mono">
+                        <div className="text-xs font-bold text-emerald-300">
+                          X:{r.x} Y:{r.y}
+                        </div>
+                        <div className="text-[9px] text-amber-400 font-bold">
+                          {r.isAlliancePit ? 'PIT (Lv.10)' : `Lv.${r.level}`}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1840,13 +1840,13 @@ def run_kingdom_scan(args):
 
 
 def jump_to_map_coordinates(serial: str, kd: str, tile_x: float, tile_y: float):
-    """Jump the in-game camera to exact (X, Y) km tile coordinates (0..1200) via the Coordinate Search bar."""
+    """Jump the in-game camera to exact (X, Y) km tile coordinates (0..1200) via the Coordinate Search bar and capture viewport."""
     ix, iy = int(round(tile_x)), int(round(tile_y))
     print(f"[MAP HUNTER] Jumping camera on {serial} to Kingdom #{kd} X:{ix} Y:{iy} ...")
     try:
         # Tap top-left coordinate magnifying glass (255, 18 on 1600x900)
         adb_tap(serial, 255, 18, 0.9)
-        # Tap Kingdom input if needed or X input box (680, 145)
+        # Tap X input box (680, 145)
         adb_tap(serial, 680, 145, 0.5)
         subprocess.run(f'adb -s {serial} shell "input keyevent 67 67 67 67; input text {ix}; input keyevent 66"', shell=True, timeout=5)
         time.sleep(0.4)
@@ -1856,10 +1856,36 @@ def jump_to_map_coordinates(serial: str, kd: str, tile_x: float, tile_y: float):
         time.sleep(0.4)
         # Tap Search button (905, 145)
         adb_tap(serial, 905, 145, 1.8)
+        # Capture live in-game viewport screenshot to public/maps/live_viewport_capture.png
+        out_png = os.path.join(os.path.dirname(SCRIPT_DIR), "public", "maps", "live_viewport_capture.png")
+        subprocess.run(f'adb -s {serial} exec-out screencap -p > "{out_png}"', shell=True, timeout=8)
         return True
     except Exception as e:
         print(f"[MAP HUNTER] ADB jump warning: {e}")
         return False
+
+
+def run_hunt_rss(args):
+    """Use the in-game Search Resource Node panel (1600x900) to hone in on Food, Wood, Stone, or Gold nodes at a target level."""
+    from harvest_kingdom_map_entities import main as harvest_map_main
+    rss_type = (args.rss_type or "FOOD").upper()
+    rss_lvl = max(1, min(6, int(args.rss_level or 5)))
+    # 1600x900 Search bar icon coordinates for Cropland, Logging Camp, Stone Deposit, Gold Deposit
+    icon_x_map = {"FOOD": 640, "WOOD": 840, "STONE": 1040, "GOLD": 1240}
+    target_icon_x = icon_x_map.get(rss_type, 640)
+    print(f"[RSS HUNTER] Searching Kingdom #{args.kd} for Lv.{rss_lvl} {rss_type} Node on {args.adb}...")
+    try:
+        # Tap bottom-left Map Search icon (55, 715)
+        adb_tap(args.adb, 55, 715, 0.9)
+        # Tap resource category icon (y=780)
+        adb_tap(args.adb, target_icon_x, 780, 0.7)
+        # Tap Search button (target_icon_x, 650)
+        adb_tap(args.adb, target_icon_x, 650, 1.8)
+        out_png = os.path.join(os.path.dirname(SCRIPT_DIR), "public", "maps", "live_viewport_capture.png")
+        subprocess.run(f'adb -s {args.adb} exec-out screencap -p > "{out_png}"', shell=True, timeout=8)
+    except Exception as e:
+        print(f"[RSS HUNTER] ADB search warning: {e}")
+    harvest_map_main()
 
 
 def run_map_sweep(args):
@@ -1924,7 +1950,7 @@ def run_hunt_governor(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unity Autonomous 67-Field MuMu RAM + Binary Save + Tactical Map Scanner")
-    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan", "map-sweep", "hunt-governor"], default="kingdom-scan")
+    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan", "map-sweep", "hunt-governor", "hunt-rss"], default="kingdom-scan")
     parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial")
     parser.add_argument("--kd", "--kingdom", dest="kd", default="4194", help="Target Kingdom ID")
     parser.add_argument("--start-rank", type=int, default=1)
@@ -1933,6 +1959,8 @@ if __name__ == "__main__":
     parser.add_argument("--target-gov", default="", help="Governor ID or Name to locate on map")
     parser.add_argument("--target-x", type=float, default=None, help="Target map X tile (0..1200)")
     parser.add_argument("--target-y", type=float, default=None, help="Target map Y tile (0..1200)")
+    parser.add_argument("--rss-type", default="FOOD", help="Resource category to hunt (FOOD, WOOD, STONE, GOLD)")
+    parser.add_argument("--rss-level", type=int, default=5, help="Target Resource Node Level (1..6)")
     parser.add_argument("--jump", action="store_true", default=False, help="Jump emulator camera to target coordinate")
     parser.add_argument("--push", action="store_true", default=True, help="Push extracted 67-field governors to Unity API")
     parser.add_argument("--unity-url", default=os.environ.get("UNITY_URL", "http://192.168.50.41:3000"))
@@ -1948,5 +1976,7 @@ if __name__ == "__main__":
         run_map_sweep(args)
     elif args.mode == "hunt-governor":
         run_hunt_governor(args)
+    elif args.mode == "hunt-rss":
+        run_hunt_rss(args)
 
 

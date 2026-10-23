@@ -156,6 +156,22 @@ export async function POST(request) {
       });
     }
 
+    if (action === 'hunt-rss') {
+      const safeType = ['FOOD', 'WOOD', 'STONE', 'GOLD'].includes(String(body.rssType || '').toUpperCase())
+        ? String(body.rssType).toUpperCase()
+        : 'FOOD';
+      const safeLvl = String(Math.max(1, Math.min(6, Number(body.rssLevel) || 5)));
+      execFile(
+        'python',
+        [scannerScript, '--mode', 'hunt-rss', '--kd', safeKd, '--rss-type', safeType, '--rss-level', safeLvl],
+        { timeout: 15000 }
+      );
+      return NextResponse.json({
+        ok: true,
+        message: `Dispatched bot to search Kingdom #${safeKd} for Lv.${safeLvl} ${safeType} nodes and capture live view.`,
+      });
+    }
+
     return NextResponse.json({ ok: false, error: 'Unsupported action' }, { status: 400 });
   } catch (err) {
     console.error('[API /aws/map-entities POST]', err);

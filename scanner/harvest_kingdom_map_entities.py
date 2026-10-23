@@ -123,6 +123,25 @@ def main():
                             "serverId": srv,
                             "timestamp": ts_sec,
                         }
+                        if b_cat == "ALLIANCE_RESOURCE_PIT":
+                            rss_nodes.setdefault(key, {
+                                "id": f"pit_{key}",
+                                "type": "ALLIANCE_RESOURCE_PIT",
+                                "rssCategory": "PIT",
+                                "resTypeId": 10,
+                                "label": f"Alliance Resource Pit ({sub})",
+                                "level": 10,
+                                "isAlliancePit": True,
+                                "harvestedAmount": 0,
+                                "talentBonus": 0,
+                                "totalYield": 0,
+                                "x": tx,
+                                "y": ty,
+                                "worldX": round(wx, 2),
+                                "worldY": round(wy, 2),
+                                "serverId": srv,
+                                "timestamp": ts_sec,
+                            })
                 if isinstance(cpos, dict) and cpos.get("X") and cpos.get("Y"):
                     wx, wy = float(cpos["X"]), float(cpos["Y"])
                     tx, ty = round(wx / 6.0, 1), round(wy / 6.0, 1)
@@ -177,20 +196,45 @@ def main():
                         "timestamp": ts_sec,
                     }
 
-            # C. Resource Nodes (Food, Wood, Stone, Gold, Gems)
+            # C. Resource Nodes (Food, Wood, Stone, Gold, Gems, Crystal & Alliance Pits)
             elif mtype == "Rss":
                 pos = content.get("Pos", {})
                 if isinstance(pos, dict) and pos.get("X") and pos.get("Y"):
                     wx, wy = float(pos["X"]), float(pos["Y"])
                     tx, ty = round(wx / 6.0, 1), round(wy / 6.0, 1)
                     nkey = f"{tx}_{ty}"
-                    rss_type_id = content.get("Type", 1)
-                    rss_label = {1: "Food Node (Cropland)", 2: "Wood Node (Logging Camp)", 3: "Stone Node (Quarry)", 4: "Gold Node (Gold Mine)", 5: "Gem Node"}.get(rss_type_id, f"Resource Node (Type {rss_type_id})")
+                    rss_type_id = int(content.get("ResType") or content.get("Type") or 1)
+                    lvl = int(content.get("Level") or 1)
+                    res_val = int(content.get("ResValue") or 0)
+                    talent_bonus = int(content.get("talentAdd") or 0)
+                    crystal_val = int(content.get("ResCollectCrystal") or 0)
+                    is_pit = lvl >= 10
+                    rss_cat_map = {
+                        1: "FOOD",
+                        2: "WOOD",
+                        3: "STONE",
+                        4: "GOLD",
+                        5: "GEMS",
+                    }
+                    rss_cat = "GEMS" if crystal_val > 0 else rss_cat_map.get(rss_type_id, "FOOD")
+                    rss_label_map = {
+                        "FOOD": "Alliance Food Pit (Mother Lode)" if is_pit else f"Lv.{lvl} Cropland (Food)",
+                        "WOOD": "Alliance Wood Pit (Mother Lode)" if is_pit else f"Lv.{lvl} Logging Camp (Wood)",
+                        "STONE": "Alliance Stone Pit (Mother Lode)" if is_pit else f"Lv.{lvl} Stone Deposit (Quarry)",
+                        "GOLD": "Alliance Gold Pit (Mother Lode)" if is_pit else f"Lv.{lvl} Gold Deposit (Mine)",
+                        "GEMS": f"Lv.{lvl} Gem / Crystal Deposit",
+                    }
                     rss_nodes[nkey] = {
                         "id": f"rss_{nkey}",
-                        "type": "RESOURCE_NODE",
-                        "label": rss_label,
-                        "level": content.get("Level", 0),
+                        "type": "ALLIANCE_RESOURCE_PIT" if is_pit else "RESOURCE_NODE",
+                        "rssCategory": rss_cat,
+                        "resTypeId": rss_type_id,
+                        "label": rss_label_map.get(rss_cat, f"Lv.{lvl} Resource Node"),
+                        "level": lvl,
+                        "isAlliancePit": is_pit,
+                        "harvestedAmount": res_val,
+                        "talentBonus": talent_bonus,
+                        "totalYield": res_val + talent_bonus,
                         "x": tx,
                         "y": ty,
                         "worldX": round(wx, 2),
