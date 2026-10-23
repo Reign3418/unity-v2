@@ -2,7 +2,7 @@
 """
 Kingdom #4194 Live Telemetric & Executive Spreadsheet Exporter
 =============================================================
-Fuses live RAM telemetry from SIDEKICK (127.0.0.1:16384) with Unity Live Cache
+Fuses live RAM telemetry from SIDEKICK (valheon-edge-ingest.internal) with Unity Live Cache
 into a polished, Excel-ready CSV with all 45 fields, formatted with UTF-8 BOM.
 """
 

@@ -10,6 +10,7 @@
     "check:i18n": "node scripts/check-i18n.js",
     "test:math": "node --test scripts/test-math-qc.mjs",
     "qa": "node scripts/check-i18n.js && node --test scripts/test-math-qc.mjs",
+    "thor": "python C:\\Users\\laure\\.gemini\\config\\skills\\project-thor\\scripts\\thor_engine.py --strike heal --target .",
     "valkyrie": "node scripts/check-i18n.js && node --test scripts/test-math-qc.mjs && python C:\\Users\\laure\\.gemini\\config\\skills\\project-valkyrie\\scripts\\valkyrie_engine.py --target . --strict"
   },
   "dependencies": {
