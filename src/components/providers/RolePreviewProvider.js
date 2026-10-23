@@ -140,7 +140,7 @@ export function RolePreviewProvider({ children }) {
   const effectiveSession = useMemo(() => {
     if (!session) return null;
     const bastionFleetKds = ['4197', '4194', '4021', '4193', '4195', '4196', '4198', '4044', '4202', '3418', '3155', '3218', '3477', '3707'];
-    const mergedAllowed = isRealSuperAdmin
+    const mergedAllowed = (isRealSuperAdmin || session.user?.isAnalyst)
       ? Array.from(new Set([...bastionFleetKds, ...((session.user?.allowedKingdoms || []).map(String))]))
       : (session.user?.allowedKingdoms || []);
     if (!activePreview) {

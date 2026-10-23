@@ -701,14 +701,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isValheonFounder = Boolean(token.isValheonFounder);
         session.user.isSupporter = token.isSupporter || false;
         session.user.role = token.role || "User";
-        const baseAllowed = token.tenant?.allowedKingdoms || [];
+        const baseAllowed = (token.tenant?.allowedKingdoms || []).map(String);
+        const configAllowed = (token.governorConfig?.allowedKingdoms || []).map(String);
+        const savedActiveKd = token.governorConfig?.activeKingdom || token.governorConfig?.kingdomId || null;
         const bastionFleetKds = ["4197", "4194", "4021", "4193", "4195", "4196", "4198", "4044", "4202", "3418", "3155", "3218", "3477", "3707"];
-        const mergedKds = Array.from(new Set([...bastionFleetKds, ...baseAllowed.map(String)]));
-        session.user.allowedKingdoms = mergedKds;
+        const isGlobalOp = Boolean(token.isSuperAdmin || token.isValheonFounder || token.isAnalyst);
+
+        const scopedAllowed = isGlobalOp
+          ? Array.from(new Set([...bastionFleetKds, ...(savedActiveKd ? [String(savedActiveKd)] : []), ...configAllowed, ...baseAllowed]))
+          : Array.from(new Set([...(savedActiveKd ? [String(savedActiveKd)] : []), ...configAllowed, ...baseAllowed, ...(token.tenant?.kingdomId ? [String(token.tenant.kingdomId)] : [])]));
+
+        const resolvedPrimaryKd = savedActiveKd
+          ? String(savedActiveKd)
+          : isGlobalOp
+          ? (token.tenant?.kingdomId && token.tenant.kingdomId !== "3155" ? String(token.tenant.kingdomId) : "4197")
+          : (scopedAllowed[0] || token.tenant?.kingdomId || "3418");
+
+        session.user.activeKingdom = resolvedPrimaryKd;
+        session.user.allowedKingdoms = scopedAllowed;
         session.user.tenant = {
           ...(token.tenant || {}),
-          kingdomId: (!token.tenant?.kingdomId || token.tenant?.kingdomId === "3155") ? "4197" : token.tenant.kingdomId,
-          allowedKingdoms: mergedKds
+          kingdomId: resolvedPrimaryKd,
+          allowedKingdoms: scopedAllowed
         };
         session.user.governorConfig = token.governorConfig;
         session.user.ownedGuilds = token.ownedGuilds;

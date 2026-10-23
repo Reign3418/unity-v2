@@ -6,7 +6,7 @@ import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCi
 import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
-import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from '@/lib/activeKingdom';
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, syncActiveKingdomFromServer } from '@/lib/activeKingdom';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
@@ -32,6 +32,13 @@ export default function Navbar({ onMenuClick }) {
   useEffect(() => {
     const resolved = getActiveTargetKingdom(effectiveSession || session, '4197');
     setActiveKd(resolved);
+    if (session?.user?.id) {
+      syncActiveKingdomFromServer().then((serverKd) => {
+        if (serverKd && serverKd !== resolved) {
+          setActiveKd(serverKd);
+        }
+      });
+    }
   }, [effectiveSession, session]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pingData, setPingData] = useState({ vercel: 14, aws: 28 });

@@ -51,26 +51,28 @@ export default function SettingsPage() {
     localStorage.setItem("unity_prefs", JSON.stringify(prefs));
     localStorage.setItem("unty_prefs", JSON.stringify(prefs));
     
-    // Sync Presence Settings to AWS DynamoDB via Discord Backend
-    if (prefs.timezone && prefs.playtimeStart && prefs.playtimeEnd) {
-      try {
-        const res = await fetch('/api/user/settings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            timezone: prefs.timezone,
-            playtimeStart: prefs.playtimeStart,
-            playtimeEnd: prefs.playtimeEnd
-          })
-        });
-        if (!res.ok) throw new Error('Network Error');
-      } catch (e) {
-        console.error("Failed to sync backend user settings", e);
-        alert("Failed to save settings: " + e.message);
-        return; // Don't show "saved" if it failed
-      }
+    // Sync Active/Default Kingdom & Presence Settings to AWS DynamoDB across all devices
+    if (prefs.defaultKingdom) {
+      setActiveTargetKingdom(prefs.defaultKingdom, { syncServer: false });
+    }
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          activeKingdom: prefs.defaultKingdom || '4197',
+          timezone: prefs.timezone || null,
+          playtimeStart: prefs.playtimeStart || null,
+          playtimeEnd: prefs.playtimeEnd || null
+        })
+      });
+      if (!res.ok) throw new Error('Network Error');
+    } catch (e) {
+      console.error("Failed to sync backend user settings", e);
+      alert("Failed to save settings: " + e.message);
+      return;
     }
 
     setSaved(true);

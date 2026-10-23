@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Link2, Plus, Settings, RotateCcw, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
+import { setActiveTargetKingdom } from "@/lib/activeKingdom";
 
 export default function MyStats() {
   const { data: session } = useSession();
@@ -79,6 +80,9 @@ export default function MyStats() {
       });
       const data = await res.json();
       if (res.ok) {
+         if (data.detectedKingdom && (linkForm.profileType === "Main" || profiles.length === 0)) {
+             setActiveTargetKingdom(String(data.detectedKingdom));
+         }
          await fetchProfiles();
          setIsLinkModalOpen(false);
          setLinkForm({ id: "", profileType: "Main" });

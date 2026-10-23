@@ -1821,12 +1821,12 @@ export async function getUserConfig(discordId) {
                 governorIds: govIds,
                 profiles: profiles,
                 presence: presence,
-                kingdomId: attrs.kingdomId?.S,
+                kingdomId: attrs.kingdomId?.S || null,
+                activeKingdom: attrs.activeKingdom?.S || attrs.kingdomId?.S || null,
                 isManualGuest: attrs.isManualGuest?.BOOL || false,
                 role: attrs.role?.S,
                 allowedKingdoms: allowedKingdoms,
                 globalAiAccess: attrs.globalAiAccess?.BOOL ?? true,
-                // Presence & Uptime fields — written by settings page + Discord /uptime command
                 timezone: attrs.timezone?.S || null,
                 playtimeStart: attrs.playtimeStart?.S || null,
                 playtimeEnd: attrs.playtimeEnd?.S || null,
@@ -1878,46 +1878,63 @@ export async function linkGovernorAccount(discordId, governorId, profileType = '
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
-    // Fetch existing user config first to preserve arrays and maps
-    const currentConfig = await getUserConfig(discordId);
-    let govIds = currentConfig && currentConfig.governorIds ? currentConfig.governorIds : [];
-    let profiles = currentConfig && currentConfig.profiles ? currentConfig.profiles : {};
-    
-    // Add new ID if it doesn't exist
-    const newIdStr = String(governorId);
-    if (!govIds.includes(newIdStr)) {
-        govIds.push(newIdStr);
-    }
-
-    // Set map relationship (Key = ID, Value = ProfileType 'Farm' etc)
-    profiles[newIdStr] = profileType;
-
-    // Format for DynamoDB List and Map type
-    const dynamoList = govIds.map(id => ({ S: id }));
-    
-    const profilesMap = {};
-    for (const [k, v] of Object.entries(profiles)) {
-        profilesMap[k] = { S: String(v) };
-    }
-
-    const params = {
-        TableName: tableName,
-        Item: {
+    try {
+        const { GetItemCommand, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        const getRes = await dbClient.send(new GetItemCommand({
+            TableName: tableName,
+            Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'CONFIG' } }
+        }));
+        const existingItem = getRes.Item || {
             'PK': { S: `USER#${discordId}` },
-            'SK': { S: 'CONFIG' },
-            'attributes': {
-                M: {
-                    'governorIds': { L: dynamoList },
-                    'profiles': { M: profilesMap },
-                    'linkedDate': { S: new Date().toISOString() }
+            'SK': { S: 'CONFIG' }
+        };
+        const attrs = existingItem.attributes?.M || {};
+
+        let govIds = [];
+        if (attrs.governorIds?.L) {
+            govIds = attrs.governorIds.L.map(item => item.S).filter(Boolean);
+        } else if (attrs.governorId?.S) {
+            govIds = [attrs.governorId.S];
+        }
+
+        const newIdStr = String(governorId).replace(/\D/g, '');
+        if (newIdStr && !govIds.includes(newIdStr)) {
+            govIds.push(newIdStr);
+        }
+
+        const profilesMap = { ...(attrs.profiles?.M || {}) };
+        if (newIdStr) {
+            profilesMap[newIdStr] = { S: String(profileType || 'Main') };
+        }
+
+        attrs['governorIds'] = { L: govIds.map(id => ({ S: String(id) })) };
+        attrs['profiles'] = { M: profilesMap };
+        attrs['linkedDate'] = { S: new Date().toISOString() };
+
+        // Look up the governor's current kingdom so linking a Profile Card automatically provisions & syncs their kingdom
+        let detectedKingdom = null;
+        if (newIdStr) {
+            const stats = await getGovernorStats(newIdStr).catch(() => null);
+            if (stats?.lastSeenKingdom && stats.lastSeenKingdom !== 'Unknown') {
+                detectedKingdom = String(stats.lastSeenKingdom);
+                const existingAllowed = (attrs.allowedKingdoms?.L || []).map(x => x.S || x.N).filter(Boolean);
+                if (!existingAllowed.includes(detectedKingdom)) {
+                    existingAllowed.push(detectedKingdom);
+                    attrs['allowedKingdoms'] = { L: existingAllowed.map(k => ({ S: String(k) })) };
+                }
+                if (profileType === 'Main' || !attrs.activeKingdom?.S) {
+                    attrs['activeKingdom'] = { S: detectedKingdom };
+                    attrs['kingdomId'] = { S: detectedKingdom };
                 }
             }
         }
-    };
 
-    try {
-        await dbClient.send(new PutItemCommand(params));
-        return true;
+        existingItem.attributes = { M: attrs };
+        await dbClient.send(new PutItemCommand({
+            TableName: tableName,
+            Item: existingItem
+        }));
+        return { success: true, detectedKingdom };
     } catch (e) {
         console.error("AWS Link Governor Error", e);
         return false;
@@ -1925,66 +1942,47 @@ export async function linkGovernorAccount(discordId, governorId, profileType = '
 }
 
 /**
- * Unlinks a specific in-game Governor profile from a Discord user.
+ * Unlinks a specific in-game Governor profile from a Discord user while preserving all other user settings.
  */
 export async function unlinkGovernorAccount(discordId, governorId) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
-    // Fetch existing user config first to preserve arrays and maps
-    const currentConfig = await getUserConfig(discordId);
-    if (!currentConfig || (!currentConfig.governorIds && !currentConfig.governorId)) return true; // Already unlinked
-
-    let govIds = currentConfig.governorIds || [];
-    let profiles = currentConfig.profiles || {};
-    
-    // Remove ID
-    const targetIdStr = String(governorId);
-    govIds = govIds.filter(id => id !== targetIdStr);
-
-    // Remove from map (New Schema: key is ID)
-    if (profiles[targetIdStr]) {
-        delete profiles[targetIdStr];
-    }
-
-    // Also remove from map (Old Schema: value is ID)
-    for (const [k, v] of Object.entries(profiles)) {
-        if (String(v) === targetIdStr) {
-            delete profiles[k];
-        }
-    }
-
-    // Format for DynamoDB List and Map type
-    const dynamoList = govIds.map(id => ({ S: id }));
-    
-    const profilesMap = {};
-    for (const [k, v] of Object.entries(profiles)) {
-        profilesMap[k] = { S: String(v) };
-    }
-
-    const params = {
-        TableName: tableName,
-        Item: {
-            'PK': { S: `USER#${discordId}` },
-            'SK': { S: 'CONFIG' },
-            'attributes': {
-                M: {
-                    'governorIds': { L: dynamoList },
-                    'profiles': { M: profilesMap },
-                    'linkedDate': { S: new Date().toISOString() }
-                }
-            }
-        }
-    };
-
     try {
-        await dbClient.send(new PutItemCommand(params));
+        const { GetItemCommand, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        const getRes = await dbClient.send(new GetItemCommand({
+            TableName: tableName,
+            Key: { 'PK': { S: `USER#${discordId}` }, 'SK': { S: 'CONFIG' } }
+        }));
+        if (!getRes.Item) return true;
+
+        const existingItem = getRes.Item;
+        const attrs = existingItem.attributes?.M || {};
+        const targetIdStr = String(governorId).replace(/\D/g, '');
+
+        let govIds = (attrs.governorIds?.L || []).map(item => item.S).filter(id => id && id !== targetIdStr);
+        const profilesMap = { ...(attrs.profiles?.M || {}) };
+        delete profilesMap[targetIdStr];
+        for (const [k, v] of Object.entries(profilesMap)) {
+            if (v?.S === targetIdStr) delete profilesMap[k];
+        }
+
+        attrs['governorIds'] = { L: govIds.map(id => ({ S: String(id) })) };
+        attrs['profiles'] = { M: profilesMap };
+        attrs['updatedDate'] = { S: new Date().toISOString() };
+
+        existingItem.attributes = { M: attrs };
+        await dbClient.send(new PutItemCommand({
+            TableName: tableName,
+            Item: existingItem
+        }));
         return true;
     } catch (e) {
         console.error("AWS Unlink Governor Error", e);
         return false;
     }
 }
+
 
 /**
  * ADMIN: Gets all registered Tenants
@@ -4343,7 +4341,7 @@ export async function getAllUsersInKingdom(kingdomId) {
 /**
  * Updates a user's self-reported typical playtime and native timezone.
  */
-export async function updateUserPlaytime(discordId, timezone, playStart, playEnd) {
+export async function updateUserPlaytime(discordId, timezone, playStart, playEnd, activeKingdom = null) {
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) return false;
 
@@ -4365,23 +4363,29 @@ export async function updateUserPlaytime(discordId, timezone, playStart, playEnd
         };
 
         const attrs = existingItem.attributes?.M || {};
-        attrs['timezone'] = { S: String(timezone) };
-        attrs['playtimeStart'] = { S: String(playStart) };
-        attrs['playtimeEnd'] = { S: String(playEnd) };
+        if (timezone) attrs['timezone'] = { S: String(timezone) };
+        if (playStart) attrs['playtimeStart'] = { S: String(playStart) };
+        if (playEnd) attrs['playtimeEnd'] = { S: String(playEnd) };
+        if (activeKingdom && activeKingdom !== 'GLOBAL') {
+            attrs['activeKingdom'] = { S: String(activeKingdom) };
+        }
 
         existingItem.attributes = { M: attrs };
 
-        const putParams = {
+        await dbClient.send(new PutItemCommand({
             TableName: tableName,
             Item: existingItem
-        };
-
-        await dbClient.send(new PutItemCommand(putParams));
+        }));
         return true;
     } catch (err) {
-        console.error(`[AWS] Failed to update playtime for ${discordId}:`, err);
+        console.error(`[AWS] Failed to update user settings for ${discordId}:`, err);
         return false;
     }
+}
+
+export async function updateUserActiveKingdom(discordId, activeKingdom) {
+    if (!discordId || !activeKingdom || activeKingdom === 'GLOBAL') return false;
+    return updateUserPlaytime(discordId, null, null, null, activeKingdom);
 }
 
 /**
