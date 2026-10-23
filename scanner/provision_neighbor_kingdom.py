@@ -125,8 +125,48 @@ def tap_characters_in_settings(adb_target: str, snap_path: str):
 
 
 def find_kingdom_coords(img_path: str, kingdom_num: str):
-    found, _, _ = inspect_kingdom_viewport(img_path, kingdom_num)
-    return found
+    import re
+    ocr = get_ocr()
+    res, _ = ocr(img_path)
+    if not res:
+        return None
+    target_tag = f"#{kingdom_num}"
+    in_char_or_kd = False
+    power_labels = []
+    candidates = []
+    for box, text, conf in res:
+        t = text.strip()
+        tu = t.upper()
+        if any(k in tu for k in ("CHARACTER", "KINGDOM LIST", "CREATE CHARACTER", "KINGDOM CALENDAR")):
+            in_char_or_kd = True
+        xs = [p[0] for p in box]
+        ys = [p[1] for p in box]
+        cx = int(sum(xs) / 4.0)
+        cy = int(sum(ys) / 4.0)
+        m_pwr = re.search(r"POWER[:\s]*([\d,]+)", tu)
+        if m_pwr:
+            try:
+                power_labels.append((cx, cy, int(m_pwr.group(1).replace(",", ""))))
+            except Exception:
+                pass
+        if (target_tag in t or re.search(rf"\b{re.escape(str(kingdom_num))}\b", t)) and 140 <= cy <= 860:
+            candidates.append((cx, cy, t))
+
+    if not in_char_or_kd or not candidates:
+        return None
+
+    best = None
+    best_score = None
+    for cx, cy, t in candidates:
+        card_pwr = 0
+        for px, py, pval in power_labels:
+            if abs(px - cx) < 240 and 0 <= (py - cy) <= 95:
+                card_pwr = max(card_pwr, pval)
+        score = (card_pwr, -cy)
+        if best_score is None or score > best_score:
+            best_score = score
+            best = (cx, cy, t)
+    return best
 
 
 _CURRENT_ADB = "127.0.0.1:16384"
@@ -143,6 +183,7 @@ def resolve_instance_id(adb_serial: str) -> str:
 
 def report_progress(kingdom: str, step: int, total_steps: int, status_label: str, detail: str, running: bool = True):
     import json as _json
+    print(f"[{step}/{total_steps}] {detail}")
     pct = round((step / max(1, total_steps)) * 100.0, 1)
     adb_serial = str(_CURRENT_ADB or "127.0.0.1:16384")
     adb_port = adb_serial.split(":")[-1]
@@ -247,7 +288,7 @@ def main():
             arr = screencap(args.adb, snap_path)
             if _is_hud(arr):
                 return
-            for cx_close, cy_close in [(1380, 108), (1388, 56), (1363, 110), (1455, 88), (48, 52)]:
+            for cx_close, cy_close in [(1300, 700), (1380, 108), (1388, 56), (1363, 110), (1455, 88), (48, 52)]:
                 tap(args.adb, cx_close, cy_close, 1.2)
                 arr = screencap(args.adb, snap_path)
                 if _is_hud(arr):
@@ -302,6 +343,7 @@ def main():
 
         if args.mode == "switch":
             report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
+            swipe(args.adb, 800, 250, 800, 780, 450, 1.2)
             for sw_idx in range(4):
                 screencap(args.adb, snap_path)
                 found_char = find_kingdom_coords(snap_path, str(args.kingdom))
@@ -320,8 +362,8 @@ def main():
                         tap(args.adb, 1454, 105, 1.0)
                         report_progress(args.kingdom, 6, 6, "COMPLETED", f"Already active on Kingdom #{args.kingdom}", running=False)
                         return
-                    # On CHARACTER LOGIN modal, YES is at (1035, 710); also check OCR for exact YES button
-                    yes_x, yes_y = 1035, 710
+                    # On CHARACTER LOGIN modal, YES is at (979, 619); also check OCR for exact YES button
+                    yes_x, yes_y = 979, 619
                     for item in (res_confirm or []):
                         if item[1].strip().upper() == "YES":
                             pts = item[0]

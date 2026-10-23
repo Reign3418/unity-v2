@@ -102,6 +102,9 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
       } catch {}
     }
 
+    // Replace the kingdom's active governor map with the current scan's cumulative reconciledRoster
+    // so governors who migrated out of the kingdom are immediately evicted rather than lingering forever!
+    cache.kingdoms[kd].governors = {};
     for (const enriched of reconciledRoster) {
       const gid = String(enriched.id);
       cache.kingdoms[kd].governors[gid] = enriched;
@@ -225,6 +228,11 @@ export async function POST(req) {
               sourceType,
               coverageTier,
               mode: progress.mode || 'BASTION_45_FIELD_BOT',
+              startedAt: progress.startedAt || null,
+              scanDtgUtc:
+                progress.scanDtgUtc ||
+                new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
+              completedAt: progress.completedAt || null,
               updatedAt: new Date().toISOString(),
             })
           ).catch(() => {});
@@ -239,7 +247,7 @@ export async function POST(req) {
     try {
       const sortedTop = [...fullKingdomRoster]
         .sort((a, b) => (Number(b.power) || 0) - (Number(a.power) || 0))
-        .slice(0, 150);
+        .slice(0, 350);
       const overlayMap = {};
       sortedTop.forEach((g, idx) => {
         const gid = String(g.govId || g.id || '');
@@ -314,20 +322,50 @@ export async function POST(req) {
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const kd = searchParams.get('kd') || '4194';
+    const kd =
+      searchParams.get('kd') ||
+      searchParams.get('kingdomId') ||
+      searchParams.get('kingdom') ||
+      '4194';
     const cache = readLiveTelemetryCache();
     const ledger = readEpochLedger();
-    const kdCache = cache.kingdoms?.[String(kd)] || null;
-    const governors = kdCache
-      ? Object.values(kdCache.governors).sort((a, b) => (b.power || 0) - (a.power || 0))
-      : [];
+    const kdCache = cache.kingdoms?.[String(kd)] || {
+      governors: {},
+      progress: null,
+      allianceLeadersR5: [],
+    };
+    const govMap = { ...(kdCache.governors || {}) };
+
+    let liveStatus = kdCache?.progress || null;
+    try {
+      const [rawStatus, rawOverlay] = await Promise.all([
+        getGlobalConfig(`LIVE_SCAN_STATUS_${kd}`).catch(() => null),
+        getGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kd}`).catch(() => null),
+      ]);
+      if (rawStatus) {
+        const parsedStatus = JSON.parse(rawStatus);
+        liveStatus = { ...(liveStatus || {}), ...parsedStatus };
+      }
+      if (rawOverlay) {
+        const parsedOverlay = JSON.parse(rawOverlay);
+        for (const [gid, g] of Object.entries(parsedOverlay)) {
+          if (g && typeof g === 'object') {
+            govMap[gid] = { ...(govMap[gid] || {}), ...g };
+          }
+        }
+      }
+    } catch {}
+
+    const governors = Object.values(govMap).sort((a, b) => (b.power || 0) - (a.power || 0));
 
     return NextResponse.json({
       kingdomId: kd,
-      updatedAt: cache.updatedAt,
+      updatedAt: liveStatus?.updatedAt || cache.updatedAt,
+      startedAt: liveStatus?.startedAt || null,
+      scanDtgUtc: liveStatus?.scanDtgUtc || null,
       epochMeta: ledger.kingdomEpochs?.[String(kd)] || null,
       dozerStats: ledger.dozerStats || null,
-      status: kdCache?.progress || null,
+      status: liveStatus,
       allianceLeadersR5: kdCache?.allianceLeadersR5 || [],
       count: governors.length,
       governors,

@@ -361,10 +361,10 @@ def resolve_mumu_pid_and_arena(adb_serial: str = "127.0.0.1:16384"):
     if buckets:
         best_prefix = buckets.most_common(1)[0][0]
         start_addr = best_prefix << 36
-        end_addr = start_addr + 0x600000000
+        end_addr = start_addr + 0x1000000000
     else:
-        start_addr = 0x25000000000
-        end_addr = 0x25500000000
+        start_addr = 0x20000000000
+        end_addr = 0x30000000000
 
     _MUMU_ARENA_CACHE[adb_port] = (target_pid, start_addr, end_addr)
     print(f"  [MUMU ARENA] Mapped {adb_serial} (vm={vm_idx}) -> PID {target_pid} @ {hex(start_addr)}..{hex(end_addr)}")
@@ -746,17 +746,8 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
         print(f"  [WARN] MuMu doc ADB pull warning: {e}")
 
     govs = {}
-    # Load baseline mailcache seed ONLY when scanning Kingdom #4194
-    seed_path = os.path.join(SCRIPT_DIR, "mailcache_baseline_seed.json")
-    if str(target_kd) == "4194" and os.path.exists(seed_path):
-        try:
-            with open(seed_path, "r", encoding="utf-8") as f:
-                for item in json.load(f):
-                    pid = int(item.get("govId") or item.get("id") or 0)
-                    if pid > 0:
-                        govs[pid] = dict(item)
-        except Exception:
-            pass
+    # Never seed active kingdom rosters from static historical mailcache_baseline_seed.json;
+    # mailcache is strictly used to enrich governors verified in live RAM during the current scan.
 
     expected_cos_id = None
     try:
@@ -894,43 +885,6 @@ def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> 
                 rec["allianceName"] = s["allianceName"]
         rec["telemetrySource"] = "MUMU_45_FIELD_RAM_AND_SAVE" if s else "MUMU_35_FIELD_RAM"
         merged_by_id[pid] = rec
-
-    # Include mailcache-discovered governors not yet tapped on the Top-N leaderboard
-    for pid, s in save_govs_by_id.items():
-        if pid not in merged_by_id and s.get("name"):
-            merged_by_id[pid] = {
-                "id": str(pid),
-                "govId": pid,
-                "name": s.get("name", f"Governor_{pid}"),
-                "alliance": s.get("alliance", "None"),
-                "allianceName": s.get("allianceName", ""),
-                "power": int(s.get("power") or 0),
-                "highestPower": int(s.get("highestPower") or 0),
-                "troopPower": int(s.get("troopPower") or 0),
-                "techPower": int(s.get("techPower") or 0),
-                "buildingPower": int(s.get("buildingPower") or 0),
-                "commanderPower": int(s.get("commanderPower") or 0),
-                "killPoints": int(s.get("killPoints") or 0),
-                "dead": int(s.get("dead") or 0),
-                "healedTroops": int(s.get("healedTroops") or 0),
-                "gathered": int(s.get("gathered") or 0),
-                "assistance": int(s.get("assistance") or 0),
-                "helps": int(s.get("helps") or 0),
-                "cityHall": int(s.get("cityHall") or 21),
-                "vipLevel": int(s.get("vipLevel") or 0),
-                "civilization": s.get("civilization", "Unknown"),
-                "castlePos": s.get("castlePos"),
-                "ralliesLed": int(s.get("ralliesLed") or 0),
-                "ralliesJoined": int(s.get("ralliesJoined") or 0),
-                "primaryCommander": s.get("primaryCommander"),
-                "secondaryCommander": s.get("secondaryCommander"),
-                "equippedGear": s.get("equippedGear"),
-                "udid": s.get("udid"),
-                "appUid": s.get("appUid"),
-                "clientPlatform": s.get("clientPlatform"),
-                "internalServerId": s.get("internalServerId", 3194),
-                "telemetrySource": "MUMU_BINARY_MAILCACHE",
-            }
 
     final_list = list(merged_by_id.values())
     final_list.sort(
@@ -1095,9 +1049,6 @@ def ensure_individual_power_leaderboard_open(
     INDIVIDUAL POWER RANKINGS modal is open (and reset to Rank #1 when reset_to_top=True)
     before any row taps begin.
     """
-    if str(target_kd) == "4194" and "16384" in str(driver.serial):
-        skip_switch = True
-
     screen_txt = get_screen_ocr_text(driver)
     if skip_switch and "INDIVIDUAL POWER RANKINGS" in screen_txt:
         if reset_to_top:
@@ -1169,7 +1120,7 @@ def ensure_individual_power_leaderboard_open(
                 rib = arr[85:125, 15:70]
                 if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
                     return
-                for cx_c, cy_c in [(1388, 56), (1363, 110), (1455, 88)]:
+                for cx_c, cy_c in [(1300, 700), (1388, 56), (1363, 110), (1455, 88)]:
                     driver.tap(cx_c, cy_c, sleep_sec=1.0)
                     arr = np.array(driver.screenshot())
                     rib = arr[85:125, 15:70]
@@ -1197,8 +1148,17 @@ def ensure_individual_power_leaderboard_open(
         driver.tap(rank_x, 755, sleep_sec=2.2)
         after_rank_txt = get_screen_ocr_text(driver)
         if "LEVEL 8" in after_rank_txt or "VIEW RANKINGS" in after_rank_txt or "GOVERNOR PROFILE" in after_rank_txt:
-            print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/14)...")
             driver.tap(1454, 105, sleep_sec=1.0)
+            prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
+            if attempt <= 2 and os.path.exists(prov_script):
+                print(f"  [PREAMBLE] Rankings locked (CH < 8) on attempt {attempt} -> switching to highest-power #{target_kd} character first...")
+                subprocess.run(
+                    [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
+                    timeout=180,
+                    check=False,
+                )
+                continue
+            print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/14)...")
             tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
             if os.path.exists(tut_script):
                 subprocess.run(
@@ -1281,7 +1241,15 @@ def run_kingdom_scan(args):
     adb_port = str(args.adb or "127.0.0.1:16384").split(":")[-1]
     accum_path = os.path.join(SCRIPT_DIR, f"ram_accum_{adb_port}_{args.kd}.json")
     cumulative_ram_by_id = {}
-    if os.path.exists(accum_path):
+    if args.start_rank <= 1:
+        # Fresh scan from Rank 1: purge any prior accumulator file so departed migrants are never carried over!
+        if os.path.exists(accum_path):
+            try:
+                os.remove(accum_path)
+                print(f"  [ACCUMULATOR] Cleared prior scan cache {accum_path} for fresh Rank 1 scan.")
+            except Exception:
+                pass
+    elif os.path.exists(accum_path):
         try:
             with open(accum_path, "r", encoding="utf-8-sig") as rf:
                 loaded_accum = json.load(rf)
@@ -1292,7 +1260,7 @@ def run_kingdom_scan(args):
                     gid = int(item.get("govId") or item.get("id") or 0)
                     if gid > 0:
                         cumulative_ram_by_id[gid] = item
-            print(f"  [ACCUMULATOR] Loaded {len(cumulative_ram_by_id)} pre-accumulated RAM governors from {accum_path}")
+            print(f"  [ACCUMULATOR] Resuming at Rank {args.start_rank}: loaded {len(cumulative_ram_by_id)} RAM governors from {accum_path}")
         except Exception:
             pass
 
@@ -1371,18 +1339,27 @@ def run_kingdom_scan(args):
             if rank < args.end_rank and "INDIVIDUAL POWER" not in screen_now:
                 print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus; restoring INDIVIDUAL POWER RANKINGS...")
                 ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True, reset_to_top=False)
+            batch_now_dt = datetime.now(timezone.utc)
+            batch_now_iso = batch_now_dt.isoformat()
+            batch_dtg_str = batch_now_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
             ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
             for rg in ram_govs:
                 gid = int(rg.get("govId") or rg.get("id") or 0)
                 if gid <= 0:
                     continue
+                rg["scannedAtUtc"] = batch_now_iso
+                rg["scanDtg"] = batch_dtg_str
+                rg["scanSessionStartedAt"] = started_at_iso
                 if gid in cumulative_ram_by_id:
                     existing = cumulative_ram_by_id[gid]
+                    existing["scannedAtUtc"] = batch_now_iso
+                    existing["scanDtg"] = batch_dtg_str
+                    existing["scanSessionStartedAt"] = started_at_iso
                     for fk, fv in rg.items():
                         if fk == "name":
                             if fv and fv != f"Governor_{gid}":
                                 existing["name"] = fv
-                        elif fk in ("alliance", "allianceName", "civilization"):
+                        elif fk in ("alliance", "allianceName", "civilization", "scannedAtUtc", "scanDtg", "scanSessionStartedAt"):
                             existing[fk] = fv
                         elif isinstance(fv, (int, float)) and fv > 0:
                             existing[fk] = fv
@@ -1446,6 +1423,9 @@ def run_kingdom_scan(args):
                             "targetRank": args.end_rank,
                             "workerSerial": args.adb,
                             "mode": "MUMU_45_FIELD_UNIFIED_RAM_AND_SAVE",
+                            "startedAt": started_at_iso,
+                            "scanDtgUtc": batch_dtg_str,
+                            "completedAt": batch_now_iso if rank == args.end_rank else None,
                         },
                         "rosterArray": merged_govs,
                     },

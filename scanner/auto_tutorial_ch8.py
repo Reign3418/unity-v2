@@ -410,14 +410,17 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_b_pan)) > 0.55 and float(np.mean(is_b_srch)) > 0.30:
         return (340, 595, "Barbarians Modal -> Tap SEARCH")
 
-    # 3d. Barbarians Target Popup ('Lvl 1 Barbarians' tan card at x=1100..1350, y=320..480 + spear pointing right at ATTACK 1142,600)
+    # 3d. Barbarians Target Popup ('Lvl 1 Barbarians' tan card at x=1100..1350, y=320..480 + red ATTACK button at 1142,600)
     b_atk_body = a[320:480, 1100:1350]
     is_b_atk = (
-        (b_atk_body[:, :, 0] >= 165)
-        & (b_atk_body[:, :, 1] >= 140)
-        & ((b_atk_body[:, :, 0].astype(np.int32) - b_atk_body[:, :, 2].astype(np.int32)) >= 60)
+        (b_atk_body[:, :, 0] >= 195)
+        & (b_atk_body[:, :, 1] >= 165)
+        & (b_atk_body[:, :, 0] >= b_atk_body[:, :, 1])
+        & ((b_atk_body[:, :, 0].astype(np.int32) - b_atk_body[:, :, 2].astype(np.int32)) >= 40)
     )
-    if float(np.mean(is_b_atk)) > 0.45 and int(spear_mask(a[500:630, 740:1030]).sum()) >= 500:
+    b_atk_btn = a[565:630, 1050:1230]
+    is_red_atk = (b_atk_btn[:, :, 0] >= 180) & ((b_atk_btn[:, :, 0].astype(np.int32) - b_atk_btn[:, :, 1].astype(np.int32)) >= 70)
+    if float(np.mean(is_b_atk)) > 0.45 and float(np.mean(is_red_atk)) > 0.25 and int(spear_mask(a[500:630, 740:1030]).sum()) >= 500:
         return (1142, 600, "Barbarians Popup -> Tap ATTACK (1142, 600)")
 
     # 4. Top-Right Map Popup Golden Button ('Send', 'New Troop', or 'March' at x=1140..1380, y=140..325)
