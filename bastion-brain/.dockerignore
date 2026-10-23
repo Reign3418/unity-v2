@@ -1,5 +1,0 @@
-__pycache__/
-*.pyc
-.env*
-.sidekick_aws_credentials.cache
-tests/

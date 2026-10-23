@@ -121,7 +121,7 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
     } catch {}
     try {
       fs.mkdirSync(path.dirname(LIVE_CACHE_PATH), { recursive: true });
-      fs.writeFileSync(LIVE_CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
+      fs.writeFileSync(LIVE_CACHE_PATH, JSON.stringify(cache), 'utf8');
     } catch {}
 
     return {
