@@ -198,7 +198,7 @@ export async function POST(req) {
 
     // 2. Sync to AWS DynamoDB ONLY when the merged roster meets the 465 (3-Alliance Core) threshold
     //    or when forceSnapshotCommit is true — preventing a 20-governor partial slice from overwriting a 650/1000 baseline!
-    const shouldCommitFullSnapshot = totalCachedInKingdom >= 450 || forceSnapshotCommit || sourceType === 'GENESIS_BOT';
+    const shouldCommitFullSnapshot = Boolean(forceSnapshotCommit) || progress?.status === 'COMPLETED' || sourceType === 'GENESIS_BOT';
 
     const uploaderData = {
       discordId: session?.user?.id || 'BASTION_MOE_FLEET',

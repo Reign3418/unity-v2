@@ -419,18 +419,29 @@ export async function getKingdomRoster(kingdomId) {
             KeyConditionExpression: 'PK = :pk',
             ExpressionAttributeValues: {
                 ':pk': { S: `DATES#${kingdomId}` }
-            }
+            },
+            ScanIndexForward: false
         };
 
-        const dateResult = await dbClient.send(new QueryCommand(dateParams));
+        let allDateItems = [];
+        let dateLastEvalKey = null;
+        do {
+            if (dateLastEvalKey) dateParams.ExclusiveStartKey = dateLastEvalKey;
+            const dateResult = await dbClient.send(new QueryCommand(dateParams));
+            if (dateResult.Items) allDateItems.push(...dateResult.Items);
+            dateLastEvalKey = dateResult.LastEvaluatedKey;
+        } while (dateLastEvalKey);
         
-        if (!dateResult.Items || dateResult.Items.length === 0) {
+        if (allDateItems.length === 0) {
             console.log(`[AWS] No Scan Dates found for Kingdom ${kingdomId}.`);
             return []; // Kingdom hasn't been scanned yet
         }
         
         // Sort the dates (newest first), preferring full rosters (>= 100 rows) over tiny partial slices
-        const sortedDateItems = [...dateResult.Items].sort((a, b) => {
+        const sortedDateItems = [...allDateItems].sort((a, b) => {
+            const skA = String(a.SK?.S || '');
+            const skB = String(b.SK?.S || '');
+            if (skA && skB && skA !== skB) return skB.localeCompare(skA);
             const da = new Date(a.attributes?.M?.scanDate?.S || 0);
             const db = new Date(b.attributes?.M?.scanDate?.S || 0);
             return db - da;
@@ -439,7 +450,10 @@ export async function getKingdomRoster(kingdomId) {
             i => parseInt(i.attributes?.M?.rowCount?.N || '0', 10) >= 100 &&
                  i.attributes?.M?.epochStatus?.S !== 'ARCHIVED_VIEW_ONLY'
         ) || sortedDateItems[0];
-        const latestDate = String(fullRosterItem.attributes?.M?.scanDate?.S || '').replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
+        const latestDate = fullRosterItem.SK?.S
+            ? String(fullRosterItem.SK.S).replace('SCAN#', '')
+            : String(fullRosterItem.attributes?.M?.scanDate?.S || '').replace(/[.#$\/\[\]\s\-:T]/g, "_").substring(0, 19);
+        const latestScanIso = fullRosterItem.attributes?.M?.scanDate?.S || '';
         
         console.log(`[AWS] Querying DynamoDB for Kingdom ${kingdomId} Roster from ${latestDate}...`);
 
@@ -474,6 +488,7 @@ export async function getKingdomRoster(kingdomId) {
                         name,
                         alliance,
                         allianceName: getAttrVal(attrs, ['Alliance Name', 'allianceName'], false, ''),
+                        allianceNumericId: getAttrVal(attrs, ['Alliance Numeric ID', 'allianceNumericId'], true),
                         kingdomId: String(kingdomId),
                         cityHall: getAttrVal(attrs, ['Town Hall', 'City Hall', 'cityHall', 'townHall'], true) || 25,
                         vipLevel: getAttrVal(attrs, ['VIP Level', 'vipLevel'], true),
@@ -483,9 +498,14 @@ export async function getKingdomRoster(kingdomId) {
                         // Stats
                         power: getAttrVal(attrs, ['Power', 'power', 'POWER'], true),
                         highestPower: getAttrVal(attrs, ['Highest Power', 'highestPower'], true),
+                        matchmakingPower: getAttrVal(attrs, ['Matchmaking Power', 'matchmakingPower'], true),
+                        commanderBloatPct: Number(getAttrVal(attrs, ['Commander Bloat Pct', 'commanderBloatPct'], false, '0')) || 0,
                         killPoints: getAttrVal(attrs, ['Kill Points', 'killPoints', 'KillPoints', 'killpoints', 'Total KP', 'KP', 'kp'], true),
                         totalUnitsKilled: getAttrVal(attrs, ['Total Units Killed', 'totalUnitsKilled'], true),
+                        killToDeadRatio: Number(getAttrVal(attrs, ['Kill To Dead Ratio', 'killToDeadRatio'], false, '0')) || 0,
+                        combatEfficiencyScore: Number(getAttrVal(attrs, ['Combat Efficiency Score', 'combatEfficiencyScore'], false, '0')) || 0,
                         rangedPoints: getAttrVal(attrs, ['Ranged Points', 'rangedPoints'], true),
+                        acclaim: getAttrVal(attrs, ['Acclaim', 'acclaim'], true),
                         dead: getAttrVal(attrs, ['Deads', 'dead', 'Dead', 'DEAD', 'DEADS', 'Defeat', 'DEFEAT', 'defeats', 'Dead(s)'], true),
                         healedTroops: getAttrVal(attrs, ['Healed Troops', 'healedTroops'], true),
                         victories: getAttrVal(attrs, ['Victories', 'victories'], true),
@@ -522,6 +542,39 @@ export async function getKingdomRoster(kingdomId) {
                         aooLeaves: getAttrVal(attrs, ['AoO Leaves', 'aooLeaves'], true),
                         aooKillStocks: getAttrVal(attrs, ['AoO Kill Stocks', 'aooKillStocks'], true),
                         aooHighestScore: getAttrVal(attrs, ['AoO Highest Score', 'aooHighestScore'], true),
+
+                        // Sovereign Weapon Fields (67-Field Deep Telemetry)
+                        ralliesLed: getAttrVal(attrs, ['Rallies Led', 'ralliesLed'], true),
+                        ralliesJoined: getAttrVal(attrs, ['Rallies Joined', 'ralliesJoined'], true),
+                        primaryCommander: getAttrVal(attrs, ['Primary Commander', 'primaryCommander'], false, ''),
+                        primaryCmdrAwakened: getAttrVal(attrs, ['Primary Cmdr Awakened', 'primaryCmdrAwakened'], false, ''),
+                        secondaryCommander: getAttrVal(attrs, ['Secondary Commander', 'secondaryCommander'], false, ''),
+                        secondaryCmdrAwakened: getAttrVal(attrs, ['Secondary Cmdr Awakened', 'secondaryCmdrAwakened'], false, ''),
+                        equippedGear: getAttrVal(attrs, ['Equipped Gear', 'equippedGear'], false, ''),
+                        commanderArmaments: getAttrVal(attrs, ['Commander Armaments', 'commanderArmaments'], false, ''),
+                        kvkMorale: getAttrVal(attrs, ['KvK Morale', 'kvkMorale'], true),
+                        titanLegion: getAttrVal(attrs, ['Titan Legion', 'titanLegion'], false, ''),
+                        castlePos: getAttrVal(attrs, ['Castle Pos', 'castlePos'], false, ''),
+                        mapCityEntityId: getAttrVal(attrs, ['Map City Entity ID', 'mapCityEntityId'], true),
+                        masterAccountCId: getAttrVal(attrs, ['Master Account CId', 'masterAccountCId'], false, ''),
+                        lilithAccountUid: getAttrVal(attrs, ['Lilith Account UID', 'lilithAccountUid'], true),
+                        accountVintage: getAttrVal(attrs, ['Account Vintage', 'accountVintage'], false, ''),
+                        avatarUploadDate: getAttrVal(attrs, ['Avatar Upload Date', 'avatarUploadDate'], false, ''),
+                        avatarImageMd5: getAttrVal(attrs, ['Avatar Image MD5', 'avatarImageMd5'], false, ''),
+                        avatarFrameId: getAttrVal(attrs, ['Avatar Frame ID', 'avatarFrameId'], true),
+                        badgeShowcaseVector: getAttrVal(attrs, ['Badge Showcase Vector', 'badgeShowcaseVector'], false, ''),
+                        udid: getAttrVal(attrs, ['Device UDID', 'udid'], false, ''),
+                        appUid: getAttrVal(attrs, ['App UID', 'appUid'], false, ''),
+                        clientPlatform: getAttrVal(attrs, ['Client Platform', 'clientPlatform'], false, ''),
+                        linkedAltGovIds: getAttrVal(attrs, ['Linked Alt Gov IDs', 'linkedAltGovIds'], false, ''),
+                        activeHoursUtc: getAttrVal(attrs, ['Active Hours UTC', 'activeHoursUtc'], false, ''),
+                        estSleepWindowUtc: getAttrVal(attrs, ['Est Sleep Window UTC', 'estSleepWindowUtc'], false, ''),
+                        internalServerId: getAttrVal(attrs, ['Internal Server ID', 'internalServerId'], true),
+                        originServerId: getAttrVal(attrs, ['Origin Server ID', 'originServerId'], true),
+                        mapServerId: getAttrVal(attrs, ['Map Server ID', 'mapServerId'], true),
+                        telemetrySource: getAttrVal(attrs, ['Telemetry Source', 'telemetrySource'], false, ''),
+                        scannedAtUtc: getAttrVal(attrs, ['Scanned At UTC', 'scannedAtUtc'], false, latestScanIso),
+                        scanDate: latestScanIso,
                         
                         // Deltas
                         powerDelta: getAttrVal(attrs, ['powerDelta'], true),
@@ -2610,12 +2663,12 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
     // Determine the Scan Date 
     let scanDate;
     if (scanDateOverride) {
-        // Rokboard F2 often has standard date strings or Excel serial numbers
         if (!isNaN(Number(scanDateOverride))) {
             const excelEpoch = new Date(1899, 11, 30);
             scanDate = new Date(excelEpoch.getTime() + (Number(scanDateOverride) * 86400 * 1000)).toISOString();
         } else {
-            const parsed = new Date(scanDateOverride);
+            const normalizedOverride = String(scanDateOverride).trim().replace(/^(\d{4}-\d{2}-\d{2})_(\d{2})_(\d{2})_(\d{2})$/, "$1T$2:$3:$4Z");
+            const parsed = new Date(normalizedOverride);
             scanDate = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
         }
     } else {
@@ -2733,25 +2786,38 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
 
     // 2. Format the JS Objects into DynamoDB PutRequest objects
     const putRequests = rosterArray.map(player => {
-        // Stringify numbers and format explicitly to exactly match legacy Unity 1.0 JSON scheme
-        const formatS = (val) => ({ S: String(val || '') });
-        const formatN = (val) => ({ N: String(val || 0).replace(/,/g, '') });
+        const formatS = (val) => ({ S: String(val ?? '') });
+        const formatN = (val) => {
+            const cleaned = String(val ?? 0).replace(/,/g, '').trim();
+            const num = Number(cleaned);
+            return { N: Number.isFinite(num) ? String(num) : '0' };
+        };
+        const formatObjS = (val) => {
+            if (val === undefined || val === null) return { S: '' };
+            if (typeof val === 'object') return { S: JSON.stringify(val) };
+            return { S: String(val) };
+        };
 
         const id = player.id || player.govId || player.Id || player.ID || player['Governor ID'] || player['Character ID'] || player.CharacterID;
         const name = player.name || player.Name || player.NAME || player['Governor Name'] || player.Username || player.username;
         const alliance = player.alliance || player.Alliance || player.ALLIANCE || player['Alliance Tag'] || player['Alliance Name'] || player['alliance Tag'] || "";
         const allianceName = player.allianceName || player['Alliance Full Name'] || "";
+        const allianceNumericId = player.allianceNumericId || player['Alliance Numeric ID'] || 0;
         const power = player.power || player.Power || player.POWER;
         const highestPower = player.highestPower || player['Highest Power'] || power;
+        const matchmakingPower = player.matchmakingPower || player['Matchmaking Power'] || ((Number(player.troopPower || 0) + Number(player.techPower || 0) + Number(player.buildingPower || 0)) || 0);
+        const commanderBloatPct = player.commanderBloatPct ?? (Number(power) > 0 && Number(player.commanderPower) > 0 ? Number((Number(player.commanderPower) / Number(power) * 100).toFixed(2)) : 0);
         const killpoints = player.killpoints || player.killPoints || player.KillPoints || player['Kill Points'] || player['Total KP'];
         const totalUnitsKilled = player.totalUnitsKilled || player['Total Units Killed'] || 0;
-        const rangedPoints = player.rangedPoints || player['Ranged Points'] || 0;
         const deads = player.deads || player.Deads || player.Dead || player.DEAD || player.DEADS || player.dead || player['Dead(s)'] || 0;
+        const killToDeadRatio = player.killToDeadRatio ?? (Number(deads) > 0 ? Number((Number(totalUnitsKilled) / Number(deads)).toFixed(2)) : 0);
+        const combatEfficiencyScore = player.combatEfficiencyScore ?? (Number(power) > 0 ? Number((Number(killpoints) / Number(power)).toFixed(2)) : 0);
+        const rangedPoints = player.rangedPoints || player['Ranged Points'] || 0;
         const healedTroops = player.healedTroops || player['Healed Troops'] || 0;
         const victories = player.victories || player.Victory || player['Victories'] || 0;
         const defeats = player.defeats || player.Defeat || player['Defeats'] || 0;
         const scoutTimes = player.scoutTimes || player['Scout Times'] || 0;
-        const acclaim = player.acclaim || player.Acclaim || player.ACCLAIM;
+        const acclaim = player.acclaim || player.Acclaim || player.ACCLAIM || 0;
         const t1kills = player.t1Kills || player.T1Kills || player['T1 Kills'] || player['Tier 1 Kills'];
         const t2kills = player.t2Kills || player.T2Kills || player['T2 Kills'] || player['Tier 2 Kills'];
         const t3kills = player.t3Kills || player.T3Kills || player['T3 Kills'] || player['Tier 3 Kills'];
@@ -2792,10 +2858,15 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
             'Governor Name': formatS(name),
             'Alliance Tag': formatS(alliance),
             'Alliance Name': formatS(allianceName),
+            'Alliance Numeric ID': formatN(allianceNumericId),
             'Power': formatN(power),
             'Highest Power': formatN(highestPower),
+            'Matchmaking Power': formatN(matchmakingPower),
+            'Commander Bloat Pct': formatS(commanderBloatPct),
             'Kill Points': formatN(killpoints),
             'Total Units Killed': formatN(totalUnitsKilled),
+            'Kill To Dead Ratio': formatS(killToDeadRatio),
+            'Combat Efficiency Score': formatS(combatEfficiencyScore),
             'Ranged Points': formatN(rangedPoints),
             'Deads': formatN(deads),
             'Healed Troops': formatN(healedTroops),
@@ -2835,6 +2906,37 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
             'AoO Leaves': formatN(aooLeaves),
             'AoO Kill Stocks': formatN(aooKillStocks),
             'AoO Highest Score': formatN(aooHighestScore),
+            // Sovereign Weapon Fields (67-Field Deep Telemetry)
+            'Rallies Led': formatN(player.ralliesLed),
+            'Rallies Joined': formatN(player.ralliesJoined),
+            'Primary Commander': formatObjS(player.primaryCommander),
+            'Primary Cmdr Awakened': formatS(player.primaryCmdrAwakened ?? ''),
+            'Secondary Commander': formatObjS(player.secondaryCommander),
+            'Secondary Cmdr Awakened': formatS(player.secondaryCmdrAwakened ?? ''),
+            'Equipped Gear': formatObjS(player.equippedGear),
+            'Commander Armaments': formatObjS(player.commanderArmaments),
+            'KvK Morale': formatN(player.kvkMorale),
+            'Titan Legion': formatObjS(player.titanLegion),
+            'Castle Pos': formatObjS(player.castlePos),
+            'Map City Entity ID': formatN(player.mapCityEntityId),
+            'Master Account CId': formatS(player.masterAccountCId),
+            'Lilith Account UID': formatN(player.lilithAccountUid),
+            'Account Vintage': formatS(player.accountVintage),
+            'Avatar Upload Date': formatS(player.avatarUploadDate),
+            'Avatar Image MD5': formatS(player.avatarImageMd5),
+            'Avatar Frame ID': formatN(player.avatarFrameId),
+            'Badge Showcase Vector': formatS(player.badgeShowcaseVector),
+            'Device UDID': formatS(player.udid),
+            'App UID': formatS(player.appUid),
+            'Client Platform': formatS(player.clientPlatform),
+            'Linked Alt Gov IDs': formatS(player.linkedAltGovIds),
+            'Active Hours UTC': formatS(player.activeHoursUtc),
+            'Est Sleep Window UTC': formatS(player.estSleepWindowUtc),
+            'Internal Server ID': formatN(player.internalServerId),
+            'Origin Server ID': formatN(player.originServerId),
+            'Map Server ID': formatN(player.mapServerId),
+            'Telemetry Source': formatS(player.telemetrySource),
+            'Scanned At UTC': formatS(player.scannedAtUtc || scanDate),
             // Map any deltas if provided by the client side processor
             'powerDelta': formatN(player.powerDelta),
             'kpDelta': formatN(player.kpDelta),

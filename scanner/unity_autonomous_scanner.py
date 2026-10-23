@@ -30,9 +30,24 @@ import ctypes.wintypes as wt
 import argparse
 import subprocess
 from datetime import datetime, timezone
-from PIL import Image, ImageDraw, ImageOps
-import numpy as np
-import requests
+
+_LOCAL_PYLIB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pylib")
+if os.path.isdir(_LOCAL_PYLIB) and _LOCAL_PYLIB not in sys.path:
+    sys.path.insert(0, _LOCAL_PYLIB)
+
+try:
+    from PIL import Image, ImageDraw, ImageOps
+    import numpy as np
+except ImportError:
+    Image = None
+    ImageDraw = None
+    ImageOps = None
+    np = None
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -67,10 +82,14 @@ CIV_NAMES = {
 HASH_NAMES = {
     0x42810360: "govId",
     0x1231d4d3: "power",
+    0xcfc63861: "matchmakingPower",
     0x101786ad: "cityHall",
     0x1211eb7f: "vipLevel",
     0x913be88b: "civId",
     0x34d7f0ac: "serverId",
+    0x42804629: "originServerId",
+    0x6ed9b0b4: "mapServerId",
+    0x00001594: "allianceNumericId",
     0x6e31179d: "killPoints",
     0xbda820ff: "killPointsB",
     0x0074b362: "unitsKilled",
@@ -101,6 +120,23 @@ HASH_NAMES = {
     0xaa54030a: "aooKillStocks",
     0xe1a2a665: "aooHighestScore",
 }
+
+
+def classify_account_vintage(uid_val) -> str:
+    """Derives the Lilith account creation era from the global sequential Lilith Account UID."""
+    try:
+        u = int(str(uid_val).strip())
+        if u <= 0:
+            return ""
+        if u < 50_000_000:
+            return "VETERAN_2018_2019"
+        if u < 120_000_000:
+            return "VETERAN_2020_2021"
+        if u < 190_000_000:
+            return "MID_2022_2024"
+        return "MODERN_2025_2026"
+    except Exception:
+        return ""
 
 
 class MEMORY_BASIC_INFORMATION(ctypes.Structure):
@@ -405,6 +441,41 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
 
     gov_by_id = {}
     detached_more_blocks = []
+    pb_by_name = {}
+
+    def _read_varint(buf_b, pos_b):
+        val_b, shift_b = 0, 0
+        while pos_b < len(buf_b):
+            b_v = buf_b[pos_b]
+            pos_b += 1
+            val_b |= (b_v & 0x7F) << shift_b
+            if not (b_v & 0x80):
+                return val_b, pos_b
+            shift_b += 7
+        return val_b, pos_b
+
+    def _parse_pb_gov(pb_bytes):
+        pos_p, res_p = 0, {}
+        while pos_p < len(pb_bytes):
+            tag_p = pb_bytes[pos_p]
+            pos_p += 1
+            fn_p, wt_p = tag_p >> 3, tag_p & 0x07
+            if fn_p == 0 or fn_p > 30:
+                break
+            if wt_p == 0:
+                v_p, pos_p = _read_varint(pb_bytes, pos_p)
+                res_p[fn_p] = v_p
+            elif wt_p == 2:
+                ln_p, pos_p = _read_varint(pb_bytes, pos_p)
+                if ln_p < 0 or pos_p + ln_p > len(pb_bytes) or ln_p > 500:
+                    break
+                res_p[fn_p] = pb_bytes[pos_p : pos_p + ln_p]
+                pos_p += ln_p
+            else:
+                break
+            if fn_p == 28:
+                break
+        return res_p
 
     try:
         while addr < max_addr and k32.VirtualQueryEx(h, ctypes.c_void_p(addr), ctypes.byref(mbi), ctypes.sizeof(mbi)):
@@ -418,6 +489,22 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                 br = ctypes.c_size_t(0)
                 if k32.ReadProcessMemory(h, ctypes.c_void_p(addr), buf, mbi.RegionSize, ctypes.byref(br)):
                     raw = buf.raw[: br.value]
+
+                    # 0. Collect Leaderboard Protobuf GovernorBrief records (pb[1]=name, pb[2]=avatar, pb[3]=allianceNumericId, pb[4]=allianceName, pb[5]=alliance, pb[7]=udid, pb[8]=cityHall)
+                    j_idx = raw.find(b'{"avatar"')
+                    while j_idx != -1:
+                        start_min = max(0, j_idx - 52)
+                        for pos_cand in range(start_min, j_idx - 3):
+                            if raw[pos_cand] == 0x0A:
+                                ln_cand = raw[pos_cand + 1]
+                                if 2 <= ln_cand <= 40 and pos_cand + 2 + ln_cand < j_idx and raw[pos_cand + 2 + ln_cand] == 0x12:
+                                    pb = _parse_pb_gov(raw[pos_cand : min(len(raw), pos_cand + 360)])
+                                    if isinstance(pb.get(1), bytes) and len(pb[1]) >= 2:
+                                        nm_pb = pb[1].decode("utf-8", errors="ignore").strip()
+                                        if nm_pb:
+                                            pb_by_name[nm_pb] = pb
+                                    break
+                        j_idx = raw.find(b'{"avatar"', j_idx + 9)
 
                     # 1. Collect all AllianceHelps / Tier blocks
                     idx2 = raw.find(needle_helps)
@@ -440,6 +527,7 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                 base_off = idx - 12
                                 hdr_start = max(0, base_off - 720)
                                 hdr = raw[hdr_start:base_off]
+                                ext_hdr = raw[max(0, base_off - 896):base_off]
                                 body = raw[base_off : min(len(raw), base_off + 1800)]
 
                                 gov = {
@@ -447,12 +535,16 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                     "name": "",
                                     "alliance": "None",
                                     "allianceName": "",
+                                    "allianceNumericId": 0,
                                     "serverId": 3194,
+                                    "originServerId": 0,
+                                    "mapServerId": 0,
                                     "cityHall": 25,
                                     "vipLevel": 0,
                                     "civId": 0,
                                     "civilization": "Unknown",
                                     "power": 0,
+                                    "matchmakingPower": 0,
                                     "highestPower": 0,
                                     "killPoints": 0,
                                     "totalUnitsKilled": 0,
@@ -464,9 +556,15 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                     "victories": 0,
                                     "defeats": 0,
                                     "scoutTimes": 0,
+                                    "lilithAccountUid": "",
+                                    "accountVintage": "",
+                                    "avatarUploadDate": "",
+                                    "avatarImageMd5": "",
+                                    "avatarFrameId": "",
+                                    "badgeShowcaseVector": "",
                                 }
-                                for off in range(0, len(hdr) - 16, 8):
-                                    v_l, v_h, t_g, k_h = struct.unpack_from("<4I", hdr, off)
+                                for off in range(0, len(ext_hdr) - 16, 8):
+                                    v_l, v_h, t_g, k_h = struct.unpack_from("<4I", ext_hdr, off)
                                     if (t_g & 0x3F) == 0x32 and k_h in HASH_NAMES:
                                         val = v_l + ((v_h & 0xFFFF) << 32) if v_h < 0x10000 else v_l
                                         fn = HASH_NAMES[k_h]
@@ -491,8 +589,50 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                 if gov["highestPower"] < gov["power"]:
                                     gov["highestPower"] = gov["power"]
 
+                                calc_mm_power = gov["troopPower"] + gov["buildingPower"] + gov["techPower"]
+                                if calc_mm_power > 0 and (
+                                    gov["matchmakingPower"] <= 0
+                                    or abs(gov["matchmakingPower"] - calc_mm_power) > calc_mm_power * 0.15
+                                ):
+                                    gov["matchmakingPower"] = calc_mm_power
+
+                                gov["commanderBloatPct"] = (
+                                    round((gov["commanderPower"] / gov["power"]) * 100.0, 2)
+                                    if gov["power"] > 0
+                                    else 0.0
+                                )
+
                                 gov["civilization"] = CIV_NAMES.get(gov["civId"], "China")
                                 gov["name"] = extract_utf8_name_from_header(hdr)
+
+                                # Extract Avatar CDN URL & Badge Showcase Vector from RAM header
+                                hdr_latin = ext_hdr.decode("latin-1", errors="ignore")
+                                av_match = re.search(
+                                    r"/IM/\d+/\d+/(\d+)/(\d{4}-\d{2}-\d{2})/([A-Fa-f0-9]{16,40})",
+                                    hdr_latin,
+                                )
+                                if av_match:
+                                    gov["lilithAccountUid"] = av_match.group(1)
+                                    gov["accountVintage"] = classify_account_vintage(av_match.group(1))
+                                    gov["avatarUploadDate"] = av_match.group(2)
+                                    gov["avatarImageMd5"] = av_match.group(3)
+                                af_match = re.search(r'"avatarFrame"\s*:\s*"([^"]*)"', hdr_latin)
+                                if af_match and af_match.group(1):
+                                    gov["avatarFrameId"] = af_match.group(1).split("/")[-1]
+                                bv_match = re.search(
+                                    r"\b(\d{1,2}_\d{1,2}_\d{1,2}_\d{1,2}_\d{1,2}_\d{1,2})\b",
+                                    hdr_latin,
+                                )
+                                if bv_match:
+                                    gov["badgeShowcaseVector"] = bv_match.group(1)
+                                for u_m in re.finditer(
+                                    r"\b([A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|[A-Fa-f0-9]{32})\b",
+                                    hdr_latin,
+                                ):
+                                    cand_u = u_m.group(1)
+                                    if cand_u != gov.get("avatarImageMd5"):
+                                        gov["udid"] = cand_u
+                                        break
 
                                 # Extract Alliance Full Name & 4-char Tag (ONLY when 0x4ebbe693 alliance marker exists in header)
                                 al_marker = hdr.find(b"\x93\xe6\xbb\x4e")
@@ -509,11 +649,25 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                 else:
                                     gov["alliance"] = "None"
                                     gov["allianceName"] = ""
+                                    gov["allianceNumericId"] = 0
 
                                 more = parse_tier_and_more_block(body)
                                 for mk, mv in more.items():
                                     if mv > 0 or mk not in gov:
                                         gov[mk] = mv
+
+                                dead_cnt = int(gov.get("dead") or 0)
+                                kills_cnt = int(gov.get("totalUnitsKilled") or 0)
+                                gov["killToDeadRatio"] = (
+                                    round(kills_cnt / dead_cnt, 2)
+                                    if dead_cnt > 0
+                                    else float(kills_cnt)
+                                )
+                                gov["combatEfficiencyScore"] = (
+                                    round(gov["killPoints"] / gov["power"], 2)
+                                    if gov["power"] > 0
+                                    else 0.0
+                                )
 
                                 gid = gov["govId"]
                                 if gid > 1000000 and gid not in exclude_gov_ids:
@@ -558,6 +712,33 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
 
     gov_list = list(gov_by_id.values())
 
+    # Enrich from Leaderboard Protobuf GovernorBrief records (pb_by_name)
+    for g in gov_list:
+        nm_g = g.get("name") or ""
+        pb = pb_by_name.get(nm_g)
+        if pb:
+            if isinstance(pb.get(2), bytes):
+                av_str = pb[2].decode("utf-8", errors="ignore")
+                av_m = re.search(r"/IM/\d+/\d+/(\d+)/(\d{4}-\d{2}-\d{2})/([A-Fa-f0-9]{16,40})", av_str)
+                if av_m:
+                    g["lilithAccountUid"] = av_m.group(1)
+                    g["accountVintage"] = classify_account_vintage(av_m.group(1))
+                    g["avatarUploadDate"] = av_m.group(2)
+                    g["avatarImageMd5"] = av_m.group(3)
+                af_m = re.search(r'"avatarFrame"\s*:\s*"([^"]*)"', av_str)
+                if af_m and af_m.group(1):
+                    g["avatarFrameId"] = af_m.group(1).split("/")[-1]
+            if pb.get(3) and int(pb[3]) > 0:
+                g["allianceNumericId"] = int(pb[3])
+            if isinstance(pb.get(4), bytes) and pb[4]:
+                g["allianceName"] = pb[4].decode("utf-8", errors="ignore").strip()
+            if isinstance(pb.get(5), bytes) and pb[5]:
+                g["alliance"] = pb[5].decode("utf-8", errors="ignore").strip() or "None"
+            if isinstance(pb.get(7), bytes) and pb[7]:
+                u_str = pb[7].decode("utf-8", errors="ignore").strip()
+                if u_str and u_str != g.get("avatarImageMd5"):
+                    g["udid"] = u_str
+
     # Consensus-clean allianceName across members sharing the same 4-char alliance tag
     by_tag = {}
     for g in gov_list:
@@ -578,6 +759,18 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
         elif tag == "None":
             g["allianceName"] = ""
 
+    # Consensus-propagate allianceNumericId across members sharing the same 4-char alliance tag
+    aid_by_tag = {}
+    for g in gov_list:
+        tag = g.get("alliance")
+        aid = int(g.get("allianceNumericId") or 0)
+        if tag and tag != "None" and aid > 0:
+            aid_by_tag[tag] = aid
+    for g in gov_list:
+        tag = g.get("alliance")
+        if tag in aid_by_tag and int(g.get("allianceNumericId") or 0) == 0:
+            g["allianceNumericId"] = aid_by_tag[tag]
+
     # Link any detached More Info block where t1..t5 kills == totalUnitsKilled or t1..t5 kp == killPoints
     for g in gov_list:
         sum_kills = g["t1Kills"] + g["t2Kills"] + g["t3Kills"] + g["t4Kills"] + g["t5Kills"]
@@ -590,6 +783,16 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                         if bv > 0 and g.get(bk, 0) == 0:
                             g[bk] = bv
                     break
+        dead_cnt = int(g.get("dead") or 0)
+        kills_cnt = int(g.get("totalUnitsKilled") or 0)
+        g["killToDeadRatio"] = round(kills_cnt / dead_cnt, 2) if dead_cnt > 0 else float(kills_cnt)
+        g["combatEfficiencyScore"] = round(g["killPoints"] / g["power"], 2) if g.get("power", 0) > 0 else 0.0
+        mm_calc = int(g.get("troopPower") or 0) + int(g.get("buildingPower") or 0) + int(g.get("techPower") or 0)
+        if mm_calc > 0 and (int(g.get("matchmakingPower") or 0) <= 0 or abs(int(g.get("matchmakingPower") or 0) - mm_calc) > mm_calc * 0.15):
+            g["matchmakingPower"] = mm_calc
+        g["commanderBloatPct"] = round((int(g.get("commanderPower") or 0) / g["power"]) * 100.0, 2) if g.get("power", 0) > 0 else 0.0
+        if g.get("lilithAccountUid") and not g.get("accountVintage"):
+            g["accountVintage"] = classify_account_vintage(g["lilithAccountUid"])
 
     # Sort descending by power and assign rank
     gov_list.sort(key=lambda x: x.get("power", 0), reverse=True)
@@ -667,7 +870,7 @@ class AdbEmulatorDriver:
         )
         self._human_sleep(sleep_sec)
 
-    def screenshot(self) -> Image.Image:
+    def screenshot(self):
         proc = subprocess.run(
             [self.adb_bin, "-s", self.serial, "exec-out", "screencap", "-p"],
             capture_output=True,
@@ -746,8 +949,20 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
         print(f"  [WARN] MuMu doc ADB pull warning: {e}")
 
     govs = {}
-    # Never seed active kingdom rosters from static historical mailcache_baseline_seed.json;
-    # mailcache is strictly used to enrich governors verified in live RAM during the current scan.
+    # Load mailcache_baseline_seed.json strictly as an enrichment lookup dictionary (never adds rows to the roster;
+    # merge_ram_and_mumu_save_telemetry only iterates over governors verified in live RAM on the leaderboard).
+    seed_path = os.path.join(SCRIPT_DIR, "mailcache_baseline_seed.json")
+    if os.path.exists(seed_path):
+        try:
+            with open(seed_path, "r", encoding="utf-8") as sf:
+                seed_list = json.load(sf)
+            if isinstance(seed_list, list):
+                for sg in seed_list:
+                    spid = int(sg.get("govId") or sg.get("id") or 0)
+                    if spid > 0:
+                        govs[spid] = dict(sg)
+        except Exception:
+            pass
 
     expected_cos_id = None
     try:
@@ -758,6 +973,7 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
         pass
 
     # Decode live MuMu Persistent.Mail.* binary files
+    active_hours_by_pid = {}
     if os.path.exists(mail_dir):
         for mf in os.listdir(mail_dir):
             if not mf.startswith("Persistent.Mail."):
@@ -769,6 +985,17 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                 content = doc.get("body", {}).get("content", {})
                 if not isinstance(content, dict):
                     continue
+                evt_ts = content.get("Bts") or content.get("Ets") or doc.get("time") or 0
+                evt_hour = None
+                try:
+                    ts_val = float(evt_ts)
+                    if ts_val > 1e11:
+                        ts_val /= 1000.0
+                    if ts_val > 1.5e9:
+                        evt_hour = datetime.fromtimestamp(ts_val, tz=timezone.utc).hour
+                except Exception:
+                    evt_hour = None
+
                 for ck in ("SelfChar", "CIdt"):
                     ch = content.get(ck, {})
                     if isinstance(ch, dict) and ch.get("PId") and int(ch["PId"]) > 0:
@@ -777,18 +1004,37 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                         pid = int(ch["PId"])
                         cur = govs.get(pid, {"id": str(pid), "govId": pid, "ralliesLed": 0, "ralliesJoined": 0})
                         cur["ralliesLed"] = int(cur.get("ralliesLed") or 0) + 1
+                        if evt_hour is not None:
+                            active_hours_by_pid.setdefault(pid, []).append(evt_hour)
                         if ch.get("PName"):
                             cur["name"] = ch["PName"]
                         if ch.get("Abbr"):
                             cur["alliance"] = ch["Abbr"]
                         if ch.get("AName"):
                             cur["allianceName"] = ch["AName"]
+                        if ch.get("AId"):
+                            cur["allianceNumericId"] = int(ch["AId"])
                         if ch.get("CastleLevel"):
                             cur["cityHall"] = int(ch["CastleLevel"])
                         if ch.get("CastlePos"):
                             cur["castlePos"] = ch["CastlePos"]
+                        if ch.get("CtId"):
+                            cur["mapCityEntityId"] = int(ch["CtId"])
+                        if ch.get("CId") or ch.get("Idt"):
+                            cur["masterAccountCId"] = str(ch.get("CId") or ch.get("Idt"))
                         if ch.get("COSId"):
                             cur["internalServerId"] = int(ch["COSId"])
+                        if ch.get("Avatar"):
+                            av_s = str(ch.get("Avatar"))
+                            av_m = re.search(r"/IM/\d+/\d+/(\d+)/(\d{4}-\d{2}-\d{2})/([A-Fa-f0-9]{16,40})", av_s)
+                            if av_m:
+                                cur["lilithAccountUid"] = av_m.group(1)
+                                cur["accountVintage"] = classify_account_vintage(av_m.group(1))
+                                cur["avatarUploadDate"] = av_m.group(2)
+                                cur["avatarImageMd5"] = av_m.group(3)
+                            af_m = re.search(r'"avatarFrame"\s*:\s*"([^"]*)"', av_s)
+                            if af_m and af_m.group(1):
+                                cur["avatarFrameId"] = af_m.group(1).split("/")[-1]
                         if ch.get("HId"):
                             hss = ch.get("HSS", {})
                             skills = (
@@ -802,6 +1048,10 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                                 "star": ch.get("HSt"),
                                 "skills": skills,
                             }
+                        if ch.get("HAw") is not None:
+                            cur["primaryCmdrAwakened"] = bool(str(ch.get("HAw")).lower() in ("true", "1") or ch.get("HAw") is True or cur.get("primaryCmdrAwakened"))
+                        elif cur.get("primaryCommander", {}).get("skills") == "5-5-5-5":
+                            cur["primaryCmdrAwakened"] = True
                         if ch.get("HId2"):
                             hss2 = ch.get("HSS2", {})
                             skills2 = (
@@ -815,12 +1065,35 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                                 "star": ch.get("HSt2"),
                                 "skills": skills2,
                             }
+                        if ch.get("HAw2") is not None:
+                            cur["secondaryCmdrAwakened"] = bool(str(ch.get("HAw2")).lower() in ("true", "1") or ch.get("HAw2") is True or cur.get("secondaryCmdrAwakened"))
+                        elif cur.get("secondaryCommander", {}).get("skills") == "5-5-5-5":
+                            cur["secondaryCmdrAwakened"] = True
                         if ch.get("HEq") and ch.get("HEq") != "{}":
                             cur["equippedGear"] = ch["HEq"]
+                        cahah = ch.get("CAHAH")
+                        if cahah and cahah != {} and str(cahah) != "{}":
+                            cur["commanderArmaments"] = json.dumps(cahah, ensure_ascii=False) if isinstance(cahah, dict) else str(cahah)
+                        km = ch.get("KVKMorale")
+                        if isinstance(km, dict):
+                            if km.get("Morale"):
+                                cur["kvkMorale"] = int(km.get("Morale") or 0)
+                        elif km is not None:
+                            try:
+                                cur["kvkMorale"] = int(km or 0)
+                            except Exception:
+                                pass
+                        titan = ch.get("Titan")
+                        if isinstance(titan, dict) and (titan.get("LegionId") or titan.get("Pioneer")):
+                            cur["titanLegion"] = json.dumps(titan, ensure_ascii=False)
+                        elif titan and not isinstance(titan, dict) and str(titan) != "{}":
+                            cur["titanLegion"] = str(titan)
                         if ch.get("Udid"):
                             cur["udid"] = ch["Udid"]
                         if ch.get("AppUid"):
-                            cur["appUid"] = ch["AppUid"]
+                            cur["appUid"] = str(ch["AppUid"])
+                            cur["lilithAccountUid"] = str(ch["AppUid"])
+                            cur["accountVintage"] = classify_account_vintage(ch["AppUid"])
                         if ch.get("PkgNameNew"):
                             cur["clientPlatform"] = ch["PkgNameNew"]
                         govs[pid] = cur
@@ -834,10 +1107,37 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
                                 pid = int(j["PId"])
                                 cur = govs.get(pid, {"id": str(pid), "govId": pid, "ralliesLed": 0, "ralliesJoined": 0})
                                 cur["ralliesJoined"] = int(cur.get("ralliesJoined") or 0) + 1
+                                if evt_hour is not None:
+                                    active_hours_by_pid.setdefault(pid, []).append(evt_hour)
                                 if j.get("PName") and not cur.get("name"):
                                     cur["name"] = j["PName"]
                                 if j.get("Abbr") and not cur.get("alliance"):
                                     cur["alliance"] = j["Abbr"]
+                                if j.get("AId") and not cur.get("allianceNumericId"):
+                                    cur["allianceNumericId"] = int(j["AId"])
+                                if j.get("CtId") and not cur.get("mapCityEntityId"):
+                                    cur["mapCityEntityId"] = int(j["CtId"])
+                                if (j.get("CId") or j.get("Idt")) and not cur.get("masterAccountCId"):
+                                    cur["masterAccountCId"] = str(j.get("CId") or j.get("Idt"))
+                                if j.get("CastlePos") and not cur.get("castlePos"):
+                                    cur["castlePos"] = j["CastlePos"]
+                                if j.get("Avatar"):
+                                    av_s = str(j.get("Avatar"))
+                                    av_m = re.search(r"/IM/\d+/\d+/(\d+)/(\d{4}-\d{2}-\d{2})/([A-Fa-f0-9]{16,40})", av_s)
+                                    if av_m:
+                                        cur["lilithAccountUid"] = av_m.group(1)
+                                        cur["accountVintage"] = classify_account_vintage(av_m.group(1))
+                                        cur["avatarUploadDate"] = av_m.group(2)
+                                        cur["avatarImageMd5"] = av_m.group(3)
+                                    af_m = re.search(r'"avatarFrame"\s*:\s*"([^"]*)"', av_s)
+                                    if af_m and af_m.group(1):
+                                        cur["avatarFrameId"] = af_m.group(1).split("/")[-1]
+                                if j.get("Udid") and not cur.get("udid"):
+                                    cur["udid"] = j["Udid"]
+                                if j.get("AppUid") and not cur.get("appUid"):
+                                    cur["appUid"] = str(j["AppUid"])
+                                    cur["lilithAccountUid"] = str(j["AppUid"])
+                                    cur["accountVintage"] = classify_account_vintage(j["AppUid"])
                                 if j.get("HId") and not cur.get("primaryCommander"):
                                     cur["primaryCommander"] = {"id": j.get("HId"), "level": j.get("HLv")}
                                 if j.get("HId2") and not cur.get("secondaryCommander"):
@@ -846,15 +1146,53 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
             except Exception:
                 pass
 
+    # Compute Active UTC Hours and Estimated 6-Hour Sleep Window per Governor
+    for pid, hrs in active_hours_by_pid.items():
+        if pid not in govs or not hrs:
+            continue
+        uniq_hrs = sorted(set(hrs))
+        govs[pid]["activeHoursUtc"] = ", ".join(f"{h:02d}:00" for h in uniq_hrs) + " UTC"
+        hr_counts = {h: hrs.count(h) for h in range(24)}
+        best_start = min(range(24), key=lambda s: sum(hr_counts[(s + d) % 24] for d in range(6)))
+        best_end = (best_start + 6) % 24
+        govs[pid]["estSleepWindowUtc"] = f"{best_start:02d}:00-{best_end:02d}:00 UTC"
+
     return govs
 
 
 def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> list:
     """
-    Fuses 35-field MuMu Lua RAM telemetry with 10-field MuMu doc/mailcache binary save telemetry
-    into a unified 45-field Governor roster.
+    Fuses MuMu Lua RAM telemetry with MuMu doc/mailcache binary save telemetry
+    and builds the Cross-Roster Alt/Spy Unmasking Graph into a unified 67-field Governor roster.
     """
     merged_by_id = {}
+    save_fields = (
+        "castlePos",
+        "mapCityEntityId",
+        "masterAccountCId",
+        "ralliesLed",
+        "ralliesJoined",
+        "primaryCommander",
+        "primaryCmdrAwakened",
+        "secondaryCommander",
+        "secondaryCmdrAwakened",
+        "equippedGear",
+        "commanderArmaments",
+        "kvkMorale",
+        "titanLegion",
+        "udid",
+        "appUid",
+        "lilithAccountUid",
+        "accountVintage",
+        "avatarUploadDate",
+        "avatarImageMd5",
+        "avatarFrameId",
+        "clientPlatform",
+        "internalServerId",
+        "allianceNumericId",
+        "activeHoursUtc",
+        "estSleepWindowUtc",
+    )
     for g in ram_govs:
         pid = int(g.get("govId") or g.get("id") or 0)
         if pid <= 0:
@@ -862,20 +1200,10 @@ def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> 
         rec = dict(g)
         s = save_govs_by_id.get(pid)
         if s:
-            for k in (
-                "castlePos",
-                "ralliesLed",
-                "ralliesJoined",
-                "primaryCommander",
-                "secondaryCommander",
-                "equippedGear",
-                "udid",
-                "appUid",
-                "clientPlatform",
-                "internalServerId",
-            ):
-                if s.get(k) is not None:
-                    rec[k] = s[k]
+            for k in save_fields:
+                if s.get(k) not in (None, "", 0, False) or k not in rec:
+                    if s.get(k) is not None:
+                        rec[k] = s[k]
             if (
                 not rec.get("allianceName")
                 and s.get("allianceName")
@@ -883,8 +1211,55 @@ def merge_ram_and_mumu_save_telemetry(ram_govs: list, save_govs_by_id: dict) -> 
                 and rec.get("alliance") == s.get("alliance")
             ):
                 rec["allianceName"] = s["allianceName"]
-        rec["telemetrySource"] = "MUMU_45_FIELD_RAM_AND_SAVE" if s else "MUMU_35_FIELD_RAM"
+        if rec.get("lilithAccountUid") and not rec.get("appUid"):
+            rec["appUid"] = str(rec["lilithAccountUid"])
+        elif rec.get("appUid") and not rec.get("lilithAccountUid"):
+            rec["lilithAccountUid"] = str(rec["appUid"])
+        if rec.get("lilithAccountUid") and not rec.get("accountVintage"):
+            rec["accountVintage"] = classify_account_vintage(rec["lilithAccountUid"])
+        rec["telemetrySource"] = "MUMU_67_FIELD_RAM_AND_SAVE" if s else "MUMU_50_FIELD_RAM"
         merged_by_id[pid] = rec
+
+    # Cross-Roster Alt / Farm / Spy Unmasking Graph across UDID, Lilith Account UID, Master CId, and Avatar MD5
+    all_known_govs = dict(save_govs_by_id)
+    for pid, rec in merged_by_id.items():
+        all_known_govs[pid] = rec
+
+    by_udid = {}
+    by_uid = {}
+    by_cid = {}
+    by_md5 = {}
+    for pid, rec in all_known_govs.items():
+        if rec.get("udid"):
+            by_udid.setdefault(str(rec["udid"]), set()).add(pid)
+        uid_v = rec.get("lilithAccountUid") or rec.get("appUid")
+        if uid_v:
+            by_uid.setdefault(str(uid_v), set()).add(pid)
+        if rec.get("masterAccountCId"):
+            by_cid.setdefault(str(rec["masterAccountCId"]), set()).add(pid)
+        if rec.get("avatarImageMd5"):
+            by_md5.setdefault(str(rec["avatarImageMd5"]), set()).add(pid)
+
+    for pid, rec in merged_by_id.items():
+        links = []
+        seen_other = set()
+        for label, key_val, group_map in (
+            ("UDID", rec.get("udid"), by_udid),
+            ("LilithUID", rec.get("lilithAccountUid") or rec.get("appUid"), by_uid),
+            ("MasterCId", rec.get("masterAccountCId"), by_cid),
+            ("AvatarMD5", rec.get("avatarImageMd5"), by_md5),
+        ):
+            if not key_val:
+                continue
+            for other_pid in sorted(group_map.get(str(key_val), set())):
+                if other_pid != pid and other_pid not in seen_other:
+                    seen_other.add(other_pid)
+                    other_rec = all_known_govs.get(other_pid, {})
+                    other_name = other_rec.get("name") or f"Gov#{other_pid}"
+                    other_al = other_rec.get("alliance")
+                    al_prefix = f"[{other_al}]" if other_al and other_al != "None" else ""
+                    links.append(f"{al_prefix}{other_name} ({other_pid} via {label})")
+        rec["linkedAltGovIds"] = "; ".join(links)
 
     final_list = list(merged_by_id.values())
     final_list.sort(
@@ -1408,7 +1783,7 @@ def run_kingdom_scan(args):
                 last_gov_name = top_latest.get("name", last_gov_name)
                 last_gov_power = top_latest.get("power", last_gov_power)
             print(
-                f"  [MUMU 45-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} live RAM ({len(accum_ram_list)} accum) + {len(save_govs)} Save -> {len(merged_govs)} governors | Active: {last_gov_name} ({last_gov_power:,})"
+                f"  [MUMU 67-FIELD SWEEP @ Rank #{rank}] {len(ram_govs)} live RAM ({len(accum_ram_list)} accum) + {len(save_govs)} Save -> {len(merged_govs)} governors | Active: {last_gov_name} ({last_gov_power:,})"
             )
             if merged_govs and (rank % 10 == 0 or rank == args.end_rank):
                 push_batch_to_unity(
@@ -1417,12 +1792,12 @@ def run_kingdom_scan(args):
                     {
                         "kingdomId": str(args.kd),
                         "scanDateOverride": scan_date_iso,
-                        "forceSnapshotCommit": bool(rank == args.end_rank or rank % 50 == 0 or str(args.kd) != "4194"),
+                        "forceSnapshotCommit": bool(rank == args.end_rank),
                         "progress": {
                             "currentRank": rank,
                             "targetRank": args.end_rank,
                             "workerSerial": args.adb,
-                            "mode": "MUMU_45_FIELD_UNIFIED_RAM_AND_SAVE",
+                            "mode": "MUMU_67_FIELD_UNIFIED_RAM_AND_SAVE",
                             "startedAt": started_at_iso,
                             "scanDtgUtc": batch_dtg_str,
                             "completedAt": batch_now_iso if rank == args.end_rank else None,
