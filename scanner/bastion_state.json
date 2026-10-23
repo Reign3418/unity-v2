@@ -8,7 +8,7 @@
   "demandThresholdForSurge": 5,
   "highestKnownKingdom": 4202,
   "nextGenesisWatchKingdom": 4203,
-  "lastUpdated": "2026-10-21T02:02:58.695Z",
+  "lastUpdated": "2026-10-21T15:11:43.598Z",
   "ringModels": {
     "ring1_intelligence": {
       "ringName": "Ring 1: Intelligence, Demand & Genesis Discovery",
@@ -296,8 +296,8 @@
         "sidekick-mumu-0",
         "sidekick-mumu-1"
       ],
-      "lastScanAt": "2026-10-21T02:02:58.695Z",
-      "nextScanAt": "2026-10-21T05:02:58.695Z",
+      "lastScanAt": "2026-10-21T15:11:43.598Z",
+      "nextScanAt": "2026-10-21T18:11:43.598Z",
       "genesisCaptured": true,
       "genesisGovernorsTracked": 1000,
       "reason": "Principal Directive — Parallel #4194 Refresh & Black Ops Star Cluster Tracking"
@@ -519,15 +519,15 @@
     }
   ],
   "activeScanProgress": {
-    "running": true,
-    "status": "SCANNING_LIVE",
+    "running": false,
+    "status": "COMPLETED",
     "kingdom": "4194",
-    "currentRank": 8,
+    "currentRank": 650,
     "targetRanks": 650,
-    "percent": 1.2,
+    "percent": 100,
     "lastGovernorName": "YUJItadori",
     "lastGovernorPower": 0,
-    "governorsExtracted": 1213,
-    "updatedAt": "2026-10-21T02:02:58.695Z"
+    "governorsExtracted": 1229,
+    "updatedAt": "2026-10-21T15:11:43.598Z"
   }
 }
