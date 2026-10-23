@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { downloadExcelFile, parseExcelWorkbook } from "@/lib/excelHelper";
 import { useTranslations } from "next-intl";
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from "@/lib/activeKingdom";
 
 export default function UploadHub() {
   const t = useTranslations('Upload');
@@ -117,24 +118,15 @@ export default function UploadHub() {
 // ---------------------------------------------------------------------------------
 function CloudExtractor() {
   const { data: session } = useSession();
-  const [targetKd, setTargetKd] = useState("3155");
+  const [targetKd, setTargetKd] = useState("4197");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle");
   const [downloadedRows, setDownloadedRows] = useState(0);
   const [syncResult, setSyncResult] = useState(null);
 
   useEffect(() => {
-    let activeKd = targetKd;
-    if (typeof window !== 'undefined') {
-        const storedKd = localStorage.getItem('unty_active_kd');
-        if (storedKd) {
-            activeKd = storedKd;
-            setTargetKd(storedKd);
-        } else if (session?.user?.tenant?.kingdomId) {
-            activeKd = session.user.tenant.kingdomId;
-            setTargetKd(activeKd);
-        }
-    }
+    const resolved = getActiveTargetKingdom(session, "4197");
+    if (resolved) setTargetKd(resolved);
   }, [session]);
 
   const handleSync = async () => {
@@ -183,16 +175,14 @@ function CloudExtractor() {
                  value={targetKd}
                  onChange={(e) => {
                      setTargetKd(e.target.value);
+                     setActiveTargetKingdom(e.target.value);
                      setSyncStatus("idle");
                  }}
                  className="bg-transparent text-indigo-400 font-mono font-bold outline-none cursor-pointer"
                >
-                 {session?.user?.tenant?.allowedKingdoms?.map(kd => (
-                    <option key={kd} value={kd} className="bg-[#0f1115]">Kingdom {kd}</option>
+                 {getMergedKingdomList(session).map(kd => (
+                    <option key={kd} value={kd} className="bg-[#0f1115]">Kingdom #{kd}</option>
                  ))}
-                 {!session?.user?.tenant?.allowedKingdoms?.includes(targetKd) && targetKd && (
-                    <option value={targetKd} className="bg-[#0f1115]">Kingdom {targetKd}</option>
-                 )}
                </select>
            </div>
            

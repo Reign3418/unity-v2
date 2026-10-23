@@ -6,6 +6,7 @@ import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCi
 import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from '@/lib/activeKingdom';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
@@ -25,6 +26,13 @@ export default function Navbar({ onMenuClick }) {
   const { setIsOmniOpen, inspectGovernor } = useValheonCommand();
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeKd, setActiveKd] = useState('4197');
+  const kingdomList = getMergedKingdomList(effectiveSession || session);
+
+  useEffect(() => {
+    const resolved = getActiveTargetKingdom(effectiveSession || session, '4197');
+    setActiveKd(resolved);
+  }, [effectiveSession, session]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pingData, setPingData] = useState({ vercel: 14, aws: 28 });
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -148,10 +156,10 @@ export default function Navbar({ onMenuClick }) {
           )}
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6">
-          {/* View-As Role Preview Dropdown */}
+        <div className="flex items-center gap-2 sm:gap-5">
+          {/* View-As Role Preview Dropdown (Desktop inline; moved to Sidebar drawer on mobile) */}
           {isRealSuperAdmin && (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
+            <div className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
               previewRole 
                 ? 'bg-amber-500/15 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)]' 
                 : 'bg-[#1e222b]/50 border-[#2d323e] hover:border-cyan-500/40'
@@ -200,32 +208,31 @@ export default function Navbar({ onMenuClick }) {
             </div>
           </div>
 
-          {/* Global Kingdom Autoloader */}
-          {((effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || []).length > 0) && (
-             <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-r border-[#1e222b]">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Target KD:</span>
-                <select 
-                  className="bg-transparent text-cyan-400 font-mono font-bold text-sm outline-none cursor-pointer hover:text-cyan-300 transition-colors"
-                  defaultValue={
-                      typeof window !== 'undefined' && (localStorage.getItem('valheon_active_kd') || localStorage.getItem('unty_active_kd'))
-                          ? (localStorage.getItem('valheon_active_kd') || localStorage.getItem('unty_active_kd'))
-                          : ((effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || [])[0] || "3418")
-                  }
-                  onChange={(e) => {
-                      localStorage.setItem('valheon_active_kd', e.target.value);
-                      localStorage.setItem('unty_active_kd', e.target.value);
-                      window.location.reload();
-                  }}
-                >
-                  {(effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || []).map(kd => (
-                    <option key={kd} value={kd} className="bg-[#0f1115] text-white">[{kd}]</option>
-                  ))}
-                  {(effectiveSession?.user?.allowedKingdoms || session?.user?.allowedKingdoms || []).length > 1 && (
-                     <option value="GLOBAL" className="bg-[#0f1115] text-amber-400">[ALL KINGDOMS]</option>
-                  )}
-                </select>
-             </div>
-          )}
+          {/* Global Kingdom Autoloader (Visible on Mobile & Desktop) */}
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-[#141821] sm:bg-transparent border border-cyan-500/30 sm:border-0 sm:border-r sm:border-[#1e222b] sm:rounded-none">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden sm:inline">Target KD:</span>
+            <span className="text-[10px] font-bold text-cyan-400 uppercase sm:hidden">KD</span>
+            <select
+              aria-label="Target Kingdom"
+              className="bg-transparent text-cyan-400 font-mono font-bold text-xs sm:text-sm outline-none cursor-pointer hover:text-cyan-300 transition-colors"
+              value={activeKd}
+              onChange={(e) => {
+                const nextKd = e.target.value;
+                setActiveKd(nextKd);
+                setActiveTargetKingdom(nextKd);
+                window.location.reload();
+              }}
+            >
+              {kingdomList.map((kd) => (
+                <option key={kd} value={kd} className="bg-[#0f1115] text-white">
+                  [{kd}]
+                </option>
+              ))}
+              <option value="GLOBAL" className="bg-[#0f1115] text-amber-400">
+                [ALL KINGDOMS]
+              </option>
+            </select>
+          </div>
 
           {/* Core App Language Switcher */}
           <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-r border-[#1e222b] group">

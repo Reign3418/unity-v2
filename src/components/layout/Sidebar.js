@@ -7,6 +7,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from '@/lib/activeKingdom';
 import {
   LayoutDashboard,
   User,
@@ -53,8 +54,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     effectiveIsValheonFounder,
     effectiveIsSuperAdmin,
     effectiveIsLeader,
+    isRealSuperAdmin,
     previewRole,
+    setPreviewRole,
+    effectiveSession,
   } = useRolePreview();
+  const [sidebarKd, setSidebarKd] = useState('4197');
+  const sidebarKdList = getMergedKingdomList(effectiveSession || session);
+
+  useEffect(() => {
+    setSidebarKd(getActiveTargetKingdom(effectiveSession || session, '4197'));
+  }, [effectiveSession, session]);
   const { setIsOmniOpen } = useValheonCommand();
   const t = useTranslations('Sidebar');
 
@@ -250,8 +260,31 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </div>
         </div>
 
-        {/* Compact Quick Search Strip */}
-        <div className="px-3 pt-3 pb-2 border-b border-[#1e222b] bg-[#0b0d12]">
+        {/* Compact Quick Search + Target Kingdom Switcher Strip */}
+        <div className="px-3 pt-3 pb-2.5 border-b border-[#1e222b] bg-[#0b0d12] space-y-2">
+          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+              <Target size={13} className="text-cyan-400" />
+              Target KD:
+            </span>
+            <select
+              aria-label="Sidebar Target Kingdom"
+              value={sidebarKd}
+              onChange={(e) => {
+                const nextKd = e.target.value;
+                setSidebarKd(nextKd);
+                setActiveTargetKingdom(nextKd);
+                window.location.reload();
+              }}
+              className="bg-[#0f1115] text-cyan-300 font-mono font-bold text-xs px-2 py-1 rounded border border-cyan-500/30 outline-none cursor-pointer"
+            >
+              {sidebarKdList.map((kd) => (
+                <option key={kd} value={kd} className="bg-[#0f1115] text-white">
+                  Kingdom #{kd}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             onClick={() => setIsOmniOpen(true)}

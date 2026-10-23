@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { Settings, User, Bell, Shield, Palette, Save, Check, Cpu } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from "@/lib/activeKingdom";
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
@@ -13,7 +14,7 @@ export default function SettingsPage() {
     emailNotifications: false,
     discordPings: true,
     showAllianceTag: true,
-    defaultKingdom: "3155",
+    defaultKingdom: "4197",
     theme: "dark",
     geminiKey: "",
     geminiModel: "gemini-3.1-flash-lite",
@@ -158,19 +159,19 @@ export default function SettingsPage() {
               <p className="text-gray-500 text-xs mt-0.5">{t('default_kingdom_desc')}</p>
             </div>
             
-            {session?.user?.tenant?.allowedKingdoms?.length > 0 ? (
-              <select
-                value={prefs.defaultKingdom}
-                onChange={e => setPrefs(p => ({ ...p, defaultKingdom: e.target.value }))}
-                className="bg-[#13161c] border border-[#1e222b] text-white px-3 py-1.5 rounded-lg font-mono font-bold outline-none cursor-pointer text-sm"
-              >
-                {session.user.tenant.allowedKingdoms.map(kd => (
-                  <option key={kd} value={kd}>KD {kd}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-gray-500 text-xs italic">{t('no_arch_keys')}</div>
-            )}
+            <select
+              value={prefs.defaultKingdom}
+              onChange={e => {
+                const nextKd = e.target.value;
+                setPrefs(p => ({ ...p, defaultKingdom: nextKd }));
+                setActiveTargetKingdom(nextKd);
+              }}
+              className="bg-[#13161c] border border-cyan-500/30 text-cyan-300 px-3 py-1.5 rounded-lg font-mono font-bold outline-none cursor-pointer text-sm"
+            >
+              {getMergedKingdomList(session).map(kd => (
+                <option key={kd} value={kd} className="bg-[#0f1115] text-white">KD #{kd}</option>
+              ))}
+            </select>
             
           </div>
         </div>

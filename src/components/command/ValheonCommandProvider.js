@@ -17,7 +17,7 @@ export function ValheonCommandProvider({ children }) {
   const [isForensicsOpen, setIsForensicsOpen] = useState(false);
   const [isOpticsOpen, setIsOpticsOpen] = useState(false);
   const [pastedImage, setPastedImage] = useState(null);
-  const [activeKd, setActiveKd] = useState('3418');
+  const [activeKd, setActiveKd] = useState('4197');
   const [governorPool, setGovernorPool] = useState(() =>
     evaluateKingdomTrustMatrix(BENCHMARK_GOVERNORS).governors
   );
@@ -27,7 +27,7 @@ export function ValheonCommandProvider({ children }) {
 
   // Sync active kingdom & fetch live 35-field governor telemetry when available
   useEffect(() => {
-    const kd = getActiveTargetKingdom(session, '4194');
+    const kd = getActiveTargetKingdom(session, '4197');
     setActiveKd(kd);
 
     let cancelled = false;

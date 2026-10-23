@@ -28,6 +28,7 @@ import { useTranslations } from "next-intl";
 import KingdomVault from "@/app/[locale]/vault/page";
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 import R5BastionMissionDesk from "@/components/bastion/R5BastionMissionDesk";
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from "@/lib/activeKingdom";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -228,21 +229,19 @@ export default function KingdomAnalysis() {
       return [...primary, ...secondary];
   }, [rosterData, secondaryRosterData, targetKd, secondaryKd]);
 
+  const allAvailableKds = useMemo(
+    () => getMergedKingdomList(effectiveSession || session),
+    [effectiveSession, session]
+  );
+
   useEffect(() => {
-    let initialKd = "";
-    if (typeof window !== 'undefined') {
-        const storedKd = localStorage.getItem('unty_active_kd');
-        if (storedKd) initialKd = storedKd;
-        else if (session?.user?.allowedKingdoms?.[0]) initialKd = session.user.allowedKingdoms[0];
-        else initialKd = "4194";
-    }
-    
+    const initialKd = getActiveTargetKingdom(effectiveSession || session, "4197");
     if (initialKd && !targetKd) {
         setTargetKd(initialKd);
         fetchTrends(initialKd);
         fetchRoster(initialKd);
     }
-  }, [session]);
+  }, [session, effectiveSession]);
 
   const extractDate = (dateStr) => {
       if (!dateStr) return "";
@@ -499,23 +498,23 @@ export default function KingdomAnalysis() {
           )}
 
           {/* Primary Kingdom Selector */}
-          <select value={targetKd}
+          <select value={targetKd || "4197"}
             onChange={(e) => {
               const newKd = e.target.value;
               setTargetKd(newKd);
-              if (typeof window !== 'undefined') localStorage.setItem('unty_active_kd', newKd);
+              setActiveTargetKingdom(newKd);
               fetchTrends(newKd);
               fetchRoster(newKd, rosterSourceMode);
               // Clear secondary if same kingdom selected
               if (secondaryKd === newKd) { setSecondaryKd(''); setSecondaryRosterData([]); }
             }}
-            className="bg-[#0a0c0f] border border-[#1e222b] text-white focus:border-cyan-500 px-3 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg text-sm"
+            className="bg-[#0a0c0f] border border-cyan-500/40 text-cyan-300 focus:border-cyan-400 px-3 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg text-sm"
           >
-            {session?.user?.allowedKingdoms?.map(kd => (
-              <option key={kd} value={kd} className="bg-[#0f1115] text-white">Kingdom {kd}</option>
+            {allAvailableKds.map(kd => (
+              <option key={kd} value={kd} className="bg-[#0f1115] text-white">Kingdom #{kd}</option>
             ))}
-            {!session?.user?.allowedKingdoms?.includes(targetKd) && targetKd && (
-              <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom {targetKd}</option>
+            {!allAvailableKds.includes(targetKd) && targetKd && (
+              <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom #{targetKd}</option>
             )}
           </select>
 
@@ -685,9 +684,32 @@ export default function KingdomAnalysis() {
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 space-y-4 pb-12 px-3 md:px-5">
+        <div className="flex-1 min-w-0 max-w-full overflow-x-hidden space-y-4 pb-12 px-2 sm:px-3 md:px-5">
           {renderHeader(true)}
-          <div className="min-h-[500px]">
+          {/* Mobile Quick-Switch Tab Strip so Mobile users never get stuck behind drawer */}
+          <div className="md:hidden w-full overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-[#1e222b]">
+            <div className="flex items-center gap-2 min-w-max">
+              {availableTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.name;
+                return (
+                  <button
+                    key={tab.name}
+                    onClick={() => setActiveTab(tab.name)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
+                      isActive
+                        ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40'
+                        : 'bg-[#13161c] text-gray-400 border border-[#1e222b]'
+                    }`}
+                  >
+                    <Icon size={13} className={isActive ? 'text-cyan-400' : 'text-gray-500'} />
+                    {tab.label || tab.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="min-h-[500px] max-w-full overflow-x-auto">
             {renderActiveTab()}
           </div>
         </div>

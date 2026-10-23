@@ -18,7 +18,7 @@ export default function KingdomVault({ hideHeader = false, targetKd: propTargetK
   const [logs, setLogs] = useState([]);
   const [totals, setTotals] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [targetKd, setTargetKd] = useState("3155");
+  const [targetKd, setTargetKd] = useState("4197");
   const [isolationMode, setIsolationMode] = useState(false);
 
   // Upload State
@@ -49,7 +49,7 @@ export default function KingdomVault({ hideHeader = false, targetKd: propTargetK
 
   useEffect(() => {
     if (session) {
-      let activeKd = propTargetKd || "3155";
+      let activeKd = propTargetKd || "4197";
       if (!propTargetKd) {
         try {
             const stored = localStorage.getItem("unty_active_kd");

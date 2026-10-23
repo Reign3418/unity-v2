@@ -9,13 +9,14 @@ export default function KvkHub() {
     const { data: session } = useSession();
     
     // --- Kingdom Synchronization ---
-    const [targetKd, setTargetKd] = useState("");
+    const [targetKd, setTargetKd] = useState("4197");
     
     useEffect(() => {
         if (typeof window === "undefined") return;
-        const stored = localStorage.getItem("unty_active_kd");
-        if (stored && stored !== targetKd) {
-            setTargetKd(stored);
+        const stored = localStorage.getItem("valheon_active_kd") || localStorage.getItem("unty_active_kd") || "4197";
+        const resolved = stored === "3155" ? "4197" : stored;
+        if (resolved && resolved !== targetKd) {
+            setTargetKd(resolved);
         }
     }, [session]);
 

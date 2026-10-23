@@ -146,8 +146,9 @@ export async function updateGlobalConfig(configKey, value) {
  * to the AWS cloud ecosystem, automatically bypassing tenant restrictions for Super Admins.
  */
 export async function getAllTrackedKingdoms() {
+    const priorityKds = ['4197', '4194', '4021', '4193', '4195', '4196', '4198', '4044', '4202', '3418', '3155', '3218', '3477', '3707'];
     const tableName = process.env.AWS_TABLE_NAME;
-    if (!tableName) return [];
+    if (!tableName) return priorityKds;
     
     try {
         const params = {
@@ -159,12 +160,13 @@ export async function getAllTrackedKingdoms() {
         };
         const result = await dbClient.send(new GetItemCommand(params));
         if (result.Item && result.Item.kingdoms && result.Item.kingdoms.SS) {
-            return result.Item.kingdoms.SS.filter(kd => String(kd).replace(/\D/g, '').length < 10).sort((a,b) => parseInt(a) - parseInt(b));
+            const dbKds = result.Item.kingdoms.SS.filter(kd => String(kd).replace(/\D/g, '').length < 10).sort((a,b) => parseInt(a) - parseInt(b));
+            return Array.from(new Set([...priorityKds, ...dbKds]));
         }
-        return [];
+        return priorityKds;
     } catch (e) {
         console.error("AWS GetAllTrackedKingdoms Error", e);
-        return [];
+        return priorityKds;
     }
 }
 

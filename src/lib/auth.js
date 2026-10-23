@@ -599,7 +599,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                       allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
                   };
               }
-          } else if (dbRole === 'data analyst' || dbRole === 'analyst') {
+          } else if ((dbRole === 'data analyst' || dbRole === 'analyst') && !computedSuperAdmin) {
               // Data Analyst: full intelligence access (DKP, Recruiting, Scatter) — no operational command tools
               computedSuperAdmin = false;
               isLeader = false;   // Analyst is NOT a full leader — sidebar will filter accordingly
@@ -701,12 +701,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isValheonFounder = Boolean(token.isValheonFounder);
         session.user.isSupporter = token.isSupporter || false;
         session.user.role = token.role || "User";
-        session.user.tenant = token.tenant;
         const baseAllowed = token.tenant?.allowedKingdoms || [];
         const bastionFleetKds = ["4197", "4194", "4021", "4193", "4195", "4196", "4198", "4044", "4202", "3418", "3155", "3218", "3477", "3707"];
-        session.user.allowedKingdoms = (token.isSuperAdmin || token.isValheonFounder)
-          ? Array.from(new Set([...bastionFleetKds, ...baseAllowed.map(String)]))
-          : baseAllowed;
+        const mergedKds = Array.from(new Set([...bastionFleetKds, ...baseAllowed.map(String)]));
+        session.user.allowedKingdoms = mergedKds;
+        session.user.tenant = {
+          ...(token.tenant || {}),
+          kingdomId: (!token.tenant?.kingdomId || token.tenant?.kingdomId === "3155") ? "4197" : token.tenant.kingdomId,
+          allowedKingdoms: mergedKds
+        };
         session.user.governorConfig = token.governorConfig;
         session.user.ownedGuilds = token.ownedGuilds;
         session.accessToken = token.accessToken;
