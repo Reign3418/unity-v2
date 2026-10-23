@@ -307,11 +307,11 @@ export default function ForensicsDrawer() {
             </div>
           </div>
 
-          {/* 35-Field Hidden RAM Power Composition & Sub-Stats */}
+          {/* 35-Field Sovereign Power Composition & Sub-Stats */}
           <div className="p-4 rounded-2xl bg-[#0b0e17] border border-emerald-500/30 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-                35-Field Lua RAM Power Split
+                35-Field Sovereign Power Matrix
               </span>
               <span className="text-[11px] font-mono text-slate-400">
                 CH{f2pReport.metrics.cityHallLevel} • VIP {f2pReport.metrics.vipLevel} • {f2pReport.metrics.civilization}
@@ -363,7 +363,7 @@ export default function ForensicsDrawer() {
               </>
             ) : null}
 
-            {/* MuMu Binary Save / Mailcache Telemetry Sub-Grid */}
+            {/* Valheon Deep Telemetry Sub-Grid */}
             {(g.castlePos || g.primaryCommander || g.ralliesLed || g.ralliesJoined || g.equippedGear) && (
               <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-1">
                 {g.castlePos && (

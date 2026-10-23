@@ -73,7 +73,7 @@ function buildClientTargetObject(gov, priority = 'VIP') {
     deltas: { power: 0, kp: 0, deads: 0, moved: false },
     bastionStatus: {
       ring1Scout: 'SURGE_1H_ARMED',
-      ring2Tank: 'SIDEKICK_MUMU_0_LOCKED',
+      ring2Tank: 'SIDEKICK_NODE_0_LOCKED',
       ring2NumNum: 'PASS_0_TOKENS',
       ring3Dozer: 'SLICE_DELTA_WATCH',
     },
@@ -855,7 +855,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                 <Cpu className="w-3.5 h-3.5" /> RING 2: TANK · CIPHER · NUMNUM · FORGE
               </div>
               <div className="text-xs font-bold text-white mt-0.5">
-                SIDEKICK (16384 Recon · 16416 Forge)
+                SIDEKICK (Node-01 Recon · Node-02 Forge)
               </div>
             </div>
             <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
@@ -1173,7 +1173,7 @@ export default function BlackOpsRadarClient({ locale = 'en' }) {
                         }`}
                       >
                         {activeDossier.coordPrecision === 'EXACT_TILE'
-                          ? 'VERIFIED CASTLE TILE (RAM / MAILCACHE)'
+                          ? 'VERIFIED CASTLE TILE (OPTICAL VECTOR)'
                           : activeDossier.coordPrecision === 'PINNED_TILE'
                           ? 'SUPERADMIN PINNED TILE'
                           : `ALLIANCE HIVE SECTOR ESTIMATE ([${activeDossier.alliance || 'None'}])`}

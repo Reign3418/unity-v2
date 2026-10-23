@@ -33,7 +33,7 @@ export function ValheonCommandProvider({ children }) {
     let cancelled = false;
     async function hydrateKingdomRoster() {
       try {
-        // 1. First pull live 45-field MuMu RAM + binary save telemetry
+        // 1. First pull live 45-field Valheon Sovereign telemetry
         const liveRes = await fetch(`/api/aws/governor-search?limit=300&_t=${Date.now()}`);
         if (liveRes.ok) {
           const liveData = await liveRes.json();

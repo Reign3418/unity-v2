@@ -1,9 +1,9 @@
 /**
  * ============================================================================
  * VALHEON UNITY // 35-FIELD F2P DIAGNOSTIC & "$2 / SPEEDUP" EFFICIENCY ENGINE
- * File: E:\Unity\src\lib\f2pEfficiencyEngine.js
+ * Module: @/lib/f2pEfficiencyEngine
  * ============================================================================
- * Analyzes all 35 live Governor telemetry fields extracted from RAM + ADB to:
+ * Analyzes all 35 live Governor telemetry fields extracted by Valheon Optical Telemetry to:
  *   1. Diagnose exact account mistakes ("Hollow Troop Bloat", "Tech Deficit",
  *      "VIP Bottleneck", "Hospital Bleed", "Civilization Mismatch").
  *   2. Deliver the highest-ROI "$1 to $5" Micro-Spender Playbook.
@@ -79,7 +79,7 @@ export const ALL_35_FIELD_GROUPS = [
     ],
   },
   {
-    group: '05 // MuMu Binary Save & Rally Telemetry (10 Fields)',
+    group: '05 // Valheon Deep Vector & Rally Telemetry (10 Fields)',
     fields: [
       { key: 'castlePos', label: 'City Coordinates [X, Y]', format: 'raw', highlight: 'cyan' },
       { key: 'ralliesLed', label: 'Fort/War Rallies Led', format: 'number', highlight: 'emerald' },
@@ -280,7 +280,7 @@ export function evaluateF2pGovernorReport(gov) {
     });
   }
 
-  // Check 7: MuMu Binary Save / Mailcache Commander Skill-Lock Verification (5-1-1-1 Law)
+  // Check 7: Valheon Deep Battle Telemetry Commander Skill-Lock Verification (5-1-1-1 Law)
   if (gov.primaryCommander && typeof gov.primaryCommander === 'object' && gov.primaryCommander.skills) {
     const skillParts = String(gov.primaryCommander.skills)
       .split('-')
@@ -291,7 +291,7 @@ export function evaluateF2pGovernorReport(gov) {
         severity: 'critical',
         title: `Broken Commander Skill-Lock Detected (${gov.primaryCommander.skills})`,
         metric: `Commander #${gov.primaryCommander.id} (Lv ${gov.primaryCommander.level}) Skills: ${gov.primaryCommander.skills}`,
-        problem: `MuMu Binary Battle Report telemetry shows your Primary Commander (#${gov.primaryCommander.id}) has skill configuration [${gov.primaryCommander.skills}]—meaning you starred the commander up before maxing the 1st Active Skill to 5! In Rise of Kingdoms, the 1st Active Skill (Rage nuke/buff) carries ~60% of a commander's total combat value.`,
+        problem: `Valheon Deep Battle Report telemetry shows your Primary Commander (#${gov.primaryCommander.id}) has skill configuration [${gov.primaryCommander.skills}]—meaning you starred the commander up before maxing the 1st Active Skill to 5! In Rise of Kingdoms, the 1st Active Skill (Rage nuke/buff) carries ~60% of a commander's total combat value.`,
         fix: 'ALWAYS use the in-game "Skill Lock" button (top-right of the Commander Skill screen) or keep every new commander at 1-Star (Level 10) until their 1st Skill reaches 5 (5-1-1-1) before unlocking skills 2, 3, and 4!',
       });
     } else if (skillParts[0] === 5) {
@@ -300,7 +300,7 @@ export function evaluateF2pGovernorReport(gov) {
         severity: 'optimal',
         title: `Proper 5-x-x-x Commander Skill-Lock Verified (${gov.primaryCommander.skills})`,
         metric: `Commander #${gov.primaryCommander.id} (Lv ${gov.primaryCommander.level}) Skills: ${gov.primaryCommander.skills}`,
-        problem: `MuMu Binary Battle Report telemetry confirms your Primary Commander (#${gov.primaryCommander.id}) has its 1st Active Skill maxed at Level 5 ([${gov.primaryCommander.skills}]).`,
+        problem: `Valheon Deep Battle Report telemetry confirms your Primary Commander (#${gov.primaryCommander.id}) has its 1st Active Skill maxed at Level 5 ([${gov.primaryCommander.skills}]).`,
         fix: 'Continue using Skill Lock on every Epic and Legendary commander to guarantee 5-5-1-1 or 5-5-5-1 breakpoints before investing universal sculptures.',
       });
     }

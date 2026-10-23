@@ -325,7 +325,7 @@ export default function F2pEfficiencyOptimizer({ initialGovId = '', initialKd = 
             {/* Visual Stacked Power Architecture Bar */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <span>HIDDEN RAM POWER ARCHITECTURE (EXACT DECRYPTED LUA TABLE)</span>
+                <span>SOVEREIGN 35-FIELD POWER ARCHITECTURE (EXACT VERIFIED TELEMETRY)</span>
                 <span>
                   Sum ={' '}
                   {fmtNum(

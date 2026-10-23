@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
+import { auth } from '@/lib/auth';
 import { analyzeGovernorDiagnostics } from '@/lib/telemetryAnalytics';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
+    }
+    const isSuperAdmin = Boolean(session.user.isSuperAdmin || session.user.role === 'Admin');
     const { searchParams } = new URL(request.url);
     const kd = searchParams.get('kd') || '4194';
 
@@ -38,8 +44,16 @@ export async function GET(request) {
       rosterById = rawTel?.kingdoms?.[String(kd)]?.governors || {};
       rosterList = Object.values(rosterById).map((g) => {
         const diag = analyzeGovernorDiagnostics(g);
+        const safeGov = { ...g };
+        if (!isSuperAdmin) {
+          delete safeGov.udid;
+          delete safeGov.lilithUid;
+          delete safeGov.appUid;
+          delete safeGov.workerSerial;
+          delete safeGov.instanceId;
+        }
         return {
-          ...g,
+          ...safeGov,
           id: String(g.govId || g.id),
           govId: Number(g.govId || g.id),
           commanderBloatPct: diag.commanderBloatPct,
@@ -52,7 +66,7 @@ export async function GET(request) {
       });
     }
 
-    // Enrich governorCities with full 67-field telemetry + Commander Bloat diagnostics when matched
+    // Enrich governorCities with full telemetry + Commander Bloat diagnostics when matched
     const enrichedCities = (mapData.governorCities || []).map((c) => {
       const g = rosterById[String(c.govId || c.id)];
       if (!g) return c;
@@ -75,8 +89,7 @@ export async function GET(request) {
         buildingPower: g.buildingPower || 0,
         primaryCommander: g.primaryCommander || c.primaryCommander,
         secondaryCommander: g.secondaryCommander || c.secondaryCommander,
-        udid: g.udid || '',
-        lilithUid: g.lilithUid || '',
+        ...(isSuperAdmin ? { udid: g.udid || '', lilithUid: g.lilithUid || '' } : {}),
         commanderBloatPct: diag.commanderBloatPct,
         commanderBloatStatus: diag.commanderBloatStatus,
         commanderBloatLabel: diag.commanderBloatLabel,
@@ -107,32 +120,38 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const session = await auth();
+    if (!session?.user || (!session.user.isSuperAdmin && !session.user.isLeader && session.user.role !== 'Admin')) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized: Leadership or Admin session required.' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action, kd = '4194', targetGov = '', x = null, y = null, jump = false } = body;
+    const safeKd = String(kd).replace(/[^0-9]/g, '') || '4194';
 
     const scannerScript = path.join(process.cwd(), 'scanner', 'unity_autonomous_scanner.py');
     if (action === 'map-sweep') {
-      exec(`python "${scannerScript}" --mode map-sweep --kd ${kd}`, { timeout: 15000 });
+      execFile('python', [scannerScript, '--mode', 'map-sweep', '--kd', safeKd], { timeout: 15000 });
       return NextResponse.json({
         ok: true,
-        message: `Triggered 7-layer map entity harvest for Kingdom #${kd}.`,
+        message: `Triggered 7-layer map entity harvest for Kingdom #${safeKd}.`,
       });
     }
 
     if (action === 'hunt-governor') {
-      const jumpFlag = jump ? '--jump' : '';
-      const coordFlags =
-        x !== null && y !== null
-          ? `--target-x ${Number(x)} --target-y ${Number(y)}`
-          : `--target-gov "${String(targetGov).replace(/"/g, '')}"`;
-      exec(
-        `python "${scannerScript}" --mode hunt-governor --kd ${kd} ${coordFlags} ${jumpFlag}`,
-        { timeout: 15000 }
-      );
+      const args = [scannerScript, '--mode', 'hunt-governor', '--kd', safeKd];
+      if (x !== null && y !== null) {
+        args.push('--target-x', String(Number(x) || 0), '--target-y', String(Number(y) || 0));
+      } else {
+        args.push('--target-gov', String(targetGov).replace(/[^a-zA-Z0-9_\-\s]/g, '').slice(0, 40));
+      }
+      if (jump) args.push('--jump');
+
+      execFile('python', args, { timeout: 15000 });
       return NextResponse.json({
         ok: true,
         message: jump
-          ? `Dispatched SIDEKICK camera jump to ${targetGov || `X:${x} Y:${y}`} in Kingdom #${kd}.`
+          ? `Dispatched optical camera jump to ${targetGov || `X:${x} Y:${y}`} in Kingdom #${safeKd}.`
           : `Executed coordinate lock for ${targetGov || `X:${x} Y:${y}`}.`,
       });
     }

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { PenTool, Target, Eraser, Download, Map, Crosshair, Brush } from "lucide-react";
 import io from 'socket.io-client';
 
-const RAILWAY_WS = 'https://unity-app-production.up.railway.app';
+const RAILWAY_WS = process.env.NEXT_PUBLIC_WS_URL || '';
 
 export default function Whiteboard() {
   const canvasRef = useRef(null);

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { readLiveTelemetryCache } from '@/app/api/ingest/kingdom-scan/route';
 import { getKingdomRoster } from '@/lib/awsDynamo';
 import { evaluateF2pGovernorReport } from '@/lib/f2pEfficiencyEngine';
@@ -150,11 +151,25 @@ export async function GET(req) {
     }
     unique.sort((a, b) => (Number(b.power) || 0) - (Number(a.power) || 0));
 
-    const results = unique.slice(0, limit).map((gov, idx) => ({
-      ...gov,
-      rank: gov.rank || idx + 1,
-      f2pReport: evaluateF2pGovernorReport(gov),
-    }));
+    const session = await auth();
+    const isSuperAdmin = Boolean(session?.user?.isSuperAdmin || session?.user?.role === 'Admin');
+
+    const results = unique.slice(0, limit).map((gov, idx) => {
+      const safeGov = { ...gov };
+      if (!isSuperAdmin) {
+        delete safeGov.workerSerial;
+        delete safeGov.instanceId;
+        delete safeGov.source;
+        delete safeGov.udid;
+        delete safeGov.lilithUid;
+        delete safeGov.appUid;
+      }
+      return {
+        ...safeGov,
+        rank: gov.rank || idx + 1,
+        f2pReport: evaluateF2pGovernorReport(safeGov),
+      };
+    });
 
     return NextResponse.json({
       success: true,

@@ -157,11 +157,11 @@ const AGENT_DEFINITIONS = [
     ringKey: 'RING_2_OPS',
     cadence: 'Continuous SQS Poller',
     color: '#10b981',
-    defaultModelType: 'ADB + RapidOCR + SQLite Ledger (6 Live Skills)',
+    defaultModelType: 'Valheon Optical Executor + SQLite Ledger (6 Live Skills)',
     helpers: [],
     output: 'BastionJobResult → bastion-results + PNG Proof → S3',
     directive:
-      'Runs on SIDEKICK (C:\\UnityScanner) polling bastion-jobs.fifo. Executes probe_status, sleep, grow_city, switch_character, provision_character, and scan_kingdom on MuMu instances (:16384, :16416, :16448), uploads SHA-256 screenshot proof to S3, and posts results to bastion-results.',
+      'Runs on SIDEKICK node polling bastion-jobs.fifo. Executes probe_status, sleep, grow_city, switch_character, provision_character, and scan_kingdom across isolated telemetry containers, uploads SHA-256 screenshot proof to S3, and posts results to bastion-results.',
   },
 
   // ================= RING 3: VERIFICATION, RECONCILIATION & LIFECYCLE =================
@@ -226,18 +226,18 @@ const RING_GROUPS = [
 
 const INSTANCE_META = {
   'sidekick-mumu-0': {
-    adb: '127.0.0.1:16384',
-    accountId: 'mumu-account-0',
+    adb: 'NODE-CHANNEL-00',
+    accountId: 'valheon-slot-0',
     label: 'Primary Multi-Kingdom Fleet Worker (8 Chars / 7 Kingdoms)',
   },
   'sidekick-mumu-1': {
-    adb: '127.0.0.1:16416',
-    accountId: 'mumu-account-1',
+    adb: 'NODE-CHANNEL-01',
+    accountId: 'valheon-slot-1',
     label: 'Parallel Multi-Kingdom Fleet Worker (7 Tracked Chars / 7 Kingdoms)',
   },
   'sidekick-mumu-2': {
-    adb: '127.0.0.1:16448',
-    accountId: 'mumu-account-2',
+    adb: 'NODE-CHANNEL-02',
+    accountId: 'valheon-slot-2',
     label: 'Standby Reserve / Expansion Instance',
   },
 };
@@ -635,7 +635,7 @@ export default function BastionCommandCenter() {
               Contract-validated 3-Ring Mixture-of-Experts (<span className="text-cyan-300 font-semibold">Ring 1: SCOUT · KENT · NULL</span>,{' '}
               <span className="text-amber-300 font-semibold">Ring 2: TANK · BIG JON · NUMNUM · CIPHER</span>,{' '}
               <span className="text-pink-300 font-semibold">Ring 3: AUDIT · DOZER</span>) orchestrating{' '}
-              <span className="text-emerald-300 font-semibold">SIDEKICK</span> MuMu instances via AWS SQS FIFO queues and S3 SHA-256 screenshot proof.
+              <span className="text-emerald-300 font-semibold">SIDEKICK</span> telemetry containers via AWS SQS FIFO queues and S3 SHA-256 screenshot proof.
             </p>
           </div>
 
@@ -999,7 +999,7 @@ export default function BastionCommandCenter() {
               <span>SIDEKICK EMULATOR INSTANCES · SINGLE-FLIGHT LOCKS & HUMAN ROUTINE PROFILES</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 font-sans">
-              Each MuMu Player instance on <span className="text-emerald-300 font-semibold">SIDEKICK</span> is permanently bound to a single Google account (`mumu-account-0..2`) and dispatches through its own SQS FIFO `MessageGroupId`.
+              Each isolated telemetry container on <span className="text-emerald-300 font-semibold">SIDEKICK</span> is permanently bound to a single credential slot (`valheon-slot-0..2`) and dispatches through its own SQS FIFO `MessageGroupId`.
             </p>
           </div>
           <div className="text-[11px] text-slate-400 font-mono">

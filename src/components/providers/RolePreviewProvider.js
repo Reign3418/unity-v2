@@ -24,23 +24,7 @@ const RolePreviewContext = createContext({
 
 function checkIsValheonFounder(user) {
   if (!user) return false;
-  if (user.isValheonFounder) return true;
-  const uname = String(user.username || user.name || user.id || '').trim().toLowerCase();
-  const email = String(user.email || '').trim().toLowerCase();
-  const govName = String(user.governorConfig?.governorName || '').trim().toLowerCase();
-  if (
-    uname === 'reign3418' ||
-    uname === 'reign' ||
-    uname.includes('reign3418') ||
-    uname.includes('lauren') ||
-    email === 'lauren.alvarado@gmail.com' ||
-    email.includes('lauren') ||
-    govName.includes('reign') ||
-    govName.includes('lauren')
-  ) {
-    return true;
-  }
-  return false;
+  return Boolean(user.isValheonFounder);
 }
 
 export function RolePreviewProvider({ children }) {

@@ -60,7 +60,7 @@ export function normalizeInGameCoords(g = {}) {
     const cx = num(cPos.X ?? cPos.x);
     const cy = num(cPos.Y ?? cPos.y);
     if (cx > 0 && cy > 0) {
-      // In RoK RAM/mailcache, world coordinates are 0..7200 (6x map tile 0..1200).
+      // In RoK world coordinate space, raw coordinates are 0..7200 (6x map tile 0..1200).
       if (cx > 1200 || cy > 1200 || !Number.isInteger(cx) || !Number.isInteger(cy)) {
         rawTileX = Math.round(cx / 6);
         rawTileY = Math.round(cy / 6);

@@ -342,7 +342,7 @@ function GovernorProfiles({ rosterData, isFounder = false }) {
                                     </div>
                                 ) : (
                                     <div className="text-amber-400/90 font-mono text-xs">
-                                        Outside [LW=A] Mailcache · Add Alliance CH8 or Map Sweep
+                                        Outside Optical Sector Cache · Run Alliance or Map Sweep
                                     </div>
                                 )}
                             </div>
