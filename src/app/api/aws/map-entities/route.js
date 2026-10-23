@@ -27,14 +27,14 @@ export async function GET(request) {
       cavesAndVillages: [],
     };
 
-    if (fs.existsSync(mapPath)) {
-      mapData = JSON.parse(fs.readFileSync(mapPath, 'utf-8'));
+    if (fs.existsSync(/*turbopackIgnore: true*/ mapPath)) {
+      mapData = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ mapPath, 'utf-8'));
     }
 
     let rosterById = {};
     let rosterList = [];
-    if (fs.existsSync(telPath)) {
-      const rawTel = JSON.parse(fs.readFileSync(telPath, 'utf-8'));
+    if (fs.existsSync(/*turbopackIgnore: true*/ telPath)) {
+      const rawTel = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ telPath, 'utf-8'));
       rosterById = rawTel?.kingdoms?.[String(kd)]?.governors || {};
       rosterList = Object.values(rosterById).map((g) => {
         const diag = analyzeGovernorDiagnostics(g);

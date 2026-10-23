@@ -266,6 +266,25 @@ export function enrichGovernorWithRatios(g = {}) {
   };
 }
 
+export function analyzeGovernorDiagnostics(g = {}) {
+  const enriched = enrichGovernorWithRatios(g);
+  const bloatPct = Number(enriched.cmdrBloatPctNum?.toFixed(1) || 0);
+  const labelMap = {
+    PEACEKEEPER_BLOATED: 'Peacekeeper / Gatherer Bloated',
+    LEAN_FIGHTER: 'Lean Combat Fighter',
+    BALANCED: 'Balanced Roster',
+  };
+  return {
+    ...enriched,
+    commanderBloatPct: bloatPct,
+    commanderBloatStatus: enriched.cmdrBloatStatus,
+    commanderBloatLabel: labelMap[enriched.cmdrBloatStatus] || 'Balanced Roster',
+    combatEfficiencyRatio: enriched.kpToPowerRatioNum,
+    kdRatio: enriched.dead > 0 ? Number((enriched.warKills / enriched.dead).toFixed(2)) : enriched.warKills,
+    t4t5Kills: enriched.warKills,
+  };
+}
+
 /**
  * Enriches an array of raw governor records with all strategic percentages.
  */

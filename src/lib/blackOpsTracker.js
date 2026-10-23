@@ -226,8 +226,8 @@ export async function getWatchlist() {
   // 3. Try /tmp or local disk
   for (const filePath of [LOCAL_WATCHLIST_PATH, TMP_WATCHLIST_PATH]) {
     try {
-      if (fs.existsSync(filePath)) {
-        const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (fs.existsSync(/*turbopackIgnore: true*/ filePath)) {
+        const parsed = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ filePath, 'utf8'));
         if (parsed && typeof parsed === 'object') {
           globalThis.__blackOpsWatchlistMemory = {
             ...DEFAULT_WATCHLIST(),
