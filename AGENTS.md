@@ -7,13 +7,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Unity V2 Development Guidelines & Agent Architecture
 
 ## 1. Core Framework & Versioning
-- **Next.js:** `16.2.1` (App Router architecture with Server Components and Route Handlers)
+- **Next.js:** `16.4.2` (App Router architecture with Server Components and Route Handlers)
 - **React:** `19.2.4` & `react-dom: 19.2.4`
 - **Styling:** Tailwind CSS `v4` with `@tailwindcss/postcss`
-- **Authentication:** `next-auth: 5.0.0-beta.30`
+- **Authentication:** `next-auth: 5.0.0-beta.32`
 - **Database:** AWS DynamoDB (`@aws-sdk/client-dynamodb: 3.1014.0`)
 - **Spreadsheet Engine:** `exceljs: 4.4.0` (modern streaming parsing & export via `@/lib/excelHelper`)
-- **Internationalization:** `next-intl: 4.9.0` (12 languages)
+- **Internationalization:** `next-intl: 4.14.9` (12 languages)
 - **Icons:** `lucide-react: 0.577.0`
 
 ## 2. Next.js 16 Critical Conventions
