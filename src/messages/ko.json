@@ -183,7 +183,7 @@
     "hero_title": "영웅",
     "hero_desc": "왕국 평균 대비 높은 킬 포인트와 낮은 사망 병력을 기록한 효율적인 주둔 사령관입니다.",
     "warrior_title": "전사",
-    "warrior_desc": "높은 킬 포인트와 ���은 사망 병력을 기록한, 압도적인 화력을 위해 희생을 마다하지 않는 야전 사령관입니다.",
+    "warrior_desc": "높은 킬 포인트와 많은 사망 병력을 기록한, 압도적인 화력을 위해 희생을 마다하지 않는 야전 사령관입니다.",
     "slacker_title": "슬래커 (비활동)",
     "slacker_desc": "중립 기준. 비활동, 보호막 유지, 성장 정체 계정.",
     "farmer_title": "파머 (농부)",
@@ -197,7 +197,7 @@
     "verdict_warriors": "핵심 전투 병력은 {count}명의 전사들로 구성되어 있습니다. 이들은 필드 전투에서 대부분의 포인트를 획득하고 있으나, 병원 수용량이 한계에 달해 병력 손실이 발생하고 있습니다.",
     "verdict_massive_feeders": "URGENT ACTION REQUIRED: The engine has identified a massive structural liability. There are {count} Feeders ({ratio}% of the roster) actively losing T4/T5 troops while contributing nothing. They are point-piñatas. Issue ultimata. ",
     "verdict_controlled_feeders": "포인트를 갉아먹는 피더는 {count}명뿐이며, 이는 관리 가능한 수준의 리스크입니다.",
-    "verdict_farmers": "또한, 전투는 완전히 회피하면서 전투력만 공격적으로 높여 왕국 매칭 가중치를 인위적으로 올리는 {count}명의 파머를 식별하십��오.",
+    "verdict_farmers": "또한, 전투는 완전히 회피하면서 전투력만 공격적으로 높여 왕국 매칭 가중치를 인위적으로 올리는 {count}명의 파머를 식별하십시오.",
     "verdict_slackers": "마지막으로, 왕국 기본 기준에 머물러 있는 {count}명의 슬래커가 있습니다. 이들은 성장도 전투도 하지 않는 거대한 짐입니다."
   },
   "Settings": {
@@ -219,7 +219,7 @@
     "default_kingdom": "기본 왕국",
     "default_kingdom_desc": "기본 대시보드 라우팅 설정",
     "no_arch_keys": "인증된 아키텍처 키 없음.",
-    "section_api": "���부 API 연결",
+    "section_api": "외부 API 연결",
     "hybrid_mode": "하이브리드 모드",
     "api_desc": "Unity는 하이브리드 클라우드 인프라를 사용합니다. 이미지 업로드에 대한 정밀한 OCR 분석을 위해서는 Google Gemini Pro API 키가 필요합니다.",
     "gemini_key": "Google Gemini 보안 키",
@@ -239,7 +239,7 @@
       "2_2_1": {
         "label": "글로벌 분석 패치 및 기능 확장",
         "date": "2026년 3월 말",
-        "h1": "활동 추적���(Activity Tracker)의 킬 포인트(KP) 누락 및 전사자(Dead) 요약 누락 문제를 영구적으로 해결하여 데이터 무결성 확보",
+        "h1": "활동 추적기(Activity Tracker)의 킬 포인트(KP) 누락 및 전사자(Dead) 요약 누락 문제를 영구적으로 해결하여 데이터 무결성 확보",
         "h2": "Discord 서버 명령어 경로 처리를 개선하여 /bind 자원지 채집(Farm Siphoning) 메커니즘을 올바르게 마운트",
         "c1": "Global Analytics (Delta Engine) — Repaired structural mapping bug where calculating dead troop deltas strictly resolved to zero.",
         "c2": "Activity Tracker Data Normalization — Resolved a case-sensitivity parsing drop from AWS DynamoDB to properly extract kill points.",
@@ -269,7 +269,7 @@
         "c3": "Discord Webhook Router — Event cron jobs aggressively ping target channels precisely 15m and 0m before events",
         "c4": "/event schedule (Discord) — Implemented native Timezone Offset logic to eliminate UTC paradoxes",
         "c5": "/config channel (Discord) — Administrators can designate exact channels for Pipeline routing",
-        "c6": "/bind Discord 모듈 수리 및 누락된 슬래시 명령어 배열을 프로덕션 환경��� 적용"
+        "c6": "/bind Discord 모듈 수리 및 누락된 슬래시 명령어 배열을 프로덕션 환경에 적용"
       },
       "2_0_0": {
         "label": "V2 플랫폼 리라이트",
@@ -782,7 +782,7 @@
     "section_identity": "기본 정보",
     "section_growth": "성장 지표",
     "section_combat": "전투 지표",
-    "section_charts": "시각�� 비교",
+    "section_charts": "시각적 비교",
     "col_metric": "지표",
     "col_current": "현재",
     "col_delta": "변화량 (Δ)",

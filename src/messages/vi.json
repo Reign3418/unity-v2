@@ -112,7 +112,7 @@
     "tooltip_projection": "DỰ ĐOÁN",
     "tooltip_power": "Sức Mạnh",
     "tooltip_metric_all": "Sức Mạnh Tổng Thể",
-    "tooltip_metric_alliance": "Thống Kê Liên Minh",
+    "tooltip_metric_alliance": "[{alliance}] Thống Kê Liên Minh",
     "hegemony_title": "Bá Quyền Liên Minh",
     "hegemony_desc": "Nhấp để lọc thống kê khu vực.",
     "pie_center_all": "TẤT CẢ",
@@ -196,7 +196,7 @@
     "verdict_sparse_heroes": "Bạn chỉ có một số ít Anh hùng ({count}). Đây là những người giao dịch hiệu quả thực sự duy nhất của bạn; hãy dựa vào họ cho các cuộc tập kết.",
     "verdict_warriors": "Lực lượng chiến đấu nòng cốt của bạn bao gồm {count} Chiến binh. Họ đang tạo ra phần lớn điểm số trên chiến trường, nhưng bệnh viện của họ đã đầy và đang tổn thất quân đội.",
     "verdict_massive_feeders": "URGENT ACTION REQUIRED: The engine has identified a massive structural liability. There are {count} Feeders ({ratio}% of the roster) actively losing T4/T5 troops while contributing nothing. They are point-piñatas. Issue ultimata. ",
-    "verdict_controlled_feeders": "Bạn chỉ có {count} Người tiếp tế đang gây tổn thất điểm, đây là tỷ l�� rủi ro được kiểm soát tốt.",
+    "verdict_controlled_feeders": "Bạn chỉ có {count} Người tiếp tế đang gây tổn thất điểm, đây là tỷ lệ rủi ro được kiểm soát tốt. ",
     "verdict_farmers": "Hơn nữa, hãy vạch trần {count} Nông dân đang làm tăng trọng số ghép cặp vương quốc một cách giả tạo bằng cách tích trữ sức mạnh tích cực trong khi hoàn toàn tránh né chiến đấu.",
     "verdict_slackers": "Cuối cùng, bạn có {count} Người lười đang ở mức cơ bản của vương quốc. Họ không tăng trưởng cũng không chiến đấu. Một vấn đề gây lãng phí nguồn lực nghiêm trọng."
   },

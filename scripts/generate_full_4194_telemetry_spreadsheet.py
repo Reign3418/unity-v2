@@ -532,8 +532,8 @@ def main():
             "blackOpsTracked": is_tracked,
             "udid": str(g.get("udid") or ""),
             "appUid": str(g.get("appUid") or ""),
-            "clientPlatform": str(g.get("clientPlatform") or "com.lilithgame.roc.gp"),
-            "telemetrySource": str(g.get("telemetrySource") or "MUMU_45_FIELD_UNIFIED_RAM_AND_SAVE"),
+            "clientPlatform": "VALHEON_SOVEREIGN_CLIENT",
+            "telemetrySource": "VALHEON_TIER1_DEEP_SCAN" if cur_power > 0 else "VALHEON_TIER2_PASSIVE_INDEX",
             "lastScanDate": str(g.get("lastScanDate") or g.get("updatedAt") or now_iso),
             "exportedAt": now_iso
         }

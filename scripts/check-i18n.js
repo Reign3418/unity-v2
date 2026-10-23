@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 /**
- * check-i18n.js
- * Unity i18n Key Parity Guard
- * ─────────────────────────────────────────────────────────────────
- * Compares every messages/*.json file against en.json (the source
- * of truth). Exits 1 if ANY language is missing a key — which will
- * block the Git pre-commit hook and stop the commit.
- *
- * Run manually:  node scripts/check-i18n.js
- * Or via npm:    npm run check:i18n
- * ─────────────────────────────────────────────────────────────────
+ * check-i18n.js — Project Valkyrie Wing 2 i18n, ICU & UTF-8 Mojibake Guard
+ * ─────────────────────────────────────────────────────────────────────────
+ * Compares every messages/*.json file against en.json (the source of truth):
+ *  1. 100% Key Parity across all 12 locales
+ *  2. Zero UTF-8 Mojibake / replacement character (\uFFFD) corruption
+ *  3. 100% ICU {placeholder} variable parity across all 12 locales
+ *  4. 100% Literal code t("key") existence in en.json
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 const fs   = require('fs');
@@ -17,16 +15,17 @@ const path = require('path');
 
 const MESSAGES_DIR = path.join(__dirname, '..', 'src', 'messages');
 
-// ── Helpers ──────────────────────────────────────────────────────
-
-/** Flatten a nested JSON object into dot-notation keys */
-function flatKeys(obj, prefix = '') {
-  return Object.keys(obj).flatMap(k => {
+function flatEntries(obj, prefix = '') {
+  const out = {};
+  for (const k of Object.keys(obj)) {
     const full = prefix ? `${prefix}.${k}` : k;
-    return typeof obj[k] === 'object' && obj[k] !== null
-      ? flatKeys(obj[k], full)
-      : [full];
-  });
+    if (typeof obj[k] === 'object' && obj[k] !== null) {
+      Object.assign(out, flatEntries(obj[k], full));
+    } else {
+      out[full] = String(obj[k]);
+    }
+  }
+  return out;
 }
 
 function load(lang) {
@@ -34,62 +33,84 @@ function load(lang) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+function extractIcuVars(str) {
+  const vars = new Set();
+  const re = /\{([a-zA-Z0-9_]+)(?:\s*,|\})/g;
+  for (const m of String(str).matchAll(re)) {
+    vars.add(m[1]);
+  }
+  return [...vars].sort();
+}
+
+const MOJIBAKE_RE = /(\uFFFD|\u00C3[\u0080-\u00BF]|\u00C3\u00B1|\u00C3\u0097|\u00E2\u20AC\u201D|\u00E2\u20AC\u201C|\u00E2\u20AC\u2122)/;
+
 function red(s)    { return `\x1b[31m${s}\x1b[0m`; }
 function green(s)  { return `\x1b[32m${s}\x1b[0m`; }
 function yellow(s) { return `\x1b[33m${s}\x1b[0m`; }
 function bold(s)   { return `\x1b[1m${s}\x1b[0m`; }
 
-// ── Main ─────────────────────────────────────────────────────────
+const files    = fs.readdirSync(MESSAGES_DIR).filter(f => f.endsWith('.json'));
+const en       = load('en');
+const enFlat   = flatEntries(en);
+const enKeys   = new Set(Object.keys(enFlat));
 
-const files  = fs.readdirSync(MESSAGES_DIR).filter(f => f.endsWith('.json'));
-const en     = load('en');
-const enKeys = new Set(flatKeys(en));
-
-const langs  = files
+const langs = files
   .map(f => f.replace('.json', ''))
   .filter(l => l !== 'en');
 
 let failed = false;
 
-console.log(bold('\n⚡  Unity i18n Key Parity Check'));
-console.log('─'.repeat(52));
+console.log(bold('\n⚡  Unity / Valkyrie i18n Key, ICU & UTF-8 Integrity Check'));
+console.log('─'.repeat(58));
+
+// Check en.json for Mojibake first
+const enMojibake = Object.entries(enFlat).filter(([, v]) => MOJIBAKE_RE.test(v));
+if (enMojibake.length > 0) {
+  failed = true;
+  console.log(`${red('✗')}  ${bold('en')}    — ${red(enMojibake.length + ' UTF-8 mojibake string(s) detected')}`);
+  enMojibake.slice(0, 10).forEach(([k]) => console.log(`     ${red('–')} "${k}"`));
+}
 
 for (const lang of langs) {
   const data    = load(lang);
-  const keys    = new Set(flatKeys(data));
+  const locFlat = flatEntries(data);
+  const keys    = new Set(Object.keys(locFlat));
   const missing = [...enKeys].filter(k => !keys.has(k));
   const extra   = [...keys].filter(k => !enKeys.has(k));
+  const mojibake = Object.entries(locFlat).filter(([, v]) => MOJIBAKE_RE.test(v));
+  const icuMismatch = [];
 
-  if (missing.length === 0 && extra.length === 0) {
-    console.log(`${green('✓')}  ${lang.padEnd(5)} — all ${enKeys.size} keys present`);
+  for (const k of enKeys) {
+    if (!keys.has(k)) continue;
+    const enVars = extractIcuVars(enFlat[k]);
+    const locVars = extractIcuVars(locFlat[k]);
+    if (enVars.join(',') !== locVars.join(',')) {
+      icuMismatch.push({ key: k, expected: enVars, got: locVars });
+    }
+  }
+
+  if (missing.length === 0 && extra.length === 0 && mojibake.length === 0 && icuMismatch.length === 0) {
+    console.log(`${green('✓')}  ${lang.padEnd(5)} — all ${enKeys.size} keys, ICU placeholders & UTF-8 verified`);
     continue;
   }
 
   failed = true;
-  console.log(`\n${red('✗')}  ${bold(lang)} — ${red(missing.length + ' missing')}${extra.length ? yellow(', ' + extra.length + ' extra') : ''}`);
+  console.log(`\n${red('✗')}  ${bold(lang)} — ${red(missing.length + ' missing')}, ${red(mojibake.length + ' mojibake')}, ${red(icuMismatch.length + ' ICU mismatch')}`);
 
   if (missing.length) {
-    console.log(`   ${yellow('MISSING')} (add these to src/messages/${lang}.json):`);
-    missing.forEach(k => console.log(`     ${red('–')} "${k}"`));
+    missing.forEach(k => console.log(`     ${red('– [MISSING]')} "${k}"`));
   }
-
-  if (extra.length) {
-    console.log(`   ${yellow('EXTRA')} (in ${lang} but not in en.json — safe to ignore or clean up):`);
-    extra.forEach(k => console.log(`     + "${k}"`));
+  if (mojibake.length) {
+    mojibake.forEach(([k]) => console.log(`     ${red('– [MOJIBAKE]')} "${k}"`));
+  }
+  if (icuMismatch.length) {
+    icuMismatch.forEach(({ key, expected, got }) =>
+      console.log(`     ${red('– [ICU]')} "${key}" expected {${expected.join(', ')}} got {${got.join(', ')}}`)
+    );
   }
 }
 
-console.log('─'.repeat(52));
-
-// ── Used-key scan: keys referenced in code must exist in en.json ──
-// Parity above only compares locales to each other; it cannot see a key that
-// the code uses but that NO locale defines. This scan closes that gap.
-//
-// Finds translator bindings such as
-//   const t = useTranslations("Namespace");
-//   const t = await getTranslations({ locale, namespace: "Namespace" });
-// and then literal calls t("key"), t.rich("key"), t.raw("key"), t.markup("key").
-// Dynamic keys (variables / template literals) are skipped.
+console.log('─'.repeat(58));
 
 const SRC_DIR = path.join(__dirname, '..', 'src');
 const SRC_EXT = /\.(js|jsx|ts|tsx)$/;
@@ -129,7 +150,6 @@ for (const file of walk(SRC_DIR)) {
     const callRe = new RegExp(`(?<![\\w$.])${escaped}(?:\\.(?:rich|raw|markup))?\\(\\s*(["'\`])([^"'\`$]+)\\1(?=\\s*[,)])`, 'g');
     const own = bindings.filter(b => b.name === name);
     for (const call of src.matchAll(callRe)) {
-      // Use the nearest binding declared before the call (falls back to the first one)
       const binding = own.filter(b => b.index <= call.index).pop() || own[0];
       const key = binding.ns ? `${binding.ns}.${call[2]}` : call[2];
       usedChecked++;
@@ -149,14 +169,12 @@ if (usedMissing.length === 0) {
   usedMissing.forEach(({ key, where }) => console.log(`     ${red('–')} "${key}"  ${yellow(where)}`));
 }
 
-console.log('─'.repeat(52));
+console.log('─'.repeat(58));
 
 if (failed) {
-  console.log(red(bold('\n🚫  COMMIT BLOCKED — Fix the missing keys above, then re-commit.\n')));
-  console.log('   Tip: Copy the English value from src/messages/en.json and translate it,');
-  console.log('   or run: npm run check:i18n  to re-validate after your edits.\n');
+  console.log(red(bold('\n🚫  VALKYRIE GATE BLOCKED — Fix the i18n/ICU/UTF-8 issues above.\n')));
   process.exit(1);
 } else {
-  console.log(green(bold(`\n✅  All ${langs.length + 1} languages are in parity. Commit allowed.\n`)));
+  console.log(green(bold(`\n✅  All ${langs.length + 1} languages (${enKeys.size * (langs.length + 1)} strings) passed parity, ICU & UTF-8 checks.\n`)));
   process.exit(0);
 }

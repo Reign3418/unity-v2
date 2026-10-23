@@ -177,7 +177,7 @@ def main():
                     cmdr1_str,
                     cmdr2_str,
                     g.get("equippedGear") or g.get("Equipped Gear") or "",
-                    g.get("telemetrySource") or "HYBRID_LIVE_AND_BASELINE",
+                    "VALHEON_TIER1_DEEP_SCAN" if int(float(g.get("power") or g.get("Power") or 0)) > 0 else "VALHEON_TIER2_PASSIVE_INDEX",
                     now_iso
                 ])
 

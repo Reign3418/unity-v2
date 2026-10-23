@@ -57,7 +57,8 @@ export async function POST(request) {
         const session = await auth();
         
         // Ensure user is authenticated to push command structures
-        if (!session) {
+        const isAuthorized = session?.user && (session.user.isSuperAdmin || session.user.role === 'Admin' || session.user.isLeader);
+        if (!isAuthorized) {
             return new Response(JSON.stringify({ error: "Unauthorized Command Console Access" }), { status: 401 });
         }
 
