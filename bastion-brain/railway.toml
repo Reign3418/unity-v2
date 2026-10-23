@@ -1,8 +1,4 @@
 # Railway config-as-code for the bastion-brain worker (service Root Directory: /bastion-brain).
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-
 [deploy]
 startCommand = "python -m brain"
 restartPolicyType = "ALWAYS"
