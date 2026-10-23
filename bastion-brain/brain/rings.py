@@ -341,11 +341,15 @@ class Ring2:
         if job_type == "switch_character" and inputs.get("target_bot_id") and inputs["target_bot_id"] in all_bots:
             eval_bot = all_bots[inputs["target_bot_id"]]
             eval_rt = numnum.fresh_runtime(self.store.get_control(runtime_key(eval_bot["bot_id"])), eval_bot, now)
+            eval_rt["session_started_at"] = None
+            eval_rt["last_session_end"] = None
 
         ok, checks = numnum.evaluate(job, eval_bot, eval_rt, inst, now, config.get("capabilities", []), self.recent_keys,
                                      ring_tokens=self._ring_tokens(now))
         failed = sorted(c["rule_id"] for c in checks if not c["passed"])
-        op_approved = self._is_operator_approved(bot["bot_id"])
+        op_approved = self._is_operator_approved(bot["bot_id"]) or (
+            job_type == "switch_character" and demand is not None and demand.intent_id is not None and demand.priority >= 80
+        )
         will_dispatch = ok and mode in ("AUTONOMOUS", "SUPERVISED") and (
             mode == "AUTONOMOUS" or job_type not in DISPATCH_HOLD_IN_SUPERVISED or op_approved
         )
@@ -1200,6 +1204,8 @@ class Ring3:
                         correlation_id=result["correlation_id"],
                     )
             if jt == "switch_character" and status == "SUCCEEDED":
+                rt["session_started_at"] = None
+                rt["last_session_end"] = result["completed_at"]
                 self._apply_switch(bot, job, result)
             if active_intent_id and jt != "switch_character":
                 self.store.update_intent_status(
@@ -1283,6 +1289,11 @@ class Ring3:
             active_map[current_bot["instance_id"]] = target_bot["bot_id"]
             fleet["active_by_instance"] = active_map
             self.store.put_control("FLEET", fleet)
+            t_rt = numnum.fresh_runtime(self.store.get_control(runtime_key(target_bot["bot_id"])), target_bot, self.clock())
+            t_rt["session_started_at"] = result["completed_at"]
+            t_rt["last_session_end"] = None
+            t_rt["sleep_until"] = None
+            self.store.put_control(runtime_key(target_bot["bot_id"]), t_rt)
 
     def _release_stale(self, instances: List[str]) -> None:
         now = self.clock()

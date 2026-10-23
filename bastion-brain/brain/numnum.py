@@ -82,6 +82,8 @@ def fresh_runtime(runtime: Optional[Dict[str, Any]], bot: Dict[str, Any], now: d
     if rt.get("day") != today:
         rt["day"] = today
         rt["active_minutes_today"] = 0
+        rt["session_started_at"] = None
+        rt["last_session_end"] = None
     rt.setdefault("active_minutes_today", 0)
     rt.setdefault("session_started_at", None)
     rt.setdefault("last_session_end", None)

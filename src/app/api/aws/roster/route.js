@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { auth } from '@/lib/auth';
-import { getKingdomRoster } from '@/lib/awsDynamo';
+import { getKingdomRoster, getGlobalConfig } from '@/lib/awsDynamo';
 import { readLiveTelemetryCache } from '@/app/api/ingest/kingdom-scan/route';
 import { readEpochLedger } from '@/lib/dozerReconciler';
 
@@ -55,16 +55,38 @@ export async function GET(req) {
       legacyBaselineZeroed: true,
     };
 
-    // 1. If in Bot-Sovereign Mode (default), check Local 45-Field Bastion Bot Telemetry Cache first
+    // 1. If in Bot-Sovereign Mode (default), check Local 45-Field Bastion Bot Telemetry Cache + DynamoDB Live Overlay first
     const cache = readLiveTelemetryCache();
     const localKd = cache?.kingdoms?.[String(kingdomId)];
+    const mergedGovMap = { ...(localKd?.governors || {}) };
+    let liveProgress = localKd?.progress || null;
+    if (sourceMode !== 'archive' && kingdomId !== 'GLOBAL') {
+      try {
+        const [rawOverlay, rawStatus] = await Promise.all([
+          getGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}`).catch(() => null),
+          getGlobalConfig(`LIVE_SCAN_STATUS_${kingdomId}`).catch(() => null),
+        ]);
+        if (rawOverlay) {
+          const parsedOverlay = JSON.parse(rawOverlay);
+          for (const [gid, g] of Object.entries(parsedOverlay)) {
+            if (g && typeof g === 'object') {
+              const al = String(g.alliance || '');
+              if (String(kingdomId) === '4197' && /94|Lova|TDF_|VALH|GoD|LW=A|tcHo/.test(al)) continue;
+              mergedGovMap[gid] = { ...(mergedGovMap[gid] || {}), ...g };
+            }
+          }
+        }
+        if (rawStatus) {
+          liveProgress = { ...(liveProgress || {}), ...JSON.parse(rawStatus) };
+        }
+      } catch {}
+    }
+
     if (
       sourceMode !== 'archive' &&
-      localKd &&
-      localKd.governors &&
-      Object.keys(localKd.governors).length > 0
+      Object.keys(mergedGovMap).length > 0
     ) {
-      const localRoster = Object.values(localKd.governors)
+      const localRoster = Object.values(mergedGovMap)
         .map((g) => ({
           ...g,
           sourceType: g.sourceType || 'BASTION_BOT',
@@ -77,15 +99,16 @@ export async function GET(req) {
         }))
         .sort(
           (a, b) =>
-            (Number(a.rank) || 999999) - (Number(b.rank) || 999999) ||
-            (Number(b.power) || 0) - (Number(a.power) || 0)
-        );
+            (Number(b.power) || 0) - (Number(a.power) || 0) ||
+            (Number(a.rank) || 999999) - (Number(b.rank) || 999999)
+        )
+        .map((g, idx) => ({ ...g, rank: idx + 1 }));
 
       return NextResponse.json(
         {
           roster: localRoster,
-          progress: localKd.progress || null,
-          lastScanDate: localKd.lastScanDate || cache.updatedAt,
+          progress: liveProgress,
+          lastScanDate: liveProgress?.updatedAt || localKd?.lastScanDate || cache.updatedAt,
           source: 'BASTION_BOT_45_FIELD_TELEMETRY',
           sourceType: 'BASTION_BOT',
           epochMeta: {
@@ -94,7 +117,7 @@ export async function GET(req) {
             activeBaselineSource: 'BASTION_BOT',
           },
           dozerStats: ledger.dozerStats,
-          allianceLeadersR5: localKd.allianceLeadersR5 || [],
+          allianceLeadersR5: localKd?.allianceLeadersR5 || [],
         },
         { status: 200 }
       );

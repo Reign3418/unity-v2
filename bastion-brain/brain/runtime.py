@@ -253,6 +253,8 @@ class Brain:
                 idle_plans = bool(plans) and all(v in ("IDLE", "NO_ACTIVE_BOT", "DEDUPED", "REJECTED") for v in plans.values())
                 if (summary or {}).get("mode") in ("OFF", "STANDBY_WATCH") or (idle_plans and (summary or {}).get("results", 0) == 0):
                     wait_s = max(self.cfg.tick_seconds, min(180, self.cfg.tick_seconds * 3))
+                elif (summary or {}).get("results", 0) > 0:
+                    wait_s = min(wait_s, 3)
             except Exception as exc:  # never die: Railway restarts would lose dedupe state
                 self.log(level="ERROR", msg="tick crashed", error=f"{type(exc).__name__}: {exc}", trace=traceback.format_exc()[-800:])
             stop.wait(wait_s)

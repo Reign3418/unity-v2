@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getKingdomTrends, getKingdomMetadata } from "@/lib/awsDynamo";
+import { getKingdomTrends, getKingdomMetadata, getGlobalConfig } from "@/lib/awsDynamo";
 import { readLiveTelemetryCache } from "@/app/api/ingest/kingdom-scan/route";
 
 export const dynamic = "force-dynamic";
@@ -67,14 +67,30 @@ export async function GET(req) {
 
     const cache = readLiveTelemetryCache();
     const localKd = cache?.kingdoms?.[String(kingdomId)];
-    if (localKd && localKd.governors && Object.keys(localKd.governors).length > 0) {
+    const mergedGovs = { ...(localKd?.governors || {}) };
+    if (kingdomId !== 'GLOBAL') {
+      try {
+        const rawOverlay = await getGlobalConfig(LIVE_TELEMETRY_OVERLAY_).catch(() => null);
+        if (rawOverlay) {
+          const parsedOverlay = JSON.parse(rawOverlay);
+          for (const [gid, g] of Object.entries(parsedOverlay)) {
+            if (g && typeof g === 'object') {
+              const al = String(g.alliance || '');
+              if (String(kingdomId) === '4197' && /94|Lova|TDF_|VALH|GoD|LW=A|tcHo/.test(al)) continue;
+              mergedGovs[gid] = { ...(mergedGovs[gid] || {}), ...g };
+            }
+          }
+        }
+      } catch {}
+    }
+    if (Object.keys(mergedGovs).length > 0) {
       let trendsData = [];
       let metadata = null;
       try {
         trendsData = await getKingdomTrends(kingdomId);
         metadata = await getKingdomMetadata(kingdomId);
       } catch {}
-      const liveTrend = buildTrendFromLocalCache(localKd, cache.updatedAt);
+      const liveTrend = buildTrendFromLocalCache({ ...(localKd || {}), governors: mergedGovs }, cache.updatedAt);
       if (!trendsData || trendsData.length === 0) {
         trendsData = [liveTrend];
       } else {

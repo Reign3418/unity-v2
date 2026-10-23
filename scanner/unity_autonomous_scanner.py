@@ -1674,8 +1674,9 @@ def run_kingdom_scan(args):
         return
 
     # Record any governors already sitting in MuMu RAM from a prior session before Rank 1 is tapped
-    # so fresh_batch strictly tracks newly opened profiles and Rank 1 always reports active_ram[0].
+    # so fresh_batch strictly tracks newly opened profiles and prior-kingdom RAM ghosts are excluded.
     pre_existing_low_ids = set()
+    pre_scan_ghost_ids = set()
     seen_in_scan_ids = set()
     cached_save_govs = {}
     try:
@@ -1683,6 +1684,8 @@ def run_kingdom_scan(args):
             pgid = int(pg.get("govId") or pg.get("id") or 0)
             if pgid > 0:
                 seen_in_scan_ids.add(pgid)
+                if args.start_rank <= 1:
+                    pre_scan_ghost_ids.add(pgid)
                 if int(pg.get("power") or 0) < 3_000_000:
                     pre_existing_low_ids.add(pgid)
     except Exception:
@@ -1720,7 +1723,7 @@ def run_kingdom_scan(args):
             ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
             for rg in ram_govs:
                 gid = int(rg.get("govId") or rg.get("id") or 0)
-                if gid <= 0:
+                if gid <= 0 or gid in pre_scan_ghost_ids:
                     continue
                 rg["scannedAtUtc"] = batch_now_iso
                 rg["scanDtg"] = batch_dtg_str

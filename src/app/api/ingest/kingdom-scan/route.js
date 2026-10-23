@@ -185,20 +185,37 @@ export async function POST(req) {
       );
     }
 
+    // Filter out cross-kingdom RAM heap ghosts (e.g., #4194 or #4021 resident tags left in VM memory after character switch)
+    const cleanedRosterArray = rosterArray.filter((g) => {
+      const al = String(g?.alliance || '');
+      if (String(kingdomId) === '4197' && /94|Lova|TDF_|VALH|GoD|LW=A|tcHo/.test(al)) {
+        return false;
+      }
+      if (al.endsWith('[') && al.length === 4) {
+        g.alliance = al.slice(0, -1);
+      }
+      return true;
+    });
+
     const fallbackDateKey = (scanDateOverride || new Date().toISOString())
       .replace(/[.#$\/\[\]\s\-:T]/g, '_')
       .substring(0, 19);
 
     // 1. Run DOZER Reconciliation & write to local near-live 45-field telemetry cache
     const { fullKingdomRoster, totalCachedInKingdom, coverageTier, dozerReport } =
-      writeLiveTelemetryBatch(kingdomId, rosterArray, fallbackDateKey, progress, {
+      writeLiveTelemetryBatch(kingdomId, cleanedRosterArray, fallbackDateKey, progress, {
         sourceType,
         allianceLeadersR5,
       });
 
-    // 2. Sync to AWS DynamoDB ONLY when the merged roster meets the 465 (3-Alliance Core) threshold
-    //    or when forceSnapshotCommit is true — preventing a 20-governor partial slice from overwriting a 650/1000 baseline!
-    const shouldCommitFullSnapshot = Boolean(forceSnapshotCommit) || progress?.status === 'COMPLETED' || sourceType === 'GENESIS_BOT';
+    // 2. Sync to AWS DynamoDB on completion, explicit forceSnapshotCommit, or periodic 50-rank checkpoints
+    const curRankNum = Number(progress?.currentRank) || 0;
+    const shouldCommitFullSnapshot =
+      Boolean(forceSnapshotCommit) ||
+      progress?.status === 'COMPLETED' ||
+      sourceType === 'GENESIS_BOT' ||
+      curRankNum === 10 ||
+      (curRankNum > 0 && curRankNum % 50 === 0);
 
     const uploaderData = {
       discordId: session?.user?.id || 'BASTION_MOE_FLEET',

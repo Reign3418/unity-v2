@@ -702,7 +702,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isSupporter = token.isSupporter || false;
         session.user.role = token.role || "User";
         session.user.tenant = token.tenant;
-        session.user.allowedKingdoms = token.tenant?.allowedKingdoms || [];
+        const baseAllowed = token.tenant?.allowedKingdoms || [];
+        const bastionFleetKds = ["4197", "4194", "4021", "4193", "4195", "4196", "4198", "4044", "4202", "3418", "3155", "3218", "3477", "3707"];
+        session.user.allowedKingdoms = (token.isSuperAdmin || token.isValheonFounder)
+          ? Array.from(new Set([...bastionFleetKds, ...baseAllowed.map(String)]))
+          : baseAllowed;
         session.user.governorConfig = token.governorConfig;
         session.user.ownedGuilds = token.ownedGuilds;
         session.accessToken = token.accessToken;
