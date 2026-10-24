@@ -27,6 +27,8 @@ _STEP_RE = re.compile(r"^\[(?:Step\s+)?(\d+)(?:/\d+)?\]\s*(.*)$")
 _PROV_DONE_RE = re.compile(r"\[DONE\]\s*Provisioned\s+#(\d{4})\s+character\s+\(([^,]+),\s*ID=(\d{5,15})\)")
 _SWITCH_DONE_RE = re.compile(r"(?:Active on Kingdom|Already active on Kingdom)\s+#(\d{4})|already active \(green checkmark\)", re.IGNORECASE)
 _SCAN_SYNC_RE = re.compile(r"Synced\s+(\d+)\s+accumulated|governorsExtracted[\"']?\s*:\s*(\d+)", re.IGNORECASE)
+_TIMER_ACTIVE_RE = re.compile(r"\[TIMER_ACTIVE\]\s*seconds=(\d+)(?:\s+building=\"([^\"]*)\")?", re.IGNORECASE)
+_TIMER_HANDOFF_RE = re.compile(r"\[TIMER_HANDOFF\]\s*seconds=(\d+)\s+farmed=(true|false)", re.IGNORECASE)
 CH_REACHED_MARKER = "TARGET REACHED: City Hall Level 8"
 
 
@@ -101,11 +103,29 @@ class SkillContext:
 
 def parse_grow_output(stdout: str) -> Dict[str, Any]:
     steps = []
+    timer_seconds = 0
+    timer_building: Optional[str] = None
+    farmed = False
     for line in stdout.splitlines():
         m = _STEP_RE.match(line.strip())
         if m:
             steps.append((int(m.group(1)), m.group(2)))
-    return {"reached": CH_REACHED_MARKER in stdout, "script_steps": steps}
+        mt = _TIMER_ACTIVE_RE.search(line)
+        if mt:
+            timer_seconds = max(timer_seconds, int(mt.group(1)))
+            if mt.group(2):
+                timer_building = mt.group(2).strip()
+        mh = _TIMER_HANDOFF_RE.search(line)
+        if mh:
+            timer_seconds = max(timer_seconds, int(mh.group(1)))
+            farmed = mh.group(2).lower() == "true"
+    return {
+        "reached": CH_REACHED_MARKER in stdout,
+        "script_steps": steps,
+        "timer_seconds": timer_seconds,
+        "timer_building": timer_building,
+        "farmed": farmed,
+    }
 
 
 def parse_switch_output(stdout: str) -> Dict[str, Any]:
@@ -216,7 +236,14 @@ def grow_city(ctx: SkillContext) -> SkillOutcome:
     for idx, text in parsed["script_steps"][-ctx.cfg.max_steps_in_result:]:
         ctx.step("skill_log", f"[Step {idx:02d}] {text}")
 
-    metrics = {"script_steps": len(parsed["script_steps"]), "returncode": out.returncode}
+    metrics: Dict[str, Any] = {
+        "script_steps": len(parsed["script_steps"]),
+        "returncode": out.returncode,
+        "timer_seconds": parsed["timer_seconds"],
+        "farmed_on_timer": parsed["farmed"],
+    }
+    if parsed.get("timer_building"):
+        metrics["timer_building"] = parsed["timer_building"]
     if out.timed_out:
         return SkillOutcome("TIMEOUT", error=err("SKILL_TIMEOUT", f"auto_tutorial_ch8 exceeded {int(budget)}s", True), metrics=metrics)
     if out.returncode != 0:
@@ -360,6 +387,77 @@ def scan_kingdom(ctx: SkillContext) -> SkillOutcome:
     return SkillOutcome("SUCCEEDED", {"screen_state": "RANKINGS_BOARD", "kingdom_id": target_kd}, metrics=metrics)
 
 
+def gather_resources(ctx: SkillContext) -> SkillOutcome:
+    args = ctx.job["args"]
+    res_list = args.get("resource_types") or ["FOOD"]
+    first_res = str(res_list[0]).upper()
+    res_map = {"FOOD": "crop", "WOOD": "wood", "STONE": "stone", "GOLD": "gold"}
+    res_arg = res_map.get(first_res, "crop")
+
+    early = _ensure_ready_and_budget(ctx, min_budget=30.0, margin=15.0)
+    if early is not None:
+        return early
+
+    budget = min(ctx.seconds_left() - 15, 180.0)
+    script = str(ctx.cfg.scanner_dir / "forge_idle_gatherer.py")
+    argv = [
+        ctx.cfg.python_exe, script,
+        "--adb", ctx.serial,
+        "--resource", res_arg,
+    ]
+    ctx.step("run_skill", f"forge_idle_gatherer.py --resource {res_arg} (timeout {int(budget)}s)")
+    out = ctx.runner.run(argv, timeout=budget, cwd=str(ctx.cfg.scanner_dir))
+    dispatched = "march successfully dispatched" in out.stdout.lower()
+    metrics = {
+        "resource": res_arg,
+        "march_dispatched": dispatched,
+        "gather_timer_minutes": 20 if dispatched else 10,
+        "returncode": out.returncode,
+    }
+    if out.timed_out:
+        return SkillOutcome("TIMEOUT", error=err("SKILL_TIMEOUT", f"gather exceeded {int(budget)}s", True), metrics=metrics)
+    if out.returncode != 0:
+        tail = out.stdout.strip().splitlines()[-1:] or [""]
+        return SkillOutcome("FAILED", error=err("SKILL_EXIT_NONZERO", f"rc={out.returncode}: {tail[0]}", True), metrics=metrics)
+    return SkillOutcome("SUCCEEDED" if dispatched else "PARTIAL", {"screen_state": "CITY_VIEW", "kingdom_id": ctx.job["kingdom_id"]}, metrics=metrics)
+
+
+def locate_governor(ctx: SkillContext) -> SkillOutcome:
+    args = ctx.job["args"]
+    target_kd = int(args["target_kingdom_id"])
+    early = _ensure_ready_and_budget(ctx, min_budget=45.0, margin=20.0)
+    if early is not None:
+        return early
+
+    budget = ctx.seconds_left() - 20
+    script = str(ctx.cfg.scanner_dir / "unity_autonomous_scanner.py")
+    argv = [
+        ctx.cfg.python_exe, script,
+        "--adb", ctx.serial,
+        "--mode", "kingdom-scan",
+        "--kd", str(target_kd),
+        "--end-rank", "300",
+        "--skip-switch",
+        "--push",
+    ]
+    ctx.step("run_skill", f"unity_autonomous_scanner.py --kd {target_kd} --end-rank 300 [locate_governor] (timeout {int(budget)}s)")
+    out = ctx.runner.run(argv, timeout=budget, cwd=str(ctx.cfg.scanner_dir))
+    parsed = parse_scan_output(out.stdout)
+    metrics = {
+        "target_kingdom_id": target_kd,
+        "target_governor_id": args.get("target_governor_id"),
+        "target_governor_name": args.get("target_governor_name"),
+        "governors_extracted": parsed["governors_extracted"],
+        "returncode": out.returncode,
+    }
+    if out.timed_out:
+        return SkillOutcome("TIMEOUT", error=err("SKILL_TIMEOUT", f"locate_governor exceeded {int(budget)}s", True), metrics=metrics)
+    if out.returncode != 0:
+        tail = out.stdout.strip().splitlines()[-1:] or [""]
+        return SkillOutcome("FAILED", error=err("SKILL_EXIT_NONZERO", f"rc={out.returncode}: {tail[0]}", True), metrics=metrics)
+    return SkillOutcome("SUCCEEDED", {"screen_state": "RANKINGS_BOARD", "kingdom_id": target_kd}, metrics=metrics)
+
+
 SKILLS: Dict[str, Callable[[SkillContext], SkillOutcome]] = {
     "probe_status": probe_status,
     "sleep": sleep_instance,
@@ -367,4 +465,6 @@ SKILLS: Dict[str, Callable[[SkillContext], SkillOutcome]] = {
     "switch_character": switch_character,
     "provision_character": provision_character,
     "scan_kingdom": scan_kingdom,
+    "gather": gather_resources,
+    "locate_governor": locate_governor,
 }

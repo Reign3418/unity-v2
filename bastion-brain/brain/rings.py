@@ -20,7 +20,7 @@ from . import numnum
 from .events import iso, new_id
 
 PLANNABLE_STATES = ("ACTIVE", "GROWING", "SLEEPING")
-DISPATCH_HOLD_IN_SUPERVISED = frozenset({"provision_character", "switch_character"})
+DISPATCH_HOLD_IN_SUPERVISED = frozenset({"provision_character"})
 DEADLINE_MINUTES = {
     "probe_status": 15,
     "sleep": 10,
@@ -28,6 +28,8 @@ DEADLINE_MINUTES = {
     "scan_kingdom": 120,
     "switch_character": 15,
     "provision_character": 60,
+    "gather": 20,
+    "locate_governor": 30,
 }
 PROBE_STALE_MINUTES = 180
 STALE_INFLIGHT_GRACE_MINUTES = 10
@@ -293,10 +295,22 @@ class Ring2:
                       fleet_bots: Optional[Dict[str, Dict[str, Any]]] = None) -> Optional[str]:
         """Plans at most one job for the instance's active bot. Returns an outcome label."""
         now = self.clock()
+        all_bots = fleet_bots or ({bot["bot_id"]: bot} if bot else {})
         inst = self.store.get_control(instance_key(instance_id)) or {}
         if inst.get("in_flight"):
+            in_f = inst["in_flight"]
+            if in_f.get("job_type") in ("grow_city", "gather", "probe_status"):
+                inst_kds = {int(b["kingdom_id"]) for b in all_bots.values() if b["instance_id"] == instance_id and b.get("lifecycle_state") != "RETIRED"}
+                urgent = next(
+                    (d for d in sorted(demands, key=lambda x: x.priority, reverse=True)
+                     if d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED", "SCAN_DUE") and int(d.kingdom_id) in inst_kds),
+                    None,
+                )
+                if urgent is not None and not inst.get("preempt_requested_at"):
+                    inst["preempt_requested_at"] = iso(now)
+                    inst["preempt_reason"] = f"{urgent.kind}#{urgent.kingdom_id}"
+                    self.store.put_control(instance_key(instance_id), inst)
             return "BUSY"
-        all_bots = fleet_bots or ({bot["bot_id"]: bot} if bot else {})
         lost_on_instance = next(
             (b for b in all_bots.values()
              if b["instance_id"] == instance_id and b["lifecycle_state"] == "LOST"
@@ -330,7 +344,7 @@ class Ring2:
         if gap_demand is not None:
             return self._plan_redundancy_twin(instance_id, bot, gap_demand, inst, config, mode, all_bots, now)
 
-        choice = self._choose(bot, rt, demands, now, all_bots)
+        choice = self._choose(bot, rt, demands, now, all_bots, config.get("capabilities", []))
         if choice is None:
             return "IDLE"
         job_type, args, priority, why, inputs, demand = choice
@@ -398,12 +412,19 @@ class Ring2:
             "last_idempotency_key": job["idempotency_key"],
             "active_bot_id": inst.get("active_bot_id") or bot["bot_id"],
             "active_intent_id": None if is_prep_switch else (demand.intent_id if demand else None),
+            "preempt_requested_at": None,
+            "preempt_reason": None,
         })
         self.store.put_control(instance_key(instance_id), inst)
         if job_type in numnum.REST_JOB_TYPES:
             rt["session_started_at"] = None
             rt["last_session_end"] = iso(now)
             rt["sleep_until"] = iso(now + timedelta(minutes=args["duration_minutes"]))
+        elif job_type == "switch_character":
+            rt["session_started_at"] = None
+            rt["last_session_end"] = iso(now)
+            if inputs.get("mark_current_bot_rest_minutes"):
+                rt["sleep_until"] = iso(now + timedelta(minutes=int(inputs["mark_current_bot_rest_minutes"])))
         elif not rt.get("session_started_at"):
             rt["session_started_at"] = iso(now)
         self.store.put_control(runtime_key(bot["bot_id"]), rt)
@@ -699,7 +720,9 @@ class Ring2:
         return "DISPATCHED"
 
     # ------------------------------------------------------------------ TANK + BIG_JON (deterministic v0 + switch)
-    def _choose(self, bot, rt, demands, now, all_bots: Dict[str, Dict[str, Any]]) -> Optional[Tuple[str, Dict[str, Any], int, str, Dict[str, Any], Optional[Demand]]]:
+    def _choose(self, bot, rt, demands, now, all_bots: Dict[str, Dict[str, Any]],
+                capabilities: Tuple[str, ...] = ()) -> Optional[Tuple[str, Dict[str, Any], int, str, Dict[str, Any], Optional[Demand]]]:
+        caps = set(capabilities)
         p = bot["routine_profile"]
         tz = p["timezone"]
         state = bot["lifecycle_state"]
@@ -709,8 +732,8 @@ class Ring2:
         mission = self._mission_for(bot, demands) if bot["verified_state"]["ch_level"] >= GROW_TARGET_CH else None
         switch_target = self._sibling_for_r5_demand(bot, demands, all_bots, now)
 
-        # High-priority R5 sibling missions (priority >= 80, e.g. OPERATOR_OVERRIDE / R5_COMMAND_DESK scans)
-        # preempt a sleeping or low-CH mounted bot when no higher-priority local mission exists on this bot.
+        # 1. Urgent R5 sibling missions (priority >= 80, e.g. OPERATOR_OVERRIDE / R5_COMMAND_DESK scans & locates)
+        # preempt a sleeping, resting, timer-waiting, or low-CH mounted bot immediately.
         if switch_target is not None:
             sib, sib_demand = switch_target
             local_prio = mission.priority if mission is not None else 0
@@ -724,46 +747,80 @@ class Ring2:
                         f"BIG_JON: {sib_demand.kind} for #{sib['kingdom_id']} requires switching {bot['instance_id']} to sibling bot {sib['governor_name']}.",
                         dict(base, target_bot_id=sib["bot_id"], demand=sib_demand.kind), sib_demand)
 
-        if numnum.in_sleep_window(now, p):
-            if state == "SLEEPING":
-                return None
-            mins = min(720, numnum.minutes_until_local_hour(now, tz, p["sleep_window_end_hour"]))
-            return ("sleep", {"duration_minutes": max(5, mins), "close_app": True, "reason": "SLEEP_WINDOW"}, 60,
-                    "Bot is inside its nightly sleep window; close the game like a real player going to bed.",
-                    dict(base, sleep_window=[p["sleep_window_start_hour"], p["sleep_window_end_hour"]]), None)
+        # 2. Urgent R5 local mission (priority >= 80) on the mounted bot preempts sleep, breaks, and timers.
+        if mission is not None and mission.priority >= 80:
+            return self._mission_action(mission, base, caps)
 
-        if state == "SLEEPING":
+        # 3. Rest checks (Sleep Window, Sleeping, Daily Cap, Session Break) -> Rotate to an awake sibling if available!
+        rest_reason: Optional[str] = None
+        rest_mins: int = 0
+        if numnum.in_sleep_window(now, p):
+            rest_reason = "SLEEP_WINDOW"
+            rest_mins = max(5, min(720, numnum.minutes_until_local_hour(now, tz, p["sleep_window_end_hour"])))
+        elif state == "SLEEPING":
             until = numnum.parse_ts(rt.get("sleep_until"))
             if until and now < until:
+                rest_reason = "SLEEPING"
+                rest_mins = max(5, int(math.ceil(numnum.minutes_between(now, until))))
+        elif rt["active_minutes_today"] >= p["daily_active_cap_minutes"]:
+            rest_reason = "DAILY_CAP_REACHED"
+            rest_mins = max(5, min(720, numnum.minutes_until_local_hour(now, tz, p["sleep_window_end_hour"])))
+        else:
+            started = numnum.parse_ts(rt.get("session_started_at"))
+            if started and numnum.minutes_between(started, now) >= p["max_session_minutes"]:
+                rest_reason = "SESSION_BREAK"
+                rest_mins = max(5, int(p["min_break_minutes"]))
+
+        if rest_reason is not None:
+            rot = self._next_awake_sibling_with_work(bot, demands, all_bots, now, caps)
+            if rot is not None:
+                sib, rot_reason, rot_demand, rot_prio = rot
+                sw_args = {"target_kingdom_id": int(sib["kingdom_id"])}
+                if sib.get("governor_id"):
+                    sw_args["target_governor_id"] = sib["governor_id"]
+                if sib.get("governor_name"):
+                    sw_args["target_governor_name"] = sib["governor_name"]
+                return (
+                    "switch_character",
+                    sw_args,
+                    rot_prio,
+                    f"BIG_JON: {bot['governor_name']} is resting ({rest_reason}); rotating {bot['instance_id']} to awake sibling {sib['governor_name']} (#{sib['kingdom_id']}) for {rot_reason}.",
+                    dict(base, target_bot_id=sib["bot_id"], rotation_reason=rot_reason, rest_reason=rest_reason,
+                         mark_current_bot_rest_minutes=rest_mins, **({"demand": rot_demand.kind} if rot_demand else {})),
+                    rot_demand,
+                )
+            if rest_reason == "SLEEP_WINDOW":
+                if state == "SLEEPING":
+                    return None
+                return ("sleep", {"duration_minutes": rest_mins, "close_app": True, "reason": "SLEEP_WINDOW"}, 60,
+                        "Bot is inside its nightly sleep window; close the game like a real player going to bed.",
+                        dict(base, sleep_window=[p["sleep_window_start_hour"], p["sleep_window_end_hour"]]), None)
+            if rest_reason == "SLEEPING":
                 return None
+            if rest_reason == "DAILY_CAP_REACHED":
+                return ("sleep", {"duration_minutes": rest_mins, "close_app": True, "reason": "DAILY_CAP_REACHED"}, 60,
+                        "Daily active-minutes cap reached; rest until tomorrow's wake hour.", base, None)
+            return ("sleep", {"duration_minutes": rest_mins, "close_app": True, "reason": "SESSION_BREAK"}, 60,
+                    "Session hit its maximum length; take a human-length break.",
+                    dict(base, session_started_at=rt.get("session_started_at")), None)
+
+        if state == "SLEEPING":
             return ("probe_status", {"launch_if_closed": True, "capture_profile": True, "capture_resources": True}, 55,
                     "Sleep is over; wake the bot (launch the game) and confirm it reaches the city view.",
                     dict(base, sleep_until=rt.get("sleep_until")), None)
 
-        if rt["active_minutes_today"] >= p["daily_active_cap_minutes"]:
-            mins = min(720, numnum.minutes_until_local_hour(now, tz, p["sleep_window_end_hour"]))
-            return ("sleep", {"duration_minutes": max(5, mins), "close_app": True, "reason": "DAILY_CAP_REACHED"}, 60,
-                    "Daily active-minutes cap reached; rest until tomorrow's wake hour.", base, None)
-
-        started = numnum.parse_ts(rt.get("session_started_at"))
-        if started and numnum.minutes_between(started, now) >= p["max_session_minutes"]:
-            return ("sleep", {"duration_minutes": max(5, int(p["min_break_minutes"])), "close_app": True, "reason": "SESSION_BREAK"}, 60,
-                    "Session hit its maximum length; take a human-length break.",
-                    dict(base, session_started_at=rt.get("session_started_at")), None)
-
+        # 4. Local scan / locate mission on this bot (always interrupts timers & routine growth/farming)
         if mission is not None:
-            ranks = int((mission.detail.get("payload") or {}).get("max_ranks", SCAN_DEFAULT_RANKS))
-            ranks = max(10, min(1000, ranks))
-            return ("scan_kingdom", {"target_kingdom_id": mission.kingdom_id, "max_ranks": ranks, "boards": ["INDIVIDUAL_POWER"]},
-                    mission.priority,
-                    f"BIG_JON: {mission.kind} for #{mission.kingdom_id} preempts routine upkeep; this bot lives in that kingdom.",
-                    dict(base, demand=mission.kind, demand_detail=mission.detail), mission)
+            return self._mission_action(mission, base, caps)
 
+        timer_until = numnum.parse_ts(rt.get("timer_ready_until"))
+        timer_active = bool(timer_until and now < timer_until)
         growth_demand = next((d for d in demands if d.kind == "GROWTH_REQUESTED" and d.kingdom_id == bot["kingdom_id"]), None)
         g_prio = max(30, growth_demand.priority) if growth_demand else 30
 
-        # Check if an R5 scan/locate/growth intent targets another kingdom where this instance has a sibling bot
-        if switch_target is not None and switch_target[1].priority > (g_prio if bot["verified_state"]["ch_level"] < GROW_TARGET_CH else 0):
+        # 5. Sibling mission preemption (including SCAN_DUE, SCAN_REQUESTED, LOCATE_REQUESTED, GROWTH_REQUESTED)
+        local_hold_prio = g_prio if (bot["verified_state"]["ch_level"] < GROW_TARGET_CH and not timer_active) else 0
+        if switch_target is not None and switch_target[1].priority > local_hold_prio:
             sib, sib_demand = switch_target
             sw_args = {"target_kingdom_id": int(sib["kingdom_id"])}
             if sib.get("governor_id"):
@@ -774,12 +831,73 @@ class Ring2:
                     f"BIG_JON: {sib_demand.kind} for #{sib['kingdom_id']} requires switching {bot['instance_id']} to sibling bot {sib['governor_name']}.",
                     dict(base, target_bot_id=sib["bot_id"], demand=sib_demand.kind), sib_demand)
 
+        # 6. Active in-game building/gather timer: if nothing to build, farm first; then rotate to another character!
+        if timer_active and growth_demand is None:
+            if not rt.get("farmed_this_timer") and "gather" in caps:
+                res_types = list(p.get("preferred_gather_types") or ["FOOD", "WOOD"])
+                return (
+                    "gather",
+                    {"resource_types": res_types, "max_marches": 2},
+                    35,
+                    "Building queue is busy on an upgrade timer; nothing to build right now, so dispatch gathering marches to farm resources.",
+                    dict(base, timer_ready_until=rt.get("timer_ready_until")),
+                    None,
+                )
+            rot = self._next_awake_sibling_with_work(bot, demands, all_bots, now, caps)
+            if rot is not None:
+                sib, rot_reason, rot_demand, rot_prio = rot
+                sw_args = {"target_kingdom_id": int(sib["kingdom_id"])}
+                if sib.get("governor_id"):
+                    sw_args["target_governor_id"] = sib["governor_id"]
+                if sib.get("governor_name"):
+                    sw_args["target_governor_name"] = sib["governor_name"]
+                return (
+                    "switch_character",
+                    sw_args,
+                    rot_prio,
+                    f"BIG_JON: {bot['governor_name']} queues are ticking on a timer (until {rt.get('timer_ready_until')}); rotating {bot['instance_id']} to {sib['governor_name']} (#{sib['kingdom_id']}) for {rot_reason}.",
+                    dict(base, target_bot_id=sib["bot_id"], rotation_reason=rot_reason, timer_ready_until=rt.get("timer_ready_until"),
+                         **({"demand": rot_demand.kind} if rot_demand else {})),
+                    rot_demand,
+                )
+            return None
+
         if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
             g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 40)))) if growth_demand else 40
             return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": g_steps}, g_prio,
                     f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.",
                     dict(base, **({"demand": growth_demand.kind, "demand_detail": growth_demand.detail} if growth_demand else {})),
                     growth_demand)
+
+        # 7. CH8+ ACTIVE bot with no local scan due: rotate to a sibling that needs growth/scan, or farm if gather is enabled!
+        rot = self._next_awake_sibling_with_work(bot, demands, all_bots, now, caps)
+        if rot is not None and rot[3] >= 30:
+            sib, rot_reason, rot_demand, rot_prio = rot
+            sw_args = {"target_kingdom_id": int(sib["kingdom_id"])}
+            if sib.get("governor_id"):
+                sw_args["target_governor_id"] = sib["governor_id"]
+            if sib.get("governor_name"):
+                sw_args["target_governor_name"] = sib["governor_name"]
+            return (
+                "switch_character",
+                sw_args,
+                rot_prio,
+                f"BIG_JON: {bot['governor_name']} has no pending build or scan; rotating {bot['instance_id']} to {sib['governor_name']} (#{sib['kingdom_id']}) for {rot_reason}.",
+                dict(base, target_bot_id=sib["bot_id"], rotation_reason=rot_reason,
+                     **({"demand": rot_demand.kind} if rot_demand else {})),
+                rot_demand,
+            )
+
+        if "gather" in caps and not timer_active:
+            res_types = list(p.get("preferred_gather_types") or ["FOOD", "WOOD"])
+            return (
+                "gather",
+                {"resource_types": res_types, "max_marches": 2},
+                25,
+                "No building upgrade or kingdom scan due on this governor; dispatch zero-gem gathering marches to farm resources.",
+                base,
+                None,
+            )
 
         last = numnum.parse_ts(bot["verified_state"].get("last_verified_at"))
         age = None if last is None else int(numnum.minutes_between(last, now))
@@ -790,6 +908,85 @@ class Ring2:
         return None
 
     @staticmethod
+    def _mission_action(mission: Demand, base: Dict[str, Any], caps: set) -> Tuple[str, Dict[str, Any], int, str, Dict[str, Any], Demand]:
+        payload = mission.detail.get("payload") or {}
+        if mission.kind == "LOCATE_REQUESTED" and "locate_governor" in caps:
+            loc_args: Dict[str, Any] = {"target_kingdom_id": int(mission.kingdom_id)}
+            for k in ("target_governor_id", "target_governor_name", "target_alliance_tag"):
+                if payload.get(k) is not None:
+                    loc_args[k] = payload[k]
+            return (
+                "locate_governor",
+                loc_args,
+                mission.priority,
+                f"BIG_JON: {mission.kind} for #{mission.kingdom_id} preempts routine upkeep; locating target governor in that kingdom.",
+                dict(base, demand=mission.kind, demand_detail=mission.detail),
+                mission,
+            )
+        ranks = int(payload.get("max_ranks", SCAN_DEFAULT_RANKS))
+        ranks = max(10, min(1000, ranks))
+        return (
+            "scan_kingdom",
+            {"target_kingdom_id": mission.kingdom_id, "max_ranks": ranks, "boards": ["INDIVIDUAL_POWER"]},
+            mission.priority,
+            f"BIG_JON: {mission.kind} for #{mission.kingdom_id} preempts routine upkeep; this bot lives in that kingdom.",
+            dict(base, demand=mission.kind, demand_detail=mission.detail),
+            mission,
+        )
+
+    def _next_awake_sibling_with_work(
+        self,
+        bot: Dict[str, Any],
+        demands: List[Demand],
+        all_bots: Dict[str, Dict[str, Any]],
+        now: datetime,
+        caps: set,
+    ) -> Optional[Tuple[Dict[str, Any], str, Optional[Demand], int]]:
+        candidates: List[Tuple[int, str, Dict[str, Any], str, Optional[Demand]]] = []
+        for sib in all_bots.values():
+            if sib["instance_id"] != bot["instance_id"] or sib["bot_id"] == bot["bot_id"]:
+                continue
+            if sib.get("lifecycle_state") not in ("ACTIVE", "GROWING", "SLEEPING"):
+                continue
+            sp = sib["routine_profile"]
+            if numnum.in_sleep_window(now, sp):
+                continue
+            s_rt = numnum.fresh_runtime(self.store.get_control(runtime_key(sib["bot_id"])), sib, now)
+            if int(s_rt.get("active_minutes_today", 0)) + 20 > int(sp["daily_active_cap_minutes"]):
+                continue
+            s_until = numnum.parse_ts(s_rt.get("sleep_until"))
+            if s_until and now < s_until:
+                continue
+            s_ended = numnum.parse_ts(s_rt.get("last_session_end"))
+            if s_ended and numnum.minutes_between(s_ended, now) < int(sp["min_break_minutes"]):
+                continue
+            t_until = numnum.parse_ts(s_rt.get("timer_ready_until"))
+            t_active = bool(t_until and now < t_until)
+
+            sib_mission = self._mission_for(sib, demands) if sib["verified_state"]["ch_level"] >= GROW_TARGET_CH else None
+            if sib_mission is not None:
+                candidates.append((sib_mission.priority, sib["bot_id"], sib, f"{sib_mission.kind} in #{sib['kingdom_id']}", sib_mission))
+                continue
+            if sib["verified_state"]["ch_level"] < GROW_TARGET_CH and not t_active:
+                g_dem = next((d for d in demands if d.kind == "GROWTH_REQUESTED" and d.kingdom_id == sib["kingdom_id"]), None)
+                prio = max(35, g_dem.priority) if g_dem else 35
+                candidates.append((prio, sib["bot_id"], sib, f"CH{sib['verified_state']['ch_level']}->CH{GROW_TARGET_CH} city growth", g_dem))
+                continue
+            if "gather" in caps and not (t_active and s_rt.get("farmed_this_timer")):
+                candidates.append((25, sib["bot_id"], sib, "zero-gem resource farming", None))
+                continue
+            last_v = numnum.parse_ts(sib["verified_state"].get("last_verified_at"))
+            age_v = None if last_v is None else int(numnum.minutes_between(last_v, now))
+            if age_v is None or age_v >= PROBE_STALE_MINUTES:
+                candidates.append((20, sib["bot_id"], sib, "stale state verification probe", None))
+
+        if not candidates:
+            return None
+        candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        best_prio, _, best_sib, best_reason, best_dem = candidates[0]
+        return best_sib, best_reason, best_dem, best_prio
+
+    @staticmethod
     def _mission_for(bot, demands: List[Demand]) -> Optional[Demand]:
         mine = [d for d in demands if d.kingdom_id == bot["kingdom_id"] and d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED", "SCAN_DUE")]
         return max(mine, key=lambda d: d.priority) if mine else None
@@ -797,16 +994,24 @@ class Ring2:
     @staticmethod
     def _sibling_for_r5_demand(bot, demands: List[Demand], all_bots: Dict[str, Dict[str, Any]], now: datetime) -> Optional[Tuple[Dict[str, Any], Demand]]:
         r5_demands = sorted(
-            [d for d in demands if d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED", "GROWTH_REQUESTED") and d.kingdom_id != bot["kingdom_id"]],
+            [d for d in demands if d.kind in ("SCAN_REQUESTED", "LOCATE_REQUESTED", "SCAN_DUE", "GROWTH_REQUESTED") and d.kingdom_id != bot["kingdom_id"]],
             key=lambda d: d.priority,
             reverse=True,
         )
         for d in r5_demands:
-            expected_state = "GROWING" if d.kind == "GROWTH_REQUESTED" else "ACTIVE"
             for sib in all_bots.values():
-                if (sib["instance_id"] == bot["instance_id"] and sib["kingdom_id"] == d.kingdom_id
-                        and sib["lifecycle_state"] == expected_state and not numnum.in_sleep_window(now, sib["routine_profile"])):
-                    return sib, d
+                if sib["instance_id"] != bot["instance_id"] or sib["kingdom_id"] != d.kingdom_id:
+                    continue
+                if d.kind == "GROWTH_REQUESTED":
+                    if sib["lifecycle_state"] == "GROWING" and not numnum.in_sleep_window(now, sib["routine_profile"]):
+                        return sib, d
+                else:
+                    if sib["verified_state"]["ch_level"] < GROW_TARGET_CH:
+                        continue
+                    if d.priority >= 80 and sib["lifecycle_state"] in ("ACTIVE", "SLEEPING"):
+                        return sib, d
+                    if sib["lifecycle_state"] == "ACTIVE" and not numnum.in_sleep_window(now, sib["routine_profile"]):
+                        return sib, d
         return None
 
     def _build_job(self, job_type, args, priority, bot, demand: Optional[Demand], now,
@@ -1180,6 +1385,26 @@ class Ring3:
                 health["last_error"] = f"wake did not reach the world (screen {screen})"
             if bot["lifecycle_state"] == "GROWING" and vs["ch_level"] >= GROW_TARGET_CH:
                 self._set_state(bot, "ACTIVE", f"Reached CH{vs['ch_level']}.", common)
+                rt["timer_ready_until"] = None
+                rt["farmed_this_timer"] = False
+            elif jt == "grow_city":
+                t_sec = int(ev_metrics.get("timer_seconds") or 0)
+                if t_sec > 0:
+                    rt["timer_ready_until"] = iso(now + timedelta(seconds=min(t_sec, 1800)))
+                    rt["farmed_this_timer"] = bool(ev_metrics.get("farmed_on_timer", False))
+                    if ev_metrics.get("timer_building"):
+                        rt["last_timer_label"] = str(ev_metrics["timer_building"])[:64]
+                else:
+                    rt["timer_ready_until"] = None
+                    rt["farmed_this_timer"] = False
+            elif jt == "gather":
+                rt["farmed_this_timer"] = True
+                rt["last_gather_at"] = result["completed_at"]
+                g_mins = max(5, min(60, int(ev_metrics.get("gather_timer_minutes") or 20)))
+                existing_until = numnum.parse_ts(rt.get("timer_ready_until"))
+                candidate_until = now + timedelta(minutes=g_mins)
+                if not existing_until or existing_until < candidate_until:
+                    rt["timer_ready_until"] = iso(candidate_until)
             if jt == "scan_kingdom" and status == "SUCCEEDED":
                 kd_rec: Dict[str, Any] = {
                     "last_scan_verified_at": result["completed_at"],
@@ -1206,6 +1431,9 @@ class Ring3:
             if jt == "switch_character" and status == "SUCCEEDED":
                 rt["session_started_at"] = None
                 rt["last_session_end"] = result["completed_at"]
+                s_until = numnum.parse_ts(rt.get("sleep_until"))
+                if s_until and now < s_until and bot["lifecycle_state"] in ("ACTIVE", "GROWING"):
+                    self._set_state(bot, "SLEEPING", "Rotated to sibling character while this bot rests.", common)
                 self._apply_switch(bot, job, result)
             if active_intent_id and jt != "switch_character":
                 self.store.update_intent_status(
@@ -1294,6 +1522,18 @@ class Ring3:
             t_rt["last_session_end"] = None
             t_rt["sleep_until"] = None
             self.store.put_control(runtime_key(target_bot["bot_id"]), t_rt)
+            if target_bot.get("lifecycle_state") == "SLEEPING":
+                wake_state = "ACTIVE" if int(target_bot["verified_state"].get("ch_level") or 1) >= GROW_TARGET_CH else "GROWING"
+                t_common = dict(
+                    correlation_id=result["correlation_id"],
+                    kingdom_id=target_bot["kingdom_id"],
+                    bot_id=target_bot["bot_id"],
+                    instance_id=target_bot["instance_id"],
+                    job_id=result["job_id"],
+                )
+                self._set_state(target_bot, wake_state, "Switched to character on emulator; bot is now active in-world.", t_common)
+                V.validate_bot(target_bot)
+                self.store.put_bot(target_bot)
 
     def _release_stale(self, instances: List[str]) -> None:
         now = self.clock()

@@ -31,6 +31,8 @@ def make_job(job_type="probe_status", args=None, **over):
         "provision_character": {"target_kingdom_id": 4021, "account_id": "mumu-account-1", "character_slot": 2, "preferred_civilization": "CHINA"},
         "scan_kingdom": {"target_kingdom_id": 4194, "max_ranks": 300, "boards": ["INDIVIDUAL_POWER"]},
         "gather": {"resource_types": ["FOOD"], "max_marches": 1},
+        "locate_governor": {"target_kingdom_id": 4197, "target_governor_id": "236500111", "target_governor_name": "TargetGov"},
+        "research": {"branch_preference": "ECONOMY"},
     }
     job = {
         "job_id": "job_test_000001", "idempotency_key": "idem_test_000001", "correlation_id": "corr_test_01",
@@ -186,7 +188,7 @@ class Safety(Base):
         self.assertEqual(r.runner.calls, [])
 
     def test_unsupported_job_type(self):
-        r = self.rig([make_job("gather")])
+        r = self.rig([make_job("research")])
         self.assertEqual(r.run(), ["FAILED"])
         self.assertEqual(r.results()[0]["error"]["code"], "UNSUPPORTED_JOB_TYPE")
 
@@ -468,6 +470,27 @@ class Step5Skills(Base):
         V.validate_job_result(res, make_job("scan_kingdom"))
         self.assertEqual(res["observed_state"]["screen_state"], "RANKINGS_BOARD")
         self.assertEqual(res["evidence"]["metrics"]["governors_extracted"], 300)
+
+    def test_gather_and_locate_governor_and_grow_timer_parsing(self):
+        gather_out = "[VALHEON FORGE] March successfully dispatched to resource node!\n[VALHEON FORGE] Verified City HUD active.\n"
+        r_g = self.rig([make_job("gather")], runner=FakeRunner(gather_out))
+        self.assertEqual(r_g.run(), ["SUCCEEDED"])
+        res_g = r_g.results()[0]
+        V.validate_job_result(res_g, make_job("gather"))
+        self.assertTrue(res_g["evidence"]["metrics"]["march_dispatched"])
+
+        loc_out = "Synced 300 accumulated #4197 governors (@ Rank 300/300).\n#4197 scan completed!\n"
+        r_l = self.rig([make_job("locate_governor")], runner=FakeRunner(loc_out))
+        self.assertEqual(r_l.run(), ["SUCCEEDED"])
+        res_l = r_l.results()[0]
+        V.validate_job_result(res_l, make_job("locate_governor"))
+        self.assertEqual(res_l["evidence"]["metrics"]["governors_extracted"], 300)
+
+        grow_timer_out = '[Step 05] [TIMER_ACTIVE] seconds=720 building="city hall level 4"\n[Step 06] [TIMER_HANDOFF] seconds=720 farmed=True\n'
+        parsed_g = skills.parse_grow_output(grow_timer_out)
+        self.assertEqual(parsed_g["timer_seconds"], 720)
+        self.assertEqual(parsed_g["timer_building"], "city hall level 4")
+        self.assertTrue(parsed_g["farmed"])
 
 
 if __name__ == "__main__":

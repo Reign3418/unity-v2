@@ -863,5 +863,112 @@ class HighAvailabilityFailoverTests(unittest.TestCase):
         self.assertEqual(w.store.get_control("BRAIN_LEASE")["holder_id"], "mixerv3")
 
 
+class CohortRotationTimersAndPreemptionTests(unittest.TestCase):
+    def test_sleeping_or_break_rotates_to_awake_sibling_instead_of_idling(self):
+        b_4198 = make_bot("bot_4198_twin_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4198, ch=2, state="GROWING")
+        b_4197 = make_bot("bot_4197_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4197, ch=5, state="GROWING")
+        w = World(control_mode="SUPERVISED", bots=[b_4198, b_4197], kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, capabilities=list(numnum.STAGE6_CAPABILITIES), watched_kingdoms=[]))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4198_twin_m0", "bot_4197_m0"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4198_twin_m0"},
+        })
+        # Simulate bot_4198_twin_m0 hitting its 60m session limit -> instead of idling the emulator, it switches to bot_4197_m0!
+        w.store.put_control(runtime_key("bot_4198_twin_m0"), {
+            "day": "2026-10-21",
+            "active_minutes_today": 66,
+            "session_started_at": "2026-10-21T22:50:00Z",
+        })
+        s = w.tick()
+        self.assertEqual(s["plans"]["sidekick-mumu-0"], "DISPATCHED")
+        sw_job = w.transport.sent[-1]
+        self.assertEqual(sw_job["job_type"], "switch_character")
+        self.assertEqual(sw_job["args"]["target_kingdom_id"], 4197)
+
+        # Complete switch_character -> bot_4198_twin_m0 transitions to SLEEPING (resting), bot_4197_m0 becomes active and grows!
+        w.transport.push_result(w.result_for(sw_job, screen="CITY_VIEW"))
+        w.tick()
+        self.assertEqual(w.bot("bot_4198_twin_m0")["lifecycle_state"], "SLEEPING")
+        self.assertEqual(w.store.control["FLEET"]["active_by_instance"]["sidekick-mumu-0"], "bot_4197_m0")
+        w.clock.t += timedelta(minutes=2)
+        w.tick()
+        grow_job = w.transport.sent[-1]
+        self.assertEqual((grow_job["job_type"], grow_job["bot_id"]), ("grow_city", "bot_4197_m0"))
+
+    def test_active_building_timer_farms_then_rotates_to_sibling(self):
+        b_4198 = make_bot("bot_4198_twin_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4198, ch=4, state="GROWING")
+        b_4196 = make_bot("bot_4196_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4196, ch=5, state="GROWING")
+        w = World(control_mode="AUTONOMOUS", bots=[b_4198, b_4196], kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, capabilities=list(numnum.STAGE6_CAPABILITIES), watched_kingdoms=[]))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4198_twin_m0", "bot_4196_m0"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4198_twin_m0"},
+        })
+
+        # Tick 1: bot_4198_twin_m0 dispatches grow_city
+        w.tick()
+        grow_job = w.transport.sent[-1]
+        self.assertEqual(grow_job["job_type"], "grow_city")
+
+        # CIPHER returns PARTIAL with active building timer (900s) and farmed_on_timer=False
+        res = w.result_for(grow_job, status="PARTIAL", screen="CITY_VIEW", ch=4, duration_ms=60000)
+        res["evidence"]["metrics"] = {"timer_seconds": 900, "timer_building": "city hall level 5", "farmed_on_timer": False}
+        w.transport.push_result(res)
+        w.tick()
+
+        # Tick 2: Since building timer is running and farmed_this_timer is False, BIG_JON dispatches gather ("if nothing to build, farm")!
+        w.clock.t += timedelta(minutes=2)
+        w.tick()
+        gather_job = w.transport.sent[-1]
+        self.assertEqual((gather_job["job_type"], gather_job["bot_id"]), ("gather", "bot_4198_twin_m0"))
+
+        # Complete gather -> Tick 3: Now both building timer & farm march are running, so BIG_JON rotates to bot_4196_m0!
+        w.transport.push_result(w.result_for(gather_job, screen="CITY_VIEW", duration_ms=45000))
+        w.tick()
+        w.clock.t += timedelta(minutes=2)
+        w.tick()
+        rot_job = w.transport.sent[-1]
+        self.assertEqual((rot_job["job_type"], rot_job["args"]["target_kingdom_id"]), ("switch_character", 4196))
+
+    def test_scan_due_and_locate_governor_preempt_and_rotate(self):
+        b_4198 = make_bot("bot_4198_twin_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4198, ch=4, state="GROWING")
+        b_4194 = make_bot("bot_4194_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4194, ch=8, state="ACTIVE")
+        w = World(control_mode="AUTONOMOUS", bots=[b_4198, b_4194], kingdom_last="2026-10-21T10:00:00Z")
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            capabilities=list(numnum.STAGE6_CAPABILITIES),
+            watched_kingdoms=[{"kingdom_id": 4194, "cadence_hours": 3}],
+        ))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4198_twin_m0", "bot_4194_m0"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4198_twin_m0"},
+        })
+
+        # Tick 1: #4194 has SCAN_DUE (priority 40) > routine grow_city (priority 30) on #4198 -> switches to #4194!
+        w.tick()
+        sw_job = w.transport.sent[-1]
+        self.assertEqual((sw_job["job_type"], sw_job["args"]["target_kingdom_id"]), ("switch_character", 4194))
+        w.transport.push_result(w.result_for(sw_job, screen="CITY_VIEW"))
+        w.tick()
+
+        # Submit an urgent LOCATE_GOVERNOR intent ("when its time to find") on #4194
+        w.store.intents["int_loc_4194"] = {
+            "intent_id": "int_loc_4194",
+            "correlation_id": "corr_loc_4194",
+            "created_at": "2026-10-21T23:50:00Z",
+            "source": "R5_COMMAND_DESK",
+            "intent_type": "LOCATE_GOVERNOR",
+            "kingdom_id": 4194,
+            "priority": 90,
+            "status": "PENDING",
+            "payload": {"target_governor_id": "236500999", "target_governor_name": "RogueWhale"},
+        }
+        w.clock.t += timedelta(minutes=2)
+        w.tick()
+        loc_job = w.transport.sent[-1]
+        self.assertEqual((loc_job["job_type"], loc_job["kingdom_id"], loc_job["args"]["target_governor_name"]),
+                         ("locate_governor", 4194, "RogueWhale"))
+
+
 if __name__ == "__main__":
     unittest.main()

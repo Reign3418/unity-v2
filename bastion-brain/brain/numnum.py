@@ -35,7 +35,7 @@ DEFAULT_CAPABILITIES: Tuple[str, ...] = (
     "switch_character",
     "provision_character",
 )
-STAGE6_CAPABILITIES: Tuple[str, ...] = DEFAULT_CAPABILITIES + ("scan_kingdom",)
+STAGE6_CAPABILITIES: Tuple[str, ...] = DEFAULT_CAPABILITIES + ("scan_kingdom", "gather", "locate_governor")
 
 
 # --------------------------------------------------------------------------- time helpers
@@ -88,6 +88,8 @@ def fresh_runtime(runtime: Optional[Dict[str, Any]], bot: Dict[str, Any], now: d
     rt.setdefault("session_started_at", None)
     rt.setdefault("last_session_end", None)
     rt.setdefault("sleep_until", None)
+    rt.setdefault("timer_ready_until", None)
+    rt.setdefault("farmed_this_timer", False)
     return rt
 
 
@@ -164,26 +166,31 @@ def evaluate(
     loc = local_now(now, profile["timezone"])
     window = f"{profile['sleep_window_start_hour']:02d}:00-{profile['sleep_window_end_hour']:02d}:00 {profile['timezone']}"
     sleeping_now = in_sleep_window(now, profile)
+    r5_preempt = int(job.get("priority", 0)) >= 80 and jt in ("scan_kingdom", "locate_governor", "switch_character")
     if active:
-        checks.append(_check("SLEEP_WINDOW_CHECK", not sleeping_now, loc.strftime("%H:%M"), window,
-                             "Outside the bot's sleep window" if not sleeping_now else "Bot is inside its sleep window; no sessions allowed"))
+        checks.append(_check("SLEEP_WINDOW_CHECK", (not sleeping_now) or r5_preempt, loc.strftime("%H:%M"), window,
+                             "Outside the bot's sleep window" if not sleeping_now
+                             else ("Urgent R5 scan/locate mission preempts sleep window" if r5_preempt else "Bot is inside its sleep window; no sessions allowed")))
         used = int(runtime.get("active_minutes_today", 0))
         cap = int(profile["daily_active_cap_minutes"])
-        checks.append(_check("DAILY_ACTIVE_MINUTES_CAP", used + est <= cap, used + est, cap,
-                             f"{used}m used + ~{est}m for {jt} vs {cap}m daily cap"))
+        checks.append(_check("DAILY_ACTIVE_MINUTES_CAP", (used + est <= cap) or r5_preempt, used + est, cap,
+                             f"{used}m used + ~{est}m for {jt} vs {cap}m daily cap"
+                             + (" (preempted by R5 priority mission)" if r5_preempt and used + est > cap else "")))
         started = parse_ts(runtime.get("session_started_at"))
         max_s = int(profile["max_session_minutes"])
         if started:
             sess = int(minutes_between(started, now))
-            checks.append(_check("SESSION_DURATION_CAP", sess + est <= max_s, sess + est, max_s,
-                                 f"Session open {sess}m + ~{est}m vs {max_s}m max session"))
+            checks.append(_check("SESSION_DURATION_CAP", (sess + est <= max_s) or r5_preempt, sess + est, max_s,
+                                 f"Session open {sess}m + ~{est}m vs {max_s}m max session"
+                                 + (" (preempted by R5 priority mission)" if r5_preempt and sess + est > max_s else "")))
         else:
             ended = parse_ts(runtime.get("last_session_end"))
             gap = int(minutes_between(ended, now)) if ended else None
             min_b = int(profile["min_break_minutes"])
-            ok = gap is None or gap >= min_b
+            ok = gap is None or gap >= min_b or r5_preempt
             checks.append(_check("SESSION_DURATION_CAP", ok, gap if gap is not None else "no prior session", min_b,
-                                 "New session allowed" if ok else f"Only {gap}m since last session; {min_b}m break required"))
+                                 "New session allowed" if (gap is None or gap >= min_b)
+                                 else ("Urgent R5 scan/locate mission preempts break cooldown" if r5_preempt else f"Only {gap}m since last session; {min_b}m break required")))
     else:
         checks.append(_check("SLEEP_WINDOW_CHECK", True, loc.strftime("%H:%M"), window, "Rest job: always allowed"))
 

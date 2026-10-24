@@ -1391,8 +1391,17 @@ def main():
     rib_hex_repeat = 0
     chk_repeat = 0
     consecutive_idle = 0
+    waiting_on_timer_streak = 0
+    preempt_flag = os.path.join(SCRIPT_DIR, f"preempt_{adb_port}.flag")
 
     for step in range(1, args.steps + 1):
+        if os.path.exists(preempt_flag):
+            try:
+                os.remove(preempt_flag)
+            except Exception:
+                pass
+            print(f"[Step {step:02d}] [PREEMPTED] High-priority Scan/Locate interrupt received -> yielding emulator immediately!")
+            break
         if speedup_cooldown > 0:
             speedup_cooldown -= 1
         if quest_scroll_cooldown > 0:
@@ -1945,7 +1954,35 @@ def main():
                             print(f"[Step {step:02d}] Building Actively Upgrading -> Tap Main Quest '{mq_side_txt[:24]}' (80, 330)")
                             tap(args.adb, 80, 330, 1.4)
                         else:
-                            print(f"[Step {step:02d}] Building Actively Upgrading (cooldown={speedup_cooldown}, '{rib_title}') -> Waiting on Timer")
+                            waiting_on_timer_streak += 1
+                            timer_sec = 900
+                            if OCR is not None:
+                                try:
+                                    import re as _re
+                                    t_crop = a2[max(0, rib_cy - 65) : min(900, rib_cy + 140), max(0, rib_cx - 240) : min(1600, rib_cx + 240)].astype(np.uint8)
+                                    t_res, _ = OCR(t_crop)
+                                    for _, t_txt, _ in (t_res or []):
+                                        m3 = _re.search(r"(\d{1,2}):(\d{2}):(\d{2})", t_txt)
+                                        if m3:
+                                            timer_sec = max(60, int(m3.group(1)) * 3600 + int(m3.group(2)) * 60 + int(m3.group(3)))
+                                            break
+                                        m2 = _re.search(r"(\d{1,2}):(\d{2})", t_txt)
+                                        if m2:
+                                            timer_sec = max(60, int(m2.group(1)) * 60 + int(m2.group(2)))
+                                            break
+                                except Exception:
+                                    pass
+                            clean_bldg = (rib_title or "building_upgrade").replace('"', "").strip()
+                            print(f'[Step {step:02d}] [TIMER_ACTIVE] seconds={timer_sec} building="{clean_bldg}"')
+                            if waiting_on_timer_streak >= 2:
+                                farmed_ok = False
+                                try:
+                                    import forge_idle_gatherer
+                                    farmed_ok = bool(forge_idle_gatherer.dispatch_zero_gem_gather(serial=args.adb, resource_type="crop"))
+                                except Exception as _fe:
+                                    print(f"[Step {step:02d}] Farm dispatch note: {_fe}")
+                                print(f"[Step {step:02d}] [TIMER_HANDOFF] seconds={timer_sec} farmed={farmed_ok}")
+                                break
                             time.sleep(2.0)
                     last_spear = None
                     repeat_cnt = 0
