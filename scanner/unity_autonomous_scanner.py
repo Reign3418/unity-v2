@@ -407,13 +407,23 @@ def resolve_mumu_pid_and_arena(adb_serial: str = "127.0.0.1:16384"):
     return target_pid, start_addr, end_addr
 
 
-def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.0.0.1:16384") -> list:
+def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.0.0.1:16384", target_kd: str = None) -> list:
     """
     Scans the target emulator's MuMuNxDevice.exe Lua heap (MEM_PRIVATE | PAGE_READWRITE)
     and extracts all 35-field Governor records currently resident in memory.
+    When target_kd is provided, strictly filters out foreign-kingdom RAM ghosts by mapServerId/originServerId.
     """
     if exclude_gov_ids is None:
-        exclude_gov_ids = {236425783}  # Exclude our CH8 scout account lilfarmer by default
+        exclude_gov_ids = {236425783, 236424540, 236455452, 236465943}  # Exclude our scout accounts by default
+
+    expected_sid = None
+    if target_kd:
+        try:
+            kd_i = int(str(target_kd).strip())
+            if kd_i > 1000:
+                expected_sid = kd_i - 1000
+        except Exception:
+            expected_sid = None
 
     PROCESS_QUERY_INFORMATION = 0x0400
     PROCESS_VM_READ = 0x0010
@@ -670,7 +680,14 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                 )
 
                                 gid = gov["govId"]
-                                if gid > 1000000 and gid not in exclude_gov_ids:
+                                m_sid = int(gov.get("mapServerId") or 0)
+                                o_sid = int(gov.get("originServerId") or 0)
+                                if expected_sid and m_sid > 0 and m_sid != expected_sid:
+                                    # Reject RAM ghosts from another kingdom (e.g. #4194 mapServerId=3194 when scanning #4197)
+                                    if o_sid != expected_sid or gov.get("alliance") in ("None", ""):
+                                        idx = raw.find(needle_troop, idx + 4)
+                                        continue
+                                if 10_000_000 <= gid <= 999_999_999 and gid not in exclude_gov_ids and int(gov.get("power") or 0) >= 50_000:
                                     gov["id"] = str(gid)
                                     if not gov["name"]:
                                         gov["name"] = f"Governor_{gid}"
@@ -1304,7 +1321,7 @@ def push_batch_to_unity(unity_url: str, scanner_key: str, payload: dict):
 def run_ram_dump(args):
     driver = AdbEmulatorDriver(serial=args.adb)
     t0 = time.time()
-    ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
+    ram_govs = extract_all_governors_from_ram(adb_serial=args.adb, target_kd=str(args.kd))
     save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
     merged_govs = merge_ram_and_mumu_save_telemetry(ram_govs, save_govs)
     elapsed = time.time() - t0
@@ -1735,7 +1752,7 @@ def run_kingdom_scan(args):
             batch_now_dt = datetime.now(timezone.utc)
             batch_now_iso = batch_now_dt.isoformat()
             batch_dtg_str = batch_now_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-            ram_govs = extract_all_governors_from_ram(adb_serial=args.adb)
+            ram_govs = extract_all_governors_from_ram(adb_serial=args.adb, target_kd=str(args.kd))
             for rg in ram_govs:
                 gid = int(rg.get("govId") or rg.get("id") or 0)
                 if gid <= 0 or gid in pre_scan_ghost_ids:
