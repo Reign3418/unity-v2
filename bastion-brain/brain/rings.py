@@ -323,7 +323,7 @@ class Ring2:
         if bot is None:
             return "NO_ACTIVE_BOT"
 
-        if bot["lifecycle_state"] not in PLANNABLE_STATES:
+        if bot["lifecycle_state"] not in PLANNABLE_STATES and bot["lifecycle_state"] != "SUSPECT":
             return f"STATE_{bot['lifecycle_state']}"
 
         if config.get("enable_helpers") and self.helpers:
@@ -348,7 +348,7 @@ class Ring2:
 
         choice = self._choose(bot, rt, demands, now, all_bots, config.get("capabilities", []))
         if choice is None:
-            return "IDLE"
+            return "STATE_SUSPECT" if bot["lifecycle_state"] == "SUSPECT" else "IDLE"
         job_type, args, priority, why, inputs, demand = choice
         job = self._build_job(job_type, args, priority, bot, demand, now)
 
@@ -756,7 +756,7 @@ class Ring2:
         # 3. Rest checks (Quarantine/Suspect, Sleep Window, Sleeping, Daily Cap, Session Break) -> Rotate to an awake sibling if available!
         rest_reason: Optional[str] = None
         rest_mins: int = 0
-        if (bot.get("health") or {}).get("ban_suspected"):
+        if (bot.get("health") or {}).get("ban_suspected") or state == "SUSPECT":
             rest_reason = "BAN_SUSPECTED_QUARANTINE"
             rest_mins = 720
         elif numnum.in_sleep_window(now, p):
