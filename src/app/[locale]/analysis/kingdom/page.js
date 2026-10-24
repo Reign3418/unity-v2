@@ -94,6 +94,19 @@ export default function KingdomAnalysis() {
   // ── Navigation UI State ────────────────────────────────────────────────
   // Tab Routing State
   const [activeTab, setActiveTab] = useState("Kingdom Analysis");
+
+  // Automatic Sub-Tab Visit Telemetry Tracker (Non-Blocking)
+  useEffect(() => {
+    if (!activeTab) return;
+    fetch('/api/telemetry/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'KINGDOM_TAB_VIEW',
+        metadata: { tab: activeTab, kingdomId: targetKd || '4197' }
+      })
+    }).catch(() => {});
+  }, [activeTab, targetKd]);
   // Layout Mode: 'sidebar' = new grouped sidebar | 'classic' = legacy horizontal tabs (kill switch)
   const [layoutMode, setLayoutMode] = useState('sidebar');
   // Command Palette (Ctrl+K / Search button)

@@ -12,7 +12,7 @@ const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east
  * @param {object} context    { userEmail, userAgent, sessionId }
  */
 export async function logEvent(eventType, metadata = {}, context = {}) {
-    const tableName = process.env.AWS_TABLE_NAME;
+    const tableName = process.env.AWS_TABLE_NAME || 'Unity2AWSRoster';
     if (!tableName) return; // Silently skip if not configured
 
     try {

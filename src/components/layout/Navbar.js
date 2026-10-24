@@ -31,6 +31,20 @@ export default function Navbar({ onMenuClick }) {
   const tSidebar = useTranslations('Sidebar');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeKd, setActiveKd] = useState('4197');
+
+  // Automatic Page Visit Telemetry Tracker (Non-Blocking)
+  useEffect(() => {
+    if (!pathname) return;
+    const normalizedRoute = pathname.replace(/^\/(en|ar|de|es|fr|id|it|ja|ko|ms|pl|pt|ru|th|tr|vi|zh)(?=\/|$)/, '') || '/';
+    fetch('/api/telemetry/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'PAGE_VIEW',
+        metadata: { route: normalizedRoute, rawPathname: pathname }
+      })
+    }).catch(() => {});
+  }, [pathname]);
   const kingdomList = getMergedKingdomList(effectiveSession || session, activeKd);
 
   useEffect(() => {

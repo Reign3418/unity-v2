@@ -21,7 +21,12 @@ const FEATURE_META = {
     VISION_AP_SCAN:         { label: "Vision AP",          icon: Activity,   color: "text-cyan-300",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
     VISION_FLAG_SCAN:       { label: "Vision Flag",        icon: Shield,     color: "text-rose-300",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
     VISION_FORGE_SCAN:      { label: "Vision Forge",       icon: Activity,   color: "text-blue-300",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
-    VISION_DEADEYE_SCAN:    { label: "Vision Deadeye",     icon: Search,     color: "text-fuchsia-300", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20" }
+    VISION_DEADEYE_SCAN:    { label: "Vision Deadeye",     icon: Search,     color: "text-fuchsia-300", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20" },
+    PAGE_VIEW:              { label: "Page Visit",         icon: Eye,        color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+    KINGDOM_TAB_VIEW:       { label: "Kingdom Sub-Tab",    icon: BarChart2,  color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    RESELLER_HUNTER_SCAN:   { label: "Reseller Radar",     icon: Crosshair,  color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    KINGDOM_ROLLUP_ACCESSED:{ label: "Kingdom Rollup",     icon: Activity,   color: "text-sky-400",     bg: "bg-sky-500/10",     border: "border-sky-500/20" },
+    VISION_RANKING_SCAN:    { label: "Ranking OCR",        icon: Eye,        color: "text-amber-300",   bg: "bg-amber-500/10",   border: "border-amber-500/20" }
 };
 
 const TimeAgo = ({ ts }) => {
@@ -98,7 +103,7 @@ export default function AdminAnalytics() {
             {/* Filters */}
             <div className="flex items-center gap-3 mb-8">
                 <span className="text-gray-600 text-xs uppercase tracking-wider">Timeframe</span>
-                {[1, 3, 7, 14, 30].map(d => (
+                {[1, 3, 7, 14, 30, 90].map(d => (
                     <button
                         key={d}
                         onClick={() => setDays(d)}
