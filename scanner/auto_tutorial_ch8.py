@@ -1005,7 +1005,7 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     for gy in range(20, H - 70, 15):
         for gx in range(20, W - 70, 15):
             c = int(sp[gy : gy + 75, gx : gx + 75].sum())
-            if c < 120:
+            if c < 120 and is_world_map(a2):
                 c_raw = int(sp_raw[gy : gy + 75, gx : gx + 75].sum())
                 if c_raw >= 1100:
                     c = c_raw
@@ -1777,7 +1777,7 @@ def main():
                 continue
 
         has_selected_building_ribbon = False
-        if is_city_hud(a2) and not is_world_map(a2) and not (spear_xy and (spear_xy[0] < 320 or bcnt >= 150)):
+        if is_city_hud(a2) and not is_world_map(a2) and not (spear_xy and spear_xy[0] < 320):
             rib_chk = a2[25:600, 175:1550]
             is_rib_chk = (rib_chk[:, :, 2] >= 145) & (rib_chk[:, :, 0] <= 55) & ((rib_chk[:, :, 2].astype(np.int32) - rib_chk[:, :, 0].astype(np.int32)) >= 100)
             is_wht_chk = (rib_chk[:, :, 0] >= 205) & (rib_chk[:, :, 1] >= 205) & (rib_chk[:, :, 2] >= 205)

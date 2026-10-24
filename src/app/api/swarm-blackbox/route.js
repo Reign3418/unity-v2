@@ -1,13 +1,74 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { auth } from '@/lib/auth';
-import { getGlobalConfig, updateGlobalConfig } from '@/lib/awsDynamo';
 
 export const dynamic = 'force-dynamic';
 
 const LOCAL_BB_PATH = path.join(process.cwd(), 'scanner', 'swarm_4197_blackbox.json');
 const HUB_EXEC_URL = 'http://127.0.0.1:8888/exec';
+
+const REGION = process.env.BASTION_AWS_REGION || 'us-east-2';
+const CONTROL_TABLE = process.env.BASTION_CONTROL_TABLE || 'BastionControl';
+const db = new DynamoDBClient({ region: REGION });
+
+async function readCloudBlackBox() {
+  try {
+    const res = await db.send(
+      new GetItemCommand({
+        TableName: CONTROL_TABLE,
+        Key: { control_key: { S: 'SWARM_4197_BLACKBOX' } },
+        ConsistentRead: true,
+      })
+    );
+    const raw = res.Item?.payload_json?.S;
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('[SWARM-BLACKBOX] DynamoDB read error:', e.message);
+  }
+  return null;
+}
+
+async function writeCloudBlackBox(stateObj) {
+  try {
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: {
+          control_key: { S: 'SWARM_4197_BLACKBOX' },
+          updated_at: { S: new Date().toISOString() },
+          payload_json: { S: JSON.stringify(stateObj) },
+        },
+      })
+    );
+    return true;
+  } catch (e) {
+    console.error('[SWARM-BLACKBOX] DynamoDB write error:', e.message);
+    return false;
+  }
+}
+
+async function queueCloudSwarmCommand(cmdObj) {
+  try {
+    await db.send(
+      new PutItemCommand({
+        TableName: CONTROL_TABLE,
+        Item: {
+          control_key: { S: 'SWARM_4197_CMD' },
+          updated_at: { S: new Date().toISOString() },
+          payload_json: { S: JSON.stringify(cmdObj) },
+        },
+      })
+    );
+    return true;
+  } catch (e) {
+    console.error('[SWARM-BLACKBOX] DynamoDB cmd error:', e.message);
+    return false;
+  }
+}
 
 function buildFallbackState() {
   const now = new Date().toISOString();
@@ -36,7 +97,7 @@ function buildFallbackState() {
         kingdom: '4197',
         activeGovernorName: 'Belerion-Alpha-16384',
         activeGovernorId: '',
-        allianceTag: '',
+        allianceTag: '3vil',
         cityHallLevel: 8,
         power: 14200,
         killPoints: 0,
@@ -54,7 +115,7 @@ function buildFallbackState() {
           t1BatchesCompleted: 1,
           estimatedT1Troops: 2400,
         },
-        rssBags: { food: '185K', wood: '190K', stone: '95K', gold: '25K', gems: '450' },
+        rssBags: { food: '90.0K', wood: '94.5K', stone: '350', gold: '0', gems: '350' },
         coordinates: { kingdom: '4197', x: 0, y: 0 },
         roster4197: [{ kingdom: '4197', active: true, label: '#4197 Slot 1' }],
         legalSlotsMax: 2,
@@ -110,15 +171,15 @@ function buildFallbackState() {
         port: '16448',
         vmIndex: 2,
         kingdom: '4197',
-        activeGovernorName: 'Belerion-Charlie-16448',
-        activeGovernorId: '',
+        activeGovernorName: 'Governor236737719',
+        activeGovernorId: '236737719',
         allianceTag: '',
-        cityHallLevel: 8,
-        power: 15100,
+        cityHallLevel: 5,
+        power: 4385,
         killPoints: 0,
         status: 'ACTIVE_IN_4197',
         currentTask: 'Active in #4197 — Training T1 ONLY & Farming STONE',
-        currentBuilding: 'City Hall Lv.8 Completed -> Resource Queue',
+        currentBuilding: 'City Hall / Resource Queue',
         currentFarming: { resource: 'STONE', label: 'STONE (Stone Deposit)', nodeX: 0, nodeY: 0, status: 'GATHERING' },
         currentTraining: {
           policy: 'T1 ONLY',
@@ -130,8 +191,8 @@ function buildFallbackState() {
           t1BatchesCompleted: 1,
           estimatedT1Troops: 2400,
         },
-        rssBags: { food: '195K', wood: '205K', stone: '120K', gold: '20K', gems: '340' },
-        coordinates: { kingdom: '4197', x: 0, y: 0 },
+        rssBags: { food: '93.8K', wood: '97.6K', stone: '550', gold: '0', gems: '550' },
+        coordinates: { kingdom: '4197', x: 125, y: 564 },
         roster4197: [{ kingdom: '4197', active: true, label: '#4197 Slot 1' }],
         legalSlotsMax: 2,
         shiftStartedAt: now,
@@ -143,57 +204,21 @@ function buildFallbackState() {
       },
     },
     threats: [],
-    movements: [
-      {
-        id: 'mov-init-4197',
-        timestamp: now,
-        port: 'ALL',
-        instanceId: 'sidekick-cluster',
-        governorName: 'Swarm Orchestrator',
-        kingdom: '4197',
-        category: 'SWARM_BOOT',
-        action: 'All 3 SIDEKICK instances (:16384, :16416, :16448) consolidated onto Kingdom #4197 (T1-ONLY + Black-Box active)',
-        details: {},
-      },
-    ],
+    movements: [],
   };
 }
 
 export async function GET() {
   try {
-    const session = await auth();
-    // 1. Try pulling fresh 4197_blackbox.json directly from SIDEKICK via Cluster Hub /exec
-    try {
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), 4500);
-      const res = await fetch(HUB_EXEC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          command: "if (Test-Path 'C:\\UnityScanner\\4197_blackbox.json') { Get-Content 'C:\\UnityScanner\\4197_blackbox.json' -Raw }",
-          timeoutMs: 4000,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        const payload = await res.json();
-        const raw = (payload.stdout || '').trim();
-        if (raw.startsWith('{')) {
-          const parsed = JSON.parse(raw);
-          try {
-            fs.writeFileSync(LOCAL_BB_PATH, JSON.stringify(parsed, null, 2), 'utf8');
-          } catch {}
-          // Sync compact copy (without heavy base64 if > 300KB) to DynamoDB for cloud access
-          try {
-            await updateGlobalConfig('SWARM_4197_BLACKBOX', JSON.stringify(parsed));
-          } catch {}
-          return NextResponse.json({ ok: true, source: 'SIDEKICK_LIVE', data: parsed });
-        }
-      }
-    } catch {}
+    await auth();
 
-    // 2. Check local cached file on MIXERV3
+    // 1. Read directly from DynamoDB BastionControl (us-east-2) — fast (<50ms) and works on both Vercel Cloud & Local
+    const cloudData = await readCloudBlackBox();
+    if (cloudData && cloudData.instances) {
+      return NextResponse.json({ ok: true, source: 'BASTION_DYNAMO_LIVE', data: cloudData });
+    }
+
+    // 2. Fallback: Check local cached file on MIXERV3
     if (fs.existsSync(LOCAL_BB_PATH)) {
       try {
         const localRaw = fs.readFileSync(LOCAL_BB_PATH, 'utf8');
@@ -201,14 +226,6 @@ export async function GET() {
         return NextResponse.json({ ok: true, source: 'LOCAL_CACHE', data: parsed });
       } catch {}
     }
-
-    // 3. Check DynamoDB Cloud Config
-    try {
-      const cloudRaw = await getGlobalConfig('SWARM_4197_BLACKBOX');
-      if (cloudRaw) {
-        return NextResponse.json({ ok: true, source: 'DYNAMODB_CLOUD', data: JSON.parse(cloudRaw) });
-      }
-    } catch {}
 
     return NextResponse.json({ ok: true, source: 'FALLBACK_INIT', data: buildFallbackState() });
   } catch (error) {
@@ -218,7 +235,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const session = await auth();
+    await auth();
     const body = await request.json();
 
     // Case 1: Full state push from SIDEKICK orchestrator
@@ -226,17 +243,22 @@ export async function POST(request) {
       try {
         fs.writeFileSync(LOCAL_BB_PATH, JSON.stringify(body, null, 2), 'utf8');
       } catch {}
-      try {
-        await updateGlobalConfig('SWARM_4197_BLACKBOX', JSON.stringify(body));
-      } catch {}
+      await writeCloudBlackBox(body);
       return NextResponse.json({ ok: true, saved: true });
     }
 
-    // Case 2: Operator Action triggered from Graphical Command Deck
+    // Case 2: Operator Action triggered from Graphical Command Deck (works on both Vercel Cloud and LAN)
     const { action, port = '16448' } = body || {};
+    const cmdObj = {
+      cmdId: `swarm_cmd_${Date.now()}`,
+      action,
+      port,
+      queuedAt: new Date().toISOString(),
+    };
+    await queueCloudSwarmCommand(cmdObj);
+
     const adb = `127.0.0.1:${port}`;
     let psCmd = '';
-
     if (action === 'RESTART_SWARM') {
       psCmd = `
         Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" | Where-Object { $_.CommandLine -like "*swarm_4197_orchestrator.py*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
@@ -257,19 +279,24 @@ export async function POST(request) {
 
     if (psCmd) {
       try {
-        const res = await fetch(HUB_EXEC_URL, {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 4000);
+        await fetch(HUB_EXEC_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: psCmd, timeoutMs: 8000 }),
+          body: JSON.stringify({ command: psCmd, async: true }),
+          signal: controller.signal,
         });
-        const out = await res.json();
-        return NextResponse.json({ ok: true, action, port, output: out.stdout || 'Dispatched to SIDEKICK' });
-      } catch (e) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
-      }
+        clearTimeout(t);
+      } catch {}
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      action,
+      port,
+      output: `Queued ${action} for :${port} via BastionControl DynamoDB & Cluster Hub`,
+    });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
