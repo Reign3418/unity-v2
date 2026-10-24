@@ -146,7 +146,7 @@ export async function GET() {
     return NextResponse.json({ error: 'SuperAdmin clearance required' }, { status: 403 });
   }
   try {
-    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl, brainLease, brainNodesCtrl, safetyStateCtrl, contextStateCtrl] =
+    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl, brainLease, brainNodesCtrl, safetyStateCtrl, contextStateCtrl, sidekickWatchdogCtrl] =
       await Promise.all([
         getControl('MODE'),
         getControl('BRAIN_HEARTBEAT'),
@@ -159,6 +159,7 @@ export async function GET() {
         getControl('BRAIN_NODES'),
         getControl('SAFETY_STATE'),
         getControl('CONTEXT_STATE'),
+        getControl('WATCHDOG#sidekick'),
       ]);
 
     const botIds = fleet?.bot_ids || [];
@@ -239,6 +240,7 @@ export async function GET() {
       brainNodes: brainNodesCtrl?.nodes || {},
       safetyState: safetyStateCtrl || null,
       contextState: contextStateCtrl || null,
+      sidekickWatchdog: sidekickWatchdogCtrl || null,
       fleet,
       config,
       helpers: helpersCtrl?.active || helpersCtrl?.helpers || [],
