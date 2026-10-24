@@ -924,7 +924,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
   const handleRunMapSweep = async () => {
     setIsSweeping(true);
-    setBotStatusMsg('Harvesting 7-layer map coordinates from save & mailcache...');
+    setBotStatusMsg('Harvesting 7-layer map coordinates via Valheon Optical Telemetry...');
     try {
       await fetch('/api/aws/map-entities', {
         method: 'POST',
