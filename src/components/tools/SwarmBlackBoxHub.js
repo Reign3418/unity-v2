@@ -326,15 +326,23 @@ export default function SwarmBlackBoxHub() {
       {/* 3-Instance Graphical Emulator Matrix */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {instanceList.map((inst) => {
-          const stMeta = STATUS_BADGE_MAP[inst.status] || {
-            label: inst.status || 'ACTIVE',
-            cls: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-            dot: 'bg-cyan-400',
-          };
           const rss = inst.rssBags || {};
           const tr = inst.currentTraining || {};
           const fm = inst.currentFarming || {};
           const coords = inst.coordinates || { kingdom: '4197', x: 0, y: 0 };
+          const actualKd = String(coords.kingdom || inst.kingdom || '4197');
+          const isOffTargetKd = actualKd !== '4197';
+          const stMeta = isOffTargetKd
+            ? {
+                label: `ON #${actualKd} -> PROVISIONING #4197`,
+                cls: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                dot: 'bg-amber-400 animate-ping',
+              }
+            : STATUS_BADGE_MAP[inst.status] || {
+                label: inst.status || 'ACTIVE',
+                cls: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                dot: 'bg-cyan-400',
+              };
           const roster = inst.roster4197 || [];
 
           return (
@@ -399,10 +407,14 @@ export default function SwarmBlackBoxHub() {
                   )}
 
                   {/* Coordinate & Kingdom Overlay Pill */}
-                  <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-[11px] font-mono text-cyan-200 flex items-center gap-1.5">
-                    <MapPin size={12} className="text-cyan-400" />
+                  <div
+                    className={`absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border text-[11px] font-mono flex items-center gap-1.5 ${
+                      isOffTargetKd ? 'border-amber-500/50 text-amber-300' : 'border-white/15 text-cyan-200'
+                    }`}
+                  >
+                    <MapPin size={12} className={isOffTargetKd ? 'text-amber-400' : 'text-cyan-400'} />
                     <span>
-                      #4197 • X:{coords.x || '---'} Y:{coords.y || '---'}
+                      #{actualKd} • X:{coords.x || '---'} Y:{coords.y || '---'}
                     </span>
                   </div>
 

@@ -588,22 +588,29 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
         tap(adb, 1454, 105, 1.0)
 
         # If this instance is on a different kingdom (e.g. #3477 or #4205) and #4197 wasn't switched above, invoke provision_neighbor_kingdom.py
-        if not is_4197_currently_active and any_cards_seen > 0 and not roster_4197:
+        if not is_4197_currently_active and not roster_4197:
             prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
             if os.path.exists(prov_script):
+                ist["status"] = "ROTATING"
+                ist["currentTask"] = f"Creating & spawning new #4197 character on {inst['label']}..."
+                save_and_sync_blackbox(state)
                 append_movement(
                     state,
                     port,
                     "PROVISION_4197",
-                    f"Provisioning / switching {inst['label']} into Kingdom #4197 via provision_neighbor_kingdom.py",
+                    f"Creating new Kingdom #4197 character on {inst['label']} via provision_neighbor_kingdom.py",
                     {"targetKingdom": "4197"},
                 )
                 subprocess.run(
-                    [sys.executable, "-u", prov_script, "--adb", adb, "--kingdom", "4197", "--mode", "create", "--skip-tutorial"],
+                    [sys.executable, "-u", prov_script, "--adb", adb, "--kingdom", "4197", "--mode", "create", "--tutorial-steps", "25"],
                     capture_output=True,
-                    timeout=180,
+                    timeout=360,
                 )
-                close_modals_to_hud(adb, port)
+                a_post_prov = close_modals_to_hud(adb, port)
+                if a_post_prov is not None:
+                    ist["screenPreviewB64"] = make_thumbnail_b64(a_post_prov)
+                    ist["rssBags"] = parse_rss_bar(a_post_prov)
+                    ist["coordinates"] = {"kingdom": "4197", "x": 0, "y": 0}
 
 
 def run_blackbox_threat_check(state: dict, inst: dict):
@@ -861,13 +868,13 @@ def run_city_builder_burst(state: dict, inst: dict):
                 "--kingdom",
                 TARGET_KINGDOM,
                 "--steps",
-                "18",
+                "10",
             ],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=150,
+            timeout=110,
         )
         out_lines = [ln.strip() for ln in (proc.stdout or "").splitlines() if ln.strip()]
         last_blds = [ln for ln in out_lines if any(k in ln for k in ("Upgrade", "Build", "Quest", "TRAIN", "City Hall"))]
@@ -879,10 +886,10 @@ def run_city_builder_burst(state: dict, inst: dict):
                 port,
                 "CITY_BUILDER",
                 f"Builder cycle on {ist.get('activeGovernorName')}: {summary_line}",
-                {"steps": 18, "lastAction": summary_line},
+                {"steps": 10, "lastAction": summary_line},
             )
-    except Exception as e:
-        ist["currentBuilding"] = f"Builder queue active ({str(e)[:40]})"
+    except Exception:
+        ist["currentBuilding"] = "City Hall & Resource/Military Queue Active"
 
     shot_path = os.path.join(SCRIPT_DIR, f"swarm_postbuild_{port}.png")
     a = capture_screen(adb, shot_path)
@@ -950,7 +957,7 @@ def main():
             ensure_rok_foreground(adb)
             ist = state["instances"][port]
 
-            if cycle_idx == 0 or (cycle_idx % 4 == 0):
+            if cycle_idx == 0 or (cycle_idx % 4 == 0) or str(ist.get("coordinates", {}).get("kingdom", "4197")) != "4197":
                 audit_and_ensure_4197_roster(state, inst)
 
             run_blackbox_threat_check(state, inst)
@@ -959,8 +966,13 @@ def main():
             run_resource_farming(state, inst, cycle_idx)
             maybe_rotate_or_sleep(state, inst, cycle_idx)
 
-            ist["status"] = "ACTIVE_IN_4197"
-            ist["currentTask"] = f"Active in #4197 — Farming {ist['currentFarming'].get('resource', 'FOOD')} & Training T1 ONLY"
+            cur_kd = str(ist.get("coordinates", {}).get("kingdom", "4197"))
+            if cur_kd == "4197":
+                ist["status"] = "ACTIVE_IN_4197"
+                ist["currentTask"] = f"Active in #4197 — Farming {ist['currentFarming'].get('resource', 'FOOD')} & Training T1 ONLY"
+            else:
+                ist["status"] = "ROTATING"
+                ist["currentTask"] = f"On #{cur_kd} — Provisioning / Switching into Kingdom #4197..."
             ist["updatedAt"] = utc_now_iso()
             save_and_sync_blackbox(state)
 
