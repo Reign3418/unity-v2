@@ -8,7 +8,9 @@ import { useTranslations } from 'next-intl';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
 import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, formatKingdomOption } from '@/lib/activeKingdom';
+import { SUPPORTED_LOCALES, LOCALE_METADATA } from '@/lib/locales';
 import {
+  Globe,
   LayoutDashboard,
   User,
   UploadCloud,
@@ -290,6 +292,33 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               ))}
             </select>
           </div>
+          <div className="sm:hidden flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-300 flex items-center gap-1.5">
+              <Globe size={13} className="text-amber-400" />
+              Language:
+            </span>
+            <select
+              aria-label="Mobile App Language Switcher"
+              value={pathname?.split('/')[1] && SUPPORTED_LOCALES.includes(pathname.split('/')[1]) ? pathname.split('/')[1] : 'en'}
+              onChange={(e) => {
+                const newLocale = e.target.value;
+                const segments = (pathname || '/').split('/');
+                if (segments.length >= 2 && SUPPORTED_LOCALES.includes(segments[1])) {
+                  segments[1] = newLocale;
+                  window.location.href = segments.join('/');
+                } else {
+                  window.location.href = `/${newLocale}${pathname}`;
+                }
+              }}
+              className="bg-[#0f1115] text-amber-300 font-mono font-bold text-xs px-2 py-1 rounded border border-amber-500/30 outline-none cursor-pointer"
+            >
+              {LOCALE_METADATA.map((loc) => (
+                <option key={loc.code} value={loc.code} className="bg-[#0f1115] text-white">
+                  {loc.flag} {loc.nativeLabel}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             onClick={() => setIsOmniOpen(true)}
@@ -366,6 +395,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 label={t('nav_peerless_scholar')}
                 badge="LYCEUM"
                 badgeColor="bg-amber-500/15 text-amber-300 border-amber-500/30"
+                appletHref="/en/tools/peerless?applet=true"
               />
               <NavItem
                 href="/tools/hunter"
