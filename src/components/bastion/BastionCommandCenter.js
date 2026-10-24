@@ -330,9 +330,11 @@ const SEVERITY_CLS = {
 };
 
 const RING_PILL_CLS = {
+  RING_5_CONTEXT: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
   RING_1_INTEL: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
   RING_2_OPS: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
   RING_3_AUDIT: 'bg-pink-500/15 text-pink-300 border-pink-500/30',
+  RING_4_SAFETY: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
   SYSTEM: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
 };
 
@@ -688,7 +690,7 @@ export default function BastionCommandCenter() {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black tracking-widest uppercase">
-                ◈ BASTION BRAIN v{hb?.version || '0.7.0-step7'} // SPEC-DRIVEN 3-RING MOE ORCHESTRATOR
+                ◈ BASTION BRAIN v{hb?.version || '5.0.0-zeus'} // SPEC-DRIVEN 5-RING ZEUS APEX ORCHESTRATOR
               </span>
               <span
                 className={`px-2.5 py-0.5 rounded text-[10px] font-black border flex items-center gap-1.5 ${
@@ -712,9 +714,11 @@ export default function BastionCommandCenter() {
               <span>BASTION BRAIN AUTONOMOUS COMMAND & OVERSIGHT DECK</span>
             </h1>
             <p className="text-xs text-slate-400 max-w-3xl font-sans leading-relaxed">
-              Contract-validated 3-Ring Mixture-of-Experts (<span className="text-cyan-300 font-semibold">Ring 1: SCOUT · KENT · NULL</span>,{' '}
+              Contract-validated 5-Ring Mixture-of-Experts (<span className="text-cyan-300 font-semibold">Ring 1: SCOUT · KENT · NULL</span>,{' '}
               <span className="text-amber-300 font-semibold">Ring 2: TANK · BIG JON · NUMNUM · CIPHER</span>,{' '}
-              <span className="text-pink-300 font-semibold">Ring 3: AUDIT · DOZER</span>) orchestrating{' '}
+              <span className="text-pink-300 font-semibold">Ring 3: AUDIT · DOZER</span>,{' '}
+              <span className="text-emerald-300 font-semibold">Ring 4: AEGIS · WARDEN</span>, and{' '}
+              <span className="text-yellow-300 font-semibold">Ring 5: ZEUS · CORTEX</span>) orchestrating{' '}
               <span className="text-emerald-300 font-semibold">SIDEKICK</span> telemetry containers via AWS SQS FIFO queues and S3 SHA-256 screenshot proof.
             </p>
           </div>

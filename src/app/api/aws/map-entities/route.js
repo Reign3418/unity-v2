@@ -9,11 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
+    // ZEUS Contextual Policy: Public/Guest GET is allowed (0s usability friction for Map UI),
+    // while sensitive hardware/account identifiers (udid, lilithUid, workerSerial) are redacted unless SuperAdmin.
     const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
-    }
-    const isSuperAdmin = Boolean(session.user.isSuperAdmin || session.user.role === 'Admin');
+    const isSuperAdmin = Boolean(session?.user?.isSuperAdmin || session?.user?.role === 'Admin');
     const { searchParams } = new URL(request.url);
     const kd = searchParams.get('kd') || '4194';
 
