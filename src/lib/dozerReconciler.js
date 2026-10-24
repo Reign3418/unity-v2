@@ -86,7 +86,7 @@ const MONOTONIC_FIELDS = [
   'aooLosses',
 ];
 
-const DEEP_STRUCTURAL_FIELDS = [
+const ACCOUNT_PORTABLE_FIELDS = [
   'cityHall',
   'townHall',
   'vipLevel',
@@ -101,7 +101,6 @@ const DEEP_STRUCTURAL_FIELDS = [
   'commanderBloatPct',
   'killToDeadRatio',
   'combatEfficiencyScore',
-  'allianceNumericId',
   'birthKingdomId',
   'genesisCapturedAt',
   'udid',
@@ -114,7 +113,6 @@ const DEEP_STRUCTURAL_FIELDS = [
   'avatarFrameId',
   'badgeShowcaseVector',
   'masterAccountCId',
-  'mapCityEntityId',
   'primaryCommander',
   'primaryCmdrAwakened',
   'secondaryCommander',
@@ -123,13 +121,20 @@ const DEEP_STRUCTURAL_FIELDS = [
   'commanderArmaments',
   'kvkMorale',
   'titanLegion',
-  'castlePos',
   'linkedAltGovIds',
   'activeHoursUtc',
   'estSleepWindowUtc',
-  'internalServerId',
   'originServerId',
+];
+
+const KINGDOM_LOCAL_FIELDS = [
+  'allianceNumericId',
+  'mapCityEntityId',
+  'castlePos',
+  'internalServerId',
   'mapServerId',
+  'ralliesLed',
+  'ralliesJoined',
 ];
 
 const ARCHIVE_LEDGER_PATH = path.join(process.cwd(), 'src', 'data', 'bastion_epoch_ledger.json');
@@ -281,10 +286,15 @@ export function reconcileGovernorBatch({
 
     const prevGlobal = existingGovernorsById[gid] || {};
     const prevLocal = existingKingdomGovernors[gid] || {};
-    const prev = { ...prevGlobal, ...prevLocal };
+    const sameGlobalKingdom = !prevGlobal.kingdomId || String(prevGlobal.kingdomId) === kd;
+    const prevPortable = {};
+    for (const f of [...MONOTONIC_FIELDS, ...ACCOUNT_PORTABLE_FIELDS]) {
+      if (prevGlobal[f] !== undefined) prevPortable[f] = prevGlobal[f];
+    }
+    const prev = sameGlobalKingdom ? { ...prevGlobal, ...prevLocal } : { ...prevPortable, ...prevLocal };
 
     // Determine Birth Kingdom (Genesis Stamp)
-    const birthKingdomId = String(prev.birthKingdomId || prevGlobal.kingdomId || kd);
+    const birthKingdomId = String(prev.birthKingdomId || prevGlobal.birthKingdomId || prevGlobal.kingdomId || kd);
     const isMigrant = birthKingdomId !== kd;
     if (isMigrant && !prevLocal.isMigrant) {
       migrantsDetected++;
@@ -340,8 +350,8 @@ export function reconcileGovernorBatch({
     );
     merged.killPoints = bestKp;
 
-    // 2. Non-Destructive Deep Structural Field Carry-Forward
-    for (const sField of DEEP_STRUCTURAL_FIELDS) {
+    // 2. Non-Destructive Deep Structural Field Carry-Forward (Account-Portable + Kingdom-Local isolated)
+    for (const sField of ACCOUNT_PORTABLE_FIELDS) {
       const incomingVal = rawGov[sField];
       const isMissingOrZero =
         incomingVal === undefined ||
@@ -351,6 +361,18 @@ export function reconcileGovernorBatch({
         (typeof incomingVal === 'number' && incomingVal === 0);
       if (isMissingOrZero && prev[sField] !== undefined && prev[sField] !== 0 && prev[sField] !== '') {
         merged[sField] = prev[sField];
+      }
+    }
+    for (const kField of KINGDOM_LOCAL_FIELDS) {
+      const incomingVal = rawGov[kField];
+      const isMissingOrZero =
+        incomingVal === undefined ||
+        incomingVal === null ||
+        incomingVal === '' ||
+        incomingVal === 'Unknown' ||
+        (typeof incomingVal === 'number' && incomingVal === 0);
+      if (isMissingOrZero && prevLocal[kField] !== undefined && prevLocal[kField] !== 0 && prevLocal[kField] !== '') {
+        merged[kField] = prevLocal[kField];
       }
     }
 

@@ -949,10 +949,10 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
         print(f"  [WARN] MuMu doc ADB pull warning: {e}")
 
     govs = {}
-    # Load mailcache_baseline_seed.json strictly as an enrichment lookup dictionary (never adds rows to the roster;
-    # merge_ram_and_mumu_save_telemetry only iterates over governors verified in live RAM on the leaderboard).
+    # Load mailcache_baseline_seed.json strictly as an enrichment lookup dictionary ONLY for #4194
+    # so jumper accounts that migrated to another kingdom (#4197, #4198, etc.) never inherit #4194 coordinates/server IDs.
     seed_path = os.path.join(SCRIPT_DIR, "mailcache_baseline_seed.json")
-    if os.path.exists(seed_path):
+    if os.path.exists(seed_path) and str(target_kd) == "4194":
         try:
             with open(seed_path, "r", encoding="utf-8") as sf:
                 seed_list = json.load(sf)
@@ -1518,6 +1518,21 @@ def ensure_individual_power_leaderboard_open(
             _clear_hud_for_avatar()
             driver.tap(45, 45, sleep_sec=2.2)
             prof_txt = get_screen_ocr_text(driver)
+
+        # Cross-Kingdom Isolation Guard: verify the mounted character's Governor Profile kingdom matches target_kd
+        kd_tokens = re.findall(r"#\s*(\d{4})\b", prof_txt)
+        if kd_tokens and str(target_kd) not in kd_tokens:
+            mounted_kd = kd_tokens[0]
+            print(f"  [CROSS-KD GUARD] Governor Profile shows #{mounted_kd}, expected #{target_kd}! Forcing character switch...")
+            driver.tap(1454, 105, sleep_sec=1.0)
+            prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
+            if os.path.exists(prov_script):
+                subprocess.run(
+                    [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
+                    timeout=240,
+                    check=False,
+                )
+            continue
 
         rank_x = 475 if "ACHIEVEMENTS" in prof_txt else 530
         driver.tap(rank_x, 755, sleep_sec=2.2)
