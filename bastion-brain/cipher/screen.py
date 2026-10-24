@@ -17,6 +17,8 @@ BAN_PHRASES = (
     "permanently banned",
     "account suspended",
     "account banned",
+    "stop using third-party software",
+    "subvert normal gameplay",
 )
 NETWORK_PHRASES = ("connection lost", "network error", "unable to connect", "disconnected from server", "reconnect")
 VERIFICATION_PHRASES = ("captcha", "verification code", "verify you are human", "slide to verify")

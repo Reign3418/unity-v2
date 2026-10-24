@@ -29,6 +29,8 @@ _SWITCH_DONE_RE = re.compile(r"(?:Active on Kingdom|Already active on Kingdom)\s
 _SCAN_SYNC_RE = re.compile(r"Synced\s+(\d+)\s+accumulated|governorsExtracted[\"']?\s*:\s*(\d+)", re.IGNORECASE)
 _TIMER_ACTIVE_RE = re.compile(r"\[TIMER_ACTIVE\]\s*seconds=(\d+)(?:\s+building=\"([^\"]*)\")?", re.IGNORECASE)
 _TIMER_HANDOFF_RE = re.compile(r"\[TIMER_HANDOFF\]\s*seconds=(\d+)\s+farmed=(true|false)", re.IGNORECASE)
+_CH_LEVEL_RE = re.compile(r"\[CH_LEVEL\]\s*level=(\d+)", re.IGNORECASE)
+_STUCK_ABORT_RE = re.compile(r"\[STUCK_ABORT\]\s*reason=\"([^\"]*)\"", re.IGNORECASE)
 CH_REACHED_MARKER = "TARGET REACHED: City Hall Level 8"
 
 
@@ -106,6 +108,8 @@ def parse_grow_output(stdout: str) -> Dict[str, Any]:
     timer_seconds = 0
     timer_building: Optional[str] = None
     farmed = False
+    ch_level: Optional[int] = None
+    stuck_reason: Optional[str] = None
     for line in stdout.splitlines():
         m = _STEP_RE.match(line.strip())
         if m:
@@ -119,8 +123,21 @@ def parse_grow_output(stdout: str) -> Dict[str, Any]:
         if mh:
             timer_seconds = max(timer_seconds, int(mh.group(1)))
             farmed = mh.group(2).lower() == "true"
+        mc = _CH_LEVEL_RE.search(line)
+        if mc:
+            lvl = int(mc.group(1))
+            if 1 <= lvl <= 25:
+                ch_level = max(ch_level or 0, lvl)
+        ms = _STUCK_ABORT_RE.search(line)
+        if ms:
+            stuck_reason = ms.group(1).strip()
+    reached = CH_REACHED_MARKER in stdout or (ch_level is not None and ch_level >= MAX_SUPPORTED_CH)
+    if reached:
+        ch_level = max(ch_level or 0, MAX_SUPPORTED_CH)
     return {
-        "reached": CH_REACHED_MARKER in stdout,
+        "reached": reached,
+        "ch_level": ch_level,
+        "stuck_reason": stuck_reason,
         "script_steps": steps,
         "timer_seconds": timer_seconds,
         "timer_building": timer_building,
@@ -244,6 +261,8 @@ def grow_city(ctx: SkillContext) -> SkillOutcome:
     }
     if parsed.get("timer_building"):
         metrics["timer_building"] = parsed["timer_building"]
+    if parsed.get("stuck_reason"):
+        metrics["stuck_reason"] = parsed["stuck_reason"]
     if out.timed_out:
         return SkillOutcome("TIMEOUT", error=err("SKILL_TIMEOUT", f"auto_tutorial_ch8 exceeded {int(budget)}s", True), metrics=metrics)
     if out.returncode != 0:
@@ -251,8 +270,12 @@ def grow_city(ctx: SkillContext) -> SkillOutcome:
         return SkillOutcome("FAILED", error=err("SKILL_EXIT_NONZERO", f"rc={out.returncode}: {tail[0]}", True), metrics=metrics)
     if parsed["reached"]:
         metrics["ch_level_source"] = "skill_stdout"
-        return SkillOutcome("SUCCEEDED", {"ch_level": 8, "screen_state": "CITY_VIEW", "kingdom_id": None}, metrics=metrics)
-    return SkillOutcome("PARTIAL", {"screen_state": "UNKNOWN", "kingdom_id": None}, metrics=metrics)
+        return SkillOutcome("SUCCEEDED", {"ch_level": parsed.get("ch_level") or 8, "screen_state": "CITY_VIEW", "kingdom_id": None}, metrics=metrics)
+    partial_obs: Dict[str, Any] = {"screen_state": "UNKNOWN", "kingdom_id": None}
+    if parsed.get("ch_level"):
+        partial_obs["ch_level"] = int(parsed["ch_level"])
+        metrics["ch_level_source"] = "skill_stdout"
+    return SkillOutcome("PARTIAL", partial_obs, metrics=metrics)
 
 
 def switch_character(ctx: SkillContext) -> SkillOutcome:

@@ -969,6 +969,37 @@ class CohortRotationTimersAndPreemptionTests(unittest.TestCase):
         self.assertEqual((loc_job["job_type"], loc_job["kingdom_id"], loc_job["args"]["target_governor_name"]),
                          ("locate_governor", 4194, "RogueWhale"))
 
+    def test_stuck_abort_and_roving_guard_least_recently_visited_rotation(self):
+        b_4198 = make_bot("bot_4198_twin_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4198, ch=2, state="GROWING")
+        b_4044 = make_bot("bot_4044_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4044, ch=2, state="GROWING")
+        b_4196 = make_bot("bot_4196_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4196, ch=2, state="GROWING")
+        b_4044["verified_state"]["last_verified_at"] = "2026-10-20T01:00:00Z"  # oldest visited!
+        b_4196["verified_state"]["last_verified_at"] = "2026-10-21T20:00:00Z"
+        w = World(control_mode="AUTONOMOUS", bots=[b_4198, b_4044, b_4196], kingdom_last=None)
+        w.store.put_control("CONFIG", dict(DEFAULT_CONFIG, capabilities=list(numnum.STAGE6_CAPABILITIES), watched_kingdoms=[]))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4198_twin_m0", "bot_4044_m0", "bot_4196_m0"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4198_twin_m0"},
+        })
+
+        # Tick 1: bot_4198_twin_m0 dispatches grow_city (default 15 steps)
+        w.tick()
+        grow_job = w.transport.sent[-1]
+        self.assertEqual((grow_job["job_type"], grow_job["args"]["max_steps"]), ("grow_city", 15))
+
+        # CIPHER returns PARTIAL with intermediate ch=7 AND stuck_reason -> Ring 3 updates ch_level=7 and sets 15m cooldown (farmed_this_timer=True)
+        res = w.result_for(grow_job, status="PARTIAL", screen="CITY_VIEW", ch=7, duration_ms=45000)
+        res["evidence"]["metrics"] = {"script_steps": 6, "stuck_reason": "repeated_tap_at_(58,52)"}
+        w.transport.push_result(res)
+        w.tick()
+        self.assertEqual(w.bot("bot_4198_twin_m0")["verified_state"]["ch_level"], 7)
+
+        # Next tick: Roving guard rotates to the least-recently visited sibling (bot_4044_m0, NOT bot_4196_m0 alphabetically!)
+        w.clock.t += timedelta(minutes=2)
+        w.tick()
+        rot_job = w.transport.sent[-1]
+        self.assertEqual((rot_job["job_type"], rot_job["args"]["target_kingdom_id"]), ("switch_character", 4044))
+
 
 if __name__ == "__main__":
     unittest.main()

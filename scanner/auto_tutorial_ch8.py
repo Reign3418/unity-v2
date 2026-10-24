@@ -14,7 +14,10 @@ Uses:
 ===============================================================================
 """
 
+import io
 import os
+import random
+import re
 import sys
 import time
 import argparse
@@ -34,24 +37,56 @@ if not os.path.exists(ADB_BIN):
     ADB_BIN = "adb"
 
 
+class StuckAbortError(RuntimeError):
+    """Raised when the same coordinate or idle state repeats 3x without progress."""
+
+
+_LAST_TAP_XY = None
+_SAME_TAP_STREAK = 0
+
+
+def _capture_rgb_in_memory(serial: str, save_path: str = None) -> np.ndarray:
+    res = subprocess.run([ADB_BIN, "-s", serial, "exec-out", "screencap", "-p"], capture_output=True, timeout=10)
+    if res.returncode == 0 and res.stdout and len(res.stdout) > 1000:
+        img = Image.open(io.BytesIO(res.stdout)).convert("RGB")
+        if save_path:
+            try:
+                img.save(save_path)
+            except Exception:
+                pass
+        return np.array(img, dtype=int)
+    raise RuntimeError(f"exec-out screencap failed on {serial} (rc={res.returncode}, bytes={len(res.stdout or b'')})")
+
+
 def screencap_pair(serial: str, p1: str, p2: str):
-    subprocess.run(
-        [ADB_BIN, "-s", serial, "shell", "screencap -p /sdcard/s1.png && sleep 0.25 && screencap -p /sdcard/s2.png"],
-        capture_output=True,
-    )
-    subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s1.png", p1], capture_output=True)
-    subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s2.png", p2], capture_output=True)
-    a1 = np.array(Image.open(p1).convert("RGB"), dtype=int)
-    a2 = np.array(Image.open(p2).convert("RGB"), dtype=int)
+    a1 = _capture_rgb_in_memory(serial, p1)
+    time.sleep(0.25)
+    a2 = _capture_rgb_in_memory(serial, p2)
     return a1, a2
 
 
 def tap(serial: str, x: int, y: int, sleep_sec: float = 1.0):
+    global _LAST_TAP_XY, _SAME_TAP_STREAK
     x = max(12, min(1588, int(x)))
     y = max(12, min(888, int(y)))
-    subprocess.run([ADB_BIN, "-s", serial, "shell", "input", "tap", str(x), str(y)], capture_output=True)
+    if _LAST_TAP_XY is not None and abs(x - _LAST_TAP_XY[0]) <= 24 and abs(y - _LAST_TAP_XY[1]) <= 24:
+        _SAME_TAP_STREAK += 1
+    else:
+        _SAME_TAP_STREAK = 1
+        _LAST_TAP_XY = (x, y)
+    if _SAME_TAP_STREAK > 3:
+        msg = f"repeated_tap_at_({x},{y})"
+        print(f'[STUCK_ABORT] reason="{msg}"')
+        raise StuckAbortError(msg)
+    jx = max(12, min(1588, x + random.randint(-3, 3)))
+    jy = max(12, min(888, y + random.randint(-3, 3)))
+    hold_ms = random.randint(55, 115)
+    subprocess.run(
+        [ADB_BIN, "-s", serial, "shell", "input", "swipe", str(jx), str(jy), str(jx + random.randint(-1, 1)), str(jy + random.randint(-1, 1)), str(hold_ms)],
+        capture_output=True,
+    )
     if sleep_sec > 0:
-        time.sleep(sleep_sec)
+        time.sleep(sleep_sec + random.uniform(0.02, 0.14))
 
 
 def swipe(serial: str, x1: int, y1: int, x2: int, y2: int, dur_ms: int = 450, sleep_sec: float = 1.0):
@@ -775,6 +810,38 @@ def detect_new_troop_modal(a: np.ndarray):
     if float(np.mean(is_chat_parch)) > 0.45 and float(np.mean(is_r_hdr)) < 0.25:
         return (860, 500, "Kingdom Chat Drawer Open -> Close (860, 500)")
 
+    # 11c1b. Character Login Confirmation Modal ("Log in as this character?" red NO at x=445..745, y=600..675 + cyan YES at x=865..1165, y=600..675)
+    if not is_city_hud(a):
+        cl_no = a[600:675, 445:745]
+        cl_yes = a[600:675, 865:1165]
+        is_cl_no_red = (cl_no[:, :, 0] >= 170) & (cl_no[:, :, 1] <= 70) & (cl_no[:, :, 2] <= 60)
+        is_cl_yes_cy = (cl_yes[:, :, 2] >= 180) & (cl_yes[:, :, 1] >= 140) & (cl_yes[:, :, 0] <= 75)
+        if int(is_cl_no_red.sum()) >= 8000 and int(is_cl_yes_cy.sum()) >= 10000:
+            return (1016, 637, "Character Login Confirm Modal -> Tap YES (1016, 637)")
+
+    # 11c1c. First Recharge Rewards Modal (gold $0.99 button at x=380..746, y=700..798 + top-right X button at 1443, 64)
+    if not is_city_hud(a):
+        fr_gold = (a[700:798, 380:746, 0] >= 210) & (a[700:798, 380:746, 1] >= 135) & (a[700:798, 380:746, 2] <= 45)
+        fr_x = (a[25:120, 1380:1520, 0] >= 120) & (np.abs(a[25:120, 1380:1520, 0] - a[25:120, 1380:1520, 1]) <= 20)
+        if int(fr_gold.sum()) >= 12000 and int(fr_x.sum()) >= 250:
+            return (1443, 64, "First Recharge Modal Open -> Close (1443, 64)")
+
+    # 11c4 (evaluated BEFORE 11c2 so the grey PERSONAL tab at 58,52 is never mistaken for a top-left Back button!).
+    # Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580; top-left blue avatar ribbon must be covered)
+    tl_rib_diff = float((a[85:125, 15:70, 2].astype(np.float32) - a[85:125, 15:70, 0].astype(np.float32)).mean())
+    if not is_city_hud(a) and not is_nt_panel and tl_rib_diff <= 28.0:
+        m_hdr = a[35:80, 200:1580]
+        is_m_hdr = (
+            (m_hdr[:, :, 0] >= 140)
+            & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 1].astype(np.int32)) < 25)
+            & (np.abs(m_hdr[:, :, 1].astype(np.int32) - m_hdr[:, :, 2].astype(np.int32)) < 25)
+            & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 2].astype(np.int32)) < 25)
+        )
+        if float(np.mean(is_m_hdr[:, :1150])) > 0.55:
+            if float(np.mean(is_m_hdr[:, 1260:])) < 0.35:
+                return (1395, 58, "Joined Alliance Modal Open -> Close (1395, 58)")
+            return (1540, 48, "Mail Modal Open -> Close (1540, 48)")
+
     # 11c2. Event Calendar Parchment Modal (tan header y=20..80, x=200..1350 spanning both left & right halves) -> Close (1386, 58) x2
     if not is_city_hud(a):
         if float(np.mean(is_back_grey)) > 0.45:
@@ -821,24 +888,6 @@ def detect_new_troop_modal(a: np.ndarray):
         and float(a[760:880, 15:135, 2].mean()) > 130.0
     ):
         return (60, 815, "Tutorial Return to City Banner -> Tap (60, 815)")
-
-    # 11c4. Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580; top-left blue avatar ribbon must be covered)
-    tl_rib_diff = float((a[85:125, 15:70, 2].astype(np.float32) - a[85:125, 15:70, 0].astype(np.float32)).mean())
-    if not is_city_hud(a) and not is_nt_panel and tl_rib_diff <= 28.0:
-        m_hdr = a[35:80, 200:1580]
-        is_m_hdr = (
-            (m_hdr[:, :, 0] >= 140)
-            & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 1].astype(np.int32)) < 25)
-            & (np.abs(m_hdr[:, :, 1].astype(np.int32) - m_hdr[:, :, 2].astype(np.int32)) < 25)
-            & (np.abs(m_hdr[:, :, 0].astype(np.int32) - m_hdr[:, :, 2].astype(np.int32)) < 25)
-        )
-        if float(np.mean(is_m_hdr[:, :1150])) > 0.55:
-            if float(np.mean(is_m_hdr[:, 1260:])) < 0.35:
-                return (1395, 58, "Joined Alliance Modal Open -> Close (1395, 58)")
-            sys_red = (a[5:40, 470:510, 0] >= 185) & (a[5:40, 470:510, 1] <= 65) & (a[5:40, 470:510, 2] <= 65)
-            if int(sys_red.sum()) >= 40:
-                return (445, 58, "MAIL_CLAIM_SYSTEM_AND_CLOSE")
-            return (1563, 58, "Mail Modal Open -> Close (1563, 58)")
 
     # 11d. Build Drawer Open (City HUD top-left hidden + left stone tab bar visible + no top modal header)
     if not is_city_hud(a):
@@ -1393,6 +1442,10 @@ def main():
     consecutive_idle = 0
     waiting_on_timer_streak = 0
     preempt_flag = os.path.join(SCRIPT_DIR, f"preempt_{adb_port}.flag")
+    try:
+        subprocess.run([ADB_BIN, "-s", args.adb, "shell", "rm -f /sdcard/*.png /sdcard/*.xml 2>/dev/null"], capture_output=True, timeout=5)
+    except Exception:
+        pass
 
     for step in range(1, args.steps + 1):
         if os.path.exists(preempt_flag):
@@ -1879,6 +1932,12 @@ def main():
                 allowed_ch8_rib = ("city hall", "cityhall", "hall", "yh", "wall", "tavern", "vern", "quarry", "storehouse", "store", "scout", "sentry", "camp", "arry", "barracks", "rack", "farm", "stable", "siege", "workshop", "hospital", "hosp", "academy", "acad", "lumber", "mill", "archery", "range", "trading", "post", "alliance", "center")
                 is_ch_selected = ("hall" in rib_title) or ("yh" in rib_title) or (rib_title.strip() == "" and best_y >= 1800)
                 rib_nospace = rib_title.replace(" ", "").replace(".", "")
+                if is_ch_selected:
+                    m_ch_lvl = re.search(r"(?:level|evel|lv)\s*(\d{1,2})", rib_nospace)
+                    if m_ch_lvl:
+                        det_lvl = int(m_ch_lvl.group(1))
+                        if 1 <= det_lvl <= 25:
+                            print(f"[Step {step:02d}] [CH_LEVEL] level={det_lvl}")
                 if is_ch_selected and ("level8" in rib_nospace or "evel8" in rib_nospace or "lv8" in rib_nospace) and best_g >= 240:
                     print(f"[Step {step:02d}] TARGET REACHED: City Hall Level 8 confirmed ('{rib_title}')! Exiting.")
                     break
@@ -1903,87 +1962,35 @@ def main():
                     if speedup_cooldown == 0:
                         print(f"[Step {step:02d}] Selected Building SpeedUp Hex ({best_y}px, '{rib_title}') -> tap ({yx}, {yy})")
                         tap(args.adb, yx, yy, 1.2)
-                    elif quest_scroll_cooldown == 0:
-                        print(f"[Step {step:02d}] Selected Building Actively Upgrading (cooldown={speedup_cooldown}) -> Open Quest Scroll (45,225) + Quests Tab (85,240)")
-                        tap(args.adb, 45, 225, 1.2)
-                        tap(args.adb, 85, 240, 1.0)
                     else:
-                        ah_col_red = (a2[795:840, 1440:1480, 0] >= 185) & (a2[795:840, 1440:1480, 1] <= 65) & (a2[795:840, 1440:1480, 2] <= 65)
-                        ah_col_cream = float(a2[825:875, 1405:1455, 0].mean()) > float(a2[825:875, 1405:1455, 2].mean()) + 15.0
-                        ah_exp_red = (a2[680:740, 1170:1220, 0] >= 185) & (a2[680:740, 1170:1220, 1] <= 65) & (a2[680:740, 1170:1220, 2] <= 65)
-                        vip_red = (a2[55:80, 130:160, 0] >= 185) & (a2[55:80, 130:160, 1] <= 65) & (a2[55:80, 130:160, 2] <= 65)
-                        mail_red = (a2[775:825, 1430:1475, 0] >= 185) & (a2[775:825, 1430:1475, 1] <= 65) & (a2[775:825, 1430:1475, 2] <= 65)
-                        mq_side_txt = ""
-                        if cavalry_cooldown == 0 and OCR is not None:
+                        waiting_on_timer_streak += 1
+                        timer_sec = 900
+                        if OCR is not None:
                             try:
-                                mq_res, _ = OCR(a2[280:385, 10:190].astype(np.uint8))
-                                if mq_res:
-                                    mq_side_txt = " ".join(r[1].strip() for r in mq_res).lower()
+                                import re as _re
+                                t_crop = a2[max(0, rib_cy - 65) : min(900, rib_cy + 140), max(0, rib_cx - 240) : min(1600, rib_cx + 240)].astype(np.uint8)
+                                t_res, _ = OCR(t_crop)
+                                for _, t_txt, _ in (t_res or []):
+                                    m3 = _re.search(r"(\d{1,2}):(\d{2}):(\d{2})", t_txt)
+                                    if m3:
+                                        timer_sec = max(60, int(m3.group(1)) * 3600 + int(m3.group(2)) * 60 + int(m3.group(3)))
+                                        break
+                                    m2 = _re.search(r"(\d{1,2}):(\d{2})", t_txt)
+                                    if m2:
+                                        timer_sec = max(60, int(m2.group(1)) * 60 + int(m2.group(2)))
+                                        break
                             except Exception:
                                 pass
-                        if int(ah_col_red.sum()) >= 80 and ah_col_cream:
-                            print(f"[Step {step:02d}] Building Actively Upgrading (cooldown={speedup_cooldown}) -> Tap Collapsed Alliance Help Bubble (1432, 845)")
-                            tap(args.adb, 1432, 845, 1.0)
-                        elif int(ah_exp_red.sum()) >= 80:
-                            print(f"[Step {step:02d}] Building Actively Upgrading (cooldown={speedup_cooldown}) -> Tap Expanded Alliance Help Bubble (1170, 735)")
-                            if "16384" in str(args.adb):
-                                tap(args.adb, 1515, 495, 0.8)
-                            tap(args.adb, 1170, 735, 1.0)
-                        elif (not checked_vip_chest) and int(vip_red.sum()) >= 45:
-                            checked_vip_chest = True
-                            print(f"[Step {step:02d}] Building Actively Upgrading -> Claim Free Daily VIP Points & Chests (115, 80)")
-                            tap(args.adb, 115, 80, 1.5)
-                            tap(args.adb, 1260, 225, 2.5)
-                            tap(args.adb, 1145, 495, 1.4)
-                            tap(args.adb, 800, 750, 1.0)
-                            tap(args.adb, 1380, 108, 1.0)
-                        elif (not checked_mail) and int(mail_red.sum()) >= 45:
-                            checked_mail = True
-                            speedup_cooldown = 0
-                            print(f"[Step {step:02d}] Building Actively Upgrading -> Check & Claim Mail Rewards (1415, 845)")
-                            tap(args.adb, 1415, 845, 1.4)
-                            tap(args.adb, 445, 58, 1.0)
-                            tap(args.adb, 145, 845, 0.8)
-                            tap(args.adb, 800, 750, 0.8)
-                            tap(args.adb, 250, 200, 0.8)
-                            tap(args.adb, 1420, 820, 0.8)
-                            tap(args.adb, 800, 750, 0.8)
-                            tap(args.adb, 1563, 58, 1.0)
-                        elif any(w in mq_side_txt for w in ("cavalry", "siege", "behemoth", "together", "alliance")):
-                            cavalry_cooldown = 16
-                            print(f"[Step {step:02d}] Building Actively Upgrading -> Tap Main Quest '{mq_side_txt[:24]}' (80, 330)")
-                            tap(args.adb, 80, 330, 1.4)
-                        else:
-                            waiting_on_timer_streak += 1
-                            timer_sec = 900
-                            if OCR is not None:
-                                try:
-                                    import re as _re
-                                    t_crop = a2[max(0, rib_cy - 65) : min(900, rib_cy + 140), max(0, rib_cx - 240) : min(1600, rib_cx + 240)].astype(np.uint8)
-                                    t_res, _ = OCR(t_crop)
-                                    for _, t_txt, _ in (t_res or []):
-                                        m3 = _re.search(r"(\d{1,2}):(\d{2}):(\d{2})", t_txt)
-                                        if m3:
-                                            timer_sec = max(60, int(m3.group(1)) * 3600 + int(m3.group(2)) * 60 + int(m3.group(3)))
-                                            break
-                                        m2 = _re.search(r"(\d{1,2}):(\d{2})", t_txt)
-                                        if m2:
-                                            timer_sec = max(60, int(m2.group(1)) * 60 + int(m2.group(2)))
-                                            break
-                                except Exception:
-                                    pass
-                            clean_bldg = (rib_title or "building_upgrade").replace('"', "").strip()
-                            print(f'[Step {step:02d}] [TIMER_ACTIVE] seconds={timer_sec} building="{clean_bldg}"')
-                            if waiting_on_timer_streak >= 2:
-                                farmed_ok = False
-                                try:
-                                    import forge_idle_gatherer
-                                    farmed_ok = bool(forge_idle_gatherer.dispatch_zero_gem_gather(serial=args.adb, resource_type="crop"))
-                                except Exception as _fe:
-                                    print(f"[Step {step:02d}] Farm dispatch note: {_fe}")
-                                print(f"[Step {step:02d}] [TIMER_HANDOFF] seconds={timer_sec} farmed={farmed_ok}")
-                                break
-                            time.sleep(2.0)
+                        clean_bldg = (rib_title or "building_upgrade").replace('"', "").strip()
+                        print(f'[Step {step:02d}] [TIMER_ACTIVE] seconds={timer_sec} building="{clean_bldg}"')
+                        farmed_ok = False
+                        try:
+                            import forge_idle_gatherer
+                            farmed_ok = bool(forge_idle_gatherer.dispatch_zero_gem_gather(serial=args.adb, resource_type="crop"))
+                        except Exception as _fe:
+                            print(f"[Step {step:02d}] Farm dispatch note: {_fe}")
+                        print(f"[Step {step:02d}] [TIMER_HANDOFF] seconds={timer_sec} farmed={farmed_ok}")
+                        break
                     last_spear = None
                     repeat_cnt = 0
                     continue
@@ -2113,24 +2120,9 @@ def main():
             else:
                 print(f"[Step {step:02d}] Idle (2x) -> Tap Center Dialogue/Reward (800, 650)")
                 tap(args.adb, 800, 650, 0.85)
-        elif consecutive_idle == 3:
-            print(f"[Step {step:02d}] Idle Streak (3x) -> Sending Android Back key (keyevent 4) + Close X (1380, 108)")
-            subprocess.run([ADB_BIN, "-s", args.adb, "shell", "input", "keyevent", "4"], capture_output=True)
-            time.sleep(0.6)
-            tap(args.adb, 1380, 108, 0.8)
-            tap(args.adb, 48, 52, 0.8)
-        elif consecutive_idle % 4 == 0:
-            print(f"[Step {step:02d}] Idle Streak ({consecutive_idle}x) -> Tap Quest Scroll (40, 235) to refocus objective")
-            tap(args.adb, 40, 235, 1.2)
-        else:
-            print(f"[Step {step:02d}] Idle Recovery ({consecutive_idle}x) -> Dismiss cycle (Back key + 1380,108 + 1563,58 + 48,52)")
-            subprocess.run([ADB_BIN, "-s", args.adb, "shell", "input", "keyevent", "4"], capture_output=True)
-            time.sleep(0.5)
-            tap(args.adb, 1380, 108, 0.6)
-            tap(args.adb, 1563, 58, 0.6)
-            tap(args.adb, 48, 52, 0.8)
-            if is_world_map(a2):
-                tap(args.adb, 55, 845, 1.0)
+        elif consecutive_idle >= 3:
+            print(f'[Step {step:02d}] [STUCK_ABORT] reason="consecutive_idle_{consecutive_idle}x"')
+            break
 
     _, a_final = screencap_pair(args.adb, p1, p2)
     chk_final = detect_green_checkmark(a_final)
@@ -2140,5 +2132,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except StuckAbortError:
+        sys.exit(0)
 

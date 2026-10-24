@@ -751,10 +751,13 @@ class Ring2:
         if mission is not None and mission.priority >= 80:
             return self._mission_action(mission, base, caps)
 
-        # 3. Rest checks (Sleep Window, Sleeping, Daily Cap, Session Break) -> Rotate to an awake sibling if available!
+        # 3. Rest checks (Quarantine/Suspect, Sleep Window, Sleeping, Daily Cap, Session Break) -> Rotate to an awake sibling if available!
         rest_reason: Optional[str] = None
         rest_mins: int = 0
-        if numnum.in_sleep_window(now, p):
+        if (bot.get("health") or {}).get("ban_suspected"):
+            rest_reason = "BAN_SUSPECTED_QUARANTINE"
+            rest_mins = 720
+        elif numnum.in_sleep_window(now, p):
             rest_reason = "SLEEP_WINDOW"
             rest_mins = max(5, min(720, numnum.minutes_until_local_hour(now, tz, p["sleep_window_end_hour"])))
         elif state == "SLEEPING":
@@ -789,6 +792,8 @@ class Ring2:
                          mark_current_bot_rest_minutes=rest_mins, **({"demand": rot_demand.kind} if rot_demand else {})),
                     rot_demand,
                 )
+            if rest_reason == "BAN_SUSPECTED_QUARANTINE":
+                return None
             if rest_reason == "SLEEP_WINDOW":
                 if state == "SLEEPING":
                     return None
@@ -863,7 +868,7 @@ class Ring2:
             return None
 
         if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
-            g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 40)))) if growth_demand else 40
+            g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 15)))) if growth_demand else 15
             return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": g_steps}, g_prio,
                     f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.",
                     dict(base, **({"demand": growth_demand.kind, "demand_detail": growth_demand.detail} if growth_demand else {})),
@@ -942,11 +947,13 @@ class Ring2:
         now: datetime,
         caps: set,
     ) -> Optional[Tuple[Dict[str, Any], str, Optional[Demand], int]]:
-        candidates: List[Tuple[int, str, Dict[str, Any], str, Optional[Demand]]] = []
+        candidates: List[Tuple[int, float, str, Dict[str, Any], str, Optional[Demand]]] = []
         for sib in all_bots.values():
             if sib["instance_id"] != bot["instance_id"] or sib["bot_id"] == bot["bot_id"]:
                 continue
             if sib.get("lifecycle_state") not in ("ACTIVE", "GROWING", "SLEEPING"):
+                continue
+            if (sib.get("health") or {}).get("ban_suspected"):
                 continue
             sp = sib["routine_profile"]
             if numnum.in_sleep_window(now, sp):
@@ -963,27 +970,30 @@ class Ring2:
             t_until = numnum.parse_ts(s_rt.get("timer_ready_until"))
             t_active = bool(t_until and now < t_until)
 
+            last_v = numnum.parse_ts(sib["verified_state"].get("last_verified_at"))
+            last_touch_dt = max([dt for dt in (s_ended, last_v) if dt is not None], default=None)
+            last_touch_epoch = last_touch_dt.timestamp() if last_touch_dt is not None else 0.0
+
             sib_mission = self._mission_for(sib, demands) if sib["verified_state"]["ch_level"] >= GROW_TARGET_CH else None
             if sib_mission is not None:
-                candidates.append((sib_mission.priority, sib["bot_id"], sib, f"{sib_mission.kind} in #{sib['kingdom_id']}", sib_mission))
+                candidates.append((sib_mission.priority, -last_touch_epoch, sib["bot_id"], sib, f"{sib_mission.kind} in #{sib['kingdom_id']}", sib_mission))
                 continue
             if sib["verified_state"]["ch_level"] < GROW_TARGET_CH and not t_active:
                 g_dem = next((d for d in demands if d.kind == "GROWTH_REQUESTED" and d.kingdom_id == sib["kingdom_id"]), None)
                 prio = max(35, g_dem.priority) if g_dem else 35
-                candidates.append((prio, sib["bot_id"], sib, f"CH{sib['verified_state']['ch_level']}->CH{GROW_TARGET_CH} city growth", g_dem))
+                candidates.append((prio, -last_touch_epoch, sib["bot_id"], sib, f"CH{sib['verified_state']['ch_level']}->CH{GROW_TARGET_CH} city growth", g_dem))
                 continue
             if "gather" in caps and not (t_active and s_rt.get("farmed_this_timer")):
-                candidates.append((25, sib["bot_id"], sib, "zero-gem resource farming", None))
+                candidates.append((25, -last_touch_epoch, sib["bot_id"], sib, "zero-gem resource farming", None))
                 continue
-            last_v = numnum.parse_ts(sib["verified_state"].get("last_verified_at"))
             age_v = None if last_v is None else int(numnum.minutes_between(last_v, now))
             if age_v is None or age_v >= PROBE_STALE_MINUTES:
-                candidates.append((20, sib["bot_id"], sib, "stale state verification probe", None))
+                candidates.append((20, -last_touch_epoch, sib["bot_id"], sib, "stale state verification probe", None))
 
         if not candidates:
             return None
-        candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
-        best_prio, _, best_sib, best_reason, best_dem = candidates[0]
+        candidates.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+        best_prio, _, _, best_sib, best_reason, best_dem = candidates[0]
         return best_sib, best_reason, best_dem, best_prio
 
     @staticmethod
@@ -1389,11 +1399,20 @@ class Ring3:
                 rt["farmed_this_timer"] = False
             elif jt == "grow_city":
                 t_sec = int(ev_metrics.get("timer_seconds") or 0)
+                stuck_reason = ev_metrics.get("stuck_reason")
                 if t_sec > 0:
                     rt["timer_ready_until"] = iso(now + timedelta(seconds=min(t_sec, 1800)))
                     rt["farmed_this_timer"] = bool(ev_metrics.get("farmed_on_timer", False))
                     if ev_metrics.get("timer_building"):
                         rt["last_timer_label"] = str(ev_metrics["timer_building"])[:64]
+                elif stuck_reason:
+                    rt["timer_ready_until"] = iso(now + timedelta(minutes=15))
+                    rt["farmed_this_timer"] = True
+                    rt["last_timer_label"] = f"stuck_cooldown:{stuck_reason}"[:64]
+                elif status == "PARTIAL" and int(ev_metrics.get("script_steps") or 0) > 0:
+                    rt["timer_ready_until"] = iso(now + timedelta(minutes=10))
+                    rt["farmed_this_timer"] = False
+                    rt["last_timer_label"] = "roving_guard_slice_cooldown"
                 else:
                     rt["timer_ready_until"] = None
                     rt["farmed_this_timer"] = False
