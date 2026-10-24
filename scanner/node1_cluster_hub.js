@@ -22,7 +22,7 @@ let liveScanProgress = {
   status: 'IDLE',
   kingdom: '4194',
   currentRank: 0,
-  targetRanks: 650,
+  targetRanks: 1000,
   percent: 0,
   lastGovernorName: null,
   lastGovernorPower: 0,

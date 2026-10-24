@@ -26,7 +26,10 @@ PROVISION_TUTORIAL_STEPS = 60
 _STEP_RE = re.compile(r"^\[(?:Step\s+)?(\d+)(?:/\d+)?\]\s*(.*)$")
 _PROV_DONE_RE = re.compile(r"\[DONE\]\s*Provisioned\s+#(\d{4})\s+character\s+\(([^,]+),\s*ID=(\d{5,15})\)")
 _SWITCH_DONE_RE = re.compile(r"(?:Active on Kingdom|Already active on Kingdom)\s+#(\d{4})|already active \(green checkmark\)", re.IGNORECASE)
-_SCAN_SYNC_RE = re.compile(r"Synced\s+(\d+)\s+accumulated|governorsExtracted[\"']?\s*:\s*(\d+)", re.IGNORECASE)
+_SCAN_SYNC_RE = re.compile(
+    r"(?:Synced\s+(\d+)\s+accumulated|governorsExtracted[\"']?\s*:\s*(\d+)|->\s*(\d+)\s+governors)",
+    re.IGNORECASE,
+)
 _TIMER_ACTIVE_RE = re.compile(r"\[TIMER_ACTIVE\]\s*seconds=(\d+)(?:\s+building=\"([^\"]*)\")?", re.IGNORECASE)
 _TIMER_HANDOFF_RE = re.compile(r"\[TIMER_HANDOFF\]\s*seconds=(\d+)\s+farmed=(true|false)", re.IGNORECASE)
 _CH_LEVEL_RE = re.compile(r"\[CH_LEVEL\]\s*level=(\d+)", re.IGNORECASE)
@@ -180,7 +183,11 @@ def parse_provision_output(stdout: str) -> Dict[str, Any]:
 
 
 def parse_scan_output(stdout: str) -> Dict[str, Any]:
-    counts = [int(m.group(1) or m.group(2)) for m in _SCAN_SYNC_RE.finditer(stdout) if (m.group(1) or m.group(2))]
+    counts = [
+        int(m.group(1) or m.group(2) or m.group(3))
+        for m in _SCAN_SYNC_RE.finditer(stdout)
+        if (m.group(1) or m.group(2) or m.group(3))
+    ]
     completed = "completed" in stdout.lower() or "100.0%" in stdout.lower() or bool(counts)
     return {"completed": completed, "governors_extracted": max(counts) if counts else 0}
 
@@ -407,6 +414,8 @@ def scan_kingdom(ctx: SkillContext) -> SkillOutcome:
     if out.returncode != 0:
         tail = out.stdout.strip().splitlines()[-1:] or [""]
         return SkillOutcome("FAILED", error=err("SKILL_EXIT_NONZERO", f"rc={out.returncode}: {tail[0]}", True), metrics=metrics)
+    if parsed["governors_extracted"] <= 0:
+        return SkillOutcome("FAILED", error=err("ZERO_GOVERNORS_EXTRACTED", "Leaderboard scan exited with 0 governors extracted", True), metrics=metrics)
     return SkillOutcome("SUCCEEDED", {"screen_state": "RANKINGS_BOARD", "kingdom_id": target_kd}, metrics=metrics)
 
 
@@ -478,6 +487,8 @@ def locate_governor(ctx: SkillContext) -> SkillOutcome:
     if out.returncode != 0:
         tail = out.stdout.strip().splitlines()[-1:] or [""]
         return SkillOutcome("FAILED", error=err("SKILL_EXIT_NONZERO", f"rc={out.returncode}: {tail[0]}", True), metrics=metrics)
+    if parsed["governors_extracted"] <= 0:
+        return SkillOutcome("FAILED", error=err("ZERO_GOVERNORS_EXTRACTED", "Leaderboard scan exited with 0 governors extracted", True), metrics=metrics)
     return SkillOutcome("SUCCEEDED", {"screen_state": "RANKINGS_BOARD", "kingdom_id": target_kd}, metrics=metrics)
 
 

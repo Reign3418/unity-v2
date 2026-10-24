@@ -302,7 +302,7 @@ export async function POST(request) {
     const intentType = validTypes.includes(body?.intent_type) ? body.intent_type : 'SCAN_KINGDOM';
     const validSources = ['R5_COMMAND_DESK', 'UNITY_API_DEMAND', 'DATA_LEAD_INGEST', 'OPERATOR_OVERRIDE'];
     const source = validSources.includes(body?.source) ? body.source : 'OPERATOR_OVERRIDE';
-    const maxRanks = Math.max(10, Math.min(1000, Number(body?.max_ranks || 650)));
+    const maxRanks = Math.max(10, Math.min(1000, Number(body?.max_ranks || 1000)));
     const priority = Math.max(1, Math.min(100, Number(body?.priority || 80)));
 
     // Deduplicate against currently active intents for the same (kingdom_id, intent_type)

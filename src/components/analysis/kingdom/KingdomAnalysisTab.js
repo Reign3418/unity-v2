@@ -32,8 +32,41 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd, start
       }
   }
 
-  // Data Filtering for Area Chart
-  const actualTrends = (trends || []).map(trend => {
+  // Data Filtering & Cadence Deduplication for Area Chart
+  // 1. Exclude partial mid-scan slices (e.g. 10-rank / 300-rank intermediate checkpoints) when full census scans exist
+  const rawTrends = Array.isArray(trends) ? trends : [];
+  const getTrendRows = (tr) => Number(tr.rowCount || tr.summary?.activeGovernors || 0);
+  const maxTrendRows = rawTrends.reduce((mx, tr) => Math.max(mx, getTrendRows(tr)), 0);
+  const rowFloor = maxTrendRows >= 600 ? 450 : maxTrendRows >= 250 ? Math.floor(maxTrendRows * 0.7) : 0;
+  const fullCensusTrends = rowFloor > 0 ? rawTrends.filter((tr) => getTrendRows(tr) >= rowFloor) : rawTrends;
+  const baseTrends = fullCensusTrends.length > 0 ? fullCensusTrends : rawTrends;
+
+  // 2. Collapse multiple intermediate checkpoints within the same 2-hour scan session to the final completed snapshot
+  const cadenceTrends = [];
+  for (const tr of baseTrends) {
+      const ts = new Date(tr.scanDate).getTime();
+      const prev = cadenceTrends[cadenceTrends.length - 1];
+      if (prev && Number.isFinite(ts)) {
+          const prevTs = new Date(prev.scanDate).getTime();
+          if (Math.abs(ts - prevTs) < 2 * 3600 * 1000) {
+              if (getTrendRows(tr) >= getTrendRows(prev)) {
+                  cadenceTrends[cadenceTrends.length - 1] = tr;
+              }
+              continue;
+          }
+      }
+      cadenceTrends.push(tr);
+  }
+
+  // Check if multiple cadence scans fall on the same calendar day (e.g. 3H Surge or 12H Steady)
+  const dayCounts = {};
+  cadenceTrends.forEach((tr) => {
+      const dKey = new Date(tr.scanDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dayCounts[dKey] = (dayCounts[dKey] || 0) + 1;
+  });
+  const hasSubDayCadence = Object.values(dayCounts).some((c) => c > 1);
+
+  const actualTrends = cadenceTrends.map(trend => {
       let plotPower = trend.summary?.totalPower || 0;
       if (activeAlliance && activeAlliance !== t('label_other')) {
           const key = activeAlliance === t('label_unallied') ? 'None' : activeAlliance;
@@ -45,9 +78,12 @@ export default function KingdomAnalysisTab({ trends, rosterData, targetKd, start
                return sum;
            }, 0);
       }
+      const dt = new Date(trend.scanDate);
+      const dayLabel = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const timeLabel = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
       return {
           ...trend,
-          dateStr: new Date(trend.scanDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          dateStr: hasSubDayCadence ? `${dayLabel} ${timeLabel}` : dayLabel,
           plotPower: plotPower,
           predictedPower: null,
           isPrediction: false

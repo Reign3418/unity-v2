@@ -37,7 +37,7 @@ WAKE_RETRY_MINUTES = 10
 SUSPECT_AFTER_FAILURES = 3
 LOST_AFTER_FAILURES = 4
 GROW_TARGET_CH = 8
-SCAN_DEFAULT_RANKS = 300
+SCAN_DEFAULT_RANKS = 1000
 
 DEFAULT_CONFIG = {
     "capabilities": list(numnum.DEFAULT_CAPABILITIES),
@@ -1454,7 +1454,7 @@ class Ring3:
                 candidate_until = now + timedelta(minutes=g_mins)
                 if not existing_until or existing_until < candidate_until:
                     rt["timer_ready_until"] = iso(candidate_until)
-            if jt == "scan_kingdom" and status == "SUCCEEDED":
+            if jt == "scan_kingdom" and status == "SUCCEEDED" and (ev_metrics.get("governors_extracted") is None or int(ev_metrics.get("governors_extracted") or 0) > 0):
                 kd_rec: Dict[str, Any] = {
                     "last_scan_verified_at": result["completed_at"],
                     "verified_by_job": result["job_id"],
@@ -1463,7 +1463,7 @@ class Ring3:
                 if active_intent_id:
                     kd_rec["verified_by_intent"] = active_intent_id
                 if ev_metrics.get("governors_extracted") is not None:
-                    kd_rec["governors_extracted"] = ev_metrics["governors_extracted"]
+                    kd_rec["governors_extracted"] = int(ev_metrics["governors_extracted"])
                 if result["evidence"].get("screenshot_uri"):
                     kd_rec["last_screenshot_uri"] = result["evidence"]["screenshot_uri"]
                 self.store.put_control(f"KINGDOM#{result['kingdom_id']}", kd_rec)

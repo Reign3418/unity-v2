@@ -2667,7 +2667,7 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
             const excelEpoch = new Date(1899, 11, 30);
             scanDate = new Date(excelEpoch.getTime() + (Number(scanDateOverride) * 86400 * 1000)).toISOString();
         } else {
-            const normalizedOverride = String(scanDateOverride).trim().replace(/^(\d{4}-\d{2}-\d{2})_(\d{2})_(\d{2})_(\d{2})$/, "$1T$2:$3:$4Z");
+            const normalizedOverride = String(scanDateOverride).trim().replace(/^(\d{4}-\d{2}-\d{2})_(\d{2})_(\d{2})_(\d{2})$/, "$1T$2:$3:$4Z").replace(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})$/, "$1T$2:$3:00Z");
             const parsed = new Date(normalizedOverride);
             scanDate = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
         }
@@ -2784,8 +2784,17 @@ export async function uploadKingdomRoster(kingdomId, rosterArray, uploaderData =
         throw e;
     }
 
-    // 2. Format the JS Objects into DynamoDB PutRequest objects
-    const putRequests = rosterArray.map(player => {
+    // 2. Format the JS Objects into DynamoDB PutRequest objects (deduplicated by governor ID to prevent BatchWrite duplicate-key failures)
+    const seenIds = new Set();
+    const dedupedRoster = rosterArray.filter(player => {
+        const rawId = player.id || player.govId || player.Id || player.ID || player['Governor ID'] || player['Character ID'] || player.CharacterID;
+        if (!rawId) return false;
+        const normId = String(rawId).trim();
+        if (seenIds.has(normId)) return false;
+        seenIds.add(normId);
+        return true;
+    });
+    const putRequests = dedupedRoster.map(player => {
         const formatS = (val) => ({ S: String(val ?? '') });
         const formatN = (val) => {
             const cleaned = String(val ?? 0).replace(/,/g, '').trim();

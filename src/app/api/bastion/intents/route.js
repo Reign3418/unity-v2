@@ -236,7 +236,7 @@ export async function POST(request) {
     });
   }
 
-  const maxRanks = Math.max(10, Math.min(1000, Number(body?.max_ranks || 650)));
+  const maxRanks = Math.max(10, Math.min(1000, Number(body?.max_ranks || 1000)));
   const defaultPrio = intentType === 'EXPAND_TO_KINGDOM' ? 88 : intentType === 'LOCATE_GOVERNOR' ? 85 : 85;
   const priority = Math.max(1, Math.min(100, Number(body?.priority || defaultPrio)));
   const requestedBy = String(session.user?.email || session.user?.name || 'r5_leader').slice(0, 120);

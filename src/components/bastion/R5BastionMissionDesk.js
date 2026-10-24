@@ -39,7 +39,7 @@ export default function R5BastionMissionDesk({ kingdomId, onMissionVerified }) {
 
   // Mission form controls
   const [intentType, setIntentType] = useState('SCAN_KINGDOM');
-  const [maxRanks, setMaxRanks] = useState('650');
+  const [maxRanks, setMaxRanks] = useState('1000');
   const [priority, setPriority] = useState('85');
   const [targetGovName, setTargetGovName] = useState('');
   const [targetGovId, setTargetGovId] = useState('');

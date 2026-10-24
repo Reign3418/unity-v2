@@ -74,7 +74,7 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
         if (fs.existsSync(bPath)) {
           const bState = JSON.parse(fs.readFileSync(bPath, 'utf8'));
           const cur = Number(progress.currentRank) || reconciledRoster.length;
-          const tgt = Number(progress.targetRank) || 650;
+          const tgt = Number(progress.targetRank) || 1000;
           const isDone = cur >= tgt;
           const latestGov = reconciledRoster[reconciledRoster.length - 1];
           bState.activeScanProgress = {
@@ -102,9 +102,15 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
       } catch {}
     }
 
-    // Replace the kingdom's active governor map with the current scan's cumulative reconciledRoster
-    // so governors who migrated out of the kingdom are immediately evicted rather than lingering forever!
-    cache.kingdoms[kd].governors = {};
+    // Only replace the full governor map (evicting departed migrants) when a full scan completes;
+    // during intermediate mid-scan batches (Rank 10..990), merge into the existing map so live views never dip!
+    const curRank = Number(progress?.currentRank) || reconciledRoster.length;
+    const tgtRank = Number(progress?.targetRank) || 1000;
+    const isFullComplete =
+      Boolean(options.forceSnapshotCommit) || progress?.status === 'COMPLETED' || curRank >= tgtRank;
+    if (isFullComplete || !cache.kingdoms[kd].governors) {
+      cache.kingdoms[kd].governors = {};
+    }
     for (const enriched of reconciledRoster) {
       const gid = String(enriched.id);
       cache.kingdoms[kd].governors[gid] = enriched;
@@ -206,16 +212,17 @@ export async function POST(req) {
       writeLiveTelemetryBatch(kingdomId, cleanedRosterArray, fallbackDateKey, progress, {
         sourceType,
         allianceLeadersR5,
+        forceSnapshotCommit,
       });
 
-    // 2. Sync to AWS DynamoDB on completion, explicit forceSnapshotCommit, or periodic 50-rank checkpoints
+    // 2. Sync historical snapshot to AWS DynamoDB ONLY on full scan completion (cadence-compliant 1000-rank census)
     const curRankNum = Number(progress?.currentRank) || 0;
+    const targetRankNum = Number(progress?.targetRank) || 1000;
     const shouldCommitFullSnapshot =
       Boolean(forceSnapshotCommit) ||
       progress?.status === 'COMPLETED' ||
       sourceType === 'GENESIS_BOT' ||
-      curRankNum === 10 ||
-      (curRankNum > 0 && curRankNum % 50 === 0);
+      (curRankNum > 0 && curRankNum >= targetRankNum);
 
     const uploaderData = {
       discordId: session?.user?.id || 'BASTION_MOE_FLEET',
@@ -233,30 +240,30 @@ export async function POST(req) {
       try {
         dateKey = await uploadKingdomRoster(kingdomId, fullKingdomRoster, uploaderData, scanDateOverride);
         awsSynced = true;
-        if (progress) {
-          await updateGlobalConfig(
-            `LIVE_SCAN_STATUS_${kingdomId}`,
-            JSON.stringify({
-              kingdomId,
-              dateKey,
-              currentRank: progress.currentRank,
-              targetRank: progress.targetRank || 650,
-              workerSerial: progress.workerSerial,
-              sourceType,
-              coverageTier,
-              mode: progress.mode || 'BASTION_45_FIELD_BOT',
-              startedAt: progress.startedAt || null,
-              scanDtgUtc:
-                progress.scanDtgUtc ||
-                new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
-              completedAt: progress.completedAt || null,
-              updatedAt: new Date().toISOString(),
-            })
-          ).catch(() => {});
-        }
       } catch (awsErr) {
         console.warn('[API/Ingest/Kingdom-Scan] AWS sync warning (local 45-field cache saved):', awsErr.message);
       }
+    }
+    if (progress && (shouldCommitFullSnapshot || curRankNum === 10 || (curRankNum > 0 && curRankNum % 20 === 0))) {
+      await updateGlobalConfig(
+        `LIVE_SCAN_STATUS_${kingdomId}`,
+        JSON.stringify({
+          kingdomId,
+          dateKey,
+          currentRank: progress.currentRank,
+          targetRank: progress.targetRank || 1000,
+          workerSerial: progress.workerSerial,
+          sourceType,
+          coverageTier,
+          mode: progress.mode || 'BASTION_45_FIELD_BOT',
+          startedAt: progress.startedAt || null,
+          scanDtgUtc:
+            progress.scanDtgUtc ||
+            new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
+          completedAt: progress.completedAt || null,
+          updatedAt: new Date().toISOString(),
+        })
+      ).catch(() => {});
     }
 
     // Always persist a fast DynamoDB live overlay of the top 150 governors so Vercel serverless routes (/black-ops, etc.)

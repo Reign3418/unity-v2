@@ -1659,7 +1659,7 @@ def run_kingdom_scan(args):
         write_scan_progress({
             "running": False,
             "status": "LEADERBOARD_NAV_FAILED",
-            "preset": "SWEET_650",
+            "preset": "FULL_1000",
             "kingdom": str(args.kd),
             "currentRank": 0,
             "targetRanks": args.end_rank,
@@ -1671,7 +1671,7 @@ def run_kingdom_scan(args):
             "etaSeconds": 0,
             "workerSerial": args.adb,
         })
-        return
+        sys.exit(1)
 
     # Record any governors already sitting in MuMu RAM from a prior session before Rank 1 is tapped
     # so fresh_batch strictly tracks newly opened profiles and prior-kingdom RAM ghosts are excluded.
@@ -1957,7 +1957,7 @@ if __name__ == "__main__":
     parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial")
     parser.add_argument("--kd", "--kingdom", dest="kd", default="4194", help="Target Kingdom ID")
     parser.add_argument("--start-rank", type=int, default=1)
-    parser.add_argument("--end-rank", "--max-ranks", dest="end_rank", type=int, default=650)
+    parser.add_argument("--end-rank", "--max-ranks", dest="end_rank", type=int, default=1000)
     parser.add_argument("--scan-date", default=None)
     parser.add_argument("--target-gov", default="", help="Governor ID or Name to locate on map")
     parser.add_argument("--target-x", type=float, default=None, help="Target map X tile (0..1200)")

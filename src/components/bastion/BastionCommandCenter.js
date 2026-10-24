@@ -502,7 +502,7 @@ export default function BastionCommandCenter() {
   const [scanKingdom, setScanKingdom] = useState('4194');
   const [scanIntentType, setScanIntentType] = useState('SCAN_KINGDOM');
   const [scanSource, setScanSource] = useState('R5_COMMAND_DESK');
-  const [scanRanks, setScanRanks] = useState('650');
+  const [scanRanks, setScanRanks] = useState('1000');
   const [scanPriority, setScanPriority] = useState('85');
   const [scanTargetGov, setScanTargetGov] = useState('');
 
@@ -1520,7 +1520,7 @@ export default function BastionCommandCenter() {
                                 intent_type: 'SCAN_KINGDOM',
                                 source: 'OPERATOR_OVERRIDE',
                                 kingdom_id: kdId,
-                                max_ranks: 650,
+                                max_ranks: 1000,
                                 priority: 85,
                               },
                               `intent-${kdId}`
