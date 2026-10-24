@@ -1051,11 +1051,12 @@ class Ring2:
 # =========================================================================== Ring 3
 
 class Ring3:
-    def __init__(self, store, transport, emitter, clock, wait_seconds: int = 10, advisor=None, helpers=None):
+    def __init__(self, store, transport, emitter, clock, wait_seconds: int = 10, advisor=None, helpers=None, ring4=None):
         self.store, self.transport, self.emitter, self.clock = store, transport, emitter, clock
         self.wait_seconds = wait_seconds
         self.advisor = advisor
         self.helpers = helpers
+        self.ring4 = ring4
 
     def process(self, instances: List[str]) -> int:
         handled = 0
@@ -1135,11 +1136,19 @@ class Ring3:
         if bot is None:
             return
         now = self.clock()
+        prev_ch = int((bot.get("verified_state") or {}).get("ch_level") or 1)
+        prev_power = int((bot.get("verified_state") or {}).get("power") or 0)
         rt = numnum.fresh_runtime(self.store.get_control(runtime_key(bot["bot_id"])), bot, now)
         if result["job_type"] not in numnum.REST_JOB_TYPES:
             rt["active_minutes_today"] = int(rt["active_minutes_today"]) + max(1, math.ceil(result["duration_ms"] / 60000))
         self._audit(bot, job, result, rt, dozer, common, active_intent_id=active_intent_id)
         self.store.put_control(runtime_key(bot["bot_id"]), rt)
+        if self.ring4 is not None:
+            cfg_ctl = self.store.get_control("CONFIG") or {}
+            self.ring4.record_job_outcome(
+                bot, job, result, prev_ch, prev_power,
+                enable_helpers=bool(cfg_ctl.get("enable_helpers")),
+            )
 
     def _audit_provision(self, job: Dict[str, Any], result: Dict[str, Any], replacing_bot_id: Optional[str],
                          dozer: Dict[str, Any], common: Dict[str, Any],

@@ -29,6 +29,7 @@ RING_HOURLY_TOKEN_CAP: Dict[str, int] = {
     "RING_1_INTEL": 30000,
     "RING_2_OPS": 50000,
     "RING_3_AUDIT": 40000,
+    "RING_4_SAFETY": 25000,
 }
 
 

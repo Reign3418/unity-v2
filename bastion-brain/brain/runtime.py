@@ -13,6 +13,7 @@ from . import __version__
 from .config import VALID_MODES, BrainConfig
 from .events import Emitter, iso
 from .leaders import HelperManager, LeaderAdvisor
+from .ring4_safety import POSTURE_GREEN, Ring4Safety
 from .rings import DEFAULT_CONFIG, Ring1, Ring2, Ring3, instance_key
 
 
@@ -46,9 +47,10 @@ class Brain:
         self.emitter = Emitter(store, clock, strict=strict_events, dedupe_minutes=cfg.event_dedupe_minutes, log=self._log)
         self.advisor = LeaderAdvisor(store, clock, api_key=cfg.gemini_api_key, llm_fn=llm_fn)
         self.helpers = HelperManager(store, self.emitter, clock, advisor=self.advisor)
+        self.ring4 = Ring4Safety(store, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
         self.ring1 = Ring1(store, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
         self.ring2 = Ring2(store, transport, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
-        self.ring3 = Ring3(store, transport, self.emitter, clock, cfg.results_wait_seconds, advisor=self.advisor, helpers=self.helpers)
+        self.ring3 = Ring3(store, transport, self.emitter, clock, cfg.results_wait_seconds, advisor=self.advisor, helpers=self.helpers, ring4=self.ring4)
         self.force_mode = force_mode
         self.mode: Optional[str] = None
         self.tick_count = 0
@@ -222,21 +224,38 @@ class Brain:
 
         if mode != "OFF":
             guarded("helpers:reap", self.helpers.reap_expired)
-            demands = guarded("ring1", lambda: self.ring1.collect(config, fleet["bots"])) or []
+            pre_safety = self.store.get_control("SAFETY_STATE") or {}
+            active_posture = pre_safety.get("posture") or POSTURE_GREEN
+            effective_config = dict(config)
+            effective_config["capabilities"] = self.ring4.filter_capabilities_for_posture(
+                list(config.get("capabilities", [])), active_posture
+            )
+            demands = guarded("ring1", lambda: self.ring1.collect(effective_config, fleet["bots"])) or []
             summary["demands"] = [f"{d.kind}#{d.kingdom_id}" for d in demands]
             outcomes = {}
             for instance_id in instances:
                 bot_id = fleet["active"].get(instance_id)
                 bot = fleet["bots"].get(bot_id) if bot_id else None
                 outcomes[instance_id] = guarded(f"ring2:{instance_id}",
-                                                lambda i=instance_id, b=bot: self.ring2.plan_instance(i, b, demands, config, mode, fleet["bots"]))
+                                                lambda i=instance_id, b=bot: self.ring2.plan_instance(i, b, demands, effective_config, mode, fleet["bots"]))
             summary["plans"] = outcomes
         summary["results"] = guarded("ring3", lambda: self.ring3.process(instances)) or 0
+        refreshed_bots = self._fleet()["bots"] if summary["results"] > 0 else fleet["bots"]
+        safety_out = guarded("ring4", lambda: self.ring4.evaluate_fleet(refreshed_bots, config, mode)) or {}
+        if safety_out:
+            summary["safety_posture"] = safety_out.get("posture", POSTURE_GREEN)
+            summary["residual_risk_score"] = safety_out.get("residual_risk_score")
+            if safety_out.get("halted_mode"):
+                mode = "OFF"
+                summary["mode"] = "OFF"
 
         self.store.put_control("BRAIN_HEARTBEAT", {
             "ts": iso(self.clock()), "mode": mode, "version": __version__, "tick": self.tick_count,
             "node_id": self.cfg.node_id, "node_role": self.cfg.node_role, "node_priority": self.cfg.node_priority,
-            "bots": summary["bots"], "plans": summary.get("plans", {}), "last_errors": summary["errors"][-3:],
+            "bots": summary["bots"], "plans": summary.get("plans", {}),
+            "safety_posture": summary.get("safety_posture", POSTURE_GREEN),
+            "residual_risk_score": summary.get("residual_risk_score"),
+            "last_errors": summary["errors"][-3:],
         })
         self.log(level="INFO", msg="tick", **{k: v for k, v in summary.items() if k != "tick"}, tick=self.tick_count)
         return summary

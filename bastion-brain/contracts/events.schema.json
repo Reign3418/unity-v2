@@ -20,13 +20,14 @@
         "RING_1_INTEL",
         "RING_2_OPS",
         "RING_3_AUDIT",
+        "RING_4_SAFETY",
         "SYSTEM"
       ]
     },
     "ActorId": {
       "type": "string",
-      "description": "Ring Leader (SCOUT, TANK, AUDIT), Rule Member (KENT, NULL, BIG_JON, NUMNUM, CIPHER, DOZER), or Helper (HELPER:*).",
-      "pattern": "^(SCOUT|KENT|NULL|TANK|BIG_JON|NUMNUM|CIPHER|AUDIT|DOZER|OPERATOR|HELPER:[A-Z0-9_-]{3,48})$"
+      "description": "Ring Leader (SCOUT, TANK, AUDIT, AEGIS), Rule Member (KENT, NULL, BIG_JON, NUMNUM, CIPHER, DOZER, WARDEN), or Helper (HELPER:*).",
+      "pattern": "^(SCOUT|KENT|NULL|TANK|BIG_JON|NUMNUM|CIPHER|AUDIT|DOZER|AEGIS|WARDEN|OPERATOR|HELPER:[A-Z0-9_-]{3,48})$"
     },
     "EventType": {
       "type": "string",
@@ -45,7 +46,9 @@
         "HUMAN_ACCOUNT_REQUIRED",
         "HELPER_SPAWNED",
         "HELPER_RETIRED",
-        "MODE_CHANGED"
+        "MODE_CHANGED",
+        "SAFETY_POSTURE_CHANGED",
+        "SAFETY_INTERLOCK_TRIPPED"
       ]
     },
     "NumNumRuleCheck": {

@@ -195,6 +195,38 @@ const AGENT_DEFINITIONS = [
     directive:
       'Pure math evidence verifier in Ring 3. Validates every BastionJobResult from bastion-results against jobs.schema.json, verifies S3 screenshot presence and 64-char SHA-256 digest integrity, and feeds structured verification checks to AUDIT.',
   },
+
+  // ================= RING 4: RISK & SAFETY OVERWATCH (SIS) =================
+  {
+    id: 'aegis',
+    actorKey: 'AEGIS',
+    name: 'AEGIS',
+    icon: '🛡️',
+    role: 'Ring 4 Leader — Chief Risk & Safety Overwatch Officer',
+    ringKey: 'RING_4_SAFETY',
+    cadence: 'Every Tick & On Drift',
+    color: '#22c55e',
+    defaultModelType: 'gemini-2.5-pro + STPA Deterministic Fallback',
+    helpers: ['R4_STPA_LOOP_HUNTER', 'R4_CONTAINMENT_OFFICER'],
+    output: '5-Layer Risk Ledger · SAFETY_POSTURE_CHANGED (GREEN / AMBER / RED)',
+    directive:
+      'Leads Ring 4 (Risk & Safety Overwatch). Operates outside Rings 1–3 as an independent Safety Instrumented System (SIS). Audits cross-ring control loops for unspoken STPA assumptions, evaluates Inherent -> Mitigated -> Residual vs. Acceptable/Accepted Risk, and spawns R4_STPA_LOOP_HUNTER or R4_CONTAINMENT_OFFICER when anomalies fire.',
+  },
+  {
+    id: 'warden',
+    actorKey: 'WARDEN',
+    name: 'WARDEN',
+    icon: '🚨',
+    role: 'Deterministic STPA Velocity Watchdog & Risk-Budget Kill-Switch',
+    ringKey: 'RING_4_SAFETY',
+    cadence: 'Every Tick & Result (0 Tokens)',
+    color: '#ef4444',
+    defaultModelType: 'PURE_MATH_INTERLOCK (0 Tokens)',
+    helpers: [],
+    output: 'SAFETY_INTERLOCK_TRIPPED · 30m Cooldowns · AMBER Throttle · RED_HALT Kill-Switch',
+    directive:
+      'Pure math safety interlock governor in Ring 4. Tracks per-bot zero-delta streaks (tripping a 30m cooldown if grow_city/gather returns rc=0 three times without advancing CH/power/timers) and enforces the 3-Tier Risk-Budget Posture: GREEN_NOMINAL -> AMBER_CAUTIOUS (stealth scan-only throttle) -> RED_HALT (automatic MODE=OFF kill-switch).',
+  },
 ];
 
 const RING_GROUPS = [
@@ -221,6 +253,14 @@ const RING_GROUPS = [
     members: 'AUDIT (Leader & Sole Bot/Intent Verifier) · DOZER (SHA-256 & Evidence Math)',
     accent: 'border-pink-500/40 from-pink-950/30 via-[#0b0e17] to-[#0b0e17]',
     badgeCls: 'bg-pink-500/20 text-pink-300 border-pink-500/40',
+  },
+  {
+    key: 'RING_4_SAFETY',
+    badge: 'RING 04 // SOVEREIGN RISK & SAFETY OVERWATCH (STPA VELOCITY WATCHDOG & RISK-BUDGET GOVERNOR)',
+    leader: 'AEGIS',
+    members: 'AEGIS (Leader & Risk Officer) · WARDEN (STPA Velocity Breaker & GREEN/AMBER/RED Kill-Switch)',
+    accent: 'border-emerald-500/40 from-emerald-950/30 via-[#0b0e17] to-[#0b0e17]',
+    badgeCls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
   },
 ];
 

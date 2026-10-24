@@ -21,7 +21,9 @@
         "R2_COHORT_SCHEDULER",
         "R2_REPLACEMENT_PLANNER",
         "R3_MIGRATION_ANALYST",
-        "R3_BAN_INVESTIGATOR"
+        "R3_BAN_INVESTIGATOR",
+        "R4_STPA_LOOP_HUNTER",
+        "R4_CONTAINMENT_OFFICER"
       ]
     },
     "HelperInstance": {
@@ -52,7 +54,8 @@
           "enum": [
             "RING_1_INTEL",
             "RING_2_OPS",
-            "RING_3_AUDIT"
+            "RING_3_AUDIT",
+            "RING_4_SAFETY"
           ]
         },
         "parent_leader": {
@@ -60,7 +63,8 @@
           "enum": [
             "SCOUT",
             "TANK",
-            "AUDIT"
+            "AUDIT",
+            "AEGIS"
           ]
         },
         "model_tier": {
@@ -161,6 +165,12 @@
         "model_tier": "LLM_PRO",
         "default_model": "gemini-2.5-pro",
         "authority": "VERIFY_FACTS_AND_DECLARE_BOT_STATE"
+      },
+      "AEGIS": {
+        "ring": "RING_4_SAFETY",
+        "model_tier": "LLM_PRO",
+        "default_model": "gemini-2.5-pro",
+        "authority": "EVALUATE_RISK_AND_ENFORCE_SAFETY_POSTURE"
       }
     },
     "rule_based_members": {
@@ -193,6 +203,11 @@
         "ring": "RING_3_AUDIT",
         "model_tier": "DETERMINISTIC_0_TOKEN",
         "role": "OCR arithmetic validator, slice deduplicator & screenshot hash verifier"
+      },
+      "WARDEN": {
+        "ring": "RING_4_SAFETY",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "Deterministic STPA velocity watchdog, risk-budget calculator & 3-tier safety interlock governor"
       }
     },
     "helper_templates": {
@@ -237,6 +252,20 @@
         "max_model_tier": "LLM_PRO",
         "default_hourly_token_cap": 15000,
         "description": "Inspects failure evidence to distinguish temporary maintenance/popups from true character loss."
+      },
+      "R4_STPA_LOOP_HUNTER": {
+        "parent_ring": "RING_4_SAFETY",
+        "parent_leader": "AEGIS",
+        "max_model_tier": "LLM_PRO",
+        "default_hourly_token_cap": 15000,
+        "description": "Audits cross-ring control loops when WARDEN detects zero-progress velocity drift or sibling starvation."
+      },
+      "R4_CONTAINMENT_OFFICER": {
+        "parent_ring": "RING_4_SAFETY",
+        "parent_leader": "AEGIS",
+        "max_model_tier": "LLM_PRO",
+        "default_hourly_token_cap": 15000,
+        "description": "Verifies blast-radius isolation, twin coverage, and cooldown quarantine when a safety interlock trips."
       }
     }
   }

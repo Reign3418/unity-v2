@@ -1000,6 +1000,96 @@ class CohortRotationTimersAndPreemptionTests(unittest.TestCase):
         rot_job = w.transport.sent[-1]
         self.assertEqual((rot_job["job_type"], rot_job["args"]["target_kingdom_id"]), ("switch_character", 4044))
 
+    def test_ring4_stpa_velocity_watchdog_trips_after_zero_delta_streak(self):
+        b_4197 = make_bot("bot_4197_twin_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4197, ch=2, state="GROWING")
+        w = World(control_mode="AUTONOMOUS", bots=[b_4197], kingdom_last=None)
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            capabilities=list(numnum.STAGE6_CAPABILITIES),
+            watched_kingdoms=[],
+            enable_helpers=True,
+        ))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4197_twin_m1"],
+            "active_by_instance": {"sidekick-mumu-1": "bot_4197_twin_m1"},
+        })
+
+        # Simulate 3 grow_city slices that return PARTIAL with zero ch_level/power delta
+        for i in range(3):
+            w.tick()
+            job = w.transport.sent[-1]
+            self.assertEqual(job["job_type"], "grow_city")
+            res = w.result_for(job, status="PARTIAL", screen="CITY_VIEW", ch=2, duration_ms=30000)
+            res["observed_state"]["power"] = b_4197["verified_state"]["power"]
+            res["evidence"]["metrics"] = {"script_steps": 5, "timer_seconds": 0}
+            w.transport.push_result(res)
+            w.tick()
+            w.clock.t += timedelta(minutes=12)
+
+        interlocks = [e for e in w.store.events if e["event_type"] == "SAFETY_INTERLOCK_TRIPPED"]
+        self.assertEqual(len(interlocks), 1)
+        self.assertEqual(interlocks[0]["ring"], "RING_4_SAFETY")
+        self.assertEqual(interlocks[0]["actor"], "WARDEN")
+        rt = w.store.get_control("BOTRUNTIME#bot_4197_twin_m1") or {}
+        self.assertTrue(str(rt.get("last_timer_label", "")).startswith("warden_stpa_interlock:"))
+        r4_helpers = w.brain.helpers.active_helpers("RING_4_SAFETY")
+        self.assertEqual(len(r4_helpers), 1)
+        self.assertEqual(r4_helpers[0]["template_id"], "R4_STPA_LOOP_HUNTER")
+
+    def test_ring4_posture_transitions_green_to_amber_to_red_halt(self):
+        b0 = make_bot("bot_4194_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4194, ch=8, state="ACTIVE")
+        b1 = make_bot("bot_4021_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4021, ch=8, state="ACTIVE")
+        b2 = make_bot("bot_4198_twin_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4198, ch=6, state="GROWING")
+        w = World(control_mode="AUTONOMOUS", bots=[b0, b1, b2], kingdom_last=None)
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            capabilities=list(numnum.STAGE6_CAPABILITIES),
+            watched_kingdoms=[],
+            enable_helpers=True,
+        ))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4194_m0", "bot_4021_m1", "bot_4198_twin_m0"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4194_m0", "sidekick-mumu-1": "bot_4021_m1"},
+        })
+
+        # Tick 1: Baseline GREEN_NOMINAL posture
+        s1 = w.tick()
+        self.assertEqual(s1.get("safety_posture"), "GREEN_NOMINAL")
+        self.assertEqual(s1.get("residual_risk_score"), 17.0)
+
+        # Mark 2 bots as newly SUSPECT within the last hour -> Ring 4 transitions to AMBER_CAUTIOUS!
+        now_iso = w.clock.t.strftime("%Y-%m-%dT%H:%M:%SZ")
+        for bid in ("bot_4194_m0", "bot_4198_twin_m0"):
+            rec = w.bot(bid)
+            rec["lifecycle_state"] = "SUSPECT"
+            rec["health"]["ban_suspected"] = True
+            rec["verified_state"]["last_verified_at"] = now_iso
+            w.store.put_bot(rec)
+
+        w.clock.t += timedelta(minutes=2)
+        s2 = w.tick()
+        self.assertEqual(s2.get("safety_posture"), "AMBER_CAUTIOUS")
+        self.assertGreaterEqual(s2.get("residual_risk_score"), 38.0)
+        amber_events = [e for e in w.store.events if e["event_type"] == "SAFETY_POSTURE_CHANGED" and "AMBER_CAUTIOUS" in e["summary"]]
+        self.assertEqual(len(amber_events), 1)
+        self.assertEqual(amber_events[0]["ring"], "RING_4_SAFETY")
+
+        # Mark 3rd bot as newly SUSPECT within 6h -> Ring 4 transitions to RED_HALT and flips MODE = OFF!
+        rec3 = w.bot("bot_4021_m1")
+        rec3["lifecycle_state"] = "SUSPECT"
+        rec3["health"]["ban_suspected"] = True
+        rec3["verified_state"]["last_verified_at"] = now_iso
+        w.store.put_bot(rec3)
+
+        w.clock.t += timedelta(minutes=2)
+        s3 = w.tick()
+        self.assertEqual(s3.get("safety_posture"), "RED_HALT")
+        self.assertEqual(s3.get("mode"), "OFF")
+        self.assertEqual((w.store.get_control("MODE") or {}).get("mode"), "OFF")
+        red_events = [e for e in w.store.events if e["event_type"] == "SAFETY_POSTURE_CHANGED" and "RED_HALT" in e["summary"]]
+        self.assertEqual(len(red_events), 1)
+        self.assertTrue(red_events[0]["oversight"].get("operator_action_required"))
+
 
 if __name__ == "__main__":
     unittest.main()
