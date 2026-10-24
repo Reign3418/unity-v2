@@ -63,15 +63,18 @@ except Exception:
 # Initialize DynamoStore for direct BastionControl cloud telemetry sync
 _DYNAMO_STORE = None
 try:
-    brain_dir = os.path.join(SCRIPT_DIR, "bastion-brain")
-    if os.path.exists(brain_dir):
-        sys.path.insert(0, brain_dir)
-        from brain.config import BrainConfig, load_env_file
-        from brain.store import DynamoStore
-        env_path = os.path.join(SCRIPT_DIR, ".bastion_brain_env")
-        if os.path.exists(env_path):
-            _cfg = BrainConfig.from_env(load_env_file(env_path))
-            _DYNAMO_STORE = DynamoStore(_cfg)
+    for _candidate in (SCRIPT_DIR, os.path.join(SCRIPT_DIR, "bastion-brain")):
+        if os.path.exists(os.path.join(_candidate, "brain")):
+            if _candidate not in sys.path:
+                sys.path.insert(0, _candidate)
+            from brain.config import BrainConfig, load_env_file
+            from brain.store import DynamoStore
+            env_path = os.path.join(SCRIPT_DIR, ".bastion_brain_env")
+            if os.path.exists(env_path):
+                _cfg = BrainConfig.from_env(load_env_file(env_path))
+                _DYNAMO_STORE = DynamoStore(_cfg)
+                print(f"[DynamoStore] Connected to BastionControl ({_cfg.region})")
+            break
 except Exception as _e:
     print(f"[DynamoStore Init Note] {_e}")
 
@@ -198,6 +201,13 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
         inv_row = (a[295:355, :, 2] >= 165) & (a[295:355, :, 0] <= 45)
         if int(inv_row[:, 615:785].sum()) >= 3500 and int(inv_row[:, 810:980].sum()) >= 3500:
             tap(adb_serial, 1089, 175, 0.9)
+            continue
+        # Dismiss Building Move / Placement overlay (Red X at ~616,204 and Green Check at ~800,204)
+        bm_red = (a[140:270, 550:680, 0] >= 200) & (a[140:270, 550:680, 1] <= 75) & (a[140:270, 550:680, 2] <= 75)
+        bm_grn = (a[140:270, 735:865, 1] >= 175) & (a[140:270, 735:865, 0] <= 105) & (a[140:270, 735:865, 2] <= 105)
+        if int(bm_red.sum()) >= 350 and int(bm_grn.sum()) >= 350:
+            tap(adb_serial, 800, 204, 1.0)
+            tap(adb_serial, 616, 204, 1.0)
             continue
         if is_city_hud(a):
             return a
@@ -486,9 +496,31 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
         except Exception:
             pass
 
-        # Tap Settings (1345, 795) -> Characters (412, 460)
-        tap(adb, 1345, 795, 2.0)
-        tap(adb, 412, 460, 3.2)
+        # Tap Settings (1325, 760) -> OCR-locate Characters (1155, 255 in young KDs or 435, 515 with Search Governor)
+        tap(adb, 1325, 760, 2.2)
+        set_path = os.path.join(SCRIPT_DIR, f"swarm_settings_{port}.png")
+        a_set = capture_screen(adb, set_path)
+        char_btn = (1155, 255)
+        if a_set is not None and OCR is not None:
+            try:
+                s_res, _ = OCR(set_path)
+                has_search_gov = False
+                for s_box, s_txt, _ in (s_res or []):
+                    su = s_txt.strip().upper()
+                    if "SEARCH GOVERNOR" in su:
+                        has_search_gov = True
+                    if "CHARACTER" in su:
+                        scx = int(sum(p[0] for p in s_box) / 4.0)
+                        scy = int(sum(p[1] for p in s_box) / 4.0) - 45
+                        if 180 <= scy <= 620:
+                            char_btn = (scx, scy)
+                            break
+                else:
+                    if has_search_gov:
+                        char_btn = (435, 515)
+            except Exception:
+                pass
+        tap(adb, char_btn[0], char_btn[1], 3.5)
         char_path = os.path.join(SCRIPT_DIR, f"swarm_chars_{port}.png")
         a_char = capture_screen(adb, char_path)
         roster_4197 = []
@@ -540,15 +572,38 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
                 f"Switching {inst['label']} into Kingdom #4197 character at ({sx}, {sy})",
                 {"targetKingdom": "4197", "cardCoords": [sx, sy]},
             )
-            tap(adb, sx, sy, 2.0)
+            tap(adb, sx, sy, 2.5)
+            tap(adb, 979, 619, 1.0)
             tap(adb, 1016, 637, 18.0)
-            close_modals_to_hud(adb, port)
+            a_after = close_modals_to_hud(adb, port)
+            if a_after is not None:
+                ist["screenPreviewB64"] = make_thumbnail_b64(a_after)
+                ist["rssBags"] = parse_rss_bar(a_after)
+                ist["coordinates"]["kingdom"] = "4197"
             return
 
         # Close Character & Settings modals back to HUD
         tap(adb, 1398, 102, 1.0)
         tap(adb, 1398, 102, 1.0)
         tap(adb, 1454, 105, 1.0)
+
+        # If this instance is on a different kingdom (e.g. #3477 or #4205) and #4197 wasn't switched above, invoke provision_neighbor_kingdom.py
+        if not is_4197_currently_active and any_cards_seen > 0 and not roster_4197:
+            prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
+            if os.path.exists(prov_script):
+                append_movement(
+                    state,
+                    port,
+                    "PROVISION_4197",
+                    f"Provisioning / switching {inst['label']} into Kingdom #4197 via provision_neighbor_kingdom.py",
+                    {"targetKingdom": "4197"},
+                )
+                subprocess.run(
+                    [sys.executable, "-u", prov_script, "--adb", adb, "--kingdom", "4197", "--mode", "create", "--skip-tutorial"],
+                    capture_output=True,
+                    timeout=180,
+                )
+                close_modals_to_hud(adb, port)
 
 
 def run_blackbox_threat_check(state: dict, inst: dict):
