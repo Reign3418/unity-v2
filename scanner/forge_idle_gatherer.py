@@ -34,15 +34,22 @@ def adb_shell(serial, cmd):
     subprocess.run([ADB_BIN, "-s", serial, "shell", cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def tap(serial, x, y, delay=1.5):
-    print(f"  [FORGE {serial}] Tap ({x}, {y})")
-    adb_shell(serial, f"input tap {int(x)} {int(y)}")
-    time.sleep(delay)
+    import random as _rnd
+    jx = max(12, min(1588, int(x) + _rnd.randint(-3, 3)))
+    jy = max(12, min(888, int(y) + _rnd.randint(-3, 3)))
+    hold_ms = _rnd.randint(55, 115)
+    print(f"  [FORGE {serial}] Tap ({jx}, {jy})")
+    adb_shell(serial, f"input swipe {jx} {jy} {jx + _rnd.randint(-1, 1)} {jy + _rnd.randint(-1, 1)} {hold_ms}")
+    time.sleep(delay + _rnd.uniform(0.02, 0.14))
 
 def screencap(serial, out_path):
-    adb_shell(serial, "screencap -p /sdcard/forge_cap.png")
-    subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/forge_cap.png", out_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if os.path.exists(out_path):
-        return Image.open(out_path).convert("RGB")
+    import io as _io
+    res = subprocess.run([ADB_BIN, "-s", serial, "exec-out", "screencap", "-p"], capture_output=True, timeout=10)
+    if res.returncode == 0 and res.stdout and len(res.stdout) > 1000:
+        img = Image.open(_io.BytesIO(res.stdout)).convert("RGB")
+        if out_path:
+            img.save(out_path)
+        return img
     return None
 
 def ocr_screen(img_path):

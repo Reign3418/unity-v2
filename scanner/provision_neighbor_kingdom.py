@@ -42,8 +42,12 @@ def adb_shell(adb_target: str, cmd: str):
 
 
 def tap(adb_target: str, x: int, y: int, delay: float = 1.5):
-    adb_shell(adb_target, f"input tap {int(x)} {int(y)}")
-    time.sleep(delay)
+    import random as _rnd
+    jx = max(12, min(1588, int(x) + _rnd.randint(-3, 3)))
+    jy = max(12, min(888, int(y) + _rnd.randint(-3, 3)))
+    hold_ms = _rnd.randint(55, 115)
+    adb_shell(adb_target, f"input swipe {jx} {jy} {jx + _rnd.randint(-1, 1)} {jy + _rnd.randint(-1, 1)} {hold_ms}")
+    time.sleep(delay + _rnd.uniform(0.02, 0.14))
 
 
 def swipe(adb_target: str, x1: int, y1: int, x2: int, y2: int, duration_ms: int = 800, delay: float = 1.8):
@@ -52,13 +56,14 @@ def swipe(adb_target: str, x1: int, y1: int, x2: int, y2: int, duration_ms: int 
 
 
 def screencap(adb_target: str, local_path: str) -> np.ndarray:
-    adb_shell(adb_target, "screencap -p /sdcard/prov_step.png")
-    subprocess.run(
-        [ADB_EXE, "-s", adb_target, "pull", "/sdcard/prov_step.png", local_path],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return np.array(Image.open(local_path).convert("RGB"))
+    import io as _io
+    res = subprocess.run([ADB_EXE, "-s", adb_target, "exec-out", "screencap", "-p"], capture_output=True, timeout=10)
+    if res.returncode == 0 and res.stdout and len(res.stdout) > 1000:
+        img = Image.open(_io.BytesIO(res.stdout)).convert("RGB")
+        if local_path:
+            img.save(local_path)
+        return np.array(img)
+    raise RuntimeError(f"exec-out screencap failed on {adb_target}")
 
 
 def inspect_kingdom_viewport(img_path: str, kingdom_num: str):
