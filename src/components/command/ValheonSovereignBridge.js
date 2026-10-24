@@ -127,24 +127,9 @@ export default function ValheonSovereignBridge() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[11px] font-mono font-bold uppercase tracking-wider">
-                <span>TARGET KD:</span>
-                <select
-                  aria-label="Command Hub Target Kingdom"
-                  value={kdLabel}
-                  onChange={(e) => {
-                    setActiveTargetKingdom(e.target.value);
-                    window.location.reload();
-                  }}
-                  className="bg-transparent text-cyan-300 font-mono font-bold outline-none cursor-pointer"
-                >
-                  {getMergedKingdomList().map((k) => (
-                    <option key={k} value={k} className="bg-[#0f1115] text-white">
-                      #{k}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[11px] font-mono font-bold uppercase tracking-wider">
+                ACTIVE KD #{kdLabel}
+              </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-mono font-bold">
                 {govCount} Governors Indexed
               </span>

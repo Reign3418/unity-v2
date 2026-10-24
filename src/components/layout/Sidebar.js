@@ -60,10 +60,15 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     effectiveSession,
   } = useRolePreview();
   const [sidebarKd, setSidebarKd] = useState('4197');
-  const sidebarKdList = getMergedKingdomList(effectiveSession || session);
+  const sidebarKdList = getMergedKingdomList(effectiveSession || session, sidebarKd);
 
   useEffect(() => {
     setSidebarKd(getActiveTargetKingdom(effectiveSession || session, '4197'));
+    const onKdChanged = (e) => {
+      if (e?.detail?.kd) setSidebarKd(String(e.detail.kd));
+    };
+    window.addEventListener('valheon:kd-changed', onKdChanged);
+    return () => window.removeEventListener('valheon:kd-changed', onKdChanged);
   }, [effectiveSession, session]);
   const { setIsOmniOpen } = useValheonCommand();
   const t = useTranslations('Sidebar');
@@ -260,9 +265,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </div>
         </div>
 
-        {/* Compact Quick Search + Target Kingdom Switcher Strip */}
+        {/* Compact Quick Search + Mobile Target Kingdom Switcher Strip */}
         <div className="px-3 pt-3 pb-2.5 border-b border-[#1e222b] bg-[#0b0d12] space-y-2">
-          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+          <div className="md:hidden flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
             <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
               <Target size={13} className="text-cyan-400" />
               Target KD:

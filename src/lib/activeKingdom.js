@@ -18,13 +18,6 @@ export const BASTION_FLEET_KINGDOMS = [
 const KD_STORAGE_EPOCH_KEY = "valheon_kd_epoch_v3";
 const CURRENT_KD_EPOCH = "2026-10-23-role-scoped";
 
-/**
- * Checks whether the current session belongs to an elevated global operator
- * (Valheon Founder, SuperAdmin, or Data Analyst) who should see the full
- * Bastion Fleet + all tracked kingdoms.
- * Standard governors and single-kingdom R4/R5 leaders only see the kingdoms
- * provisioned for their account (Profile Cards, Governor Auth, or Discord Tenant).
- */
 export function isGlobalKingdomOperator(session = null) {
     const u = session?.user;
     if (!u) return false;
@@ -32,12 +25,10 @@ export function isGlobalKingdomOperator(session = null) {
 }
 
 /**
- * Returns the deduplicated list of kingdoms the current user is authorized to view.
- * - Elevated operators (Founder / SuperAdmin / Analyst): BASTION_FLEET_KINGDOMS + session allowedKingdoms
- * - Standard members / single-kingdom Leaders: strictly their provisioned kingdoms
- *   (from linked Profile Cards in /stats, Governor PIN auth, or Discord guild tenant).
+ * Returns the deduplicated list of kingdoms the current user is authorized to view,
+ * always including the currently active kingdom so <select> elements never desync.
  */
-export function getMergedKingdomList(session = null) {
+export function getMergedKingdomList(session = null, currentActiveKd = null) {
     const fromSession = Array.isArray(session?.user?.allowedKingdoms)
         ? session.user.allowedKingdoms.map(String)
         : [];
@@ -53,11 +44,15 @@ export function getMergedKingdomList(session = null) {
     const tenantKd = session?.user?.tenant?.kingdomId
         ? [String(session.user.tenant.kingdomId)]
         : [];
+    const explicitActive = currentActiveKd && currentActiveKd !== "GLOBAL"
+        ? [String(currentActiveKd)]
+        : [];
 
-    if (isGlobalKingdomOperator(session)) {
+    if (!session || isGlobalKingdomOperator(session)) {
         return Array.from(
             new Set([
                 ...BASTION_FLEET_KINGDOMS,
+                ...explicitActive,
                 ...activeFromUser,
                 ...fromSession,
                 ...fromTenant,
@@ -68,6 +63,7 @@ export function getMergedKingdomList(session = null) {
 
     const scoped = Array.from(
         new Set([
+            ...explicitActive,
             ...activeFromUser,
             ...fromGovConfig,
             ...fromSession,
@@ -80,8 +76,8 @@ export function getMergedKingdomList(session = null) {
 }
 
 /**
- * Persists the active Target Kingdom across localStorage AND syncs it to
- * the user's DynamoDB profile (USER#<id>) so PC and Mobile stay in sync.
+ * Persists the active Target Kingdom across localStorage, broadcasts a live sync
+ * event to all mounted components, and persists to DynamoDB (USER#<id>).
  */
 export function setActiveTargetKingdom(kd, options = {}) {
     if (typeof window === "undefined" || !kd) return;
@@ -98,6 +94,10 @@ export function setActiveTargetKingdom(kd, options = {}) {
         localStorage.setItem("unty_prefs", JSON.stringify(parsed));
     } catch {}
 
+    try {
+        window.dispatchEvent(new CustomEvent("valheon:kd-changed", { detail: { kd: clean } }));
+    } catch {}
+
     if (options.syncServer !== false && clean !== "GLOBAL") {
         fetch("/api/user/settings", {
             method: "POST",
@@ -109,9 +109,8 @@ export function setActiveTargetKingdom(kd, options = {}) {
 }
 
 /**
- * Pulls the user's server-saved activeKingdom (or linked Profile Card kingdom)
- * from DynamoDB so switching kingdoms on PC or linking a Profile Card immediately
- * reflects on Mobile without needing to clear browser storage.
+ * Pulls the user's server-saved activeKingdom only when the browser has no explicit
+ * local selection yet, or syncs local selection up to the server.
  */
 export async function syncActiveKingdomFromServer() {
     if (typeof window === "undefined") return null;
@@ -124,7 +123,7 @@ export async function syncActiveKingdomFromServer() {
             const currentLocal =
                 localStorage.getItem("valheon_active_kd") ||
                 localStorage.getItem("unty_active_kd");
-            if (currentLocal !== serverKd) {
+            if (!currentLocal || currentLocal === "3155" || currentLocal === "3418") {
                 setActiveTargetKingdom(serverKd, { syncServer: false });
                 return serverKd;
             }
@@ -137,8 +136,7 @@ export async function syncActiveKingdomFromServer() {
  * Resolves the active Target Kingdom selected in the top Navbar, DynamoDB profile, or session.
  */
 export function getActiveTargetKingdom(session = null, fallback = "4197") {
-    const isGlobal = isGlobalKingdomOperator(session);
-    const allowedList = getMergedKingdomList(session);
+    const isGlobal = !session || isGlobalKingdomOperator(session);
     const serverSavedKd =
         session?.user?.activeKingdom ||
         session?.user?.governorConfig?.activeKingdom ||
@@ -150,7 +148,6 @@ export function getActiveTargetKingdom(session = null, fallback = "4197") {
         const active = localStorage.getItem("unty_active_kd");
         const def = localStorage.getItem("unty_default_kd");
 
-        // One-time migration for Founder/SuperAdmin mobile browsers stuck on legacy 3155/3418 default
         if (isGlobal && epoch !== CURRENT_KD_EPOCH) {
             const currentStored = valheonActive || active || def;
             if (!currentStored || currentStored === "3155" || currentStored === "3418") {
@@ -163,7 +160,7 @@ export function getActiveTargetKingdom(session = null, fallback = "4197") {
 
         const candidate = (valheonActive || active || def || "").trim();
         if (candidate && candidate !== "GLOBAL") {
-            // For regular non-global users, ensure localStorage isn't pointing at an unauthorized kingdom
+            const allowedList = getMergedKingdomList(session, candidate);
             if (!isGlobal && allowedList.length > 0 && !allowedList.includes(candidate)) {
                 const validKd = serverSavedKd && allowedList.includes(String(serverSavedKd))
                     ? String(serverSavedKd)
@@ -179,6 +176,7 @@ export function getActiveTargetKingdom(session = null, fallback = "4197") {
         return String(serverSavedKd).trim();
     }
 
+    const allowedList = getMergedKingdomList(session);
     if (allowedList.length > 0) {
         return String(allowedList[0]).trim();
     }

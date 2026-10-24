@@ -27,7 +27,7 @@ export default function Navbar({ onMenuClick }) {
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeKd, setActiveKd] = useState('4197');
-  const kingdomList = getMergedKingdomList(effectiveSession || session);
+  const kingdomList = getMergedKingdomList(effectiveSession || session, activeKd);
 
   useEffect(() => {
     const resolved = getActiveTargetKingdom(effectiveSession || session, '4197');
@@ -39,6 +39,11 @@ export default function Navbar({ onMenuClick }) {
         }
       });
     }
+    const onKdChanged = (e) => {
+      if (e?.detail?.kd) setActiveKd(String(e.detail.kd));
+    };
+    window.addEventListener('valheon:kd-changed', onKdChanged);
+    return () => window.removeEventListener('valheon:kd-changed', onKdChanged);
   }, [effectiveSession, session]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pingData, setPingData] = useState({ vercel: 14, aws: 28 });

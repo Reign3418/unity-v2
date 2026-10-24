@@ -25,7 +25,15 @@ export function ValheonCommandProvider({ children }) {
     evaluateGovernorTrust(BENCHMARK_GOVERNORS[0])
   );
 
-  // Sync active kingdom & fetch live 35-field governor telemetry when available
+  useEffect(() => {
+    const onKdChanged = (e) => {
+      if (e?.detail?.kd) setActiveKd(String(e.detail.kd));
+    };
+    window.addEventListener('valheon:kd-changed', onKdChanged);
+    return () => window.removeEventListener('valheon:kd-changed', onKdChanged);
+  }, []);
+
+  // Sync active kingdom & fetch live 45-field governor telemetry when available
   useEffect(() => {
     const kd = getActiveTargetKingdom(session, '4197');
     setActiveKd(kd);
@@ -33,8 +41,24 @@ export function ValheonCommandProvider({ children }) {
     let cancelled = false;
     async function hydrateKingdomRoster() {
       try {
-        // 1. First pull live 45-field Valheon Sovereign telemetry
-        const liveRes = await fetch(`/api/aws/governor-search?limit=300&_t=${Date.now()}`);
+        // 1. Pull live roster for the active Target Kingdom first so Command Hub count matches the selected KD
+        const rosterRes = await fetch(`/api/aws/roster?kd=${encodeURIComponent(kd)}&_t=${Date.now()}`);
+        if (rosterRes.ok) {
+          const rosterData = await rosterRes.json();
+          if (!cancelled && Array.isArray(rosterData?.roster) && rosterData.roster.length > 0) {
+            const matrix = evaluateKingdomTrustMatrix(rosterData.roster);
+            const enriched = matrix.governors.map((mg) => {
+              const rawGov = rosterData.roster.find((r) => String(r.id) === String(mg.id)) || {};
+              return { ...rawGov, ...mg };
+            });
+            setGovernorPool(enriched);
+            setSelectedGovernor(enriched[0]);
+            return;
+          }
+        }
+
+        // 2. Fallback to governor-search
+        const liveRes = await fetch(`/api/aws/governor-search?kingdom=${encodeURIComponent(kd)}&limit=300&_t=${Date.now()}`);
         if (liveRes.ok) {
           const liveData = await liveRes.json();
           if (!cancelled && Array.isArray(liveData?.results) && liveData.results.length > 0) {
