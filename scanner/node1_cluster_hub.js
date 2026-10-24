@@ -44,10 +44,26 @@ $HubUrl = "http://${HOST_IP}:${PORT}"
 $WorkDir = "C:\\UnityScanner"
 Set-Location $WorkDir
 [System.Net.ServicePointManager]::DefaultConnectionLimit = 50
+$loopTick = 0
 
 while ($true) {
     try {
-        $pyProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*provision_neighbor*" -or $_.CommandLine -like "*auto_tutorial_ch8*" } | Select-Object -First 1
+        $loopTick++
+        if ($loopTick % 15 -eq 1) {
+            $venvPy = "$WorkDir\\.venv\\Scripts\\python.exe"
+            $brainDir = "$WorkDir\\bastion-brain"
+            if ((Test-Path $venvPy) -and (Test-Path $brainDir)) {
+                $cProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*-m cipher*" }
+                if (-not $cProc) {
+                    Start-Process -FilePath $venvPy -ArgumentList "-u","-m","cipher","--settings","$WorkDir\\.bastion_aws_credentials" -WorkingDirectory $brainDir -RedirectStandardOutput "$WorkDir\\cipher_stdout.log" -RedirectStandardError "$WorkDir\\cipher_stderr.log" -WindowStyle Hidden
+                }
+                $bProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*-m brain*" }
+                if (-not $bProc) {
+                    Start-Process -FilePath $venvPy -ArgumentList "-u","-m","brain","--env-file","$WorkDir\\.bastion_brain_env","--node-id","sidekick","--node-role","STANDBY","--node-priority","2" -WorkingDirectory $brainDir -RedirectStandardOutput "$WorkDir\\brain_standby.log" -RedirectStandardError "$WorkDir\\brain_standby_err.log" -WindowStyle Hidden
+                }
+            }
+        }
+        $pyProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*unity_autonomous_scanner*" -or $_.CommandLine -like "*bastion_genesis_probe*" -or $_.CommandLine -like "*provision_neighbor*" -or $_.CommandLine -like "*auto_tutorial_ch8*" -or $_.CommandLine -like "*-m cipher*" } | Select-Object -First 1
         $progObj = $null
         if (Test-Path "$WorkDir\\scan_progress.json") {
             try { $progObj = Get-Content "$WorkDir\\scan_progress.json" -Raw | ConvertFrom-Json } catch {}
