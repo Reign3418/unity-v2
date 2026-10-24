@@ -28,7 +28,7 @@ import { useTranslations } from "next-intl";
 import KingdomVault from "@/app/[locale]/vault/page";
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 import R5BastionMissionDesk from "@/components/bastion/R5BastionMissionDesk";
-import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from "@/lib/activeKingdom";
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, formatKingdomOption } from "@/lib/activeKingdom";
 
 const TABS = [
   { name: "Overview", icon: LayoutTemplate },
@@ -511,10 +511,10 @@ export default function KingdomAnalysis() {
             className="bg-[#0a0c0f] border border-cyan-500/40 text-cyan-300 focus:border-cyan-400 px-3 py-2 rounded-lg font-mono font-bold outline-none cursor-pointer transition-colors shadow-lg text-sm"
           >
             {allAvailableKds.map(kd => (
-              <option key={kd} value={kd} className="bg-[#0f1115] text-white">Kingdom #{kd}</option>
+              <option key={kd} value={kd} className="bg-[#0f1115] text-white">{formatKingdomOption(kd, 'full')}</option>
             ))}
             {!allAvailableKds.includes(targetKd) && targetKd && (
-              <option value={targetKd} className="bg-[#0f1115] text-white">Kingdom #{targetKd}</option>
+              <option value={targetKd} className="bg-[#0f1115] text-white">{formatKingdomOption(targetKd, 'full')}</option>
             )}
           </select>
 

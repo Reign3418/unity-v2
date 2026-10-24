@@ -7,7 +7,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
-import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from '@/lib/activeKingdom';
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, formatKingdomOption } from '@/lib/activeKingdom';
 import {
   LayoutDashboard,
   User,
@@ -285,7 +285,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             >
               {sidebarKdList.map((kd) => (
                 <option key={kd} value={kd} className="bg-[#0f1115] text-white">
-                  Kingdom #{kd}
+                  {formatKingdomOption(kd, 'full')}
                 </option>
               ))}
             </select>

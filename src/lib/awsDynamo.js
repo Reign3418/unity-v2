@@ -161,7 +161,7 @@ export async function getAllTrackedKingdoms() {
         const result = await dbClient.send(new GetItemCommand(params));
         if (result.Item && result.Item.kingdoms && result.Item.kingdoms.SS) {
             const dbKds = result.Item.kingdoms.SS.filter(kd => String(kd).replace(/\D/g, '').length < 10).sort((a,b) => parseInt(a) - parseInt(b));
-            return Array.from(new Set([...priorityKds, ...dbKds]));
+            return Array.from(new Set([...priorityKds, ...dbKds])).sort((a,b) => parseInt(a, 10) - parseInt(b, 10));
         }
         return priorityKds;
     } catch (e) {

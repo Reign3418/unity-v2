@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { downloadExcelFile, parseExcelWorkbook } from "@/lib/excelHelper";
 import { useTranslations } from "next-intl";
-import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from "@/lib/activeKingdom";
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, formatKingdomOption } from "@/lib/activeKingdom";
 
 export default function UploadHub() {
   const t = useTranslations('Upload');
@@ -181,7 +181,7 @@ function CloudExtractor() {
                  className="bg-transparent text-indigo-400 font-mono font-bold outline-none cursor-pointer"
                >
                  {getMergedKingdomList(session).map(kd => (
-                    <option key={kd} value={kd} className="bg-[#0f1115]">Kingdom #{kd}</option>
+                    <option key={kd} value={kd} className="bg-[#0f1115]">{formatKingdomOption(kd, "full")}</option>
                  ))}
                </select>
            </div>

@@ -6,7 +6,7 @@ import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCi
 import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
-import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, syncActiveKingdomFromServer } from '@/lib/activeKingdom';
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, syncActiveKingdomFromServer, formatKingdomOption } from '@/lib/activeKingdom';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
@@ -237,7 +237,7 @@ export default function Navbar({ onMenuClick }) {
             >
               {kingdomList.map((kd) => (
                 <option key={kd} value={kd} className="bg-[#0f1115] text-white">
-                  [{kd}]
+                  {formatKingdomOption(kd, 'bracket')}
                 </option>
               ))}
               <option value="GLOBAL" className="bg-[#0f1115] text-amber-400">

@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { Settings, User, Bell, Shield, Palette, Save, Check, Cpu } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList } from "@/lib/activeKingdom";
+import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, formatKingdomOption } from "@/lib/activeKingdom";
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
@@ -171,7 +171,7 @@ export default function SettingsPage() {
               className="bg-[#13161c] border border-cyan-500/30 text-cyan-300 px-3 py-1.5 rounded-lg font-mono font-bold outline-none cursor-pointer text-sm"
             >
               {getMergedKingdomList(session).map(kd => (
-                <option key={kd} value={kd} className="bg-[#0f1115] text-white">KD #{kd}</option>
+                <option key={kd} value={kd} className="bg-[#0f1115] text-white">{formatKingdomOption(kd, "short")}</option>
               ))}
             </select>
             

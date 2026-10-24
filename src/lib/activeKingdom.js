@@ -1,19 +1,54 @@
 export const BASTION_FLEET_KINGDOMS = [
-    "4197",
-    "4194",
-    "4021",
-    "4193",
-    "4195",
-    "4196",
-    "4198",
-    "4044",
-    "4202",
-    "3418",
     "3155",
     "3218",
+    "3418",
     "3477",
     "3707",
+    "4021",
+    "4044",
+    "4193",
+    "4194",
+    "4195",
+    "4196",
+    "4197",
+    "4198",
+    "4202",
 ];
+
+/**
+ * Kingdoms with active live Bastion Bot telemetry (shown WITHOUT an asterisk).
+ * All historical/legacy spreadsheet kingdoms are marked with '*' (Archived).
+ */
+export const ACTIVE_LIVE_KINGDOMS = new Set([
+    "4021",
+    "4044",
+    "4193",
+    "4194",
+    "4195",
+    "4196",
+    "4197",
+    "4198",
+    "4202",
+]);
+
+export function isArchivedKingdom(kd) {
+    if (!kd || kd === "GLOBAL") return false;
+    return !ACTIVE_LIVE_KINGDOMS.has(String(kd).trim());
+}
+
+/**
+ * Formats a kingdom ID for <select> dropdowns, appending '*' to archived kingdoms.
+ * style: 'bracket' -> '[3155*]' / '[4197]'
+ *        'full'    -> 'Kingdom #3155*' / 'Kingdom #4197'
+ *        'short'   -> 'KD #3155*' / 'KD #4197'
+ */
+export function formatKingdomOption(kd, style = "bracket") {
+    const clean = String(kd || "").trim();
+    const star = isArchivedKingdom(clean) ? "*" : "";
+    if (style === "full") return `Kingdom #${clean}${star}`;
+    if (style === "short") return `KD #${clean}${star}`;
+    return `[${clean}${star}]`;
+}
 
 const KD_STORAGE_EPOCH_KEY = "valheon_kd_epoch_v3";
 const CURRENT_KD_EPOCH = "2026-10-23-role-scoped";
@@ -25,8 +60,9 @@ export function isGlobalKingdomOperator(session = null) {
 }
 
 /**
- * Returns the deduplicated list of kingdoms the current user is authorized to view,
- * always including the currently active kingdom so <select> elements never desync.
+ * Returns the deduplicated list of kingdoms in strict ascending numerical order
+ * (e.g. 3155* ... 4023* -> 4044 -> 4193 -> 4194 -> 4195 -> 4196 -> 4197 -> 4198 -> 4202)
+ * so scrolling numerically always finds 4197 in its exact expected position.
  */
 export function getMergedKingdomList(session = null, currentActiveKd = null) {
     const fromSession = Array.isArray(session?.user?.allowedKingdoms)
@@ -48,37 +84,42 @@ export function getMergedKingdomList(session = null, currentActiveKd = null) {
         ? [String(currentActiveKd)]
         : [];
 
+    const sortNumerically = (arr) =>
+        arr
+            .filter((k) => k && k !== "GLOBAL")
+            .sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0));
+
     if (!session || isGlobalKingdomOperator(session)) {
-        return Array.from(
-            new Set([
-                ...BASTION_FLEET_KINGDOMS,
-                ...explicitActive,
-                ...activeFromUser,
-                ...fromSession,
-                ...fromTenant,
-                ...fromGovConfig,
-            ])
-        ).filter((k) => k && k !== "GLOBAL");
+        return sortNumerically(
+            Array.from(
+                new Set([
+                    ...BASTION_FLEET_KINGDOMS,
+                    ...explicitActive,
+                    ...activeFromUser,
+                    ...fromSession,
+                    ...fromTenant,
+                    ...fromGovConfig,
+                ])
+            )
+        );
     }
 
-    const scoped = Array.from(
-        new Set([
-            ...explicitActive,
-            ...activeFromUser,
-            ...fromGovConfig,
-            ...fromSession,
-            ...fromTenant,
-            ...tenantKd,
-        ])
-    ).filter((k) => k && k !== "GLOBAL");
+    const scoped = sortNumerically(
+        Array.from(
+            new Set([
+                ...explicitActive,
+                ...activeFromUser,
+                ...fromGovConfig,
+                ...fromSession,
+                ...fromTenant,
+                ...tenantKd,
+            ])
+        )
+    );
 
     return scoped.length > 0 ? scoped : ["4197"];
 }
 
-/**
- * Persists the active Target Kingdom across localStorage, broadcasts a live sync
- * event to all mounted components, and persists to DynamoDB (USER#<id>).
- */
 export function setActiveTargetKingdom(kd, options = {}) {
     if (typeof window === "undefined" || !kd) return;
     const clean = String(kd).trim();
@@ -108,10 +149,6 @@ export function setActiveTargetKingdom(kd, options = {}) {
     }
 }
 
-/**
- * Pulls the user's server-saved activeKingdom only when the browser has no explicit
- * local selection yet, or syncs local selection up to the server.
- */
 export async function syncActiveKingdomFromServer() {
     if (typeof window === "undefined") return null;
     try {
@@ -132,9 +169,6 @@ export async function syncActiveKingdomFromServer() {
     return null;
 }
 
-/**
- * Resolves the active Target Kingdom selected in the top Navbar, DynamoDB profile, or session.
- */
 export function getActiveTargetKingdom(session = null, fallback = "4197") {
     const isGlobal = !session || isGlobalKingdomOperator(session);
     const serverSavedKd =
@@ -164,7 +198,7 @@ export function getActiveTargetKingdom(session = null, fallback = "4197") {
             if (!isGlobal && allowedList.length > 0 && !allowedList.includes(candidate)) {
                 const validKd = serverSavedKd && allowedList.includes(String(serverSavedKd))
                     ? String(serverSavedKd)
-                    : allowedList[0];
+                    : allowedList[allowedList.length - 1];
                 setActiveTargetKingdom(validKd, { syncServer: false });
                 return validKd;
             }
@@ -174,6 +208,10 @@ export function getActiveTargetKingdom(session = null, fallback = "4197") {
 
     if (serverSavedKd && serverSavedKd !== "GLOBAL") {
         return String(serverSavedKd).trim();
+    }
+
+    if (isGlobal) {
+        return "4197";
     }
 
     const allowedList = getMergedKingdomList(session);
