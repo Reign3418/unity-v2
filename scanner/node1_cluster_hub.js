@@ -268,6 +268,16 @@ const server = http.createServer((req, res) => {
     return res.end('File not found');
   }
 
+  if (req.method === 'GET' && url.pathname === '/swarm-blackbox') {
+    const bbPath = path.join(SCANNER_DIR, 'swarm_4197_blackbox.json');
+    if (fs.existsSync(bbPath)) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      return res.end(fs.readFileSync(bbPath, 'utf8'));
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ empty: true }));
+  }
+
   if (req.method === 'GET' && url.pathname === '/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     const compactHistory = commandHistory.slice(-10).map((item) => ({
@@ -295,6 +305,13 @@ const server = http.createServer((req, res) => {
   req.on('end', () => {
     const body = Buffer.concat(chunks).toString('utf8');
     try {
+      if (req.method === 'POST' && url.pathname === '/swarm-blackbox') {
+        const bbPath = path.join(SCANNER_DIR, 'swarm_4197_blackbox.json');
+        fs.writeFileSync(bbPath, body || '{}', 'utf8');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true }));
+      }
+
       if (req.method === 'POST' && url.pathname === '/scan-progress') {
         const data = JSON.parse(body || '{}');
         const instId = resolveInstId(data);

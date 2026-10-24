@@ -82,7 +82,7 @@ def tap(serial: str, x: int, y: int, sleep_sec: float = 1.0):
     jy = max(12, min(888, y + random.randint(-3, 3)))
     hold_ms = random.randint(55, 115)
     subprocess.run(
-        [ADB_BIN, "-s", serial, "shell", "input", "swipe", str(jx), str(jy), str(jx + random.randint(-1, 1)), str(jy + random.randint(-1, 1)), str(hold_ms)],
+        [ADB_BIN, "-s", serial, "shell", "input", "tap", str(jx), str(jy)],
         capture_output=True,
     )
     if sleep_sec > 0:
@@ -898,16 +898,17 @@ def detect_new_troop_modal(a: np.ndarray):
         pillar = a[500:850, 10:80]
         is_grey_pillar = float(np.mean(np.abs(pillar[:, :, 0].astype(np.int32) - pillar[:, :, 1].astype(np.int32)) < 18)) > 0.65
         if float(np.mean(is_top_hdr)) < 0.40 and float(np.mean(is_top_hdr2)) < 0.40 and float(pillar.mean()) > 80.0 and is_grey_pillar and float(a[470:510, 200:1400].mean()) > 60.0:
-            mil_red = ((a[570:625, 0:45, 0] >= 180) & (a[570:625, 0:45, 1] <= 70) & (a[570:625, 0:45, 2] <= 70)).sum()
-            econ_yel = ((a[485:580, 15:80, 0] >= 200) & (a[485:580, 15:80, 1] >= 160) & (a[485:580, 15:80, 2] <= 70)).sum()
-            sp_mil = spear_mask(a[450:720, 80:245])
-            if int(econ_yel) >= 180 and (int(sp_mil.sum()) >= 120 or int(mil_red) >= 150):
-                return (65, 665, "Build Drawer -> Switch to Military Tab (65, 665)")
             sp_bd = spear_mask(a[250:435, 180:1550])
             if int(sp_bd.sum()) >= 85:
                 s_ys, s_xs = np.where(sp_bd)
                 bsx = int(np.median(s_xs) + 180)
                 return (max(280, min(1450, bsx)), 620, f"Build Drawer -> Tap Spear Card ({max(280, min(1450, bsx))}, 620)")
+            mil_red = ((a[570:625, 0:45, 0] >= 180) & (a[570:625, 0:45, 1] <= 70) & (a[570:625, 0:45, 2] <= 70)).sum()
+            econ_yel = ((a[485:580, 15:80, 0] >= 200) & (a[485:580, 15:80, 1] >= 160) & (a[485:580, 15:80, 2] <= 70)).sum()
+            mil_glow = (a[645:775, 10:80].mean(axis=2) >= 175).sum()
+            sp_mil = spear_mask(a[520:680, 80:155])
+            if int(econ_yel) >= 180 and (int(mil_glow) >= 600 or int(sp_mil.sum()) >= 80 or int(mil_red) >= 150):
+                return (53, 649, "Build Drawer -> Switch to Military Tab (53, 649)")
             if OCR is not None:
                 try:
                     bd_res, _ = OCR(a[450:880, 90:1550].astype(np.uint8))
@@ -986,17 +987,15 @@ def spear_mask(a: np.ndarray) -> np.ndarray:
 
 def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     diff = np.abs(a1 - a2).sum(axis=2)
-    sp = (spear_mask(a1) | spear_mask(a2)) & (diff >= 20)
+    sp_raw = spear_mask(a1) | spear_mask(a2)
     # Exclude bottom-left HUD blue Build/Map buttons themselves (x<=115, y>=685; spears pointing at them sit at y=520..665)
-    sp[685:, :115] = False
+    sp_raw[685:, :115] = False
     # Exclude bottom-right HUD menu icons, chat bar, and top-right event icons ONLY when on City HUD
     if is_city_hud(a2):
-        sp[825:, 1150:] = False
-        sp[845:, :] = False
-        sp[:215, 1100:] = False
-    if is_world_map(a2):
-        sp[:, 260:] = False
-        sp[:550, :] = False
+        sp_raw[825:, 1150:] = False
+        sp_raw[845:, :] = False
+        sp_raw[:215, 1100:] = False
+    sp = sp_raw & (diff >= 20)
     # Filter out full-screen moving Kingdom Fog clouds
     if int(sp.sum()) > 12000:
         return None, None, 0
@@ -1006,9 +1005,13 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     for gy in range(20, H - 70, 15):
         for gx in range(20, W - 70, 15):
             c = int(sp[gy : gy + 75, gx : gx + 75].sum())
+            if c < 120:
+                c_raw = int(sp_raw[gy : gy + 75, gx : gx + 75].sum())
+                if c_raw >= 1100:
+                    c = c_raw
             if c > best_s:
                 best_s = c
-                ys, xs = np.where(sp[gy : gy + 75, gx : gx + 75])
+                ys, xs = np.where(sp_raw[gy : gy + 75, gx : gx + 75])
                 sx, sy = int(np.median(xs) + gx), int(np.median(ys) + gy)
 
     if best_s < 120:
@@ -1031,11 +1034,9 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
         if sx < 185 and 450 <= sy <= 750:
             return (sx, sy), (50, 660), best_s
 
-    # Build Drawer Slot #1 (Tavern / Farm at x=100..435, y=245..550) & New Troop Primary Commander '+' slot shortcut
-    if 100 <= sx <= 435 and 245 <= sy <= 550:
-        if not is_city_hud(a2):
-            return (sx, sy), (210, 600), best_s
-        return (sx, sy), (315, 515), best_s
+    # Build Drawer Slot #1 (Tavern / Farm at x=100..435, y=245..550) when Build Drawer is open
+    if not is_city_hud(a2) and 100 <= sx <= 435 and 245 <= sy <= 550:
+        return (sx, sy), (210, 600), best_s
 
     Y, X = np.ogrid[:H, :W]
     dist = np.sqrt((X - sx) ** 2 + (Y - sy) ** 2)
@@ -1065,7 +1066,8 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
                 ys, xs = np.where(win)
                 tx, ty = int(np.median(xs) + gx), int(np.median(ys) + gy)
 
-    if best_b >= 45 and tx is not None:
+    min_burst = 350 if (is_world_map(a2) and (sx >= 260 or sy < 550)) else 45
+    if best_b >= min_burst and tx is not None:
         return (sx, sy), (tx, ty), best_b
 
     # 2. Static pure-white starburst fallback inside valid cone
@@ -1747,6 +1749,10 @@ def main():
                 tap(args.adb, 1263, 190, 1.0)
                 tap(args.adb, 628, 805, 1.2)
                 tap(args.adb, 48, 52, 1.2)
+            elif nt[2].startswith("TROOP_TRAIN_START"):
+                print(f"[Step {step:02d}] {nt[2]} -> Select T1 ONLY Slot (650, 225) + Tap TRAIN ({nt[0]}, {nt[1]})")
+                tap(args.adb, 650, 225, 0.6)
+                tap(args.adb, nt[0], nt[1], 1.1)
             else:
                 print(f"[Step {step:02d}] {nt[2]} -> tap ({nt[0]}, {nt[1]})")
                 tap(args.adb, nt[0], nt[1], 1.1)
@@ -1771,11 +1777,18 @@ def main():
                 continue
 
         has_selected_building_ribbon = False
-        if is_city_hud(a2) and not is_world_map(a2):
+        if is_city_hud(a2) and not is_world_map(a2) and not (spear_xy and (spear_xy[0] < 320 or bcnt >= 150)):
             rib_chk = a2[25:600, 175:1550]
             is_rib_chk = (rib_chk[:, :, 2] >= 145) & (rib_chk[:, :, 0] <= 55) & ((rib_chk[:, :, 2].astype(np.int32) - rib_chk[:, :, 0].astype(np.int32)) >= 100)
+            is_wht_chk = (rib_chk[:, :, 0] >= 205) & (rib_chk[:, :, 1] >= 205) & (rib_chk[:, :, 2] >= 205)
             if int(is_rib_chk.sum()) >= 3500 and rib_hex_repeat < 1:
-                has_selected_building_ribbon = True
+                for ry in range(0, is_rib_chk.shape[0] - 85, 35):
+                    for rx in range(0, is_rib_chk.shape[1] - 360, 60):
+                        if int(is_rib_chk[ry : ry + 95, rx : rx + 390].sum()) >= 3500 and int(is_wht_chk[ry : ry + 95, rx : rx + 390].sum()) >= 100:
+                            has_selected_building_ribbon = True
+                            break
+                    if has_selected_building_ribbon:
+                        break
 
         # Tutorial spear ALWAYS has priority over heuristic building upgrade actions (unless a City Building ribbon is already selected, or bottom-right HUD buttons at x>=820, y>=795)
         if not has_selected_building_ribbon and spear_xy and target_xy and not (target_xy[1] >= 795 and target_xy[0] >= 820):
@@ -1845,12 +1858,14 @@ def main():
             # If a City Building or Obstacle is selected (blue title ribbon at y=25..600, x=175..1550)
             rib = a2[25:600, 175:1550]
             is_rib = (rib[:, :, 2] >= 145) & (rib[:, :, 0] <= 55) & ((rib[:, :, 2].astype(np.int32) - rib[:, :, 0].astype(np.int32)) >= 100)
+            is_rib_wht = (rib[:, :, 0] >= 205) & (rib[:, :, 1] >= 205) & (rib[:, :, 2] >= 205)
             best_r, rib_cx, rib_cy = 0, None, None
             for ry in range(0, is_rib.shape[0] - 85, 25):
                 for rx in range(0, is_rib.shape[1] - 360, 45):
                     rw = is_rib[ry : ry + 95, rx : rx + 390]
                     rc = int(rw.sum())
-                    if rc > best_r:
+                    wc = int(is_rib_wht[ry : ry + 95, rx : rx + 390].sum())
+                    if rc > best_r and wc >= 100:
                         best_r = rc
                         rys, rxs = np.where(rw)
                         rib_cx, rib_cy = int(np.median(rxs) + 175 + rx), int(np.median(rys) + 25 + ry)

@@ -358,6 +358,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               badgeColor="bg-cyan-500/25 text-cyan-200 border-cyan-400/50"
               hidden={!effectiveIsSuperAdmin && !isRealSuperAdmin}
             />
+            <NavItem
+              href="/tools/swarm"
+              icon={Bot}
+              label="#4197 Swarm Black-Box"
+              badge="T1 ONLY"
+              badgeColor="bg-emerald-500/25 text-emerald-200 border-emerald-400/50"
+              hidden={!effectiveIsSuperAdmin && !isRealSuperAdmin}
+            />
 
             {/* Group 1: Analytics & KvK */}
             <CollapsibleSection groupKey="analytics" title={t('sec_analysis')} count={6}>

@@ -270,6 +270,15 @@ export default function ValheonOmniBar() {
         href: '/tools/peerless',
         icon: BookOpen,
       },
+      {
+        id: 'tool-swarm-4197',
+        type: 'tool',
+        suite: 'BASTION',
+        title: 'Kingdom #4197 Multi-Bot Swarm & Black-Box Command Deck (T1 ONLY)',
+        keywords: 'swarm 4197 blackbox bot rotation t1 farming scout attack belerion',
+        href: '/tools/swarm',
+        icon: Bot,
+      },
     ],
     []
   );

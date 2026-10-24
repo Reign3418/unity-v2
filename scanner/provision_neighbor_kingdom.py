@@ -45,8 +45,7 @@ def tap(adb_target: str, x: int, y: int, delay: float = 1.5):
     import random as _rnd
     jx = max(12, min(1588, int(x) + _rnd.randint(-3, 3)))
     jy = max(12, min(888, int(y) + _rnd.randint(-3, 3)))
-    hold_ms = _rnd.randint(55, 115)
-    adb_shell(adb_target, f"input swipe {jx} {jy} {jx + _rnd.randint(-1, 1)} {jy + _rnd.randint(-1, 1)} {hold_ms}")
+    adb_shell(adb_target, f"input tap {jx} {jy}")
     time.sleep(delay + _rnd.uniform(0.02, 0.14))
 
 
@@ -314,7 +313,7 @@ def main():
             if any(k in prof_texts for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
                 profile_opened = True
                 break
-            print(f"  -> Avatar (45,45) blocked by active tutorial (round {tut_round}); running 32 tutorial steps on {args.adb}...")
+            print(f"  -> Avatar (45,45) blocked by active tutorial (round {tut_round}); running 12 tutorial steps on {args.adb}...")
             report_progress(
                 args.kingdom,
                 1,
@@ -324,7 +323,7 @@ def main():
             )
             tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
             subprocess.run(
-                [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "32"],
+                [sys.executable, "-u", tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", "12"],
                 check=False,
             )
             _clear_to_hud()
@@ -343,138 +342,146 @@ def main():
             report_progress(args.kingdom, 1, 6, "TUTORIAL_INCOMPLETE", f"Governor Profile locked by tutorial on {args.adb}", running=False)
             sys.exit(1)
 
-        tap(args.adb, 1325, 760, 2.2)     # Settings gear
-        tap_characters_in_settings(args.adb, snap_path)
+        already_in_target_kd = f"#{args.kingdom}" in prof_texts
+        if already_in_target_kd and args.mode == "create":
+            print(f"  -> Starter character on {args.adb} is ALREADY in Kingdom #{args.kingdom}! Skipping character creation...")
+            tap(args.adb, 1365, 108, 1.2)  # Close Governor Profile
+        else:
+            tap(args.adb, 1325, 760, 2.2)     # Settings gear
+            tap_characters_in_settings(args.adb, snap_path)
 
-        if args.mode == "switch":
-            report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
-            swipe(args.adb, 800, 250, 800, 780, 450, 1.2)
-            for sw_idx in range(4):
-                screencap(args.adb, snap_path)
-                found_char = find_kingdom_coords(snap_path, str(args.kingdom))
-                if found_char:
-                    cx, cy, ctext = found_char
-                    report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom} (~20s)...")
-                    tap(args.adb, cx, cy, 2.5)
+            if args.mode == "switch":
+                report_progress(args.kingdom, 3, 6, "SWITCHING_CHARACTER", f"[3/6] Searching Character Roster for #{args.kingdom}...")
+                swipe(args.adb, 800, 250, 800, 780, 450, 1.2)
+                for sw_idx in range(4):
                     screencap(args.adb, snap_path)
-                    ocr = get_ocr()
-                    res_confirm, _ = ocr(snap_path)
-                    confirm_texts = " ".join([item[1].upper() for item in (res_confirm or [])])
-                    if "NORMAL CHARACTERS" in confirm_texts or "CREATE NEW CHARACTER" in confirm_texts:
-                        print(f"  -> Character {ctext} in #{args.kingdom} is ALREADY active (green checkmark)! Closing modals...")
-                        tap(args.adb, 1455, 88, 1.0)
-                        tap(args.adb, 1388, 56, 1.0)
-                        tap(args.adb, 1454, 105, 1.0)
-                        report_progress(args.kingdom, 6, 6, "COMPLETED", f"Already active on Kingdom #{args.kingdom}", running=False)
-                        return
-                    # On CHARACTER LOGIN modal, YES is at (979, 619); also check OCR for exact YES button
-                    yes_x, yes_y = 979, 619
-                    for item in (res_confirm or []):
-                        if item[1].strip().upper() == "YES":
-                            pts = item[0]
-                            yes_x = int(sum(p[0] for p in pts) / 4)
-                            yes_y = int(sum(p[1] for p in pts) / 4)
-                            break
-                    tap(args.adb, yes_x, yes_y, 14.0)
-                    # Handle "Tap to Start" splash screen if present during character reload
-                    for _ in range(3):
+                    found_char = find_kingdom_coords(snap_path, str(args.kingdom))
+                    if found_char:
+                        cx, cy, ctext = found_char
+                        report_progress(args.kingdom, 5, 6, "SWITCHING_CHARACTER", f"[5/6] Switching to {ctext} in #{args.kingdom} (~20s)...")
+                        tap(args.adb, cx, cy, 2.5)
                         screencap(args.adb, snap_path)
-                        res_tts, _ = ocr(snap_path)
-                        tts_texts = " ".join([item[1].upper() for item in (res_tts or [])])
-                        if "TAP TO START" in tts_texts:
-                            print("  -> Detected 'Tap to Start' splash screen -> tapping (800, 835)...")
-                            tap(args.adb, 800, 835, 8.0)
-                        else:
-                            break
-                    report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
-                    return
-                if sw_idx < 3:
-                    swipe(args.adb, 800, 680, 800, 280, 650, 1.8)
-            report_progress(args.kingdom, 6, 6, "SWITCH_NOT_FOUND", f"Character for #{args.kingdom} not found in roster", running=False)
-            return
+                        ocr = get_ocr()
+                        res_confirm, _ = ocr(snap_path)
+                        confirm_texts = " ".join([item[1].upper() for item in (res_confirm or [])])
+                        if "NORMAL CHARACTERS" in confirm_texts or "CREATE NEW CHARACTER" in confirm_texts:
+                            print(f"  -> Character {ctext} in #{args.kingdom} is ALREADY active (green checkmark)! Closing modals...")
+                            tap(args.adb, 1455, 88, 1.0)
+                            tap(args.adb, 1388, 56, 1.0)
+                            tap(args.adb, 1454, 105, 1.0)
+                            report_progress(args.kingdom, 6, 6, "COMPLETED", f"Already active on Kingdom #{args.kingdom}", running=False)
+                            return
+                        # On CHARACTER LOGIN modal, YES is at (979, 619); also check OCR for exact YES button
+                        yes_x, yes_y = 979, 619
+                        for item in (res_confirm or []):
+                            if item[1].strip().upper() == "YES":
+                                pts = item[0]
+                                yes_x = int(sum(p[0] for p in pts) / 4)
+                                yes_y = int(sum(p[1] for p in pts) / 4)
+                                break
+                        tap(args.adb, yes_x, yes_y, 14.0)
+                        # Handle "Tap to Start" splash screen if present during character reload
+                        for _ in range(3):
+                            screencap(args.adb, snap_path)
+                            res_tts, _ = ocr(snap_path)
+                            tts_texts = " ".join([item[1].upper() for item in (res_tts or [])])
+                            if "TAP TO START" in tts_texts:
+                                print("  -> Detected 'Tap to Start' splash screen -> tapping (800, 835)...")
+                                tap(args.adb, 800, 835, 8.0)
+                            else:
+                                break
+                        report_progress(args.kingdom, 6, 6, "COMPLETED", f"Active on Kingdom #{args.kingdom}", running=False)
+                        return
+                    if sw_idx < 3:
+                        swipe(args.adb, 800, 680, 800, 280, 650, 1.8)
+                report_progress(args.kingdom, 6, 6, "SWITCH_NOT_FOUND", f"Character for #{args.kingdom} not found in roster", running=False)
+                return
 
-        tap(args.adb, 504, 333, 4.5)      # + Create New Character
+            tap(args.adb, 504, 333, 4.5)      # + Create New Character
     else:
+        already_in_target_kd = False
         print(f"[1/6] Already on Create Character Kingdom List (visible: {init_vis}) -> resuming seek for #{args.kingdom}...")
 
-    print(f"[2/6] Proportional Seek in Kingdom List for #{args.kingdom}...")
-    target_num = int(args.kingdom)
-    found = None
-    for scroll_idx in range(45):
-        screencap(args.adb, snap_path)
-        found, vis_kds, _ = inspect_kingdom_viewport(snap_path, str(args.kingdom))
-        if found:
-            break
-        if vis_kds:
-            min_vis, max_vis = min(vis_kds), max(vis_kds)
-            report_progress(
-                args.kingdom,
-                3,
-                6,
-                "PROVISIONING_BOT",
-                f"[3/6] Seeking #{args.kingdom} — Currently passing #{max_vis}..#{min_vis}...",
-            )
-            if target_num < min_vis:
-                gap = min_vis - target_num
-                burst = min(5, max(1, gap // 10))
-                print(f"  -> Seeking #{target_num} below #{min_vis} (gap={gap}, burst={burst} swipes)...")
-                for _ in range(burst):
-                    adb_shell(args.adb, "input swipe 800 760 800 320 450")
-                    time.sleep(0.55)
-                time.sleep(1.0)
-            elif target_num > max_vis:
-                gap = target_num - max_vis
-                burst = min(3, max(1, gap // 10))
-                print(f"  -> Overshot #{target_num} (at #{max_vis}), scrolling UP {burst}x...")
-                for _ in range(burst):
-                    adb_shell(args.adb, "input swipe 800 360 800 760 550")
-                    time.sleep(0.65)
-                time.sleep(1.0)
+    if not already_in_target_kd:
+        print(f"[2/6] Proportional Seek in Kingdom List for #{args.kingdom}...")
+        target_num = int(args.kingdom)
+        found = None
+        for scroll_idx in range(45):
+            screencap(args.adb, snap_path)
+            found, vis_kds, _ = inspect_kingdom_viewport(snap_path, str(args.kingdom))
+            if found:
+                break
+            if vis_kds:
+                min_vis, max_vis = min(vis_kds), max(vis_kds)
+                report_progress(
+                    args.kingdom,
+                    3,
+                    6,
+                    "PROVISIONING_BOT",
+                    f"[3/6] Seeking #{args.kingdom} — Currently passing #{max_vis}..#{min_vis}...",
+                )
+                if target_num < min_vis:
+                    gap = min_vis - target_num
+                    burst = min(5, max(1, gap // 10))
+                    print(f"  -> Seeking #{target_num} below #{min_vis} (gap={gap}, burst={burst} swipes)...")
+                    for _ in range(burst):
+                        adb_shell(args.adb, "input swipe 800 760 800 320 450")
+                        time.sleep(0.55)
+                    time.sleep(1.0)
+                elif target_num > max_vis:
+                    gap = target_num - max_vis
+                    burst = min(3, max(1, gap // 10))
+                    print(f"  -> Overshot #{target_num} (at #{max_vis}), scrolling UP {burst}x...")
+                    for _ in range(burst):
+                        adb_shell(args.adb, "input swipe 800 360 800 760 550")
+                        time.sleep(0.65)
+                    time.sleep(1.0)
+                else:
+                    swipe(args.adb, 800, 650, 800, 480, 600, 1.5)
             else:
-                swipe(args.adb, 800, 650, 800, 480, 600, 1.5)
-        else:
+                report_progress(
+                    args.kingdom,
+                    3,
+                    6,
+                    "PROVISIONING_BOT",
+                    f"[3/6] Scanning Kingdom List for #{args.kingdom} (Step {scroll_idx + 1})...",
+                )
+                swipe(args.adb, 800, 720, 800, 360, 650, 1.6)
+
+        if not found:
+            print(f"[ERROR] Could not locate #{args.kingdom} in Kingdom List.")
             report_progress(
                 args.kingdom,
                 3,
                 6,
-                "PROVISIONING_BOT",
-                f"[3/6] Scanning Kingdom List for #{args.kingdom} (Step {scroll_idx + 1})...",
+                "NEEDS_CONTINENT_SELECT",
+                f"Kingdom #{args.kingdom} not found after proportional seek — ready on Create Character screen",
+                running=False,
             )
-            swipe(args.adb, 800, 720, 800, 360, 650, 1.6)
+            sys.exit(1)
 
-    if not found:
-        print(f"[ERROR] Could not locate #{args.kingdom} in Kingdom List.")
-        report_progress(
-            args.kingdom,
-            3,
-            6,
-            "NEEDS_CONTINENT_SELECT",
-            f"Kingdom #{args.kingdom} not found after proportional seek — ready on Create Character screen",
-            running=False,
-        )
-        sys.exit(1)
+        kx, ky, ktext = found
+        print(f"[3/6] Found '{ktext}' at ({kx}, {ky}) -> tapping kingdom card...")
+        report_progress(args.kingdom, 4, 6, "PROVISIONING_BOT", f"[4/6] Found #{args.kingdom} at ({kx},{ky}) -> Confirming Spawn...")
+        tap(args.adb, kx + 40, ky, 2.2)
 
-    kx, ky, ktext = found
-    print(f"[3/6] Found '{ktext}' at ({kx}, {ky}) -> tapping kingdom card...")
-    report_progress(args.kingdom, 4, 6, "PROVISIONING_BOT", f"[4/6] Found #{args.kingdom} at ({kx},{ky}) -> Confirming Spawn...")
-    tap(args.adb, kx + 40, ky, 2.2)
+        print(f"[4/6] Confirming Character Creation in #{args.kingdom} -> tap YES (1016, 639)...")
+        tap(args.adb, 1016, 639, 25.0)
 
-    print(f"[4/6] Confirming Character Creation in #{args.kingdom} -> tap YES (1016, 639)...")
-    tap(args.adb, 1016, 639, 25.0)
-
-    print(f"[5/6] Selecting China civilization & skipping intro cutscene...")
-    report_progress(args.kingdom, 5, 6, "PROVISIONING_BOT", f"[5/6] Selecting China Civilization & Skipping Cutscene in #{args.kingdom}...")
-    tap(args.adb, 890, 755, 2.2)      # Tap PICK CIVILIZATION
-    tap(args.adb, 240, 825, 2.0)      # Select China
-    tap(args.adb, 1352, 630, 4.0)     # Tap CONFIRM
-    tap(args.adb, 1488, 38, 6.0)      # Tap SKIP intro cutscene
+        print(f"[5/6] Selecting China civilization & skipping intro cutscene...")
+        report_progress(args.kingdom, 5, 6, "PROVISIONING_BOT", f"[5/6] Selecting China Civilization & Skipping Cutscene in #{args.kingdom}...")
+        tap(args.adb, 800, 780, 2.5)      # Tap PICK CIVILIZATION on Welcome screen
+        tap(args.adb, 155, 880, 2.0)      # Select China in bottom carousel
+        tap(args.adb, 1352, 700, 6.0)     # Tap gold CONFIRM button
+        tap(args.adb, 800, 450, 1.5)      # Wake intro cutscene overlay
+        tap(args.adb, 1488, 38, 6.0)      # Tap SKIP intro cutscene
 
     if args.tutorial_steps > 0:
         print(f"[6/6] Running {args.tutorial_steps} autonomous CH8 upgrade steps in #{args.kingdom}...")
         report_progress(args.kingdom, 6, 6, "PROVISIONING_BOT", f"[6/6] Upgrading to City Hall 8 in #{args.kingdom} ({args.tutorial_steps} steps)...")
         tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
         subprocess.run(
-            [sys.executable, tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", str(args.tutorial_steps)],
+            [sys.executable, "-u", tut_script, "--adb", args.adb, "--kingdom", str(args.kingdom), "--steps", str(args.tutorial_steps)],
             check=False,
         )
     # Open Governor Profile (45, 45), OCR Governor ID & Name, and register in Bastion Cloud Roster
