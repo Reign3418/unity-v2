@@ -350,6 +350,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               label={t('nav_load')}
               hidden={!effectiveIsLeader && !effectiveIsSuperAdmin}
             />
+            <NavItem
+              href="/creator/architect"
+              icon={MapIcon}
+              label={t('nav_visio_architect')}
+              badge="VISIO"
+              badgeColor="bg-cyan-500/25 text-cyan-200 border-cyan-400/50"
+              hidden={!effectiveIsSuperAdmin && !isRealSuperAdmin}
+            />
 
             {/* Group 1: Analytics & KvK */}
             <CollapsibleSection groupKey="analytics" title={t('sec_analysis')} count={6}>
@@ -497,7 +505,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
             {/* Group 4: Admin, Creator & Bastion (SuperAdmin Only) */}
             {effectiveIsSuperAdmin && (
-              <CollapsibleSection groupKey="admin" title="Admin & Bastion" count={8}>
+              <CollapsibleSection groupKey="admin" title="Admin & Bastion" count={9}>
+                <NavItem
+                  href="/creator/architect"
+                  icon={MapIcon}
+                  label={t('nav_visio_architect')}
+                  badge="94 MAP"
+                  badgeColor="bg-emerald-500/25 text-emerald-200 border-emerald-400/50"
+                />
                 <NavItem
                   href="/black-ops"
                   icon={Crosshair}

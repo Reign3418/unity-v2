@@ -1,8 +1,10 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare, Eye, Crown, Camera } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Bell, Search, Globe, ShieldCheck, Cpu, TerminalSquare, X, Menu, AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, ActivitySquare, Eye, Crown, Camera, Map as MapIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
@@ -26,6 +28,7 @@ export default function Navbar({ onMenuClick }) {
   } = useRolePreview();
   const { setIsOmniOpen, inspectGovernor } = useValheonCommand();
   const pathname = usePathname();
+  const tSidebar = useTranslations('Sidebar');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeKd, setActiveKd] = useState('4197');
   const kingdomList = getMergedKingdomList(effectiveSession || session, activeKd);
@@ -126,6 +129,7 @@ export default function Navbar({ onMenuClick }) {
 
   // Simple route name formatter
   const getPageTitle = () => {
+    if (pathname?.includes('/creator/architect')) return tSidebar('nav_visio_architect');
     if (pathname === '/' || pathname === '/en') {
       return 'Command Hub';
     }
@@ -170,6 +174,21 @@ export default function Navbar({ onMenuClick }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-5">
+          {/* 1-Click Visio Ecosystem Architect Launch Pill */}
+          {(isRealSuperAdmin || effectiveIsSuperAdmin) && (
+            <Link
+              href="/creator/architect"
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                pathname?.includes('/creator/architect')
+                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.25)]'
+                  : 'bg-[#1e222b]/70 border-cyan-500/35 text-cyan-300 hover:bg-cyan-500/15 hover:border-cyan-400'
+              }`}
+              title="Open Interactive 94-Surface Visio Drag & Drop Architect"
+            >
+              <MapIcon size={14} className="text-cyan-400 shrink-0" />
+              <span>{tSidebar('nav_visio_architect')}</span>
+            </Link>
+          )}
           {/* View-As Role Preview Dropdown (Desktop inline; moved to Sidebar drawer on mobile) */}
           {isRealSuperAdmin && (
             <div className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
