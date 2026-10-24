@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import { useValheonCommand } from '@/components/command/ValheonCommandProvider';
 import { getActiveTargetKingdom, setActiveTargetKingdom, getMergedKingdomList, syncActiveKingdomFromServer, formatKingdomOption } from '@/lib/activeKingdom';
+import { SUPPORTED_LOCALES, LOCALE_METADATA } from '@/lib/locales';
 
 export default function Navbar({ onMenuClick }) {
   const { data: session } = useSession();
@@ -255,7 +256,7 @@ export default function Navbar({ onMenuClick }) {
               onChange={(e) => {
                 const newLocale = e.target.value;
                 const segments = pathname.split('/');
-                if (segments.length >= 2 && ['en', 'vi', 'ar', 'ru', 'zh', 'es', 'id', 'ko', 'tr', 'fr', 'de', 'pt'].includes(segments[1])) {
+                if (segments.length >= 2 && SUPPORTED_LOCALES.includes(segments[1])) {
                     segments[1] = newLocale; 
                     window.location.href = segments.join('/');
                 } else {
@@ -263,18 +264,11 @@ export default function Navbar({ onMenuClick }) {
                 }
               }}
             >
-              <option value="en" className="bg-[#0f1115] text-white">English 🇺🇸</option>
-              <option value="zh" className="bg-[#0f1115] text-white">中文 🇨🇳</option>
-              <option value="es" className="bg-[#0f1115] text-white">Español 🇪🇸</option>
-              <option value="fr" className="bg-[#0f1115] text-white">Français 🇫🇷</option>
-              <option value="de" className="bg-[#0f1115] text-white">Deutsch 🇩🇪</option>
-              <option value="ru" className="bg-[#0f1115] text-white">Русский 🇷🇺</option>
-              <option value="ko" className="bg-[#0f1115] text-white">한국어 🇰🇷</option>
-              <option value="vi" className="bg-[#0f1115] text-white">Tiếng Việt 🇻🇳</option>
-              <option value="tr" className="bg-[#0f1115] text-white">Türkçe 🇹🇷</option>
-              <option value="pt" className="bg-[#0f1115] text-white">Português 🇧🇷</option>
-              <option value="id" className="bg-[#0f1115] text-white">Bahasa 🇮🇩</option>
-              <option value="ar" className="bg-[#0f1115] text-white">العربية 🇸🇦</option>
+              {LOCALE_METADATA.map((loc) => (
+                <option key={loc.code} value={loc.code} className="bg-[#0f1115] text-white">
+                  {loc.nativeLabel} {loc.flag}
+                </option>
+              ))}
             </select>
           </div>
 

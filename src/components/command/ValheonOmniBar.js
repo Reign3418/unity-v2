@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { SUPPORTED_LOCALES } from '@/lib/locales';
 import {
   Search,
   Shield,
@@ -51,22 +52,7 @@ export default function ValheonOmniBar() {
   // Extract current locale prefix if present
   const localePrefix = useMemo(() => {
     const seg = pathname?.split('/')[1];
-    if (
-      [
-        'en',
-        'ar',
-        'de',
-        'es',
-        'fr',
-        'id',
-        'ko',
-        'pt',
-        'ru',
-        'tr',
-        'vi',
-        'zh',
-      ].includes(seg)
-    ) {
+    if (SUPPORTED_LOCALES.includes(seg)) {
       return `/${seg}`;
     }
     return '';

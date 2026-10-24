@@ -17,6 +17,7 @@ import EquipmentGuide from "@/components/marketing/EquipmentGuide";
 import AccessMatrix from "@/components/marketing/AccessMatrix";
 import GovernorAuthModal from "@/components/auth/GovernorAuthModal";
 import { useTranslations } from 'next-intl';
+import { SUPPORTED_LOCALES, LOCALE_METADATA } from '@/lib/locales';
 import { usePathname } from 'next/navigation';
 import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 import { useValheonCommand } from "@/components/command/ValheonCommandProvider";
@@ -126,7 +127,7 @@ export default function Home() {
                   onChange={(e) => {
                     const newLocale = e.target.value;
                     const segments = pathname.split('/');
-                    if (segments.length >= 2 && ['en', 'vi', 'ar', 'ru', 'zh', 'es', 'id', 'ko', 'tr', 'fr', 'de', 'pt'].includes(segments[1])) {
+                    if (segments.length >= 2 && SUPPORTED_LOCALES.includes(segments[1])) {
                         segments[1] = newLocale; 
                         window.location.href = segments.join('/');
                     } else {
@@ -134,18 +135,11 @@ export default function Home() {
                     }
                   }}
                 >
-                  <option value="en" className="bg-[#0f1115] text-white">English (EN)</option>
-                  <option value="es" className="bg-[#0f1115] text-white">Español (ES)</option>
-                  <option value="fr" className="bg-[#0f1115] text-white">Français (FR)</option>
-                  <option value="zh" className="bg-[#0f1115] text-white">中文 (ZH)</option>
-                  <option value="ar" className="bg-[#0f1115] text-white">العربية (AR)</option>
-                  <option value="ru" className="bg-[#0f1115] text-white">Русский (RU)</option>
-                  <option value="vi" className="bg-[#0f1115] text-white">Tiếng Việt (VI)</option>
-                  <option value="ko" className="bg-[#0f1115] text-white">한국어 (KO)</option>
-                  <option value="tr" className="bg-[#0f1115] text-white">Türkçe (TR)</option>
-                  <option value="de" className="bg-[#0f1115] text-white">Deutsch (DE)</option>
-                  <option value="pt" className="bg-[#0f1115] text-white">Português (PT)</option>
-                  <option value="id" className="bg-[#0f1115] text-white">Indonesia (ID)</option>
+                  {LOCALE_METADATA.map((loc) => (
+                    <option key={loc.code} value={loc.code} className="bg-[#0f1115] text-white">
+                      {loc.nativeLabel} ({loc.code.toUpperCase()})
+                    </option>
+                  ))}
                 </select>
               </div>
 

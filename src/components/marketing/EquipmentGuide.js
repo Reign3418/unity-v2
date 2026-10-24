@@ -6,7 +6,8 @@ import {
   ArrowRight, ChevronRight, Info, Check, Flame, Layers, 
   Award, TrendingUp, HelpCircle, RefreshCw, AlertTriangle
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { localizeCommanderName, localizeEquipmentName } from "@/lib/rokCanonicalGlossary";
 
 // =========================================================================
 // DATA REPOSITORY: EQUIPMENT PROGRESSION BY CLASS & TIER
@@ -952,6 +953,7 @@ function getRarityStyle(rarity, t) {
 
 export default function EquipmentGuide() {
   const t = useTranslations('EquipmentGuide');
+  const locale = useLocale();
 
   const [activeClass, setActiveClass] = useState("infantry");
   const [activeTier, setActiveTier] = useState("early");
@@ -1279,7 +1281,7 @@ export default function EquipmentGuide() {
 
                   {/* Item Name */}
                   <h4 className={`text-sm sm:text-base font-bold ${style.name} mb-3 group-hover:text-white transition-colors`}>
-                    {item.name}
+                    {localizeEquipmentName(item.name, locale)}
                   </h4>
 
                   {/* Primary Stats Ticker */}
@@ -1372,7 +1374,7 @@ export default function EquipmentGuide() {
                     <span className="text-[9px] font-mono uppercase text-amber-400 font-bold tracking-widest mb-1">
                       {t('cmd_primary_label')}
                     </span>
-                    <h5 className="font-extrabold text-white text-sm sm:text-base">{pairing.primary}</h5>
+                    <h5 className="font-extrabold text-white text-sm sm:text-base">{localizeCommanderName(pairing.primary, locale)}</h5>
                   </div>
 
                   {/* Secondary Commander */}
@@ -1380,7 +1382,7 @@ export default function EquipmentGuide() {
                     <span className="text-[9px] font-mono uppercase text-sky-400 font-bold tracking-widest mb-1">
                       {t('cmd_secondary_label')}
                     </span>
-                    <h5 className="font-extrabold text-white text-sm sm:text-base">{pairing.secondary}</h5>
+                    <h5 className="font-extrabold text-white text-sm sm:text-base">{localizeCommanderName(pairing.secondary, locale)}</h5>
                   </div>
 
                 </div>
