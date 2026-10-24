@@ -342,7 +342,9 @@ class Ring2:
             rt["last_session_end"] = None
         gap_demand = self._redundancy_gap_for(instance_id, bot, rt, demands, now, all_bots)
         if gap_demand is not None:
-            return self._plan_redundancy_twin(instance_id, bot, gap_demand, inst, config, mode, all_bots, now)
+            twin_out = self._plan_redundancy_twin(instance_id, bot, gap_demand, inst, config, mode, all_bots, now)
+            if twin_out != "DEDUPED":
+                return twin_out
 
         choice = self._choose(bot, rt, demands, now, all_bots, config.get("capabilities", []))
         if choice is None:
