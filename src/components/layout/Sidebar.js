@@ -94,6 +94,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     ) {
       setOpenGroups((prev) => ({ ...prev, analytics: true }));
     } else if (
+      pathname.includes('/tools/swarm')
+    ) {
+      setOpenGroups((prev) => ({ ...prev, admin: true }));
+    } else if (
       pathname.includes('/tools/') ||
       pathname.includes('/calculators') ||
       pathname.includes('/mail') ||
@@ -356,15 +360,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               label={t('nav_visio_architect')}
               badge="VISIO"
               badgeColor="bg-cyan-500/25 text-cyan-200 border-cyan-400/50"
-              hidden={!effectiveIsSuperAdmin && !isRealSuperAdmin}
-            />
-            <NavItem
-              href="/tools/swarm"
-              icon={Bot}
-              label="#4197 Swarm Black-Box"
-              badge="T1 ONLY"
-              badgeColor="bg-emerald-500/25 text-emerald-200 border-emerald-400/50"
-              hidden={!effectiveIsSuperAdmin && !isRealSuperAdmin}
+              hidden={!effectiveIsSuperAdmin}
             />
 
             {/* Group 1: Analytics & KvK */}
@@ -513,7 +509,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
             {/* Group 4: Admin, Creator & Bastion (SuperAdmin Only) */}
             {effectiveIsSuperAdmin && (
-              <CollapsibleSection groupKey="admin" title="Admin & Bastion" count={9}>
+              <CollapsibleSection groupKey="admin" title="Admin & Bastion" count={10}>
                 <NavItem
                   href="/creator/architect"
                   icon={MapIcon}
@@ -535,6 +531,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   badge="LIVE"
                   badgeColor="bg-cyan-500/25 text-cyan-200 border-cyan-400/50"
                   isAi={true}
+                />
+                <NavItem
+                  href="/tools/swarm"
+                  icon={Bot}
+                  label="🤖 #4197 Swarm Deck"
+                  badge="T1 ONLY"
+                  badgeColor="bg-emerald-500/25 text-emerald-200 border-emerald-400/50"
                 />
                 <NavItem
                   href="/admin"

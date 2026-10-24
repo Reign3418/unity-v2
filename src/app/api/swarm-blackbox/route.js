@@ -208,9 +208,25 @@ function buildFallbackState() {
   };
 }
 
-export async function GET() {
+async function requireSuperAdminOrAgent(request) {
   try {
-    await auth();
+    const agentSecret = request?.headers?.get?.('x-bastion-secret');
+    if (agentSecret && process.env.BASTION_AGENT_SECRET && agentSecret === process.env.BASTION_AGENT_SECRET) {
+      return true;
+    }
+    const session = await auth();
+    if (session?.user?.isSuperAdmin) return true;
+  } catch {
+    /* fall through */
+  }
+  return false;
+}
+
+export async function GET(request) {
+  try {
+    if (!(await requireSuperAdminOrAgent(request))) {
+      return NextResponse.json({ ok: false, error: 'SuperAdmin clearance required' }, { status: 403 });
+    }
 
     // 1. Read directly from DynamoDB BastionControl (us-east-2) — fast (<50ms) and works on both Vercel Cloud & Local
     const cloudData = await readCloudBlackBox();
@@ -229,13 +245,15 @@ export async function GET() {
 
     return NextResponse.json({ ok: true, source: 'FALLBACK_INIT', data: buildFallbackState() });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error.message, data: buildFallbackState() }, { status: 200 });
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
-    await auth();
+    if (!(await requireSuperAdminOrAgent(request))) {
+      return NextResponse.json({ ok: false, error: 'SuperAdmin clearance required' }, { status: 403 });
+    }
     const body = await request.json();
 
     // Case 1: Full state push from SIDEKICK orchestrator

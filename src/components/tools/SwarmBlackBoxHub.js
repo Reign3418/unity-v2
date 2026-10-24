@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRolePreview } from '@/components/providers/RolePreviewProvider';
 import {
   Bot,
   ShieldAlert,
@@ -22,6 +23,7 @@ import {
   Radio,
   Sparkles,
   Maximize2,
+  Lock,
   X,
 } from 'lucide-react';
 
@@ -69,6 +71,7 @@ const STATUS_BADGE_MAP = {
 };
 
 export default function SwarmBlackBoxHub() {
+  const { effectiveIsValheonFounder, effectiveIsSuperAdmin } = useRolePreview();
   const [stateData, setStateData] = useState(null);
   const [source, setSource] = useState('LOADING');
   const [loading, setLoading] = useState(true);
@@ -79,7 +82,10 @@ export default function SwarmBlackBoxHub() {
   const [dispatchingAction, setDispatchingAction] = useState(null);
   const [actionBanner, setActionBanner] = useState(null);
 
+  const hasClearance = Boolean(effectiveIsValheonFounder || effectiveIsSuperAdmin);
+
   const fetchBlackBox = useCallback(async () => {
+    if (!hasClearance) return;
     try {
       const res = await fetch('/api/swarm-blackbox', { cache: 'no-store' });
       const json = await res.json();
@@ -92,17 +98,34 @@ export default function SwarmBlackBoxHub() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hasClearance]);
 
   useEffect(() => {
     fetchBlackBox();
   }, [fetchBlackBox]);
 
   useEffect(() => {
-    if (!autoRefresh) return undefined;
+    if (!autoRefresh || !hasClearance) return undefined;
     const timer = setInterval(fetchBlackBox, 5000);
     return () => clearInterval(timer);
-  }, [autoRefresh, fetchBlackBox]);
+  }, [autoRefresh, hasClearance, fetchBlackBox]);
+
+  if (!hasClearance) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center font-mono p-8">
+        <div className="p-6 rounded-2xl bg-[#0b0e17] border border-rose-500/40 max-w-md space-y-3">
+          <Lock className="text-rose-400 mx-auto" size={36} />
+          <div className="text-sm font-black text-white uppercase tracking-widest">
+            SUPERADMIN / FOUNDER CLEARANCE REQUIRED
+          </div>
+          <p className="text-xs text-slate-400 font-sans">
+            The Kingdom #4197 Multi-Bot Swarm & Black-Box Command Deck is restricted exclusively to SuperAdmin and
+            Principal Systems Architect clearance.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const triggerOperatorAction = async (action, port = '16448') => {
     setDispatchingAction(`${action}-${port}`);
