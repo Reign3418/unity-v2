@@ -359,7 +359,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </CollapsibleSection>
 
             {/* Group 2: Tools & Inspection */}
-            <CollapsibleSection groupKey="tools" title={t('sec_tools')} count={13}>
+            <CollapsibleSection groupKey="tools" title={t('sec_tools')} count={14}>
+              <NavItem
+                href="/tools/peerless"
+                icon={BookOpen}
+                label={t('nav_peerless_scholar')}
+                badge="LYCEUM"
+                badgeColor="bg-amber-500/15 text-amber-300 border-amber-500/30"
+              />
               <NavItem
                 href="/tools/hunter"
                 icon={Crosshair}

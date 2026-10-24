@@ -46,7 +46,8 @@
     "nav_project_cerberus": "Projet Cerberus",
     "nav_reseller_hunter": "Radar Revendeurs",
     "nav_kingdom_rollup": "Bilan du Royaume",
-    "nav_ranking_scanner": "Scanner de Classements"
+    "nav_ranking_scanner": "Scanner de Classements",
+    "nav_peerless_scholar": "Peerless Scholar"
   },
   "HomePage": {
     "subtitle_prefix": "Parce qu'il n'y a pas de",
@@ -2096,5 +2097,36 @@
     "vanguard_col_migrated": "04 // Migrated",
     "vanguard_btn_mail": "RoK Mail + QR",
     "optics_page_subtitle": "Dual-Engine WebGPU ($0.00 Local) & Gemini 3.1 Flash-Lite Optical Pipeline with Global Ctrl+V Clipboard Interception."
+  },
+  "PeerlessScholar": {
+    "badge_live": "LYCEUM OF WISDOM • 17-LANGUAGE NATIVE ENGINE",
+    "title": "Peerless Scholar Command Vault",
+    "subtitle": "Zero-latency <5ms exam search across all 17 Rise of Kingdoms languages. Replaces external Discord threads (`peerless.early` & `peerless.finals`) directly inside Unity.",
+    "mode_finals": "peerless.finals (15s Speed-Lock)",
+    "mode_early": "peerless.early (Saturday Midterm Q1–Q10)",
+    "mode_vault": "Full Question Bank & CivPedia",
+    "search_placeholder": "Type 2–3 letters of any question on your screen (Press '/' or Esc to clear & focus)...",
+    "search_clear": "Clear (Esc)",
+    "lbl_stage_prelim": "Preliminary",
+    "lbl_stage_midterm": "Midterm",
+    "lbl_stage_finals": "Final Exam",
+    "lbl_cat_all": "All Categories",
+    "lbl_cat_rok": "RoK & Commanders",
+    "lbl_cat_history": "World History",
+    "lbl_cat_science": "Science & Nature",
+    "lbl_cat_geography": "Geography & Wonders",
+    "lbl_cat_culture": "Art & Mythology",
+    "lbl_cat_civpedia": "Civilization Pedia",
+    "lbl_verified_answer": "Verified Answer",
+    "lbl_en_reference": "English Canonical Reference",
+    "lbl_copy": "Copy Answer",
+    "lbl_copied": "Copied!",
+    "lbl_timer_title": "15s Exam Timer",
+    "lbl_timer_start": "Start 15s Drill",
+    "lbl_timer_reset": "Reset",
+    "lbl_midterm_header": "Saturday Midterm Packet (peerless.early — 10 Questions)",
+    "lbl_midterm_sub": "Session A runs Saturdays 02:30 UTC • Session B runs Saturdays 12:30 UTC. All 10 questions below are indexed in your active language.",
+    "lbl_results_count": "Showing {count} matching questions ({lang})",
+    "lbl_no_results": "No exact match found. Try typing a single keyword or number from the question."
   }
 }

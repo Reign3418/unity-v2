@@ -26,6 +26,7 @@ import {
   QrCode,
   CheckSquare,
   MessageSquare,
+  BookOpen,
   UserCheck,
   Terminal,
 } from 'lucide-react';
@@ -255,10 +256,19 @@ export default function ValheonOmniBar() {
         id: 'tool-translator',
         type: 'tool',
         suite: 'OPTICS',
-        title: '12-Language Live Chat Translator',
+        title: '17-Language Live Chat Translator',
         keywords: 'translator language chat',
         href: '/translator',
         icon: MessageSquare,
+      },
+      {
+        id: 'tool-peerless',
+        type: 'tool',
+        suite: 'OPTICS',
+        title: 'Peerless Scholar & Lyceum of Wisdom (peerless.early / finals)',
+        keywords: 'peerless scholar lyceum quiz midterm finals trivia',
+        href: '/tools/peerless',
+        icon: BookOpen,
       },
     ],
     []
