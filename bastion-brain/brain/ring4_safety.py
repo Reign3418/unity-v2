@@ -242,6 +242,7 @@ class Ring4Safety:
         bots: Dict[str, Dict[str, Any]],
         config: Dict[str, Any],
         current_mode: str,
+        context_risk_multiplier: float = 1.0,
     ) -> Dict[str, Any]:
         """Computes the 5-Layer Risk Ledger and enforces the 3-Tier Safety Posture (GREEN / AMBER / RED)."""
         now = self.clock()
@@ -295,11 +296,11 @@ class Ring4Safety:
                 if inc.get("bot_id"):
                     suspect_12h_bots.add(inc["bot_id"])
 
-        # Quantitative 5-Layer Risk Calculation (0-100 scale)
+        # Quantitative 5-Layer Risk Calculation (0-100 scale, modulated by Ring 5 ZEUS context multiplier)
         incident_penalty = (
             len(suspect_12h_bots) * 14.0
             + len(ban_6h_accounts) * 18.0
-            + stpa_6h_count * 6.0
+            + (stpa_6h_count * 6.0 * float(context_risk_multiplier))
         )
         residual_score = round(min(100.0, BASE_RESIDUAL_RISK_SCORE + incident_penalty), 1)
 

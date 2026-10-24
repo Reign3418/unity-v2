@@ -1090,6 +1090,66 @@ class CohortRotationTimersAndPreemptionTests(unittest.TestCase):
         self.assertEqual(len(red_events), 1)
         self.assertTrue(red_events[0]["oversight"].get("operator_action_required"))
 
+    def test_ring5_zeus_breaks_metronome_pattern_and_correlates_modal_weather(self):
+        b_4198 = make_bot("bot_4198_twin_m0", "sidekick-mumu-0", "127.0.0.1:16384", "mumu-account-0", 4198, ch=3, state="GROWING")
+        b_4021 = make_bot("bot_4021_m1", "sidekick-mumu-1", "127.0.0.1:16416", "mumu-account-1", 4021, ch=4, state="GROWING")
+        w = World(control_mode="AUTONOMOUS", bots=[b_4198, b_4021], kingdom_last=None)
+        w.store.put_control("CONFIG", dict(
+            DEFAULT_CONFIG,
+            capabilities=list(numnum.STAGE6_CAPABILITIES),
+            watched_kingdoms=[],
+            enable_helpers=True,
+        ))
+        w.store.put_control("FLEET", {
+            "bot_ids": ["bot_4198_twin_m0", "bot_4021_m1"],
+            "active_by_instance": {"sidekick-mumu-0": "bot_4198_twin_m0", "sidekick-mumu-1": "bot_4021_m1"},
+        })
+
+        # Simulate repetitive grow -> gather -> grow -> gather on bot_4198_twin_m0 so ZEUS issues GATHER_BEFORE_GROW
+        # Cycle 1: grow_city (sets 2m timer) -> gather (farms on timer)
+        w.tick()
+        j1 = [j for j in w.transport.sent if j["instance_id"] == "sidekick-mumu-0"][-1]
+        self.assertEqual(j1["job_type"], "grow_city")
+        r1 = w.result_for(j1, status="PARTIAL", screen="CITY_VIEW", ch=4, duration_ms=30000)
+        r1["evidence"]["metrics"] = {"script_steps": 5, "timer_seconds": 120}
+        w.transport.push_result(r1)
+        w.tick()
+
+        # While timer is active, Ring 2 dispatches gather
+        w.clock.t += timedelta(seconds=30)
+        w.tick()
+        j2 = [j for j in w.transport.sent if j["instance_id"] == "sidekick-mumu-0"][-1]
+        self.assertEqual(j2["job_type"], "gather")
+        r2 = w.result_for(j2, status="SUCCEEDED", screen="WORLD_MAP", ch=4, duration_ms=25000)
+        r2["evidence"]["metrics"] = {"marches_dispatched": 1, "gather_timer_minutes": 5}
+        w.transport.push_result(r2)
+        w.tick()
+
+        # Advance past timer; Cycle 2: grow_city -> gather -> triggers ZEUS metronome detection!
+        w.clock.t += timedelta(minutes=10)
+        w.tick()
+        j3 = [j for j in w.transport.sent if j["instance_id"] == "sidekick-mumu-0"][-1]
+        self.assertEqual(j3["job_type"], "grow_city")
+        r3 = w.result_for(j3, status="PARTIAL", screen="CITY_VIEW", ch=5, duration_ms=30000)
+        r3["evidence"]["metrics"] = {"script_steps": 5, "timer_seconds": 120}
+        w.transport.push_result(r3)
+        w.tick()
+
+        w.clock.t += timedelta(seconds=30)
+        w.tick()
+        j4 = [j for j in w.transport.sent if j["instance_id"] == "sidekick-mumu-0"][-1]
+        self.assertEqual(j4["job_type"], "gather")
+        r4 = w.result_for(j4, status="SUCCEEDED", screen="WORLD_MAP", ch=5, duration_ms=25000)
+        r4["evidence"]["metrics"] = {"marches_dispatched": 1, "gather_timer_minutes": 5}
+        w.transport.push_result(r4)
+        w.tick()
+
+        directives = [e for e in w.store.events if e["event_type"] == "CONTEXT_DIRECTIVE"]
+        self.assertGreaterEqual(len(directives), 1)
+        self.assertEqual(directives[-1]["ring"], "RING_5_CONTEXT")
+        r5_helpers = w.brain.helpers.active_helpers("RING_5_CONTEXT")
+        self.assertTrue(any(h["template_id"] == "R5_PERSONA_DIRECTOR" for h in r5_helpers))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,6 +14,7 @@ from .config import VALID_MODES, BrainConfig
 from .events import Emitter, iso
 from .leaders import HelperManager, LeaderAdvisor
 from .ring4_safety import POSTURE_GREEN, Ring4Safety
+from .ring5_context import WEATHER_CLEAR, Ring5Context
 from .rings import DEFAULT_CONFIG, Ring1, Ring2, Ring3, instance_key
 
 
@@ -48,9 +49,10 @@ class Brain:
         self.advisor = LeaderAdvisor(store, clock, api_key=cfg.gemini_api_key, llm_fn=llm_fn)
         self.helpers = HelperManager(store, self.emitter, clock, advisor=self.advisor)
         self.ring4 = Ring4Safety(store, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
+        self.ring5 = Ring5Context(store, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
         self.ring1 = Ring1(store, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
         self.ring2 = Ring2(store, transport, self.emitter, clock, advisor=self.advisor, helpers=self.helpers)
-        self.ring3 = Ring3(store, transport, self.emitter, clock, cfg.results_wait_seconds, advisor=self.advisor, helpers=self.helpers, ring4=self.ring4)
+        self.ring3 = Ring3(store, transport, self.emitter, clock, cfg.results_wait_seconds, advisor=self.advisor, helpers=self.helpers, ring4=self.ring4, ring5=self.ring5)
         self.force_mode = force_mode
         self.mode: Optional[str] = None
         self.tick_count = 0
@@ -241,7 +243,12 @@ class Brain:
             summary["plans"] = outcomes
         summary["results"] = guarded("ring3", lambda: self.ring3.process(instances)) or 0
         refreshed_bots = self._fleet()["bots"] if summary["results"] > 0 else fleet["bots"]
-        safety_out = guarded("ring4", lambda: self.ring4.evaluate_fleet(refreshed_bots, config, mode)) or {}
+        ctx_out = guarded("ring5", lambda: self.ring5.synthesize_overwatch(refreshed_bots)) or {}
+        if ctx_out:
+            summary["fleet_weather"] = ctx_out.get("fleet_weather", WEATHER_CLEAR)
+            summary["behavioral_entropy"] = ctx_out.get("average_behavioral_entropy", 1.0)
+        risk_mult = float(ctx_out.get("risk_penalty_multiplier", 1.0)) if ctx_out else 1.0
+        safety_out = guarded("ring4", lambda: self.ring4.evaluate_fleet(refreshed_bots, config, mode, context_risk_multiplier=risk_mult)) or {}
         if safety_out:
             summary["safety_posture"] = safety_out.get("posture", POSTURE_GREEN)
             summary["residual_risk_score"] = safety_out.get("residual_risk_score")
@@ -255,6 +262,8 @@ class Brain:
             "bots": summary["bots"], "plans": summary.get("plans", {}),
             "safety_posture": summary.get("safety_posture", POSTURE_GREEN),
             "residual_risk_score": summary.get("residual_risk_score"),
+            "fleet_weather": summary.get("fleet_weather", WEATHER_CLEAR),
+            "behavioral_entropy": summary.get("behavioral_entropy", 1.0),
             "last_errors": summary["errors"][-3:],
         })
         self.log(level="INFO", msg="tick", **{k: v for k, v in summary.items() if k != "tick"}, tick=self.tick_count)

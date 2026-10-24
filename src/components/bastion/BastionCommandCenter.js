@@ -227,9 +227,49 @@ const AGENT_DEFINITIONS = [
     directive:
       'Pure math safety interlock governor in Ring 4. Tracks per-bot zero-delta streaks (tripping a 30m cooldown if grow_city/gather returns rc=0 three times without advancing CH/power/timers) and enforces the 3-Tier Risk-Budget Posture: GREEN_NOMINAL -> AMBER_CAUTIOUS (stealth scan-only throttle) -> RED_HALT (automatic MODE=OFF kill-switch).',
   },
+
+  // ================= RING 5: APEX CONTEXTUAL OVERWATCH (ZEUS) =================
+  {
+    id: 'zeus',
+    actorKey: 'ZEUS',
+    name: 'ZEUS',
+    icon: '⚡',
+    role: 'Ring 5 Apex Leader — Panoramic Contextual Reasoning & Overwatch',
+    ringKey: 'RING_5_CONTEXT',
+    cadence: 'Every Tick & On Pattern Drift',
+    color: '#eab308',
+    defaultModelType: 'gemini-2.5-pro + Episodic Context Fallback',
+    helpers: ['R5_SCENE_GROUNDER', 'R5_PERSONA_DIRECTOR'],
+    output: 'CONTEXT_DIRECTIVE · Routine Permutations · Fleet Weather Classification',
+    directive:
+      'Sits on the Apex Throne (Ring 5) overwatching Rings 1–4. Synthesizes panoramic context across time, screen modals, and bot behavior. Distinguishes global game weather (00:00 UTC resets & benign event popups) from true telemetry threats, and issues CONTEXT_DIRECTIVE permutations to break robotic state-machine patterns.',
+  },
+  {
+    id: 'cortex',
+    actorKey: 'CORTEX',
+    name: 'CORTEX',
+    icon: '🧠',
+    role: 'Episodic Memory, Behavioral Entropy & Cross-Fleet Correlator',
+    ringKey: 'RING_5_CONTEXT',
+    cadence: 'Every Result & Tick (0 Tokens)',
+    color: '#facc15',
+    defaultModelType: 'PURE_MATH_ENTROPY (0 Tokens)',
+    helpers: [],
+    output: 'Shannon Behavioral Entropy (0.0–1.0) · GATHER_BEFORE_GROW Variant · Weather Risk Multiplier',
+    directive:
+      'Deterministic memory and entropy engine in Ring 5. Tracks each bot’s rolling 12-action narrative in CONTEXT_STATE, detects A->B->A->B metronome sequences, prescribes GATHER_BEFORE_GROW / SKIP_GATHER_ROTATE variants to Ring 2, and calibrates Ring 4 risk penalties based on cross-instance correlation.',
+  },
 ];
 
 const RING_GROUPS = [
+  {
+    key: 'RING_5_CONTEXT',
+    badge: 'RING 05 // APEX CONTEXTUAL OVERWATCH (ZEUS PANORAMIC REASONING, EPISODIC MEMORY & BEHAVIORAL ENTROPY)',
+    leader: 'ZEUS',
+    members: 'ZEUS (Apex Overwatch Leader) · CORTEX (Episodic Memory, Behavioral Entropy & Fleet Weather Correlator)',
+    accent: 'border-yellow-500/50 from-yellow-950/35 via-[#0b0e17] to-[#0b0e17]',
+    badgeCls: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50',
+  },
   {
     key: 'RING_1_INTEL',
     badge: 'RING 01 // INTELLIGENCE, R5 INTENT INGEST, TWIN REDUNDANCY & STALENESS DETECTION',

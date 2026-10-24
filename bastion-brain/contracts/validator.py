@@ -70,6 +70,8 @@ ACTOR_RING: Dict[str, str] = {
     "DOZER": "RING_3_AUDIT",
     "AEGIS": "RING_4_SAFETY",
     "WARDEN": "RING_4_SAFETY",
+    "ZEUS": "RING_5_CONTEXT",
+    "CORTEX": "RING_5_CONTEXT",
 }
 
 # Event types only a given ring may emit (separation of authority).
@@ -84,6 +86,7 @@ EVENT_RING_AUTHORITY: Dict[str, str] = {
     "BOT_LOST": "RING_3_AUDIT",
     "SAFETY_POSTURE_CHANGED": "RING_4_SAFETY",
     "SAFETY_INTERLOCK_TRIPPED": "RING_4_SAFETY",
+    "CONTEXT_DIRECTIVE": "RING_5_CONTEXT",
 }
 
 

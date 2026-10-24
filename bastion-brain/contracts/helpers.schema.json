@@ -23,7 +23,9 @@
         "R3_MIGRATION_ANALYST",
         "R3_BAN_INVESTIGATOR",
         "R4_STPA_LOOP_HUNTER",
-        "R4_CONTAINMENT_OFFICER"
+        "R4_CONTAINMENT_OFFICER",
+        "R5_SCENE_GROUNDER",
+        "R5_PERSONA_DIRECTOR"
       ]
     },
     "HelperInstance": {
@@ -55,7 +57,8 @@
             "RING_1_INTEL",
             "RING_2_OPS",
             "RING_3_AUDIT",
-            "RING_4_SAFETY"
+            "RING_4_SAFETY",
+            "RING_5_CONTEXT"
           ]
         },
         "parent_leader": {
@@ -64,7 +67,8 @@
             "SCOUT",
             "TANK",
             "AUDIT",
-            "AEGIS"
+            "AEGIS",
+            "ZEUS"
           ]
         },
         "model_tier": {
@@ -171,6 +175,12 @@
         "model_tier": "LLM_PRO",
         "default_model": "gemini-2.5-pro",
         "authority": "EVALUATE_RISK_AND_ENFORCE_SAFETY_POSTURE"
+      },
+      "ZEUS": {
+        "ring": "RING_5_CONTEXT",
+        "model_tier": "LLM_PRO",
+        "default_model": "gemini-2.5-pro",
+        "authority": "APEX_CONTEXTUAL_OVERWATCH_AND_DIRECTIVES"
       }
     },
     "rule_based_members": {
@@ -208,6 +218,11 @@
         "ring": "RING_4_SAFETY",
         "model_tier": "DETERMINISTIC_0_TOKEN",
         "role": "Deterministic STPA velocity watchdog, risk-budget calculator & 3-tier safety interlock governor"
+      },
+      "CORTEX": {
+        "ring": "RING_5_CONTEXT",
+        "model_tier": "DETERMINISTIC_0_TOKEN",
+        "role": "Episodic memory tracker, anti-metronome behavioral entropy calculator & cross-fleet anomaly correlator"
       }
     },
     "helper_templates": {
@@ -266,6 +281,20 @@
         "max_model_tier": "LLM_PRO",
         "default_hourly_token_cap": 15000,
         "description": "Verifies blast-radius isolation, twin coverage, and cooldown quarantine when a safety interlock trips."
+      },
+      "R5_SCENE_GROUNDER": {
+        "parent_ring": "RING_5_CONTEXT",
+        "parent_leader": "ZEUS",
+        "max_model_tier": "LLM_PRO",
+        "default_hourly_token_cap": 15000,
+        "description": "Classifies unknown screen modals or stuck states in full-screen context (event popup vs. maintenance vs. threat)."
+      },
+      "R5_PERSONA_DIRECTOR": {
+        "parent_ring": "RING_5_CONTEXT",
+        "parent_leader": "ZEUS",
+        "max_model_tier": "LLM_PRO",
+        "default_hourly_token_cap": 12000,
+        "description": "Audits a bot episodic action history and prescribes humanized routine permutations to break metronomic patterns."
       }
     }
   }

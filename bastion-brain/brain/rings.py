@@ -870,6 +870,18 @@ class Ring2:
             return None
 
         if bot["verified_state"]["ch_level"] < GROW_TARGET_CH:
+            ctx_state = self.store.get_control("CONTEXT_STATE") or {}
+            variant = (ctx_state.get("routine_variants") or {}).get(bot["bot_id"], "STANDARD")
+            if variant == "GATHER_BEFORE_GROW" and "gather" in caps and not rt.get("farmed_this_timer") and growth_demand is None:
+                res_types = list(p.get("preferred_gather_types") or ["FOOD", "WOOD"])
+                return (
+                    "gather",
+                    {"resource_types": res_types, "max_marches": 2},
+                    g_prio,
+                    f"ZEUS Context Directive (GATHER_BEFORE_GROW): permuting {bot['governor_name']} routine to farm before next upgrade slice.",
+                    dict(base, context_variant=variant),
+                    None,
+                )
             g_steps = max(5, min(60, int((growth_demand.detail.get("payload") or {}).get("max_steps", 15)))) if growth_demand else 15
             return ("grow_city", {"target_ch_level": GROW_TARGET_CH, "max_steps": g_steps}, g_prio,
                     f"City Hall is {bot['verified_state']['ch_level']}; keep growing toward CH{GROW_TARGET_CH} like a new player.",
@@ -1051,12 +1063,13 @@ class Ring2:
 # =========================================================================== Ring 3
 
 class Ring3:
-    def __init__(self, store, transport, emitter, clock, wait_seconds: int = 10, advisor=None, helpers=None, ring4=None):
+    def __init__(self, store, transport, emitter, clock, wait_seconds: int = 10, advisor=None, helpers=None, ring4=None, ring5=None):
         self.store, self.transport, self.emitter, self.clock = store, transport, emitter, clock
         self.wait_seconds = wait_seconds
         self.advisor = advisor
         self.helpers = helpers
         self.ring4 = ring4
+        self.ring5 = ring5
 
     def process(self, instances: List[str]) -> int:
         handled = 0
@@ -1147,6 +1160,12 @@ class Ring3:
             cfg_ctl = self.store.get_control("CONFIG") or {}
             self.ring4.record_job_outcome(
                 bot, job, result, prev_ch, prev_power,
+                enable_helpers=bool(cfg_ctl.get("enable_helpers")),
+            )
+        if self.ring5 is not None:
+            cfg_ctl = self.store.get_control("CONFIG") or {}
+            self.ring5.observe_result(
+                bot, job, result,
                 enable_helpers=bool(cfg_ctl.get("enable_helpers")),
             )
 
