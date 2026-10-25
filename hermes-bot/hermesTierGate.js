@@ -30,6 +30,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { syncGuildTiersToAws, hydrateGuildTiersFromAws } from './hermesAwsSync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,12 +69,17 @@ function loadTierStore() {
 function saveTierStore(store) {
   try {
     fs.writeFileSync(TIER_STATE_PATH, JSON.stringify(store, null, 2), 'utf8');
+    // Dual-write to AWS DynamoDB (Unity2AWSRoster -> PK = VALHEON#GUILD_TIERS)
+    syncGuildTiersToAws(store).catch(() => {});
   } catch (err) {
     console.error('[HERMES TierGate] Error saving guild_tiers.json:', err.message);
   }
 }
 
 export const GUILD_TIERS = loadTierStore();
+
+// Auto-hydrate or seed GUILD_TIERS with AWS DynamoDB on startup
+hydrateGuildTiersFromAws(GUILD_TIERS, TIER_STATE_PATH).catch(() => {});
 
 /**
  * Toggles Global Sandbox / Fee Suspension Mode on or off

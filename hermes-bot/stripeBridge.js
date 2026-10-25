@@ -25,6 +25,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { syncCouponLedgerToAws, hydrateCouponLedgerFromAws } from './hermesAwsSync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,12 +35,15 @@ const ENV_PATHS = [
 ];
 const COUPON_LEDGER_PATH = path.resolve(__dirname, './coupon_audit_ledger.jsonl');
 
+// Auto-hydrate coupon ledger from AWS DynamoDB on startup if local file is missing
+hydrateCouponLedgerFromAws(COUPON_LEDGER_PATH).catch(() => {});
+
 // Strict Principal-Only Lock (Lauren Alvarado — Reign3418)
 export const VALHEON_PRINCIPAL_DISCORD_ID = '184977944433786880';
 
 /**
  * Appends a tamper-evident, SHA-256 hash-chained audit record (Who, What, Where, When, Why)
- * to coupon_audit_ledger.jsonl for full non-repudiation & integrity verification.
+ * to coupon_audit_ledger.jsonl AND mirrors it to AWS DynamoDB (`Unity2AWSRoster`).
  */
 export function appendCouponAuditLog(record) {
   try {
@@ -71,6 +75,11 @@ export function appendCouponAuditLog(record) {
     const finalEntry = { ...payload, entry_hash: entryHash };
 
     fs.appendFileSync(COUPON_LEDGER_PATH, JSON.stringify(finalEntry) + '\n', 'utf8');
+
+    // Dual-write to AWS DynamoDB (Unity2AWSRoster -> PK = VALHEON#COUPON_LEDGER)
+    const fullText = fs.readFileSync(COUPON_LEDGER_PATH, 'utf8');
+    syncCouponLedgerToAws(finalEntry, fullText).catch(() => {});
+
     return finalEntry;
   } catch (err) {
     console.error('[HERMES Coupon Audit Ledger Error]:', err.message);
@@ -464,6 +473,34 @@ export async function createAuditedStripePromoCode({
 // Track already-logged session IDs so repeated clicks don't duplicate ledger rows
 const LOGGED_REDEEMED_SESSIONS = new Set();
 
+// Track locally consumed session slots (sessionId_slot -> guildId) in addition to Stripe Session metadata
+const CONSUMED_SESSION_SLOTS = new Map();
+
+function getSlotKeyForBlueprint(blueprintType, planKey) {
+  if (blueprintType === 'KINGDOM_WAR_SERVER' || planKey?.startsWith('KINGDOM_')) {
+    return 'consumed_kingdom_guild_id';
+  }
+  if (blueprintType === 'KVK_DIPLO_SERVER' || planKey === 'KVK_DIPLO_9') {
+    return 'consumed_diplo_guild_id';
+  }
+  if (blueprintType === 'KVK_COALITION_SERVER' || planKey === 'KVK_COALITION_9') {
+    return 'consumed_coalition_guild_id';
+  }
+  return 'consumed_upgrade_guild_id';
+}
+
+function isSessionUnconsumedForPlan(session, planKey) {
+  const meta = session?.metadata || {};
+  if (planKey === 'KVK_BUNDLE_15') {
+    const dUsed = meta.consumed_diplo_guild_id || CONSUMED_SESSION_SLOTS.get(`${session.id}_consumed_diplo_guild_id`);
+    const cUsed = meta.consumed_coalition_guild_id || CONSUMED_SESSION_SLOTS.get(`${session.id}_consumed_coalition_guild_id`);
+    return !dUsed || !cUsed;
+  }
+  const slotKey = getSlotKeyForBlueprint(null, planKey);
+  const usedBy = meta[slotKey] || CONSUMED_SESSION_SLOTS.get(`${session.id}_${slotKey}`);
+  return !usedBy;
+}
+
 /**
  * Helper to inspect a paid Stripe Checkout Session, extract any redeemed promotion code,
  * and record a non-repudiation CODE_REDEEMED / CHECKOUT_PAID entry in coupon_audit_ledger.jsonl.
@@ -525,6 +562,7 @@ async function buildVerifiedPaymentResult(session, stripeSecret, { userId, usern
     paid: true,
     mode: discountCents > 0 ? 'LIVE_PROMO_REDEEMED' : 'LIVE_VERIFIED',
     sessionId: session.id,
+    planKey: session.metadata?.plan_key || planKey,
     subtotalUsd: subtotalCents / 100,
     discountUsd: discountCents / 100,
     amountUsd: totalCents / 100,
@@ -536,8 +574,8 @@ async function buildVerifiedPaymentResult(session, stripeSecret, { userId, usern
 }
 
 /**
- * Verifies whether a user's Stripe Checkout Session has been paid (via Stripe REST API)
- * and logs any redeemed coupon/promo code to the non-repudiation audit ledger.
+ * Verifies whether a user's Stripe Checkout Session has been paid FOR THAT EXACT PLAN KEY
+ * and has not already been consumed on another server!
  */
 export async function verifyStripePaymentStatus({ userId, username, planKey, guildId, channelId }) {
   const env = readEnvVars();
@@ -554,7 +592,12 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
           }
         );
         const session = await res.json();
-        if (res.ok && session.payment_status === 'paid') {
+        if (
+          res.ok &&
+          session.payment_status === 'paid' &&
+          (session.metadata?.plan_key === planKey || session.client_reference_id === `${userId}_${planKey}`) &&
+          isSessionUnconsumedForPlan(session, planKey)
+        ) {
           return await buildVerifiedPaymentResult(session, stripeSecret, {
             userId,
             username,
@@ -565,9 +608,9 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
         }
       }
 
-      // Also scan last 10 checkout sessions in case they paid via a static Payment Link or restarted session!
+      // Scan recent checkout sessions, strictly enforcing exact plan_key match + unconsumed check!
       const listRes = await fetch(
-        'https://api.stripe.com/v1/checkout/sessions?limit=10&expand[]=data.total_details.breakdown',
+        'https://api.stripe.com/v1/checkout/sessions?limit=20&expand[]=data.total_details.breakdown',
         {
           headers: { Authorization: `Bearer ${stripeSecret}` },
         }
@@ -577,8 +620,8 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
         (s) =>
           s.payment_status === 'paid' &&
           (s.client_reference_id === `${userId}_${planKey}` ||
-            s.client_reference_id === String(userId) ||
-            s.metadata?.discord_user_id === String(userId))
+            (s.metadata?.discord_user_id === String(userId) && s.metadata?.plan_key === planKey)) &&
+          isSessionUnconsumedForPlan(s, planKey)
       );
       if (matched) {
         return await buildVerifiedPaymentResult(matched, stripeSecret, {
@@ -594,7 +637,8 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
         paid: false,
         mode: 'LIVE_PENDING',
         message:
-          '⏳ Stripe Checkout is still awaiting payment completion. Complete checkout in your browser, then click **[✅ Verify Stripe Payment & Auto-Deploy]** again!',
+          `⏳ **No unconsumed Stripe payment found for \`${planKey}\` under <@${userId}>.**\n` +
+          `Complete Step 1 Checkout in your browser first, then click **[✅ Step 3: Verify Payment & Launch 1-Click Builder]** again! *(Note: Each 1-Click license is strictly bound to 1 Discord Server ID and cannot be reused across multiple servers).*`,
       };
     } catch (err) {
       return {
@@ -605,12 +649,143 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
     }
   }
 
-  // If in Sandbox / Pre-Key mode, allow instant sandbox verification for Moderator Training!
+  // Only allow Sandbox Bypass if the caller is the Valheon Principal Architect (184977944433786880)!
+  if (String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
+    return {
+      paid: true,
+      mode: 'PRINCIPAL_SANDBOX_BYPASS',
+      sessionId: `principal_${Date.now()}`,
+      amountUsd: 0,
+      discountUsd: (STRIPE_CATALOG[planKey]?.amountCents || 3900) / 100,
+      promoCodeUsed: 'PRINCIPAL_OVERRIDE',
+      customerEmail: 'Principal Architect (Reign3418)',
+    };
+  }
+
   return {
-    paid: true,
-    mode: 'SANDBOX_BYPASS',
-    sessionId: `sandbox_verified_${Date.now()}`,
-    amountUsd: (STRIPE_CATALOG[planKey]?.amountCents || 3900) / 100,
-    customerEmail: 'Sandbox Moderator Test ($0.00)',
+    paid: false,
+    mode: 'STRIPE_KEY_REQUIRED',
+    message: '⚠️ Stripe Checkout verification is required before launching a 1-Click Server.',
   };
+}
+
+/**
+ * Verifies that a user has a paid, UNCONSUMED Stripe Checkout entitlement for the requested
+ * blueprintType (`KINGDOM_WAR_SERVER`, `KVK_DIPLO_SERVER`, `KVK_COALITION_SERVER`), and
+ * permanently binds/consumes that session slot to `targetGuildId` in Stripe metadata + SHA-256 ledger!
+ * Prevents 1 payment from being used to build multiple servers or a $9 Diplo payment from building a $39 Kingdom!
+ */
+export async function verifyAndConsumeBlueprintCredit({
+  userId,
+  username,
+  blueprintType,
+  targetGuildId,
+}) {
+  // 1. Valheon Principal Architect (184977944433786880) always has unlimited direct deployment authority
+  if (String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
+    return {
+      allowed: true,
+      sessionId: `principal_direct_${Date.now()}`,
+      tierGranted: 'LEGENDARY',
+      planKey: 'PRINCIPAL_OVERRIDE',
+    };
+  }
+
+  const env = readEnvVars();
+  const stripeSecret = env.STRIPE_SECRET_KEY || '';
+  if (!stripeSecret || !stripeSecret.startsWith('sk_')) {
+    return {
+      allowed: false,
+      error: '🛡️ **Payment Verification Required:** Please complete Step 1 Stripe Checkout before launching the 1-Click Server Builder.',
+    };
+  }
+
+  const validPlansByBlueprint = {
+    KINGDOM_WAR_SERVER: ['KINGDOM_LEGENDARY_54', 'KINGDOM_39'],
+    KVK_DIPLO_SERVER: ['KVK_DIPLO_9', 'KVK_BUNDLE_15'],
+    KVK_COALITION_SERVER: ['KVK_COALITION_9', 'KVK_BUNDLE_15'],
+  };
+  const validPlans = validPlansByBlueprint[blueprintType] || ['KINGDOM_39'];
+  const slotKey = getSlotKeyForBlueprint(blueprintType, null);
+
+  try {
+    const listRes = await fetch(
+      'https://api.stripe.com/v1/checkout/sessions?limit=25',
+      {
+        headers: { Authorization: `Bearer ${stripeSecret}` },
+      }
+    );
+    const listData = await listRes.json();
+    const sessions = listData?.data || [];
+
+    const validSession = sessions.find((s) => {
+      if (s.payment_status !== 'paid') return false;
+      const metaUser = s.metadata?.discord_user_id;
+      const metaPlan = s.metadata?.plan_key;
+      const ref = s.client_reference_id || '';
+      const isUserMatch =
+        metaUser === String(userId) || validPlans.some((pk) => ref === `${userId}_${pk}`);
+      const isPlanMatch =
+        validPlans.includes(metaPlan) || validPlans.some((pk) => ref === `${userId}_${pk}`);
+      if (!isUserMatch || !isPlanMatch) return false;
+
+      const alreadyBoundGuild =
+        s.metadata?.[slotKey] || CONSUMED_SESSION_SLOTS.get(`${s.id}_${slotKey}`);
+      // Allow if unconsumed OR if already bound to this exact same targetGuildId
+      return !alreadyBoundGuild || String(alreadyBoundGuild) === String(targetGuildId);
+    });
+
+    if (!validSession) {
+      return {
+        allowed: false,
+        error:
+          `🛡️ **Unlicensed Deployment Blocked (\`1 License = 1 Discord Server ID\`):**\n` +
+          `No unconsumed Stripe payment for **\`${blueprintType}\`** was found under <@${userId}>.\n` +
+          `• If you haven't purchased this package yet, click the **Step 1 Stripe Checkout** button first.\n` +
+          `• If you already used your purchase on another Server ID, each license is permanently bound to **1 Discord Server ID** (use \`#🛟-valheon-support-and-relaunch\` inside your licensed server for free repairs!).`,
+      };
+    }
+
+    // Bind/Consume this session slot to targetGuildId in memory, in Stripe Session metadata, and in SHA-256 Ledger!
+    CONSUMED_SESSION_SLOTS.set(`${validSession.id}_${slotKey}`, String(targetGuildId));
+
+    const updateForm = new URLSearchParams();
+    updateForm.append(`metadata[${slotKey}]`, String(targetGuildId));
+    updateForm.append('metadata[consumed_at_utc]', new Date().toISOString());
+    await fetch(`https://api.stripe.com/v1/checkout/sessions/${validSession.id}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeSecret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: updateForm.toString(),
+    }).catch(() => {});
+
+    const resolvedPlan = validSession.metadata?.plan_key || validPlans[0];
+    const tierGranted =
+      resolvedPlan === 'KINGDOM_39' ? 'COMMON' : 'LEGENDARY';
+
+    appendCouponAuditLog({
+      event_type: 'LICENSE_BOUND_TO_GUILD',
+      who_redeemer_id: String(userId),
+      who_redeemer_username: String(username || 'Governor'),
+      what_package: resolvedPlan,
+      what_blueprint: blueprintType,
+      where_session_id: validSession.id,
+      where_guild_id: String(targetGuildId),
+      why_reason: `Single-use license bound to Guild ID ${targetGuildId}`,
+    });
+
+    return {
+      allowed: true,
+      sessionId: validSession.id,
+      tierGranted,
+      planKey: resolvedPlan,
+    };
+  } catch (err) {
+    return {
+      allowed: false,
+      error: `⚠️ Could not verify license entitlement with Stripe: ${err.message}`,
+    };
+  }
 }
