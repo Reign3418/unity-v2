@@ -3867,6 +3867,77 @@ async function handleInteraction(ix) {
       coords: coords || `UID:${govId} (No Grid Needed)`,
     });
 
+    const memberRoles = Array.isArray(ix.member?.roles) ? ix.member.roles : [];
+    const isKingdomServer = String(guildId) !== String(GUILD_ID);
+
+    // In a Customer's Kingdom Discord: Unverified newcomers (0 roles) cannot bypass Screenshot OCR by typing text!
+    // Submitting the manual form without a screenshot queues them for R4/R5 Manual Approval in their Kingdom Discord,
+    // and prompts them to drop their Governor Profile Screenshot in #🔗-verify-governor-id for 1-second Auto-Approval!
+    if (isKingdomServer && memberRoles.length === 0 && !VALHEON_FOUNDER_IDS.has(String(user.id))) {
+      const safeTag = encodeURIComponent((rawAlliance || 'ALLY').slice(0, 8));
+      const safeName = encodeURIComponent(govName.slice(0, 16));
+
+      await discordApi('POST', `/channels/${channelId}/messages`, {
+        embeds: [
+          {
+            title: '⏳ MANUAL ID SUBMITTED // AWAITING SCREENSHOT OR R4/R5 APPROVAL',
+            description:
+              `<@${user.id}> submitted a manual Governor ID entry (**\`[${rawAlliance}] ${govName}\`** • UID \`#${govId}\`).\n\n` +
+              `📸 **Want Instant 1-Second Auto-Approval?**\n` +
+              `Drop your in-game **Governor Profile Screenshot** right here in <#${channelId}>! **HERMES Vision OCR** will automatically approve you if you are in one of this Kingdom's primary alliances.\n\n` +
+              `🛡️ **Visiting a Sister/Support Alliance or No Screenshot?**\n` +
+              `Any **R4 Officer** or **R5 Sovereign** of this Kingdom can click **` +
+              '`[✅ R4/R5: Approve]`' +
+              `** below to unlock your war channels manually!`,
+            color: 0xf59e0b,
+            fields: [
+              { name: '🆔 Entered Governor ID', value: `\`#${govId}\``, inline: true },
+              { name: '👤 Entered Name', value: `\`${govName}\``, inline: true },
+              { name: '🏰 Entered Alliance', value: `\`[${rawAlliance}]\``, inline: true },
+              { name: '📍 Title Queue Coords', value: `\`${bound.coords}\``, inline: false },
+            ],
+            footer: {
+              text: 'KINGDOM BORDER GATE // DROP SCREENSHOT FOR AUTO-OCR OR WAIT FOR R4/R5 APPROVAL',
+            },
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 3,
+                label: `✅ R4/R5: Approve [${rawAlliance}] ${govName.slice(0, 14)}`,
+                custom_id: `hermes_ocr_approve_${user.id}_${govId}_${safeTag}_${safeName}`,
+              },
+              {
+                type: 2,
+                style: 4,
+                label: '❌ R4/R5: Request In-Game Screenshot',
+                custom_id: `hermes_ocr_reject_${user.id}`,
+              },
+            ],
+          },
+        ],
+      }).catch(() => null);
+
+      return editOriginal({
+        embeds: [
+          {
+            title: '📸 DROP YOUR SCREENSHOT FOR INSTANT AUTO-APPROVAL (OR WAIT FOR R4/R5)',
+            description:
+              `Your Governor ID (**\`#${bound.govId}\`**) and Title Queue Coordinates (**\`${bound.coords}\`**) have been saved!\n\n` +
+              `• **🟢 For Instant Auto-Approval:** Simply **upload/paste a screenshot of your in-game Governor Profile** right in <#${channelId}> — if **HERMES** sees you in one of this Kingdom's alliances, it unlocks your War Channels immediately!\n` +
+              `• **🟡 Sister/Support Alliance or Older Picture?** We also posted your card in <#${channelId}> so any **R4/R5 Officer** in this Kingdom can approve you in 1 click.`,
+            color: 0xf59e0b,
+            footer: { text: 'KINGDOM BORDER GATE // SCREENSHOT AUTO-OCR + R4 MANUAL FALLBACK' },
+          },
+        ],
+      });
+    }
+
     const grantedRoles = [];
     try {
       const roles = (await discordApi('GET', `/guilds/${guildId}/roles`)) || [];
@@ -3908,10 +3979,9 @@ async function handleInteraction(ix) {
     return editOriginal({
       embeds: [
         {
-          title: '✅ GOVERNOR ID VERIFIED & WAR CHANNELS UNLOCKED',
+          title: '✅ GOVERNOR PROFILE & TITLE COORDINATES UPDATED',
           description:
-            `Welcome to the Kingdom War Grid, **[${bound.alliance}] ${bound.name}** (<@${user.id}>)!\n\n` +
-            `Your Discord account is now cryptographically bound to your in-game Rise of Kingdoms identity.`,
+            `Your Zero-Grid Title Queue profile is synced for **[${bound.alliance}] ${bound.name}** (<@${user.id}>)!`,
           color: 0x10b981,
           fields: [
             {
@@ -3928,22 +3998,6 @@ async function handleInteraction(ix) {
               name: '📍 Zero-Grid Title Coords',
               value: `\`${bound.coords}\``,
               inline: true,
-            },
-            {
-              name: '🛡️ Unlocked Discord Roles',
-              value:
-                grantedRoles.length > 0
-                  ? grantedRoles.join(' • ')
-                  : '✅ Verified Citizen & Alliance Sector Access Active',
-              inline: false,
-            },
-            {
-              name: '⚡ What Is Now Unlocked For You',
-              value:
-                '• **War Rooms & Rally Calls:** All `@🛡️ Sworn Defender` & Alliance War Sectors are now visible.\n' +
-                '• **1-Tap Zero-Grid Title Queue (`#🔮-title-request-queue`):** Click **Justice / Duke / Scientist / Architect** or type `"s"` in chat — HERMES already knows your Governor UID & coordinates!\n' +
-                '• **Live KvK DKP & Telemetry (`/mystats`):** Your personal DKP Progress & Kill-Point card is synced.',
-              inline: false,
             },
           ],
           footer: {
