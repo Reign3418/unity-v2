@@ -1466,6 +1466,7 @@ def main():
     parser.add_argument("--adb", default="127.0.0.1:16384")
     parser.add_argument("--kingdom", default="4194")
     parser.add_argument("--steps", type=int, default=350)
+    parser.add_argument("--target-ch", type=int, default=8)
     args = parser.parse_args()
 
     adb_port = str(args.adb).split(":")[-1]
@@ -1876,7 +1877,9 @@ def main():
             continue
 
         if is_city_hud(a2):
-            # Immediately hit Alliance Help Handshake bubble on bottom HUD (expanded at 1170,735 or collapsed at 1432,845) on both City & World Map
+            # Immediately hit Alliance Help Handshake bubble on bottom HUD (expanded at 1170,735 or collapsed at 1432,845) when Alliance tab is visible
+            al_tab_g = a2[805:875, 1130:1195]
+            al_tab_blue_g = float(((al_tab_g[:, :, 2].astype(np.int32) - al_tab_g[:, :, 0].astype(np.int32) > 35) & (al_tab_g[:, :, 2] > 120)).mean())
             ah_exp_red_g = (a2[680:740, 1170:1220, 0] >= 185) & (a2[680:740, 1170:1220, 1] <= 65) & (a2[680:740, 1170:1220, 2] <= 65)
             ah_box_g = a2[695:775, 1130:1205]
             ah_cream_g = (ah_box_g[:, :, 0] >= 210) & (ah_box_g[:, :, 1] >= 200) & (ah_box_g[:, :, 2] >= 175)
@@ -1886,7 +1889,7 @@ def main():
                 & (ah_box_g[:, :, 2] <= 95)
                 & ((ah_box_g[:, :, 0].astype(np.int32) - ah_box_g[:, :, 2].astype(np.int32)) >= 85)
             )
-            if int(ah_exp_red_g.sum()) >= 70 or (int(ah_cream_g.sum()) >= 220 and int(ah_gold_g.sum()) >= 90):
+            if al_tab_blue_g > 0.45 and int(ah_exp_red_g.sum()) >= 75 and int(ah_cream_g.sum()) >= 200 and int(ah_gold_g.sum()) >= 85:
                 print(f"[Step {step:02d}] Expanded Alliance Help Handshake -> Tap (1170, 735)")
                 tap(args.adb, 1170, 735, 0.8)
             ah_col_red_g = (a2[795:840, 1440:1480, 0] >= 185) & (a2[795:840, 1440:1480, 1] <= 65) & (a2[795:840, 1440:1480, 2] <= 65)
@@ -2006,14 +2009,15 @@ def main():
                 allowed_ch8_rib = ("city hall", "cityhall", "hall", "yh", "wall", "tavern", "vern", "quarry", "storehouse", "store", "scout", "sentry", "camp", "arry", "barracks", "rack", "farm", "stable", "siege", "workshop", "hospital", "hosp", "academy", "acad", "lumber", "mill", "archery", "range", "trading", "post", "alliance", "center")
                 is_ch_selected = ("hall" in rib_title) or ("yh" in rib_title) or (rib_title.strip() == "" and best_y >= 1800)
                 rib_nospace = rib_title.replace(" ", "").replace(".", "")
+                det_ch_lvl = 0
                 if is_ch_selected:
                     m_ch_lvl = re.search(r"(?:level|evel|lv)\s*(\d{1,2})", rib_nospace)
                     if m_ch_lvl:
-                        det_lvl = int(m_ch_lvl.group(1))
-                        if 1 <= det_lvl <= 25:
-                            print(f"[Step {step:02d}] [CH_LEVEL] level={det_lvl}")
-                if is_ch_selected and ("level8" in rib_nospace or "evel8" in rib_nospace or "lv8" in rib_nospace) and best_g >= 240:
-                    print(f"[Step {step:02d}] TARGET REACHED: City Hall Level 8 confirmed ('{rib_title}')! Exiting.")
+                        det_ch_lvl = int(m_ch_lvl.group(1))
+                        if 1 <= det_ch_lvl <= 25:
+                            print(f"[Step {step:02d}] [CH_LEVEL] level={det_ch_lvl}")
+                if is_ch_selected and det_ch_lvl >= args.target_ch and best_g >= 240:
+                    print(f"[Step {step:02d}] TARGET REACHED: City Hall Level {det_ch_lvl} confirmed ('{rib_title}')! Exiting.")
                     break
                 is_already_lv7_prereq = (not is_ch_selected) and ("level7" in rib_nospace or "evel7" in rib_nospace)
                 is_non_ch8_rib = is_already_lv7_prereq or ((not is_ch_selected) and rib_title.strip() != "" and not any(b in rib_title for b in allowed_ch8_rib))
@@ -2023,10 +2027,11 @@ def main():
                     last_spear = None
                     repeat_cnt = 0
                     continue
-                if any(k in rib_title for k in ("stable", "siege", "workshop", "archery", "range")) and gx is not None and gy is not None:
-                    tx_tr, ty_tr = min(1560, gx + 135), max(180, gy - 25)
-                    print(f"[Step {step:02d}] Troop Building Selected ('{rib_title}') -> Tap Train Hex ({tx_tr}, {ty_tr}) + TRAIN (1215, 760)")
+                if any(k in rib_title for k in ("stable", "siege", "workshop", "archery", "range", "barracks")) and gx is not None and gy is not None:
+                    tx_tr, ty_tr = min(1560, gx + 165), max(180, gy - 15)
+                    print(f"[Step {step:02d}] Troop Building Selected ('{rib_title}') -> Tap Train Hex ({tx_tr}, {ty_tr}) + T1 Slot (650, 225) + TRAIN (1215, 760)")
                     tap(args.adb, tx_tr, ty_tr, 1.4)
+                    tap(args.adb, 650, 225, 0.7)
                     tap(args.adb, 1215, 760, 1.2)
                     select_city_hall_via_anchor(args.adb, None)
                     last_spear = None

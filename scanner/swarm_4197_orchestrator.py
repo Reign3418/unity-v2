@@ -136,7 +136,9 @@ def detect_and_hit_alliance_handshake(adb_serial: str, a: np.ndarray | None) -> 
     if a is None or not is_city_hud(a):
         return None
     try:
-        # 1. Expanded bottom bar: Handshake bubble above Alliance shield tab at (1170, 735)
+        # 1. Expanded bottom bar: Require blue Alliance shield tab (805:875, 1130:1195) to be visible (not covered by World Map Search cards)
+        al_tab = a[805:875, 1130:1195]
+        al_tab_blue = float(((al_tab[:, :, 2].astype(np.int32) - al_tab[:, :, 0].astype(np.int32) > 35) & (al_tab[:, :, 2] > 120)).mean())
         ah_exp_red = (a[680:740, 1170:1220, 0] >= 185) & (a[680:740, 1170:1220, 1] <= 65) & (a[680:740, 1170:1220, 2] <= 65)
         ah_box = a[695:775, 1130:1205]
         ah_cream = (ah_box[:, :, 0] >= 210) & (ah_box[:, :, 1] >= 200) & (ah_box[:, :, 2] >= 175)
@@ -146,7 +148,7 @@ def detect_and_hit_alliance_handshake(adb_serial: str, a: np.ndarray | None) -> 
             & (ah_box[:, :, 2] <= 95)
             & ((ah_box[:, :, 0].astype(np.int32) - ah_box[:, :, 2].astype(np.int32)) >= 85)
         )
-        if int(ah_exp_red.sum()) >= 70 or (int(ah_cream.sum()) >= 220 and int(ah_gold.sum()) >= 90):
+        if al_tab_blue > 0.45 and int(ah_exp_red.sum()) >= 75 and int(ah_cream.sum()) >= 200 and int(ah_gold.sum()) >= 85:
             tap(adb_serial, 1170, 735, 0.4)
             _LAST_HANDSHAKE_HIT[adb_serial] = (1170, 735, time.time())
             return (1170, 735)
@@ -217,6 +219,17 @@ def is_world_map(a: np.ndarray | None) -> bool:
     return float(coord_bar.mean()) < 145.0
 
 
+def has_world_map_unlocked(a: np.ndarray | None) -> bool:
+    """Returns True if the bottom-left World Map / City toggle button (15..85, 810..885) is unlocked and visible."""
+    if a is None:
+        return False
+    if is_world_map(a):
+        return True
+    bl = a[810:885, 15:85]
+    bl_blue = (bl[:, :, 2].astype(np.int32) - bl[:, :, 0].astype(np.int32) > 25) & (bl[:, :, 2] > 110)
+    return float(bl_blue.mean()) > 0.22
+
+
 def is_gov_profile_open(a: np.ndarray | None) -> bool:
     if a is None:
         return False
@@ -250,6 +263,17 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
             return a
         if is_gov_profile_open(a):
             tap(adb_serial, 1454, 105, 1.0)
+            continue
+        # Full Alliance Screen (grey header y=20..85, x=200..1400 with dark teal body y=200..750, x=600..1350) -> Tap Help (1310, 560) if badge present then close
+        al_hdr = a[20:85, 200:1400]
+        al_body = a[200:750, 650:1350]
+        is_al_grey = (al_hdr[:, :, 0] >= 145) & (al_hdr[:, :, 0] <= 215) & (np.abs(al_hdr[:, :, 0].astype(np.int32) - al_hdr[:, :, 2].astype(np.int32)) < 22)
+        is_al_teal = (al_body[:, :, 2] >= 90) & (al_body[:, :, 0] <= 45)
+        if float(np.mean(is_al_grey)) > 0.55 and float(np.mean(is_al_teal)) > 0.40:
+            tap(adb_serial, 1310, 560, 1.0)
+            tap(adb_serial, 800, 780, 0.8)
+            tap(adb_serial, 1365, 108, 0.7)
+            tap(adb_serial, 48, 52, 0.8)
             continue
         # Event Calendar (tan header y=20..80, x=200..1350) -> Close (1386, 58)
         ec_hdr = a[20:80, 200:1350]
@@ -291,8 +315,14 @@ def parse_rss_bar(a: np.ndarray | None) -> dict:
             if clean and any(ch.isdigit() for ch in clean):
                 items.append((cx, clean))
         items.sort(key=lambda x: x[0])
-        keys = ["food", "wood", "stone", "gold", "gems"]
-        for idx, (_, val) in enumerate(items[:5]):
+        non_gems = []
+        for cx, val in items:
+            if cx >= 1440:
+                rss["gems"] = val
+            else:
+                non_gems.append((cx, val))
+        keys = ["food", "wood", "stone", "gold"]
+        for idx, (_, val) in enumerate(non_gems[:4]):
             rss[keys[idx]] = val
     except Exception:
         pass
@@ -308,7 +338,9 @@ def parse_hud_power(a: np.ndarray | None) -> int:
         for _, txt, _ in (res or []):
             digits = re.sub(r"[^0-9]", "", txt)
             if digits and len(digits) >= 3:
-                return int(digits)
+                val = int(digits)
+                if 100 <= val <= 500000:
+                    return val
     except Exception:
         pass
     return 0
@@ -761,24 +793,40 @@ def run_t1_only_training(state: dict, inst: dict, cycle_idx: int):
         tap(adb, 45, 845, 2.2)
         a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_city_{port}.png"))
 
-    # Locate sleeping 'Zz' or military buildings in the city (Barracks is typically below City Hall around 625,545 or 405,550)
-    mil_coords = [(625, 545), (405, 550), (880, 520), (1050, 390)]
+    # Verified #4197 City Layout coordinates for Barracks, Archery Range, Stable, and Siege Workshop
+    mil_coords = [(635, 515), (475, 680), (1280, 360), (1125, 585)]
     bx, by = mil_coords[cycle_idx % len(mil_coords)]
-    tap(adb, bx, by, 1.3)
-    tap(adb, bx + 75, by + 85, 1.5)
+    tap(adb, bx, by, 1.0)
+
+    shot_ring = os.path.join(SCRIPT_DIR, f"swarm_ring_{port}.png")
+    a_ring = capture_screen(adb, shot_ring)
+    tx_hex, ty_hex = min(1560, bx + 180), min(860, by + 165)
+    if a_ring is not None:
+        # Detect the green Upgrade hex center (gx, gy) and offset (+165, -15) to hit the blue Train hex
+        y0, y1 = max(200, by + 40), min(870, by + 260)
+        x0, x1 = max(100, bx - 120), min(1520, bx + 160)
+        g_mask = (a_ring[y0:y1, x0:x1, 1] >= 165) & (a_ring[y0:y1, x0:x1, 0] <= 70) & (a_ring[y0:y1, x0:x1, 2] <= 60)
+        gys, gxs = np.where(g_mask)
+        if len(gxs) >= 350:
+            gx_c = int(np.median(gxs) + x0)
+            gy_c = int(np.median(gys) + y0)
+            tx_hex = min(1560, gx_c + 165)
+            ty_hex = max(180, gy_c - 15)
+
+    tap(adb, tx_hex, ty_hex, 1.5)
 
     shot_path = os.path.join(SCRIPT_DIR, f"swarm_train_{port}.png")
     a_mod = capture_screen(adb, shot_path)
     if a_mod is not None:
-        trn_btn = a_mod[700:815, 1100:1360]
+        trn_btn = a_mod[690:820, 1080:1370]
         is_trn = (
-            ((trn_btn[:, :, 1] >= 140) & (trn_btn[:, :, 2] >= 175) & (trn_btn[:, :, 0] <= 95))
-            | ((trn_btn[:, :, 0] >= 200) & (trn_btn[:, :, 1] >= 135) & (trn_btn[:, :, 2] <= 75))
+            ((trn_btn[:, :, 1] >= 135) & (trn_btn[:, :, 2] >= 170) & (trn_btn[:, :, 0] <= 95))
+            | ((trn_btn[:, :, 0] >= 195) & (trn_btn[:, :, 1] >= 130) & (trn_btn[:, :, 2] <= 80))
         )
-        if int(is_trn.sum()) >= 2000:
-            # STRICT T1 ONLY: Tap Tier 1 slot (650, 225) -> Tap TRAIN (1236, 735)
+        if int(is_trn.sum()) >= 1500:
+            # STRICT T1 ONLY: Tap Tier 1 slot (650, 225) -> Tap TRAIN (1215, 760)
             tap(adb, 650, 225, 0.7)
-            tap(adb, 1236, 735, 1.2)
+            tap(adb, 1215, 760, 1.2)
             a_after = capture_screen(adb, shot_path)
             ist["screenPreviewB64"] = make_thumbnail_b64(a_after)
             tr_info = ist["currentTraining"]
@@ -791,14 +839,13 @@ def run_t1_only_training(state: dict, inst: dict, cycle_idx: int):
                 state,
                 port,
                 "TRAIN_T1_ONLY",
-                f"Trained STRICT T1 ONLY batch: +150 {target['unit']} (Tier 1 slot 650,225 -> TRAIN 1236,735)",
+                f"Trained STRICT T1 ONLY batch: +150 {target['unit']} (Tier 1 slot 650,225 -> TRAIN 1215,760)",
                 {"unit": target["unit"], "tier": "T1 ONLY", "building": target["building"]},
             )
             close_modals_to_hud(adb, port)
             return
 
     ist["currentTraining"]["policy"] = "T1 ONLY"
-    ist["currentTraining"][target["key"]] = f"{target['unit']} (Active Queue)"
     close_modals_to_hud(adb, port)
 
 
@@ -886,12 +933,12 @@ def run_resource_farming(state: dict, inst: dict, cycle_idx: int):
     tap(adb, 45, 845, 2.0)
 
 
-def run_city_builder_burst(state: dict, inst: dict):
+def run_city_builder_burst(state: dict, inst: dict, steps_count: int = 12):
     port = inst["port"]
     adb = inst["adb"]
     ist = state["instances"][port]
     ist["status"] = "BUILDING"
-    ist["currentTask"] = "Upgrading City Hall & Resource/Military queues + claiming quests (T1-ONLY enforced)"
+    ist["currentTask"] = f"Upgrading City Hall (Target CH16) & queues ({steps_count} steps, T1-ONLY enforced)"
     save_and_sync_blackbox(state)
 
     try:
@@ -905,15 +952,21 @@ def run_city_builder_burst(state: dict, inst: dict):
                 "--kingdom",
                 TARGET_KINGDOM,
                 "--steps",
-                "10",
+                str(steps_count),
+                "--target-ch",
+                "16",
             ],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=110,
+            timeout=max(120, steps_count * 10),
         )
         out_lines = [ln.strip() for ln in (proc.stdout or "").splitlines() if ln.strip()]
+        for ln in out_lines:
+            m_chl = re.search(r"\[CH_LEVEL\]\s*level=(\d{1,2})", ln)
+            if m_chl:
+                ist["cityHallLevel"] = int(m_chl.group(1))
         last_blds = [ln for ln in out_lines if any(k in ln for k in ("Upgrade", "Build", "Quest", "TRAIN", "City Hall", "Handshake"))]
         if last_blds:
             summary_line = last_blds[-1][-95:]
@@ -997,11 +1050,16 @@ def main():
             if cycle_idx == 0 or (cycle_idx % 4 == 0) or str(ist.get("coordinates", {}).get("kingdom", "4197")) != "4197":
                 audit_and_ensure_4197_roster(state, inst)
 
-            run_blackbox_threat_check(state, inst)
-            run_t1_only_training(state, inst, cycle_idx)
-            run_city_builder_burst(state, inst)
-            run_resource_farming(state, inst, cycle_idx)
-            maybe_rotate_or_sleep(state, inst, cycle_idx)
+            a_check = close_modals_to_hud(adb, port)
+            if a_check is not None and not has_world_map_unlocked(a_check):
+                # Early tutorial city (Scout Camp / World Map not unlocked yet) -> Fast-track 22 builder/tutorial steps
+                run_city_builder_burst(state, inst, steps_count=22)
+            else:
+                run_blackbox_threat_check(state, inst)
+                run_t1_only_training(state, inst, cycle_idx)
+                run_city_builder_burst(state, inst, steps_count=12)
+                run_resource_farming(state, inst, cycle_idx)
+                maybe_rotate_or_sleep(state, inst, cycle_idx)
 
             hs_hit = _LAST_HANDSHAKE_HIT.pop(adb, None)
             if hs_hit:
