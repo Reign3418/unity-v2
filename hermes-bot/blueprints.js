@@ -241,24 +241,28 @@ export function buildValheonHqBlueprint(customOptions = {}) {
           {
             name: '🌐-official-rok-intel-bridge',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Direct 1-Click Bridge to Official Rise of Kingdoms Discord Patch Notes (#📜〡rok․news), Redeem Codes, Osiris League, Bonfire Meetups & Bug Reports.',
             pinKey: 'OFFICIAL_ROK_BRIDGE',
           },
           {
             name: '🎯-combat-roles-and-event-pings',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: '1-Tap Combat Specialization Tags (Infantry, Cavalry, Archer, Rally, Garrison) & Event Calendar Alerts (More Than Gems, 20GH, Wheel, MGE, No-Cap).',
             pinKey: 'ROLE_AND_EVENT_PING_CONSOLE',
           },
           {
             name: '🎁-active-redeem-codes',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Live auto-updated Rise of Kingdoms Redeem Codes delivered by HERMES from the Valheon Vault.',
             pinKey: 'REDEEM_CODES_LIVE',
           },
           {
             name: '🪽-1-click-kingdom-discord',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: 'Hate building Discord servers from scratch? Let HERMES deploy a full Kingdom War Server wired to Valheon in 1 click.',
             pinKey: 'ONE_CLICK_DEPLOY_PROMO',
           },
@@ -272,33 +276,34 @@ export function buildValheonHqBlueprint(customOptions = {}) {
           {
             name: '🎫-open-a-ticket',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: 'Need Kingdom Onboarding, an AEGIS Polygraph Audit, R5 Verification, or Technical Support? Click a button below.',
             pinKey: 'TICKET_CONSOLE_HQ',
           },
           {
             name: '🔮-title-request-queue',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_INTERACTIVE',
+            access: 'CITIZENS_ONLY',
             topic: '24/7 Automated Kingdom Title Rotation Queue — Request Duke, Scientist, Architect, or Justice with your [X, Y] coordinates.',
             pinKey: 'TITLE_QUEUE_CONSOLE',
           },
           {
             name: '⚰️-ark-of-osiris-signups',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_INTERACTIVE',
+            access: 'CITIZENS_ONLY',
             topic: '30v30 Ark of Osiris Tactical Lane Sign-Ups (Top Shrines, Mid Obelisks/Ark, Bottom Outposts, and Substitutes).',
             pinKey: 'AOO_CONSOLE',
           },
           {
             name: '🔒-ticket-audit-log',
             type: CHANNEL_TYPES.TEXT,
-            access: 'STAFF_ONLY',
+            access: 'OWNER_AND_R5_ONLY',
             topic: 'Automated HERMES transcript archive and SLA telemetry for resolved tickets.',
           },
           {
             name: '📡-central-support-and-relaunch-hub',
             type: CHANNEL_TYPES.TEXT,
-            access: 'STAFF_ONLY',
+            access: 'OWNER_AND_R5_ONLY',
             topic: 'CENTRAL OVERWATCH INBOX // All customer support tickets, customization requests, and 1-click free server relaunches from external Kingdom, Diplo & Coalition servers route here.',
             pinKey: 'HQ_CENTRAL_RELAY_CONSOLE',
           },
@@ -307,29 +312,32 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       {
         key: 'sanctuary',
         name: '🎭 THE UNCENSORED SANCTUARY',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🕵️-the-whisper-vault',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_BUTTON_ONLY',
+            access: 'CITIZENS_BUTTON_ONLY',
             topic: 'Zero-Trace Anonymous Whistleblower & Kingdom Tea Drop. Click [Post Anonymous Whisper] to speak freely without Lilith censorship or retaliation.',
             pinKey: 'CONFESSIONAL_CONSOLE',
           },
           {
             name: '🔥-kingdom-tea-uncensored',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Say what you cannot say in RoK chat. Kingdom politics, KvK betrayal receipts, rogue King callouts, and uncensored debate.',
           },
           {
             name: '💀-roast-my-governor',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Drop your Governor ID or run /hermes roast <id> — HERMES pulls your real KP/Deads/Power from AWS and delivers a ruthless verdict.',
             pinKey: 'ROAST_CONSOLE',
           },
           {
             name: '🏆-battle-report-flex',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Post your nastiest open-field trades, swarm defends, and zeroed whale battle reports.',
           },
         ],
@@ -337,35 +345,40 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       {
         key: 'suites',
         name: '⚔️ THE 5 VALHEON COMMAND SUITES',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🛡️-aegis-polygraph-radar',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'PILLAR I // Live EK Polygraph 3.0 migrant audits, ghost/alt correlation checks, and 5-Model Trust Index lookups.',
             pinKey: 'SUITE_AEGIS',
           },
           {
             name: '🌌-nexus-3d-dkp-telemetry',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'PILLAR II // Cerberus 3D Governor Galaxy snapshots, 60fps DKP leaderboards, and Kingdom trajectory deltas.',
             pinKey: 'SUITE_NEXUS',
           },
           {
             name: '🗺️-theater-kvk-war-room',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'PILLAR III // 128-Node Crystal Map territory planning, Pass opening timers, and AI KvK coalition simulations.',
             pinKey: 'SUITE_THEATER',
           },
           {
             name: '📬-vanguard-migration-crm',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'PILLAR IV // Cross-Kingdom Player Hunter, Kanban Recruitment Hitlists, and RoK Rich-Text Mail Studio.',
             pinKey: 'SUITE_VANGUARD',
           },
           {
             name: '📸-optics-vision-ocr-drop',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'PILLAR V // Drop any RoK screenshot here (Equipment, Speedups, RSS, Rankings) and HERMES Gemini Vision OCR will parse it into structured math!',
             pinKey: 'SUITE_OPTICS',
           },
@@ -374,36 +387,40 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       {
         key: 'academy',
         name: '📚 SOVEREIGN ACADEMY (95 GUIDES)',
-        access: 'PUBLIC_READ_ONLY',
+        access: 'CITIZENS_READ_ONLY',
         channels: [
           {
             name: '👑-commander-tier-matrices',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: '20-Stage Commander Tier Lists (Early Game, KvK 1-3, SoC Open Field, Rally, Garrison) powered by live telemetry.',
             pinKey: 'ACADEMY_TIERS',
           },
           {
             name: '⚔️-5-6-7-march-fleet-meta',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Optimal 5, 6, and 7-March open-field synergy fleets, accessories, and formation pairings.',
             pinKey: 'ACADEMY_FLEETS',
           },
           {
             name: '📖-95-sovereign-dossiers',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Complete library of 95 living Rise of Kingdoms Field Guides. Run /guide <topic> in any channel to summon a dossier.',
             pinKey: 'ACADEMY_DOSSIERS',
           },
           {
             name: '🎓-peerless-scholar-solver',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_INTERACTIVE',
+            access: 'CITIZENS_ONLY',
             topic: '17-Language Lyceum of Wisdom & Peerless Scholar Solver (Preliminary, Midterm Early Packet & 15s Final Exam Speed Search).',
             pinKey: 'PEERLESS_CONSOLE',
           },
           {
             name: '🌱-f2p-and-ch8-efficiency-lab',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: '100% Free New-Player Growth Coaching, F2P VIP/Gem priority math, and Ch8 Sleeper/Jumper optimization.',
           },
         ],
@@ -411,21 +428,24 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       {
         key: 'bazaar',
         name: '🌍 MIGRATION & JUMPER BAZAAR',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🏰-kingdom-recruitment-ads',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Verified R4/R5 Recruiters: Post your Kingdom recruitment banner with live Valheon Imperium & Seed metrics.',
           },
           {
             name: '🧳-governor-free-agency',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Looking for a new Kingdom? Share your Valheon Verified Governor Dossier and desired KvK seed.',
           },
           {
             name: '🚀-genesis-jumper-groups',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Forming a Day-1 Jumper or Sleeper project for upcoming Genesis Kingdoms (#4203+)? Recruit your core 150 players here.',
           },
         ],
@@ -433,22 +453,25 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       {
         key: 'community',
         name: '💬 CITADEL COMMUNITY LOUNGE',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🍻-the-golden-tavern',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Main global lounge for governors, theorycrafters, and alliance leaders across every Rise of Kingdoms server.',
           },
           {
             name: '🌐-17-language-global-chat',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Speak in any of the 17 Official RoK Languages (EN, VI, AR, RU, ZH, ES, ID, KO, TR, FR, DE, PT, JA, IT, PL, TH, MS) — HERMES bridges translations automatically.',
             pinKey: 'GLOBAL_TRANSLATOR_CONSOLE',
           },
           {
             name: '💡-roadmap-and-feature-requests',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Suggest new Valheon calculators, scanner features, or Discord tools directly to the Principal Architect.',
           },
         ],
@@ -456,20 +479,23 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       {
         key: 'voice',
         name: '🔊 CITADEL VOICE & TOWN HALL',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🎙️ Sovereign Town Hall',
             type: CHANNEL_TYPES.STAGE,
+            access: 'CITIZENS_ONLY',
             topic: 'Live KvK Drafts, Meta Breakdowns, and R5 Roundtables.',
           },
           {
             name: '🔊 Golden Tavern Voice #1',
             type: CHANNEL_TYPES.VOICE,
+            access: 'CITIZENS_ONLY',
           },
           {
             name: '🔊 Theorycrafting Lab #2',
             type: CHANNEL_TYPES.VOICE,
+            access: 'CITIZENS_ONLY',
           },
           {
             name: '🔊 R5 Diplomatic Council (VIP)',
@@ -692,23 +718,27 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '📢-kings-decrees',
             type: CHANNEL_TYPES.ANNOUNCEMENT,
+            access: 'CITIZENS_READ_ONLY',
             topic: `Official announcements and KvK mobilization orders from the High Council of Kingdom #${kdId}.`,
           },
           {
             name: '🌐-official-rok-intel-bridge',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Direct 1-Click Bridge to Official Rise of Kingdoms Discord Patch Notes (#📜〡rok․news), Redeem Codes, Osiris League & Bug Reports.',
             pinKey: 'OFFICIAL_ROK_BRIDGE',
           },
           {
             name: '🎯-combat-roles-and-event-pings',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: '1-Tap Combat Specialization Tags (Infantry, Cavalry, Archer, Rally, Garrison) & Event Calendar Alerts (More Than Gems, 20GH, Wheel, MGE, No-Cap).',
             pinKey: 'ROLE_AND_EVENT_PING_CONSOLE',
           },
           {
             name: '⏰-utc-event-and-pass-alerts',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: `Automated 15-minute and 0-minute UTC alerts delivered by HERMES for Ruins, Altar, Pass Openings, and Ark of Osiris.`,
             pinKey: 'KD_EVENT_RADAR',
           },
@@ -722,20 +752,21 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '🎫-kingdom-ticket-desk',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: `Open a private ticket with Kingdom #${kdId} High Council for Migration, MGE/HoH Applications, or Diplomacy.`,
             pinKey: 'TICKET_CONSOLE_KINGDOM',
           },
           {
             name: '🔮-title-request-queue',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_INTERACTIVE',
+            access: 'CITIZENS_ONLY',
             topic: 'Request Duke, Architect, Scientist, or Justice titles with your X/Y coordinates.',
             pinKey: 'TITLE_QUEUE_CONSOLE',
           },
           {
             name: '⚰️-ark-of-osiris-signups',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_INTERACTIVE',
+            access: 'CITIZENS_ONLY',
             topic: '30v30 Ark of Osiris Tactical Lane Sign-Ups (Top Shrines, Mid Obelisks/Ark, Bottom Outposts, and Substitutes).',
             pinKey: 'AOO_CONSOLE',
           },
@@ -748,7 +779,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '⚔️-kvk-diplo-and-coalition-1click',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Heading into KvK? Deploy a 1-Click KvK Diplomacy Server ($9) or 1-Click Allied Coalition War Server ($9) — or grab BOTH for $15 within 72 hours!',
             pinKey: 'CROSS_SELL_KVK_BUNDLE',
           },
@@ -776,6 +807,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '🚨-rally-and-garrison-pings',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Emergency flag defenses, pass timers, and rally coordinates. Keep chatter clear during war!',
           },
           {
@@ -787,11 +819,13 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '📸-drop-screenshots-ocr',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Drop your Hall of Heroes, Speedup, RSS, or Equipment screenshots here for instant HERMES AI OCR indexing.',
           },
           {
             name: '💤-governor-presence-alerts',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Automated Valheon Presence webhooks when front-line governors switch to Sleeping/Working status.',
           },
         ],
@@ -799,42 +833,45 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
       {
         key: 'kd_tavern',
         name: '🎭 KINGDOM TAVERN & CONFESSIONAL',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🍻-kingdom-tavern',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: `Main social lounge for Kingdom #${kdId} citizens, allies, and guests.`,
           },
           {
             name: '🌐-17-language-global-chat',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: `Right-click any message -> Apps -> Translate, or react with any of the 17 Flag Emojis (🇺🇸 🇻🇳 🇸🇦 🇷🇺 🇨🇳 🇪🇸 🇮🇩 🇰🇷 🇹🇷 🇫🇷 🇩🇪 🇧🇷 🇯🇵 🇮🇹 🇵🇱 🇹🇭 🇲🇾) for instant HERMES translation!`,
             pinKey: 'GLOBAL_TRANSLATOR_CONSOLE',
           },
           {
             name: '🕵️-anonymous-whisper-vault',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_BUTTON_ONLY',
+            access: 'CITIZENS_BUTTON_ONLY',
             topic: 'Say what you cannot say in Kingdom Chat! Submit 100% anonymous feedback or spicy Kingdom tea via HERMES.',
             pinKey: 'CONFESSIONAL_CONSOLE',
           },
           {
             name: '💀-roast-my-stats',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: `Run /hermes roast to let the AI judge your Kingdom #${kdId} kill points vs. farm weight!`,
           },
           {
             name: '📚-valheon-field-guides',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Pinned Commander Tier Matrices, 5-March Fleet Builds, and Active Redeem Codes synced from Valheon HQ.',
             pinKey: 'ACADEMY_TIERS',
           },
           {
             name: '🎓-peerless-scholar-solver',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_INTERACTIVE',
+            access: 'CITIZENS_ONLY',
             topic: '17-Language Lyceum of Wisdom & Peerless Scholar Solver (Preliminary, Midterm Early Packet & 15s Final Exam Speed Search).',
             pinKey: 'PEERLESS_CONSOLE',
           },
@@ -848,6 +885,8 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: `🛡️-${tag.toLowerCase()}-war-chat`,
             type: CHANNEL_TYPES.TEXT,
+            access: 'ALLIANCE_ONLY',
+            allianceRoleKey: `alliance_${tag.toLowerCase()}`,
             topic: `Dedicated alliance coordination channel for [${tag}] members and R4 officers.`,
           },
         ]),
@@ -965,17 +1004,27 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
           {
             name: '📜-project-manifesto-and-timeline',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: `Welcome to ${projectName}! Full Jump/Sleeper UTC timeline, starting kingdom, and final landing target #${targetKd}.`,
             pinKey: 'WELCOME_MANIFESTO',
           },
           {
+            name: '🔗-verify-governor-id',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
+            topic: `Verify your Governor ID to unlock Jumper Rosters, Squad Signups, and Launch Voice HQ.`,
+            pinKey: 'KD_VERIFY_CONSOLE',
+          },
+          {
             name: '🛰️-bastion-genesis-radar',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: `Automated Bastion SCOUT Day-1 alerts delivered by HERMES when Target Kingdom #${targetKd} opens on the Rise of Kingdoms server list!`,
           },
           {
             name: '🎫-r4-and-alliance-applications',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: 'Apply for R4 Leadership, Whale Garrison Captain, or register your group via private ticket.',
             pinKey: 'TICKET_CONSOLE_KINGDOM',
           },
@@ -984,22 +1033,24 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
       {
         key: 'genesis_rosters',
         name: '🛡️ ALLIANCE SLOTS & SQUAD SIGNUPS',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🥇-alliance-1-main-roster',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Top 50 Spenders & High-Activity Vanguard Roster (1/50 to 50/50).',
           },
           {
             name: '🥈-alliance-2-war-roster',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Core F2P/Low-Spender grinders & Sleeper rally fillers.',
           },
           {
             name: '🌱-ch8-speedrun-and-sleeper-guide',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Step-by-step Valheon Ch8 Jumper & 20-Day Passport Sleeper Blueprint + Free Redeem Codes.',
             pinKey: 'REDEEM_CODES_LIVE',
           },
@@ -1008,23 +1059,25 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
       {
         key: 'genesis_community',
         name: '🎭 JUMPER TAVERN & CONFESSIONAL',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🍻-jumper-lounge',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Meet your future alliance mates before Day 1 drops!',
           },
           {
             name: '🕵️-anonymous-whisper-vault',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_BUTTON_ONLY',
+            access: 'CITIZENS_BUTTON_ONLY',
             topic: 'Drop anonymous jumper confessions, rival group intel, or honest feedback via HERMES.',
             pinKey: 'CONFESSIONAL_CONSOLE',
           },
           {
             name: '🔊 Launch Day Voice HQ',
             type: CHANNEL_TYPES.VOICE,
+            access: 'CITIZENS_ONLY',
           },
           {
             name: '🛟-valheon-support-and-relaunch',
@@ -1139,17 +1192,27 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
           {
             name: '📜-lk-map-camps-and-rules',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: `Official Lost Kingdom Matchmaking Bracket (${kingdoms.map((k) => `#${k}`).join(', ')}), Camp Assignments, and Summit Charter.`,
             pinKey: 'KD_CHARTER_EMBED',
           },
           {
+            name: '🔗-verify-governor-id',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
+            topic: 'Link your Governor ID & Kingdom # to unlock Lost Kingdom Town Hall & Diplomatic channels.',
+            pinKey: 'KD_VERIFY_CONSOLE',
+          },
+          {
             name: '⚖️-signed-treaties-and-zone-splits',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Ratified Zone 5 / Zone 6 / King\'s Land border splits, Crusader Fortress rotations, and Great Ziggurat reward treaties.',
           },
           {
             name: '⏰-pass-and-ziggurat-utc-timers',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Live UTC-to-Local countdowns for Pass 4, Pass 5, Hierons, Crusader Fortress, and Great Ziggurat openings.',
             pinKey: 'KD_EVENT_RADAR',
           },
@@ -1190,23 +1253,25 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
       {
         key: 'diplo_public',
         name: '🌐 III. LOST KINGDOM PUBLIC TOWN HALL',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🌐-17-lang-lk-global-chat',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Public Lost Kingdom cross-kingdom chat with 17-Language Flag Reaction & Right-Click Translation!',
             pinKey: 'GLOBAL_TRANSLATOR_CONSOLE',
           },
           {
             name: '💀-lk-battle-reports-and-banter',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Drop your best open-field trades, rally reports, and Lost Kingdom war receipts.',
           },
           {
             name: '🕵️-lk-anonymous-whisper-vault',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_BUTTON_ONLY',
+            access: 'CITIZENS_BUTTON_ONLY',
             topic: 'Zero-Trace Anonymous Lost Kingdom Tea & Betrayal Leak Vault.',
             pinKey: 'CONFESSIONAL_CONSOLE',
           },
@@ -1215,12 +1280,12 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
       {
         key: 'diplo_trojan_store',
         name: '🚀 IV. VALHEON 1-CLICK STORE & SUPPORT RELAY',
-        access: 'PUBLIC_READ_ONLY',
+        access: 'CITIZENS_READ_ONLY',
         channels: [
           {
             name: '🚀-get-this-for-your-kingdom',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Want a spy-proof 1-Click Allied Coalition War Server ($9 / $15 72h Bundle) or a full 1-Click Home Kingdom War OS Server ($39)? Launch below!',
             pinKey: 'CROSS_SELL_FROM_KVK_SERVER',
           },
@@ -1349,34 +1414,46 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
       {
         key: 'coalition_war',
         name: '⚔️ I. ALLIED COALITION WAR COMMAND',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'PUBLIC_READ_ONLY',
         channels: [
+          {
+            name: '🔗-verify-governor-id',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
+            topic: 'Spy-Proof Border Gate // Link your Governor ID & Allied Kingdom # to unlock Coalition Rally & Voice rooms.',
+            pinKey: 'KD_VERIFY_CONSOLE',
+          },
           {
             name: '🔥-joint-rally-and-garrison-calls',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Live multi-kingdom Rally & Garrison calls with 17-Language Lilith Canonical Glossary Bridge (Valheon 17-Lang Glossary).',
             pinKey: 'GLOBAL_TRANSLATOR_CONSOLE',
           },
           {
             name: '⏰-pass-and-ziggurat-utc-timers',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Live UTC-to-Local mobilization countdowns (<t:UNIX:F>) with 1-click RSVP counters across all allied Kingdoms.',
             pinKey: 'KD_EVENT_RADAR',
           },
           {
             name: '🎯-combat-roles-and-rally-tags',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_READ_ONLY',
             topic: '1-Tap Infantry / Cavalry / Archer / Rally / Garrison specialization tags for coalition war pings.',
             pinKey: 'ROLE_AND_EVENT_PING_CONSOLE',
           },
           {
             name: '🎙️-coalition-voice-rollcall',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Run /rollcall during Pass & Altar fights to log verified voice attendance across all allied Kingdoms.',
           },
           {
             name: '📡-shift-handoff-coverage',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Run /uptime to coordinate 24-Hour UTC shift handoffs (NA / EU / MENA / ASIA) so allied flags never burn uncontested.',
           },
         ],
@@ -1384,26 +1461,30 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
       {
         key: 'coalition_comms',
         name: '🌐 II. MULTI-KINGDOM ALLIED COMMS & VOICE',
-        access: 'PUBLIC_INTERACTIVE',
+        access: 'CITIZENS_ONLY',
         channels: [
           {
             name: '🌐-17-lang-allied-war-chat',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Allied multi-kingdom war lounge — react with any of the 17 Flag Emojis for instant translation!',
             pinKey: 'GLOBAL_TRANSLATOR_CONSOLE',
           },
           {
             name: '📸-drop-screenshots-ocr',
             type: CHANNEL_TYPES.TEXT,
+            access: 'CITIZENS_ONLY',
             topic: 'Drop Resource Bag, Speedup Bag, or Battle Report screenshots for instant HERMES local OCR math.',
           },
           {
             name: '🔊 Coalition War-Room Voice #1 (Main Ball)',
             type: CHANNEL_TYPES.VOICE,
+            access: 'CITIZENS_ONLY',
           },
           {
             name: '🔊 Allied Rally & Garrison Voice #2',
             type: CHANNEL_TYPES.VOICE,
+            access: 'CITIZENS_ONLY',
           },
           {
             name: '🔊 Allied Kings War Table (R5/R4)',
@@ -1415,12 +1496,12 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
       {
         key: 'coalition_trojan_store',
         name: '🚀 III. VALHEON 1-CLICK STORE & SUPPORT RELAY',
-        access: 'PUBLIC_READ_ONLY',
+        access: 'CITIZENS_READ_ONLY',
         channels: [
           {
             name: '🚀-get-this-for-your-kingdom',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
+            access: 'CITIZENS_READ_ONLY',
             topic: 'Love how HERMES runs this Coalition War Server? Deploy a full 24/7 Home Kingdom War OS Server ($39) or KvK Diplo Server ($9 / $15 Bundle) below!',
             pinKey: 'CROSS_SELL_FROM_KVK_SERVER',
           },

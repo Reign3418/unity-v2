@@ -226,7 +226,7 @@ export function buildTicketHeaderEmbed({
           {
             type: 2,
             style: 3,
-            label: '✅ Approve & Grant Verified Role',
+            label: '✅ Approve & Grant Verified Role (R4/R5)',
             custom_id: `hermes_ticket_approve_${discordId}`,
           },
           {
@@ -243,23 +243,27 @@ export function buildTicketHeaderEmbed({
           },
         ],
       },
-      {
-        type: 1,
-        components: [
-          {
-            type: 2,
-            style: 5, // LINK BUTTON
-            label: '🤖 Step 1: Invite HERMES to Your Blank Server',
-            url: 'https://discord.com/oauth2/authorize?client_id=1563619930371391680&permissions=8&scope=bot%20applications.commands',
-          },
-          {
-            type: 2,
-            style: 1, // PRIMARY BUTTON
-            label: '🪽 Step 2: Launch 1-Click Kingdom Server Builder',
-            custom_id: 'hermes_launch_kd_modal',
-          },
-        ],
-      },
+      ...(ticketType === 'onboard'
+        ? [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 5, // LINK BUTTON
+                  label: '🤖 Step 1: Invite HERMES to Your Blank Server',
+                  url: 'https://discord.com/oauth2/authorize?client_id=1563619930371391680&permissions=8&scope=bot%20applications.commands',
+                },
+                {
+                  type: 2,
+                  style: 3, // SUCCESS BUTTON -> Routes through Stripe Gate!
+                  label: '🏰 Step 2: 1-Click Kingdom Server Checkout ($39)',
+                  custom_id: 'hermes_deploy_kingdom_btn',
+                },
+              ],
+            },
+          ]
+        : []),
     ],
   };
 }

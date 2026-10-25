@@ -1114,6 +1114,90 @@ async function handleInteraction(ix) {
     const customId = rawCustomId.replace(/^icarus_/, 'hermes_');
     console.log(`[HERMES Button Click] ${customId} by ${user.username} (${user.id})`);
 
+    // ZERO-ROLE BORDER GATE INTERCEPTOR:
+    // If an unverified newcomer (0 roles) clicks any feature/role button before verifying,
+    // immediately pop open the Governor ID Verification Modal right on their screen!
+    const memberRoles = Array.isArray(ix.member?.roles) ? ix.member.roles : [];
+    const isExemptFromBorderGate =
+      VALHEON_FOUNDER_IDS.has(String(user.id)) ||
+      (tierStatus.buyerDiscordId && String(tierStatus.buyerDiscordId) === String(user.id)) ||
+      customId === 'hermes_verify_governor' ||
+      customId.startsWith('hermes_deploy_') ||
+      customId.startsWith('hermes_stripe_verify_') ||
+      customId.startsWith('hermes_upgrade_') ||
+      customId.startsWith('hermes_launch_') ||
+      customId === 'hermes_demo_common_lockout' ||
+      customId === 'hermes_ticket_onboard' ||
+      customId === 'hermes_ticket_migrant' ||
+      customId === 'hermes_ticket_court' ||
+      customId === 'hermes_ticket_support' ||
+      customId === 'hermes_ticket_close';
+
+    if (memberRoles.length === 0 && !isExemptFromBorderGate) {
+      return reply({
+        type: 9, // MODAL
+        data: {
+          custom_id: 'hermes_bind_governor_modal',
+          title: '🛡️ Verify Governor ID to Unlock Server',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'gov_id',
+                  label: '1. In-Game Governor ID (Numeric UID)',
+                  style: 1,
+                  placeholder: 'e.g. 41940001 (Tap your avatar in Rise of Kingdoms)',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'gov_name',
+                  label: '2. In-Game Governor Name',
+                  style: 1,
+                  value: (user.global_name || user.username || '').slice(0, 32),
+                  placeholder: 'e.g. Reign3418',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'alliance_tag',
+                  label: '3. Alliance Tag or Kingdom #',
+                  style: 1,
+                  placeholder: 'e.g. VHN1, VHN2, or 4194',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'city_coords',
+                  label: '4. City Coordinates (Optional — Title Queue)',
+                  style: 1,
+                  placeholder: 'e.g. X:614 Y:588 (Leave blank for UID-only lookup)',
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
     // A0. Commercial Rarity Tier & 24-Hour FOMO Upgrade / Lockout Preview Buttons
     if (customId === 'hermes_demo_common_lockout') {
       const demoLockout = buildCommonLockoutPayload({
@@ -3026,7 +3110,7 @@ async function handleInteraction(ix) {
   }
 
   if (ix.type === 5 && ix.data?.custom_id === 'hermes_kd_deploy_modal') {
-    await reply({ type: 5 });
+    await reply({ type: 5, data: { flags: 64 } });
 
     const comps = ix.data.components || [];
     const targetGuildId = (comps[0]?.components?.[0]?.value || '').trim();
@@ -3147,7 +3231,7 @@ async function handleInteraction(ix) {
   }
 
   if (ix.type === 5 && ix.data?.custom_id === 'hermes_diplo_deploy_modal') {
-    await reply({ type: 5 });
+    await reply({ type: 5, data: { flags: 64 } });
 
     const comps = ix.data.components || [];
     const targetGuildId = (comps[0]?.components?.[0]?.value || '').trim();
@@ -3265,7 +3349,7 @@ async function handleInteraction(ix) {
   }
 
   if (ix.type === 5 && ix.data?.custom_id === 'hermes_coalition_deploy_modal') {
-    await reply({ type: 5 });
+    await reply({ type: 5, data: { flags: 64 } });
 
     const comps = ix.data.components || [];
     const targetGuildId = (comps[0]?.components?.[0]?.value || '').trim();
@@ -3675,6 +3759,10 @@ async function handleInteraction(ix) {
       const citizenRole = roles.find(
         (r) =>
           r.name.toLowerCase().includes('sworn defender') ||
+          r.name.toLowerCase().includes('frontline brawler') ||
+          r.name.toLowerCase().includes('frontline fighter') ||
+          r.name.toLowerCase().includes('confirmed jumper') ||
+          r.name.toLowerCase().includes('lost kingdom envoy') ||
           r.name.toLowerCase().includes('verified') ||
           r.name.toLowerCase().includes('coalition fighter') ||
           r.name.toLowerCase().includes('summit delegate')
@@ -3687,6 +3775,7 @@ async function handleInteraction(ix) {
       const allianceRole = roles.find(
         (r) =>
           r.name.toUpperCase().includes(`[${rawAlliance}]`) ||
+          r.name.toUpperCase().includes(`#${rawAlliance}`) ||
           r.name.toUpperCase().includes(`${rawAlliance} `)
       );
       if (allianceRole) {

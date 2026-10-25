@@ -126,7 +126,7 @@ async function discordRequest(botToken, method, endpoint, body = null) {
 /**
  * Computes Discord permission_overwrites array for a category or channel
  */
-function buildPermissionOverwrites(accessMode, guildId, roleIdByKey) {
+function buildPermissionOverwrites(accessMode, guildId, roleIdByKey, chDef = null) {
   const everyoneId = guildId;
   const overwrites = [];
 
@@ -143,6 +143,8 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey) {
   const citizenRoleIds = [
     roleIdByKey.citizen,
     roleIdByKey.verified_gov,
+    roleIdByKey.verified_king,
+    roleIdByKey.verified_officer,
     roleIdByKey.verified_jumper,
   ].filter(Boolean);
 
@@ -198,7 +200,12 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey) {
         BigInt(PERMS.READ_MESSAGE_HISTORY) |
         BigInt(PERMS.USE_APPLICATION_COMMANDS)
       ).toString(),
-      deny: PERMS.SEND_MESSAGES,
+      deny: (
+        BigInt(PERMS.SEND_MESSAGES) |
+        BigInt(PERMS.ADD_REACTIONS) |
+        (1n << 35n) | // CREATE_PUBLIC_THREADS
+        (1n << 36n)   // CREATE_PRIVATE_THREADS
+      ).toString(),
     });
     for (const rId of leaderRoleIds) {
       overwrites.push({
@@ -233,28 +240,77 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey) {
         deny: '0',
       });
     }
-  } else if (accessMode === 'CITIZENS_ONLY' || accessMode === 'CITIZENS_READ_ONLY') {
+  } else if (accessMode === 'ALLIANCE_ONLY') {
     overwrites.push({
       id: everyoneId,
       type: 0,
       allow: '0',
       deny: PERMS.VIEW_CHANNEL,
     });
-    for (const rId of [...citizenRoleIds, ...leaderRoleIds]) {
+    const specificAllianceRoleId = chDef?.allianceRoleKey
+      ? roleIdByKey[chDef.allianceRoleKey]
+      : null;
+    const allowedIds = [
+      ...(specificAllianceRoleId ? [specificAllianceRoleId] : citizenRoleIds),
+      ...leaderRoleIds,
+    ].filter(Boolean);
+    for (const rId of new Set(allowedIds)) {
       overwrites.push({
         id: rId,
         type: 0,
-        allow:
-          accessMode === 'CITIZENS_READ_ONLY'
-            ? (BigInt(PERMS.VIEW_CHANNEL) | BigInt(PERMS.READ_MESSAGE_HISTORY)).toString()
-            : (
-                BigInt(PERMS.VIEW_CHANNEL) |
-                BigInt(PERMS.SEND_MESSAGES) |
-                BigInt(PERMS.READ_MESSAGE_HISTORY) |
-                BigInt(PERMS.CONNECT) |
-                BigInt(PERMS.SPEAK)
-              ).toString(),
-        deny: accessMode === 'CITIZENS_READ_ONLY' ? PERMS.SEND_MESSAGES : '0',
+        allow: (
+          BigInt(PERMS.VIEW_CHANNEL) |
+          BigInt(PERMS.SEND_MESSAGES) |
+          BigInt(PERMS.READ_MESSAGE_HISTORY) |
+          BigInt(PERMS.CONNECT) |
+          BigInt(PERMS.SPEAK)
+        ).toString(),
+        deny: '0',
+      });
+    }
+  } else {
+    // Default / CITIZENS_ONLY / CITIZENS_READ_ONLY / CITIZENS_BUTTON_ONLY / PUBLIC_INTERACTIVE:
+    // Strictly hide from unverified @everyone!
+    const isReadOnlyOrButton =
+      accessMode === 'CITIZENS_READ_ONLY' || accessMode === 'CITIZENS_BUTTON_ONLY';
+    overwrites.push({
+      id: everyoneId,
+      type: 0,
+      allow: '0',
+      deny: PERMS.VIEW_CHANNEL,
+    });
+    for (const rId of new Set([...citizenRoleIds, ...leaderRoleIds])) {
+      overwrites.push({
+        id: rId,
+        type: 0,
+        allow: isReadOnlyOrButton
+          ? (
+              BigInt(PERMS.VIEW_CHANNEL) |
+              BigInt(PERMS.READ_MESSAGE_HISTORY) |
+              BigInt(PERMS.USE_APPLICATION_COMMANDS)
+            ).toString()
+          : (
+              BigInt(PERMS.VIEW_CHANNEL) |
+              BigInt(PERMS.SEND_MESSAGES) |
+              BigInt(PERMS.READ_MESSAGE_HISTORY) |
+              BigInt(PERMS.USE_APPLICATION_COMMANDS) |
+              BigInt(PERMS.CONNECT) |
+              BigInt(PERMS.SPEAK)
+            ).toString(),
+        deny: isReadOnlyOrButton ? PERMS.SEND_MESSAGES : '0',
+      });
+    }
+    for (const rId of leaderRoleIds) {
+      overwrites.push({
+        id: rId,
+        type: 0,
+        allow: (
+          BigInt(PERMS.VIEW_CHANNEL) |
+          BigInt(PERMS.SEND_MESSAGES) |
+          BigInt(PERMS.MANAGE_MESSAGES) |
+          BigInt(PERMS.READ_MESSAGE_HISTORY)
+        ).toString(),
+        deny: '0',
       });
     }
   }
@@ -531,7 +587,13 @@ export async function provisionDiscordServer({
       log.push(`[Category Created] ${catDef.name}`);
       await sleep(220);
     } else {
-      log.push(`[Category Exists] ${catDef.name}`);
+      await discordRequest(
+        cleanToken,
+        'PATCH',
+        `/channels/${categoryChannel.id}`,
+        { permission_overwrites: catOverwrites }
+      ).catch(() => {});
+      log.push(`[Category Hardened] ${catDef.name}`);
     }
 
     for (const chDef of catDef.channels) {
@@ -544,7 +606,8 @@ export async function provisionDiscordServer({
       const chOverwrites = buildPermissionOverwrites(
         chDef.access || catDef.access,
         cleanGuildId,
-        roleIdByKey
+        roleIdByKey,
+        chDef
       );
 
       if (!channelObj) {
@@ -598,17 +661,14 @@ export async function provisionDiscordServer({
           }
         }
       } else {
-        if (chDef.access === 'OWNER_AND_R5_ONLY' || chDef.access === 'KINGS_ONLY') {
-          await discordRequest(
-            cleanToken,
-            'PATCH',
-            `/channels/${channelObj.id}`,
-            { permission_overwrites: chOverwrites }
-          ).catch(() => {});
-          log.push(`[Channel Hardened] #${chDef.name} (${channelObj.id}) — Locked to Owner & R5 Only`);
-        } else {
-          log.push(`[Channel Exists] #${chDef.name} (${channelObj.id})`);
-        }
+        await discordRequest(
+          cleanToken,
+          'PATCH',
+          `/channels/${channelObj.id}`,
+          { permission_overwrites: chOverwrites }
+        ).catch(() => {});
+        log.push(`[Channel Hardened] #${chDef.name} (${channelObj.id}) — Access: ${chDef.access || catDef.access}`);
+        await sleep(120);
       }
 
       if (
@@ -617,6 +677,22 @@ export async function provisionDiscordServer({
       ) {
         notificationChannelId = channelObj.id;
       }
+    }
+  }
+
+  // Clean up default Discord blank-server starter channels ("Text Channels", "Voice Channels", "general", "delete-chat-after-testing")
+  const starterBloatNames = new Set([
+    'text channels',
+    'voice channels',
+    'general',
+    'delete-chat-after-testing',
+  ]);
+  for (const ch of existingChannels) {
+    const lowerName = String(ch.name || '').trim().toLowerCase();
+    if (starterBloatNames.has(lowerName)) {
+      await discordRequest(cleanToken, 'DELETE', `/channels/${ch.id}`).catch(() => {});
+      log.push(`[Starter Bloat Pruned] Removed default channel "${ch.name}" (${ch.id})`);
+      await sleep(150);
     }
   }
 
