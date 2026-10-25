@@ -11874,10 +11874,10 @@
           "linkedAltGovIds": "",
           "allianceNumericId": 8908939,
           "castlePos": {
-            "X": 177.2,
-            "Y": 992.8,
-            "worldX": 1063.2,
-            "worldY": 5956.8
+            "X": 161.3,
+            "Y": 990.0,
+            "worldX": 967.8,
+            "worldY": 5940.0
           },
           "mapCityEntityId": 8454214,
           "masterAccountCId": "1181518801",
@@ -11973,9 +11973,9 @@
           "allianceNumericId": 8908939,
           "castlePos": {
             "X": 180.5,
-            "Y": 952,
-            "worldX": 1083,
-            "worldY": 5712
+            "Y": 952.0,
+            "worldX": 1083.0,
+            "worldY": 5712.0
           },
           "mapCityEntityId": 8493236,
           "masterAccountCId": "1187606601",
@@ -13772,10 +13772,10 @@
           "scanDtg": "2026-10-23 04:31:06 UTC",
           "scanSessionStartedAt": "2026-10-23T04:15:23.459270+00:00",
           "castlePos": {
-            "X": 146.1,
-            "Y": 1014,
-            "worldX": 876.6,
-            "worldY": 6084
+            "X": 178.9,
+            "Y": 1025.8,
+            "worldX": 1073.65,
+            "worldY": 6154.74
           },
           "ralliesLed": 614,
           "ralliesJoined": 699,
@@ -36113,7 +36113,13 @@
           "scannedAtUtc": "2026-10-23T19:26:33.323090+00:00",
           "scanDtg": "2026-10-23 19:26:33 UTC",
           "scanSessionStartedAt": "2026-10-23T18:41:35.345489+00:00",
-          "kingdom": "4197"
+          "kingdom": "4197",
+          "castlePos": {
+            "X": 144.4,
+            "Y": 684.0,
+            "worldX": 866.19,
+            "worldY": 4104.06
+          }
         },
         "235714592": {
           "govId": 235714592,
@@ -47247,7 +47253,13 @@
           "scannedAtUtc": "2026-10-23T19:42:59.962832+00:00",
           "scanDtg": "2026-10-23 19:42:59 UTC",
           "scanSessionStartedAt": "2026-10-23T18:41:35.345489+00:00",
-          "kingdom": "4197"
+          "kingdom": "4197",
+          "castlePos": {
+            "X": 145.5,
+            "Y": 701.8,
+            "worldX": 872.78,
+            "worldY": 4210.93
+          }
         },
         "235881853": {
           "govId": 235881853,
@@ -68693,7 +68705,13 @@
           "scannedAtUtc": "2026-10-23T20:33:01.182884+00:00",
           "scanDtg": "2026-10-23 20:33:01 UTC",
           "scanSessionStartedAt": "2026-10-23T18:41:35.345489+00:00",
-          "kingdom": "4197"
+          "kingdom": "4197",
+          "castlePos": {
+            "X": 208.0,
+            "Y": 749.0,
+            "worldX": 1248.0,
+            "worldY": 4494.0
+          }
         }
       }
     }

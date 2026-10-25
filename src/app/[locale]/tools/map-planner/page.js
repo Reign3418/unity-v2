@@ -101,7 +101,8 @@ function computeMST(points) {
 }
 
 export default function KvKMapPlanner() {
-  const [plannerMode, setPlannerMode] = useState("LIVE_KINGDOM"); // "LIVE_KINGDOM" | "REGION_8"
+  const [plannerMode, setPlannerMode] = useState("LIVE_KINGDOM");
+  const [selectedKd, setSelectedKd] = useState("4197"); // "LIVE_KINGDOM" | "REGION_8"
   const canvasRef = useRef(null);
   const mapImageRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -674,7 +675,7 @@ export default function KvKMapPlanner() {
                 ? "KINGDOM #4194 LIVE 1200×1200 TACTICAL COORDINATE MAP"
                 : "KVK CRYSTAL MAP & ALLIANCE PLANNER"}
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 uppercase">
-                {plannerMode === "LIVE_KINGDOM" ? "2,934 Live Entities" : "Region #8"}
+                {plannerMode === "LIVE_KINGDOM" ? "Live 7-Layer Radar" : "Region #8"}
               </span>
             </h1>
             <p className="text-[11px] text-gray-400">
@@ -687,6 +688,19 @@ export default function KvKMapPlanner() {
 
         {/* Mode Switcher */}
         <div className="flex items-center gap-2">
+          {plannerMode === "LIVE_KINGDOM" && (
+            <select
+              value={selectedKd}
+              onChange={(e) => setSelectedKd(e.target.value)}
+              className="bg-[#161a22] border border-cyan-500/40 rounded-lg px-3 py-1.5 text-xs font-bold text-cyan-300 outline-none focus:border-cyan-400 font-mono"
+            >
+              {["4197", "4194", "4198", "4021", "4193", "4195", "4196", "3418"].map((kd) => (
+                <option key={kd} value={kd}>
+                  Kingdom #{kd}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="flex items-center bg-[#161a22] p-1 rounded-lg border border-[#262c38]">
             <button
               onClick={() => setPlannerMode("LIVE_KINGDOM")}
@@ -797,7 +811,7 @@ export default function KvKMapPlanner() {
 
       {plannerMode === "LIVE_KINGDOM" ? (
         <div className="p-4 md:p-6 flex-1 overflow-y-auto">
-          <KingdomInteractiveMap targetKd="4194" />
+          <KingdomInteractiveMap targetKd={selectedKd} />
         </div>
       ) : (
       /* Main Workspace Body */

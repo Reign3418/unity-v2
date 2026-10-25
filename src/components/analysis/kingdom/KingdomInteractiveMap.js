@@ -78,13 +78,19 @@ function getAllianceColor(tag) {
   return `hsl(${hue}, 80%, 60%)`;
 }
 
-export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = [] }) {
+export default function KingdomInteractiveMap({ targetKd = '4197', rosterData = [] }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
+  const activeKd = String(targetKd || '4197').replace(/[^0-9]/g, '') || '4197';
+  const targetServerId = useMemo(() => {
+    const num = Number(activeKd);
+    return num >= 3000 ? num - 1000 : num;
+  }, [activeKd]);
+
   const [loading, setLoading] = useState(true);
   const [mapPayload, setMapPayload] = useState(null);
-  const [theatre, setTheatre] = useState('HOME_3194'); // 'HOME_3194' | 'KVK_16130' | 'ALL'
+  const [theatre, setTheatre] = useState('HOME_MAP'); // 'HOME_MAP' | 'KVK_16130' | 'ALL'
   const [mapVisualStyle, setMapVisualStyle] = useState('IN_GAME_TERRAIN'); // 'IN_GAME_TERRAIN' | 'TACTICAL_RADAR'
   const [directoryTab, setDirectoryTab] = useState('CITIES'); // 'CITIES' | 'RSS_NODES'
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,7 +131,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
   const fetchMapData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/aws/map-entities?kd=${targetKd || '4194'}`);
+      const res = await fetch(`/api/aws/map-entities?kd=${activeKd}`);
       const data = await res.json();
       if (data.ok) {
         setMapPayload(data);
@@ -135,21 +141,23 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     } finally {
       setLoading(false);
     }
-  }, [targetKd]);
+  }, [activeKd]);
 
   useEffect(() => {
     fetchMapData();
   }, [fetchMapData]);
 
-  // Filter entities by selected theatre (Home Map #4194 = 3194, KvK = 16130, or ALL)
+  // Filter entities by selected theatre (Home Map #<activeKd> = targetServerId, KvK = 16130, or ALL)
   const matchServer = useCallback(
     (srvId) => {
       if (theatre === 'ALL') return true;
-      if (theatre === 'HOME_3194') return !srvId || Number(srvId) === 3194 || Number(srvId) === 4194;
+      if (theatre === 'HOME_MAP') {
+        return !srvId || Number(srvId) === targetServerId || Number(srvId) === Number(activeKd);
+      }
       if (theatre === 'KVK_16130') return Number(srvId) === 16130;
       return true;
     },
-    [theatre]
+    [theatre, targetServerId, activeKd]
   );
 
   // Build Alliance Hive Centroids from known cities + R4 builder cities + markers
@@ -227,24 +235,24 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     });
 
     const holySites = [
-      ...(theatre === 'HOME_3194' || theatre === 'ALL'
+      ...(theatre === 'HOME_MAP' || theatre === 'ALL'
         ? [
             {
               id: 'lost_temple_600_600',
               type: 'LOST_TEMPLE',
-              label: 'The Lost Temple (Kingdom #4194 Z3 Heart)',
+              label: `The Lost Temple (Kingdom #${activeKd} Z3 Heart)`,
               x: 600.0,
               y: 600.0,
               worldX: 3600.0,
               worldY: 3600.0,
-              serverId: 3194,
+              serverId: targetServerId,
             },
             ...KINGDOM_PASSES.map((p) => ({
               ...p,
               type: 'KINGDOM_PASS',
               worldX: p.x * 6,
               worldY: p.y * 6,
-              serverId: 3194,
+              serverId: targetServerId,
             })),
           ]
         : []),
@@ -277,10 +285,13 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
       })
       .sort((a, b) => Number(b.level || 0) - Number(a.level || 0) || Number(b.totalYield || 0) - Number(a.totalYield || 0));
 
-    const caves = theatre === 'KVK_16130' ? [] : mapPayload.cavesAndVillages || [];
+    const caves =
+      theatre === 'KVK_16130'
+        ? []
+        : (mapPayload.cavesAndVillages || []).filter((c) => matchServer(c.serverId));
 
     return { cities, structures, markers, holySites, forts, resources, caves };
-  }, [mapPayload, matchServer, allianceFilter, searchQuery, theatre, rssTypeFilter, rssMinLevel]);
+  }, [mapPayload, matchServer, allianceFilter, searchQuery, theatre, rssTypeFilter, rssMinLevel, activeKd, targetServerId]);
 
   // Resource node breakdown counts for the fine-tuning bar
   const rssCategoryCounts = useMemo(() => {
@@ -316,7 +327,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         seenGovIds.add(String(c.govId));
         results.push({
           ...c,
-          coordStatus: Number(c.serverId) === 3194 ? 'VERIFIED_4194_TILE' : `VERIFIED_SRV_${c.serverId}`,
+          coordStatus: Number(c.serverId) === targetServerId ? `VERIFIED_${activeKd}_TILE` : `VERIFIED_SRV_${c.serverId}`,
         });
       }
     }
@@ -357,7 +368,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
           worldX: hasPos ? Number(cpos.worldX || cpos.X * 6) : null,
           worldY: hasPos ? Number(cpos.worldY || cpos.Y * 6) : null,
           coordStatus: hasPos
-            ? 'VERIFIED_4194_TILE'
+            ? `VERIFIED_${activeKd}_TILE`
             : hive
             ? `HIVE_TRIANGULATED (${g.alliance})`
             : 'ROSTER_TRACKED_NO_TILE_YET',
@@ -366,7 +377,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
     }
 
     return results.slice(0, 12);
-  }, [searchQuery, mapPayload, rosterData, allianceCentroids]);
+  }, [searchQuery, mapPayload, rosterData, allianceCentroids, activeKd, targetServerId]);
 
   const availableAlliances = useMemo(() => {
     const s = new Set();
@@ -863,7 +874,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
   const handleCopyCoord = (entity) => {
     if (!entity || entity.x == null || entity.y == null) return;
-    const text = `#${targetKd || '4194'} X:${Math.round(entity.x)} Y:${Math.round(entity.y)}`;
+    const text = `#${activeKd} X:${Math.round(entity.x)} Y:${Math.round(entity.y)}`;
     navigator.clipboard.writeText(text);
     setCopiedCoord(true);
     setTimeout(() => setCopiedCoord(false), 1800);
@@ -878,7 +889,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'hunt-governor',
-          kd: targetKd || '4194',
+          kd: activeKd,
           targetGov: entity.name || entity.govId || '',
           x: entity.x,
           y: entity.y,
@@ -898,14 +909,14 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
   const handleHuntLiveRss = async () => {
     const targetType = rssTypeFilter === 'ALL' || rssTypeFilter === 'PIT' ? 'GOLD' : rssTypeFilter;
-    setBotStatusMsg(`Dispatching bot to search Kingdom #${targetKd || '4194'} for Lv.${huntRssLevel} ${targetType} nodes...`);
+    setBotStatusMsg(`Dispatching bot to search Kingdom #${activeKd} for Lv.${huntRssLevel} ${targetType} nodes...`);
     try {
       const res = await fetch('/api/aws/map-entities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'hunt-rss',
-          kd: targetKd || '4194',
+          kd: activeKd,
           rssType: targetType,
           rssLevel: huntRssLevel,
         }),
@@ -924,17 +935,17 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
   const handleRunMapSweep = async () => {
     setIsSweeping(true);
-    setBotStatusMsg('Harvesting 7-layer map coordinates via Valheon Optical Telemetry...');
+    setBotStatusMsg(`Harvesting 7-layer map coordinates for Kingdom #${activeKd} from PC Save + Mailcache + Swarm Blackbox...`);
     try {
       await fetch('/api/aws/map-entities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'map-sweep', kd: targetKd || '4194' }),
+        body: JSON.stringify({ action: 'map-sweep', kd: activeKd }),
       });
       setTimeout(async () => {
         await fetchMapData();
         setIsSweeping(false);
-        setBotStatusMsg('Map entities refreshed!');
+        setBotStatusMsg(`Kingdom #${activeKd} map entities refreshed!`);
         setTimeout(() => setBotStatusMsg(''), 3000);
       }, 2200);
     } catch (err) {
@@ -959,7 +970,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
               </div>
               <div>
                 <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  Kingdom #{targetKd || '4194'} Interactive Map (1200 × 1200 km)
+                  Kingdom #{activeKd} Interactive Map (1200 × 1200 km)
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     WorldPos ÷ 6 Calibrated
                   </span>
@@ -999,14 +1010,14 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
 
             <div className="flex items-center bg-[#090b0e] border border-[#1e222b] rounded-lg p-1 text-xs font-bold">
               <button
-                onClick={() => setTheatre('HOME_3194')}
+                onClick={() => setTheatre('HOME_MAP')}
                 className={`px-3 py-1.5 rounded-md transition-all ${
-                  theatre === 'HOME_3194'
+                  theatre === 'HOME_MAP'
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Home Map #4194
+                Home Map #{activeKd}
               </button>
               <button
                 onClick={() => setTheatre('KVK_16130')}
@@ -1026,7 +1037,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                All ({mapPayload?.counts?.totalMapEntities || 2936})
+                All ({mapPayload?.counts?.totalMapEntities || 4698})
               </button>
             </div>
 
@@ -1070,7 +1081,7 @@ export default function KingdomInteractiveMap({ targetKd = '4194', rosterData = 
                       onClick={() => {
                         setSelectedEntity(item);
                         if (item.x != null && item.y != null) {
-                          if (item.serverId === 16130 && theatre === 'HOME_3194') {
+                          if (item.serverId === 16130 && theatre === 'HOME_MAP') {
                             setTheatre('ALL');
                           }
                           focusOnTile(item.x, item.y, 1.8);

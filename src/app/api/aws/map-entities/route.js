@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { auth } from '@/lib/auth';
 import { analyzeGovernorDiagnostics } from '@/lib/telemetryAnalytics';
 
 export const dynamic = 'force-dynamic';
+
+const bastionDb = new DynamoDBClient({ region: process.env.BASTION_AWS_REGION || 'us-east-2' });
 
 export async function GET(request) {
   try {
@@ -14,7 +17,8 @@ export async function GET(request) {
     const session = await auth();
     const isSuperAdmin = Boolean(session?.user?.isSuperAdmin || session?.user?.role === 'Admin');
     const { searchParams } = new URL(request.url);
-    const kd = searchParams.get('kd') || '4194';
+    const kd = searchParams.get('kd') || '4197';
+    const targetSrv = Number(kd) >= 3000 ? Number(kd) - 1000 : Number(kd);
 
     const mapPath = path.join(process.cwd(), 'src', 'data', 'live_kingdom_map_entities.json');
     const telPath = path.join(process.cwd(), 'src', 'data', 'live_kingdom_telemetry.json');
@@ -66,11 +70,18 @@ export async function GET(request) {
     }
 
     // Enrich governorCities with full telemetry + Commander Bloat diagnostics when matched
-    const enrichedCities = (mapData.governorCities || []).map((c) => {
-      const g = rosterById[String(c.govId || c.id)];
-      if (!g) return c;
+    const cityMap = new Map();
+    for (const c of mapData.governorCities || []) {
+      const g =
+        Number(c.serverId) === targetSrv || Number(c.serverId) === Number(kd)
+          ? rosterById[String(c.govId || c.id)]
+          : null;
+      if (!g) {
+        cityMap.set(`${c.serverId}_${c.govId || c.id}`, c);
+        continue;
+      }
       const diag = analyzeGovernorDiagnostics(g);
-      return {
+      cityMap.set(`${c.serverId}_${c.govId || c.id}`, {
         ...c,
         name: g.name || c.name,
         alliance: g.alliance || c.alliance,
@@ -93,8 +104,86 @@ export async function GET(request) {
         commanderBloatStatus: diag.commanderBloatStatus,
         commanderBloatLabel: diag.commanderBloatLabel,
         combatEfficiencyRatio: diag.combatEfficiencyRatio,
-      };
-    });
+      });
+    }
+
+    const rssList = [...(mapData.resourceNodes || [])];
+
+    // Live overlay from BastionControl -> SWARM_4197_BLACKBOX when viewing Kingdom #4197
+    if (String(kd) === '4197') {
+      try {
+        const bbRes = await bastionDb.send(
+          new GetItemCommand({
+            TableName: process.env.BASTION_CONTROL_TABLE || 'BastionControl',
+            Key: { control_key: { S: 'SWARM_4197_BLACKBOX' } },
+          })
+        );
+        const bbRaw = bbRes.Item?.payload_json?.S;
+        if (bbRaw) {
+          const bb = JSON.parse(bbRaw);
+          for (const [port, inst] of Object.entries(bb.instances || {})) {
+            const coords = inst.coordinates || {};
+            const tx = Number(coords.x || 0);
+            const ty = Number(coords.y || 0);
+            if (tx > 0 && tx <= 1200 && ty > 0 && ty <= 1200 && String(coords.kingdom || '4197') === '4197') {
+              const gname = inst.activeGovernorName || `SwarmBot_${port}`;
+              const gidNum = Number(String(gname).replace(/[^0-9]/g, '') || port);
+              cityMap.set(`3197_${gidNum}`, {
+                id: String(gidNum),
+                govId: gidNum,
+                type: 'GOVERNOR_CITY',
+                name: gname,
+                alliance: inst.allianceTag || 'None',
+                allianceName: 'Valheon #4197 Swarm',
+                power: Number(inst.power || 0),
+                killPoints: 0,
+                cityHall: Number(inst.chLevel || 8),
+                x: tx,
+                y: ty,
+                worldX: Math.round(tx * 6 * 100) / 100,
+                worldY: Math.round(ty * 6 * 100) / 100,
+                source: 'SWARM_4197_LIVE',
+                serverId: 3197,
+              });
+            }
+          }
+          for (const mov of bb.movements || []) {
+            if (mov.category === 'FARMING_MARCH' && String(mov.kingdom || '4197') === '4197') {
+              const det = mov.details || {};
+              const tx = Number(det.x || det.mapCoords?.x || 0);
+              const ty = Number(det.y || det.mapCoords?.y || 0);
+              const rcat = String(det.resource || 'FOOD').toUpperCase();
+              if (tx > 0 && tx <= 1200 && ty > 0 && ty <= 1200) {
+                const rid = `rss_3197_${tx}_${ty}_${rcat}`;
+                if (!rssList.some((r) => r.id === rid)) {
+                  rssList.push({
+                    id: rid,
+                    type: 'RESOURCE_NODE',
+                    rssCategory: ['FOOD', 'WOOD', 'STONE', 'GOLD'].includes(rcat) ? rcat : 'FOOD',
+                    resTypeId: { FOOD: 1, WOOD: 2, STONE: 3, GOLD: 4 }[rcat] || 1,
+                    label: `Lv.2 ${det.nodeLabel || `${rcat} Node`}`,
+                    level: 2,
+                    isAlliancePit: false,
+                    harvestedAmount: 0,
+                    talentBonus: 0,
+                    totalYield: 0,
+                    x: tx,
+                    y: ty,
+                    worldX: Math.round(tx * 6 * 100) / 100,
+                    worldY: Math.round(ty * 6 * 100) / 100,
+                    serverId: 3197,
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Non-blocking fallback to static map entities
+      }
+    }
+
+    const enrichedCities = Array.from(cityMap.values());
 
     return NextResponse.json({
       ok: true,
@@ -107,7 +196,7 @@ export async function GET(request) {
       allianceMarkers: mapData.allianceMarkers || [],
       holySitesAndRuins: mapData.holySitesAndRuins || [],
       barbarianForts: mapData.barbarianForts || [],
-      resourceNodes: mapData.resourceNodes || [],
+      resourceNodes: rssList,
       cavesAndVillages: mapData.cavesAndVillages || [],
       rosterList,
     });
@@ -125,12 +214,14 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { action, kd = '4194', targetGov = '', x = null, y = null, jump = false } = body;
-    const safeKd = String(kd).replace(/[^0-9]/g, '') || '4194';
+    const { action, kd = '4197', targetGov = '', x = null, y = null, jump = false } = body;
+    const safeKd = String(kd).replace(/[^0-9]/g, '') || '4197';
 
     const scannerScript = path.join(process.cwd(), 'scanner', 'unity_autonomous_scanner.py');
+    const harvestScript = path.join(process.cwd(), 'scanner', 'harvest_kingdom_map_entities.py');
     if (action === 'map-sweep') {
-      execFile('python', [scannerScript, '--mode', 'map-sweep', '--kd', safeKd], { timeout: 15000 });
+      execFile('python', [harvestScript], { timeout: 20000 }, () => {});
+      execFile('python', [scannerScript, '--mode', 'map-sweep', '--kd', safeKd], { timeout: 15000 }, () => {});
       return NextResponse.json({
         ok: true,
         message: `Triggered 7-layer map entity harvest for Kingdom #${safeKd}.`,
