@@ -128,6 +128,41 @@ def tap(adb_serial: str, x: int, y: int, wait_s: float = 1.0):
     time.sleep(max(0.2, wait_s + random.uniform(0.0, 0.25)))
 
 
+_LAST_HANDSHAKE_HIT = {}
+
+
+def detect_and_hit_alliance_handshake(adb_serial: str, a: np.ndarray | None) -> tuple[int, int] | None:
+    """Detects the Alliance Help Handshake bubble over the Alliance tab (1170, 735) or collapsed HUD (1432, 845) and fires an immediate ADB tap."""
+    if a is None or not is_city_hud(a):
+        return None
+    try:
+        # 1. Expanded bottom bar: Handshake bubble above Alliance shield tab at (1170, 735)
+        ah_exp_red = (a[680:740, 1170:1220, 0] >= 185) & (a[680:740, 1170:1220, 1] <= 65) & (a[680:740, 1170:1220, 2] <= 65)
+        ah_box = a[695:775, 1130:1205]
+        ah_cream = (ah_box[:, :, 0] >= 210) & (ah_box[:, :, 1] >= 200) & (ah_box[:, :, 2] >= 175)
+        ah_gold = (
+            (ah_box[:, :, 0] >= 195)
+            & (ah_box[:, :, 1] >= 115)
+            & (ah_box[:, :, 2] <= 95)
+            & ((ah_box[:, :, 0].astype(np.int32) - ah_box[:, :, 2].astype(np.int32)) >= 85)
+        )
+        if int(ah_exp_red.sum()) >= 70 or (int(ah_cream.sum()) >= 220 and int(ah_gold.sum()) >= 90):
+            tap(adb_serial, 1170, 735, 0.4)
+            _LAST_HANDSHAKE_HIT[adb_serial] = (1170, 735, time.time())
+            return (1170, 735)
+
+        # 2. Collapsed bottom bar: Handshake bubble at (1432, 845)
+        ah_col_red = (a[795:840, 1440:1480, 0] >= 185) & (a[795:840, 1440:1480, 1] <= 65) & (a[795:840, 1440:1480, 2] <= 65)
+        ah_col_cream = float(a[825:875, 1405:1455, 0].mean()) > float(a[825:875, 1405:1455, 2].mean()) + 15.0
+        if int(ah_col_red.sum()) >= 70 and ah_col_cream:
+            tap(adb_serial, 1432, 845, 0.4)
+            _LAST_HANDSHAKE_HIT[adb_serial] = (1432, 845, time.time())
+            return (1432, 845)
+    except Exception:
+        pass
+    return None
+
+
 def capture_screen(adb_serial: str, out_path: str) -> np.ndarray | None:
     try:
         raw = subprocess.check_output(
@@ -137,7 +172,9 @@ def capture_screen(adb_serial: str, out_path: str) -> np.ndarray | None:
         if len(raw) > 1000:
             with open(out_path, "wb") as f:
                 f.write(raw)
-            return np.array(Image.open(io.BytesIO(raw)).convert("RGB"))
+            arr = np.array(Image.open(io.BytesIO(raw)).convert("RGB"))
+            detect_and_hit_alliance_handshake(adb_serial, arr)
+            return arr
     except Exception:
         pass
     return None
@@ -877,7 +914,7 @@ def run_city_builder_burst(state: dict, inst: dict):
             timeout=110,
         )
         out_lines = [ln.strip() for ln in (proc.stdout or "").splitlines() if ln.strip()]
-        last_blds = [ln for ln in out_lines if any(k in ln for k in ("Upgrade", "Build", "Quest", "TRAIN", "City Hall"))]
+        last_blds = [ln for ln in out_lines if any(k in ln for k in ("Upgrade", "Build", "Quest", "TRAIN", "City Hall", "Handshake"))]
         if last_blds:
             summary_line = last_blds[-1][-95:]
             ist["currentBuilding"] = summary_line
@@ -966,6 +1003,15 @@ def main():
             run_resource_farming(state, inst, cycle_idx)
             maybe_rotate_or_sleep(state, inst, cycle_idx)
 
+            hs_hit = _LAST_HANDSHAKE_HIT.pop(adb, None)
+            if hs_hit:
+                append_movement(
+                    state,
+                    port,
+                    "ALLIANCE_HELP",
+                    f"Auto-tapped Alliance Help Handshake at ({hs_hit[0]}, {hs_hit[1]}) on {ist.get('activeGovernorName')}",
+                    {"x": hs_hit[0], "y": hs_hit[1]},
+                )
             cur_kd = str(ist.get("coordinates", {}).get("kingdom", "4197"))
             if cur_kd == "4197":
                 ist["status"] = "ACTIVE_IN_4197"

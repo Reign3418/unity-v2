@@ -1875,25 +1875,26 @@ def main():
             consecutive_idle = 0
             continue
 
-        if is_city_hud(a2) and not is_world_map(a2):
-            # Also check for Alliance Help red badge on bottom HUD (expanded at 1170,735 or collapsed at 1432,845)
+        if is_city_hud(a2):
+            # Immediately hit Alliance Help Handshake bubble on bottom HUD (expanded at 1170,735 or collapsed at 1432,845) on both City & World Map
             ah_exp_red_g = (a2[680:740, 1170:1220, 0] >= 185) & (a2[680:740, 1170:1220, 1] <= 65) & (a2[680:740, 1170:1220, 2] <= 65)
-            if int(ah_exp_red_g.sum()) >= 80:
-                print(f"[Step {step:02d}] Expanded Alliance Help Bubble ({int(ah_exp_red_g.sum())}px) -> Tap (1170, 735)")
-                if "16384" in str(args.adb):
-                    tap(args.adb, 1515, 495, 0.8)
-                tap(args.adb, 1170, 735, 1.0)
-                last_spear = None
-                repeat_cnt = 0
-                continue
+            ah_box_g = a2[695:775, 1130:1205]
+            ah_cream_g = (ah_box_g[:, :, 0] >= 210) & (ah_box_g[:, :, 1] >= 200) & (ah_box_g[:, :, 2] >= 175)
+            ah_gold_g = (
+                (ah_box_g[:, :, 0] >= 195)
+                & (ah_box_g[:, :, 1] >= 115)
+                & (ah_box_g[:, :, 2] <= 95)
+                & ((ah_box_g[:, :, 0].astype(np.int32) - ah_box_g[:, :, 2].astype(np.int32)) >= 85)
+            )
+            if int(ah_exp_red_g.sum()) >= 70 or (int(ah_cream_g.sum()) >= 220 and int(ah_gold_g.sum()) >= 90):
+                print(f"[Step {step:02d}] Expanded Alliance Help Handshake -> Tap (1170, 735)")
+                tap(args.adb, 1170, 735, 0.8)
             ah_col_red_g = (a2[795:840, 1440:1480, 0] >= 185) & (a2[795:840, 1440:1480, 1] <= 65) & (a2[795:840, 1440:1480, 2] <= 65)
             ah_col_cream_g = float(a2[825:875, 1405:1455, 0].mean()) > float(a2[825:875, 1405:1455, 2].mean()) + 15.0
-            if int(ah_col_red_g.sum()) >= 80 and ah_col_cream_g:
-                print(f"[Step {step:02d}] Collapsed Alliance Help Bubble ({int(ah_col_red_g.sum())}px) -> Tap (1432, 845)")
-                tap(args.adb, 1432, 845, 1.0)
-                last_spear = None
-                repeat_cnt = 0
-                continue
+            if int(ah_col_red_g.sum()) >= 70 and ah_col_cream_g:
+                print(f"[Step {step:02d}] Collapsed Alliance Help Handshake -> Tap (1432, 845)")
+                tap(args.adb, 1432, 845, 0.8)
+        if is_city_hud(a2) and not is_world_map(a2):
             # Also check if the top-left Quest Scroll icon (45, 225) has a red notification badge (completed quests inside modal)
             if quest_scroll_cooldown == 0 and not has_selected_building_ribbon:
                 q_badge = a2[165:215, 45:100]
