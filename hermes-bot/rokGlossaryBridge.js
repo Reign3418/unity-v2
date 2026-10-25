@@ -4,7 +4,7 @@
  * (rokGlossaryBridge.js)
  * ============================================================================
  * Wires `rok_canonical_glossary.json` (extracted directly from Lilith Games'
- * `lc_hero.dat`, `lc_equipment.dat`, and `lc_quiz.dat` across all 17 languages)
+ * `Valheon Hero Glossary`, `Valheon Gear Glossary`, and `Valheon Lyceum Vault` across all 17 languages)
  * PLUS a curated 17-language Rise of Kingdoms War-Slang Dictionary directly
  * into HERMES's translation pipeline.
  *

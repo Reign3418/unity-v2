@@ -377,7 +377,7 @@ export function buildMyStatsCard({ userId, username, govIdOpt = '' }) {
           `You need **\`${remainingDkp.toLocaleString()} DKP\`** — equivalent to **\`${remainingT5Kills.toLocaleString()} T5 Kills\`** OR **\`${remainingDeads.toLocaleString()} Rally/Garrison Deads\`**.`
         : `### 👑 SOVEREIGN VANGUARD STATUS\nYou have exceeded 100% of your KvK DKP quota and are eligible for **MGE & KvK Crusade Rewards**!`),
     color: pct >= 100 ? 0x10b981 : 0x38bdf8,
-    footer: { text: 'SYNCED WITH UNITY2AWSROSTER // VALHEON 60FPS DKP ENGINE' },
+    footer: { text: 'SYNCED WITH VALHEON SOVEREIGN ROSTER // VALHEON 60FPS DKP ENGINE' },
     timestamp: new Date().toISOString(),
   };
 }

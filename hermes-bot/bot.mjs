@@ -49,6 +49,8 @@ import {
   STRIPE_CATALOG,
   createStripeCheckoutForDiscord,
   verifyStripePaymentStatus,
+  createAuditedStripePromoCode,
+  getCouponAuditLedgerSummary,
 } from './stripeBridge.js';
 
 const execFileAsync = promisify(execFile);
@@ -340,7 +342,7 @@ async function translateText(text, targetLang = 'en') {
   }
 
   try {
-    // 1. Pre-process with 17-Language Lilith Canonical Glossary (lc_hero.dat + lc_equipment.dat + RoK War Slang)
+    // 1. Pre-process with 17-Language Lilith Canonical Glossary (Valheon 17-Lang Glossary + RoK War Slang)
     const { processedText, matchedTerms } = applyRokGlossaryPre(clean, tl);
 
     const chunks = splitIntoByteChunks(processedText, 420);
@@ -1065,6 +1067,7 @@ async function handleInteraction(ix) {
   // 0. GUILD-ID CLONE LOCK GATE (Blocks Unlicensed Discord Template Clones)
   // =========================================================================
   const isExemptFromCloneLock =
+    VALHEON_FOUNDER_IDS.has(String(user.id)) ||
     (ix.type === 2 && ix.data?.name === 'hermes' && ix.data?.options?.[0]?.name === 'tier') ||
     (ix.type === 3 &&
       (ix.data?.custom_id === 'hermes_ticket_onboard' ||
@@ -1215,6 +1218,66 @@ async function handleInteraction(ix) {
       });
 
       const bundleExp = tierStatus.kvkBundleExpiresUnix || Math.floor(Date.now() / 1000) + 259200;
+      const isPrincipal = VALHEON_FOUNDER_IDS.has(String(user.id));
+
+      const actionRows = [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 5, // LINK
+              label: `💳 Step 1: Pay via Valheon Stripe (${checkout.item.priceDisplay})`,
+              url: checkout.checkoutUrl,
+            },
+            {
+              type: 2,
+              style: 5, // LINK
+              label: '🤖 Step 2: Invite HERMES to Blank Server',
+              url: `https://discord.com/oauth2/authorize?client_id=${APP_ID}&permissions=8&scope=bot%20applications.commands`,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 3, // SUCCESS
+              label: '✅ Step 3: Verify Payment & Launch 1-Click Builder',
+              custom_id: `hermes_stripe_verify_${planKey}`,
+            },
+          ],
+        },
+      ];
+
+      // Strictly lock Mint Coupon, Audit Ledger, and Sandbox Direct Launch to Principal (184977944433786880) ONLY!
+      if (isPrincipal) {
+        actionRows.push({
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1, // PRIMARY
+              label: '🎟️ Mint Giveaway/Promo Code (Principal)',
+              custom_id: `hermes_mint_coupon_modal_${planKey}`,
+            },
+            {
+              type: 2,
+              style: 2, // SECONDARY
+              label: '📜 Coupon Audit Ledger (Principal)',
+              custom_id: 'hermes_view_coupon_ledger',
+            },
+            {
+              type: 2,
+              style: 2, // SECONDARY
+              label: '🧪 Sandbox Direct Launch (Principal)',
+              custom_id: checkout.item.launchModalCustomId,
+            },
+          ],
+        });
+      }
+
       return editOriginal({
         embeds: [
           {
@@ -1225,9 +1288,10 @@ async function handleInteraction(ix) {
               `### ⚡ HOW TO CHECK OUT & AUTO-BUILD YOUR SERVER IN 60 SECONDS:\n` +
               `1️⃣ **Click \`[💳 Step 1: Pay via Valheon Stripe (${checkout.item.priceDisplay})]\` below:**\n` +
               `   • Hosted directly by **Valheon Solutions LLC Stripe** (Apple Pay, Google Pay, Cards — zero middleman cut, no website needed).\n` +
+              `   • 🎟️ *Have an Event Giveaway or Promo Code? Click **"Add promotion code"** on the Stripe checkout page!*\n` +
               `2️⃣ **Create a blank Discord server & click \`[🤖 Step 2: Invite HERMES to Blank Server]\`.**\n` +
               `3️⃣ **Click \`[✅ Step 3: Verify Payment & Launch 1-Click Builder]\`:**\n` +
-              `   • **HERMES** automatically verifies your Stripe payment, grants your **@🏰 Crowned Sovereign** Discord role, posts a verified receipt to Valheon HQ, and opens the **1-Click Server Builder**!\n\n` +
+              `   • **HERMES** automatically verifies your Stripe payment or redeemed giveaway code, grants your **@🏰 Crowned Sovereign** Discord role, posts a cryptographically audited receipt to Valheon HQ, and opens the **1-Click Server Builder**!\n\n` +
               `🔥 *72-Hour KvK Diplo + Coalition Bundle (\`$15\` for Both) valid until <t:${bundleExp}:R> • Includes **🛟 Lifetime Free Repair Guarantee** (\`$0.00\` re-provisioning forever).*`,
             color: 0x10b981,
             footer: {
@@ -1235,42 +1299,142 @@ async function handleInteraction(ix) {
             },
           },
         ],
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: 5, // LINK
-                label: `💳 Step 1: Pay via Valheon Stripe (${checkout.item.priceDisplay})`,
-                url: checkout.checkoutUrl,
-              },
-              {
-                type: 2,
-                style: 5, // LINK
-                label: '🤖 Step 2: Invite HERMES to Blank Server',
-                url: `https://discord.com/oauth2/authorize?client_id=${APP_ID}&permissions=8&scope=bot%20applications.commands`,
-              },
-            ],
+        components: actionRows,
+      });
+    }
+
+    // A2.2 Principal-Only Coupon / Giveaway Code Minting Modal (`184977944433786880` ONLY)
+    if (customId.startsWith('hermes_mint_coupon_modal_')) {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can mint promo or giveaway codes.',
           },
-          {
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: 3, // SUCCESS
-                label: '✅ Step 3: Verify Payment & Launch 1-Click Builder',
-                custom_id: `hermes_stripe_verify_${planKey}`,
+        });
+      }
+      const planKey = customId.replace('hermes_mint_coupon_modal_', '') || 'KINGDOM_39';
+      return reply({
+        type: 9, // MODAL
+        data: {
+          custom_id: `hermes_submit_mint_coupon_${planKey}`,
+          title: '🎟️ Mint Audited Promo / Giveaway Code',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'coupon_reason_why',
+                  label: 'WHY & FOR WHOM (Required Non-Repudiation Log)',
+                  style: 1,
+                  placeholder: 'e.g. KvK Event Giveaway Winner @GovernorName',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'coupon_percent_off',
+                  label: 'DISCOUNT % (100 = Free $0.00 Giveaway)',
+                  style: 1,
+                  value: '100',
+                  placeholder: '100 for Free Giveaway, or 10-99 for % discount',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'coupon_max_redemptions',
+                  label: 'MAX REDEMPTIONS (1 = Single-Use Lock)',
+                  style: 1,
+                  value: '1',
+                  placeholder: '1 for single winner, or e.g. 10 for flash event',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'coupon_custom_code',
+                  label: 'CUSTOM CODE (Leave blank to auto-generate)',
+                  style: 1,
+                  placeholder: 'Leave blank for VALHEON-XXXXXX, or type custom code',
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    // A2.3 Principal-Only SHA-256 Coupon Audit Ledger Viewer (`184977944433786880` ONLY)
+    if (customId === 'hermes_view_coupon_ledger') {
+      const summary = getCouponAuditLedgerSummary(user.id);
+      if (!summary.allowed) {
+        return reply({
+          type: 4,
+          data: { flags: 64, content: summary.error },
+        });
+      }
+
+      const rowsText =
+        summary.entries.length === 0
+          ? '*No promo codes have been minted or redeemed yet. Click **`[🎟️ Mint Giveaway/Promo Code]`** to issue your first audited code!*'
+          : summary.entries
+              .slice(0, 10)
+              .map((e) => {
+                const hashShort = (e.entry_hash || '').slice(0, 10);
+                if (e.event_type === 'CODE_MINTED') {
+                  return (
+                    `**#${e.seq} \`[MINTED]\` \`${e.what_code}\` (${e.what_percent_off}% OFF • Max: ${e.what_max_redemptions})**\n` +
+                    `• **Who Issued:** <@${e.who_actor_id}> (\`${e.who_actor_username}\`)\n` +
+                    `• **When:** \`${e.when_utc}\` • **Where:** Guild \`${e.where_guild_id}\`\n` +
+                    `• **Why:** *${e.why_reason}* • **SHA-256:** \`${hashShort}…\``
+                  );
+                }
+                if (e.event_type === 'CODE_REDEEMED' || e.event_type === 'CHECKOUT_PAID') {
+                  return (
+                    `**#${e.seq} \`[${e.event_type}]\` Code: \`${e.what_code_redeemed}\` (Paid: \`$${Number(e.what_paid_usd || 0).toFixed(2)}\` / Saved: \`$${Number(e.what_discount_usd || 0).toFixed(2)}\`)**\n` +
+                    `• **Who Redeemed:** <@${e.who_redeemer_id}> (\`${e.who_redeemer_username}\` / \`${e.who_redeemer_email}\`)\n` +
+                    `• **When:** \`${e.when_utc}\` • **Session:** \`${e.where_session_id}\`\n` +
+                    `• **Why:** *${e.why_reason}* • **SHA-256:** \`${hashShort}…\``
+                  );
+                }
+                return `**#${e.seq} \`[${e.event_type}]\`** Actor: \`${e.who_actor_id}\` • When: \`${e.when_utc}\` • SHA-256: \`${hashShort}…\``;
+              })
+              .join('\n\n');
+
+      return reply({
+        type: 4,
+        data: {
+          flags: 64,
+          embeds: [
+            {
+              title: '📜 VALHEON COUPON & CHECKOUT NON-REPUDIATION LEDGER (SHA-256)',
+              description:
+                `**Cryptographic Chain Integrity:** ${summary.integrityVerified ? '🟢 **VERIFIED (100% Tamper-Free SHA-256 Chain)**' : '🔴 **CHAIN MISMATCH DETECTED**'}\n` +
+                `**Total Audited Events:** \`${summary.totalEntries}\` *(File: \`hermes-bot/coupon_audit_ledger.jsonl\`)*\n\n` +
+                rowsText,
+              color: summary.integrityVerified ? 0x38bdf8 : 0xef4444,
+              footer: {
+                text: 'PRINCIPAL-ONLY OVERWATCH (184977944433786880) // WHO • WHAT • WHERE • WHEN • WHY',
               },
-              {
-                type: 2,
-                style: 2, // SECONDARY
-                label: '🧪 Sandbox Direct Launch (Moderator Test)',
-                custom_id: checkout.item.launchModalCustomId,
-              },
-            ],
-          },
-        ],
+            },
+          ],
+        },
       });
     }
 
@@ -1279,7 +1443,13 @@ async function handleInteraction(ix) {
       await reply({ type: 5, data: { flags: 64 } });
       const planKey = customId.replace('hermes_stripe_verify_', '');
       const item = STRIPE_CATALOG[planKey] || STRIPE_CATALOG.KINGDOM_39;
-      const check = await verifyStripePaymentStatus({ userId: user.id, planKey });
+      const check = await verifyStripePaymentStatus({
+        userId: user.id,
+        username: user.username,
+        planKey,
+        guildId,
+        channelId,
+      });
 
       if (!check.paid) {
         return editOriginal({
@@ -1310,16 +1480,26 @@ async function handleInteraction(ix) {
         setGuildTier(guildId, 'LEGENDARY', false);
       }
 
-      // 3. Relay verified Stripe payment receipt to #📡-central-support-and-relaunch-hub in Valheon HQ!
+      const promoSummaryLine =
+        check.discountUsd > 0
+          ? `• **Promo Code Redeemed:** \`${check.promoCodeUsed || 'PROMO_COUPON'}\` (Discount: \`-$${Number(check.discountUsd).toFixed(2)}\` • Net Paid: \`$${Number(check.amountUsd).toFixed(2)} USD\`)\n` +
+            `• **Original Issuance Reason (Why):** *${check.whyIssuedMemo || 'Audited Stripe Promo'}*\n`
+          : `• **Net Paid:** \`$${Number(check.amountUsd ?? item.amountCents / 100).toFixed(2)} USD\` (Full Price)\n`;
+
+      // 3. Relay verified Stripe payment / promo redemption receipt to #📡-central-support-and-relaunch-hub in Valheon HQ!
       await relaySupportEventToValheonHq({
-        title: `💳 STRIPE PAYMENT VERIFIED (${item.priceDisplay}) // ${item.name}`,
+        title:
+          check.discountUsd > 0
+            ? `🎟️ PROMO CODE REDEEMED & VERIFIED ($${Number(check.amountUsd).toFixed(2)} Paid) // ${item.name}`
+            : `💳 STRIPE PAYMENT VERIFIED (${item.priceDisplay}) // ${item.name}`,
         description:
-          `• **Buyer:** <@${user.id}> (\`${user.username}\` / \`${check.customerEmail}\`)\n` +
-          `• **Package:** **${item.name}** (\`${item.priceDisplay}\`)\n` +
-          `• **Verification Mode:** \`${check.mode}\` (Session: \`${check.sessionId}\`)\n` +
-          `• **Auto-Granted Role:** ${grantedRoles.length ? grantedRoles.map((r) => `\`${r}\``).join(', ') : '`@🏰 Crowned Sovereign`'}\n` +
-          `• **Source Server ID:** \`${guildId}\``,
-        color: 0x10b981,
+          `• **Who (Redeemer):** <@${user.id}> (\`${user.username}\` / \`${check.customerEmail}\`)\n` +
+          `• **What (Package):** **${item.name}** (\`${item.priceDisplay}\`)\n` +
+          promoSummaryLine +
+          `• **Where (Session & Server):** Session \`${check.sessionId}\` • Guild \`${guildId}\`\n` +
+          `• **SHA-256 Ledger Hash:** \`${(check.auditHash || 'VERIFIED').slice(0, 16)}…\`\n` +
+          `• **Auto-Granted Role:** ${grantedRoles.length ? grantedRoles.map((r) => `\`${r}\``).join(', ') : '`@🏰 Crowned Sovereign`'}`,
+        color: check.discountUsd > 0 ? 0xf59e0b : 0x10b981,
         targetGuildId: guildId,
         targetChannelId: channelId,
       });
@@ -1939,6 +2119,18 @@ async function handleInteraction(ix) {
     // B. Native R4 / HQ Ticket Creation & Close
     if (customId.startsWith('hermes_ticket_')) {
       if (customId === 'hermes_ticket_close') {
+        const curChan = await discordApi('GET', `/channels/${channelId}`).catch(() => null);
+        const chanName = String(curChan?.name || '').toLowerCase();
+        // Safety Guard: Never allow hermes_ticket_close to delete a permanent channel!
+        if (!chanName.startsWith('ticket-') && !chanName.includes('embassy-')) {
+          return reply({
+            type: 4,
+            data: {
+              flags: 64,
+              content: '🛡️ **Channel Protection Guard:** Only temporary `ticket-*` or `embassy-*` channels can be archived with this button.',
+            },
+          });
+        }
         await reply({
           type: 4,
           data: { content: '🔒 **HERMES archiving & closing this ticket in 5 seconds...**' },
@@ -1952,6 +2144,20 @@ async function handleInteraction(ix) {
       if (customId.startsWith('hermes_ticket_approve_')) {
         await reply({ type: 5 });
         const applicantId = customId.replace('hermes_ticket_approve_', '') || user.id;
+
+        // BOLA Guard: Prevent an unprivileged applicant from clicking [Approve] on their own ticket!
+        if (
+          String(user.id) === String(applicantId) &&
+          !VALHEON_FOUNDER_IDS.has(String(user.id))
+        ) {
+          const authCheck = await verifyServerSovereignAuthorization(ix, guildId, tierStatus);
+          if (!authCheck.allowed) {
+            return editOriginal({
+              content:
+                `🛡️ **R4/R5 Concierge Lock:** Only a Kingdom R5/R4 Council Officer or Server Owner can approve an application ticket (<@${applicantId}> cannot self-approve).`,
+            });
+          }
+        }
 
         // 1. Fetch guild roles and assign Verified Roles to the applicant
         const grantedRoleNames = [];
@@ -2566,7 +2772,7 @@ async function handleInteraction(ix) {
           {
             title: '🚨 VALHEON LIVE MIGRATION & NO-CAP KINGDOM RADAR',
             description:
-              'Powered by **Bastion 5-Ring Autonomous Telemetry** (`SIDEKICK` + `Unity2AWSRoster`):\n\n' +
+              'Powered by **Valheon 5-Ring Autonomous Telemetry** (`Sovereign Optical Grid`):\n\n' +
               '• **🏰 Kingdom #4194 (`Imperium Vanguard`)** — `OPEN • Cap: 65M Power` *(35-Field Verified)*\n' +
               '• **🏰 Kingdom #4197 (`Genesis Swarm Sector`)** — `ACTIVE • Native Pre-KvK 1 Preparation`\n' +
               '• **🏰 Kingdom #3606 (`SoC A-Seed`)** — `NO CAP WINDOW SCHEDULED` *(Special Ticket Queue)*\n' +
@@ -2629,6 +2835,86 @@ async function handleInteraction(ix) {
   // =========================================================================
   // 2. MODAL SUBMIT INTERACTIONS (type === 5)
   // =========================================================================
+  if (ix.type === 5 && ix.data?.custom_id?.startsWith('hermes_submit_mint_coupon_')) {
+    await reply({ type: 5, data: { flags: 64 } });
+
+    if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+      return editOriginal({
+        content:
+          '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can mint promo or giveaway codes.',
+      });
+    }
+
+    const planKey = ix.data.custom_id.replace('hermes_submit_mint_coupon_', '') || 'KINGDOM_39';
+    const comps = ix.data.components || [];
+    const reasonWhy = (comps[0]?.components?.[0]?.value || 'Event Giveaway').trim();
+    const percentOff = Number((comps[1]?.components?.[0]?.value || '100').trim()) || 100;
+    const maxRedemptions = Number((comps[2]?.components?.[0]?.value || '1').trim()) || 1;
+    const customCode = (comps[3]?.components?.[0]?.value || '').trim();
+
+    const minted = await createAuditedStripePromoCode({
+      actorUserId: user.id,
+      actorUsername: user.username,
+      guildId,
+      channelId,
+      planKey,
+      percentOff,
+      maxRedemptions,
+      customCode,
+      reasonWhy,
+    });
+
+    if (!minted.ok) {
+      return editOriginal({
+        content: minted.error,
+      });
+    }
+
+    // Relay audited code creation to #📡-central-support-and-relaunch-hub in Valheon HQ!
+    await relaySupportEventToValheonHq({
+      title: `🎟️ AUDITED PROMO CODE MINTED // ${minted.code} (${minted.percentOff}% OFF)`,
+      description:
+        `• **Who (Issuer):** <@${user.id}> (\`${user.username}\` — Principal ID \`${user.id}\`)\n` +
+        `• **What (Code & Cap):** \`${minted.code}\` (**\`${minted.percentOff}% OFF\`** • Max Uses: \`${minted.maxRedemptions}\` • Package: \`${planKey}\`)\n` +
+        `• **Where (Guild & Stripe IDs):** Guild \`${guildId}\` • Coupon \`${minted.couponId}\` • Promo \`${minted.promoId}\`\n` +
+        `• **When (UTC):** \`${minted.auditEntry?.when_utc}\`\n` +
+        `• **Why (Memo):** *${minted.reasonWhy}*\n` +
+        `• **SHA-256 Chain Hash:** \`${(minted.auditEntry?.entry_hash || '').slice(0, 20)}…\``,
+      color: 0x38bdf8,
+      targetGuildId: guildId,
+      targetChannelId: channelId,
+    });
+
+    return editOriginal({
+      embeds: [
+        {
+          title: `🎟️ AUDITED STRIPE PROMO CODE READY // ${minted.code}`,
+          description:
+            `Your live Stripe Promo Code has been created and logged to the SHA-256 non-repudiation ledger!\n\n` +
+            `### 📋 Copy & Send This Code to the Recipient:\n` +
+            `\`\`\`\n${minted.code}\n\`\`\`\n` +
+            `• **Who Issued:** <@${user.id}> (\`${user.id}\`)\n` +
+            `• **What:** **\`${minted.percentOff}% OFF\`** (Max Redemptions: **\`${minted.maxRedemptions}\`**)\n` +
+            `• **When:** \`${minted.auditEntry?.when_utc}\`\n` +
+            `• **Why:** *${minted.reasonWhy}*\n` +
+            `• **SHA-256 Entry Hash:** \`${minted.auditEntry?.entry_hash}\`\n\n` +
+            `👉 **How the Winner Uses It:**\n` +
+            `1. Click **` +
+            '`[💳 Step 1: Pay via Valheon Stripe]`' +
+            `** in Discord.\n` +
+            `2. Click **"Add promotion code"** on the Stripe checkout page and enter **\`${minted.code}\`**.\n` +
+            `3. Complete the \`$0.00\` checkout (no credit card required for 100% OFF) and click **` +
+            '`[✅ Step 3: Verify Payment & Launch 1-Click Builder]`' +
+            `**!`,
+          color: 0x38bdf8,
+          footer: {
+            text: `LEDGER SEQ #${minted.auditEntry?.seq || 1} // SHA-256 CHAIN VERIFIED`,
+          },
+        },
+      ],
+    });
+  }
+
   if (ix.type === 5 && ix.data?.custom_id === 'hermes_kd_deploy_modal') {
     await reply({ type: 5 });
 
@@ -2955,6 +3241,19 @@ async function handleInteraction(ix) {
     const kd2 = (comps[1]?.components?.[0]?.value || '4196').replace(/[^0-9a-zA-Z]/g, '');
     const agenda = (comps[2]?.components?.[0]?.value || 'Bilateral Border & Ziggurat Treaty').trim();
 
+    // Anti-Flood Guard: Check if an embassy channel between kd1 and kd2 already exists!
+    const allChans = await discordApi('GET', `/guilds/${guildId}/channels`).catch(() => []);
+    const nameA = `🤝-embassy-kd${kd1}-x-kd${kd2}`.toLowerCase();
+    const nameB = `🤝-embassy-kd${kd2}-x-kd${kd1}`.toLowerCase();
+    const existingEmbassy = Array.isArray(allChans)
+      ? allChans.find((c) => c.name?.toLowerCase() === nameA || c.name?.toLowerCase() === nameB)
+      : null;
+    if (existingEmbassy?.id) {
+      return editOriginal({
+        content: `🤝 **Bilateral Embassy Already Active:** <#${existingEmbassy.id}> *(Anti-Flood Protection prevented creating a duplicate channel)*`,
+      });
+    }
+
     const parentChan = await discordApi('GET', `/channels/${channelId}`).catch(() => null);
     const newEmbassy = await discordApi('POST', `/guilds/${guildId}/channels`, {
       name: `🤝-embassy-kd${kd1}-x-kd${kd2}`,
@@ -3044,7 +3343,12 @@ async function handleInteraction(ix) {
   }
 
   if (ix.type === 5 && ix.data?.custom_id === 'hermes_admin_manual_relaunch_modal') {
-    await reply({ type: 5 });
+    await reply({ type: 5, data: { flags: 64 } });
+    if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+      return editOriginal({
+        content: '🛡️ **Valheon HQ Overwatch Lock:** Only the Principal Architect can execute a remote server relaunch.',
+      });
+    }
     const comps = ix.data.components || [];
     const remoteGuildId = (comps[0]?.components?.[0]?.value || '').trim();
     const bpOverride = (comps[1]?.components?.[0]?.value || 'AUTO').trim().toUpperCase();
@@ -3082,7 +3386,12 @@ async function handleInteraction(ix) {
   }
 
   if (ix.type === 5 && ix.data?.custom_id?.startsWith('hermes_admin_reply_modal_')) {
-    await reply({ type: 5 });
+    await reply({ type: 5, data: { flags: 64 } });
+    if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+      return editOriginal({
+        content: '🛡️ **Valheon HQ Overwatch Lock:** Only the Principal Architect can beam an official HQ reply.',
+      });
+    }
     const parts = ix.data.custom_id.replace('hermes_admin_reply_modal_', '').split('_');
     const remoteGuildId = parts[0] || '';
     const remoteChannelId = parts[1] || '';
@@ -3304,7 +3613,7 @@ async function handleInteraction(ix) {
     const { translated, detected, matchedTerms } = await translateText(originalText, targetLocale);
     const glossaryBadge =
       matchedTerms?.length > 0
-        ? `\n\n🎯 **Canonical RoK Terms (\`lc_*.dat\`):** ` +
+        ? `\n\n🎯 **Canonical RoK Terms (\`17-Lang Canonical Glossary\`):** ` +
           matchedTerms.map((m) => `\`${m.source}\` → **\`${m.target}\`**`).join(' • ')
         : '';
 
@@ -3497,10 +3806,16 @@ async function handleInteraction(ix) {
     if (!sub) return;
 
     if (sub.name === 'tier') {
-      await reply({ type: 5 });
+      await reply({ type: 5, data: { flags: 64 } });
       const modeOpt = sub.options?.find((o) => o.name === 'mode')?.value || 'VIEW';
       const resetOpt = Boolean(sub.options?.find((o) => o.name === 'reset_24h_timer')?.value);
-      if (modeOpt !== 'VIEW') {
+      if (modeOpt !== 'VIEW' || resetOpt) {
+        if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+          return editOriginal({
+            content:
+              '🛡️ **Principal-Only Tier Lock:** Only the Valheon Principal Architect (`184977944433786880`) can manually override a server\'s Rarity Tier or reset its 24-hour FOMO window. Standard users can view pricing via `/hermes tier mode:VIEW`.',
+          });
+        }
         const updated = setGuildTier(guildId, modeOpt, resetOpt);
         const consolePayload = buildTierPricingConsoleEmbed(guildId);
         return editOriginal({
@@ -3605,7 +3920,7 @@ async function handleInteraction(ix) {
       const { translated, detected, matchedTerms } = await translateText(textOpt, langOpt);
       const glossaryBadge =
         matchedTerms?.length > 0
-          ? `\n\n🎯 **Canonical RoK Terms (\`lc_*.dat\`):** ` +
+          ? `\n\n🎯 **Canonical RoK Terms (\`17-Lang Canonical Glossary\`):** ` +
             matchedTerms.map((m) => `\`${m.source}\` → **\`${m.target}\`**`).join(' • ')
           : '';
       return editOriginal({
@@ -3614,7 +3929,7 @@ async function handleInteraction(ix) {
             title: `🌐 HERMES 17-LANGUAGE TRANSLATION (${String(detected).toUpperCase()} → ${langOpt.toUpperCase()})`,
             description: `> **${translated}**${glossaryBadge}\n\n*Original (<@${user.id}>):* \`${textOpt.slice(0, 300)}\``,
             color: 0x38bdf8,
-            footer: { text: 'HERMES 17-LANGUAGE LILITH GLOSSARY BRIDGE // lc_hero.dat + lc_equipment.dat' },
+            footer: { text: 'HERMES 17-LANGUAGE LILITH GLOSSARY BRIDGE // Valheon 17-Lang Glossary' },
           },
         ],
       });
@@ -3945,7 +4260,7 @@ function connectGateway() {
               );
               const glossaryBadge =
                 matchedTerms?.length > 0
-                  ? `\n🎯 **RoK Glossary (\`lc_*.dat\`):** ` +
+                  ? `\n🎯 **RoK Glossary (\`17-Lang Canonical Glossary\`):** ` +
                     matchedTerms.map((m) => `\`${m.source}\` → **\`${m.target}\`**`).join(' • ')
                   : '';
               await discordApi('POST', `/channels/${d.channel_id}/messages`, {

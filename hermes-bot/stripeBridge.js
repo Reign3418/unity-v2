@@ -23,6 +23,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +32,106 @@ const ENV_PATHS = [
   path.resolve(__dirname, './.env.railway'),
   path.resolve(__dirname, '../.env.local'),
 ];
+const COUPON_LEDGER_PATH = path.resolve(__dirname, './coupon_audit_ledger.jsonl');
+
+// Strict Principal-Only Lock (Lauren Alvarado — Reign3418)
+export const VALHEON_PRINCIPAL_DISCORD_ID = '184977944433786880';
+
+/**
+ * Appends a tamper-evident, SHA-256 hash-chained audit record (Who, What, Where, When, Why)
+ * to coupon_audit_ledger.jsonl for full non-repudiation & integrity verification.
+ */
+export function appendCouponAuditLog(record) {
+  try {
+    let prevHash = 'GENESIS_0000000000000000000000000000000000000000000000000000000000000000';
+    let seq = 1;
+    if (fs.existsSync(COUPON_LEDGER_PATH)) {
+      const lines = fs
+        .readFileSync(COUPON_LEDGER_PATH, 'utf8')
+        .split(/\r?\n/)
+        .filter(Boolean);
+      seq = lines.length + 1;
+      if (lines.length > 0) {
+        try {
+          const lastObj = JSON.parse(lines[lines.length - 1]);
+          if (lastObj.entry_hash) prevHash = lastObj.entry_hash;
+        } catch {}
+      }
+    }
+
+    const timestampUtc = new Date().toISOString();
+    const payload = {
+      seq,
+      when_utc: timestampUtc,
+      ...record,
+      prev_hash: prevHash,
+    };
+    const canonical = JSON.stringify(payload);
+    const entryHash = crypto.createHash('sha256').update(canonical).digest('hex');
+    const finalEntry = { ...payload, entry_hash: entryHash };
+
+    fs.appendFileSync(COUPON_LEDGER_PATH, JSON.stringify(finalEntry) + '\n', 'utf8');
+    return finalEntry;
+  } catch (err) {
+    console.error('[HERMES Coupon Audit Ledger Error]:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Reads and cryptographically verifies the SHA-256 hash chain of coupon_audit_ledger.jsonl.
+ * Strictly gated to VALHEON_PRINCIPAL_DISCORD_ID.
+ */
+export function getCouponAuditLedgerSummary(requestingUserId) {
+  if (String(requestingUserId) !== VALHEON_PRINCIPAL_DISCORD_ID) {
+    appendCouponAuditLog({
+      event_type: 'UNAUTHORIZED_LEDGER_ACCESS_ATTEMPT',
+      who_actor_id: String(requestingUserId),
+      why_reason: 'Blocked non-principal attempt to read coupon audit ledger',
+    });
+    return { allowed: false, error: '⛔ Strict Principal-Only Lock (`184977944433786880`).' };
+  }
+
+  if (!fs.existsSync(COUPON_LEDGER_PATH)) {
+    return {
+      allowed: true,
+      integrityVerified: true,
+      totalEntries: 0,
+      entries: [],
+    };
+  }
+
+  const lines = fs
+    .readFileSync(COUPON_LEDGER_PATH, 'utf8')
+    .split(/\r?\n/)
+    .filter(Boolean);
+
+  const entries = [];
+  let expectedPrev = 'GENESIS_0000000000000000000000000000000000000000000000000000000000000000';
+  let integrityVerified = true;
+
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      const { entry_hash, ...rest } = obj;
+      const recomputed = crypto.createHash('sha256').update(JSON.stringify(rest)).digest('hex');
+      if (obj.prev_hash !== expectedPrev || recomputed !== entry_hash) {
+        integrityVerified = false;
+      }
+      expectedPrev = entry_hash;
+      entries.push(obj);
+    } catch {
+      integrityVerified = false;
+    }
+  }
+
+  return {
+    allowed: true,
+    integrityVerified,
+    totalEntries: entries.length,
+    entries: entries.slice(-15).reverse(),
+  };
+}
 
 function readEnvVars() {
   const vars = { ...process.env };
@@ -159,6 +260,7 @@ export async function createStripeCheckoutForDiscord({
     try {
       const form = new URLSearchParams();
       form.append('mode', 'payment');
+      form.append('allow_promotion_codes', 'true');
       form.append('success_url', 'https://discord.com/channels/1563618222895407166');
       form.append('cancel_url', 'https://discord.com/channels/1563618222895407166');
       form.append('client_reference_id', `${userId}_${planKey}`);
@@ -223,9 +325,221 @@ export async function createStripeCheckoutForDiscord({
 }
 
 /**
- * Verifies whether a user's Stripe Checkout Session has been paid (via Stripe REST API)
+ * Principal-Only (`184977944433786880`) Stripe Promo / Giveaway Code Generator
+ * with mandatory SHA-256 non-repudiation audit logging (Who, What, Where, When, Why).
  */
-export async function verifyStripePaymentStatus({ userId, planKey }) {
+export async function createAuditedStripePromoCode({
+  actorUserId,
+  actorUsername,
+  guildId,
+  channelId,
+  planKey = 'KINGDOM_39',
+  percentOff = 100,
+  maxRedemptions = 1,
+  customCode = '',
+  reasonWhy = 'Event Giveaway',
+}) {
+  // 1. Strict Principal-Only Cryptographic Gate
+  if (String(actorUserId) !== VALHEON_PRINCIPAL_DISCORD_ID) {
+    appendCouponAuditLog({
+      event_type: 'UNAUTHORIZED_MINT_ATTEMPT',
+      who_actor_id: String(actorUserId),
+      who_actor_username: String(actorUsername || 'unknown'),
+      what_package: planKey,
+      where_guild_id: String(guildId || ''),
+      where_channel_id: String(channelId || ''),
+      why_reason: 'Blocked non-principal attempt to mint promo code',
+    });
+    return {
+      ok: false,
+      error: '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can mint promo or giveaway codes.',
+    };
+  }
+
+  const env = readEnvVars();
+  const stripeSecret = env.STRIPE_SECRET_KEY || '';
+  if (!stripeSecret || !stripeSecret.startsWith('sk_')) {
+    return {
+      ok: false,
+      error: '⚠️ `STRIPE_SECRET_KEY` is not configured in `.env.local`.',
+    };
+  }
+
+  const cleanPct = Math.min(100, Math.max(1, Number(percentOff) || 100));
+  const cleanMax = Math.min(500, Math.max(1, Number(maxRedemptions) || 1));
+  const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const finalCode = (customCode || `VALHEON-${randomSuffix}`)
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, '');
+
+  try {
+    // Step A: Create the underlying Stripe Coupon with full non-repudiation metadata
+    const couponForm = new URLSearchParams();
+    couponForm.append('percent_off', String(cleanPct));
+    couponForm.append('duration', 'once');
+    couponForm.append('name', `${finalCode} (${cleanPct}% OFF - ${reasonWhy.slice(0, 22)})`);
+    couponForm.append('metadata[who_issued_by_id]', String(actorUserId));
+    couponForm.append('metadata[who_issued_by_name]', String(actorUsername || 'Principal'));
+    couponForm.append('metadata[what_target_plan]', String(planKey));
+    couponForm.append('metadata[where_guild_id]', String(guildId || ''));
+    couponForm.append('metadata[why_reason]', String(reasonWhy));
+
+    const couponRes = await fetch('https://api.stripe.com/v1/coupons', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeSecret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: couponForm.toString(),
+    });
+    const couponData = await couponRes.json();
+    if (!couponRes.ok || !couponData.id) {
+      return {
+        ok: false,
+        error: `⚠️ Stripe Coupon API error: ${couponData?.error?.message || 'Unknown error'}`,
+      };
+    }
+
+    // Step B: Create the customer-facing Stripe Promotion Code (with max_redemptions cap)
+    const promoForm = new URLSearchParams();
+    promoForm.append('coupon', couponData.id);
+    promoForm.append('code', finalCode);
+    promoForm.append('max_redemptions', String(cleanMax));
+    promoForm.append('metadata[who_issued_by_id]', String(actorUserId));
+    promoForm.append('metadata[what_code]', finalCode);
+    promoForm.append('metadata[what_target_plan]', String(planKey));
+    promoForm.append('metadata[where_guild_id]', String(guildId || ''));
+    promoForm.append('metadata[why_reason]', String(reasonWhy));
+
+    const promoRes = await fetch('https://api.stripe.com/v1/promotion_codes', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeSecret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: promoForm.toString(),
+    });
+    const promoData = await promoRes.json();
+    if (!promoRes.ok || !promoData.id) {
+      return {
+        ok: false,
+        error: `⚠️ Stripe Promotion Code API error: ${promoData?.error?.message || 'Code may already exist'}`,
+      };
+    }
+
+    // Step C: Append tamper-evident SHA-256 hash-chained audit entry
+    const auditEntry = appendCouponAuditLog({
+      event_type: 'CODE_MINTED',
+      who_actor_id: String(actorUserId),
+      who_actor_username: String(actorUsername || 'Principal'),
+      what_code: finalCode,
+      what_percent_off: cleanPct,
+      what_max_redemptions: cleanMax,
+      what_target_plan: planKey,
+      what_stripe_coupon_id: couponData.id,
+      what_stripe_promo_id: promoData.id,
+      where_guild_id: String(guildId || ''),
+      where_channel_id: String(channelId || ''),
+      why_reason: String(reasonWhy),
+    });
+
+    return {
+      ok: true,
+      code: finalCode,
+      percentOff: cleanPct,
+      maxRedemptions: cleanMax,
+      couponId: couponData.id,
+      promoId: promoData.id,
+      reasonWhy,
+      auditEntry,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: `⚠️ Exception creating promo code: ${err.message}`,
+    };
+  }
+}
+
+// Track already-logged session IDs so repeated clicks don't duplicate ledger rows
+const LOGGED_REDEEMED_SESSIONS = new Set();
+
+/**
+ * Helper to inspect a paid Stripe Checkout Session, extract any redeemed promotion code,
+ * and record a non-repudiation CODE_REDEEMED / CHECKOUT_PAID entry in coupon_audit_ledger.jsonl.
+ */
+async function buildVerifiedPaymentResult(session, stripeSecret, { userId, username, planKey, guildId, channelId }) {
+  const subtotalCents = session.amount_subtotal ?? session.amount_total ?? 0;
+  const totalCents = session.amount_total ?? 0;
+  const discountCents = session.total_details?.amount_discount ?? Math.max(0, subtotalCents - totalCents);
+
+  let promoCodeUsed = null;
+  let couponIdUsed = null;
+  let whyIssuedMemo = null;
+
+  try {
+    const breakdownDiscounts = session.total_details?.breakdown?.discounts || [];
+    if (breakdownDiscounts.length > 0) {
+      const dObj = breakdownDiscounts[0]?.discount;
+      couponIdUsed = dObj?.coupon?.id || dObj?.coupon?.name || null;
+      whyIssuedMemo = dObj?.coupon?.metadata?.why_reason || null;
+      if (dObj?.promotion_code) {
+        if (typeof dObj.promotion_code === 'object' && dObj.promotion_code.code) {
+          promoCodeUsed = dObj.promotion_code.code;
+          whyIssuedMemo = dObj.promotion_code.metadata?.why_reason || whyIssuedMemo;
+        } else if (typeof dObj.promotion_code === 'string') {
+          const pRes = await fetch(`https://api.stripe.com/v1/promotion_codes/${dObj.promotion_code}`, {
+            headers: { Authorization: `Bearer ${stripeSecret}` },
+          });
+          const pData = await pRes.json();
+          if (pRes.ok && pData.code) {
+            promoCodeUsed = pData.code;
+            whyIssuedMemo = pData.metadata?.why_reason || whyIssuedMemo;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  let auditEntry = null;
+  if (!LOGGED_REDEEMED_SESSIONS.has(session.id)) {
+    LOGGED_REDEEMED_SESSIONS.add(session.id);
+    auditEntry = appendCouponAuditLog({
+      event_type: discountCents > 0 ? 'CODE_REDEEMED' : 'CHECKOUT_PAID',
+      who_redeemer_id: String(userId),
+      who_redeemer_username: String(username || session.metadata?.discord_username || 'Governor'),
+      who_redeemer_email: session.customer_details?.email || 'Verified Stripe Buyer',
+      what_package: planKey,
+      what_code_redeemed: promoCodeUsed || (discountCents > 0 ? couponIdUsed || 'PROMO_APPLIED' : 'NONE (FULL_PRICE)'),
+      what_subtotal_usd: subtotalCents / 100,
+      what_discount_usd: discountCents / 100,
+      what_paid_usd: totalCents / 100,
+      where_session_id: session.id,
+      where_guild_id: String(guildId || session.metadata?.source_guild_id || ''),
+      where_channel_id: String(channelId || ''),
+      why_reason: whyIssuedMemo || (discountCents > 0 ? 'Promo Code Redeemed at Checkout' : 'Direct Stripe Purchase'),
+    });
+  }
+
+  return {
+    paid: true,
+    mode: discountCents > 0 ? 'LIVE_PROMO_REDEEMED' : 'LIVE_VERIFIED',
+    sessionId: session.id,
+    subtotalUsd: subtotalCents / 100,
+    discountUsd: discountCents / 100,
+    amountUsd: totalCents / 100,
+    promoCodeUsed,
+    whyIssuedMemo,
+    auditHash: auditEntry?.entry_hash || null,
+    customerEmail: session.customer_details?.email || 'Verified Stripe Buyer',
+  };
+}
+
+/**
+ * Verifies whether a user's Stripe Checkout Session has been paid (via Stripe REST API)
+ * and logs any redeemed coupon/promo code to the non-repudiation audit ledger.
+ */
+export async function verifyStripePaymentStatus({ userId, username, planKey, guildId, channelId }) {
   const env = readEnvVars();
   const stripeSecret = env.STRIPE_SECRET_KEY || '';
   const pending = PENDING_SESSIONS.get(`${userId}_${planKey}`);
@@ -234,27 +548,30 @@ export async function verifyStripePaymentStatus({ userId, planKey }) {
     try {
       if (pending?.sessionId && pending.sessionId.startsWith('cs_')) {
         const res = await fetch(
-          `https://api.stripe.com/v1/checkout/sessions/${pending.sessionId}`,
+          `https://api.stripe.com/v1/checkout/sessions/${pending.sessionId}?expand[]=total_details.breakdown`,
           {
             headers: { Authorization: `Bearer ${stripeSecret}` },
           }
         );
         const session = await res.json();
         if (res.ok && session.payment_status === 'paid') {
-          return {
-            paid: true,
-            mode: 'LIVE_VERIFIED',
-            sessionId: session.id,
-            amountUsd: (session.amount_total || 0) / 100,
-            customerEmail: session.customer_details?.email || 'Verified Stripe Buyer',
-          };
+          return await buildVerifiedPaymentResult(session, stripeSecret, {
+            userId,
+            username,
+            planKey,
+            guildId,
+            channelId,
+          });
         }
       }
 
-      // Also scan last 10 checkout sessions in case they paid via a static Payment Link!
-      const listRes = await fetch('https://api.stripe.com/v1/checkout/sessions?limit=10', {
-        headers: { Authorization: `Bearer ${stripeSecret}` },
-      });
+      // Also scan last 10 checkout sessions in case they paid via a static Payment Link or restarted session!
+      const listRes = await fetch(
+        'https://api.stripe.com/v1/checkout/sessions?limit=10&expand[]=data.total_details.breakdown',
+        {
+          headers: { Authorization: `Bearer ${stripeSecret}` },
+        }
+      );
       const listData = await listRes.json();
       const matched = (listData?.data || []).find(
         (s) =>
@@ -264,13 +581,13 @@ export async function verifyStripePaymentStatus({ userId, planKey }) {
             s.metadata?.discord_user_id === String(userId))
       );
       if (matched) {
-        return {
-          paid: true,
-          mode: 'LIVE_VERIFIED',
-          sessionId: matched.id,
-          amountUsd: (matched.amount_total || 0) / 100,
-          customerEmail: matched.customer_details?.email || 'Verified Stripe Buyer',
-        };
+        return await buildVerifiedPaymentResult(matched, stripeSecret, {
+          userId,
+          username,
+          planKey,
+          guildId,
+          channelId,
+        });
       }
 
       return {

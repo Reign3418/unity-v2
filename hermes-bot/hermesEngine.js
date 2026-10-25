@@ -148,7 +148,7 @@ export function buildTicketHeaderEmbed({
     migrant: {
       title: '🧳 MIGRATION APPLICATION & AEGIS DOSSIER',
       color: 0x10b981,
-      intro: 'Welcome to the Migration Screening Desk. **🪽 HERMES** has automatically attached your live `Unity2AWSRoster` telemetry below for R4/R5 High Council review.',
+      intro: 'Welcome to the Migration Screening Desk. **🪽 HERMES** has automatically attached your live `Valheon Sovereign Roster` telemetry below for R4/R5 High Council review.',
     },
     mge: {
       title: '👑 MGE / HALL OF HEROES APPLICATION',

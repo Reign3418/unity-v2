@@ -347,7 +347,7 @@ export function buildTierPricingConsoleEmbed(guildId) {
           '### 🏰 1. 1-CLICK HOME KINGDOM WAR SERVER — **`$39` Common / `+$15` Legendary (24h Offer)**\n' +
           '*One-and-done server build bound to 1 Discord Server ID (`guildId`). Stay in Discord with zero monthly fees.*\n' +
           '• 🟢 **Includes `Common Hermes` (`$39` Flat):** 21 Roles, 30+ Channels, R4 Ticket Desk, 30v30 AoO Lane Builder, War Timers, Official RoK Bridge & Combat/Event Ping Console.\n' +
-          '• 🟠 **24-Hour "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`lc_*.dat`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Screenshot OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
+          '• 🟠 **24-Hour "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Screenshot OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
           '--- \n' +
           '### 🕊️ 2. 1-CLICK KVK DIPLOMACY SUMMIT SERVER — **`$9` Flat**\n' +
           '*Built for Matchmaking Night across all **8–16 Matched Kingdoms**.*\n' +

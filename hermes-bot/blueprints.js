@@ -496,7 +496,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
     id: 'KINGDOM_WAR_SERVER',
     kingdomId: kdId,
     name: `🏰 KD #${kdId} // ${kdTitle}`,
-    subtitle: `Turnkey Kingdom War Server wired to Valheon Telemetry (Unity2AWSRoster KD#${kdId})`,
+    subtitle: `Turnkey Kingdom War Server wired to Valheon Telemetry (Valheon Sovereign Roster KD#${kdId})`,
     badge: `TURNKEY TENANT KD #${kdId}`,
     accentColor: '#10b981',
     roles: [
@@ -1354,7 +1354,7 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
           {
             name: '🔥-joint-rally-and-garrison-calls',
             type: CHANNEL_TYPES.TEXT,
-            topic: 'Live multi-kingdom Rally & Garrison calls with 17-Language Lilith Canonical Glossary Bridge (lc_hero.dat + lc_equipment.dat).',
+            topic: 'Live multi-kingdom Rally & Garrison calls with 17-Language Lilith Canonical Glossary Bridge (Valheon 17-Lang Glossary).',
             pinKey: 'GLOBAL_TRANSLATOR_CONSOLE',
           },
           {
@@ -1453,7 +1453,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '• **📬 PILLAR IV — VANGUARD:** Cross-Kingdom Player Hunter, Recruitment CRM & Mail Studio\n' +
         '• **📸 PILLAR V — OPTICS:** Gemini 3.1 Vision Screenshot OCR & 7 Audited Calculators\n\n' +
         '### 🔗 STEP 1: VERIFY YOUR GOVERNOR ID\n' +
-        'Click **`[🔗 Link RoK Governor ID]`** below (or run `/bind <governor_id>`) to sync your live `Unity2AWSRoster` telemetry and unlock your verified Kingdom & Tier roles.',
+        'Click **`[🔗 Link RoK Governor ID]`** below (or run `/bind <governor_id>`) to sync your live `Valheon Sovereign Roster` telemetry and unlock your verified Kingdom & Tier roles.',
       color: 0xf59e0b,
       footer: { text: 'VALHEON COMMAND OS // POWERED BY HERMES MESSENGER ENGINE' },
     },
@@ -1490,7 +1490,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
       title: '🎫 KINGDOM HIGH COUNCIL // APPLICATION & TICKET DESK',
       description:
         'Select an option below to open a private channel with **R4/R5 Leadership**.\n\n' +
-        '> 💡 **Automated AEGIS Screening:** When you open a Migration or MGE ticket, **🪽 HERMES** automatically pulls your live Power, Kill Points, Deads, and **5-Model Trust Score** from `Unity2AWSRoster` directly into the ticket header for fast review!\n\n' +
+        '> 💡 **Automated AEGIS Screening:** When you open a Migration or MGE ticket, **🪽 HERMES** automatically pulls your live Power, Kill Points, Deads, and **5-Model Trust Score** from `Valheon Sovereign Roster` directly into the ticket header for fast review!\n\n' +
         '🧳 **[Apply to Migrate Here]** — Automated AEGIS Polygraph dossier + private R4 recruiter interview.\n' +
         '👑 **[MGE / Hall of Heroes Request]** — Submit your DKP rank, commander sculpture count, and gear screenshot.\n' +
         '⚖️ **[Diplomacy / King\'s Court]** — Report farm/tile violations, rogue hits, or alliance diplomacy.\n' +
@@ -1534,7 +1534,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '### 🏰 1. 1-CLICK HOME KINGDOM WAR SERVER — **`$39` Common / `+$15` Legendary (24h Offer)**\n' +
         '*Your permanent 24/7 Home Kingdom War OS (21 Roles, 30+ Channels, Alliance Sectors & Cryptographic Permission Locks).*\n' +
         '• 🟢 **Includes `Common Hermes` (`$39` Flat):** R4 Ticket Desk, 30v30 AoO Roster, War Timers, Official RoK Bridge, Combat/Event Ping Console & Redeem Codes.\n' +
-        '• 🟠 **24h "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`lc_*.dat`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Screenshot OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
+        '• 🟠 **24h "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Screenshot OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
         '--- \n' +
         '### 🕊️ 2. 1-CLICK KVK DIPLOMACY SUMMIT SERVER — **`$9` Flat**\n' +
         '*Built for Matchmaking Night across all **8–16 Matched Kingdoms**.*\n' +
@@ -1670,7 +1670,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
       title: '💀 HERMES AI TELEMETRY ROASTER // FARMER OR WARLORD?',
       description:
         'Think your account is KvK-ready? Or want to expose a 95M-power farm lord hiding in Zone 1?\n\n' +
-        'Click **`[💀 Roast My Linked Governor]`** or run `/hermes roast <governor_id>` and **🪽 HERMES** will inspect your real T4/T5 Kills, Deads, and Power trajectory in `Unity2AWSRoster` to deliver a merciless forensic verdict.',
+        'Click **`[💀 Roast My Linked Governor]`** or run `/hermes roast <governor_id>` and **🪽 HERMES** will inspect your real T4/T5 Kills, Deads, and Power trajectory in `Valheon Sovereign Roster` to deliver a merciless forensic verdict.',
       color: 0xf43f5e,
       footer: { text: 'POWERED BY VALHEON AEGIS 5-MODEL TRUST ENGINE' },
     },
@@ -1722,7 +1722,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
     embed: {
       title: '🎓 17-LANGUAGE PEERLESS SCHOLAR & LYCEUM OF WISDOM SOLVER',
       description:
-        'Never miss a **Preliminary**, **Saturday Midterm**, or **15-Second Final Exam** question again! **HERMES** is wired directly to the **Valheon 17-Language Lyceum Vault** (`lc_quiz.dat` + `CivPedia`).\n\n' +
+        'Never miss a **Preliminary**, **Saturday Midterm**, or **15-Second Final Exam** question again! **HERMES** is wired directly to the **Valheon 17-Language Lyceum Vault** (`Valheon Lyceum Vault` + `CivPedia`).\n\n' +
         '### ⚡ 3 WAYS TO SOLVE ANY EXAM QUESTION IN <1 SECOND:\n' +
         '1️⃣ **Click `[🔍 Search Exam Answer (17 Languages)]` below:** Type 1–3 keywords in **any of the 17 supported RoK languages** (`EN, VI, AR, RU, ZH, ES, ID, KO, TR, FR, DE, PT, JA, IT, PL, TH, MS`) and get the instant verified answer privately.\n' +
         '2️⃣ **Click `[📦 Drop Saturday Midterm Packet (10/10)]`:** Drops the complete 10-question Midterm Early Study Packet (`peerless.early`) localized into your Discord language.\n' +
@@ -1741,7 +1741,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
     embed: {
       title: '🌐 17-LANGUAGE SOVEREIGN TRANSLATOR // ALL 17 OFFICIAL ROK LANGUAGES',
       description:
-        '**🪽 HERMES // Valheon OS** provides built-in **$0.00 17-Language Translation** across **every room on the server** (matching all 17 Official Peerless Scholar / `lc_*.dat` languages):\n\n' +
+        '**🪽 HERMES // Valheon OS** provides built-in **$0.00 17-Language Translation** across **every room on the server** (matching all 17 Official Peerless Scholar / `17-Lang Canonical Glossary` languages):\n\n' +
         '1️⃣ **Right-Click Any Message (Private Ephemeral Translation):**\n' +
         'Right-click (or long-press on mobile) **any message in any channel** ➔ **`Apps`** ➔ **`🌐 Translate to My Language`** (or **`🇺🇸 Translate to English`**). HERMES replies **only to you** so it never clutters war chat.\n\n' +
         '2️⃣ **React with Any of the 17 Flag Emojis (Public Shared Translation):**\n' +
@@ -1802,7 +1802,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
       description:
         'Check your real-time **KvK DKP Score**, **% of Kingdom Goal**, **T4/T5 Kill & Dead Deltas**, and **Exact Kills/Deads Remaining** to clear your KvK requirement:',
       color: 0x10b981,
-      footer: { text: 'SYNCED WITH UNITY2AWSROSTER // 60FPS DKP ENGINE' },
+      footer: { text: 'SYNCED WITH VALHEON SOVEREIGN ROSTER // 60FPS DKP ENGINE' },
     },
     buttons: [
       { customId: 'hermes_mystats_btn', label: '🪪 Check My DKP & KvK Goal', style: 'SUCCESS' },
