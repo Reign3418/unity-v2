@@ -1511,7 +1511,8 @@
     "err_update": "Gagal mengemas kini gabenor: {error}",
     "err_delete": "Gagal memadamkan gabenor: {error}",
     "err_unlock": "Gagal membuka kunci gabenor: {error}",
-    "err_generic": "Ralat: {error}"
+    "err_generic": "Ralat: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Baca Sahaja)"
   },
   "AccountAgeAudit": {
     "page_title": "Audit Umur Gabenor & Migrasi",

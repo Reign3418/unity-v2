@@ -1511,7 +1511,8 @@
     "err_update": "Gagal memperbarui gubernur: {error}",
     "err_delete": "Gagal menghapus gubernur: {error}",
     "err_unlock": "Gagal membuka kunci gubernur: {error}",
-    "err_generic": "Kesalahan: {error}"
+    "err_generic": "Kesalahan: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Hanya Baca)"
   },
   "AccountAgeAudit": {
     "page_title": "Audit Usia & Migrasi Gubernur",

@@ -1511,7 +1511,8 @@
     "err_update": "Falha ao atualizar governador: {error}",
     "err_delete": "Falha ao excluir governador: {error}",
     "err_unlock": "Falha ao desbloquear governador: {error}",
-    "err_generic": "Erro: {error}"
+    "err_generic": "Erro: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Somente leitura)"
   },
   "AccountAgeAudit": {
     "page_title": "Auditoria de Idade e Migração do Governador",

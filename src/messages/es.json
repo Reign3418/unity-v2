@@ -1511,7 +1511,8 @@
     "err_update": "No se pudo actualizar el gobernador: {error}",
     "err_delete": "No se pudo eliminar el gobernador: {error}",
     "err_unlock": "No se pudo desbloquear el gobernador: {error}",
-    "err_generic": "Error: {error}"
+    "err_generic": "Error: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Solo lectura)"
   },
   "AccountAgeAudit": {
     "page_title": "Auditoría de Edad y Migración de Gobernador",

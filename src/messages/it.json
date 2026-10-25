@@ -1511,7 +1511,8 @@
     "err_update": "Impossibile aggiornare il governatore: {error}",
     "err_delete": "Impossibile eliminare il governatore: {error}",
     "err_unlock": "Impossibile sbloccare il governatore: {error}",
-    "err_generic": "Errore: {error}"
+    "err_generic": "Errore: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Sola lettura)"
   },
   "AccountAgeAudit": {
     "page_title": "Verifica sull'età e sulla migrazione del governatore",

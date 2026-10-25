@@ -195,14 +195,33 @@ def make_thumbnail_b64(arr: np.ndarray | None, width: int = 480, height: int = 2
         return ""
 
 
+def is_counselor_dialogue(a: np.ndarray | None) -> bool:
+    if a is None:
+        return False
+    dlg = a[735:855, 420:1180]
+    is_cream = (
+        (dlg[:, :, 0] >= 205)
+        & (dlg[:, :, 1] >= 195)
+        & (dlg[:, :, 2] >= 165)
+        & (np.abs(dlg[:, :, 0].astype(np.int32) - dlg[:, :, 1].astype(np.int32)) <= 25)
+    )
+    return float(np.mean(is_cream)) > 0.55
+
+
 def is_city_hud(a: np.ndarray | None) -> bool:
     if a is None:
+        return False
+    if is_counselor_dialogue(a):
         return False
     gov_blue = float(((a[5:115, 5:80, 2].astype(np.float32) - a[5:115, 5:80, 0].astype(np.float32)) > 25).mean())
     if gov_blue < 0.20:
         return False
     bl_mean = float(a[800:890, 10:100].mean())
-    if bl_mean < 55.0:
+    if bl_mean < 45.0:
+        return False
+    br_btn = a[815:885, 1500:1580]
+    br_blue = float(((br_btn[:, :, 2].astype(np.int32) - br_btn[:, :, 0].astype(np.int32) > 25) & (br_btn[:, :, 2] >= 100)).mean())
+    if br_blue < 0.20 and not (gov_blue >= 0.50 and bl_mean >= 85.0):
         return False
     bh = a[85:140, 250:1350]
     is_bh = (
@@ -226,8 +245,15 @@ def is_city_hud(a: np.ndarray | None) -> bool:
 def is_world_map(a: np.ndarray | None) -> bool:
     if a is None or not is_city_hud(a):
         return False
-    coord_bar = a[10:48, 280:560]
-    return float(coord_bar.mean()) < 145.0
+    # Deterministic bottom-left button sprite check: Castle Tower (World Map) vs Folded Map Pin (City View)
+    castle_vs_map_delta = float(a[833:839, 79:85].mean()) - float(a[842:848, 83:89].mean())
+    if castle_vs_map_delta > 60.0:
+        return True
+    if castle_vs_map_delta < -60.0:
+        return False
+    star = a[8:40, 580:615]
+    gold = (star[:, :, 0] >= 195) & (star[:, :, 1] >= 125) & (star[:, :, 2] <= 55)
+    return float(np.mean(gold)) > 0.45
 
 
 def has_world_map_unlocked(a: np.ndarray | None) -> bool:
@@ -248,65 +274,106 @@ def is_gov_profile_open(a: np.ndarray | None) -> bool:
     is_ban = (ban[:, :, 0] >= 170) & (ban[:, :, 1] >= 110) & (ban[:, :, 2] <= 60)
     pan = a[220:680, 550:1400]
     is_pan = (pan[:, :, 2] >= 120) & (pan[:, :, 0] <= 45)
-    return float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.70
+    return float(np.mean(is_ban)) > 0.25 and float(np.mean(is_pan)) > 0.50
 
 
 def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
     ensure_rok_foreground(adb_serial)
     shot_path = os.path.join(SCRIPT_DIR, f"swarm_hud_{port}.png")
-    for _ in range(5):
+    for _ in range(7):
         a = capture_screen(adb_serial, shot_path)
         if a is None:
             break
-        # Dismiss Top-Center Alliance Invite Popup if present (JOIN ALLIANCE at 703,320 / Close X at 1089,165)
+        # 1. Counselor bottom dialogue box -> tap (800, 780)
+        if is_counselor_dialogue(a):
+            tap(adb_serial, 800, 780, 1.0)
+            continue
+        # 2. First Recharge Rewards scroll modal (gold $0.99 button at y=780..885, x=375..690) -> tap outside scroll (100, 500)
+        fr_gold = (a[780:885, 375:690, 0] >= 210) & (a[780:885, 375:690, 1] >= 135) & (a[780:885, 375:690, 2] <= 45)
+        if int(fr_gold.sum()) >= 2000:
+            tap(adb_serial, 1520, 500, 1.0)
+            continue
+        # 3. Dismiss Top-Center Alliance Invite Popup if present (Close X at 1089,165)
         inv_row = (a[295:355, :, 2] >= 165) & (a[295:355, :, 0] <= 45)
         if int(inv_row[:, 615:785].sum()) >= 3500 and int(inv_row[:, 810:980].sum()) >= 3500:
             tap(adb_serial, 1089, 175, 0.9)
             continue
-        # Dismiss Building Move / Placement overlay (Red X at ~616,204 and Green Check at ~800,204)
-        bm_red = (a[140:270, 550:680, 0] >= 200) & (a[140:270, 550:680, 1] <= 75) & (a[140:270, 550:680, 2] <= 75)
-        bm_grn = (a[140:270, 735:865, 1] >= 175) & (a[140:270, 735:865, 0] <= 105) & (a[140:270, 735:865, 2] <= 105)
-        if int(bm_red.sum()) >= 350 and int(bm_grn.sum()) >= 350:
-            tap(adb_serial, 800, 204, 1.0)
+        # 4. Dismiss Building Move / Placement overlay anywhere on screen (Red X + Green Checkmark pair)
+        bm_red_top = (a[140:270, 550:680, 0] >= 200) & (a[140:270, 550:680, 1] <= 75) & (a[140:270, 550:680, 2] <= 75)
+        bm_grn_top = (a[140:270, 735:865, 1] >= 175) & (a[140:270, 735:865, 0] <= 105) & (a[140:270, 735:865, 2] <= 105)
+        if int(bm_red_top.sum()) >= 350 and int(bm_grn_top.sum()) >= 350:
             tap(adb_serial, 616, 204, 1.0)
             continue
-        if is_city_hud(a):
-            return a
+        bm_red_bot = (a[640:860, 450:660, 0] >= 200) & (a[640:860, 450:660, 1] <= 75) & (a[640:860, 450:660, 2] <= 75)
+        bm_grn_bot = (a[640:860, 660:870, 1] >= 175) & (a[640:860, 660:870, 0] <= 105) & (a[640:860, 660:870, 2] <= 105)
+        if int(bm_red_bot.sum()) >= 400 and int(bm_grn_bot.sum()) >= 400:
+            rys, rxs = np.where(bm_red_bot)
+            tap(adb_serial, int(np.median(rxs) + 450), int(np.median(rys) + 640), 1.0)
+            continue
+        # 5. Governor Profile Open -> Close (1454, 105) ONCE
         if is_gov_profile_open(a):
             tap(adb_serial, 1454, 105, 1.0)
             continue
-        # Full Alliance Screen (grey header y=20..85, x=200..1400 with dark teal body y=200..750, x=600..1350) -> Tap Help (1310, 560) if badge present then close
+        # 6. Event Calendar / Adventurer's Choice (tan header y=20..80, x=550..1350) -> Close (1386, 55) ONCE
+        ec_hdr = a[20:80, 550:1350]
+        is_ec = (ec_hdr[:, :, 0] >= 165) & (ec_hdr[:, :, 1] >= 135) & (ec_hdr[:, :, 2] >= 95) & ((ec_hdr[:, :, 0].astype(np.int32) - ec_hdr[:, :, 2].astype(np.int32)) >= 30)
+        if float(np.mean(is_ec)) > 0.55:
+            tap(adb_serial, 1386, 55, 1.0)
+            continue
+        # 6b. Left Kingdom Chat Drawer Open (beige parchment on left half x=85..820, y=80..800) -> Tap right half (950, 500)
+        chat_body = a[80:800, 85:820]
+        is_chat = (
+            (chat_body[:, :, 0] >= 195)
+            & (chat_body[:, :, 1] >= 180)
+            & (chat_body[:, :, 2] >= 145)
+            & ((chat_body[:, :, 0].astype(np.int32) - chat_body[:, :, 2].astype(np.int32)) >= 15)
+            & ((chat_body[:, :, 0].astype(np.int32) - chat_body[:, :, 2].astype(np.int32)) <= 65)
+        )
+        if float(np.mean(is_chat)) > 0.45:
+            tap(adb_serial, 950, 500, 1.0)
+            continue
+        # 7. Full Alliance Screen -> Tap Help (1310, 560) then Back (48, 52)
         al_hdr = a[20:85, 200:1400]
         al_body = a[200:750, 650:1350]
         is_al_grey = (al_hdr[:, :, 0] >= 145) & (al_hdr[:, :, 0] <= 215) & (np.abs(al_hdr[:, :, 0].astype(np.int32) - al_hdr[:, :, 2].astype(np.int32)) < 22)
         is_al_teal = (al_body[:, :, 2] >= 90) & (al_body[:, :, 0] <= 45)
         if float(np.mean(is_al_grey)) > 0.55 and float(np.mean(is_al_teal)) > 0.40:
             tap(adb_serial, 1310, 560, 1.0)
-            tap(adb_serial, 800, 780, 0.8)
-            tap(adb_serial, 1365, 108, 0.7)
-            tap(adb_serial, 48, 52, 0.8)
+            tap(adb_serial, 48, 52, 1.0)
             continue
-        # Event Calendar (tan header y=20..80, x=200..1350) -> Close (1386, 58)
-        ec_hdr = a[20:80, 200:1350]
-        is_ec = (ec_hdr[:, :, 0] >= 165) & (ec_hdr[:, :, 1] >= 135) & (ec_hdr[:, :, 2] >= 95) & ((ec_hdr[:, :, 0].astype(np.int32) - ec_hdr[:, :, 2].astype(np.int32)) >= 30)
-        if float(np.mean(is_ec[:, :550])) > 0.45 and float(np.mean(is_ec[:, 650:])) > 0.45:
-            tap(adb_serial, 1386, 58, 1.0)
-            continue
-        # Join Alliance / Mail / Character modals
-        bh = a[85:140, 250:1350]
+        # 8. Standard Building / City Management / Quests / Training / Settings modals (grey header y=100..140)
+        bh = a[100:140, 300:1300]
         is_bh = (bh[:, :, 0] >= 150) & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 25)
-        if float(np.mean(is_bh)) > 0.40:
-            tap(adb_serial, 1365, 108, 0.8)
-            tap(adb_serial, 1398, 102, 0.8)
+        if float(np.mean(is_bh)) > 0.45:
+            # Check if top-right X icon is visible at x=1335..1400, y=80..130; if not (e.g. City Management without X), send Android Back keyevent 4
+            x_box = a[80:130, 1335:1400]
+            has_x = int(((x_box[:, :, 0] >= 205) & (x_box[:, :, 1] >= 200) & (x_box[:, :, 2] >= 190)).sum()) >= 45
+            if has_x:
+                tap(adb_serial, 1362, 108, 1.0)
+            else:
+                try:
+                    subprocess.run([ADB_PATH, "-s", adb_serial, "shell", "input", "keyevent", "4"], capture_output=True, timeout=5)
+                except Exception:
+                    tap(adb_serial, 1520, 450, 0.8)
+                time.sleep(1.0)
             continue
+        # 9. Mail / Joined Alliance header (y=35..80) -> SINGLE tap on close X
         mh = a[35:80, 200:1550]
         is_mh = (mh[:, :, 0] >= 140) & (np.abs(mh[:, :, 0].astype(np.int32) - mh[:, :, 1].astype(np.int32)) < 25)
         if float(np.mean(is_mh[:, :1100])) > 0.45:
-            tap(adb_serial, 1408, 62, 0.8)
-            tap(adb_serial, 1540, 48, 0.8)
+            if float(np.mean(is_mh[:, 1260:])) < 0.35:
+                tap(adb_serial, 1395, 58, 1.0)
+            else:
+                tap(adb_serial, 1540, 48, 1.0)
             continue
-        tap(adb_serial, 1454, 105, 0.7)
-        tap(adb_serial, 48, 52, 0.7)
+        if is_city_hud(a):
+            return a
+        # 10. Sub-screen with top-left Back button (Growth Fund / Commander / Tavern) where blue Governor ribbon is hidden
+        gov_blue = float(((a[5:115, 5:80, 2].astype(np.float32) - a[5:115, 5:80, 0].astype(np.float32)) > 25).mean())
+        if gov_blue < 0.15:
+            tap(adb_serial, 48, 52, 1.0)
+        else:
+            tap(adb_serial, 1520, 500, 0.8)
     return capture_screen(adb_serial, shot_path)
 
 
@@ -649,6 +716,8 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
 
         if roster_4197:
             ist["roster4197"] = roster_4197
+            ist["verifiedIn4197"] = True
+            ist["coordinates"]["kingdom"] = "4197"
 
         is_4197_currently_active = any(c["active"] for c in roster_4197)
 
@@ -678,7 +747,7 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
         tap(adb, 1454, 105, 1.0)
 
         # If this instance is on a different kingdom (e.g. #3477 or #4205) and #4197 wasn't switched above, invoke provision_neighbor_kingdom.py
-        if not is_4197_currently_active and not roster_4197:
+        if False and not is_4197_currently_active and not roster_4197:
             prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
             if os.path.exists(prov_script):
                 ist["status"] = "ROTATING"
@@ -797,59 +866,158 @@ def run_t1_only_training(state: dict, inst: dict, cycle_idx: int):
     ist = state["instances"][port]
     ist["status"] = "TRAINING_T1"
 
-    unit_rotation = [
-        {"building": "Barracks", "unit": "T1 Swordsman (Infantry)", "key": "infantry"},
-        {"building": "Archery Range", "unit": "T1 Bowman (Archer)", "key": "archer"},
-        {"building": "Stable", "unit": "T1 Horseman (Cavalry)", "key": "cavalry"},
-        {"building": "Siege Workshop", "unit": "T1 Battering Ram (Siege)", "key": "siege"},
-    ]
-    target = unit_rotation[cycle_idx % len(unit_rotation)]
-    ist["currentTask"] = f"Training STRICT T1 ONLY: {target['unit']} in {target['building']}"
-    save_and_sync_blackbox(state)
-
     a = close_modals_to_hud(adb, port)
     if a is None:
         return
-    if is_world_map(a):
-        tap(adb, 45, 845, 2.2)
-        a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_city_{port}.png"))
 
-    # Verified #4197 City Layout coordinates for Barracks, Archery Range, Stable, and Siege Workshop
-    mil_coords = [(635, 515), (475, 680), (1280, 360), (1125, 585)]
-    bx, by = mil_coords[cycle_idx % len(mil_coords)]
-    tap(adb, bx, by, 1.0)
+    # Per-layout home coordinates:
+    # - :16384 uses Egypt layout (Barracks 630,520)
+    # - :16448 (and :16416 Slot 2 before World Map unlock) has Barracks at (630, 560)
+    # - :16416 Slot 1 has Barracks at (415, 580)
+    if "16384" in port:
+        unit_rotation = [
+            {"building": "Barracks", "unit": "T1 Swordsman (Infantry)", "key": "infantry", "bx": 630, "by": 520},
+            {"building": "Archery Range", "unit": "T1 Bowman (Archer)", "key": "archer", "bx": 505, "by": 675},
+            {"building": "Stable", "unit": "T1 Horseman (Cavalry)", "key": "cavalry", "bx": 1275, "by": 360},
+            {"building": "Siege Workshop", "unit": "T1 Battering Ram (Siege)", "key": "siege", "bx": 1115, "by": 600},
+        ]
+    elif "16448" in port or not has_world_map_unlocked(a):
+        unit_rotation = [
+            {"building": "Barracks", "unit": "T1 Swordsman (Infantry)", "key": "infantry", "bx": 630, "by": 560},
+            {"building": "Archery Range", "unit": "T1 Bowman (Archer)", "key": "archer", "bx": 505, "by": 675},
+            {"building": "Siege Workshop", "unit": "T1 Battering Ram (Siege)", "key": "siege", "bx": 1115, "by": 625},
+            {"building": "Stable", "unit": "T1 Horseman (Cavalry)", "key": "cavalry", "bx": 415, "by": 815},
+        ]
+    else:
+        unit_rotation = [
+            {"building": "Barracks", "unit": "T1 Swordsman (Infantry)", "key": "infantry", "bx": 415, "by": 580},
+            {"building": "Archery Range", "unit": "T1 Bowman (Archer)", "key": "archer", "bx": 310, "by": 710},
+            {"building": "Siege Workshop", "unit": "T1 Battering Ram (Siege)", "key": "siege", "bx": 1115, "by": 625},
+            {"building": "Stable", "unit": "T1 Horseman (Cavalry)", "key": "cavalry", "bx": 415, "by": 815},
+        ]
+
+    ist["currentTask"] = "Training STRICT T1 ONLY across Barracks, Archery Range, Stable & Siege Workshop"
+    save_and_sync_blackbox(state)
+
+    # Ensure inside City at exact home camera position with NO building selected
+    if not is_world_map(a) and has_world_map_unlocked(a):
+        tap(adb, 55, 845, 2.8)
+        a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_city_{port}.png"))
+    for _ in range(3):
+        if a is not None and not is_world_map(a):
+            break
+        # If 'City ENTER' card is open on the World Map (cyan ENTER button at 1160, 650), tap ENTER directly
+        if a is not None:
+            ent = a[600:700, 1020:1300]
+            is_ent = (ent[:, :, 2] >= 180) & (ent[:, :, 1] >= 140) & (ent[:, :, 0] <= 80)
+            if int(is_ent.sum()) >= 2500:
+                tap(adb, 1160, 650, 2.8)
+                a = close_modals_to_hud(adb, port)
+                continue
+        tap(adb, 55, 845, 2.8)
+        a = close_modals_to_hud(adb, port)
 
     shot_ring = os.path.join(SCRIPT_DIR, f"swarm_ring_{port}.png")
-    a_ring = capture_screen(adb, shot_ring)
-    tx_hex, ty_hex = min(1560, bx + 180), min(860, by + 165)
-    if a_ring is not None:
-        # Detect the green Upgrade hex center (gx, gy) and offset (+165, -15) to hit the blue Train hex
-        y0, y1 = max(200, by + 40), min(870, by + 260)
-        x0, x1 = max(100, bx - 120), min(1520, bx + 160)
-        g_mask = (a_ring[y0:y1, x0:x1, 1] >= 165) & (a_ring[y0:y1, x0:x1, 0] <= 70) & (a_ring[y0:y1, x0:x1, 2] <= 60)
-        gys, gxs = np.where(g_mask)
-        if len(gxs) >= 350:
-            gx_c = int(np.median(gxs) + x0)
-            gy_c = int(np.median(gys) + y0)
-            tx_hex = min(1560, gx_c + 165)
-            ty_hex = max(180, gy_c - 15)
-
-    tap(adb, tx_hex, ty_hex, 1.5)
-
     shot_path = os.path.join(SCRIPT_DIR, f"swarm_train_{port}.png")
-    a_mod = capture_screen(adb, shot_path)
-    if a_mod is not None:
+
+    for target in unit_rotation:
+        bx, by = target["bx"], target["by"]
+
+        # Tap #1 on building (collects finished T1 troops if bubble is present, or opens action ring)
+        tap(adb, bx, by, 1.0)
+        a_ring = capture_screen(adb, shot_ring)
+        if a_ring is None:
+            continue
+
+        # Search strictly below the building center (by + 95..245) so City Hall's hex at (498,485) can NEVER be matched
+        if by >= 760:
+            y0, y1 = 715, 895
+            x0, x1 = max(80, bx - 85), min(1540, bx + 85)
+        else:
+            y0, y1 = min(810, by + 95), min(895, by + 245)
+            x0, x1 = max(80, bx - 75), min(1540, bx + 75)
+
+        g_mask = (
+            (a_ring[y0:y1, x0:x1, 1] >= 155)
+            & (a_ring[y0:y1, x0:x1, 0] <= 95)
+            & ((a_ring[y0:y1, x0:x1, 1].astype(np.int32) - a_ring[y0:y1, x0:x1, 0].astype(np.int32)) >= 60)
+            & ((a_ring[y0:y1, x0:x1, 1].astype(np.int32) - a_ring[y0:y1, x0:x1, 2].astype(np.int32)) >= 45)
+        )
+        gys, gxs = np.where(g_mask)
+
+        # If Tap #1 collected finished troops, Tap #2 opens the building's action ring
+        if len(gxs) < 250:
+            tap(adb, bx, by, 1.0)
+            a_ring = capture_screen(adb, shot_ring)
+            if a_ring is not None:
+                g_mask = (
+                    (a_ring[y0:y1, x0:x1, 1] >= 155)
+                    & (a_ring[y0:y1, x0:x1, 0] <= 95)
+                    & ((a_ring[y0:y1, x0:x1, 1].astype(np.int32) - a_ring[y0:y1, x0:x1, 0].astype(np.int32)) >= 60)
+                    & ((a_ring[y0:y1, x0:x1, 1].astype(np.int32) - a_ring[y0:y1, x0:x1, 2].astype(np.int32)) >= 45)
+                )
+                gys, gxs = np.where(g_mask)
+
+        if len(gxs) < 250 or a_ring is None:
+            tap(adb, 250, 120, 0.5)
+            continue
+
+        gx_c = int(np.median(gxs) + x0)
+        gy_c = int(np.median(gys) + y0)
+
+        # Verify via blue ribbon OCR that this is a military building (never tap right hex on City Hall or Wall!)
+        if OCR is not None:
+            rib_sub = a_ring[25:580, 175:1550]
+            is_rib = (rib_sub[:, :, 2] >= 145) & (rib_sub[:, :, 0] <= 55) & ((rib_sub[:, :, 2].astype(np.int32) - rib_sub[:, :, 0].astype(np.int32)) >= 100)
+            rys, rxs = np.where(is_rib)
+            if len(rxs) >= 1500:
+                rcx, rcy = int(np.median(rxs) + 175), int(np.median(rys) + 25)
+                try:
+                    r_res, _ = OCR(a_ring[max(0, rcy - 50) : min(900, rcy + 50), max(0, rcx - 210) : min(1600, rcx + 210)].astype(np.uint8))
+                    rib_title = " ".join(r[1].strip() for r in (r_res or [])).lower()
+                    if any(bad in rib_title for bad in ("hall", "wall", "tavern", "quarry", "farm", "lumber", "mill", "scout", "hospital", "academy", "store", "alliance")):
+                        tap(adb, 250, 120, 0.5)
+                        continue
+                except Exception:
+                    pass
+
+        tx_hex = min(1560, gx_c + 170)
+        ty_hex = max(180, gy_c - 16)
+
+        # Check if the right hex at (tx_hex, ty_hex) is yellow Speedup (already training) vs blue Train (idle)
+        h_box = a_ring[max(0, ty_hex - 40) : min(900, ty_hex + 40), max(0, tx_hex - 40) : min(1600, tx_hex + 40)]
+        yel_spd = (h_box[:, :, 0] >= 195) & (h_box[:, :, 1] >= 145) & (h_box[:, :, 2] <= 80)
+        if int(yel_spd.sum()) >= 350:
+            # Already actively training T1 batch! Update status and deselect cleanly
+            ist["currentTraining"][target["key"]] = f"{target['unit']} (Active Queue)"
+            tap(adb, 250, 120, 0.6)
+            continue
+
+        tap(adb, tx_hex, ty_hex, 1.4)
+        a_mod = capture_screen(adb, shot_path)
+        if a_mod is None:
+            continue
+
+        # Verify that the grey training modal header is open (prevents false triggers on tan ground)
+        bh = a_mod[85:140, 350:1250]
+        is_bh = (bh[:, :, 0] >= 150) & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 25)
         trn_btn = a_mod[690:820, 1080:1370]
         is_trn = (
             ((trn_btn[:, :, 1] >= 135) & (trn_btn[:, :, 2] >= 170) & (trn_btn[:, :, 0] <= 95))
             | ((trn_btn[:, :, 0] >= 195) & (trn_btn[:, :, 1] >= 130) & (trn_btn[:, :, 2] <= 80))
         )
-        if int(is_trn.sum()) >= 1500:
+        if float(np.mean(is_bh)) > 0.40 and int(is_trn.sum()) >= 1500:
             # STRICT T1 ONLY: Tap Tier 1 slot (650, 225) -> Tap TRAIN (1215, 760)
             tap(adb, 650, 225, 0.7)
-            tap(adb, 1215, 760, 1.2)
+            tap(adb, 1215, 760, 1.3)
             a_after = capture_screen(adb, shot_path)
-            ist["screenPreviewB64"] = make_thumbnail_b64(a_after)
+            if a_after is not None and not is_city_hud(a_after):
+                # If Replenish Resources modal popped up, tap Quick Replenish (977, 632) + TRAIN (1215, 760)
+                tap(adb, 977, 632, 1.0)
+                tap(adb, 1215, 760, 1.2)
+                a_after = capture_screen(adb, shot_path)
+            if a_after is not None:
+                ist["screenPreviewB64"] = make_thumbnail_b64(a_after)
             tr_info = ist["currentTraining"]
             tr_info["policy"] = "T1 ONLY"
             tr_info[target["key"]] = f"{target['unit']} (Training T1 Batch)"
@@ -863,10 +1031,115 @@ def run_t1_only_training(state: dict, inst: dict, cycle_idx: int):
                 f"Trained STRICT T1 ONLY batch: +150 {target['unit']} (Tier 1 slot 650,225 -> TRAIN 1215,760)",
                 {"unit": target["unit"], "tier": "T1 ONLY", "building": target["building"]},
             )
-            close_modals_to_hud(adb, port)
-            return
+            tap(adb, 250, 120, 0.6)
+        else:
+            if float(np.mean(is_bh)) > 0.40:
+                tap(adb, 1365, 110, 0.8)
+            tap(adb, 250, 120, 0.6)
 
     ist["currentTraining"]["policy"] = "T1 ONLY"
+    close_modals_to_hud(adb, port)
+
+
+def run_scouting_and_villages(state: dict, inst: dict, cycle_idx: int):
+    """
+    Active Scouting, Fog Exploration, Tribal Village Tech Claiming & Mysterious Cave Investigation.
+    1. Checks left-rail Scout Notification / Telescope icon (x=42..95, y=260..540) or Scout Camp inside City.
+    2. Opens Exploration Modal and taps any 'Explore', 'Visit' (Tribal Village), or 'Investigate' (Cave) button.
+    3. Taps the target on the World Map to dispatch the Scout or claim free Tribal Village technology.
+    """
+    port = inst["port"]
+    adb = inst["adb"]
+    ist = state["instances"][port]
+    ist["status"] = "SCOUTING"
+    ist["currentTask"] = "Dispatching Scouts to Fog, Tribal Villages & Mysterious Caves in #4197"
+    save_and_sync_blackbox(state)
+
+    a = close_modals_to_hud(adb, port)
+    if a is None:
+        return
+
+    shot_scout = os.path.join(SCRIPT_DIR, f"swarm_scout_{port}.png")
+
+    # 1. Check Left HUD Rail for Idle Scout / Village / Cave notification icon (x=35..95, y=250..520)
+    left_rail = a[250:520, 35:95]
+    # Look for gold/cyan/red badge on the left scout button
+    has_scout_rail = int(((left_rail[:, :, 0] >= 185) & (left_rail[:, :, 1] >= 120) & (left_rail[:, :, 2] <= 85)).sum()) >= 120
+    if has_scout_rail:
+        rys, rxs = np.where((left_rail[:, :, 0] >= 185) & (left_rail[:, :, 1] >= 120) & (left_rail[:, :, 2] <= 85))
+        sx_rail = int(np.median(rxs) + 35)
+        sy_rail = int(np.median(rys) + 250)
+        tap(adb, sx_rail, sy_rail, 1.5)
+    else:
+        # Tap Scout Camp directly inside City (Egypt :16384 -> 1045,420 | China :16416/:16448 -> 895,385)
+        if is_world_map(a):
+            tap(adb, 55, 845, 2.5)
+            a = close_modals_to_hud(adb, port)
+        sc_x, sc_y = (1045, 420) if "16384" in port else (895, 385)
+        tap(adb, sc_x, sc_y, 1.2)
+        a_sc = capture_screen(adb, shot_scout)
+        if a_sc is not None:
+            # Find the blue/purple/gold Explore action hex on the selected Scout Camp
+            hex_area = a_sc[260:680, 680:1320]
+            exp_mask = (
+                ((hex_area[:, :, 2] >= 165) & (hex_area[:, :, 1] >= 115) & (hex_area[:, :, 0] <= 85))
+                | ((hex_area[:, :, 0] >= 195) & (hex_area[:, :, 1] >= 135) & (hex_area[:, :, 2] <= 80))
+            )
+            eys, exs = np.where(exp_mask)
+            if len(exs) >= 250:
+                tap(adb, int(np.median(exs) + 680), int(np.median(eys) + 260), 1.5)
+
+    # 2. Check if the Exploration / Scout Camp Modal is now open
+    a_mod = capture_screen(adb, shot_scout)
+    if a_mod is not None:
+        # Look for 'Explore', 'Visit', or 'Investigate' buttons in the modal right column (x=950..1380, y=180..790)
+        btn_col = a_mod[180:790, 950:1380]
+        btn_mask = (
+            ((btn_col[:, :, 2] >= 165) & (btn_col[:, :, 1] >= 125) & (btn_col[:, :, 0] <= 90))
+            | ((btn_col[:, :, 0] >= 195) & (btn_col[:, :, 1] >= 130) & (btn_col[:, :, 2] <= 80))
+        )
+        bys, bxs = np.where(btn_mask)
+        if len(bxs) >= 450:
+            bx = int(np.median(bxs) + 950)
+            by = int(np.median(bys) + 180)
+            tap(adb, bx, by, 2.4)
+            # Now centered on Fog / Tribal Village / Mysterious Cave on World Map -> tap Explore / Send / Claim
+            a_map = capture_screen(adb, shot_scout)
+            if a_map is not None:
+                # Check for center/right Explore or Investigate button (x=880..1420, y=380..790)
+                m_box = a_map[380:790, 880:1420]
+                m_btn = (
+                    ((m_box[:, :, 2] >= 165) & (m_box[:, :, 1] >= 125) & (m_box[:, :, 0] <= 90))
+                    | ((m_box[:, :, 0] >= 195) & (m_box[:, :, 1] >= 130) & (m_box[:, :, 2] <= 80))
+                )
+                mys, mxs = np.where(m_btn)
+                if len(mxs) >= 450:
+                    mx = int(np.median(mxs) + 880)
+                    my = int(np.median(mys) + 380)
+                    tap(adb, mx, my, 1.8)
+                    # If Send Scout march confirmation modal opened, tap Send / March (1160, 760)
+                    a_send = capture_screen(adb, shot_scout)
+                    if a_send is not None and not is_city_hud(a_send):
+                        tap(adb, 1160, 760, 1.6)
+                    ist["currentScouting"] = {
+                        "status": "EXPLORING_FOG_AND_VILLAGES",
+                        "lastDispatchedAt": utc_now_iso(),
+                    }
+                    append_movement(
+                        state,
+                        port,
+                        "SCOUT_EXPLORE",
+                        f"Dispatched Scout / Claimed Tribal Village or Cave in #4197 on {ist.get('activeGovernorName')}",
+                        {"port": port, "status": "EXPLORING"},
+                    )
+                else:
+                    # Tap center tile (800, 450) in case it is a Tribal Village gift node
+                    tap(adb, 800, 450, 1.5)
+                    ist["currentScouting"] = {
+                        "status": "VILLAGE_CHECKED",
+                        "lastDispatchedAt": utc_now_iso(),
+                    }
+
     close_modals_to_hud(adb, port)
 
 
@@ -876,83 +1149,136 @@ def run_resource_farming(state: dict, inst: dict, cycle_idx: int):
     ist = state["instances"][port]
     ist["status"] = "FARMING"
 
+    # Calibrated 1600x900 World Map Search coordinates (bottom icon row y=855, SEARCH button y=615)
     rss_types = [
-        {"name": "FOOD (Cropland)", "code": "FOOD", "iconX": 415, "iconY": 780, "searchX": 415, "searchY": 595},
-        {"name": "WOOD (Logging Camp)", "code": "WOOD", "iconX": 670, "iconY": 780, "searchX": 670, "searchY": 595},
-        {"name": "STONE (Stone Deposit)", "code": "STONE", "iconX": 925, "iconY": 780, "searchX": 925, "searchY": 595},
-        {"name": "GOLD (Gold Deposit)", "code": "GOLD", "iconX": 1180, "iconY": 780, "searchX": 1180, "searchY": 595},
+        {"name": "FOOD (Cropland)", "code": "FOOD", "iconX": 550, "iconY": 855, "searchX": 550, "searchY": 615},
+        {"name": "WOOD (Logging Camp)", "code": "WOOD", "iconX": 800, "iconY": 855, "searchX": 800, "searchY": 615},
+        {"name": "STONE (Stone Deposit)", "code": "STONE", "iconX": 1050, "iconY": 855, "searchX": 1050, "searchY": 615},
     ]
-    target_rss = rss_types[cycle_idx % len(rss_types)]
-    ist["currentTask"] = f"Dispatching T1 Gatherers to farm {target_rss['name']} in #4197"
-    save_and_sync_blackbox(state)
+    if int(ist.get("cityHallLevel", 8)) >= 10:
+        rss_types.append({"name": "GOLD (Gold Deposit)", "code": "GOLD", "iconX": 1300, "iconY": 855, "searchX": 1300, "searchY": 615})
 
-    a = close_modals_to_hud(adb, port)
-    if a is None:
-        return
+    for march_slot in range(2):
+        target_rss = rss_types[(cycle_idx + march_slot) % len(rss_types)]
+        ist["currentTask"] = f"Dispatching T1 Gatherers (March {march_slot+1}/2) to farm {target_rss['name']} in #4197"
+        save_and_sync_blackbox(state)
 
-    if not is_world_map(a):
-        tap(adb, 45, 845, 3.0)
-        a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_map_{port}.png"))
+        a = close_modals_to_hud(adb, port)
+        if a is None:
+            continue
 
-    if a is not None:
+        # Enter World Map (up to 2 taps on 55,845 in case a building was selected)
+        for _ in range(2):
+            if is_world_map(a):
+                break
+            tap(adb, 55, 845, 2.8)
+            a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_map_{port}.png"))
+            if a is not None and is_counselor_dialogue(a):
+                tap(adb, 800, 780, 1.0)
+                tap(adb, 800, 780, 1.0)
+                a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_map_{port}.png"))
+
+        if a is None or not is_world_map(a):
+            continue
+
         coords = parse_map_coordinates(a)
         if coords["x"] > 0 or coords["y"] > 0:
             ist["coordinates"] = coords
         ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a)
         ist["screenPreviewB64"] = make_thumbnail_b64(a)
 
-    tap(adb, 45, 735, 1.5)
-    tap(adb, target_rss["iconX"], target_rss["iconY"], 1.0)
-    tap(adb, target_rss["searchX"], target_rss["searchY"], 2.8)
+        # Open World Map Search bar (45, 735); verify bottom cream bar y=805..895 is open
+        tap(adb, 45, 735, 1.4)
+        a_srch = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_srch_{port}.png"))
+        if a_srch is not None and float(a_srch[805:895, 250:1350].mean()) < 150.0:
+            tap(adb, 45, 735, 1.4)
 
-    shot_node = os.path.join(SCRIPT_DIR, f"swarm_node_{port}.png")
-    a_node = capture_screen(adb, shot_node)
-    node_coords = parse_map_coordinates(a_node) if a_node is not None else {"x": 0, "y": 0}
-    if node_coords.get("x", 0) > 0:
-        ist["coordinates"] = node_coords
+        tap(adb, target_rss["iconX"], target_rss["iconY"], 1.0)
+        tap(adb, target_rss["searchX"], target_rss["searchY"], 2.8)
 
-    tap(adb, 800, 450, 1.5)
-    a_pop = capture_screen(adb, shot_node)
-    if a_pop is not None:
-        g_box = a_pop[480:780, 1000:1450]
-        g_gold = (g_box[:, :, 0] >= 200) & (g_box[:, :, 1] >= 130) & (g_box[:, :, 2] <= 75)
-        gys, gxs = np.where(g_gold)
-        if len(gxs) >= 900:
-            gx = int(np.median(gxs) + 1000)
-            gy = int(np.median(gys) + 480)
-            tap(adb, gx, gy, 1.6)
-            tap(adb, 1260, 225, 1.6)
-            tap(adb, 1160, 815, 1.8)
-            a_m = capture_screen(adb, shot_node)
-            ist["screenPreviewB64"] = make_thumbnail_b64(a_m)
-            ist["currentFarming"] = {
-                "resource": target_rss["code"],
-                "label": target_rss["name"],
-                "nodeX": node_coords.get("x", ist["coordinates"].get("x", 0)),
-                "nodeY": node_coords.get("y", ist["coordinates"].get("y", 0)),
-                "startedAt": utc_now_iso(),
-                "status": "GATHERING",
-            }
-            append_movement(
-                state,
-                port,
-                "FARMING_MARCH",
-                f"Dispatched T1 gather march to {target_rss['name']} at (X:{ist['currentFarming']['nodeX']}, Y:{ist['currentFarming']['nodeY']})",
-                ist["currentFarming"],
-            )
-            return
+        shot_node = os.path.join(SCRIPT_DIR, f"swarm_node_{port}.png")
+        a_node = capture_screen(adb, shot_node)
+        # If Search card is still open (e.g. Level 2 wasn't nearby), step down to Level 1 via '-' and Search again
+        if a_node is not None and float(a_node[805:895, 250:1350].mean()) > 165.0:
+            tap(adb, target_rss["searchX"] - 118, 692, 0.7)
+            tap(adb, target_rss["searchX"], target_rss["searchY"], 2.8)
+            a_node = capture_screen(adb, shot_node)
 
-    # Update currentFarming target info even if all marches are currently out or city is below gather level
-    ist["currentFarming"] = {
-        "resource": target_rss["code"],
-        "label": target_rss["name"],
-        "nodeX": ist["coordinates"].get("x", 0),
-        "nodeY": ist["coordinates"].get("y", 0),
-        "startedAt": utc_now_iso(),
-        "status": "ROTATING_NODES",
-    }
-    tap(adb, 45, 845, 2.0)
+        # Dismiss first-time Counselor resource point tutorial dialogue if present
+        if a_node is not None and is_counselor_dialogue(a_node):
+            tap(adb, 800, 780, 1.0)
+            tap(adb, 800, 780, 1.2)
+            a_node = capture_screen(adb, shot_node)
 
+        node_coords = parse_map_coordinates(a_node) if a_node is not None else {"x": 0, "y": 0}
+        if node_coords.get("x", 0) > 0:
+            ist["coordinates"] = node_coords
+
+        # Tap resource node in center of screen (800, 450) to open Gather popup
+        tap(adb, 800, 450, 1.6)
+        a_pop = capture_screen(adb, shot_node)
+        if a_pop is not None and is_counselor_dialogue(a_pop):
+            tap(adb, 800, 780, 1.0)
+            tap(adb, 800, 780, 1.2)
+            tap(adb, 800, 450, 1.6)
+            a_pop = capture_screen(adb, shot_node)
+
+        if a_pop is not None:
+            g_box = a_pop[420:790, 920:1460]
+            g_gold = (g_box[:, :, 0] >= 195) & (g_box[:, :, 1] >= 130) & (g_box[:, :, 2] <= 80)
+            g_cyan = (g_box[:, :, 2] >= 170) & (g_box[:, :, 1] >= 135) & (g_box[:, :, 0] <= 90)
+            gys, gxs = np.where(g_gold | g_cyan)
+            if len(gxs) >= 600:
+                gx = int(np.median(gxs) + 920)
+                gy = int(np.median(gys) + 420)
+                tap(adb, gx, gy, 1.8)
+                a_nt = capture_screen(adb, shot_node)
+                nt_x, nt_y = 1260, 225
+                if a_nt is not None:
+                    nt_box = a_nt[160:390, 1050:1480]
+                    nt_btn = (
+                        ((nt_box[:, :, 2] >= 170) & (nt_box[:, :, 1] >= 135) & (nt_box[:, :, 0] <= 90))
+                        | ((nt_box[:, :, 0] >= 195) & (nt_box[:, :, 1] >= 130) & (nt_box[:, :, 2] <= 80))
+                    )
+                    nys, nxs = np.where(nt_btn)
+                    if len(nxs) >= 500:
+                        nt_x = int(np.median(nxs) + 1050)
+                        nt_y = int(np.median(nys) + 160)
+                tap(adb, nt_x, nt_y, 1.8)
+                tap(adb, 1160, 815, 2.0)
+                a_m = capture_screen(adb, shot_node)
+                ist["screenPreviewB64"] = make_thumbnail_b64(a_m)
+                ist["currentFarming"] = {
+                    "resource": target_rss["code"],
+                    "label": target_rss["name"],
+                    "nodeX": node_coords.get("x", ist["coordinates"].get("x", 0)),
+                    "nodeY": node_coords.get("y", ist["coordinates"].get("y", 0)),
+                    "startedAt": utc_now_iso(),
+                    "status": "GATHERING",
+                }
+                append_movement(
+                    state,
+                    port,
+                    "FARMING_MARCH",
+                    f"Dispatched T1 gather march to {target_rss['name']} at (X:{ist['currentFarming']['nodeX']}, Y:{ist['currentFarming']['nodeY']})",
+                    ist["currentFarming"],
+                )
+                # Continue to dispatch next open march slot
+                continue
+
+        # Update currentFarming target info even if all marches are currently out
+        ist["currentFarming"] = {
+            "resource": target_rss["code"],
+            "label": target_rss["name"],
+            "nodeX": ist["coordinates"].get("x", 0),
+            "nodeY": ist["coordinates"].get("y", 0),
+            "startedAt": utc_now_iso(),
+            "status": "ROTATING_NODES",
+        }
+        tap(adb, 250, 150, 0.8)
+
+    # Return cleanly to City after multi-march dispatch
+    tap(adb, 55, 845, 2.2)
 
 def run_city_builder_burst(state: dict, inst: dict, steps_count: int = 12):
     port = inst["port"]
@@ -1068,19 +1394,28 @@ def main():
             ensure_rok_foreground(adb)
             ist = state["instances"][port]
 
-            if cycle_idx == 0 or (cycle_idx % 4 == 0) or str(ist.get("coordinates", {}).get("kingdom", "4197")) != "4197":
+            # 0. Kingdom Lock: Only audit Character Management if not yet verified in #4197
+            if not ist.get("verifiedIn4197") and not ist.get("roster4197"):
                 audit_and_ensure_4197_roster(state, inst)
+                ist["verifiedIn4197"] = True
 
+            # 1. Queue #1 — Military Training (Barracks, Archery Range, Stable, Siege Workshop -> T1 ONLY)
+            run_t1_only_training(state, inst, cycle_idx)
+
+            # 2. Queue #2 — Active Scouting, Fog Exploration, Tribal Villages & Mysterious Caves
+            run_scouting_and_villages(state, inst, cycle_idx)
+
+            # 3. Queue #3 — Multi-March Resource Gathering (Fill open march slots on Food, Wood, Stone)
             a_check = close_modals_to_hud(adb, port)
-            if a_check is not None and not has_world_map_unlocked(a_check):
-                # Early tutorial city (Scout Camp / World Map not unlocked yet) -> Fast-track 22 builder/tutorial steps
-                run_city_builder_burst(state, inst, steps_count=22)
-            else:
-                run_blackbox_threat_check(state, inst)
-                run_t1_only_training(state, inst, cycle_idx)
-                run_city_builder_burst(state, inst, steps_count=12)
+            if a_check is not None and has_world_map_unlocked(a_check):
                 run_resource_farming(state, inst, cycle_idx)
-                maybe_rotate_or_sleep(state, inst, cycle_idx)
+
+            # 4. Queue #4 — Smart City Hall & Academy Builder (Fast 6-step pass for idle builders/quests)
+            run_city_builder_burst(state, inst, steps_count=6)
+
+            # 5. Queue #5 — Watchtower & Mail Threat Recon
+            run_blackbox_threat_check(state, inst)
+            ist["sleepStatus"] = "AWAKE (HARMONIOUS 5-QUEUE LOOP)"
 
             hs_hit = _LAST_HANDSHAKE_HIT.pop(adb, None)
             if hs_hit:

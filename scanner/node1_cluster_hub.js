@@ -50,16 +50,14 @@ while ($true) {
     try {
         $loopTick++
         if ($loopTick % 15 -eq 1) {
-            $venvPy = "$WorkDir\\.venv\\Scripts\\python.exe"
-            $brainDir = "$WorkDir\\bastion-brain"
-            if ((Test-Path $venvPy) -and (Test-Path $brainDir)) {
-                $cProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*-m cipher*" }
-                if (-not $cProc) {
-                    Start-Process -FilePath $venvPy -ArgumentList "-u","-m","cipher","--settings","$WorkDir\\.bastion_aws_credentials" -WorkingDirectory $brainDir -RedirectStandardOutput "$WorkDir\\cipher_stdout.log" -RedirectStandardError "$WorkDir\\cipher_stderr.log" -WindowStyle Hidden
-                }
+            # Do NOT spawn cipher if swarm_4197_orchestrator is active (prevents two brains fighting over the same ADB ports)
+            $swarmProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*swarm_4197_orchestrator*" }
+            $venvPy = "$WorkDir\.venv\Scripts\python.exe"
+            $brainDir = "$WorkDir\bastion-brain"
+            if ((-not $swarmProc) -and (Test-Path $venvPy) -and (Test-Path $brainDir)) {
                 $bProc = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -OperationTimeoutSec 3 -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*-m brain*" }
                 if (-not $bProc) {
-                    Start-Process -FilePath $venvPy -ArgumentList "-u","-m","brain","--env-file","$WorkDir\\.bastion_brain_env","--node-id","sidekick","--node-role","STANDBY","--node-priority","2" -WorkingDirectory $brainDir -RedirectStandardOutput "$WorkDir\\brain_standby.log" -RedirectStandardError "$WorkDir\\brain_standby_err.log" -WindowStyle Hidden
+                    Start-Process -FilePath $venvPy -ArgumentList "-u","-m","brain","--env-file","$WorkDir\.bastion_brain_env","--node-id","sidekick","--node-role","STANDBY","--node-priority","2" -WorkingDirectory $brainDir -RedirectStandardOutput "$WorkDir\brain_standby.log" -RedirectStandardError "$WorkDir\brain_standby_err.log" -WindowStyle Hidden
                 }
             }
         }

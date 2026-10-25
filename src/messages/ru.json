@@ -1511,7 +1511,8 @@
     "err_update": "Не удалось обновить губернатора: {error}",
     "err_delete": "Не удалось удалить губернатора: {error}",
     "err_unlock": "Не удалось разблокировать губернатора: {error}",
-    "err_generic": "Ошибка: {error}"
+    "err_generic": "Ошибка: {error}",
+    "role_superadmin_readonly": "СуперАдмин (только чтение)"
   },
   "AccountAgeAudit": {
     "page_title": "Аудит возраста и миграции правителей",

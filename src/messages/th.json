@@ -1511,7 +1511,8 @@
     "err_update": "ไม่สามารถอัปเดตผู้ว่าการ: {error}",
     "err_delete": "ไม่สามารถลบผู้ว่าการ: {error}",
     "err_unlock": "ไม่สามารถปลดล็อคผู้ว่าการ: {error}",
-    "err_generic": "ข้อผิดพลาด: {error}"
+    "err_generic": "ข้อผิดพลาด: {error}",
+    "role_superadmin_readonly": "ผู้ดูแลระบบสูงสุด (อ่านอย่างเดียว)"
   },
   "AccountAgeAudit": {
     "page_title": "ผู้ว่าราชการจังหวัดตรวจสอบอายุและการย้ายถิ่นฐาน",

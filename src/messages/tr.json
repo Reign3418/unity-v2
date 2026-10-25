@@ -1511,7 +1511,8 @@
     "err_update": "Vali güncellenemedi: {error}",
     "err_delete": "Vali silinemedi: {error}",
     "err_unlock": "Vali kilidi açılamadı: {error}",
-    "err_generic": "Hata: {error}"
+    "err_generic": "Hata: {error}",
+    "role_superadmin_readonly": "Süper Yönetici (Salt Okunur)"
   },
   "AccountAgeAudit": {
     "page_title": "Vali Yaşı ve Göç Denetimi",

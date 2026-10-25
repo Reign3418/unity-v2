@@ -1511,7 +1511,8 @@
     "err_update": "Không thể cập nhật thống đốc: {error}",
     "err_delete": "Không thể xóa thống đốc: {error}",
     "err_unlock": "Không thể mở khóa thống đốc: {error}",
-    "err_generic": "Lỗi: {error}"
+    "err_generic": "Lỗi: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Chỉ đọc)"
   },
   "AccountAgeAudit": {
     "page_title": "Kiểm tra Tuổi và Lịch sử Di cư Thống đốc",

@@ -1511,7 +1511,8 @@
     "err_update": "총독 업데이트 실패: {error}",
     "err_delete": "총독 삭제 실패: {error}",
     "err_unlock": "총독 잠금 해제 실패: {error}",
-    "err_generic": "오류: {error}"
+    "err_generic": "오류: {error}",
+    "role_superadmin_readonly": "슈퍼 관리자 (읽기 전용)"
   },
   "AccountAgeAudit": {
     "page_title": "총독 계정 연식 및 이민 감사",

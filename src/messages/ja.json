@@ -1511,7 +1511,8 @@
     "err_update": "ガバナーを更新できませんでした: {error}",
     "err_delete": "ガバナーの削除に失敗しました: {error}",
     "err_unlock": "ガバナのロックを解除できませんでした: {error}",
-    "err_generic": "エラー: {error}"
+    "err_generic": "エラー: {error}",
+    "role_superadmin_readonly": "スーパー管理者（閲覧専用）"
   },
   "AccountAgeAudit": {
     "page_title": "知事の年齢と移住の監査",

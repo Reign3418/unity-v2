@@ -1511,7 +1511,8 @@
     "err_update": "فشل تحديث الحاكم: {error}",
     "err_delete": "فشل حذف الحاكم: {error}",
     "err_unlock": "فشل فك قفل الحاكم: {error}",
-    "err_generic": "خطأ: {error}"
+    "err_generic": "خطأ: {error}",
+    "role_superadmin_readonly": "مشرف عام (للقراءة فقط)"
   },
   "AccountAgeAudit": {
     "page_title": "تدقيق عمر الحاكم والهجرة",

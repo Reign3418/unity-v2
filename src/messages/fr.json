@@ -1511,7 +1511,8 @@
     "err_update": "Échec de la mise à jour du gouverneur : {error}",
     "err_delete": "Échec de la suppression du gouverneur : {error}",
     "err_unlock": "Échec du déverrouillage du gouverneur : {error}",
-    "err_generic": "Erreur : {error}"
+    "err_generic": "Erreur : {error}",
+    "role_superadmin_readonly": "SuperAdmin (Lecture seule)"
   },
   "AccountAgeAudit": {
     "page_title": "Audit d'Âge et de Migration des Gouverneurs",

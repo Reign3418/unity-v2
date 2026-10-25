@@ -1511,7 +1511,8 @@
     "err_update": "Nie udało się zaktualizować gubernatora: {error}",
     "err_delete": "Nie udało się usunąć gubernatora: {error}",
     "err_unlock": "Nie udało się odblokować gubernatora: {error}",
-    "err_generic": "Błąd: {error}"
+    "err_generic": "Błąd: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Tylko do odczytu)"
   },
   "AccountAgeAudit": {
     "page_title": "Audyt wieku i migracji gubernatora",

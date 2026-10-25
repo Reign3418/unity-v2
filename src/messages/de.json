@@ -1511,7 +1511,8 @@
     "err_update": "Gouverneur konnte nicht aktualisiert werden: {error}",
     "err_delete": "Gouverneur konnte nicht gelöscht werden: {error}",
     "err_unlock": "Gouverneur konnte nicht entsperrt werden: {error}",
-    "err_generic": "Fehler: {error}"
+    "err_generic": "Fehler: {error}",
+    "role_superadmin_readonly": "SuperAdmin (Nur Lesen)"
   },
   "AccountAgeAudit": {
     "page_title": "Gouverneurs-Alter & Migrations-Audit",
