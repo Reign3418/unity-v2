@@ -632,15 +632,100 @@ function buildGuideEmbed(rawQuery = '', isLegendary = true) {
 }
 
 /**
+ * Pure-Node fallback parser for Governor Profile OCR text lines
+ */
+function parseGovernorProfileFromRawText(rawLines = []) {
+  const lines = rawLines.map((l) => String(l || '').trim()).filter(Boolean);
+  const fullText = lines.join(' ');
+  const idMatch = fullText.match(/(?:ID|1D)\s*[:：]?\s*(\d{5,12})/i);
+  if (
+    !idMatch &&
+    !(
+      /GOVERNOR/i.test(fullText) &&
+      (/KILL\s*POINTS/i.test(fullText) || /ALLIANCE/i.test(fullText))
+    )
+  ) {
+    return { mode: 'GENERAL_OCR', lines: lines.slice(0, 40) };
+  }
+
+  const govId = idMatch ? idMatch[1] : '';
+  let allianceTag = '';
+  let allianceFull = '';
+  for (const line of lines) {
+    const am = line.match(/[\[\(【]([^\]\)】]{2,6})[\]\)】]\s*(.*)/);
+    if (am) {
+      allianceTag = am[1].trim();
+      allianceFull = am[2]?.trim() ? `[${allianceTag}]${am[2].trim()}` : `[${allianceTag}]`;
+      break;
+    }
+  }
+
+  const isSelfProfile =
+    /Action\s*Points/i.test(fullText) || /\d[\d,]*\s*\/\s*1[.,]?[05]00/.test(fullText);
+  const apMatch = fullText.match(/(\d[\d,]*\s*\/\s*1[.,]?[05]00)/);
+  const actionPoints = apMatch ? apMatch[1].replace(/\s+/g, '') : '';
+
+  let govName = 'Governor';
+  const govIdx = lines.findIndex((l) => /Governor|\(ID/i.test(l));
+  if (govIdx !== -1) {
+    for (let i = govIdx + 1; i <= Math.min(lines.length - 1, govIdx + 3); i++) {
+      const cleaned = lines[i].replace(/^[\s:：•·\-\*]+/, '').trim();
+      if (
+        cleaned &&
+        !/^(Civilization|Alliance|Power|Kill|Action|\(ID)/i.test(cleaned) &&
+        !/^\d[\d,./]*$/.test(cleaned)
+      ) {
+        govName = cleaned;
+        break;
+      }
+    }
+  }
+
+  const numLines = lines
+    .map((l) => Number(l.replace(/[^0-9]/g, '')))
+    .filter((n) => n >= 10000 && String(n) !== govId);
+  const power = numLines[0] || 0;
+  const killPoints = numLines[1] || 0;
+
+  return {
+    mode: 'GOVERNOR_PROFILE',
+    gov_id: govId,
+    gov_name: govName,
+    alliance_tag: allianceTag,
+    alliance_full: allianceFull || (allianceTag ? `[${allianceTag}]` : 'None'),
+    civilization: 'Unknown',
+    power,
+    kill_points: killPoints,
+    is_self_profile: isSelfProfile,
+    action_points: actionPoints,
+    lines: lines.slice(0, 30),
+  };
+}
+
+/**
  * Local $0.00 RapidOCR + OpenCV Screenshot Scanner (Resource Bags, Speedups, Profiles)
+ * Works on Windows (python), Railway Linux Docker (python3/python), + Pure-Node Cloud Fallback!
  */
 async function runLocalOcrOnUrl(imageUrl) {
+  for (const pyBin of ['python', 'python3']) {
+    try {
+      const { stdout } = await execFileAsync(pyBin, [OCR_SCRIPT_PATH, imageUrl], {
+        encoding: 'utf8',
+        timeout: 25000,
+      });
+      return JSON.parse(stdout.trim());
+    } catch {
+      // try next python binary or pure-node fallback
+    }
+  }
+
   try {
-    const { stdout } = await execFileAsync('python', [OCR_SCRIPT_PATH, imageUrl], {
-      encoding: 'utf8',
-      timeout: 25000,
-    });
-    return JSON.parse(stdout.trim());
+    const apiUrl = `https://api.ocr.space/parse/imageurl?apikey=helloworld&url=${encodeURIComponent(imageUrl)}&OCREngine=2`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+    const rawText = data?.ParsedResults?.[0]?.ParsedText || '';
+    const rawLines = rawText.split(/\r?\n/).filter(Boolean);
+    return parseGovernorProfileFromRawText(rawLines);
   } catch (err) {
     console.error('[HERMES OCR Error]:', err.message);
     return { error: err.message };
