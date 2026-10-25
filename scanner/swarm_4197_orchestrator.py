@@ -136,22 +136,22 @@ def detect_and_hit_alliance_handshake(adb_serial: str, a: np.ndarray | None) -> 
     if a is None or not is_city_hud(a):
         return None
     try:
-        # 1. Expanded bottom bar: Require blue Alliance shield tab (805:875, 1130:1195) to be visible (not covered by World Map Search cards)
-        al_tab = a[805:875, 1130:1195]
+        # 1. Expanded bottom bar: Green-ringed cream Handshake square above Alliance shield tab at (1162, 796) [y=770..822, x=1125..1200]
+        al_tab = a[825:880, 1130:1195]
         al_tab_blue = float(((al_tab[:, :, 2].astype(np.int32) - al_tab[:, :, 0].astype(np.int32) > 35) & (al_tab[:, :, 2] > 120)).mean())
-        ah_exp_red = (a[680:740, 1170:1220, 0] >= 185) & (a[680:740, 1170:1220, 1] <= 65) & (a[680:740, 1170:1220, 2] <= 65)
-        ah_box = a[695:775, 1130:1205]
-        ah_cream = (ah_box[:, :, 0] >= 210) & (ah_box[:, :, 1] >= 200) & (ah_box[:, :, 2] >= 175)
-        ah_gold = (
-            (ah_box[:, :, 0] >= 195)
-            & (ah_box[:, :, 1] >= 115)
-            & (ah_box[:, :, 2] <= 95)
-            & ((ah_box[:, :, 0].astype(np.int32) - ah_box[:, :, 2].astype(np.int32)) >= 85)
+        ah_box = a[770:822, 1125:1200]
+        ah_cream = (ah_box[:, :, 0] >= 210) & (ah_box[:, :, 1] >= 210) & (ah_box[:, :, 2] >= 185)
+        ah_grn_ring = (ah_box[:, :, 1] >= 145) & (ah_box[:, :, 1] > ah_box[:, :, 0] + 20) & (ah_box[:, :, 1] > ah_box[:, :, 2] + 40)
+        ah_hands = (
+            (ah_box[:, :, 0] >= 185)
+            & (ah_box[:, :, 1] >= 105)
+            & (ah_box[:, :, 2] <= 115)
+            & ((ah_box[:, :, 0].astype(np.int32) - ah_box[:, :, 2].astype(np.int32)) >= 65)
         )
-        if al_tab_blue > 0.45 and int(ah_exp_red.sum()) >= 75 and int(ah_cream.sum()) >= 200 and int(ah_gold.sum()) >= 85:
-            tap(adb_serial, 1170, 735, 0.4)
-            _LAST_HANDSHAKE_HIT[adb_serial] = (1170, 735, time.time())
-            return (1170, 735)
+        if al_tab_blue > 0.35 and int(ah_cream.sum()) >= 320 and int(ah_grn_ring.sum()) >= 1100 and int(ah_hands.sum()) >= 60:
+            tap(adb_serial, 1162, 796, 0.4)
+            _LAST_HANDSHAKE_HIT[adb_serial] = (1162, 796, time.time())
+            return (1162, 796)
 
         # 2. Collapsed bottom bar: Handshake bubble at (1432, 845)
         ah_col_red = (a[795:840, 1440:1480, 0] >= 185) & (a[795:840, 1440:1480, 1] <= 65) & (a[795:840, 1440:1480, 2] <= 65)
@@ -198,16 +198,27 @@ def make_thumbnail_b64(arr: np.ndarray | None, width: int = 480, height: int = 2
 def is_city_hud(a: np.ndarray | None) -> bool:
     if a is None:
         return False
-    p = a[25:70, 85:200]
-    green = (p[:, :, 1] > 140) & (p[:, :, 1] > p[:, :, 0] + 30) & (p[:, :, 1] > p[:, :, 2] + 30)
-    if float(np.mean(green)) < 0.08:
+    gov_blue = float(((a[5:115, 5:80, 2].astype(np.float32) - a[5:115, 5:80, 0].astype(np.float32)) > 25).mean())
+    if gov_blue < 0.20:
         return False
-    rib = a[85:125, 15:70]
-    if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) < 28.0:
+    bl_mean = float(a[800:890, 10:100].mean())
+    if bl_mean < 55.0:
         return False
     bh = a[85:140, 250:1350]
-    is_bh = (bh[:, :, 0] >= 150) & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 25)
-    if float(np.mean(is_bh)) > 0.40:
+    is_bh = (
+        (bh[:, :, 0] >= 150)
+        & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 20)
+        & (np.abs(bh[:, :, 1].astype(np.int32) - bh[:, :, 2].astype(np.int32)) < 25)
+    )
+    if float(np.mean(is_bh)) > 0.45:
+        return False
+    al_hdr = a[20:85, 200:1400]
+    is_al = (
+        (al_hdr[:, :, 0] >= 145)
+        & (al_hdr[:, :, 0] <= 215)
+        & (np.abs(al_hdr[:, :, 0].astype(np.int32) - al_hdr[:, :, 2].astype(np.int32)) < 22)
+    )
+    if float(np.mean(is_al)) > 0.55:
         return False
     return True
 
@@ -297,6 +308,16 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
         tap(adb_serial, 1454, 105, 0.7)
         tap(adb_serial, 48, 52, 0.7)
     return capture_screen(adb_serial, shot_path)
+
+
+def merge_rss_bar(prev_rss: dict | None, a: np.ndarray | None) -> dict:
+    parsed = parse_rss_bar(a)
+    if parsed.get("food", "0") == "0" and parsed.get("wood", "0") == "0" and prev_rss:
+        out = dict(prev_rss)
+        if parsed.get("gems", "0") != "0":
+            out["gems"] = parsed["gems"]
+        return out
+    return parsed
 
 
 def parse_rss_bar(a: np.ndarray | None) -> dict:
@@ -531,7 +552,7 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
     a = close_modals_to_hud(adb, port)
     if a is not None:
         ist["screenPreviewB64"] = make_thumbnail_b64(a)
-        ist["rssBags"] = parse_rss_bar(a)
+        ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a)
         pwr = parse_hud_power(a)
         if pwr > 0:
             ist["power"] = pwr
@@ -647,7 +668,7 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
             a_after = close_modals_to_hud(adb, port)
             if a_after is not None:
                 ist["screenPreviewB64"] = make_thumbnail_b64(a_after)
-                ist["rssBags"] = parse_rss_bar(a_after)
+                ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a_after)
                 ist["coordinates"]["kingdom"] = "4197"
             return
 
@@ -678,7 +699,7 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
                 a_post_prov = close_modals_to_hud(adb, port)
                 if a_post_prov is not None:
                     ist["screenPreviewB64"] = make_thumbnail_b64(a_post_prov)
-                    ist["rssBags"] = parse_rss_bar(a_post_prov)
+                    ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a_post_prov)
                     ist["coordinates"] = {"kingdom": "4197", "x": 0, "y": 0}
 
 
@@ -877,7 +898,7 @@ def run_resource_farming(state: dict, inst: dict, cycle_idx: int):
         coords = parse_map_coordinates(a)
         if coords["x"] > 0 or coords["y"] > 0:
             ist["coordinates"] = coords
-        ist["rssBags"] = parse_rss_bar(a)
+        ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a)
         ist["screenPreviewB64"] = make_thumbnail_b64(a)
 
     tap(adb, 45, 735, 1.5)
@@ -985,7 +1006,7 @@ def run_city_builder_burst(state: dict, inst: dict, steps_count: int = 12):
     a = capture_screen(adb, shot_path)
     if a is not None:
         ist["screenPreviewB64"] = make_thumbnail_b64(a)
-        ist["rssBags"] = parse_rss_bar(a)
+        ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a)
         pwr = parse_hud_power(a)
         if pwr > 0:
             ist["power"] = pwr

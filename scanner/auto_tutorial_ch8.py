@@ -1877,21 +1877,21 @@ def main():
             continue
 
         if is_city_hud(a2):
-            # Immediately hit Alliance Help Handshake bubble on bottom HUD (expanded at 1170,735 or collapsed at 1432,845) when Alliance tab is visible
-            al_tab_g = a2[805:875, 1130:1195]
+            # Immediately hit Alliance Help Handshake bubble on bottom HUD (expanded at 1162,796 or collapsed at 1432,845) when Alliance tab is visible
+            al_tab_g = a2[825:880, 1130:1195]
             al_tab_blue_g = float(((al_tab_g[:, :, 2].astype(np.int32) - al_tab_g[:, :, 0].astype(np.int32) > 35) & (al_tab_g[:, :, 2] > 120)).mean())
-            ah_exp_red_g = (a2[680:740, 1170:1220, 0] >= 185) & (a2[680:740, 1170:1220, 1] <= 65) & (a2[680:740, 1170:1220, 2] <= 65)
-            ah_box_g = a2[695:775, 1130:1205]
-            ah_cream_g = (ah_box_g[:, :, 0] >= 210) & (ah_box_g[:, :, 1] >= 200) & (ah_box_g[:, :, 2] >= 175)
-            ah_gold_g = (
-                (ah_box_g[:, :, 0] >= 195)
-                & (ah_box_g[:, :, 1] >= 115)
-                & (ah_box_g[:, :, 2] <= 95)
-                & ((ah_box_g[:, :, 0].astype(np.int32) - ah_box_g[:, :, 2].astype(np.int32)) >= 85)
+            ah_box_g = a2[770:822, 1125:1200]
+            ah_cream_g = (ah_box_g[:, :, 0] >= 210) & (ah_box_g[:, :, 1] >= 210) & (ah_box_g[:, :, 2] >= 185)
+            ah_grn_ring_g = (ah_box_g[:, :, 1] >= 145) & (ah_box_g[:, :, 1] > ah_box_g[:, :, 0] + 20) & (ah_box_g[:, :, 1] > ah_box_g[:, :, 2] + 40)
+            ah_hands_g = (
+                (ah_box_g[:, :, 0] >= 185)
+                & (ah_box_g[:, :, 1] >= 105)
+                & (ah_box_g[:, :, 2] <= 115)
+                & ((ah_box_g[:, :, 0].astype(np.int32) - ah_box_g[:, :, 2].astype(np.int32)) >= 65)
             )
-            if al_tab_blue_g > 0.45 and int(ah_exp_red_g.sum()) >= 75 and int(ah_cream_g.sum()) >= 200 and int(ah_gold_g.sum()) >= 85:
-                print(f"[Step {step:02d}] Expanded Alliance Help Handshake -> Tap (1170, 735)")
-                tap(args.adb, 1170, 735, 0.8)
+            if al_tab_blue_g > 0.35 and int(ah_cream_g.sum()) >= 320 and int(ah_grn_ring_g.sum()) >= 1100 and int(ah_hands_g.sum()) >= 60:
+                print(f"[Step {step:02d}] Expanded Alliance Help Handshake -> Tap (1162, 796)")
+                tap(args.adb, 1162, 796, 0.8)
             ah_col_red_g = (a2[795:840, 1440:1480, 0] >= 185) & (a2[795:840, 1440:1480, 1] <= 65) & (a2[795:840, 1440:1480, 2] <= 65)
             ah_col_cream_g = float(a2[825:875, 1405:1455, 0].mean()) > float(a2[825:875, 1405:1455, 2].mean()) + 15.0
             if int(ah_col_red_g.sum()) >= 70 and ah_col_cream_g:
