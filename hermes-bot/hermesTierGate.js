@@ -100,6 +100,8 @@ export function registerGuildDeployment(
   GUILD_TIERS[guildId] = {
     ...existing,
     guildId,
+    buyerDiscordId: existing.buyerDiscordId || blueprintMeta.buyerDiscordId || null,
+    buyerUsername: existing.buyerUsername || blueprintMeta.buyerUsername || null,
     blueprintType: blueprintMeta.blueprintType || existing.blueprintType || 'KINGDOM_WAR_SERVER',
     deployOptions: blueprintMeta.deployOptions || existing.deployOptions || {
       kingdomId: '4194',

@@ -183,6 +183,66 @@ async function relaySupportEventToValheonHq({
   }
 }
 
+const VALHEON_FOUNDER_IDS = new Set(['184977944433786880']);
+
+/**
+ * Cryptographically verifies that the user triggering a 1-Click Server Recovery / Self-Heal
+ * or Blueprint Provisioning is the Verified Buyer, the true Discord Server Owner (guild.owner_id),
+ * or an authorized Home Kingdom R5 Sovereign — strictly blocking R4s, visiting diplomats, and random members!
+ */
+async function verifyServerSovereignAuthorization(ix, targetGuildId, savedStatus = {}) {
+  const user = ix.member?.user || ix.user || { id: '0', username: 'unknown' };
+  const userId = String(user.id || '');
+
+  // 1. Valheon Principal / Founder Override
+  if (VALHEON_FOUNDER_IDS.has(userId)) {
+    return { allowed: true, reason: 'VALHEON_PRINCIPAL_ARCHITECT', ownerId: userId };
+  }
+
+  // 2. Fetch live Discord Guild metadata to verify true Discord Server Owner (guild.owner_id)
+  const guildInfo = await discordApi('GET', `/guilds/${targetGuildId}`).catch(() => null);
+  const ownerId = guildInfo?.owner_id || savedStatus?.buyerDiscordId || null;
+
+  if (guildInfo?.owner_id && String(guildInfo.owner_id) === userId) {
+    return { allowed: true, reason: 'DISCORD_SERVER_OWNER', ownerId: guildInfo.owner_id };
+  }
+
+  // 3. Verified Original Buyer who purchased/deployed this server
+  if (savedStatus?.buyerDiscordId && String(savedStatus.buyerDiscordId) === userId) {
+    return { allowed: true, reason: 'VERIFIED_BUYER', ownerId: savedStatus.buyerDiscordId };
+  }
+
+  // 4. Home Kingdom R5 Role Check (Only in single-kingdom servers; in Multi-Kingdom Diplo/Coalition servers,
+  // rival Kings also receive @King so recovery is strictly locked to the Server Owner / Buyer!)
+  const bpType = savedStatus?.blueprintType || 'KINGDOM_WAR_SERVER';
+  if (
+    String(ix.guild_id) === String(targetGuildId) &&
+    (bpType === 'KINGDOM_WAR_SERVER' || bpType === 'JUMPER_GENESIS_GROUP')
+  ) {
+    const memberRoleIds = new Set(Array.isArray(ix.member?.roles) ? ix.member.roles : []);
+    if (memberRoleIds.size > 0) {
+      const guildRoles = await discordApi('GET', `/guilds/${targetGuildId}/roles`).catch(
+        () => []
+      );
+      if (Array.isArray(guildRoles)) {
+        const hasR5SovereignRole = guildRoles.some(
+          (r) =>
+            memberRoleIds.has(r.id) &&
+            (r.name.includes('Crowned Sovereign') ||
+              r.name.includes('Project Founder (R5)') ||
+              r.name.includes('Grand Architect')) &&
+            !r.name.includes('(R4)')
+        );
+        if (hasR5SovereignRole) {
+          return { allowed: true, reason: 'HOME_KINGDOM_R5_SOVEREIGN', ownerId };
+        }
+      }
+    }
+  }
+
+  return { allowed: false, reason: 'UNAUTHORIZED_R4_OR_MEMBER', ownerId };
+}
+
 /**
  * Zero-Cost ($0.00) 17-Language Translator & Peerless Scholar Engine for Valheon HQ & 1-Click Kingdom Servers
  */
@@ -1532,9 +1592,83 @@ async function handleInteraction(ix) {
     }
 
     // A5. CUSTOMER SELF-HEALING ($0 FREE REPAIR) & CENTRAL VALHEON HQ SUPPORT RELAY
+    // STRICTLY LOCKED TO DISCORD SERVER OWNER / VERIFIED BUYER / HOME R5 (BLOCKS ALL R4s & RANDOM MEMBERS!)
     if (customId === 'hermes_free_relaunch_btn') {
-      await reply({ type: 5 });
+      await reply({ type: 5, data: { flags: 64 } });
       const savedStatus = getGuildTierStatus(guildId);
+      const authCheck = await verifyServerSovereignAuthorization(ix, guildId, savedStatus);
+
+      if (!authCheck.allowed) {
+        await relaySupportEventToValheonHq({
+          title: `🛡️ BLOCKED UNAUTHORIZED SERVER REPAIR ATTEMPT // Guild \`${guildId}\``,
+          description:
+            `• **Blocked User:** <@${user.id}> (\`${user.username}\`)\n` +
+            `• **Server ID:** \`${guildId}\`\n` +
+            `• **Reason:** \`${authCheck.reason}\` (Only Server Owner / Buyer / R5 Sovereign is permitted)\n` +
+            `• **Customer Purchase Protected:** Zero changes were made to the server.`,
+          color: 0xef4444,
+          targetGuildId: guildId,
+          targetChannelId: channelId,
+        });
+
+        return editOriginal({
+          embeds: [
+            {
+              title: '🛡️ SOVEREIGN PURCHASE PROTECTION // ACCESS DENIED',
+              description:
+                `Only the **Discord Server Owner**, **Verified Buyer**${
+                  authCheck.ownerId ? ` (<@${authCheck.ownerId}>)` : ''
+                }, or **Crowned R5 Sovereign** is authorized to trigger a **1-Click Server Recovery / Self-Heal**.\n\n` +
+                `• **R4 Officers, Diplomats, and standard members are strictly blocked** from resetting channels, altering the server blueprint, or exporting Discord Server Templates.\n` +
+                `• This blocked attempt by <@${user.id}> has been logged to protect this Kingdom's purchase.`,
+              color: 0xef4444,
+              footer: { text: 'VALHEON ANTI-ROGUE SHIELD // OWNER & R5 LOCKED' },
+            },
+          ],
+        });
+      }
+
+      return editOriginal({
+        embeds: [
+          {
+            title: `🛡️ OWNER / R5 VERIFIED (${authCheck.reason}) // CONFIRM NON-DESTRUCTIVE SERVER REPAIR`,
+            description:
+              `Identity verified for <@${user.id}>!\n\n` +
+              `**What happens when you click \`[✅ Confirm Non-Destructive Repair ($0.00)]\` below:**\n` +
+              `1. **100% Safe for Custom Channels & Chat History:** HERMES **never** deletes any existing channels or messages.\n` +
+              `2. **Restores Only Missing Items:** Scans your server and recreates only missing standard channels, roles, or pinned consoles.\n` +
+              `3. **Hardens R4 Anti-Template Protection:** Ensures \`@R4\` and shared roles cannot export a Discord Server Template or delete channels.`,
+            color: 0xf59e0b,
+            footer: { text: 'STEP 2 OF 2 // CLICK BELOW TO EXECUTE FREE NON-DESTRUCTIVE REPAIR' },
+          },
+        ],
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 3, // SUCCESS
+                label: '✅ Confirm Owner/R5 Non-Destructive Repair ($0.00)',
+                custom_id: 'hermes_confirm_free_relaunch_btn',
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    if (customId === 'hermes_confirm_free_relaunch_btn') {
+      await reply({ type: 5, data: { flags: 64 } });
+      const savedStatus = getGuildTierStatus(guildId);
+      const authCheck = await verifyServerSovereignAuthorization(ix, guildId, savedStatus);
+
+      if (!authCheck.allowed) {
+        return editOriginal({
+          content: `🛡️ **Access Denied:** Only the Verified Server Owner / Buyer or R5 Sovereign can execute a 1-Click Server Recovery.`,
+        });
+      }
+
       const bpType =
         savedStatus.blueprintType ||
         (guildId === GUILD_ID ? 'VALHEON_HQ' : 'KINGDOM_WAR_SERVER');
@@ -1560,9 +1694,9 @@ async function handleInteraction(ix) {
 
         // Relay repair receipt back to Valheon Citadel HQ so Lauren has full visibility!
         await relaySupportEventToValheonHq({
-          title: `🔄 AUTO-REPAIR EXECUTED ($0.00) // ${res.guildName} (\`${guildId}\`)`,
+          title: `🔄 OWNER-VERIFIED AUTO-REPAIR EXECUTED ($0.00) // ${res.guildName} (\`${guildId}\`)`,
           description:
-            `• **Triggered By:** <@${user.id}> (\`${user.username}\`)\n` +
+            `• **Verified Owner / R5:** <@${user.id}> (\`${user.username}\` • \`${authCheck.reason}\`)\n` +
             `• **Server:** **${res.guildName}** (\`${guildId}\`)\n` +
             `• **Blueprint Restored:** \`${bpType}\`\n` +
             `• **Items Verified / Restored:** \`${res.log.length}\` roles, channels & pinned consoles\n` +
@@ -1577,12 +1711,12 @@ async function handleInteraction(ix) {
             {
               title: `✅ 1-CLICK FREE SERVER REPAIR COMPLETE ($0.00) // ${res.guildName}`,
               description:
-                `**🪽 HERMES** scanned **${res.guildName}** (\`${bpType}\`), kept all of your existing custom channel names & chat history untouched, and restored/verified **\`${res.log.length}\`** roles, channels, and pinned consoles at **\`$0.00\`**!\n\n` +
+                `**🪽 HERMES** scanned **${res.guildName}** (\`${bpType}\`), kept all of your existing custom channel names & chat history untouched, hardened R4 Anti-Template locks, and restored/verified **\`${res.log.length}\`** roles, channels, and pinned consoles at **\`$0.00\`**!\n\n` +
                 `*Need custom wording help from our Principal Architect? Click **` +
                 '`[🛟 Send Support Request to Valheon HQ]`' +
                 `** anytime.*`,
               color: 0x10b981,
-              footer: { text: 'VALHEON LIFETIME FREE REPAIR GUARANTEE // YOU NEVER PAY TWICE' },
+              footer: { text: 'VALHEON LIFETIME FREE REPAIR GUARANTEE // OWNER & R5 PROTECTED' },
               timestamp: new Date().toISOString(),
             },
           ],
@@ -1635,7 +1769,17 @@ async function handleInteraction(ix) {
     }
 
     // A6. REMOTE ADMIN BUTTONS INSIDE VALHEON HQ (Relaunch or Reply to Any External Server in 1 Click!)
+    // STRICTLY LOCKED TO VALHEON PRINCIPAL ARCHITECT (reign3418)
     if (customId === 'hermes_admin_manual_relaunch_open') {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '🛡️ **Valheon HQ Overwatch Lock:** Only the Principal Architect can trigger a remote customer server relaunch.',
+          },
+        });
+      }
       return reply({
         type: 9, // MODAL
         data: {
@@ -1674,6 +1818,15 @@ async function handleInteraction(ix) {
     }
 
     if (customId.startsWith('hermes_admin_relaunch_')) {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '🛡️ **Valheon HQ Overwatch Lock:** Only the Principal Architect can trigger a remote customer server relaunch.',
+          },
+        });
+      }
       await reply({ type: 5 });
       const remoteGuildId = customId.replace('hermes_admin_relaunch_', '').trim();
       const savedStatus = getGuildTierStatus(remoteGuildId);
@@ -1707,6 +1860,15 @@ async function handleInteraction(ix) {
     }
 
     if (customId.startsWith('hermes_admin_reply_')) {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '🛡️ **Valheon HQ Overwatch Lock:** Only the Principal Architect can send an official HQ reply.',
+          },
+        });
+      }
       const parts = customId.replace('hermes_admin_reply_', '').split('_');
       const remoteGuildId = parts[0] || '';
       const remoteChannelId = parts[1] || '';
@@ -2487,6 +2649,20 @@ async function handleInteraction(ix) {
     };
 
     try {
+      const targetGuildInfo = await discordApi('GET', `/guilds/${targetGuildId}`).catch(
+        () => null
+      );
+      if (
+        targetGuildInfo?.owner_id &&
+        String(targetGuildInfo.owner_id) !== String(user.id) &&
+        !VALHEON_FOUNDER_IDS.has(String(user.id))
+      ) {
+        return editOriginal({
+          content:
+            `🛡️ **Sovereign Ownership Protection:** Only the **Discord Server Owner** (<@${targetGuildInfo.owner_id}>) of \`${targetGuildId}\` can deploy a 1-Click Blueprint onto that server!`,
+        });
+      }
+
       const result = await provisionDiscordServer({
         blueprintType: 'KINGDOM_WAR_SERVER',
         guildId: targetGuildId,
@@ -2496,6 +2672,8 @@ async function handleInteraction(ix) {
       });
 
       const deployTier = registerGuildDeployment(targetGuildId, 'COMMON', {
+        buyerDiscordId: user.id,
+        buyerUsername: user.username,
         blueprintType: 'KINGDOM_WAR_SERVER',
         deployOptions,
       });
@@ -2579,6 +2757,20 @@ async function handleInteraction(ix) {
     };
 
     try {
+      const targetGuildInfo = await discordApi('GET', `/guilds/${targetGuildId}`).catch(
+        () => null
+      );
+      if (
+        targetGuildInfo?.owner_id &&
+        String(targetGuildInfo.owner_id) !== String(user.id) &&
+        !VALHEON_FOUNDER_IDS.has(String(user.id))
+      ) {
+        return editOriginal({
+          content:
+            `🛡️ **Sovereign Ownership Protection:** Only the **Discord Server Owner** (<@${targetGuildInfo.owner_id}>) of \`${targetGuildId}\` can deploy a 1-Click Blueprint onto that server!`,
+        });
+      }
+
       const result = await provisionDiscordServer({
         blueprintType: 'KVK_DIPLO_SERVER',
         guildId: targetGuildId,
@@ -2588,6 +2780,8 @@ async function handleInteraction(ix) {
       });
 
       const deployTier = registerGuildDeployment(targetGuildId, 'LEGENDARY', {
+        buyerDiscordId: user.id,
+        buyerUsername: user.username,
         blueprintType: 'KVK_DIPLO_SERVER',
         deployOptions,
       });
@@ -2669,6 +2863,20 @@ async function handleInteraction(ix) {
     };
 
     try {
+      const targetGuildInfo = await discordApi('GET', `/guilds/${targetGuildId}`).catch(
+        () => null
+      );
+      if (
+        targetGuildInfo?.owner_id &&
+        String(targetGuildInfo.owner_id) !== String(user.id) &&
+        !VALHEON_FOUNDER_IDS.has(String(user.id))
+      ) {
+        return editOriginal({
+          content:
+            `🛡️ **Sovereign Ownership Protection:** Only the **Discord Server Owner** (<@${targetGuildInfo.owner_id}>) of \`${targetGuildId}\` can deploy a 1-Click Blueprint onto that server!`,
+        });
+      }
+
       const result = await provisionDiscordServer({
         blueprintType: 'KVK_COALITION_SERVER',
         guildId: targetGuildId,
@@ -2678,6 +2886,8 @@ async function handleInteraction(ix) {
       });
 
       const deployTier = registerGuildDeployment(targetGuildId, 'LEGENDARY', {
+        buyerDiscordId: user.id,
+        buyerUsername: user.username,
         blueprintType: 'KVK_COALITION_SERVER',
         deployOptions,
       });
@@ -3464,6 +3674,19 @@ async function handleInteraction(ix) {
       const remoteGuildOpt = (
         sub.options?.find((o) => o.name === 'target_guild_id')?.value || guildId
       ).trim();
+
+      const authCheck = await verifyServerSovereignAuthorization(
+        ix,
+        remoteGuildOpt,
+        getGuildTierStatus(remoteGuildOpt)
+      );
+      if (!authCheck.allowed) {
+        return editOriginal({
+          content:
+            `🛡️ **Sovereign Purchase Protection // Access Denied:** Only the **Verified Server Owner / Buyer** or **Crowned R5 Sovereign** is authorized to run \`/hermes architect\` on \`${remoteGuildOpt}\`. R4 Officers and standard members cannot alter the server blueprint.`,
+        });
+      }
+
       const kdList = kdRaw
         .split(',')
         .map((s) => s.trim().toUpperCase())
@@ -3480,6 +3703,8 @@ async function handleInteraction(ix) {
         options: deployOpts,
       });
       registerGuildDeployment(remoteGuildOpt, 'LEGENDARY', {
+        buyerDiscordId: user.id,
+        buyerUsername: user.username,
         blueprintType: bp,
         deployOptions: deployOpts,
       });

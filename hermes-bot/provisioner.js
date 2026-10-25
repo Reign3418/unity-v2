@@ -32,6 +32,28 @@ const PERMS = {
   CONNECT: (1n << 20n).toString(),
   SPEAK: (1n << 21n).toString(),
   USE_APPLICATION_COMMANDS: (1n << 31n).toString(),
+  // KING_R5_COMMAND: Full war-room, ping (@everyone), voice mute/move, & message/thread control
+  // WITHOUT ADMINISTRATOR (1<<3), MANAGE_CHANNELS (1<<4), MANAGE_GUILD (1<<5 - Server Template!), or MANAGE_ROLES (1<<28).
+  // The true Discord Server Creator (guild.owner_id) keeps native Owner powers automatically, while co-R5s & R4s CANNOT export Server Templates or delete channels!
+  KING_R5_COMMAND: (
+    (1n << 6n) |
+    (1n << 10n) |
+    (1n << 11n) |
+    (1n << 13n) |
+    (1n << 14n) |
+    (1n << 15n) |
+    (1n << 16n) |
+    (1n << 17n) |
+    (1n << 20n) |
+    (1n << 21n) |
+    (1n << 22n) |
+    (1n << 24n) |
+    (1n << 27n) |
+    (1n << 31n) |
+    (1n << 35n) |
+    (1n << 36n) |
+    (1n << 40n)
+  ).toString(),
   MODERATE_MEMBERS: (
     (1n << 10n) |
     (1n << 11n) |
@@ -124,7 +146,50 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey) {
     roleIdByKey.verified_jumper,
   ].filter(Boolean);
 
-  if (accessMode === 'PUBLIC_READ_ONLY' || accessMode === 'PUBLIC_BUTTON_ONLY') {
+  const sovereignOnlyRoleIds = [
+    roleIdByKey.founder,
+    roleIdByKey.king,
+    roleIdByKey.leader,
+    roleIdByKey.hermes,
+  ].filter(Boolean);
+
+  const r4RoleIds = [
+    roleIdByKey.r4_council,
+    roleIdByKey.r4_leadership,
+    roleIdByKey.council,
+  ].filter(Boolean);
+
+  if (accessMode === 'OWNER_AND_R5_ONLY' || accessMode === 'KINGS_ONLY') {
+    overwrites.push({
+      id: everyoneId,
+      type: 0,
+      allow: '0',
+      deny: PERMS.VIEW_CHANNEL,
+    });
+    for (const r4Id of r4RoleIds) {
+      overwrites.push({
+        id: r4Id,
+        type: 0,
+        allow: '0',
+        deny: PERMS.VIEW_CHANNEL,
+      });
+    }
+    for (const rId of sovereignOnlyRoleIds) {
+      overwrites.push({
+        id: rId,
+        type: 0,
+        allow: (
+          BigInt(PERMS.VIEW_CHANNEL) |
+          BigInt(PERMS.SEND_MESSAGES) |
+          BigInt(PERMS.READ_MESSAGE_HISTORY) |
+          BigInt(PERMS.USE_APPLICATION_COMMANDS) |
+          BigInt(PERMS.CONNECT) |
+          BigInt(PERMS.SPEAK)
+        ).toString(),
+        deny: '0',
+      });
+    }
+  } else if (accessMode === 'PUBLIC_READ_ONLY' || accessMode === 'PUBLIC_BUTTON_ONLY') {
     overwrites.push({
       id: everyoneId,
       type: 0,
@@ -374,12 +439,28 @@ export async function provisionDiscordServer({
   );
 
   for (const roleDef of blueprint.roles) {
+    const desiredPerms = PERMS[roleDef.permissions] || PERMS.STANDARD;
     const found = existingRoles.find(
       (er) => er.name.toLowerCase() === roleDef.name.toLowerCase()
     );
     if (found) {
       roleIdByKey[roleDef.key] = found.id;
-      log.push(`[Role Exists] ${roleDef.name} (${found.id})`);
+      // Harden existing roles (strip MANAGE_GUILD / ADMINISTRATOR from R4 and shared R5 roles so no R4 can export a Server Template!)
+      if (
+        roleDef.permissions !== 'ADMINISTRATOR' &&
+        found.permissions &&
+        found.permissions !== desiredPerms
+      ) {
+        await discordRequest(
+          cleanToken,
+          'PATCH',
+          `/guilds/${cleanGuildId}/roles/${found.id}`,
+          { permissions: desiredPerms }
+        ).catch(() => {});
+        log.push(`[Role Hardened] ${roleDef.name} (${found.id}) — Template & Channel Delete Locked`);
+      } else {
+        log.push(`[Role Exists] ${roleDef.name} (${found.id})`);
+      }
       continue;
     }
 
@@ -392,12 +473,35 @@ export async function provisionDiscordServer({
         color: roleDef.color,
         hoist: Boolean(roleDef.hoist),
         mentionable: Boolean(roleDef.mentionable),
-        permissions: PERMS[roleDef.permissions] || PERMS.STANDARD,
+        permissions: desiredPerms,
       }
     );
     roleIdByKey[roleDef.key] = createdRole.id;
     log.push(`[Role Created] ${roleDef.name} (${createdRole.id})`);
     await sleep(220);
+  }
+
+  // Active Anti-Template Shield: Purge any Discord native Server Templates so nobody can clone the server!
+  try {
+    const existingTemplates = await discordRequest(
+      cleanToken,
+      'GET',
+      `/guilds/${cleanGuildId}/templates`
+    );
+    if (Array.isArray(existingTemplates) && existingTemplates.length > 0) {
+      for (const tpl of existingTemplates) {
+        if (tpl?.code) {
+          await discordRequest(
+            cleanToken,
+            'DELETE',
+            `/guilds/${cleanGuildId}/templates/${tpl.code}`
+          ).catch(() => {});
+          log.push(`[Anti-Template Shield] Revoked Discord Server Template (${tpl.code})`);
+        }
+      }
+    }
+  } catch {
+    // Ignore if no template exists or endpoint restricted
   }
 
   for (const catDef of blueprint.categories) {
@@ -494,7 +598,17 @@ export async function provisionDiscordServer({
           }
         }
       } else {
-        log.push(`[Channel Exists] #${chDef.name} (${channelObj.id})`);
+        if (chDef.access === 'OWNER_AND_R5_ONLY' || chDef.access === 'KINGS_ONLY') {
+          await discordRequest(
+            cleanToken,
+            'PATCH',
+            `/channels/${channelObj.id}`,
+            { permission_overwrites: chOverwrites }
+          ).catch(() => {});
+          log.push(`[Channel Hardened] #${chDef.name} (${channelObj.id}) — Locked to Owner & R5 Only`);
+        } else {
+          log.push(`[Channel Exists] #${chDef.name} (${channelObj.id})`);
+        }
       }
 
       if (

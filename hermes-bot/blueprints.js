@@ -506,7 +506,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
         color: 0xf59e0b,
         hoist: true,
         mentionable: true,
-        permissions: 'ADMINISTRATOR',
+        permissions: 'KING_R5_COMMAND',
       },
       {
         key: 'hermes',
@@ -755,8 +755,8 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '🛟-valheon-support-and-relaunch',
             type: CHANNEL_TYPES.TEXT,
-            access: 'LEADERS_ONLY',
-            topic: 'Direct Customer Care Relay to Valheon Citadel HQ. Customize channel names freely — if you ever break a channel or permission, relaunch/repair here for $0.00!',
+            access: 'OWNER_AND_R5_ONLY',
+            topic: 'Sovereign Buyer & R5 Only — Direct Customer Care Relay to Valheon Citadel HQ. Customize channel names freely; restore missing channels for $0.00!',
             pinKey: 'CENTRAL_SUPPORT_RELAY_CONSOLE',
           },
         ],
@@ -913,7 +913,7 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
         color: 0xf59e0b,
         hoist: true,
         mentionable: true,
-        permissions: 'ADMINISTRATOR',
+        permissions: 'KING_R5_COMMAND',
       },
       {
         key: 'hermes',
@@ -1029,8 +1029,8 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
           {
             name: '🛟-valheon-support-and-relaunch',
             type: CHANNEL_TYPES.TEXT,
-            access: 'LEADERS_ONLY',
-            topic: 'Direct Customer Care Relay to Valheon Citadel HQ. Customize channel names freely — if you ever break a channel or permission, relaunch/repair here for $0.00!',
+            access: 'OWNER_AND_R5_ONLY',
+            topic: 'Sovereign Buyer & R5 Only — Direct Customer Care Relay to Valheon Citadel HQ. Customize channel names freely; restore missing channels for $0.00!',
             pinKey: 'CENTRAL_SUPPORT_RELAY_CONSOLE',
           },
         ],
@@ -1063,7 +1063,7 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
         color: 0xf59e0b,
         hoist: true,
         mentionable: true,
-        permissions: 'ADMINISTRATOR',
+        permissions: 'KING_R5_COMMAND',
       },
       {
         key: 'hermes',
@@ -1227,8 +1227,8 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
           {
             name: '🛟-valheon-support-and-relaunch',
             type: CHANNEL_TYPES.TEXT,
-            access: 'LEADERS_ONLY',
-            topic: 'Direct Customer Care Relay to Valheon Citadel HQ. Customize freely — if you ever break a channel or permission, relaunch/repair here for $0.00!',
+            access: 'OWNER_AND_R5_ONLY',
+            topic: 'Sovereign Buyer & R5 Only — Direct Customer Care Relay to Valheon Citadel HQ. Customize freely; restore missing channels for $0.00!',
             pinKey: 'CENTRAL_SUPPORT_RELAY_CONSOLE',
           },
         ],
@@ -1261,7 +1261,7 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
         color: 0xf59e0b,
         hoist: true,
         mentionable: true,
-        permissions: 'ADMINISTRATOR',
+        permissions: 'KING_R5_COMMAND',
       },
       {
         key: 'hermes',
@@ -1427,8 +1427,8 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
           {
             name: '🛟-valheon-support-and-relaunch',
             type: CHANNEL_TYPES.TEXT,
-            access: 'LEADERS_ONLY',
-            topic: 'Direct Customer Care Relay to Valheon Citadel HQ. Customize freely — if you ever break a channel or permission, relaunch/repair here for $0.00!',
+            access: 'OWNER_AND_R5_ONLY',
+            topic: 'Sovereign Buyer & R5 Only — Direct Customer Care Relay to Valheon Citadel HQ. Customize freely; restore missing channels for $0.00!',
             pinKey: 'CENTRAL_SUPPORT_RELAY_CONSOLE',
           },
         ],
@@ -1613,24 +1613,25 @@ export const PINNED_CONSOLE_TEMPLATES = {
     ],
   },
 
-  CENTRAL_SUPPORT_RELAY_CONSOLE: {
+    CENTRAL_SUPPORT_RELAY_CONSOLE: {
     embed: {
-      title: '🛟 VALHEON CONCIERGE SUPPORT & FREE SERVER REPAIR / RELAUNCH DESK',
+      title: '🛟 VALHEON CONCIERGE SUPPORT & OWNER-LOCKED FREE SERVER RECOVERY DESK',
       description:
-        '**Welcome to your dedicated Valheon Customer Care & Self-Healing Console.**\n\n' +
-        '### ✏️ 1. CUSTOMIZE YOUR SERVER FREELY!\n' +
-        '• Your 1-Click Server is your template—feel free to **rename channels, change emojis, edit descriptions, or reorganize categories** to match your Kingdom\'s personality.\n\n' +
-        '### 🔄 2. BROKE SOMETHING? 1-CLICK FREE REPAIR (`$0.00` — NEVER PAY AGAIN!)\n' +
-        '• Did an R4 accidentally delete `#🔮-title-request-queue`, break a role permission, or wipe a pinned console?\n' +
-        '• **You NEVER pay again to fix your server.** Click **`[🔄 1-Click Free Repair / Restore Missing Channels]`** below! **HERMES** will non-destructively scan your server, leave all your existing customized channels intact, and automatically rebuild only the missing channels/consoles at **`$0.00`**.\n\n' +
+        '**Welcome to your dedicated Valheon Customer Care & Self-Healing Console (Visible only to the Server Owner & Crowned R5s).**\n\n' +
+        '### 🛡️ 1. SOVEREIGN PURCHASE PROTECTION (ANTI-TEMPLATE & ANTI-ROGUE LOCK)\n' +
+        '• **R4 Template & Sabotage Lock:** All `@R4` and shared `@R5` roles are cryptographically stripped of `Manage Server` and `Manage Channels` so **no R4 or visiting diplomat can ever export a Discord Server Template or delete your channels**.\n' +
+        '• **Owner / R5 Recovery Lock:** Only the **Verified Server Owner / Buyer** (or Home Kingdom **R5 Sovereign**) can trigger the **`[🔄 1-Click Free Repair]`** button below—random members and R4s are strictly blocked from altering or resetting your server.\n\n' +
+        '### 🔄 2. BROKE SOMETHING? 1-CLICK NON-DESTRUCTIVE REPAIR (`$0.00` — NEVER PAY AGAIN!)\n' +
+        '• Feel free to **rename channels, change emojis, or edit descriptions** to match your Kingdom\'s personality.\n' +
+        '• If you ever accidentally delete a channel or console, click **`[🔄 1-Click Free Repair / Restore Missing Channels]`** below! After Owner/R5 verification, **HERMES** will leave all of your existing custom channels and chat history untouched and rebuild **only** what is missing at **`$0.00`**.\n\n' +
         '### 📡 3. DIRECT TICKET RELAY TO VALHEON CITADEL HQ\n' +
-        '• Need custom wording adjustments, want our Principal Architect to manually relaunch your layout, or have a question?\n' +
-        '• Click **`[🛟 Send Support Ticket to Valheon HQ]`** below—your request beams **directly into Valheon Citadel HQ** so our team can assist you or remotely trigger a clean relaunch for you!',
+        '• Need custom wording adjustments or want our Principal Architect to manually relaunch your layout?\n' +
+        '• Click **`[🛟 Send Support Ticket to Valheon HQ]`** below—your request beams **directly into Valheon Citadel HQ** so our team can assist you remotely!',
       color: 0x10b981,
-      footer: { text: 'VALHEON CUSTOMER CARE GUARANTEE // FREE LIFETIME REPAIRS & DIRECT HQ RELAY' },
+      footer: { text: 'VALHEON PURCHASE PROTECTION // OWNER & R5 LOCKED • FREE LIFETIME REPAIRS' },
     },
     buttons: [
-      { customId: 'hermes_free_relaunch_btn', label: '🔄 1-Click Free Repair / Restore Missing Channels ($0)', style: 'SUCCESS' },
+      { customId: 'hermes_free_relaunch_btn', label: '🔄 1-Click Free Repair (Owner / R5 Locked • $0)', style: 'SUCCESS' },
       { customId: 'hermes_hq_relay_ticket_btn', label: '🛟 Send Support / Custom Wording Request to Valheon HQ', style: 'PRIMARY' },
     ],
   },
