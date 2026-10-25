@@ -43,7 +43,7 @@ function loadTierStore() {
     if (fs.existsSync(TIER_STATE_PATH)) {
       const parsed = JSON.parse(fs.readFileSync(TIER_STATE_PATH, 'utf8'));
       if (!parsed._globalConfig) {
-        parsed._globalConfig = { billingSuspended: true };
+        parsed._globalConfig = { billingSuspended: false };
       }
       return parsed;
     }
@@ -52,7 +52,7 @@ function loadTierStore() {
   }
   return {
     _globalConfig: {
-      billingSuspended: true, // TRUE = All Fees Suspended ($0.00 Moderator Training & Stress-Test Mode)
+      billingSuspended: false, // FALSE = Commercial Stripe Licensing & 24h Legendary Upsell LIVE (HQ is always Legendary)
     },
     [HQ_GUILD_ID]: {
       guildId: HQ_GUILD_ID,
@@ -101,13 +101,14 @@ export function registerGuildDeployment(
   blueprintMeta = {}
 ) {
   const nowUnix = Math.floor(Date.now() / 1000);
-  const billingSuspended = GUILD_TIERS._globalConfig?.billingSuspended !== false;
+  const billingSuspended = Boolean(GUILD_TIERS._globalConfig?.billingSuspended);
   const existing = GUILD_TIERS[guildId] || {};
   GUILD_TIERS[guildId] = {
     ...existing,
     guildId,
     buyerDiscordId: existing.buyerDiscordId || blueprintMeta.buyerDiscordId || null,
     buyerUsername: existing.buyerUsername || blueprintMeta.buyerUsername || null,
+    paidSessionId: existing.paidSessionId || blueprintMeta.paidSessionId || null,
     blueprintType: blueprintMeta.blueprintType || existing.blueprintType || 'KINGDOM_WAR_SERVER',
     deployOptions: blueprintMeta.deployOptions || existing.deployOptions || {
       kingdomId: '4194',
@@ -133,7 +134,7 @@ export function registerGuildDeployment(
  */
 export function getGuildTierStatus(guildId) {
   const nowUnix = Math.floor(Date.now() / 1000);
-  const billingSuspended = GUILD_TIERS._globalConfig?.billingSuspended !== false;
+  const billingSuspended = Boolean(GUILD_TIERS._globalConfig?.billingSuspended);
   let record = GUILD_TIERS[guildId];
 
   if (!record) {

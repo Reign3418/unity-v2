@@ -38,6 +38,7 @@ import {
   calculateRokMath,
 } from './warOsSuite.js';
 import {
+  GUILD_TIERS,
   registerGuildDeployment,
   getGuildTierStatus,
   setGuildTier,
@@ -49,6 +50,7 @@ import {
   STRIPE_CATALOG,
   createStripeCheckoutForDiscord,
   verifyStripePaymentStatus,
+  verifyAndConsumeBlueprintCredit,
   createAuditedStripePromoCode,
   getCouponAuditLedgerSummary,
 } from './stripeBridge.js';
@@ -199,6 +201,22 @@ async function verifyServerSovereignAuthorization(ix, targetGuildId, savedStatus
   // 1. Valheon Principal / Founder Override
   if (VALHEON_FOUNDER_IDS.has(userId)) {
     return { allowed: true, reason: 'VALHEON_PRINCIPAL_ARCHITECT', ownerId: userId };
+  }
+
+  // 1.5 Unpaid Blank-Server Guard: Non-Principal users CANNOT run recovery or /hermes architect
+  // on an unlicensed server even if they are guild.owner_id of their own blank server!
+  const isAlreadyLicensed =
+    String(targetGuildId) === String(GUILD_ID) ||
+    Boolean(
+      savedStatus?.licensed &&
+        (savedStatus?.buyerDiscordId || savedStatus?.paidSessionId)
+    );
+  if (!isAlreadyLicensed) {
+    return {
+      allowed: false,
+      reason: 'UNLICENSED_SERVER_REQUIRES_CHECKOUT',
+      ownerId: null,
+    };
   }
 
   // 2. Fetch live Discord Guild metadata to verify true Discord Server Owner (guild.owner_id)
@@ -1475,9 +1493,23 @@ async function handleInteraction(ix) {
         }
       } catch {}
 
-      // 2. If it's a Legendary Upgrade on an existing server, unlock Legendary immediately!
+      // 2. If it's a Legendary Upgrade on an existing server, resolve the buyer's Kingdom Server and unlock Legendary immediately!
+      let upgradedGuildId = guildId;
       if (item.blueprintType === 'UPGRADE_ONLY') {
-        setGuildTier(guildId, 'LEGENDARY', false);
+        if (String(guildId) === String(GUILD_ID)) {
+          const ownedEntry = Object.values(GUILD_TIERS).find(
+            (g) =>
+              g &&
+              typeof g === 'object' &&
+              g.guildId &&
+              String(g.guildId) !== String(GUILD_ID) &&
+              String(g.buyerDiscordId) === String(user.id)
+          );
+          if (ownedEntry?.guildId) {
+            upgradedGuildId = ownedEntry.guildId;
+          }
+        }
+        setGuildTier(upgradedGuildId, 'LEGENDARY', false);
       }
 
       const promoSummaryLine =
@@ -1496,13 +1528,31 @@ async function handleInteraction(ix) {
           `• **Who (Redeemer):** <@${user.id}> (\`${user.username}\` / \`${check.customerEmail}\`)\n` +
           `• **What (Package):** **${item.name}** (\`${item.priceDisplay}\`)\n` +
           promoSummaryLine +
-          `• **Where (Session & Server):** Session \`${check.sessionId}\` • Guild \`${guildId}\`\n` +
+          `• **Where (Session & Server):** Session \`${check.sessionId}\` • Guild \`${upgradedGuildId}\`\n` +
           `• **SHA-256 Ledger Hash:** \`${(check.auditHash || 'VERIFIED').slice(0, 16)}…\`\n` +
           `• **Auto-Granted Role:** ${grantedRoles.length ? grantedRoles.map((r) => `\`${r}\``).join(', ') : '`@🏰 Crowned Sovereign`'}`,
         color: check.discountUsd > 0 ? 0xf59e0b : 0x10b981,
-        targetGuildId: guildId,
+        targetGuildId: upgradedGuildId,
         targetChannelId: channelId,
       });
+
+      if (item.blueprintType === 'UPGRADE_ONLY') {
+        return editOriginal({
+          embeds: [
+            {
+              title: `🟠 LEGENDARY HERMES UNLOCKED FOREVER // GUILD \`${upgradedGuildId}\``,
+              description:
+                `Thank you, <@${user.id}>! Your **🟠 Legendary Hermes** upgrade (**\`${item.priceDisplay}\`**) is now **100% ACTIVE FOREVER (\`$0/mo\` recurring)** on Server ID **\`${upgradedGuildId}\`**!\n\n` +
+                `• ⚡ **Zero-Grid 1-Tap & Chat Title Queue** (\`justice\`, \`duke\`, \`scientist\`, \`architect\`)\n` +
+                `• 🌍 **Unlimited 17-Language Flag Emoji & Context-Menu Translator**\n` +
+                `• 🎓 **Saturday 10/10 Midterm Early Packet & 15s Speed Drills**\n` +
+                `• 📸 **Local Screenshot OCR, Silent 24h UTC Uptime Heatmap, Zero-List & All 95 Field Guides**`,
+              color: 0xf59e0b,
+              footer: { text: 'VALHEON LEGENDARY HERMES // ONE-TIME UNLOCK • ZERO MONTHLY FEES' },
+            },
+          ],
+        });
+      }
 
       // 4. Present the unlocked 1-Click Builder button(s)!
       const launchButtons =
@@ -2221,8 +2271,14 @@ async function handleInteraction(ix) {
                 {
                   type: 2,
                   style: 3, // SUCCESS
-                  label: '🪽 Step 2: Launch 1-Click Kingdom Builder',
-                  custom_id: 'hermes_launch_kd_modal',
+                  label: '🏰 Deploy 1-Click Kingdom Server ($39)',
+                  custom_id: 'hermes_deploy_kingdom_btn',
+                },
+                {
+                  type: 2,
+                  style: 1, // PRIMARY
+                  label: '🔥 72h KvK Diplo + Coalition Bundle ($15)',
+                  custom_id: 'hermes_deploy_kvk_bundle_btn',
                 },
               ],
             },
@@ -2949,6 +3005,16 @@ async function handleInteraction(ix) {
         });
       }
 
+      const credit = await verifyAndConsumeBlueprintCredit({
+        userId: user.id,
+        username: user.username,
+        blueprintType: 'KINGDOM_WAR_SERVER',
+        targetGuildId,
+      });
+      if (!credit.allowed) {
+        return editOriginal({ content: credit.error });
+      }
+
       const result = await provisionDiscordServer({
         blueprintType: 'KINGDOM_WAR_SERVER',
         guildId: targetGuildId,
@@ -2957,12 +3023,17 @@ async function handleInteraction(ix) {
         options: deployOptions,
       });
 
-      const deployTier = registerGuildDeployment(targetGuildId, 'COMMON', {
-        buyerDiscordId: user.id,
-        buyerUsername: user.username,
-        blueprintType: 'KINGDOM_WAR_SERVER',
-        deployOptions,
-      });
+      const deployTier = registerGuildDeployment(
+        targetGuildId,
+        credit.tierGranted || 'COMMON',
+        {
+          buyerDiscordId: user.id,
+          buyerUsername: user.username,
+          paidSessionId: credit.sessionId,
+          blueprintType: 'KINGDOM_WAR_SERVER',
+          deployOptions,
+        }
+      );
 
       await relaySupportEventToValheonHq({
         title: `🏰 NEW 1-CLICK KINGDOM SERVER DEPLOYED // KD #${kdId} (${result.guildName})`,
@@ -3057,6 +3128,16 @@ async function handleInteraction(ix) {
         });
       }
 
+      const credit = await verifyAndConsumeBlueprintCredit({
+        userId: user.id,
+        username: user.username,
+        blueprintType: 'KVK_DIPLO_SERVER',
+        targetGuildId,
+      });
+      if (!credit.allowed) {
+        return editOriginal({ content: credit.error });
+      }
+
       const result = await provisionDiscordServer({
         blueprintType: 'KVK_DIPLO_SERVER',
         guildId: targetGuildId,
@@ -3068,6 +3149,7 @@ async function handleInteraction(ix) {
       const deployTier = registerGuildDeployment(targetGuildId, 'LEGENDARY', {
         buyerDiscordId: user.id,
         buyerUsername: user.username,
+        paidSessionId: credit.sessionId,
         blueprintType: 'KVK_DIPLO_SERVER',
         deployOptions,
       });
@@ -3106,14 +3188,14 @@ async function handleInteraction(ix) {
               {
                 type: 2,
                 style: 4,
-                label: '⚔️ Add Allied Coalition War Server ($15 72h Bundle)',
-                custom_id: 'hermes_launch_coalition_modal',
+                label: '⚔️ Add Allied Coalition War Server ($9 / $15 Bundle)',
+                custom_id: 'hermes_deploy_coalition_btn',
               },
               {
                 type: 2,
                 style: 3,
                 label: '🏰 Deploy Home Kingdom War Server ($39)',
-                custom_id: 'hermes_launch_kd_modal',
+                custom_id: 'hermes_deploy_kingdom_btn',
               },
             ],
           },
@@ -3163,6 +3245,16 @@ async function handleInteraction(ix) {
         });
       }
 
+      const credit = await verifyAndConsumeBlueprintCredit({
+        userId: user.id,
+        username: user.username,
+        blueprintType: 'KVK_COALITION_SERVER',
+        targetGuildId,
+      });
+      if (!credit.allowed) {
+        return editOriginal({ content: credit.error });
+      }
+
       const result = await provisionDiscordServer({
         blueprintType: 'KVK_COALITION_SERVER',
         guildId: targetGuildId,
@@ -3174,6 +3266,7 @@ async function handleInteraction(ix) {
       const deployTier = registerGuildDeployment(targetGuildId, 'LEGENDARY', {
         buyerDiscordId: user.id,
         buyerUsername: user.username,
+        paidSessionId: credit.sessionId,
         blueprintType: 'KVK_COALITION_SERVER',
         deployOptions,
       });
@@ -3213,13 +3306,13 @@ async function handleInteraction(ix) {
                 type: 2,
                 style: 3,
                 label: '🏰 Deploy Home Kingdom War Server ($39)',
-                custom_id: 'hermes_launch_kd_modal',
+                custom_id: 'hermes_deploy_kingdom_btn',
               },
               {
                 type: 2,
                 style: 1,
-                label: '🕊️ Add KvK Diplo Server ($15 72h Bundle)',
-                custom_id: 'hermes_launch_diplo_modal',
+                label: '🕊️ Add KvK Diplo Server ($9 / $15 Bundle)',
+                custom_id: 'hermes_deploy_diplo_btn',
               },
             ],
           },

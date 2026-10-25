@@ -538,6 +538,20 @@ async function buildVerifiedPaymentResult(session, stripeSecret, { userId, usern
     }
   } catch {}
 
+  if (planKey === 'LEGENDARY_UPGRADE_15' || planKey === 'LEGENDARY_UPGRADE_25') {
+    CONSUMED_SESSION_SLOTS.set(`${session.id}_consumed_upgrade_guild_id`, String(guildId || 'UPGRADED'));
+    const upForm = new URLSearchParams();
+    upForm.append('metadata[consumed_upgrade_guild_id]', String(guildId || 'UPGRADED'));
+    fetch(`https://api.stripe.com/v1/checkout/sessions/${session.id}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeSecret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: upForm.toString(),
+    }).catch(() => {});
+  }
+
   let auditEntry = null;
   if (!LOGGED_REDEEMED_SESSIONS.has(session.id)) {
     LOGGED_REDEEMED_SESSIONS.add(session.id);
