@@ -403,6 +403,60 @@ def detect_new_troop_modal(a: np.ndarray):
             return (1258, 550, "QUESTS_MODAL_SIDE_GO")
         return (1380, 108, "QUESTS_MODAL_CLOSE")
 
+    # 0b. New 'Barbarian Invasion' Pilot Tutorial Modal (cream task cards at y=425..635, x=260..950 + cyan GO buttons at x=1115..1315)
+    bi_card1 = a[425:500, 260:950]
+    is_bi_cream = (bi_card1[:, :, 0] >= 225) & (bi_card1[:, :, 1] >= 215) & (bi_card1[:, :, 2] >= 185)
+    if float(np.mean(is_bi_cream)) > 0.60:
+        bi_go1 = a[425:500, 1115:1315]
+        is_bi_go1 = (bi_go1[:, :, 2] >= 185) & (bi_go1[:, :, 1] >= 135) & (bi_go1[:, :, 0] <= 65)
+        if int(is_bi_go1.sum()) >= 2000:
+            return (1215, 463, "Barbarian Invasion Pilot Modal -> Tap Row 1 GO (1215, 463)")
+        bi_go2 = a[560:635, 1115:1315]
+        is_bi_go2 = (bi_go2[:, :, 2] >= 185) & (bi_go2[:, :, 1] >= 135) & (bi_go2[:, :, 0] <= 65)
+        if int(is_bi_go2.sum()) >= 2000:
+            return (1215, 595, "Barbarian Invasion Pilot Modal -> Tap Row 2 GO (1215, 595)")
+        bi_clm = a[710:835, 620:980]
+        is_bi_clm = (bi_clm[:, :, 0] >= 200) & (bi_clm[:, :, 1] >= 140) & (bi_clm[:, :, 2] <= 80)
+        if int(is_bi_clm.sum()) >= 1500:
+            return (800, 775, "Barbarian Invasion Pilot Modal -> Claim Rewards (800, 775)")
+        return (1420, 120, "Barbarian Invasion Pilot Modal -> Close (1420, 120)")
+
+    # 0c. Build Drawer Open (evaluated before Path of Vengeance & Gem Store so blue cards & left torch never misfire)
+    if not is_city_hud(a):
+        top_hdr = a[85:140, 250:1350]
+        is_top_hdr = (top_hdr[:, :, 0] >= 150) & (np.abs(top_hdr[:, :, 0].astype(np.int32) - top_hdr[:, :, 1].astype(np.int32)) < 25)
+        top_hdr2 = a[35:80, 250:1350]
+        is_top_hdr2 = (top_hdr2[:, :, 0] >= 150) & (np.abs(top_hdr2[:, :, 0].astype(np.int32) - top_hdr2[:, :, 1].astype(np.int32)) < 25)
+        pillar = a[500:850, 10:80]
+        is_grey_pillar = float(np.mean(np.abs(pillar[:, :, 0].astype(np.int32) - pillar[:, :, 1].astype(np.int32)) < 18)) > 0.65
+        if float(np.mean(is_top_hdr)) < 0.40 and float(np.mean(is_top_hdr2)) < 0.40 and float(pillar.mean()) > 80.0 and is_grey_pillar and float(a[470:510, 200:1400].mean()) > 60.0:
+            sp_bd = spear_mask(a[250:435, 180:1550])
+            if int(sp_bd.sum()) >= 85:
+                s_ys, s_xs = np.where(sp_bd)
+                bsx = int(np.median(s_xs) + 180)
+                return (max(280, min(1450, bsx)), 620, f"Build Drawer -> Tap Spear Card ({max(280, min(1450, bsx))}, 620)")
+            mil_red = ((a[570:625, 0:45, 0] >= 180) & (a[570:625, 0:45, 1] <= 70) & (a[570:625, 0:45, 2] <= 70)).sum()
+            econ_yel = ((a[485:580, 15:80, 0] >= 200) & (a[485:580, 15:80, 1] >= 160) & (a[485:580, 15:80, 2] <= 70)).sum()
+            mil_glow = (a[645:775, 10:80].mean(axis=2) >= 175).sum()
+            sp_mil = spear_mask(a[520:680, 80:155])
+            if int(econ_yel) >= 180 and (int(mil_glow) >= 600 or int(sp_mil.sum()) >= 80 or int(mil_red) >= 150):
+                return (53, 649, "Build Drawer -> Switch to Military Tab (53, 649)")
+            if OCR is not None:
+                try:
+                    bd_res, _ = OCR(a[450:880, 90:1550].astype(np.uint8))
+                    for bbox, btxt, _ in bd_res or []:
+                        bt_low = btxt.strip().lower().replace(" ", "")
+                        if "0/1" in bt_low or "0/2" in bt_low or "0/4" in bt_low:
+                            bcx = int(sum(pt[0] for pt in bbox) / 4 + 90)
+                            return (max(280, bcx - 75), 620, f"Build Drawer -> Tap Unbuilt Card ({max(280, bcx - 75)}, 620)")
+                except Exception:
+                    pass
+            slot1 = a[755:800, 320:450]
+            unlocked = (slot1[:, :, 0] >= 85) & (slot1[:, :, 1] >= 190) & (slot1[:, :, 2] >= 230)
+            if float(np.mean(unlocked)) > 0.40:
+                return (345, 560, "Build Drawer -> Tap Unlocked Slot #1 (345, 560)")
+            return (800, 200, "BUILD_DRAWER_LOCKED_SELECT_CH")
+
     # Gate rules 1-3 on the dark teal-blue right panel of the New Troop modal (x=700..1100, y=280..450)
     # AND ensure we are NOT inside the Quests modal (where q_hdr is grey-cream)
     nt_panel = a[280:450, 700:1100]
@@ -1005,9 +1059,9 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     for gy in range(20, H - 70, 15):
         for gx in range(20, W - 70, 15):
             c = int(sp[gy : gy + 75, gx : gx + 75].sum())
-            if c < 120 and is_world_map(a2):
+            if c < 120 and (is_world_map(a2) or (gx < 310 and gy < 265)):
                 c_raw = int(sp_raw[gy : gy + 75, gx : gx + 75].sum())
-                if c_raw >= 1100:
+                if c_raw >= 850:
                     c = c_raw
             if c > best_s:
                 best_s = c
@@ -1017,9 +1071,13 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
     if best_s < 120:
         return None, None, 0
 
-    # Top-left corner shortcut: City HUD Quest Scroll (40, 235) vs Modal Back Arrow (48, 52)
-    if sx < 260 and sy < 250:
+    # Top-left corner shortcut: City HUD Quest Scroll (40, 235) / Barbarian Invasion Pilot (85, 215) vs Modal Back Arrow (48, 52)
+    if sx < 315 and sy < 265:
         if is_city_hud(a2):
+            bi_hud = a2[165:255, 15:145]
+            is_bi_hud = (bi_hud[:, :, 0] >= 195) & (bi_hud[:, :, 1] >= 120) & (bi_hud[:, :, 2] <= 95)
+            if float(np.mean(is_bi_hud)) > 0.22:
+                return (sx, sy), (85, 215), best_s
             return (sx, sy), (40, 235), best_s
         return (sx, sy), (48, 52), best_s
 

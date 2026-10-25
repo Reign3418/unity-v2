@@ -87,13 +87,18 @@ def inspect_kingdom_viewport(img_path: str, kingdom_num: str):
     if already_in_kd_list:
         for box, text, conf in res:
             t = text.strip()
-            if target_tag in t or re.search(rf"\b{re.escape(str(kingdom_num))}\b", t):
+            tu = t.upper()
+            if str(kingdom_num) == "4197":
+                is_match = ("BELERION" in tu) or ((target_tag in t or re.search(r"\b4197\b", t)) and "OGYGIA" not in tu and "SKOGUL" not in tu)
+            else:
+                is_match = target_tag in t or bool(re.search(rf"\b{re.escape(str(kingdom_num))}\b", t))
+            if is_match:
                 xs = [p[0] for p in box]
                 ys = [p[1] for p in box]
                 cx = int(sum(xs) / 4.0)
                 cy = int(sum(ys) / 4.0)
                 if 280 <= cy <= 860:
-                    if found_target is None or cy < found_target[1]:
+                    if found_target is None or ("BELERION" in tu) or cy < found_target[1]:
                         found_target = (cx, cy, t)
     return found_target, sorted(set(visible_kds)), already_in_kd_list
 
@@ -470,9 +475,11 @@ def main():
 
         print(f"[5/6] Selecting China civilization & skipping intro cutscene...")
         report_progress(args.kingdom, 5, 6, "PROVISIONING_BOT", f"[5/6] Selecting China Civilization & Skipping Cutscene in #{args.kingdom}...")
-        tap(args.adb, 800, 780, 2.5)      # Tap PICK CIVILIZATION on Welcome screen
+        tap(args.adb, 930, 755, 2.5)      # Tap PICK CIVILIZATION on new Welcome screen
+        tap(args.adb, 800, 780, 2.0)      # Fallback PICK CIVILIZATION
         tap(args.adb, 155, 880, 2.0)      # Select China in bottom carousel
-        tap(args.adb, 1352, 700, 6.0)     # Tap gold CONFIRM button
+        tap(args.adb, 1288, 809, 3.0)     # Tap gold CONFIRM button (new layout)
+        tap(args.adb, 1352, 700, 5.0)     # Fallback gold CONFIRM button
         tap(args.adb, 800, 450, 1.5)      # Wake intro cutscene overlay
         tap(args.adb, 1488, 38, 6.0)      # Tap SKIP intro cutscene
 

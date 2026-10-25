@@ -1,5 +1,5 @@
 """
-VALHEON UNITY — KINGDOM #4197 MULTI-BOT SWARM ORCHESTRATOR & BLACK-BOX RECORDER
+VALHEON UNITY // KINGDOM #4197 MULTI-BOT SWARM ORCHESTRATOR & BLACK-BOX RECORDER
 ===============================================================================
 Dedicated exclusively to Kingdom #4197 (Kingdom of Belerion) on SIDEKICK:
   1. Respects active tasks before taking over any emulator port (:16384, :16416, :16448).
@@ -969,10 +969,10 @@ def main():
             cur_kd = str(ist.get("coordinates", {}).get("kingdom", "4197"))
             if cur_kd == "4197":
                 ist["status"] = "ACTIVE_IN_4197"
-                ist["currentTask"] = f"Active in #4197 — Farming {ist['currentFarming'].get('resource', 'FOOD')} & Training T1 ONLY"
+                ist["currentTask"] = f"Active in #4197 // Farming {ist['currentFarming'].get('resource', 'FOOD')} & Training T1 ONLY"
             else:
                 ist["status"] = "ROTATING"
-                ist["currentTask"] = f"On #{cur_kd} — Provisioning / Switching into Kingdom #4197..."
+                ist["currentTask"] = f"On #{cur_kd} // Provisioning / Switching into Kingdom #4197..."
             ist["updatedAt"] = utc_now_iso()
             save_and_sync_blackbox(state)
 
