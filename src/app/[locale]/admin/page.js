@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRolePreview } from "@/components/providers/RolePreviewProvider";
 import { 
   Lock, ShieldAlert, Key, Database, Users, Trash2, Save, Skull, 
   UserMinus, Activity, RefreshCw, Bot, BotOff, CheckCircle, XCircle, Plus, Server, Clock, TextSelect, Radio, PowerOff, LayoutDashboard, ChevronRight, ExternalLink, Search, Sliders
@@ -15,6 +16,7 @@ let globalMatrixTimestamp = 0;
 
 export default function AdminConsole() {
   const { data: session } = useSession();
+  const { effectiveIsSuperAdminReadOnly } = useRolePreview();
   
   // State from cache
   const [isLoading, setIsLoading] = useState(!globalMatrixCache);
@@ -613,10 +615,11 @@ export default function AdminConsole() {
                            <select 
                              className="bg-transparent border border-indigo-500/30 text-indigo-400 text-[10px] uppercase font-bold tracking-widest rounded p-1.5 outline-none focus:border-indigo-500 transition-colors cursor-pointer"
                              value={(() => {
-                               const lower = (user.role || '').toLowerCase();
-                               if (lower === 'admin' || lower === 'system admin') return 'Admin';
+                               const lower = (user.role || '').toLowerCase().replace(/[_\-\s]+/g, '');
+                               if (lower === 'superadminreadonly' || lower === 'adminreadonly') return 'SuperAdmin Read-Only';
+                               if (lower === 'admin' || lower === 'systemadmin') return 'Admin';
                                if (lower === 'leader') return 'LEADER';
-                               if (lower === 'data analyst' || lower === 'analyst') return 'DATA ANALYST';
+                               if (lower === 'dataanalyst' || lower === 'analyst') return 'DATA ANALYST';
                                return user.role || 'User';
                              })()}
                              onChange={(e) => {
@@ -627,6 +630,7 @@ export default function AdminConsole() {
                              <option value="User" className="bg-[#0a0c10] text-gray-300">USER (NODE)</option>
                              <option value="DATA ANALYST" className="bg-[#0a0c10] text-cyan-400">DATA ANALYST</option>
                              <option value="LEADER" className="bg-[#0a0c10] text-indigo-400">LEADER</option>
+                             <option value="SuperAdmin Read-Only" className="bg-[#0a0c10] text-purple-400">SUPERADMIN READ-ONLY</option>
                              <option value="Admin" className="bg-[#0a0c10] text-rose-500">SYSTEM ADMIN</option>
                            </select>
                            <button title={user.globalAiAccess ? "Revoke Gemini AI Access" : "Grant Gemini AI Access"} onClick={() => toggleUserAi(user.discordId, user.globalAiAccess)} className={`p-1.5 rounded-lg border transition-all ${user.globalAiAccess ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.2)]'}`}><Bot size={14} /></button>
@@ -681,10 +685,11 @@ export default function AdminConsole() {
                            <select 
                              className="bg-transparent border border-none text-gray-500 hover:text-indigo-400 text-[10px] font-bold uppercase tracking-widest rounded outline-none transition-colors cursor-pointer mr-1 max-w-[100px]"
                              value={(() => {
-                               const lower = (user.role || '').toLowerCase();
-                               if (lower === 'admin' || lower === 'system admin') return 'Admin';
+                               const lower = (user.role || '').toLowerCase().replace(/[_\-\s]+/g, '');
+                               if (lower === 'superadminreadonly' || lower === 'adminreadonly') return 'SuperAdmin Read-Only';
+                               if (lower === 'admin' || lower === 'systemadmin') return 'Admin';
                                if (lower === 'leader') return 'LEADER';
-                               if (lower === 'data analyst' || lower === 'analyst') return 'DATA ANALYST';
+                               if (lower === 'dataanalyst' || lower === 'analyst') return 'DATA ANALYST';
                                return user.role || 'User';
                              })()}
                              onChange={(e) => {
@@ -697,6 +702,7 @@ export default function AdminConsole() {
                              <option value="User" className="bg-[#0a0c10] text-gray-300">USER (NODE)</option>
                              <option value="DATA ANALYST" className="bg-[#0a0c10] text-cyan-400">DATA ANALYST</option>
                              <option value="LEADER" className="bg-[#0a0c10] text-indigo-400">LEADER</option>
+                             <option value="SuperAdmin Read-Only" className="bg-[#0a0c10] text-purple-400">SUPERADMIN READ-ONLY</option>
                              <option value="Admin" className="bg-[#0a0c10] text-rose-500">ADMIN</option>
                            </select>
 
@@ -868,6 +874,8 @@ export default function AdminConsole() {
                      <select className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.role} onChange={e => setPassForm({...passForm, role: e.target.value})}>
                         <option value="User">User (Standard Node)</option>
                         <option value="Data Analyst">Data Analyst (Elevated View)</option>
+                        <option value="Leader">Leader (R4/R5 Command)</option>
+                        <option value="SuperAdmin Read-Only">SuperAdmin Read-Only (Observer)</option>
                      </select>
                      <select className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-emerald-500 outline-none" value={passForm.expireDays} onChange={e => setPassForm({...passForm, expireDays: e.target.value})}>
                         <option value="1">1 Day</option>
@@ -890,6 +898,8 @@ export default function AdminConsole() {
                      <select className="flex-1 min-w-0 bg-[#161920] border border-[#1e222b] rounded p-3 text-sm text-white focus:border-indigo-500 outline-none" value={manualUserForm.role} onChange={e => setManualUserForm({...manualUserForm, role: e.target.value})}>
                         <option value="User">User (Standard Node)</option>
                         <option value="Data Analyst">Data Analyst (Elevated View)</option>
+                        <option value="Leader">Leader (R4/R5 Command)</option>
+                        <option value="SuperAdmin Read-Only">SuperAdmin Read-Only (Observer)</option>
                      </select>
                  </div>
                  <button onClick={handleAddManualUser} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded p-3 text-xs font-bold uppercase tracking-widest transition-all">Bypass Pipeline</button>
@@ -1232,6 +1242,9 @@ export default function AdminConsole() {
           <div className="h-16 border-b border-[#1e222b] bg-[#0a0c10]/80 backdrop-blur-md flex items-center justify-between px-8 absolute top-0 w-full z-10">
              <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
                 Admin Area <ChevronRight size={14}/> <span className="text-cyan-400">{activeTab}</span>
+                {(session?.user?.isSuperAdminReadOnly || effectiveIsSuperAdminReadOnly) && (
+                  <span className="ml-3 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-widest bg-purple-500/15 text-purple-300 border border-purple-500/40">👁️ SuperAdmin Read-Only (Observer)</span>
+                )}
              </div>
              <button onClick={() => { globalMatrixTimestamp=0; setIsLoading(true); fetchAdminMatrix(); }} className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest bg-[#1e222b] hover:bg-cyan-500/20 hover:text-cyan-400 text-gray-400 px-4 py-2 rounded transition-colors border border-transparent hover:border-cyan-500/30">
                 <RefreshCw size={12} className={isLoading ? "animate-spin text-cyan-400" : ""} /> Sync Matrix

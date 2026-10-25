@@ -71,7 +71,7 @@ const STATUS_BADGE_MAP = {
 };
 
 export default function SwarmBlackBoxHub() {
-  const { effectiveIsValheonFounder, effectiveIsSuperAdmin } = useRolePreview();
+  const { effectiveIsValheonFounder, effectiveIsSuperAdmin, effectiveIsSuperAdminReadOnly } = useRolePreview();
   const [stateData, setStateData] = useState(null);
   const [source, setSource] = useState('LOADING');
   const [loading, setLoading] = useState(true);
@@ -128,6 +128,10 @@ export default function SwarmBlackBoxHub() {
   }
 
   const triggerOperatorAction = async (action, port = '16448') => {
+    if (effectiveIsSuperAdminReadOnly) {
+      setActionBanner('Read-Only Clearance: Operator mutations are disabled for SuperAdmin Read-Only.');
+      return;
+    }
     setDispatchingAction(`${action}-${port}`);
     setActionBanner(null);
     try {

@@ -5,11 +5,17 @@
  * "Data Analyst", so those assignments silently granted nothing. Everything now goes through
  * normalizeGovernorRole() so storage, auth and UI agree. Safe to import on client and server.
  */
-export const GOVERNOR_ROLES = ['User', 'Data Analyst', 'Leader', 'Admin'];
+export const GOVERNOR_ROLES = ['User', 'Data Analyst', 'Leader', 'SuperAdmin Read-Only', 'Admin'];
+
+export function isSuperAdminReadOnlyRole(role) {
+  const r = String(role || '').trim().toLowerCase().replace(/[_\-\s]+/g, '');
+  return r === 'superadminreadonly' || r === 'adminreadonly' || r === 'readonlysuperadmin';
+}
 
 export function normalizeGovernorRole(role) {
+  if (isSuperAdminReadOnlyRole(role)) return 'SuperAdmin Read-Only';
   const r = String(role || '').trim().toLowerCase().replace(/[_\s]+/g, ' ');
-  if (r === 'admin') return 'Admin';
+  if (r === 'admin' || r === 'system admin' || r === 'superadmin') return 'Admin';
   if (r === 'leader') return 'Leader';
   if (r === 'data analyst' || r === 'analyst') return 'Data Analyst';
   return 'User';
@@ -18,11 +24,13 @@ export function normalizeGovernorRole(role) {
 /** Session capability flags for a governor role. */
 export function governorRoleFlags(role) {
   const canonical = normalizeGovernorRole(role);
+  const isReadOnlySa = canonical === 'SuperAdmin Read-Only';
   return {
     role: canonical,
     isAnalyst: canonical !== 'User',
-    isLeader: canonical === 'Leader' || canonical === 'Admin',
-    isSuperAdmin: canonical === 'Admin'
+    isLeader: canonical === 'Leader' || canonical === 'Admin' || isReadOnlySa,
+    isSuperAdmin: canonical === 'Admin' || isReadOnlySa,
+    isSuperAdminReadOnly: isReadOnlySa
   };
 }
 

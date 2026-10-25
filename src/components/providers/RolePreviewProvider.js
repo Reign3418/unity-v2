@@ -12,9 +12,11 @@ const RolePreviewContext = createContext({
   toggleOsMode: () => {},
   isRealValheonFounder: false,
   isRealSuperAdmin: false,
+  isRealSuperAdminReadOnly: false,
   effectiveRole: 'User',
   effectiveIsValheonFounder: false,
   effectiveIsSuperAdmin: false,
+  effectiveIsSuperAdminReadOnly: false,
   effectiveIsLeader: false,
   effectiveIsAnalyst: false,
   effectiveIsMember: false,
@@ -36,12 +38,13 @@ export function RolePreviewProvider({ children }) {
   const isRealValheonFounder = checkIsValheonFounder(session?.user);
   // Check if the authenticated user is genuinely a SuperAdmin (or Founder)
   const isRealSuperAdmin = Boolean(session?.user?.isSuperAdmin) || isRealValheonFounder;
+  const isRealSuperAdminReadOnly = Boolean(session?.user?.isSuperAdminReadOnly) && !isRealValheonFounder;
 
   // Hydrate preview role and OS mode from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedRole = localStorage.getItem('unty_preview_role');
-      if (savedRole && ['leader', 'analyst', 'member', 'guest'].includes(savedRole)) {
+      if (savedRole && ['superadmin_readonly', 'leader', 'analyst', 'member', 'guest'].includes(savedRole)) {
         setPreviewRoleState(savedRole);
       }
       const savedOs = localStorage.getItem('valheon_os_mode');
@@ -113,7 +116,8 @@ export function RolePreviewProvider({ children }) {
 
   // Compute effective permissions based on simulated tier
   // Note: when Lauren switches osMode to 'unity', she STILL has full SuperAdmin permissions in Classic Unity with ZERO preview banners!
-  const effectiveIsSuperAdmin = isRealSuperAdmin && !activePreview;
+  const effectiveIsSuperAdmin = isRealSuperAdmin && (!activePreview || activePreview === 'superadmin_readonly');
+  const effectiveIsSuperAdminReadOnly = isRealSuperAdminReadOnly || activePreview === 'superadmin_readonly';
   const effectiveIsLeader =
     activePreview === 'leader' ||
     (effectiveIsSuperAdmin ? Boolean(session?.user?.isLeader ?? true) : false);
@@ -128,7 +132,9 @@ export function RolePreviewProvider({ children }) {
     activePreview === 'guest' ? false : Boolean(session?.user?.isSupporter);
 
   const effectiveRole = activePreview
-    ? activePreview === 'leader'
+    ? activePreview === 'superadmin_readonly'
+      ? 'SuperAdmin Read-Only'
+      : activePreview === 'leader'
       ? 'Leader'
       : activePreview === 'analyst'
       ? 'Data Analyst'
@@ -162,6 +168,7 @@ export function RolePreviewProvider({ children }) {
         ...session.user,
         isValheonFounder: effectiveIsValheonFounder,
         isSuperAdmin: effectiveIsSuperAdmin,
+        isSuperAdminReadOnly: effectiveIsSuperAdminReadOnly,
         isLeader: effectiveIsLeader,
         isAnalyst: effectiveIsAnalyst,
         isMember: effectiveIsMember,
@@ -180,6 +187,7 @@ export function RolePreviewProvider({ children }) {
     activePreview,
     effectiveIsValheonFounder,
     effectiveIsSuperAdmin,
+    effectiveIsSuperAdminReadOnly,
     effectiveIsLeader,
     effectiveIsAnalyst,
     effectiveIsMember,
@@ -198,9 +206,11 @@ export function RolePreviewProvider({ children }) {
         toggleOsMode,
         isRealValheonFounder,
         isRealSuperAdmin,
+        isRealSuperAdminReadOnly,
         effectiveRole,
         effectiveIsValheonFounder,
         effectiveIsSuperAdmin,
+        effectiveIsSuperAdminReadOnly,
         effectiveIsLeader,
         effectiveIsAnalyst,
         effectiveIsMember,

@@ -208,14 +208,17 @@ function buildFallbackState() {
   };
 }
 
-async function requireSuperAdminOrAgent(request) {
+async function requireSuperAdminOrAgent(request, requireWrite = false) {
   try {
     const agentSecret = request?.headers?.get?.('x-bastion-secret');
     if (agentSecret && process.env.BASTION_AGENT_SECRET && agentSecret === process.env.BASTION_AGENT_SECRET) {
       return true;
     }
     const session = await auth();
-    if (session?.user?.isSuperAdmin) return true;
+    if (session?.user?.isSuperAdmin) {
+      if (requireWrite && session?.user?.isSuperAdminReadOnly) return false;
+      return true;
+    }
   } catch {
     /* fall through */
   }
@@ -251,8 +254,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    if (!(await requireSuperAdminOrAgent(request))) {
-      return NextResponse.json({ ok: false, error: 'SuperAdmin clearance required' }, { status: 403 });
+    if (!(await requireSuperAdminOrAgent(request, true))) {
+      return NextResponse.json({ ok: false, error: 'SuperAdmin Write clearance required (Read-Only cannot mutate Swarm state)' }, { status: 403 });
     }
     const body = await request.json();
 

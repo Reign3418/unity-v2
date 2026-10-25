@@ -67,6 +67,9 @@ export async function POST(req) {
     if (!session || !session.user.isSuperAdmin) {
       return NextResponse.json({ error: "Unauthorized. Master Creator Clearance Required." }, { status: 403 });
     }
+    if (session.user.isSuperAdminReadOnly) {
+      return NextResponse.json({ error: "Read-Only Clearance: SuperAdmin Read-Only accounts cannot modify system state." }, { status: 403 });
+    }
 
     const body = await req.json();
     const { action, payload } = body;

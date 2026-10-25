@@ -9,12 +9,14 @@ const ROLE_LABEL_KEYS = {
     "User": "role_user",
     "Data Analyst": "role_analyst",
     "Leader": "role_leader",
+    "SuperAdmin Read-Only": "role_superadmin_readonly",
     "Admin": "role_admin"
 };
 
 const ROLE_BADGE_STYLES = {
     "Data Analyst": "bg-sky-500/10 text-sky-300 border-sky-500/30",
     "Leader": "bg-amber-500/10 text-amber-300 border-amber-500/30",
+    "SuperAdmin Read-Only": "bg-purple-500/10 text-purple-300 border-purple-500/40",
     "Admin": "bg-rose-500/10 text-rose-300 border-rose-500/40"
 };
 

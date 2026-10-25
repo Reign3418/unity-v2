@@ -5,7 +5,7 @@ import { getKingdomMetadata, setKingdomMetadata, getAllTrackedKingdoms } from "@
 export async function GET(req) {
     try {
         const session = await auth();
-        if (!session || !session.user.isSuperAdmin) {
+        if (!session || !session.user.isSuperAdmin || (req.method !== 'GET' && session.user.isSuperAdminReadOnly)) {
             return NextResponse.json({ error: "Unauthorized. SuperAdmin only." }, { status: 403 });
         }
 
@@ -35,7 +35,7 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         const session = await auth();
-        if (!session || !session.user.isSuperAdmin) {
+        if (!session || !session.user.isSuperAdmin || (req.method !== 'GET' && session.user.isSuperAdminReadOnly)) {
             return NextResponse.json({ error: "Unauthorized. SuperAdmin only." }, { status: 403 });
         }
 

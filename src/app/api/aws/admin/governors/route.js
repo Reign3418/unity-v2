@@ -7,7 +7,7 @@ import { GOVERNOR_ROLES } from "@/lib/governorRoles";
 /** Super-admin gate shared by every governor management action. */
 async function requireSuperAdmin() {
     const session = await auth();
-    if (!session?.user?.isSuperAdmin) return null;
+    if (!session?.user?.isSuperAdmin || session?.user?.isSuperAdminReadOnly) return null;
     return session;
 }
 

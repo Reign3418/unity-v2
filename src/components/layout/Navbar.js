@@ -225,6 +225,7 @@ export default function Navbar({ onMenuClick }) {
                 title="Preview membership tiers"
               >
                 <option value="superadmin" className="bg-[#0f1115] text-cyan-400">👑 SuperAdmin</option>
+                <option value="superadmin_readonly" className="bg-[#0f1115] text-purple-400">👁️ SuperAdmin (Read-Only)</option>
                 <option value="leader" className="bg-[#0f1115] text-amber-400">🛡️ Leader (R4/R5)</option>
                 <option value="analyst" className="bg-[#0f1115] text-sky-400">📊 Data Analyst</option>
                 <option value="member" className="bg-[#0f1115] text-emerald-400">👤 Member (Standard)</option>

@@ -1511,7 +1511,8 @@
     "err_update": "Failed to update governor: {error}",
     "err_delete": "Failed to delete governor: {error}",
     "err_unlock": "Failed to unlock governor: {error}",
-    "err_generic": "Error: {error}"
+    "err_generic": "Error: {error}",
+    "role_superadmin_readonly": "SuperAdmin Read-Only"
   },
   "AccountAgeAudit": {
     "page_title": "Governor Age & Migration Audit",

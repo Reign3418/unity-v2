@@ -4,7 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { getTenantConfig, getUserConfig, getGlobalConfig, getGovernorStats, getAllTrackedKingdoms, getGuestPass, getKingdomSupporterStatus, pingUserActivity, getGovernorAuth, hashGovernorPin, recordGovernorLoginFailure, resetGovernorLoginFailures, lockGovernorAuth, deleteGovernorAuth, getLoginThrottleCount, recordLoginThrottleFailure } from "./awsDynamo";
 import { notifyAdmin } from "./notifyAdmin";
 import { logEvent } from "./eventLogger";
-import { governorRoleFlags, isElevatedGovernorRole } from "./governorRoles";
+import { governorRoleFlags, isElevatedGovernorRole, isSuperAdminReadOnlyRole } from "./governorRoles";
 import { createHash, timingSafeEqual } from "crypto";
 
 /** Constant-time string comparison (hash first so differing lengths don't leak or throw). */
@@ -67,6 +67,7 @@ function applyGovernorClaims(token, govData) {
   token.isAnalyst = flags.isAnalyst;
   token.isLeader = flags.isLeader;
   token.isSuperAdmin = flags.isSuperAdmin;
+  token.isSuperAdminReadOnly = Boolean(flags.isSuperAdminReadOnly);
   token.isSupporter = true;
   token.role = flags.role;
 
@@ -400,12 +401,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.avatar = user.image;
               token.accessToken = "GUEST_MODE";
               
+              const guestRoleRaw = user.guestData?.role || "User";
+              const isGuestSaReadOnly = isSuperAdminReadOnlyRole(guestRoleRaw);
               token.isMember = true;
-              token.isAnalyst = user.guestData?.role === "Data Analyst" || user.guestData?.role === "analyst" || user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
-              token.isLeader = user.guestData?.role === "Leader" || user.guestData?.role === "Admin";
-              token.isSuperAdmin = user.guestData?.role === "Admin";
+              token.isAnalyst = guestRoleRaw === "Data Analyst" || guestRoleRaw === "analyst" || guestRoleRaw === "Leader" || guestRoleRaw === "Admin" || isGuestSaReadOnly;
+              token.isLeader = guestRoleRaw === "Leader" || guestRoleRaw === "Admin" || isGuestSaReadOnly;
+              token.isSuperAdmin = guestRoleRaw === "Admin" || isGuestSaReadOnly;
+              token.isSuperAdminReadOnly = isGuestSaReadOnly;
               token.isSupporter = true;
-              token.role = user.guestData?.role === "Admin" ? "Admin" : (user.guestData?.role === "Leader" ? "Leader" : (user.guestData?.role === "Data Analyst" || user.guestData?.role === "analyst" ? "Data Analyst" : "User"));
+              token.role = isGuestSaReadOnly ? "SuperAdmin Read-Only" : (guestRoleRaw === "Admin" ? "Admin" : (guestRoleRaw === "Leader" ? "Leader" : (guestRoleRaw === "Data Analyst" || guestRoleRaw === "analyst" ? "Data Analyst" : "User")));
               
               token.tenant = {
                   guildId: "guest",
@@ -580,12 +584,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Inherit Database Master Roles 
           const dbRole = (userConfig?.role || '').toLowerCase();
+          const isDbSaReadOnly = isSuperAdminReadOnlyRole(dbRole) && !isDbSuperAdmin && !computedValheonFounder;
+          let computedSuperAdminReadOnly = false;
           
           // ── Role Flags: computed after dbRole resolution ──────────────────
           let isAnalyst = false;
 
           if (dbRole === 'admin') {
               computedSuperAdmin = true;
+              computedSuperAdminReadOnly = false;
               isLeader = true;
               isAnalyst = true;
               isMember = true;
@@ -596,6 +603,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                       guildId: "master",
                       kingdomId: allKds.length > 0 ? allKds[0] : "3155",
                       leadershipRoleId: "master",
+                      allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
+                  };
+              }
+          } else if (isDbSaReadOnly) {
+              computedSuperAdmin = true;
+              computedSuperAdminReadOnly = true;
+              isLeader = true;
+              isAnalyst = true;
+              isMember = true;
+
+              if (!activeTenant || activeTenant.guildId !== "master") {
+                  const allKds = await getAllTrackedKingdoms();
+                  activeTenant = {
+                      guildId: "master_readonly",
+                      kingdomId: allKds.length > 0 ? allKds[0] : "3155",
+                      leadershipRoleId: "superadmin_readonly",
                       allowedKingdoms: allKds.length > 0 ? allKds : ["3155"]
                   };
               }
@@ -662,11 +685,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.isAnalyst = isAnalyst;
           token.isLeader = isLeader;
           token.isSuperAdmin = computedSuperAdmin;
+          token.isSuperAdminReadOnly = computedSuperAdminReadOnly;
           token.isValheonFounder = computedValheonFounder;
           token.tenant = activeTenant;
           token.governorConfig = userConfig;
           token.ownedGuilds = ownedGuilds;
-          token.role = computedSuperAdmin ? "Admin" : (isLeader ? "Leader" : (isAnalyst ? "Data Analyst" : "User"));
+          token.role = computedSuperAdminReadOnly ? "SuperAdmin Read-Only" : (computedSuperAdmin ? "Admin" : (isLeader ? "Leader" : (isAnalyst ? "Data Analyst" : "User")));
           
           let isSupporter = false;
           if (computedSuperAdmin) {
@@ -698,6 +722,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isAnalyst = token.isAnalyst || false;
         session.user.isLeader = token.isLeader;
         session.user.isSuperAdmin = token.isSuperAdmin;
+        session.user.isSuperAdminReadOnly = Boolean(token.isSuperAdminReadOnly);
         session.user.isValheonFounder = Boolean(token.isValheonFounder);
         session.user.isSupporter = token.isSupporter || false;
         session.user.role = token.role || "User";
