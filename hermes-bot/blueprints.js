@@ -1464,6 +1464,66 @@ export const PINNED_CONSOLE_TEMPLATES = {
     ],
   },
 
+  KD_VERIFY_CONSOLE: {
+    embed: {
+      title: '🔗 GOVERNOR ID, ALLIANCE & ZERO-GRID TITLE VERIFICATION GATEWAY',
+      description:
+        '**Welcome to the Kingdom Citadel Gateway! Link your in-game Rise of Kingdoms Governor profile below in 10 seconds to unlock the server:**\n\n' +
+        '### 🔓 1. UNLOCK KINGDOM WAR ROOMS & YOUR ALLIANCE SECTOR\n' +
+        '• For spy-protection, the **KvK War Room**, **Rally/Garrison Calls**, and **Alliance Sectors** are hidden from unverified guests.\n' +
+        '• Click **`[🔗 Link Governor ID & Unlock War Channels]`** below and enter your **Governor ID**, **In-Game Name**, and **Alliance Tag**. **HERMES** will automatically grant your **`@🛡️ Sworn Defender`** role, assign your **`@Alliance Vanguard`** role, and format your nickname (`[TAG] Name`)!\n\n' +
+        '### 🔮 2. POWERS ZERO-GRID 1-TAP TITLES (`#🔮-title-request-queue`)\n' +
+        '• Once you link your **Governor ID** (and optional `[X, Y]` City Coordinates) here once, you **never** have to type coordinates for titles again—just type `"justice"`, `"duke"`, `"scientist"`, or `"architect"` in `#🔮-title-request-queue`!\n\n' +
+        '### 📊 3. SYNCS YOUR LIVE KVK DKP & STATS CARD (`#📊-live-dkp-leaderboard`)\n' +
+        '• Connects your Discord account to your in-game T4/T5 Kills, Deads, and KvK DKP goal so you can check your progress anytime in 1 click.',
+      color: 0x10b981,
+      footer: { text: 'VALHEON IDENTITY GATEWAY // 1-CLICK ROLE GRANT + ZERO-GRID TITLE BINDING' },
+    },
+    buttons: [
+      { customId: 'hermes_verify_governor', label: '🔗 Link Governor ID & Unlock War Channels', style: 'SUCCESS' },
+      { customId: 'hermes_mystats_btn', label: '🪪 View My Linked Governor & DKP Card', style: 'PRIMARY' },
+      { customId: 'hermes_my_roles_status', label: '🎯 View My Combat & Event Roles', style: 'SECONDARY' },
+    ],
+  },
+
+  KD_CHARTER_EMBED: {
+    embed: {
+      title: '📜 OFFICIAL KINGDOM LAWS, MGE RULES & KVK DKP CHARTER',
+      description:
+        '**All Governors and Alliance Members must abide by the Sovereign Kingdom Charter below:**\n\n' +
+        '### ⚔️ 1. MIGHTIEST GOVERNOR (MGE) & GOLDEN HEAD ALLOCATION\n' +
+        '• **Fixed MGE Ranks (Top 1–10):** Reserved for vetted Rally & Garrison Captains via `#🎫-kingdom-ticket-desk`. Unranked Governors must respect the posted Kill/Point Cap.\n' +
+        '• **Cap Breakers:** Breaking a fixed MGE stage cap results in immediate placement on `#🎯-zero-list-and-bounties` until restitution is paid.\n\n' +
+        '### 🌾 2. HOME KINGDOM PEACE & TILE LAWS\n' +
+        '• **Zero City/Tile Hits in Home Kingdom:** All Alliance territories and resource nodes follow strict full-node completion rules (never leave `<100` resources in a node).\n\n' +
+        '### 🔥 3. KVK DKP & DEAD TROOP EXPECTATIONS\n' +
+        '• Your KvK contribution is tracked via **T4 Kills**, **T5 Kills**, and **Flag/Pass Garrison & Rally Deads** in `#📊-live-dkp-leaderboard`.\n' +
+        '• Accounts failing to meet minimum KvK activity thresholds after matchmaking lock are subject to `#📉-deadweight-and-ghost-audit`.',
+      color: 0xf59e0b,
+      footer: { text: 'KINGDOM HIGH COUNCIL CHARTER // CUSTOMIZE FREELY TO MATCH YOUR KINGDOM LAWS' },
+    },
+    buttons: [
+      { customId: 'hermes_verify_governor', label: '✅ Accept Charter & Link Governor ID', style: 'SUCCESS' },
+      { customId: 'hermes_mystats_btn', label: '📊 Check My KvK DKP Goal', style: 'PRIMARY' },
+    ],
+  },
+
+  SUITE_AEGIS: {
+    embed: {
+      title: '👁️ AEGIS 35-FIELD MIGRANT POLYGRAPH & SPY FORENSICS DESK',
+      description:
+        '**Automated R4/R5 Migrant Vetting & Deadweight Detection Console:**\n\n' +
+        '• Every incoming migration ticket in `#🎫-kingdom-ticket-desk` can be audited in 1 click for **KP-to-Power Ratio**, **Dead-to-Power Ratio**, **T4 vs T5 Kill Breakdown**, and **Imperial Feeding / Alt-Farm Detection**.\n' +
+        '• Click below to run a live Governor Telemetry Audit or inspect the Kingdom Zero-List.',
+      color: 0xa855f7,
+      footer: { text: 'VALHEON AEGIS POLYGRAPH // R4 & R5 HIGH COUNCIL OVERWATCH' },
+    },
+    buttons: [
+      { customId: 'hermes_roast_me', label: '👁️ Run Governor Telemetry Audit', style: 'PRIMARY' },
+      { customId: 'hermes_mystats_btn', label: '🪪 Inspect Linked DKP Dossier', style: 'SECONDARY' },
+    ],
+  },
+
   TICKET_CONSOLE_HQ: {
     embed: {
       title: '🎫 HERMES SOVEREIGN CONCIERGE & TICKET DESK',

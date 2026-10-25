@@ -57,22 +57,39 @@ const WAR_RSVP_SET = new Set();
 // MODULE 1: 🔮 INTERACTIVE KINGDOM TITLE REQUEST QUEUE (ZERO-GRID / 1-TAP)
 // ============================================================================
 const LINKED_GOVERNOR_PROFILES = {
-  reign3418: { govId: '41940001', govName: 'Reign3418', alliance: 'VHN1' },
-  meganoyo: { govId: '41940002', govName: 'Meganoyo', alliance: 'VHN1' },
+  reign3418: { govId: '41940001', govName: 'Reign3418', alliance: 'VHN1', coords: 'K4194 X:614 Y:588' },
+  meganoyo: { govId: '41940002', govName: 'Meganoyo', alliance: 'VHN1', coords: 'K4194 X:615 Y:588' },
+  '184977944433786880': { govId: '41940001', govName: 'Reign3418', alliance: 'VHN1', coords: 'K4194 X:614 Y:588' },
 };
+
+export function bindGovernorProfile({ userId, username, govId, govName, alliance, coords }) {
+  const cleanUser = String(username || 'Governor').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const entry = {
+    govId: String(govId || '41940001').replace(/[^0-9A-Za-z-]/g, ''),
+    govName: String(govName || username || 'Governor').trim(),
+    alliance: String(alliance || 'VHN1').trim().toUpperCase(),
+    coords: String(coords || '').trim() || null,
+    linkedAtUnix: Math.floor(Date.now() / 1000),
+  };
+  if (userId) LINKED_GOVERNOR_PROFILES[String(userId)] = entry;
+  if (cleanUser) LINKED_GOVERNOR_PROFILES[cleanUser] = entry;
+  return entry;
+}
 
 export function resolveGovernorIdentity({ userId, username, coords }) {
   const cleanUser = String(username || 'Governor').toLowerCase().replace(/[^a-z0-9]/g, '');
   const matched =
+    (userId && LINKED_GOVERNOR_PROFILES[String(userId)]) ||
     LINKED_GOVERNOR_PROFILES[cleanUser] || {
       govId: `UID-${String(userId || '419499').slice(-6)}`,
       govName: username || 'Governor',
       alliance: 'VHN1',
+      coords: null,
     };
-  const label =
-    coords && coords !== 'AUTO'
-      ? `${matched.govName} [${matched.alliance}] • ${coords}`
-      : `${matched.govName} [${matched.alliance}] • #${matched.govId} (Zero-Grid Profile)`;
+  const resolvedCoords = coords && coords !== 'AUTO' ? coords : matched.coords;
+  const label = resolvedCoords
+    ? `${matched.govName} [${matched.alliance}] • #${matched.govId} (${resolvedCoords})`
+    : `${matched.govName} [${matched.alliance}] • #${matched.govId} (Zero-Grid Profile)`;
   return { ...matched, label };
 }
 
