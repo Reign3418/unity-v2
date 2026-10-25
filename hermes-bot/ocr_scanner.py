@@ -50,9 +50,12 @@ def classify_tile_resource(tile_bgr, denom):
     return 'wood'
 
 def scan_rok_image(image_url):
-    req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
-    data = urllib.request.urlopen(req, timeout=15).read()
-    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    if image_url.startswith('http://') or image_url.startswith('https://'):
+        req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+        data = urllib.request.urlopen(req, timeout=15).read()
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    else:
+        img = cv2.imread(image_url)
     if img is None:
         return {"error": "Could not decode image"}
 
@@ -74,6 +77,113 @@ def scan_rok_image(image_url):
             "y": (y0 + y1) // 2,
             "box": [x0, y0, x1, y1]
         })
+
+    # Detect if this is a Rise of Kingdoms GOVERNOR PROFILE Screenshot (Horizontal or Mobile Portrait)
+    full_text = " ".join(it["text"] for it in items)
+    id_match = None
+    id_item = None
+    gov_label_item = None
+    for it in items:
+        m = re.search(r'(?:ID|1D)\s*[:：]?\s*(\d{5,12})', it["text"], re.IGNORECASE)
+        if m:
+            id_match = m.group(1)
+            id_item = it
+        if re.match(r'^Governor\b', it["text"], re.IGNORECASE):
+            gov_label_item = it
+
+    if id_match or ("GOVERNOR" in full_text.upper() and ("KILL POINTS" in full_text.upper() or "ALLIANCE" in full_text.upper())):
+        gov_id = id_match or ""
+        gov_name = ""
+        alliance_tag = ""
+        alliance_full = ""
+        civilization = ""
+        power_val = 0
+        kp_val = 0
+        is_self_profile = False
+        action_points = ""
+
+        # 1. Extract Alliance [TAG]Name
+        for it in items:
+            am = re.search(r'[\[\(【]([^\]\)】]{2,6})[\]\)】]\s*(.*)', it["text"])
+            if am:
+                alliance_tag = am.group(1).strip()
+                alliance_full = f"[{alliance_tag}]{am.group(2).strip()}" if am.group(2).strip() else f"[{alliance_tag}]"
+                break
+
+        # 2. Extract Action Points (Self-Profile Proof)
+        for it in items:
+            if "ACTION" in it["text"].upper() and "POINT" in it["text"].upper():
+                is_self_profile = True
+            apm = re.search(r'(\d[\d,]*\s*/\s*1[.,]?[05]00)', it["text"])
+            if apm:
+                is_self_profile = True
+                action_points = apm.group(1).replace(" ", "")
+
+        # 3. Extract Governor Name (located immediately below 'Governor' or 'Governor(ID:...)')
+        anchor = gov_label_item or id_item
+        if anchor:
+            ax, ay = anchor["x"], anchor["y"]
+            candidates = []
+            for it in items:
+                if it is anchor or it is id_item:
+                    continue
+                dy = it["y"] - ay
+                dx = abs(it["x"] - ax)
+                if 15 <= dy <= 65 and dx <= 160:
+                    cleaned = re.sub(r'^[\s:：•·\-\*]+', '', it["text"]).strip()
+                    if cleaned and not re.match(r'^(Civilization|Alliance|Power|Kill|Action)', cleaned, re.IGNORECASE):
+                        candidates.append((dy, cleaned))
+            if candidates:
+                candidates.sort(key=lambda c: c[0])
+                gov_name = candidates[0][1]
+
+        # 4. Helper to find value either to the right (Portrait) or directly below (Horizontal) a label
+        def find_stat_near_label(label_regex, numeric=True):
+            lbl = next((it for it in items if re.search(label_regex, it["text"], re.IGNORECASE)), None)
+            if not lbl:
+                return 0 if numeric else ""
+            lx, ly = lbl["x"], lbl["y"]
+            best = []
+            for it in items:
+                if it is lbl:
+                    continue
+                dy = it["y"] - ly
+                dx = it["x"] - lx
+                # Horizontal layout: directly below label (10 <= dy <= 55, abs(dx) <= 95)
+                is_below = (10 <= dy <= 55 and abs(dx) <= 95)
+                # Portrait layout: same row to the right (abs(dy) <= 22, dx > 60)
+                is_right = (abs(dy) <= 22 and dx > 60)
+                if is_below or is_right:
+                    if numeric:
+                        val = parse_int(it["text"])
+                        if val > 0:
+                            best.append((abs(dy) + abs(dx) * 0.1, val))
+                    else:
+                        txt = it["text"].strip()
+                        if txt and not re.search(r'^\d+$', txt):
+                            best.append((abs(dy) + abs(dx) * 0.1, txt))
+            if best:
+                best.sort(key=lambda b: b[0])
+                return best[0][1]
+            return 0 if numeric else ""
+
+        power_val = find_stat_near_label(r'^Power$')
+        kp_val = find_stat_near_label(r'Kill\s*Points')
+        civilization = find_stat_near_label(r'^Civilization$', numeric=False)
+
+        return {
+            "mode": "GOVERNOR_PROFILE",
+            "gov_id": gov_id,
+            "gov_name": gov_name or "Governor",
+            "alliance_tag": alliance_tag,
+            "alliance_full": alliance_full or (f"[{alliance_tag}]" if alliance_tag else "None"),
+            "civilization": civilization or "Unknown",
+            "power": power_val,
+            "kill_points": kp_val,
+            "is_self_profile": is_self_profile,
+            "action_points": action_points,
+            "lines": [it["text"] for it in items if it["conf"] >= 0.65][:30]
+        }
 
     # Detect if this is a RoK Resource Inventory Bag Grid
     VALID_DENOMS = {

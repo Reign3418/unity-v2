@@ -229,7 +229,8 @@ export function buildValheonHqBlueprint(customOptions = {}) {
           {
             name: '📜-welcome-and-manifesto',
             type: CHANNEL_TYPES.TEXT,
-            topic: 'Welcome to Valheon Citadel — The Sovereign Operating System for Rise of Kingdoms. Verify your Governor ID below.',
+            access: 'PUBLIC_SCREENSHOT_VERIFY',
+            topic: 'Welcome to Valheon Citadel — Drop your in-game Governor Profile screenshot right here for 1-second Auto-OCR Verification, or click [Link Governor ID] below.',
             pinKey: 'WELCOME_MANIFESTO',
           },
           {
@@ -712,7 +713,8 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '🔗-verify-governor-id',
             type: CHANNEL_TYPES.TEXT,
-            topic: `Link your in-game Governor ID to unlock Kingdom #${kdId} war channels and sync your DKP profile.`,
+            access: 'PUBLIC_SCREENSHOT_VERIFY',
+            topic: `Drop your in-game Governor Profile screenshot right here for 1-second Auto-OCR Verification (auto-approves if in a Kingdom alliance, or queues for 1-click R4/R5 sister-alliance approval)!`,
             pinKey: 'KD_VERIFY_CONSOLE',
           },
           {
@@ -1527,19 +1529,21 @@ export const PINNED_CONSOLE_TEMPLATES = {
       title: '👑 WELCOME TO VALHEON CITADEL // THE SOVEREIGN ROK OS',
       description:
         'You have entered **Valheon Citadel**, the unified command center, living strategy vault, and uncensored community home for **Rise of Kingdoms** — orchestrated by **🪽 HERMES**.\n\n' +
+        '### 📸 STEP 1: DROP YOUR GOVERNOR PROFILE SCREENSHOT (1-SECOND AUTO-VERIFY!)\n' +
+        '• **Fastest Way:** Simply **upload/paste a screenshot of your in-game Governor Profile** (either the full horizontal `GOVERNOR PROFILE` screen or your mobile `Action Points` self-profile card) right in this channel!\n' +
+        '• **🪽 HERMES Vision OCR** automatically reads your **Governor ID (`ID: XXXXXXXX`)**, **In-Game Name**, **Alliance `[TAG]`**, **Power**, and **Kill Points**, binds your profile, and unlocks all **26+ Citadel Channels**!\n' +
+        '• *(Or click **`[🔗 Manual ID Entry / Update Coords]`** below if you don\'t have a screenshot handy.)*\n\n' +
         '### ⚔️ THE 5 VALHEON COMMAND SUITES\n' +
         '• **🛡️ PILLAR I — AEGIS:** 5-Model Trust Index, EK Polygraph 3.0 & Ghost/Alt Forensics\n' +
         '• **🌌 PILLAR II — NEXUS:** Cerberus 3D Governor Galaxy & 60fps WebWorker DKP Engine\n' +
         '• **🗺️ PILLAR III — THEATER:** 128-Node Crystal Map Planner & AI KvK Predictor\n' +
         '• **📬 PILLAR IV — VANGUARD:** Cross-Kingdom Player Hunter, Recruitment CRM & Mail Studio\n' +
-        '• **📸 PILLAR V — OPTICS:** Gemini 3.1 Vision Screenshot OCR & 7 Audited Calculators\n\n' +
-        '### 🔗 STEP 1: VERIFY YOUR GOVERNOR ID\n' +
-        'Click **`[🔗 Link RoK Governor ID]`** below (or run `/bind <governor_id>`) to sync your live `Valheon Sovereign Roster` telemetry and unlock your verified Kingdom & Tier roles.',
+        '• **📸 PILLAR V — OPTICS:** Local ONNX Vision Screenshot OCR & 7 Audited Calculators',
       color: 0xf59e0b,
-      footer: { text: 'VALHEON COMMAND OS // POWERED BY HERMES MESSENGER ENGINE' },
+      footer: { text: 'VALHEON COMMAND OS // DROP GOVERNOR SCREENSHOT BELOW FOR INSTANT AUTO-OCR VERIFICATION' },
     },
     buttons: [
-      { customId: 'hermes_verify_governor', label: '🔗 Link RoK Governor ID', style: 'PRIMARY' },
+      { customId: 'hermes_verify_governor', label: '🔗 Manual ID Entry / Update Coords', style: 'SUCCESS' },
       { customId: 'hermes_open_guide_vault', label: '📚 Browse 95 Field Guides', style: 'SECONDARY' },
       { customId: 'hermes_roast_me', label: '💀 Audit / Roast My Stats', style: 'DANGER' },
     ],
@@ -1547,21 +1551,20 @@ export const PINNED_CONSOLE_TEMPLATES = {
 
   KD_VERIFY_CONSOLE: {
     embed: {
-      title: '🔗 GOVERNOR ID, ALLIANCE & ZERO-GRID TITLE VERIFICATION GATEWAY',
+      title: '📸 AUTO-OCR GOVERNOR SCREENSHOT & ALLIANCE VERIFICATION GATEWAY',
       description:
-        '**Welcome to the Kingdom Citadel Gateway! Link your in-game Rise of Kingdoms Governor profile below in 10 seconds to unlock the server:**\n\n' +
-        '### 🔓 1. UNLOCK KINGDOM WAR ROOMS & YOUR ALLIANCE SECTOR\n' +
-        '• For spy-protection, the **KvK War Room**, **Rally/Garrison Calls**, and **Alliance Sectors** are hidden from unverified guests.\n' +
-        '• Click **`[🔗 Link Governor ID & Unlock War Channels]`** below and enter your **Governor ID**, **In-Game Name**, and **Alliance Tag**. **HERMES** will automatically grant your **`@🛡️ Sworn Defender`** role, assign your **`@Alliance Vanguard`** role, and format your nickname (`[TAG] Name`)!\n\n' +
-        '### 🔮 2. POWERS ZERO-GRID 1-TAP TITLES (`#🔮-title-request-queue`)\n' +
-        '• Once you link your **Governor ID** (and optional `[X, Y]` City Coordinates) here once, you **never** have to type coordinates for titles again—just type `"justice"`, `"duke"`, `"scientist"`, or `"architect"` in `#🔮-title-request-queue`!\n\n' +
-        '### 📊 3. SYNCS YOUR LIVE KVK DKP & STATS CARD (`#📊-live-dkp-leaderboard`)\n' +
-        '• Connects your Discord account to your in-game T4/T5 Kills, Deads, and KvK DKP goal so you can check your progress anytime in 1 click.',
+        '**Welcome to the Kingdom Border Gate! Unlock all Kingdom War Rooms & your Alliance Sector in 2 seconds:**\n\n' +
+        '### 📸 OPTION 1 (RECOMMENDED): DROP YOUR GOVERNOR SCREENSHOT IN THIS CHANNEL!\n' +
+        '• Upload or paste a screenshot of your in-game **Governor Profile** (either the full horizontal `GOVERNOR PROFILE` card or your mobile `Action Points` profile screen) right here!\n' +
+        '• **🟢 Instant Auto-Approval:** **HERMES Vision OCR** extracts your **Governor ID**, **Governor Name**, **Alliance `[TAG]`**, **Power**, and **Kill Points**. If your `[TAG]` matches one of this Kingdom\'s alliances, **HERMES auto-approves you immediately**, grants **`@🛡️ Sworn Defender`** + your **`@Alliance Vanguard`** role, and formats your nickname (`[TAG] Name`)!\n' +
+        '• **🟡 Sister / Support Alliance or Older Picture?** If you jumped to a sister/support alliance to help or used an older screenshot, **HERMES** automatically holds your scanned card in a **1-Click R4/R5 Approval Queue** so an officer can approve you in 1 tap!\n\n' +
+        '### 🔗 OPTION 2: MANUAL ID & ZERO-GRID TITLE COORDINATES\n' +
+        '• Click **`[🔗 Manual ID Entry / Set Title Coords]`** below to type your Governor ID or add your `[X, Y]` City Coordinates for the **1-Tap Title Queue (`#🔮-title-request-queue`)**.',
       color: 0x10b981,
-      footer: { text: 'VALHEON IDENTITY GATEWAY // 1-CLICK ROLE GRANT + ZERO-GRID TITLE BINDING' },
+      footer: { text: 'VALHEON OPTICS IDENTITY GATE // DROP PROFILE SCREENSHOT BELOW FOR AUTO-OCR VERIFICATION' },
     },
     buttons: [
-      { customId: 'hermes_verify_governor', label: '🔗 Link Governor ID & Unlock War Channels', style: 'SUCCESS' },
+      { customId: 'hermes_verify_governor', label: '🔗 Manual ID Entry / Set Title Coords', style: 'SUCCESS' },
       { customId: 'hermes_mystats_btn', label: '🪪 View My Linked Governor & DKP Card', style: 'PRIMARY' },
       { customId: 'hermes_my_roles_status', label: '🎯 View My Combat & Event Roles', style: 'SECONDARY' },
     ],

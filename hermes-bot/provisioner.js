@@ -191,6 +191,36 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey, chDef = nul
         deny: '0',
       });
     }
+  } else if (accessMode === 'PUBLIC_SCREENSHOT_VERIFY') {
+    overwrites.push({
+      id: everyoneId,
+      type: 0,
+      allow: (
+        BigInt(PERMS.VIEW_CHANNEL) |
+        BigInt(PERMS.SEND_MESSAGES) |
+        BigInt(PERMS.ATTACH_FILES) |
+        BigInt(PERMS.READ_MESSAGE_HISTORY) |
+        BigInt(PERMS.USE_APPLICATION_COMMANDS)
+      ).toString(),
+      deny: (
+        BigInt(PERMS.ADD_REACTIONS) |
+        (1n << 35n) | // CREATE_PUBLIC_THREADS
+        (1n << 36n)   // CREATE_PRIVATE_THREADS
+      ).toString(),
+    });
+    for (const rId of leaderRoleIds) {
+      overwrites.push({
+        id: rId,
+        type: 0,
+        allow: (
+          BigInt(PERMS.VIEW_CHANNEL) |
+          BigInt(PERMS.SEND_MESSAGES) |
+          BigInt(PERMS.ATTACH_FILES) |
+          BigInt(PERMS.MANAGE_MESSAGES)
+        ).toString(),
+        deny: '0',
+      });
+    }
   } else if (accessMode === 'PUBLIC_READ_ONLY' || accessMode === 'PUBLIC_BUTTON_ONLY') {
     overwrites.push({
       id: everyoneId,
