@@ -524,13 +524,30 @@ export async function provisionDiscordServer({
     `/guilds/${cleanGuildId}/channels`
   );
 
+  const usedRoleIds = new Set();
+  for (const ch of existingChannels) {
+    for (const ow of ch.permission_overwrites || []) {
+      if (ow.type === 0) usedRoleIds.add(ow.id);
+    }
+  }
+
   for (const roleDef of blueprint.roles) {
     const desiredPerms = PERMS[roleDef.permissions] || PERMS.STANDARD;
-    const found = existingRoles.find(
-      (er) => er.name.toLowerCase() === roleDef.name.toLowerCase()
+    const matches = existingRoles.filter(
+      (er) => !er.managed && er.name.toLowerCase() === roleDef.name.toLowerCase()
     );
-    if (found) {
+    if (matches.length > 0) {
+      matches.sort((a, b) => (usedRoleIds.has(b.id) ? 1 : 0) - (usedRoleIds.has(a.id) ? 1 : 0));
+      const found = matches[0];
       roleIdByKey[roleDef.key] = found.id;
+
+      // Auto-prune any duplicate role copies with the same name
+      for (const dupRole of matches.slice(1)) {
+        await discordRequest(cleanToken, 'DELETE', `/guilds/${cleanGuildId}/roles/${dupRole.id}`).catch(() => {});
+        log.push(`[Duplicate Role Pruned] ${dupRole.name} (${dupRole.id})`);
+        await sleep(180);
+      }
+
       // Harden existing roles (strip MANAGE_GUILD / ADMINISTRATOR from R4 and shared R5 roles so no R4 can export a Server Template!)
       if (
         roleDef.permissions !== 'ADMINISTRATOR' &&

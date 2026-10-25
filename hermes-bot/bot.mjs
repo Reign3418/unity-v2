@@ -44,6 +44,7 @@ import {
   getGuildTierStatus,
   setGuildTier,
   buildCommonLockoutPayload,
+  buildValheonLockoutPayload,
   buildUnlicensedClonePayload,
   buildTierPricingConsoleEmbed,
 } from './hermesTierGate.js';
@@ -1122,7 +1123,7 @@ async function registerSlashCommands() {
         {
           type: 1,
           name: 'tier',
-          description: '🧪 View or switch HERMES Mode (Sandbox $0 Free / Common $39 / Legendary +$15 / Clone Lock)',
+          description: '🧪 View or switch HERMES Tier (Sandbox $0 / Common $39 / Legendary +$15 / Valheon $45/mo)',
           options: [
             {
               type: 3,
@@ -1131,9 +1132,10 @@ async function registerSlashCommands() {
               required: false,
               choices: [
                 { name: '📊 View Pricing & Moderator Training Matrix', value: 'VIEW' },
-                { name: '🧪 Sandbox Free Mode (All Fees Suspended / 🟠 Legendary Unlocked)', value: 'SANDBOX_FREE' },
-                { name: '🟢 Simulate Common Hermes ($39 Basic Mode)', value: 'COMMON' },
-                { name: '🟠 Simulate Legendary Hermes (+$15 24h / +$25 Full Bot)', value: 'LEGENDARY' },
+                { name: '🧪 Sandbox Free Mode (All Fees Suspended / 👑 Valheon Unlocked)', value: 'SANDBOX_FREE' },
+                { name: '🟢 Simulate Common Hermes ($39 Starter Bot)', value: 'COMMON' },
+                { name: '🟠 Simulate Legendary Hermes (+$15 24h / +$25 Discord Bot)', value: 'LEGENDARY' },
+                { name: '👑 Simulate Valheon Hermes ($45/mo Live Scanner Bots + Webpage)', value: 'VALHEON' },
                 { name: '🚫 Simulate Cloned Template Lockout (Unlicensed Guild ID)', value: 'UNLICENSED' },
               ],
             },
@@ -1389,14 +1391,37 @@ async function handleInteraction(ix) {
           flags: 64,
           embeds: [
             {
-              title: '🚧 VALHEON WEB OS // COMING SOON',
+              title: '👑 VALHEON HERMES // LIVE KINGDOM SCANNER BOTS + WEBPAGE SUITE ($45/MO)',
               description:
-                `The **Valheon Web OS (\`valheon.com\`)** is currently in private pre-launch development!\n\n` +
-                `Today, **100% of our 1-Click Discord Servers** (**🏰 Home Kingdom \`$39\`**, **🕊️ KvK Diplomacy \`$9\`**, **⚔️ Allied Coalition \`$9\`**, and the **🔥 72-Hour Bundle \`$15\`**) run **100% standalone inside Discord** with zero web subscription required!`,
-              color: 0x38bdf8,
+                `Upgrade your Kingdom to **👑 Valheon Hermes (\`$45/mo\`)** to deploy **Autonomous Valheon Scanner Bots** into your Kingdom and unlock live telemetry across Discord & **\`valheon.com\`**:\n\n` +
+                `• 🤖 **Live In-Game Scanner Bots Deployed in Your Kingdom:** Automated Top-300 / Top-600 Power, T4/T5 Kills & Dead Troop scans\n` +
+                `• 🪪 **Live \`/mystats\` KvK DKP Scorecards** & **💀 Live AI Governor Telemetry Roasts** inside Discord\n` +
+                `• 🛡️ **Auto-Injected AEGIS 35-Field Migration Polygraphs** inside R4 Migrant Tickets\n` +
+                `• 🌐 **Full Access to All 5 Webpage Suites (\`valheon.com\`):** AEGIS Dashboard, NEXUS 3D Galaxy, THEATER 128-Node KvK Map, VANGUARD CRM & Web OPTICS!\n\n` +
+                `> 💡 *While **🟢 Common Hermes (\`$39\`)** and **🟠 Legendary Hermes (\`+$15\` in 24h / \`+$25\` after)** are one-time fees for Discord-only automation, **👑 Valheon Hermes (\`$45/mo\`)** powers active in-game Kingdom scanning & the Web Command Suite. (All prices subject to change)*`,
+              color: 0xa855f7,
               footer: {
-                text: 'VALHEON 1-CLICK DISCORD ARCHITECT // STANDALONE DISCORD OS',
+                text: '👑 VALHEON HERMES // LIVE KINGDOM SCANNER BOTS + WEBPAGE SUITE ($45/MO)',
               },
+            },
+          ],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 1,
+                  label: '🎫 Request Valheon Hermes Scanner Deployment ($45/mo)',
+                  custom_id: 'hermes_ticket_onboard',
+                },
+                {
+                  type: 2,
+                  style: 5,
+                  label: '🌐 Explore Valheon.com Suites',
+                  url: 'https://valheon.com',
+                },
+              ],
             },
           ],
         },
@@ -2478,16 +2503,16 @@ async function handleInteraction(ix) {
       }
 
       if (customId.startsWith('hermes_ticket_polygraph_')) {
-        if (!tierStatus.isLegendary) {
+        if (!tierStatus.isValheon) {
           return reply({
             type: 4,
             data: {
               flags: 64,
-              ...buildCommonLockoutPayload({
+              ...buildValheonLockoutPayload({
                 guildId,
-                featureName: 'AEGIS 35-Field Migration Polygraph',
+                featureName: 'AEGIS 35-Field Live Scan Polygraph',
                 teaserText:
-                  '🛡️ **Automated AEGIS Migration Polygraph & KP-to-Power Vetting** inside R4 Tickets is locked on **🟢 Common Hermes**!',
+                  '🛡️ **Automated AEGIS Migration Polygraph & Live T4/T5 Kill-to-Power Vetting** requires **👑 Valheon Hermes (`$45/mo` Live Kingdom Scanner Link)**!',
               }),
             },
           });
@@ -2512,12 +2537,22 @@ async function handleInteraction(ix) {
       const safeName =
         (user.username || 'gov').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) ||
         'gov';
+      const targetTicketName = `ticket-${ticketType}-${safeName}`;
+
+      // Idempotency Guard: If an open ticket channel with this exact name already exists, reuse it instead of creating a duplicate!
+      const guildChans = (await discordApi('GET', `/guilds/${guildId}/channels`).catch(() => [])) || [];
+      const existingTicket = guildChans.find((c) => c.name === targetTicketName);
+      if (existingTicket?.id) {
+        return editOriginal({
+          content: `🎫 **Your Ticket is Already Open:** <#${existingTicket.id}>`,
+        });
+      }
 
       // Fetch current channel to inherit category parent_id
-      const parentChan = await discordApi('GET', `/channels/${channelId}`).catch(() => null);
+      const parentChan = guildChans.find((c) => c.id === channelId) || (await discordApi('GET', `/channels/${channelId}`).catch(() => null));
 
       const newChan = await discordApi('POST', `/guilds/${guildId}/channels`, {
-        name: `ticket-${ticketType}-${safeName}`,
+        name: targetTicketName,
         type: 0,
         parent_id: parentChan?.parent_id || undefined,
         permission_overwrites: [
@@ -2579,18 +2614,18 @@ async function handleInteraction(ix) {
       }
     }
 
-    // C. Roast My Governor / Sovereign Flex Card
+    // C. Roast My Governor / Sovereign Flex Card (Requires 👑 Valheon Hermes Live Scan Data!)
     if (customId === 'hermes_roast_me' || customId === 'hermes_flex_card') {
-      if (!tierStatus.isLegendary) {
+      if (!tierStatus.isValheon) {
         return reply({
           type: 4,
           data: {
             flags: 64,
-            ...buildCommonLockoutPayload({
+            ...buildValheonLockoutPayload({
               guildId,
-              featureName: 'AI Governor Telemetry Roaster & Sovereign Flex Card',
+              featureName: 'Live AI Governor Telemetry Roaster & Flex Card',
               teaserText:
-                '💀 **HERMES AI Governor Roaster & 35-Field Sovereign Flex Cards** are locked on **🟢 Common Hermes**!',
+                '💀 **Live AI Governor Telemetry Roasts & 35-Field Sovereign Flex Cards** require active Kingdom Scan Data via **👑 Valheon Hermes (`$45/mo`)**!',
             }),
           },
         });
@@ -3032,6 +3067,20 @@ async function handleInteraction(ix) {
     }
 
     if (customId === 'hermes_mystats_btn') {
+      if (!tierStatus.isValheon) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            ...buildValheonLockoutPayload({
+              guildId,
+              featureName: 'Live KvK DKP Scorecard (/mystats)',
+              teaserText:
+                '🪪 **Live KvK DKP Scorecards & Real-Time Kill/Dead Goal Tracking** require active Kingdom Scan Data via **👑 Valheon Hermes (`$45/mo`)**!',
+            }),
+          },
+        });
+      }
       await reply({ type: 5, data: { flags: 64 } });
       const embed = buildMyStatsCard({
         userId: user.id,
@@ -4326,8 +4375,22 @@ async function handleInteraction(ix) {
     return editOriginal(payload);
   }
 
-  // Top-level /mystats Slash Command
+  // Top-level /mystats Slash Command (Requires 👑 Valheon Hermes Live Kingdom Scanner Link!)
   if (ix.type === 2 && ix.data?.name === 'mystats') {
+    if (!tierStatus.isValheon) {
+      return reply({
+        type: 4,
+        data: {
+          flags: 64,
+          ...buildValheonLockoutPayload({
+            guildId,
+            featureName: 'Live KvK DKP Scorecard (/mystats)',
+            teaserText:
+              '🪪 **Live KvK DKP Scorecards & Real-Time Kill/Dead Goal Tracking** require active Kingdom Scan Data via **👑 Valheon Hermes (`$45/mo`)**!',
+          }),
+        },
+      });
+    }
     await reply({ type: 5 });
     const govOpt = ix.data.options?.find((o) => o.name === 'governor_id')?.value || '';
     const embed = buildMyStatsCard({
@@ -4584,16 +4647,16 @@ async function handleInteraction(ix) {
     }
 
     if (sub.name === 'roast') {
-      if (!tierStatus.isLegendary) {
+      if (!tierStatus.isValheon) {
         return reply({
           type: 4,
           data: {
             flags: 64,
-            ...buildCommonLockoutPayload({
+            ...buildValheonLockoutPayload({
               guildId,
-              featureName: 'AI Governor Telemetry Roaster',
+              featureName: 'AI Governor Live Scan Roaster',
               teaserText:
-                '💀 **HERMES AI Governor Telemetry Roaster & Live 35-Field Audit** is locked on **🟢 Common Hermes**!',
+                '💀 **HERMES AI Governor Telemetry Roaster & Live 35-Field Scan Audit** requires **👑 Valheon Hermes (`$45/mo` Live Kingdom Scanner Bots)**!',
             }),
           },
         });
@@ -4812,9 +4875,39 @@ function connectGateway() {
             }
           }
 
-          // 2. AUTO-OCR ON SCREENSHOT DROP (Verification Gate + Optics OCR Channel)
+          // 2. AUTO-OCR ON SCREENSHOT DROP + ANTI-SPAMBOT HONEYPOT (#⚠️-trap-channel-⚠️)
           const chanInfo = await discordApi('GET', `/channels/${d.channel_id}`).catch(() => null);
           const chanName = String(chanInfo?.name || '').toLowerCase();
+
+          // 🛡️ AUTOMATED ANTI-SPAMBOT HONEYPOT INTERCEPTOR (#⚠️-trap-channel-⚠️)
+          if (chanName.includes('trap-channel') || chanName.includes('honeypot')) {
+            const msgGuildId = d.guild_id || GUILD_ID;
+            // 1. Immediately purge the spam message
+            await discordApi('DELETE', `/channels/${d.channel_id}/messages/${d.id}`).catch(() => null);
+
+            // 2. Protect Principal / Server Owners from accidental self-kick while testing
+            const isProtectedSovereign = VALHEON_FOUNDER_IDS.has(String(d.author.id));
+            if (!isProtectedSovereign) {
+              await discordApi(
+                'DELETE',
+                `/guilds/${msgGuildId}/members/${d.author.id}`
+              ).catch(() => null);
+            }
+
+            const trapAlert = await discordApi('POST', `/channels/${d.channel_id}/messages`, {
+              content: isProtectedSovereign
+                ? `🛡️ **[HERMES HONEYPOT TEST PASSED]:** Purged test message from Sovereign <@${d.author.id}> in <100ms! *(Auto-Kick bypassed for Sovereign Owner safety; standard raid/spambot accounts are immediately kicked).*`
+                : `🛡️ **[HERMES HONEYPOT TRIGGERED]:** Purged spam payload & ejected compromised/bot account **@${d.author.username}** (\`${d.author.id}\`)!`,
+            }).catch(() => null);
+
+            if (trapAlert?.id) {
+              setTimeout(() => {
+                discordApi('DELETE', `/channels/${d.channel_id}/messages/${trapAlert.id}`).catch(() => null);
+              }, 10000);
+            }
+            return;
+          }
+
           const isVerifyGateChan =
             chanName.includes('verify-governor-id') || chanName.includes('welcome-and-manifesto');
           const att = fullMsg?.attachments?.[0];
