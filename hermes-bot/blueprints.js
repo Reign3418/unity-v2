@@ -1551,17 +1551,17 @@ export const PINNED_CONSOLE_TEMPLATES = {
 
   KD_VERIFY_CONSOLE: {
     embed: {
-      title: '📸 AUTO-OCR GOVERNOR SCREENSHOT & ALLIANCE VERIFICATION GATEWAY',
+      title: '📸 GOVERNOR SCREENSHOT & ALLIANCE BORDER-GATE VERIFICATION',
       description:
-        '**Welcome to the Kingdom Border Gate! Unlock all Kingdom War Rooms & your Alliance Sector in 2 seconds:**\n\n' +
-        '### 📸 OPTION 1 (RECOMMENDED): DROP YOUR GOVERNOR SCREENSHOT IN THIS CHANNEL!\n' +
-        '• Upload or paste a screenshot of your in-game **Governor Profile** (either the full horizontal `GOVERNOR PROFILE` card or your mobile `Action Points` profile screen) right here!\n' +
-        '• **🟢 Instant Auto-Approval:** **HERMES Vision OCR** extracts your **Governor ID**, **Governor Name**, **Alliance `[TAG]`**, **Power**, and **Kill Points**. If your `[TAG]` matches one of this Kingdom\'s alliances, **HERMES auto-approves you immediately**, grants **`@🛡️ Sworn Defender`** + your **`@Alliance Vanguard`** role, and formats your nickname (`[TAG] Name`)!\n' +
-        '• **🟡 Sister / Support Alliance or Older Picture?** If you jumped to a sister/support alliance to help or used an older screenshot, **HERMES** automatically holds your scanned card in a **1-Click R4/R5 Approval Queue** so an officer can approve you in 1 tap!\n\n' +
-        '### 🔗 OPTION 2: MANUAL ID & ZERO-GRID TITLE COORDINATES\n' +
-        '• Click **`[🔗 Manual ID Entry / Set Title Coords]`** below to type your Governor ID or add your `[X, Y]` City Coordinates for the **1-Tap Title Queue (`#🔮-title-request-queue`)**.',
+        '**Welcome to the Kingdom Border Gate! Unlock all Kingdom War Rooms & your Alliance Sector:**\n\n' +
+        '### 📸 STEP 1 (RECOMMENDED): DROP YOUR GOVERNOR SCREENSHOT IN THIS CHANNEL!\n' +
+        '• Upload or paste a screenshot of your in-game **Governor Profile** (either the full horizontal `GOVERNOR PROFILE` card or your mobile `Action Points` self-profile screen) right here!\n' +
+        '• **🟠 Legendary Hermes (1-Second AI Vision Auto-OCR):** Automatically extracts your **Governor ID**, **Name**, **Alliance `[TAG]`**, **Power**, **Kill Points**, and **Action Points**—if your `[TAG]` matches this Kingdom, **HERMES auto-approves you in 1 second**, grants **`@🛡️ Sworn Defender`** + your **`@Alliance Vanguard`** role, and formats your nickname (`[TAG] Name`)!\n' +
+        '• **🟢 Common Hermes (Manual R4/R5 Officer Queue):** Queues your screenshot with **1-Click R4/R5 Approval Buttons** so an officer can inspect and unlock your Alliance Sector manually *(or hold Sister-Alliance jumpers for 1-tap R4 review)*.\n\n' +
+        '### 🔗 STEP 2: MANUAL ID & ZERO-GRID TITLE COORDINATES\n' +
+        '• Click **`[🔗 Manual ID Entry / Set Title Coords]`** below to submit your Governor ID or add your `[X, Y]` City Coordinates for the **1-Tap Title Queue (`#🔮-title-request-queue`)**.',
       color: 0x10b981,
-      footer: { text: 'VALHEON OPTICS IDENTITY GATE // DROP PROFILE SCREENSHOT BELOW FOR AUTO-OCR VERIFICATION' },
+      footer: { text: 'VALHEON IDENTITY GATE // 🟠 LEGENDARY = 1-SEC AI AUTO-OCR • 🟢 COMMON = MANUAL R4 QUEUE' },
     },
     buttons: [
       { customId: 'hermes_verify_governor', label: '🔗 Manual ID Entry / Set Title Coords', style: 'SUCCESS' },
@@ -1677,8 +1677,8 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '--- \n' +
         '### 🏰 1. 1-CLICK HOME KINGDOM WAR SERVER — **`$39` Common / `+$15` Legendary (24h Offer)**\n' +
         '*Your permanent 24/7 Home Kingdom War OS (21 Roles, 30+ Channels, Alliance Sectors & Cryptographic Permission Locks).*\n' +
-        '• 🟢 **Includes `Common Hermes` (`$39` Flat):** R4 Ticket Desk, 30v30 AoO Roster, War Timers, Official RoK Bridge, Combat/Event Ping Console & Redeem Codes.\n' +
-        '• 🟠 **24h "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Screenshot OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
+        '• 🟢 **Includes `Common Hermes` (`$39` Flat):** **Manual R4/R5 Click-Approval Border Gate**, R4 Ticket Desk, 30v30 AoO Roster, War Timers, Official RoK Bridge, Combat/Event Ping Console & Redeem Codes.\n' +
+        '• 🟠 **24h "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **📸 1-Second AI Vision OCR Governor Screenshot Auto-Verifier (Zero-Click Alliance Role Grant)**, **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Resource/Speedup Bag OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
         '--- \n' +
         '### 🕊️ 2. 1-CLICK KVK DIPLOMACY SUMMIT SERVER — **`$9` Flat**\n' +
         '*Built for Matchmaking Night across all **8–16 Matched Kingdoms**.*\n' +

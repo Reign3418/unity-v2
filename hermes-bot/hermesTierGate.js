@@ -301,6 +301,7 @@ export function buildCommonLockoutPayload({
           `### 🟠 UPGRADE TO LEGENDARY HERMES (ONE-TIME BOT UNLOCK)\n` +
           `${priceTag}\n\n` +
           `**What 🟠 Legendary Hermes Unlocks Forever in Discord (\`$0/mo\` recurring):**\n` +
+          `• ✅ **📸 1-Second AI Vision OCR Border-Gate Auto-Verifier** (auto-reads Governor Profile screenshots & grants \`@Sworn Defender\` + \`@Alliance Vanguard\` roles with zero R4 clicking!)\n` +
           `• ✅ **1-Tap & Chat Title Queue** (\`justice\`, \`duke\`, \`scientist\`, \`architect\` zero-grid triggers)\n` +
           `• ✅ **17-Language Flag Emoji Reaction Translator** (unlimited across all channels)\n` +
           `• ✅ **Saturday 10/10 Midterm Early Packet & 15s Final Exam Speed Drill**\n` +
@@ -353,8 +354,8 @@ export function buildTierPricingConsoleEmbed(guildId) {
           '--- \n' +
           '### 🏰 1. 1-CLICK HOME KINGDOM WAR SERVER — **`$39` Common / `+$15` Legendary (24h Offer)**\n' +
           '*One-and-done server build bound to 1 Discord Server ID (`guildId`). Stay in Discord with zero monthly fees.*\n' +
-          '• 🟢 **Includes `Common Hermes` (`$39` Flat):** 21 Roles, 30+ Channels, R4 Ticket Desk, 30v30 AoO Lane Builder, War Timers, Official RoK Bridge & Combat/Event Ping Console.\n' +
-          '• 🟠 **24-Hour "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Screenshot OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
+          '• 🟢 **Includes `Common Hermes` (`$39` Flat):** 21 Roles, 30+ Channels, **Manual R4/R5 Click-Approval Border Gate**, R4 Ticket Desk, 30v30 AoO Lane Builder, War Timers, Official RoK Bridge & Combat/Event Ping Console.\n' +
+          '• 🟠 **24-Hour "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **📸 1-Second AI Vision OCR Governor Screenshot Auto-Verification (Zero-Click Alliance Role Grant)**, **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Resource/Speedup Bag OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
           '--- \n' +
           '### 🕊️ 2. 1-CLICK KVK DIPLOMACY SUMMIT SERVER — **`$9` Flat**\n' +
           '*Built for Matchmaking Night across all **8–16 Matched Kingdoms**.*\n' +

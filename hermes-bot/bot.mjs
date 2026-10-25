@@ -2753,18 +2753,22 @@ async function handleInteraction(ix) {
           grantedRoles.push(`<@&${allianceRole.id}>`);
         }
 
-        const formattedNick = `[${rawTag}] ${govName}`.slice(0, 32);
+        const formattedNick = (
+          rawTag && rawTag !== 'MANUAL' ? `[${rawTag}] ${govName}` : govName
+        ).slice(0, 32);
         await discordApi('PATCH', `/guilds/${guildId}/members/${targetUserId}`, {
           nick: formattedNick,
         }).catch(() => null);
       } catch {}
 
+      const displayLabel =
+        rawTag && rawTag !== 'MANUAL' ? `[${rawTag}] ${govName}` : govName;
       await discordApi('POST', `/channels/${channelId}/messages`, {
-        content: `✅ <@${targetUserId}> Your Governor Profile (**\`[${rawTag}] ${govName}\`** • UID \`#${govId}\`) has been **manually approved by R4/R5 Officer <@${user.id}>**! War Rooms & Kingdom Channels are now unlocked.`,
+        content: `✅ <@${targetUserId}> Your Governor Profile (**\`${displayLabel}\`**${govId && govId !== '00000000' ? ` • UID \`#${govId}\`` : ''}) has been **approved by R4/R5 Officer <@${user.id}>**! War Rooms & Kingdom Channels are now unlocked.`,
       }).catch(() => null);
 
       return editOriginal({
-        content: `✅ **Approved <@${targetUserId}> (\`[${rawTag}] ${govName}\` • \`#${govId}\`)!** Granted roles: ${grantedRoles.join(' • ') || 'Verified Citizen'}.`,
+        content: `✅ **Approved <@${targetUserId}> (\`${displayLabel}\`)!** Granted roles: ${grantedRoles.join(' • ') || 'Verified Citizen'}.`,
       });
     }
 
@@ -3955,26 +3959,71 @@ async function handleInteraction(ix) {
     const memberRoles = Array.isArray(ix.member?.roles) ? ix.member.roles : [];
     const isKingdomServer = String(guildId) !== String(GUILD_ID);
 
-    // In a Customer's Kingdom Discord: Unverified newcomers (0 roles) cannot bypass Screenshot OCR by typing text!
-    // Submitting the manual form without a screenshot queues them for R4/R5 Manual Approval in their Kingdom Discord,
-    // and prompts them to drop their Governor Profile Screenshot in #🔗-verify-governor-id for 1-second Auto-Approval!
+    // In a Customer's Kingdom Discord: Unverified newcomers (0 roles) cannot bypass verification by typing text!
+    // - On 🟢 Common Hermes: Manual R4/R5 Approval Queue (with a 🟠 Legendary AI Auto-OCR upgrade button for Officers)
+    // - On 🟠 Legendary Hermes: Prompts them to drop a screenshot for 1-second AI OCR Auto-Approval (or R4 1-Click fallback)
     if (isKingdomServer && memberRoles.length === 0 && !VALHEON_FOUNDER_IDS.has(String(user.id))) {
       const safeTag = encodeURIComponent((rawAlliance || 'ALLY').slice(0, 8));
       const safeName = encodeURIComponent(govName.slice(0, 16));
 
+      const queueComponents = [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 3,
+              label: `✅ R4/R5: Approve [${rawAlliance}] ${govName.slice(0, 14)}`,
+              custom_id: `hermes_ocr_approve_${user.id}_${govId}_${safeTag}_${safeName}`,
+            },
+            {
+              type: 2,
+              style: 4,
+              label: '❌ R4/R5: Request In-Game Screenshot',
+              custom_id: `hermes_ocr_reject_${user.id}`,
+            },
+          ],
+        },
+      ];
+
+      if (!tierStatus.isLegendary) {
+        queueComponents.push({
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: tierStatus.isWithin24h
+                ? '🟠 Tired of Manual Clicking? Unlock 1-Sec AI Auto-OCR (+$15 / 24h)'
+                : '🟠 Tired of Manual Clicking? Unlock 1-Sec AI Auto-OCR (+$25)',
+              custom_id: 'hermes_upgrade_legendary_btn',
+            },
+          ],
+        });
+      }
+
       await discordApi('POST', `/channels/${channelId}/messages`, {
         embeds: [
           {
-            title: '⏳ MANUAL ID SUBMITTED // AWAITING SCREENSHOT OR R4/R5 APPROVAL',
-            description:
-              `<@${user.id}> submitted a manual Governor ID entry (**\`[${rawAlliance}] ${govName}\`** • UID \`#${govId}\`).\n\n` +
-              `📸 **Want Instant 1-Second Auto-Approval?**\n` +
-              `Drop your in-game **Governor Profile Screenshot** right here in <#${channelId}>! **HERMES Vision OCR** will automatically approve you if you are in one of this Kingdom's primary alliances.\n\n` +
-              `🛡️ **Visiting a Sister/Support Alliance or No Screenshot?**\n` +
-              `Any **R4 Officer** or **R5 Sovereign** of this Kingdom can click **` +
-              '`[✅ R4/R5: Approve]`' +
-              `** below to unlock your war channels manually!`,
-            color: 0xf59e0b,
+            title: tierStatus.isLegendary
+              ? '⏳ MANUAL ID SUBMITTED // AWAITING SCREENSHOT OR R4/R5 APPROVAL'
+              : '🛡️ MANUAL VERIFICATION QUEUE (🟢 COMMON HERMES // R4/R5 APPROVAL)',
+            description: tierStatus.isLegendary
+              ? `<@${user.id}> submitted a manual Governor ID entry (**\`[${rawAlliance}] ${govName}\`** • UID \`#${govId}\`).\n\n` +
+                `📸 **Want Instant 1-Second Auto-Approval?**\n` +
+                `Drop your in-game **Governor Profile Screenshot** right here in <#${channelId}>! **🟠 HERMES AI Vision OCR** will automatically approve you if you are in one of this Kingdom's primary alliances.\n\n` +
+                `🛡️ **Visiting a Sister/Support Alliance or No Screenshot?**\n` +
+                `Any **R4 Officer** or **R5 Sovereign** of this Kingdom can click **` +
+                '`[✅ R4/R5: Approve]`' +
+                `** below to unlock your war channels manually!`
+              : `<@${user.id}> submitted a Governor verification request (**\`[${rawAlliance}] ${govName}\`** • UID \`#${govId}\`).\n\n` +
+                `🛡️ **R4 / R5 Officers:** Click **` +
+                '`[✅ R4/R5: Approve]`' +
+                `** below to manually unlock this Governor's Kingdom War Rooms & **` +
+                `\`[${rawAlliance}]\`` +
+                `** Alliance Sector.\n\n` +
+                `> 💡 **R5/R4 Upgrade Tip:** On **🟢 Common Hermes**, officers verify members manually. Upgrade to **🟠 Legendary Hermes** (\`+$15\` in 24h) to unlock **1-Second AI Vision OCR Auto-Approval** from screenshots!`,
+            color: tierStatus.isLegendary ? 0xf59e0b : 0x22c55e,
             fields: [
               { name: '🆔 Entered Governor ID', value: `\`#${govId}\``, inline: true },
               { name: '👤 Entered Name', value: `\`${govName}\``, inline: true },
@@ -3982,42 +4031,34 @@ async function handleInteraction(ix) {
               { name: '📍 Title Queue Coords', value: `\`${bound.coords}\``, inline: false },
             ],
             footer: {
-              text: 'KINGDOM BORDER GATE // DROP SCREENSHOT FOR AUTO-OCR OR WAIT FOR R4/R5 APPROVAL',
+              text: tierStatus.isLegendary
+                ? '🟠 LEGENDARY HERMES // DROP SCREENSHOT FOR AI AUTO-OCR OR WAIT FOR R4 APPROVAL'
+                : '🟢 COMMON HERMES // MANUAL R4/R5 OFFICER VERIFICATION QUEUE',
             },
             timestamp: new Date().toISOString(),
           },
         ],
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: 3,
-                label: `✅ R4/R5: Approve [${rawAlliance}] ${govName.slice(0, 14)}`,
-                custom_id: `hermes_ocr_approve_${user.id}_${govId}_${safeTag}_${safeName}`,
-              },
-              {
-                type: 2,
-                style: 4,
-                label: '❌ R4/R5: Request In-Game Screenshot',
-                custom_id: `hermes_ocr_reject_${user.id}`,
-              },
-            ],
-          },
-        ],
+        components: queueComponents,
       }).catch(() => null);
 
       return editOriginal({
         embeds: [
           {
-            title: '📸 DROP YOUR SCREENSHOT FOR INSTANT AUTO-APPROVAL (OR WAIT FOR R4/R5)',
-            description:
-              `Your Governor ID (**\`#${bound.govId}\`**) and Title Queue Coordinates (**\`${bound.coords}\`**) have been saved!\n\n` +
-              `• **🟢 For Instant Auto-Approval:** Simply **upload/paste a screenshot of your in-game Governor Profile** right in <#${channelId}> — if **HERMES** sees you in one of this Kingdom's alliances, it unlocks your War Channels immediately!\n` +
-              `• **🟡 Sister/Support Alliance or Older Picture?** We also posted your card in <#${channelId}> so any **R4/R5 Officer** in this Kingdom can approve you in 1 click.`,
-            color: 0xf59e0b,
-            footer: { text: 'KINGDOM BORDER GATE // SCREENSHOT AUTO-OCR + R4 MANUAL FALLBACK' },
+            title: tierStatus.isLegendary
+              ? '📸 DROP YOUR SCREENSHOT FOR INSTANT AI AUTO-APPROVAL (OR WAIT FOR R4/R5)'
+              : '⏳ QUEUED FOR MANUAL R4/R5 OFFICER APPROVAL (🟢 COMMON HERMES)',
+            description: tierStatus.isLegendary
+              ? `Your Governor ID (**\`#${bound.govId}\`**) and Title Queue Coordinates (**\`${bound.coords}\`**) have been saved!\n\n` +
+                `• **🟠 Instant AI Vision OCR Auto-Approval:** Simply **upload/paste a screenshot of your in-game Governor Profile** right in <#${channelId}> — if **HERMES** sees you in one of this Kingdom's alliances, it unlocks your War Channels immediately!\n` +
+                `• **🟡 Sister/Support Alliance or Older Picture?** We also posted your card in <#${channelId}> so any **R4/R5 Officer** in this Kingdom can approve you in 1 click.`
+              : `Your Governor ID (**\`#${bound.govId}\`**), Alliance (**\`[${bound.alliance}]\`**), and Title Coordinates (**\`${bound.coords}\`**) have been submitted to the **R4/R5 High Council Queue** in <#${channelId}>!\n\n` +
+                `• **📸 Speed Up R4 Review:** You can also drop a screenshot of your in-game **Governor Profile** in <#${channelId}> so an R4/R5 Officer can visually confirm your account and click **\`[✅ Approve]\`**.`,
+            color: tierStatus.isLegendary ? 0xf59e0b : 0x22c55e,
+            footer: {
+              text: tierStatus.isLegendary
+                ? '🟠 LEGENDARY BORDER GATE // AI SCREENSHOT AUTO-OCR + R4 FALLBACK'
+                : '🟢 COMMON BORDER GATE // MANUAL R4/R5 OFFICER APPROVAL QUEUE',
+            },
           },
         ],
       });
@@ -4804,183 +4845,266 @@ function connectGateway() {
             });
 
             if (isVerifyGateChan) {
-              console.log(`📸 [HERMES Verify Gate OCR] Scanning profile screenshot ${att.filename} by ${d.author.username}...`);
-              const ocrRes = await runLocalOcrOnUrl(att.url);
               const msgGuildId = d.guild_id || GUILD_ID;
+              const msgTier = getGuildTierStatus(msgGuildId);
 
-              if (ocrRes?.mode === 'GOVERNOR_PROFILE' && ocrRes.gov_id) {
-                const govId = String(ocrRes.gov_id).trim();
-                const govName = String(ocrRes.gov_name || d.author.global_name || d.author.username || 'Governor').trim();
-                const rawTag = String(ocrRes.alliance_tag || '').trim();
-                const upperTag = rawTag.toUpperCase();
-
+              // 🟢 COMMON HERMES: Manual R4/R5 Officer Verification Queue (AI Vision Auto-OCR is an 🟠 Legendary Hermes feature!)
+              if (!msgTier.isLegendary) {
                 const roles = (await discordApi('GET', `/guilds/${msgGuildId}/roles`).catch(() => [])) || [];
-                const citizenRole = roles.find(
-                  (r) =>
-                    r.name.toLowerCase().includes('sworn defender') ||
-                    r.name.toLowerCase().includes('frontline brawler') ||
-                    r.name.toLowerCase().includes('frontline fighter') ||
-                    r.name.toLowerCase().includes('confirmed jumper') ||
-                    r.name.toLowerCase().includes('lost kingdom envoy') ||
-                    r.name.toLowerCase().includes('verified')
-                );
+                const serverAllianceTags = roles
+                  .map((r) => r.name.match(/\[([^\]]+)\]/)?.[1])
+                  .filter(Boolean)
+                  .slice(0, 3);
+                const savedBound = ROK_IDENTITY_STORE.get(d.author.id);
+                const fallbackGovId = savedBound?.govId || '00000000';
+                const fallbackName = savedBound?.name || d.author.global_name || d.author.username || 'Governor';
+                const safeFallbackName = encodeURIComponent(String(fallbackName).slice(0, 16));
 
-                // Extract all Alliance roles configured on this server (e.g. "🛡️ [VHN1] Vanguard")
-                const serverAllianceRoles = roles.filter((r) => /\[[^\]]+\]/.test(r.name));
-                const matchedAllianceRole = upperTag
-                  ? serverAllianceRoles.find((r) => r.name.toUpperCase().includes(`[${upperTag}]`))
-                  : null;
+                const manualButtons = serverAllianceTags.map((tag) => ({
+                  type: 2,
+                  style: 3, // SUCCESS
+                  label: `✅ R4/R5: Approve [${tag}]`,
+                  custom_id: `hermes_ocr_approve_${d.author.id}_${fallbackGovId}_${encodeURIComponent(tag)}_${safeFallbackName}`,
+                }));
 
-                // Auto-approve if:
-                //   (a) The screenshot's [TAG] matches one of this Kingdom server's Alliance Roles, OR
-                //   (b) This is Valheon Global HQ (where players from all Kingdoms/Alliances verify by Governor ID)
-                const isValheonHq = String(msgGuildId) === String(GUILD_ID);
-                const shouldAutoApprove = Boolean(matchedAllianceRole) || (isValheonHq && Boolean(govId));
+                manualButtons.push({
+                  type: 2,
+                  style: manualButtons.length === 0 ? 3 : 2,
+                  label: '✅ R4/R5: Approve Citizen',
+                  custom_id: `hermes_ocr_approve_${d.author.id}_${fallbackGovId}_MANUAL_${safeFallbackName}`,
+                });
 
-                if (shouldAutoApprove) {
-                  const finalTag = rawTag || 'ROK';
-                  bindGovernorProfile({
-                    userId: d.author.id,
-                    username: d.author.global_name || d.author.username,
-                    govId,
-                    govName,
-                    alliance: finalTag,
-                    coords: `UID:${govId} (No Grid Needed)`,
-                  });
+                manualButtons.push({
+                  type: 2,
+                  style: 4, // DANGER
+                  label: '❌ Reject',
+                  custom_id: `hermes_ocr_reject_${d.author.id}`,
+                });
 
-                  const grantedRoles = [];
-                  if (citizenRole) {
-                    await discordApi('PUT', `/guilds/${msgGuildId}/members/${d.author.id}/roles/${citizenRole.id}`).catch(() => null);
-                    grantedRoles.push(`<@&${citizenRole.id}>`);
-                  }
-                  if (matchedAllianceRole) {
-                    await discordApi('PUT', `/guilds/${msgGuildId}/members/${d.author.id}/roles/${matchedAllianceRole.id}`).catch(() => null);
-                    grantedRoles.push(`<@&${matchedAllianceRole.id}>`);
-                  }
-
-                  const formattedNick = `[${finalTag}] ${govName}`.slice(0, 32);
-                  await discordApi('PATCH', `/guilds/${msgGuildId}/members/${d.author.id}`, {
-                    nick: formattedNick,
-                  }).catch(() => null);
-
-                  await discordApi('POST', `/channels/${d.channel_id}/messages`, {
-                    message_reference: { message_id: d.id },
-                    embeds: [
-                      {
-                        title: '✅ SCREENSHOT OCR VERIFIED & AUTO-APPROVED!',
-                        description:
-                          `Welcome aboard, **[${finalTag}] ${govName}** (<@${d.author.id}>)!\n` +
-                          `**🪽 HERMES Vision OCR** scanned your Governor Profile screenshot, verified your alliance membership, and unlocked your war channels automatically.`,
-                        color: 0x10b981,
-                        fields: [
-                          { name: '🆔 Scanned Governor ID', value: `\`#${govId}\``, inline: true },
-                          { name: '👤 In-Game Name', value: `\`${govName}\``, inline: true },
-                          { name: '🏰 Verified Alliance', value: `\`${ocrRes.alliance_full || '[' + finalTag + ']'}\``, inline: true },
-                          { name: '⚡ Scanned Power', value: `\`${fmtNum(ocrRes.power)}\` (**${fmtCompact(ocrRes.power)}**)`, inline: true },
-                          { name: '⚔️ Scanned Kill Points', value: `\`${fmtNum(ocrRes.kill_points)}\` (**${fmtCompact(ocrRes.kill_points)}**)`, inline: true },
-                          {
-                            name: '🛡️ Self-Profile Check',
-                            value: ocrRes.is_self_profile
-                              ? `🟢 **Own Account (${ocrRes.action_points || 'AP Visible'})**`
-                              : '🟢 **Profile Card Verified**',
-                            inline: true,
-                          },
-                          {
-                            name: '🔓 Unlocked Discord Roles',
-                            value: grantedRoles.join(' • ') || '✅ Verified Citizen & War Channels Unlocked',
-                            inline: false,
-                          },
-                        ],
-                        footer: {
-                          text: 'VALHEON OPTICS AUTO-VERIFIER // ZERO-GRID PROFILE BOUND',
-                        },
-                        timestamp: new Date().toISOString(),
-                      },
-                    ],
-                    components: [
-                      {
-                        type: 1,
-                        components: [
-                          {
-                            type: 2,
-                            style: 2,
-                            label: '📍 Optional: Set City X/Y Coords for Title Queue',
-                            custom_id: 'hermes_verify_governor',
-                          },
-                        ],
-                      },
-                    ],
-                  });
-                } else {
-                  // SISTER ALLIANCE / SUPPORT JUMP / OLDER SCREENSHOT -> HOLD FOR 1-CLICK R4/R5 MANUAL APPROVAL!
-                  const safeTag = encodeURIComponent((rawTag || 'ALLY').slice(0, 8));
-                  const safeName = encodeURIComponent(govName.slice(0, 16));
-                  const expectedTags =
-                    serverAllianceRoles
-                      .map((r) => r.name.match(/\[([^\]]+)\]/)?.[1])
-                      .filter(Boolean)
-                      .map((t) => `\`[${t}]\``)
-                      .join(', ') || '`[VHN1]`, `[VHN2]`';
-
-                  const approvalPayload = {
-                    message_reference: { message_id: d.id },
-                    embeds: [
-                      {
-                        title: '⏳ SCREENSHOT SCANNED // PENDING R4/R5 SISTER-ALLIANCE APPROVAL',
-                        description:
-                          `**🪽 HERMES Vision OCR** successfully extracted your Governor Profile (<@${d.author.id}>), but your screenshot's alliance tag (**\`[${rawTag || 'NONE'}]\`**) is not one of this server's primary auto-approve sectors (${expectedTags}).\n\n` +
-                          `💡 **Jumping to a Sister/Support Alliance to help, or using an older picture?**\n` +
-                          `No problem! Your profile is queued below — any **R4 Officer** or **R5 Sovereign** can approve your access in **1 click**!`,
-                        color: 0xf59e0b,
-                        fields: [
-                          { name: '🆔 Scanned Governor ID', value: `\`#${govId}\``, inline: true },
-                          { name: '👤 In-Game Name', value: `\`${govName}\``, inline: true },
-                          { name: '🏰 Screenshot Alliance', value: `\`${ocrRes.alliance_full || '[' + (rawTag || 'NONE') + ']'}\``, inline: true },
-                          { name: '⚡ Scanned Power', value: `\`${fmtNum(ocrRes.power)}\` (**${fmtCompact(ocrRes.power)}**)`, inline: true },
-                          { name: '⚔️ Scanned Kill Points', value: `\`${fmtNum(ocrRes.kill_points)}\` (**${fmtCompact(ocrRes.kill_points)}**)`, inline: true },
-                          {
-                            name: '🛡️ Self-Profile Check',
-                            value: ocrRes.is_self_profile
-                              ? `🟢 **Own Account (${ocrRes.action_points || 'AP Visible'})**`
-                              : 'ℹ️ **Standard Profile View**',
-                            inline: true,
-                          },
-                        ],
-                        footer: {
-                          text: 'R4 / R5 OFFICERS: CLICK [✅ Approve] BELOW TO UNLOCK WAR CHANNELS FOR THIS GOVERNOR',
-                        },
-                        timestamp: new Date().toISOString(),
-                      },
-                    ],
-                    components: [
-                      {
-                        type: 1,
-                        components: [
-                          {
-                            type: 2,
-                            style: 3, // SUCCESS
-                            label: `✅ R4/R5: Approve [${rawTag || 'ALLY'}] ${govName.slice(0, 14)} (Sister/Support)`,
-                            custom_id: `hermes_ocr_approve_${d.author.id}_${govId}_${safeTag}_${safeName}`,
-                          },
-                          {
-                            type: 2,
-                            style: 4, // DANGER
-                            label: '❌ R4/R5: Request Fresh Screenshot',
-                            custom_id: `hermes_ocr_reject_${d.author.id}`,
-                          },
-                        ],
-                      },
-                    ],
-                  };
-
-                  await discordApi('POST', `/channels/${d.channel_id}/messages`, approvalPayload);
-                }
-              } else {
                 await discordApi('POST', `/channels/${d.channel_id}/messages`, {
                   message_reference: { message_id: d.id },
-                  content:
-                    `⚠️ <@${d.author.id}> **HERMES Vision OCR** couldn't find a clear \`Governor (ID: ...)\` on that image. Please upload an uncropped **Governor Profile** screenshot (showing your **ID**, **Name**, **Alliance**, **Power**, and **Kill Points**), or click **\`[🔗 Manual ID Entry]\`** above!`,
+                  embeds: [
+                    {
+                      title: '🛡️ SCREENSHOT QUEUED // MANUAL R4/R5 OFFICER APPROVAL (🟢 COMMON HERMES)',
+                      description:
+                        `<@${d.author.id}> uploaded a **Governor Profile Screenshot** for verification!\n\n` +
+                        `• **🛡️ R4 / R5 High Council:** Please visually inspect the screenshot above and click the matching **` +
+                        '`[✅ R4/R5: Approve]`' +
+                        `** button below to grant **\`@🛡️ Sworn Defender\`** + their **Alliance Sector** role.\n\n` +
+                        `### 🟠 TIRED OF MANUALLY CLICKING APPROVE ON 300+ MEMBERS?\n` +
+                        `This server is running **🟢 Common Hermes (Manual R4 Approval Gate)**. Upgrade to **🟠 Legendary Hermes** (${
+                          msgTier.isWithin24h
+                            ? `**\`+$15 One-Time\`** in first 24h — expires <t:${msgTier.offerExpiresUnix}:R>`
+                            : `**\`+$25 One-Time\`**`
+                        } • \`$0/mo\` recurring) to unlock **1-Second AI Vision OCR Auto-Verification**:\n` +
+                        `• 🤖 **Auto-Reads Screenshot:** Extracts \`Governor ID\`, \`Name\`, \`Alliance [TAG]\`, \`Power\`, \`Kill Points\` & \`Action Points\` in 1 second.\n` +
+                        `• ⚡ **Zero-Click Role & Nickname Grant:** Automatically unlocks War Rooms & assigns \`@Alliance Vanguard\` roles if their \`[TAG]\` matches your Kingdom!`,
+                      color: 0x22c55e,
+                      footer: {
+                        text: '🟢 COMMON HERMES (MANUAL R4 QUEUE) -> UPGRADE TO 🟠 LEGENDARY FOR 1-SEC AI AUTO-OCR',
+                      },
+                      timestamp: new Date().toISOString(),
+                    },
+                  ],
+                  components: [
+                    {
+                      type: 1,
+                      components: manualButtons.slice(0, 5),
+                    },
+                    {
+                      type: 1,
+                      components: [
+                        {
+                          type: 2,
+                          style: 1, // PRIMARY
+                          label: msgTier.isWithin24h
+                            ? '🟠 Unlock 1-Sec AI Vision Auto-OCR (+$15 / 24h)'
+                            : '🟠 Unlock 1-Sec AI Vision Auto-OCR (+$25 One-Time)',
+                          custom_id: 'hermes_upgrade_legendary_btn',
+                        },
+                      ],
+                    },
+                  ],
                 });
+              } else {
+                // 🟠 LEGENDARY HERMES: 1-Second AI Vision OCR Auto-Verification & Auto-Role Assignment!
+                console.log(`📸 [HERMES Verify Gate OCR] Scanning profile screenshot ${att.filename} by ${d.author.username}...`);
+                const ocrRes = await runLocalOcrOnUrl(att.url);
+
+                if (ocrRes?.mode === 'GOVERNOR_PROFILE' && ocrRes.gov_id) {
+                  const govId = String(ocrRes.gov_id).trim();
+                  const govName = String(ocrRes.gov_name || d.author.global_name || d.author.username || 'Governor').trim();
+                  const rawTag = String(ocrRes.alliance_tag || '').trim();
+                  const upperTag = rawTag.toUpperCase();
+
+                  const roles = (await discordApi('GET', `/guilds/${msgGuildId}/roles`).catch(() => [])) || [];
+                  const citizenRole = roles.find(
+                    (r) =>
+                      r.name.toLowerCase().includes('sworn defender') ||
+                      r.name.toLowerCase().includes('frontline brawler') ||
+                      r.name.toLowerCase().includes('frontline fighter') ||
+                      r.name.toLowerCase().includes('confirmed jumper') ||
+                      r.name.toLowerCase().includes('lost kingdom envoy') ||
+                      r.name.toLowerCase().includes('verified')
+                  );
+
+                  // Extract all Alliance roles configured on this server (e.g. "🛡️ [VHN1] Vanguard")
+                  const serverAllianceRoles = roles.filter((r) => /\[[^\]]+\]/.test(r.name));
+                  const matchedAllianceRole = upperTag
+                    ? serverAllianceRoles.find((r) => r.name.toUpperCase().includes(`[${upperTag}]`))
+                    : null;
+
+                  // Auto-approve if:
+                  //   (a) The screenshot's [TAG] matches one of this Kingdom server's Alliance Roles, OR
+                  //   (b) This is Valheon Global HQ (where players from all Kingdoms/Alliances verify by Governor ID)
+                  const isValheonHq = String(msgGuildId) === String(GUILD_ID);
+                  const shouldAutoApprove = Boolean(matchedAllianceRole) || (isValheonHq && Boolean(govId));
+
+                  if (shouldAutoApprove) {
+                    const finalTag = rawTag || 'ROK';
+                    bindGovernorProfile({
+                      userId: d.author.id,
+                      username: d.author.global_name || d.author.username,
+                      govId,
+                      govName,
+                      alliance: finalTag,
+                      coords: `UID:${govId} (No Grid Needed)`,
+                    });
+
+                    const grantedRoles = [];
+                    if (citizenRole) {
+                      await discordApi('PUT', `/guilds/${msgGuildId}/members/${d.author.id}/roles/${citizenRole.id}`).catch(() => null);
+                      grantedRoles.push(`<@&${citizenRole.id}>`);
+                    }
+                    if (matchedAllianceRole) {
+                      await discordApi('PUT', `/guilds/${msgGuildId}/members/${d.author.id}/roles/${matchedAllianceRole.id}`).catch(() => null);
+                      grantedRoles.push(`<@&${matchedAllianceRole.id}>`);
+                    }
+
+                    const formattedNick = `[${finalTag}] ${govName}`.slice(0, 32);
+                    await discordApi('PATCH', `/guilds/${msgGuildId}/members/${d.author.id}`, {
+                      nick: formattedNick,
+                    }).catch(() => null);
+
+                    await discordApi('POST', `/channels/${d.channel_id}/messages`, {
+                      message_reference: { message_id: d.id },
+                      embeds: [
+                        {
+                          title: '✅ AI VISION OCR VERIFIED & AUTO-APPROVED! (🟠 LEGENDARY HERMES)',
+                          description:
+                            `Welcome aboard, **[${finalTag}] ${govName}** (<@${d.author.id}>)!\n` +
+                            `**🟠 HERMES AI Vision OCR** scanned your Governor Profile screenshot, verified your alliance membership, and unlocked your war channels automatically.`,
+                          color: 0x10b981,
+                          fields: [
+                            { name: '🆔 Scanned Governor ID', value: `\`#${govId}\``, inline: true },
+                            { name: '👤 In-Game Name', value: `\`${govName}\``, inline: true },
+                            { name: '🏰 Verified Alliance', value: `\`${ocrRes.alliance_full || '[' + finalTag + ']'}\``, inline: true },
+                            { name: '⚡ Scanned Power', value: `\`${fmtNum(ocrRes.power)}\` (**${fmtCompact(ocrRes.power)}**)`, inline: true },
+                            { name: '⚔️ Scanned Kill Points', value: `\`${fmtNum(ocrRes.kill_points)}\` (**${fmtCompact(ocrRes.kill_points)}**)`, inline: true },
+                            {
+                              name: '🛡️ Self-Profile Check',
+                              value: ocrRes.is_self_profile
+                                ? `🟢 **Own Account (${ocrRes.action_points || 'AP Visible'})**`
+                                : '🟢 **Profile Card Verified**',
+                              inline: true,
+                            },
+                            {
+                              name: '🔓 Unlocked Discord Roles',
+                              value: grantedRoles.join(' • ') || '✅ Verified Citizen & War Channels Unlocked',
+                              inline: false,
+                            },
+                          ],
+                          footer: {
+                            text: '🟠 LEGENDARY HERMES // AI VISION AUTO-VERIFIER • ZERO-GRID PROFILE BOUND',
+                          },
+                          timestamp: new Date().toISOString(),
+                        },
+                      ],
+                      components: [
+                        {
+                          type: 1,
+                          components: [
+                            {
+                              type: 2,
+                              style: 2,
+                              label: '📍 Optional: Set City X/Y Coords for Title Queue',
+                              custom_id: 'hermes_verify_governor',
+                            },
+                          ],
+                        },
+                      ],
+                    });
+                  } else {
+                    // SISTER ALLIANCE / SUPPORT JUMP / OLDER SCREENSHOT -> HOLD FOR 1-CLICK R4/R5 MANUAL APPROVAL!
+                    const safeTag = encodeURIComponent((rawTag || 'ALLY').slice(0, 8));
+                    const safeName = encodeURIComponent(govName.slice(0, 16));
+                    const expectedTags =
+                      serverAllianceRoles
+                        .map((r) => r.name.match(/\[([^\]]+)\]/)?.[1])
+                        .filter(Boolean)
+                        .map((t) => `\`[${t}]\``)
+                        .join(', ') || '`[VHN1]`, `[VHN2]`';
+
+                    const approvalPayload = {
+                      message_reference: { message_id: d.id },
+                      embeds: [
+                        {
+                          title: '⏳ AI OCR SCANNED // PENDING R4/R5 SISTER-ALLIANCE APPROVAL',
+                          description:
+                            `**🟠 HERMES AI Vision OCR** successfully extracted your Governor Profile (<@${d.author.id}>), but your screenshot's alliance tag (**\`[${rawTag || 'NONE'}]\`**) is not one of this server's primary auto-approve sectors (${expectedTags}).\n\n` +
+                            `💡 **Jumping to a Sister/Support Alliance to help, or using an older picture?**\n` +
+                            `No problem! Your profile is queued below — any **R4 Officer** or **R5 Sovereign** can approve your access in **1 click**!`,
+                          color: 0xf59e0b,
+                          fields: [
+                            { name: '🆔 Scanned Governor ID', value: `\`#${govId}\``, inline: true },
+                            { name: '👤 In-Game Name', value: `\`${govName}\``, inline: true },
+                            { name: '🏰 Screenshot Alliance', value: `\`${ocrRes.alliance_full || '[' + (rawTag || 'NONE') + ']'}\``, inline: true },
+                            { name: '⚡ Scanned Power', value: `\`${fmtNum(ocrRes.power)}\` (**${fmtCompact(ocrRes.power)}**)`, inline: true },
+                            { name: '⚔️ Scanned Kill Points', value: `\`${fmtNum(ocrRes.kill_points)}\` (**${fmtCompact(ocrRes.kill_points)}**)`, inline: true },
+                            {
+                              name: '🛡️ Self-Profile Check',
+                              value: ocrRes.is_self_profile
+                                ? `🟢 **Own Account (${ocrRes.action_points || 'AP Visible'})**`
+                                : 'ℹ️ **Standard Profile View**',
+                              inline: true,
+                            },
+                          ],
+                          footer: {
+                            text: 'R4 / R5 OFFICERS: CLICK [✅ Approve] BELOW TO UNLOCK WAR CHANNELS FOR THIS GOVERNOR',
+                          },
+                          timestamp: new Date().toISOString(),
+                        },
+                      ],
+                      components: [
+                        {
+                          type: 1,
+                          components: [
+                            {
+                              type: 2,
+                              style: 3, // SUCCESS
+                              label: `✅ R4/R5: Approve [${rawTag || 'ALLY'}] ${govName.slice(0, 14)} (Sister/Support)`,
+                              custom_id: `hermes_ocr_approve_${d.author.id}_${govId}_${safeTag}_${safeName}`,
+                            },
+                            {
+                              type: 2,
+                              style: 4, // DANGER
+                              label: '❌ R4/R5: Request Fresh Screenshot',
+                              custom_id: `hermes_ocr_reject_${d.author.id}`,
+                            },
+                          ],
+                        },
+                      ],
+                    };
+
+                    await discordApi('POST', `/channels/${d.channel_id}/messages`, approvalPayload);
+                  }
+                } else {
+                  await discordApi('POST', `/channels/${d.channel_id}/messages`, {
+                    message_reference: { message_id: d.id },
+                    content:
+                      `⚠️ <@${d.author.id}> **HERMES Vision OCR** couldn't find a clear \`Governor (ID: ...)\` on that image. Please upload an uncropped **Governor Profile** screenshot (showing your **ID**, **Name**, **Alliance**, **Power**, and **Kill Points**), or click **\`[🔗 Manual ID Entry]\`** above!`,
+                  });
+                }
               }
             } else if (chanName.includes('ocr') || chanName.includes('optics')) {
               const msgGuildId = d.guild_id || GUILD_ID;
