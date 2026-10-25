@@ -271,6 +271,11 @@ def is_city_hud(a: np.ndarray) -> bool:
     bl_mean = float(a[800:890, 10:100].mean())
     if bl_mean < 55.0:
         return False
+    # Bottom-right blue menu button (1500:1580, 815:885) must be visible on true HUD (hidden by Event Calendar / full modals)
+    br_btn = a[815:885, 1500:1580]
+    br_blue = float(((br_btn[:, :, 2].astype(np.int32) - br_btn[:, :, 0].astype(np.int32) > 25) & (br_btn[:, :, 2] >= 100)).mean())
+    if br_blue < 0.20:
+        return False
     # Build Drawer Open hides bottom-left HUD under the grey stone tab bar (x=10..80, y=500..850)
     pil = a[500:850, 10:80]
     is_pil_grey = (
@@ -288,7 +293,7 @@ def is_city_hud(a: np.ndarray) -> bool:
         & (np.abs(b_hdr[:, :, 0].astype(np.int32) - b_hdr[:, :, 1].astype(np.int32)) < 20)
         & (np.abs(b_hdr[:, :, 1].astype(np.int32) - b_hdr[:, :, 2].astype(np.int32)) < 25)
     )
-    if float(np.mean(is_b_hdr)) > 0.55 and bl_mean < 95.0:
+    if float(np.mean(is_b_hdr)) > 0.45:
         return False
     return True
 
@@ -296,13 +301,18 @@ def is_city_hud(a: np.ndarray) -> bool:
 def is_world_map(a: np.ndarray) -> bool:
     if not is_city_hud(a):
         return False
-    # On the World Map, the top coordinate bar (#4194 X:... Y:...) has a gold Star bookmark icon at (597, 22)
+    # Deterministic bottom-left button sprite check: Castle Tower (World Map) vs Folded Map Pin (City View)
+    castle_vs_map_delta = float(a[833:839, 79:85].mean()) - float(a[842:848, 83:89].mean())
+    if castle_vs_map_delta > 60.0:
+        return True
+    if castle_vs_map_delta < -60.0:
+        return False
     star = a[8:40, 580:615]
     gold = (star[:, :, 0] >= 195) & (star[:, :, 1] >= 125) & (star[:, :, 2] <= 55)
     return float(np.mean(gold)) > 0.45
 
 
-def detect_new_troop_modal(a: np.ndarray):
+def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
     # 0. Quests / Daily Objectives Modal at y=85..145 with left blue ribbon tab at x=30..160, y=165..500
     q_hdr = a[85:145, 500:1100]
     is_q_hdr = (
@@ -723,7 +733,7 @@ def detect_new_troop_modal(a: np.ndarray):
     is_ban = (ban[:, :, 0] >= 170) & (ban[:, :, 1] >= 110) & (ban[:, :, 2] <= 60)
     pan = a[220:680, 550:1400]
     is_pan = (pan[:, :, 2] >= 120) & (pan[:, :, 0] <= 45)
-    if float(np.mean(is_ban)) > 0.28 and float(np.mean(is_pan)) > 0.80:
+    if float(np.mean(is_ban)) > 0.25 and float(np.mean(is_pan)) > 0.50:
         return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
 
     # 11a. Troop Training Modal (grey header y=85..140, x=250..1350 + bottom-right cyan TRAIN button at x=1100..1360, y=700..815)
@@ -808,9 +818,17 @@ def detect_new_troop_modal(a: np.ndarray):
         if float(np.mean(is_yes_cy)) > 0.30 and (float(np.mean(is_no_cy)) > 0.30 or "notice" in hdr_title.lower()):
             return (582, 704, "Notice Beginner's Teleport Confirm -> Tap Yes (582, 704)")
         ht_low = hdr_title.lower()
+        if "governor" in ht_low or "profile" in ht_low:
+            return (1454, 105, "Governor Profile Open -> Close (1454, 105)")
         if hdr_title.strip() and (
-            any(bad in ht_low for bad in ("stable", "siege", "workshop", "management"))
-            or ("level 8" in ht_low and "city hall" not in ht_low)
+            "management" in ht_low
+            or (
+                target_ch <= 8
+                and (
+                    any(bad in ht_low for bad in ("stable", "siege", "workshop"))
+                    or ("level 8" in ht_low and "city hall" not in ht_low)
+                )
+            )
         ):
             return (1365, 110, "CLOSE_STABLE_AND_SELECT_CH")
         if int(inst_gold.sum()) >= 1500:
@@ -896,19 +914,19 @@ def detect_new_troop_modal(a: np.ndarray):
                 return (1395, 58, "Joined Alliance Modal Open -> Close (1395, 58)")
             return (1540, 48, "Mail Modal Open -> Close (1540, 48)")
 
-    # 11c2. Event Calendar Parchment Modal (tan header y=20..80, x=200..1350 spanning both left & right halves) -> Close (1386, 58) x2
+    # 11c2. Event Calendar Parchment Modal (tan header y=20..80, x=550..1350) -> Close (1365, 58) x2
     if not is_city_hud(a):
         if float(np.mean(is_back_grey)) > 0.45:
             return (58, 52, "Sub-Screen Open -> Tap Back (58, 52)")
-        ec_hdr = a[20:80, 200:1350]
+        ec_hdr = a[20:80, 550:1350]
         is_ec_hdr = (
             (ec_hdr[:, :, 0] >= 165)
             & (ec_hdr[:, :, 1] >= 135)
             & (ec_hdr[:, :, 2] >= 95)
             & ((ec_hdr[:, :, 0].astype(np.int32) - ec_hdr[:, :, 2].astype(np.int32)) >= 30)
         )
-        if float(np.mean(is_ec_hdr[:, :550])) > 0.50 and float(np.mean(is_ec_hdr[:, 650:])) > 0.50:
-            return (1386, 58, "EVENT_CALENDAR_CLOSE")
+        if float(np.mean(is_ec_hdr)) > 0.55:
+            return (1386, 55, "EVENT_CALENDAR_CLOSE")
 
     # 11c3. Items Bag Modal (right beige parchment card x=1005..1365, y=200..780 + left blue grid x=130..980, y=200..780)
     if not is_city_hud(a):
@@ -998,7 +1016,7 @@ def detect_new_troop_modal(a: np.ndarray):
         try:
             nt_res, _ = OCR(a[150:750, 300:1300].astype(np.uint8))
             nt_text = " ".join([r[1].lower() for r in (nt_res or [])])
-            if any(k in nt_text for k in ("teleport", "beginner", "disappear", "level 8", "lv.8")):
+            if any(k in nt_text for k in ("teleport", "disappear")) and ("beginner" in nt_text or "inventory" in nt_text or "level 8" in nt_text):
                 for nbox, ntxt, _ in (nt_res or []):
                     if any(c in ntxt.lower() for c in ("yes", "confirm", "ok")):
                         ncx = int(sum(pt[0] for pt in nbox) / 4 + 300)
@@ -1439,6 +1457,7 @@ def report_tut_progress(adb_serial: str, kingdom: str, step: int, total_steps: i
 
 
 def check_for_script_update():
+    return
     try:
         import urllib.request
         req = urllib.request.Request("http://192.168.50.41:8888/files/auto_tutorial_ch8.py")
@@ -1569,7 +1588,7 @@ def main():
             continue
         chk_repeat = 0
 
-        nt = detect_new_troop_modal(a2)
+        nt = detect_new_troop_modal(a2, target_ch=args.target_ch)
         if nt:
             if nt[2] == "VENGEANCE_QUICK_DEPLOY_AND_START":
                 print(f"[Step {step:02d}] Vengeance -> Cmdr1 (110,265) + Cmdr2 (265,265) + QUICK DEPLOY (650,790) + START (945,790)")
@@ -1737,9 +1756,9 @@ def main():
                     tap(args.adb, 1210, 775, 1.0)
                 tap(args.adb, 1390, 112, 1.0)
             elif nt[2] == "EVENT_CALENDAR_CLOSE":
-                print(f"[Step {step:02d}] Event Calendar Open -> Close (1386, 58) x2")
-                tap(args.adb, 1386, 58, 0.8)
-                tap(args.adb, 1386, 58, 1.0)
+                print(f"[Step {step:02d}] Event Calendar Open -> Close (1365, 58) x2")
+                tap(args.adb, 1386, 55, 0.8)
+                tap(args.adb, 1386, 55, 1.0)
             elif nt[2] == "MAIL_CLAIM_SYSTEM_AND_CLOSE":
                 print(f"[Step {step:02d}] Mail Open (System Badge) -> Tap SYSTEM (445,58) + Read/Claim + Close (1563,58)")
                 tap(args.adb, 445, 58, 1.0)
@@ -2019,7 +2038,7 @@ def main():
                 if is_ch_selected and det_ch_lvl >= args.target_ch and best_g >= 240:
                     print(f"[Step {step:02d}] TARGET REACHED: City Hall Level {det_ch_lvl} confirmed ('{rib_title}')! Exiting.")
                     break
-                is_already_lv7_prereq = (not is_ch_selected) and ("level7" in rib_nospace or "evel7" in rib_nospace)
+                is_already_lv7_prereq = (args.target_ch <= 8) and (not is_ch_selected) and ("level7" in rib_nospace or "evel7" in rib_nospace)
                 is_non_ch8_rib = is_already_lv7_prereq or ((not is_ch_selected) and rib_title.strip() != "" and not any(b in rib_title for b in allowed_ch8_rib))
                 if is_non_ch8_rib and (best_g >= 240 or best_y >= 350):
                     print(f"[Step {step:02d}] Non-CH8/Duplicate Building Selected ('{rib_title}') -> Select City Hall via Anchor")
@@ -2027,7 +2046,7 @@ def main():
                     last_spear = None
                     repeat_cnt = 0
                     continue
-                if any(k in rib_title for k in ("stable", "siege", "workshop", "archery", "range", "barracks")) and gx is not None and gy is not None:
+                if args.target_ch <= 8 and any(k in rib_title for k in ("stable", "siege", "workshop", "archery", "range", "barracks")) and gx is not None and gy is not None:
                     tx_tr, ty_tr = min(1560, gx + 165), max(180, gy - 15)
                     print(f"[Step {step:02d}] Troop Building Selected ('{rib_title}') -> Tap Train Hex ({tx_tr}, {ty_tr}) + T1 Slot (650, 225) + TRAIN (1215, 760)")
                     tap(args.adb, tx_tr, ty_tr, 1.4)
