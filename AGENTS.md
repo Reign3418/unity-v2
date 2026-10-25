@@ -28,17 +28,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Serverless Route Timeouts:** For intensive OCR or multi-kingdom queries, declare `export const maxDuration = 300;` at the top of the route file.
 
 ## 3. Internationalization (i18n) Rules
-- Supported locales: `en`, `ar`, `de`, `es`, `fr`, `id`, `ko`, `pt`, `ru`, `tr`, `vi`, `zh`.
-- All JSON files are located in `src/messages/<locale>.json`.
-- **Mandatory On-Creation Rule:** Whenever any new UI component, modal, banner, page, button, or user-facing element is created or modified, internationalization is a **strict prerequisite**. No hardcoded English copy may be left in JSX. All user-facing strings must use `useTranslations('<Namespace>')` and be synchronized across all 12 platform locales with contextual accuracy.
+- Supported locales (17 languages): `en`, `ar`, `de`, `es`, `fr`, `id`, `it`, `ja`, `ko`, `ms`, `pl`, `pt`, `ru`, `th`, `tr`, `vi`, `zh`.
+- All JSON files are located in `src/messages/<locale>.json` (`2,040` keys per locale / `34,680` total strings).
+- **Mandatory On-Creation Rule:** Whenever any new UI component, modal, banner, page, button, or user-facing element is created or modified, internationalization is a **strict prerequisite**. No hardcoded English copy may be left in JSX. All user-facing strings must use `useTranslations('<Namespace>')` and be synchronized across all 17 platform locales with contextual accuracy.
 - **RTL Support:** For Arabic (`ar`), ensure proper bidirectional handling (`dir="rtl"`) on the page while enforcing `dir="ltr"` on numeric identifiers (IDs, PINs, stats, phone inputs) and brand logos (`UN.TY 2.0`) to prevent character flipping.
 - **Pre-commit Gate:** Whenever editing translation keys or UI text, run:
   ```bash
   node scripts/check-i18n.js
   ```
-  All 12 languages must maintain 100% key parity before committing.
+  All 17 languages must maintain 100% key parity before committing.
 
-## 4. Telemetry & Event Logging Architecture
+## 4. Telemetry, Event Logging & Visio Ecosystem Architect
 - All user and system engagement must be tracked asynchronously without blocking responses:
   - **Backend Route Handlers:** Import and invoke `logEvent(eventType, metadata, context)` from `@/lib/eventLogger`.
   - **Client-Side Components:** Post non-blocking payloads to `/api/telemetry/log`:
@@ -49,6 +49,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
       body: JSON.stringify({ eventType: 'MY_TOOL_EVENT', metadata: { ... } })
     }).catch(() => {});
     ```
+  - **Automatic Route & Sub-Tab Tracking:** `Navbar.js` dispatches `PAGE_VIEW` on route transitions, and `/analysis/kingdom` dispatches `KINGDOM_TAB_VIEW` on sub-tab switches.
+  - **Visio Ecosystem Architect (`/creator/architect`):** Queries `/api/admin/events` to overlay live 90-day hit counts and "Last Visited" dates across all 94 cards and 14 architecture swimlanes so unused pages/tabs can be audited and pruned with hard telemetry.
 - All site events write to DynamoDB partition `PK: EVENTS#YYYY-MM-DD` with a 90-day auto-expiry TTL.
 
 ## 5. Admin & High Command Alert Pipeline
@@ -76,3 +78,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **In-Browser Vision OCR Prototype (`/experimental/ocr`):** Operates on dual engines: Local WebGPU / HTML5 Canvas optical processing (`$0.00` / zero API tokens consumed / offline capable) and Cloud Fast-Track (`gemini-3.1-flash-lite` free quota).
 - **Governor Anomaly & Fraud Outlier Engine (`/creator/lab/anomaly-detector`, `@/lib/anomalyDetector`):** 100% free client-side multivariate math detecting stat-padders (T1 farm duelers), scripted bot accounts, deadweight whales, and account buyer liabilities before KvK matchmaking.
 - **Battle Predictor Tactical Thinking Engine Prototype (`/creator/lab/battle-predictor`):** Supports `gemini-2.5-flash` deep reasoning scenarios alongside high-throughput `gemini-3.1-flash-lite`.
+
+## 8. Autonomous Swarm & 5-Queue Living Player Loop (`SIDEKICK` `#4197`)
+- **Single-Process Lock (`scanner/node1_cluster_hub.js`):** When `scanner/swarm_4197_orchestrator.py` is running on `SIDEKICK` (`192.168.50.218`), `worker.ps1` must **never** respawn `python -m cipher` or `provision_neighbor_kingdom.py`, preventing multi-process ADB collisions across `:16384`, `:16416`, and `:16448`.
+- **Kingdom `#4197` Lock (`verifiedIn4197`):** Once an instance is verified in `#4197`, it remains locked in `#4197` without re-opening Character Management.
+- **Harmonious 5-Queue Sequence (`scanner/SWARM_4197_5_QUEUE_RUNBOOK.md`):**
+  1. `run_t1_only_training` — Collects finished troop bubbles and trains strict T1 batches across Barracks, Archery Range, Stable, and Siege Workshop.
+  2. `run_scouting_and_villages` — Dispatches active scouts to explore fog, Tribal Villages, and Mysterious Caves without relying on CH11 auto-explore.
+  3. `run_resource_farming` — Multi-march gather loop (`2` slots per pass across `FOOD`, `WOOD`, `STONE`).
+  4. `run_city_builder_burst` — Fast 6-step `auto_tutorial_ch8.py` builder pass (`--steps 6 --target-ch 16`) + calibrated `(1162, 796)` Alliance Help handshake tap.
+  5. `run_blackbox_threat_check` — Optical Watchtower & Mail unread badge recon synced to `BastionControl`.

@@ -76,19 +76,21 @@ Unity supports multi-tier AI vision analysis with high-throughput defaults and p
 
 ---
 
-## 📊 Universal Telemetry & Event Logging
+## 📊 Universal Telemetry, Event Logging & Visio Ecosystem Architect
 
 Every platform interaction is recorded asynchronously into AWS DynamoDB (`PK: EVENTS#YYYY-MM-DD`, 90-day auto-expiry):
+* **Visio Ecosystem Architect (`/creator/architect`):** Interactive 94-node / 14-swimlane architecture blueprint overlaid with live 90-day DynamoDB hit counts and exact `Last Visited` timestamps across every route (`PAGE_VIEW`) and `/analysis/kingdom` sub-tab (`KINGDOM_TAB_VIEW`).
+* **Bastion Swarm & 5-Queue Living Player Loop (`/bastion`, `scanner/SWARM_4197_5_QUEUE_RUNBOOK.md`):** Single-process locked autonomous governor loop on `SIDEKICK` (`192.168.50.218`) executing strict T1 military training, active fog/village/cave scouting, multi-march resource gathering, fast 6-step city building, and Watchtower threat recon in Kingdom `#4197`.
 * **Admin Analytics (`/admin/analytics`):** Real-time stream of all platform events, filtered by feature and kingdom.
 * **AI Usage Dashboard (`/creator/usage`):** Daily quota countdowns, token usage breakdown, and quota alerts.
-* **Client Telemetry Endpoint (`/api/telemetry/log`):** Non-blocking client logger capturing tool views and calculator engagement.
+* **Client Telemetry Endpoint (`/api/telemetry/log`):** Non-blocking client logger capturing tool views, route views, and calculator engagement.
 
 ---
 
 ## 🌍 Internationalization (i18n)
 
-Unity natively supports **12 languages** via `next-intl` with 100% key parity enforced via CI pre-commit hooks:
-* English (`en`), Arabic (`ar`), German (`de`), Spanish (`es`), French (`fr`), Indonesian (`id`), Korean (`ko`), Portuguese (`pt`), Russian (`ru`), Turkish (`tr`), Vietnamese (`vi`), Chinese (`zh`).
+Unity natively supports **17 languages** (`2,040` keys per locale / `34,680` localized strings) via `next-intl` with 100% key parity enforced via Project Valkyrie and CI pre-commit gates:
+* English (`en`), Arabic (`ar`), German (`de`), Spanish (`es`), French (`fr`), Indonesian (`id`), Italian (`it`), Japanese (`ja`), Korean (`ko`), Malay (`ms`), Polish (`pl`), Portuguese (`pt`), Russian (`ru`), Thai (`th`), Turkish (`tr`), Vietnamese (`vi`), Chinese (`zh`).
 
 Run the verification test anytime:
 ```bash

@@ -2,6 +2,25 @@
 
 All notable changes to the Unity V2 platform are documented in this file.
 
+## [2.8.0] — 2026-10-24
+
+### Added & Fixed
+- **Visio Ecosystem Architect & Live 90-Day Usage Telemetry (`/creator/architect`):**
+  - Mounted the interactive 94-node / 14-lane Visio Ecosystem Architect inside Unity with prominent **`🗺️ Visio Architect`** links in `Sidebar.js` and `Navbar.js`.
+  - Wired automatic, non-blocking `PAGE_VIEW` (`Navbar.js`) and `KINGDOM_TAB_VIEW` (`src/app/[locale]/analysis/kingdom/page.js`) telemetry into DynamoDB (`PK: EVENTS#YYYY-MM-DD`).
+  - Enhanced `/api/admin/events` to aggregate 90-day per-route, per-tab, and per-feature hit counts plus exact `lastVisited` timestamps across 1,150+ recorded events, stamping live usage badges onto every card in `/creator/architect`.
+- **Harmonious 5-Queue Living Player Loop on `SIDEKICK` (`scanner/swarm_4197_orchestrator.py`, `scanner/node1_cluster_hub.js`, `scanner/SWARM_4197_5_QUEUE_RUNBOOK.md`):**
+  - Eliminated multi-process ADB collisions on `SIDEKICK` (`192.168.50.218`) by updating `WORKER_LOOP_PS1` in `node1_cluster_hub.js` so `worker.ps1` never respawns `cipher` while `swarm_4197_orchestrator.py` is running.
+  - Enforced a strict Kingdom `#4197` lock (`verifiedIn4197`) so instances stay inside `#4197` without re-opening Character Management or triggering neighbor-kingdom switch loops.
+  - Deployed the **5-Queue Living Player Loop** per cycle:
+    1. **Queue #1 — Military Training (`run_t1_only_training`):** Collects finished troop bubbles and trains strict T1 batches across Barracks, Archery Range, Stable, and Siege Workshop.
+    2. **Queue #2 — Active Scouting, Villages & Caves (`run_scouting_and_villages`):** Detects idle Scout Camp / spyglass badges and dispatches scouts to explore fog, Tribal Villages, and Mysterious Caves without relying on CH11 auto-explore.
+    3. **Queue #3 — Multi-March Resource Gathering (`run_resource_farming`):** Loops across 2 march slots per cycle (`FOOD`, `WOOD`, `STONE`) so multiple gather marches stay active on the `#4197` World Map.
+    4. **Queue #4 — Smart Fast Builder & Alliance Help (`run_city_builder_burst`):** Runs a fast 6-step `auto_tutorial_ch8.py` pass (`--steps 6 --target-ch 16`) and auto-taps the calibrated Alliance Help handshake at `(1162, 796)`.
+    5. **Queue #5 — Watchtower & Mail Recon (`run_blackbox_threat_check`):** Monitors optical red-edge glow and unread mail badges, logging all events to `4197_flight_recorder.jsonl` and `BastionControl`.
+- **SuperAdmin Read-Only Clearance & 17-Language Parity:**
+  - Added `SUPERADMIN_READONLY` clearance across Discord accounts, Governor PINs, Guest Passcodes, and API routes, with 100% key parity across all **17 platform languages** (`2,040` keys / `34,680` localized strings).
+
 ## [2.6.0] — 2026-10-08
 
 ### Added & Fixed
