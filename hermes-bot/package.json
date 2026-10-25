@@ -1,0 +1,13 @@
+{
+  "name": "valheon-hermes-bot",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "VALHEON HERMES — 24/7 Discord Gateway Worker, 1-Click Server Architect, 17-Lang Translator & Stripe Bridge",
+  "scripts": {
+    "start": "node bot.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

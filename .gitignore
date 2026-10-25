@@ -62,3 +62,4 @@ bastion-brain/cipher_state/
 
 bastion-brain/.env.railway
 bastion-brain/.sidekick_aws_credentials.cache
+hermes-bot/.env.railway

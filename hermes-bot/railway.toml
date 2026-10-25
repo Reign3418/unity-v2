@@ -1,0 +1,4 @@
+# Railway config-as-code for the HERMES 24/7 Discord Gateway Worker (Service Root Directory: /hermes-bot)
+[deploy]
+startCommand = "node bot.mjs"
+restartPolicyType = "ALWAYS"
