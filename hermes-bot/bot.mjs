@@ -27,6 +27,7 @@ import { recordSilentSignal, buildUptimeDiscordEmbed } from './uptimeEngine.js';
 import { applyRokGlossaryPre } from './rokGlossaryBridge.js';
 import {
   bindGovernorProfile,
+  hasBoundGovernorProfile,
   requestKingdomTitle,
   completeCurrentTitle,
   buildTitleQueueConsolePayload,
@@ -1316,6 +1317,8 @@ async function handleInteraction(ix) {
     const memberRoles = Array.isArray(ix.member?.roles) ? ix.member.roles : [];
     const isExemptFromBorderGate =
       VALHEON_FOUNDER_IDS.has(String(user.id)) ||
+      hasBoundGovernorProfile(user.id, user.username) ||
+      tierStatus.blueprintType === 'OMNI_LANGUAGE_MATRIX_ONLY' ||
       (tierStatus.buyerDiscordId && String(tierStatus.buyerDiscordId) === String(user.id)) ||
       customId === 'hermes_verify_governor' ||
       customId.startsWith('hermes_deploy_') ||
@@ -1400,57 +1403,70 @@ async function handleInteraction(ix) {
 
     // A0.0 4-STEP ONBOARDING FLOW: 1) Language -> 2) Translate & Accept Rules -> 3) Screenshot Verify (R4 or Auto-OCR) -> 4) Active Roles
     if (customId === 'hermes_welcome_open_lang_picker') {
+      const isAlreadyRegisteredOrPrincipal =
+        VALHEON_FOUNDER_IDS.has(String(user.id)) ||
+        hasBoundGovernorProfile(user.id, user.username) ||
+        memberRoles.length > 0 ||
+        tierStatus.blueprintType === 'OMNI_LANGUAGE_MATRIX_ONLY';
+
       return reply({
         type: 4,
         data: {
           flags: 64,
           embeds: [
             {
-              title: '🌍 STEP 1 // PICK YOUR LANGUAGE & TRANSLATE THE RULES',
-              description:
-                'Tap your native flag below first! **🪽 HERMES** will:\n' +
-                '1️⃣ Unlock your native-language chat room under **`🪽 HERMES OMNI-LANGUAGE MATRIX`**.\n' +
-                '2️⃣ **Automatically translate the Kingdom Rules & Charter into your language** so you can read and accept **Step 2** right here!',
+              title: isAlreadyRegisteredOrPrincipal
+                ? '🌍 PICK YOUR LANGUAGE // INSTANT 17-LANGUAGE SWITCHER'
+                : '🌍 STEP 1 // PICK YOUR LANGUAGE & TRANSLATE THE RULES',
+              description: isAlreadyRegisteredOrPrincipal
+                ? 'Tap your native flag below! **🪽 HERMES** will immediately unlock your native-language chat room under **`🪽 HERMES OMNI-LANGUAGE MATRIX`** — and since you are already registered in the Kingdom, you are all set in 1 click!'
+                : 'Tap your native flag below first! **🪽 HERMES** will:\n' +
+                  '1️⃣ Unlock your native-language chat room under **`🪽 HERMES OMNI-LANGUAGE MATRIX`**.\n' +
+                  '2️⃣ **Automatically translate the Kingdom Rules & Charter into your language** so you can read and accept **Step 2** right here!',
               color: 0x38bdf8,
-              footer: { text: 'STEP 1 OF 4 // SELECT YOUR NATIVE LANGUAGE BELOW' },
+              footer: {
+                text: isAlreadyRegisteredOrPrincipal
+                  ? 'SELECT YOUR NATIVE LANGUAGE BELOW // 1-CLICK UNLOCK'
+                  : 'STEP 1 OF 4 // SELECT YOUR NATIVE LANGUAGE BELOW',
+              },
             },
           ],
           components: [
             {
               type: 1,
               components: [
-                { type: 2, style: 1, label: '🇺🇸 English', custom_id: 'hermes_babel_lang_en' },
-                { type: 2, style: 1, label: '🇻🇳 Tiếng Việt', custom_id: 'hermes_babel_lang_vi' },
-                { type: 2, style: 1, label: '🇰🇷 한국어', custom_id: 'hermes_babel_lang_ko' },
-                { type: 2, style: 1, label: '🇷🇺 Русский', custom_id: 'hermes_babel_lang_ru' },
-                { type: 2, style: 1, label: '🇸🇦 العربية', custom_id: 'hermes_babel_lang_ar' },
+                { type: 2, style: 1, label: '🇺🇸 English', custom_id: 'hermes_welcome_lang_en' },
+                { type: 2, style: 1, label: '🇻🇳 Tiếng Việt', custom_id: 'hermes_welcome_lang_vi' },
+                { type: 2, style: 1, label: '🇰🇷 한국어', custom_id: 'hermes_welcome_lang_ko' },
+                { type: 2, style: 1, label: '🇷🇺 Русский', custom_id: 'hermes_welcome_lang_ru' },
+                { type: 2, style: 1, label: '🇸🇦 العربية', custom_id: 'hermes_welcome_lang_ar' },
               ],
             },
             {
               type: 1,
               components: [
-                { type: 2, style: 1, label: '🇨🇳 中文', custom_id: 'hermes_babel_lang_zh' },
-                { type: 2, style: 1, label: '🇯🇵 日本語', custom_id: 'hermes_babel_lang_ja' },
-                { type: 2, style: 1, label: '🇪🇸 Español', custom_id: 'hermes_babel_lang_es' },
-                { type: 2, style: 1, label: '🇹🇷 Türkçe', custom_id: 'hermes_babel_lang_tr' },
-                { type: 2, style: 1, label: '🇮🇩 Indonesia', custom_id: 'hermes_babel_lang_id' },
+                { type: 2, style: 1, label: '🇨🇳 中文', custom_id: 'hermes_welcome_lang_zh' },
+                { type: 2, style: 1, label: '🇯🇵 日本語', custom_id: 'hermes_welcome_lang_ja' },
+                { type: 2, style: 1, label: '🇪🇸 Español', custom_id: 'hermes_welcome_lang_es' },
+                { type: 2, style: 1, label: '🇹🇷 Türkçe', custom_id: 'hermes_welcome_lang_tr' },
+                { type: 2, style: 1, label: '🇮🇩 Indonesia', custom_id: 'hermes_welcome_lang_id' },
               ],
             },
             {
               type: 1,
               components: [
-                { type: 2, style: 1, label: '🇫🇷 Français', custom_id: 'hermes_babel_lang_fr' },
-                { type: 2, style: 1, label: '🇩🇪 Deutsch', custom_id: 'hermes_babel_lang_de' },
-                { type: 2, style: 1, label: '🇧🇷 Português', custom_id: 'hermes_babel_lang_pt' },
-                { type: 2, style: 1, label: '🇹🇭 ภาษาไทย', custom_id: 'hermes_babel_lang_th' },
-                { type: 2, style: 1, label: '🇵🇱 Polski', custom_id: 'hermes_babel_lang_pl' },
+                { type: 2, style: 1, label: '🇫🇷 Français', custom_id: 'hermes_welcome_lang_fr' },
+                { type: 2, style: 1, label: '🇩🇪 Deutsch', custom_id: 'hermes_welcome_lang_de' },
+                { type: 2, style: 1, label: '🇧🇷 Português', custom_id: 'hermes_welcome_lang_pt' },
+                { type: 2, style: 1, label: '🇹🇭 ภาษาไทย', custom_id: 'hermes_welcome_lang_th' },
+                { type: 2, style: 1, label: '🇵🇱 Polski', custom_id: 'hermes_welcome_lang_pl' },
               ],
             },
             {
               type: 1,
               components: [
-                { type: 2, style: 1, label: '🇮🇹 Italiano', custom_id: 'hermes_babel_lang_it' },
-                { type: 2, style: 1, label: '🇲🇾 Melayu', custom_id: 'hermes_babel_lang_ms' },
+                { type: 2, style: 1, label: '🇮🇹 Italiano', custom_id: 'hermes_welcome_lang_it' },
+                { type: 2, style: 1, label: '🇲🇾 Melayu', custom_id: 'hermes_welcome_lang_ms' },
               ],
             },
           ],
@@ -1458,8 +1474,9 @@ async function handleInteraction(ix) {
       });
     }
 
-    if (customId.startsWith('hermes_babel_lang_')) {
-      const langCode = customId.replace('hermes_babel_lang_', '').trim();
+    if (customId.startsWith('hermes_babel_lang_') || customId.startsWith('hermes_welcome_lang_')) {
+      const isFromWelcomeFlow = customId.startsWith('hermes_welcome_lang_');
+      const langCode = customId.replace(/^hermes_(?:babel|welcome)_lang_/, '').trim();
       await reply({ type: 5, data: { flags: 64 } });
       const res = await handleBabelLanguageSelect({
         discordApi,
@@ -1468,6 +1485,26 @@ async function handleInteraction(ix) {
         member: ix.member,
         langCode,
       });
+
+      // SKIP RULES & SCREENSHOT VERIFICATION IF:
+      // 1) User clicked directly in #🌐-select-your-language (hermes_babel_lang_*), OR
+      // 2) This server is an Omni-Language Matrix Add-On (like 3155 Council), OR
+      // 3) User is the Principal (184977944433786880), OR
+      // 4) User already has Kingdom/Council/Citizen roles (nonLangRoleCount > 0) or a bound Governor profile!
+      const skipRulesAndVerify =
+        !isFromWelcomeFlow ||
+        tierStatus.blueprintType === 'OMNI_LANGUAGE_MATRIX_ONLY' ||
+        VALHEON_FOUNDER_IDS.has(String(user.id)) ||
+        hasBoundGovernorProfile(user.id, user.username) ||
+        (res.nonLangRoleCount || 0) > 0;
+
+      if (skipRulesAndVerify) {
+        return editOriginal({
+          content: !res.ok ? res.content : undefined,
+          embeds: res.ok && res.embed ? [res.embed] : undefined,
+          components: [],
+        });
+      }
 
       const baseRulesText =
         '1. MGE & Event Caps: Respect all posted Mightiest Governor (MGE) point caps. Fixed ranks are assigned only to vetted Rally & Garrison Captains.\n' +

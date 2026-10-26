@@ -712,9 +712,11 @@ export async function handleBabelLanguageSelect({
 
   const targetChannelId = guildCfg.channelIdsByLang?.[langMeta.code];
   const channelMention = targetChannelId ? `<#${targetChannelId}>` : `**#${langMeta.channelName}**`;
+  const nonLangRoleCount = [...currentRoles].filter((rId) => !allLangRoleIds.has(rId)).length;
 
   return {
     ok: true,
+    nonLangRoleCount,
     embed: {
       title: langMeta.welcomeTitle,
       description: langMeta.welcomeBody.replace('{CHANNEL}', channelMention),
