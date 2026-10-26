@@ -160,6 +160,9 @@ export function getGuildTierStatus(guildId) {
     saveTierStore(GUILD_TIERS);
   }
 
+  // Normalize legacy WEB_OS to VALHEON
+  if (record.tier === 'WEB_OS') record.tier = 'VALHEON';
+
   const offerExpiresUnix = record.offerExpiresUnix || record.deployedAtUnix + 86400;
   const kvkBundleExpiresUnix = record.kvkBundleExpiresUnix || record.deployedAtUnix + 259200;
   const isWithin24h = nowUnix < offerExpiresUnix;
@@ -168,15 +171,16 @@ export function getGuildTierStatus(guildId) {
   const kvkBundlePriceUsd = isWithin72hBundle ? 15 : 18;
   const secondsRemaining = Math.max(0, offerExpiresUnix - nowUnix);
 
-  // If a moderator explicitly set `record.simulationOverride` to test COMMON or UNLICENSED, respect that!
+  // If a moderator explicitly set `record.simulationOverride` to test COMMON, LEGENDARY, or UNLICENSED, respect that!
   const effectiveTier = record.simulationOverride
     ? record.tier
     : billingSuspended
-    ? 'LEGENDARY'
+    ? 'VALHEON'
     : record.tier;
 
   const isLicensed = effectiveTier !== 'UNLICENSED';
-  const isLegendary = effectiveTier === 'LEGENDARY';
+  const isLegendary = effectiveTier === 'LEGENDARY' || effectiveTier === 'VALHEON';
+  const isValheon = effectiveTier === 'VALHEON' || Boolean(record.webOsActive);
 
   return {
     ...record,
@@ -191,11 +195,12 @@ export function getGuildTierStatus(guildId) {
     secondsRemaining,
     isLicensed,
     isLegendary,
+    isValheon,
   };
 }
 
 /**
- * Upgrades or sets a Guild's HERMES Rarity Tier ('SANDBOX_FREE' | 'COMMON' | 'LEGENDARY' | 'UNLICENSED' | 'WEB_OS')
+ * Upgrades or sets a Guild's HERMES Rarity Tier ('SANDBOX_FREE' | 'COMMON' | 'LEGENDARY' | 'VALHEON' | 'UNLICENSED' | 'WEB_OS')
  */
 export function setGuildTier(guildId, newTier = 'LEGENDARY', resetTimer = false) {
   const nowUnix = Math.floor(Date.now() / 1000);
@@ -205,25 +210,28 @@ export function setGuildTier(guildId, newTier = 'LEGENDARY', resetTimer = false)
     setBillingSuspended(true);
     GUILD_TIERS[guildId] = {
       ...existing,
-      tier: 'LEGENDARY',
+      tier: 'VALHEON',
       licensed: true,
       simulationOverride: false,
       deployedAtUnix: resetTimer ? nowUnix : existing.deployedAtUnix,
       offerExpiresUnix: resetTimer ? nowUnix + 86400 : existing.offerExpiresUnix,
+      webOsActive: true,
     };
     saveTierStore(GUILD_TIERS);
     return getGuildTierStatus(guildId);
   }
 
+  const normalized = newTier === 'WEB_OS' ? 'VALHEON' : newTier;
   GUILD_TIERS[guildId] = {
     ...existing,
-    tier: newTier,
-    licensed: newTier !== 'UNLICENSED',
-    simulationOverride: newTier === 'COMMON' || newTier === 'UNLICENSED',
+    tier: normalized,
+    licensed: normalized !== 'UNLICENSED',
+    simulationOverride:
+      normalized === 'COMMON' || normalized === 'LEGENDARY' || normalized === 'UNLICENSED',
     deployedAtUnix: resetTimer ? nowUnix : existing.deployedAtUnix,
     offerExpiresUnix: resetTimer ? nowUnix + 86400 : existing.offerExpiresUnix,
-    upgradedAtUnix: newTier === 'LEGENDARY' ? nowUnix : null,
-    webOsActive: newTier === 'WEB_OS',
+    upgradedAtUnix: normalized !== 'COMMON' ? nowUnix : null,
+    webOsActive: normalized === 'VALHEON',
   };
   saveTierStore(GUILD_TIERS);
   return getGuildTierStatus(guildId);
@@ -327,6 +335,69 @@ export function buildCommonLockoutPayload({
               ? '🟠 Claim 24h Legendary Upgrade (+$15 One-Time)'
               : '🟠 Upgrade to Legendary Hermes (+$25 One-Time)',
             custom_id: 'hermes_upgrade_legendary_btn',
+          },
+          {
+            type: 2,
+            style: 1,
+            label: '👑 Upgrade to Valheon Hermes ($45/mo)',
+            custom_id: 'hermes_upgrade_webos_btn',
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Builds the "👑 VALHEON HERMES REQUIRED // LIVE KINGDOM SCANNER GATE" Embed
+ * when a server on Common or Legendary tries to pull Live Kingdom Scan Data
+ * (/mystats DKP, 💀 Governor Roast, or 🛡️ AEGIS 35-Field Ticket Polygraph)
+ */
+export function buildValheonLockoutPayload({
+  guildId,
+  featureName = 'Live Kingdom Scan Telemetry',
+  teaserText = 'This feature requires active **Valheon Scanner Bots** deployed in your Kingdom.',
+}) {
+  const status = getGuildTierStatus(guildId);
+  if (status.effectiveTier === 'UNLICENSED') {
+    return buildUnlicensedClonePayload(guildId);
+  }
+
+  return {
+    embeds: [
+      {
+        title: `👑 VALHEON HERMES REQUIRED // 🛰️ [${featureName.toUpperCase()}]`,
+        description:
+          `${teaserText}\n\n` +
+          `Your server is currently running **\`${status.effectiveTier} HERMES\`** (Discord-Only Mode). Commands that pull **live in-game Kingdom Scan Data** require **👑 Valheon Hermes (\`$45/mo\`)**.\n\n` +
+          `### 👑 WHAT \`VALHEON HERMES\` ($45/MO) UNLOCKS IN YOUR KINGDOM:\n` +
+          `• 🤖 **Autonomous Scanner Bots Deployed in Your Kingdom:** Automated Top-300 / Top-600 Power, T4/T5 Kills & Dead Troop scans\n` +
+          `• 🪪 **Live \`/mystats\` KvK DKP Scorecards:** Real-time Kill/Dead goal progress bars inside Discord\n` +
+          `• 💀 **Live AI Governor Telemetry Roaster:** Exposes 90M-power farm lords using real scan history\n` +
+          `• 🛡️ **Auto-Injected AEGIS 35-Field Migration Polygraph:** Instant migrant vetting inside R4 Tickets\n` +
+          `• 🌐 **Full Access to All 5 Webpage Suites (\`valheon.com\`):** AEGIS Dashboard, NEXUS 3D Galaxy, THEATER 128-Node KvK Map, VANGUARD CRM & Web OPTICS!`,
+        color: 0xa855f7,
+        footer: {
+          text: '👑 VALHEON HERMES // LIVE KINGDOM SCANNER BOTS + WEBPAGE SUITE ($45/MO • SUBJECT TO CHANGE)',
+        },
+        timestamp: new Date().toISOString(),
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 1,
+            label: '👑 Activate Valheon Hermes ($45/mo)',
+            custom_id: 'hermes_upgrade_webos_btn',
+          },
+          {
+            type: 2,
+            style: 5,
+            label: '🌐 Explore Valheon.com Suites',
+            url: 'https://valheon.com',
           },
         ],
       },
