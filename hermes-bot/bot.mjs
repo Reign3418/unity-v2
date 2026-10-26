@@ -1091,7 +1091,6 @@ async function registerSlashCommands(targetGuildIdOnly = null) {
                 { name: '🏰 Turnkey Home Kingdom War Server ($39)', value: 'KINGDOM_WAR_SERVER' },
                 { name: '🕊️ Turnkey KvK Diplomacy Summit Server ($9)', value: 'KVK_DIPLO_SERVER' },
                 { name: '⚔️ Turnkey Allied Coalition War Server ($9)', value: 'KVK_COALITION_SERVER' },
-                { name: '🚀 Genesis Jumper / Sleeper Project', value: 'JUMPER_GENESIS_GROUP' },
               ],
             },
             {
