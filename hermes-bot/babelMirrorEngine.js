@@ -316,6 +316,103 @@ const USER_LAST_ACTIVE_MS = new Map();
 const COALESCE_BUFFERS = new Map();
 // Pillar 2: Per-channel Webhook rate queue (`channelId` -> Promise chain)
 const WEBHOOK_CHANNEL_QUEUES = new Map();
+// Cross-Chat Ping Bridge 1: Guild Member Directory Cache (`guildId` -> Map<lowerAlias, userId>)
+const GUILD_MEMBER_DIRECTORY = new Map();
+// Cross-Chat Ping Bridge 2: Mirrored Webhook Message ID -> Original Human Author (`webhookMsgId` -> { authorId, displayName, sourceLang })
+const WEBHOOK_MSG_TO_AUTHOR = new Map();
+
+function indexMemberInDirectory(guildId, userObj, nick = null, roleIds = [], roleIdsByLang = {}) {
+  if (!guildId || !userObj?.id || userObj?.bot) return;
+  const gid = String(guildId);
+  if (!GUILD_MEMBER_DIRECTORY.has(gid)) {
+    GUILD_MEMBER_DIRECTORY.set(gid, new Map());
+  }
+  const dir = GUILD_MEMBER_DIRECTORY.get(gid);
+  const uid = String(userObj.id);
+  for (const rawAlias of [nick, userObj.global_name, userObj.username]) {
+    const clean = String(rawAlias || '').trim().toLowerCase();
+    if (clean.length >= 2) {
+      dir.set(clean, uid);
+      // Also index stripped ASCII/alphanumeric version (e.g. "Réign" -> "reign")
+      const ascii = clean.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (ascii.length >= 2) dir.set(ascii, uid);
+    }
+  }
+  // If member holds one of the 17 language roles, record their locale
+  if (Array.isArray(roleIds) && roleIds.length > 0 && roleIdsByLang) {
+    for (const [langCode, rId] of Object.entries(roleIdsByLang)) {
+      if (rId && roleIds.includes(rId)) {
+        const st = loadBabelState();
+        st.userLocales = st.userLocales || {};
+        if (st.userLocales[uid] !== langCode) {
+          st.userLocales[uid] = langCode;
+          saveBabelState(st);
+        }
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Resolves plain-text `@Name` / `@username` tags across languages, injects Reply-to-Webhook `<@authorId>` pings,
+ * and shields `<@userId>`, `<@&roleId>`, and `<#channelId>` tokens so neural/cloud translation never mangles them!
+ */
+function resolveAndShieldCrossChatMentions(rawText, guildId, replyTargetAuthorId = null) {
+  let text = String(rawText || '');
+  const mentionedUserIds = new Set();
+  const mentionedRoleIds = new Set();
+  const placeholders = [];
+
+  // 1. If replying to a mirrored Webhook message from another language, prepend `<@replyTargetAuthorId>`
+  if (replyTargetAuthorId) {
+    const rUid = String(replyTargetAuthorId);
+    mentionedUserIds.add(rUid);
+    if (!text.includes(`<@${rUid}>`) && !text.includes(`<@!${rUid}>`)) {
+      text = `<@${rUid}> ${text}`;
+    }
+  }
+
+  // 2. Resolve plain-text `@DisplayName` or `@username` using the Guild Member Directory
+  const dir = GUILD_MEMBER_DIRECTORY.get(String(guildId || BABEL_EXCLUSIVE_GUILD_ID));
+  if (dir && dir.size > 0 && text.includes('@')) {
+    // Sort aliases longest-first so `@D Test` matches before `@D`
+    const sortedAliases = [...dir.entries()].sort((a, b) => b[0].length - a[0].length);
+    for (const [alias, uid] of sortedAliases) {
+      const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(?<![<\\w])@${escaped}(?![\\w])`, 'gi');
+      if (regex.test(text)) {
+        text = text.replace(regex, `<@${uid}>`);
+        mentionedUserIds.add(uid);
+      }
+    }
+  }
+
+  // 3. Shield all Discord `<@userId>`, `<@&roleId>`, and `<#channelId>` tags before translation
+  const shieldedText = text.replace(/<(@!?(\d+)|@&(\d+)|#(\d+))>/g, (fullMatch, _inner, uId, rId) => {
+    if (uId) mentionedUserIds.add(String(uId));
+    if (rId) mentionedRoleIds.add(String(rId));
+    const idx = placeholders.length;
+    placeholders.push(fullMatch.replace('<@!', '<@'));
+    return `[[VH_TAG_${idx}]]`;
+  });
+
+  return {
+    shieldedText,
+    placeholders,
+    mentionedUserIds: [...mentionedUserIds],
+    mentionedRoleIds: [...mentionedRoleIds],
+  };
+}
+
+function restoreShieldedMentions(translatedText, placeholders = []) {
+  let out = String(translatedText || '');
+  for (let i = 0; i < placeholders.length; i++) {
+    const tokenRegex = new RegExp(`\\[\\s*\\[\\s*VH_TAG_${i}\\s*\\]\\s*\\]`, 'gi');
+    out = out.replace(tokenRegex, placeholders[i]);
+  }
+  return out;
+}
 
 function loadBabelState() {
   try {
@@ -544,9 +641,10 @@ export async function syncBabelGuildTopology(discordApi, guildId = BABEL_EXCLUSI
   const gid = String(guildId);
 
   try {
-    const [channels, roles] = await Promise.all([
+    const [channels, roles, members] = await Promise.all([
       discordApi('GET', `/guilds/${gid}/channels`),
       discordApi('GET', `/guilds/${gid}/roles`),
+      discordApi('GET', `/guilds/${gid}/members?limit=1000`).catch(() => []),
     ]);
 
     const st = loadBabelState();
@@ -594,6 +692,14 @@ export async function syncBabelGuildTopology(discordApi, guildId = BABEL_EXCLUSI
             st.roleIdsByLang = st.roleIdsByLang || {};
             st.roleIdsByLang[matchedLang.code] = r.id;
           }
+        }
+      }
+    }
+
+    if (Array.isArray(members)) {
+      for (const m of members) {
+        if (m?.user) {
+          indexMemberInDirectory(gid, m.user, m.nick, m.roles, guildCfg.roleIdsByLang);
         }
       }
     }
@@ -782,22 +888,54 @@ async function flushCoalescedBabelBatch(discordApi, bufferKey) {
   if (!batch) return;
   COALESCE_BUFFERS.delete(bufferKey);
 
-  const { guildId, sourceLangMeta, displayName, avatarUrl, lines, attachmentUrls, channelId } = batch;
+  const {
+    guildId,
+    authorId,
+    sourceLangMeta,
+    displayName,
+    avatarUrl,
+    lines,
+    attachmentUrls,
+    channelId,
+    replyTargetAuthorId,
+  } = batch;
   const combinedRaw = lines.filter(Boolean).join('\n').trim();
   if (!combinedRaw && attachmentUrls.length === 0) return;
 
+  // Resolve plain-text `@Name` / `@username`, Reply-to-Webhook `<@authorId>`, and shield tags from translation
+  const { shieldedText, placeholders, mentionedUserIds, mentionedRoleIds } =
+    resolveAndShieldCrossChatMentions(combinedRaw, guildId, replyTargetAuthorId);
+
   const st = loadBabelState();
   const guildCfg = getGuildBabelConfig(st, guildId);
-  const targetLangs = getAwakeTargetLanguages(sourceLangMeta.code, st, guildId);
+  const awakeTargetLangs = getAwakeTargetLanguages(sourceLangMeta.code, st, guildId);
+  const targetLangMap = new Map(awakeTargetLangs.map((l) => [l.code, l]));
+
+  // Force-wake the native language room of any mentioned user so cross-language pings ALWAYS deliver!
+  for (const mUid of mentionedUserIds) {
+    const targetUserLang = st.userLocales?.[String(mUid)];
+    if (targetUserLang && targetUserLang !== sourceLangMeta.code) {
+      const lMeta = LANG_BY_CODE.get(targetUserLang);
+      if (lMeta) targetLangMap.set(lMeta.code, lMeta);
+    }
+  }
+
+  const targetLangs = [...targetLangMap.values()];
+  const allowedMentionsPayload = {
+    parse: [],
+    users: mentionedUserIds.slice(0, 50),
+    roles: mentionedRoleIds.slice(0, 50),
+  };
 
   await Promise.allSettled(
     targetLangs.map(async (targetLang) => {
       const targetChannelId = guildCfg.channelIdsByLang?.[targetLang.code];
       if (!targetChannelId || targetChannelId === channelId) return;
 
-      const translatedText = combinedRaw
-        ? await translateBabelMessage(combinedRaw, targetLang.code)
+      const rawTranslated = shieldedText
+        ? await translateBabelMessage(shieldedText, targetLang.code)
         : '';
+      const translatedText = restoreShieldedMentions(rawTranslated, placeholders);
 
       const finalContent = [translatedText, ...attachmentUrls]
         .filter(Boolean)
@@ -809,27 +947,43 @@ async function flushCoalescedBabelBatch(discordApi, bufferKey) {
       await enqueueWebhookPost(targetChannelId, async () => {
         const wh = await getOrCreateChannelWebhook(discordApi, targetChannelId);
         if (wh?.id && wh?.token) {
-          const res = await fetch(`https://discord.com/api/v10/webhooks/${wh.id}/${wh.token}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'ValheonHermesArchitect/3.0',
-            },
-            body: JSON.stringify({
-              username: displayName.slice(0, 80),
-              avatar_url: avatarUrl,
-              content: finalContent,
-              allowed_mentions: { parse: [] },
-            }),
-          });
+          const res = await fetch(
+            `https://discord.com/api/v10/webhooks/${wh.id}/${wh.token}?wait=true`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'ValheonHermesArchitect/3.0',
+              },
+              body: JSON.stringify({
+                username: displayName.slice(0, 80),
+                avatar_url: avatarUrl,
+                content: finalContent,
+                allowed_mentions: allowedMentionsPayload,
+              }),
+            }
+          );
           if (res.status === 429) {
             const d = await res.json().catch(() => ({}));
             await new Promise((r) => setTimeout(r, Math.ceil((d.retry_after || 1.5) * 1000) + 200));
+          } else if (res.ok && authorId) {
+            const posted = await res.json().catch(() => null);
+            if (posted?.id) {
+              if (WEBHOOK_MSG_TO_AUTHOR.size > 2000) {
+                const oldestKey = WEBHOOK_MSG_TO_AUTHOR.keys().next().value;
+                WEBHOOK_MSG_TO_AUTHOR.delete(oldestKey);
+              }
+              WEBHOOK_MSG_TO_AUTHOR.set(String(posted.id), {
+                authorId: String(authorId),
+                displayName,
+                sourceLang: sourceLangMeta.code,
+              });
+            }
           }
         } else {
           await discordApi('POST', `/channels/${targetChannelId}/messages`, {
             content: `**${displayName}:** ${finalContent}`,
-            allowed_mentions: { parse: [] },
+            allowed_mentions: allowedMentionsPayload,
           });
         }
       });
@@ -882,6 +1036,9 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
   const st = loadBabelState();
   const guildCfg = getGuildBabelConfig(st, gid);
 
+  // Index speaker in live Guild Member Directory so `@Name` resolution is always fresh
+  indexMemberInDirectory(gid, msg.author, msg.member?.nick, msg.member?.roles, guildCfg.roleIdsByLang);
+
   // ==========================================================================
   // ROUTE 1: 17-LANGUAGE NATIVE GLOBAL CHAT MIRROR (1.2s Coalescer + Awake Gate)
   // ==========================================================================
@@ -891,12 +1048,36 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
     // Auto-record that this speaker is active in this language channel
     setUserBabelLocale(msg.author.id, sourceLangMeta.code);
 
+    // Check if the speaker clicked Discord's "Reply" button on a mirrored Webhook message or another user
+    let replyTargetAuthorId = null;
+    const refMsgId = msg.message_reference?.message_id;
+    if (refMsgId) {
+      const mappedWebhookAuthor = WEBHOOK_MSG_TO_AUTHOR.get(String(refMsgId));
+      if (mappedWebhookAuthor?.authorId) {
+        replyTargetAuthorId = mappedWebhookAuthor.authorId;
+      } else if (msg.referenced_message?.author) {
+        if (!msg.referenced_message.webhook_id && !msg.referenced_message.author.bot) {
+          replyTargetAuthorId = String(msg.referenced_message.author.id);
+        } else if (msg.referenced_message.author.username) {
+          // Fallback: resolve Webhook's cloned display name against Guild Member Directory
+          const dir = GUILD_MEMBER_DIRECTORY.get(gid);
+          const cleanWhName = String(msg.referenced_message.author.username).trim().toLowerCase();
+          if (dir?.has(cleanWhName)) {
+            replyTargetAuthorId = dir.get(cleanWhName);
+          }
+        }
+      }
+    }
+
     const bufferKey = `${msg.channel_id}_${msg.author.id}`;
     const existing = COALESCE_BUFFERS.get(bufferKey);
     if (existing) {
       clearTimeout(existing.timer);
       if (rawContent) existing.lines.push(rawContent);
       if (attachmentUrls.length > 0) existing.attachmentUrls.push(...attachmentUrls);
+      if (replyTargetAuthorId && !existing.replyTargetAuthorId) {
+        existing.replyTargetAuthorId = replyTargetAuthorId;
+      }
       existing.timer = setTimeout(() => {
         flushCoalescedBabelBatch(discordApi, bufferKey).catch(() => {});
       }, COALESCE_WINDOW_MS);
@@ -906,12 +1087,14 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
       }, COALESCE_WINDOW_MS);
       COALESCE_BUFFERS.set(bufferKey, {
         guildId: gid,
+        authorId: String(msg.author.id),
         sourceLangMeta,
         displayName,
         avatarUrl,
         lines: rawContent ? [rawContent] : [],
         attachmentUrls: [...attachmentUrls],
         channelId: msg.channel_id,
+        replyTargetAuthorId,
         timer,
       });
     }
@@ -1032,4 +1215,71 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
   }
 
   return false;
+}
+
+/**
+ * `/ping @user [message]` Slash Command Handler:
+ * Because Discord's normal `@` chat autocomplete only shows members who can view the current channel,
+ * `/ping` uses a Slash Command `USER` picker (which autocompletes ALL members in the entire server across
+ * all 17 languages!), posts the speaker's message into their current room, and mirrors + force-pings the
+ * target governor in their native language room!
+ */
+export async function handleBabelCrossPingCommand({
+  discordApi,
+  guildId,
+  channelId,
+  author,
+  member,
+  targetUserId,
+  messageText,
+}) {
+  const gid = String(guildId || BABEL_EXCLUSIVE_GUILD_ID);
+  if (!SYNCED_GUILDS.has(gid)) {
+    await syncBabelGuildTopology(discordApi, gid);
+  }
+
+  const displayName =
+    member?.nick || author?.global_name || author?.username || 'Governor';
+  const avatarUrl = author?.avatar
+    ? `https://cdn.discordapp.com/avatars/${author.id}/${author.avatar}.png?size=128`
+    : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(author?.id || '0') >> 22n) % 6}.png`;
+
+  const cleanMsg = String(messageText || '').trim();
+  const fullLine = `<@${targetUserId}> ${cleanMsg}`.trim();
+
+  // 1. Post the speaker's message into their own current room via Webhook so it looks native
+  const wh = await getOrCreateChannelWebhook(discordApi, channelId);
+  if (wh?.id && wh?.token) {
+    await fetch(`https://discord.com/api/v10/webhooks/${wh.id}/${wh.token}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'ValheonHermesArchitect/3.0',
+      },
+      body: JSON.stringify({
+        username: displayName.slice(0, 80),
+        avatar_url: avatarUrl,
+        content: fullLine.slice(0, 1990),
+        allowed_mentions: { parse: [], users: [String(targetUserId)] },
+      }),
+    }).catch(() => {});
+  }
+
+  // 2. Trigger the 17-Language Omni-Mirror so the target user gets pinged in their native language room
+  await handleBabelMirrorMessage(discordApi, {
+    guild_id: gid,
+    channel_id: channelId,
+    author,
+    member,
+    content: fullLine,
+    attachments: [],
+  });
+
+  const targetLangCode = getUserBabelLocale(targetUserId);
+  const targetLangMeta = LANG_BY_CODE.get(targetLangCode) || LANG_BY_CODE.get('en');
+  return {
+    ok: true,
+    targetLangLabel: targetLangMeta.buttonLabel,
+    targetChannelName: targetLangMeta.channelName,
+  };
 }

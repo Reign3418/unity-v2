@@ -64,6 +64,7 @@ import {
   handleBabelLanguageSelect,
   handleBabelFounderAllLanguages,
   handleBabelMirrorMessage,
+  handleBabelCrossPingCommand,
 } from './babelMirrorEngine.js';
 
 const execFileAsync = promisify(execFile);
@@ -1022,6 +1023,24 @@ async function registerSlashCommands(targetGuildIdOnly = null) {
           type: 3,
           name: 'topic',
           description: 'Commander name or strategy topic (e.g. Zhuge Liang, Speedups, Sunset Canyon, Equipment)',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'ping',
+      description: '🔔 Cross-Language Tag & Ping ANY Governor across all 17 languages (Full Server Autocomplete)',
+      options: [
+        {
+          type: 6, // USER (Autocompletes ALL server members regardless of channel language lock!)
+          name: 'governor',
+          description: 'Select any Governor in the server (works across all 17 language rooms)',
+          required: true,
+        },
+        {
+          type: 3, // STRING
+          name: 'message',
+          description: 'Message to translate & deliver with a live @ping in their native language room',
           required: true,
         },
       ],
@@ -5119,6 +5138,25 @@ async function handleInteraction(ix) {
     return editOriginal({ embeds: [embed] });
   }
 
+  // Top-level /ping <governor> <message> Cross-Language Ping Slash Command
+  if (ix.type === 2 && ix.data?.name === 'ping') {
+    await reply({ type: 5, data: { flags: 64 } });
+    const targetUserId = ix.data.options?.find((o) => o.name === 'governor')?.value;
+    const messageText = ix.data.options?.find((o) => o.name === 'message')?.value || '';
+    const res = await handleBabelCrossPingCommand({
+      discordApi,
+      guildId,
+      channelId,
+      author: user,
+      member: ix.member,
+      targetUserId,
+      messageText,
+    });
+    return editOriginal({
+      content: `🔔 **Cross-Language Ping Delivered!** Tagged <@${targetUserId}> in **${res.targetLangLabel}** (\`#${res.targetChannelName}\`) and mirrored across active rooms.`,
+    });
+  }
+
   if (ix.type === 2 && ix.data?.name === 'hermes') {
     const sub = ix.data.options?.[0];
     if (!sub) return;
@@ -5565,6 +5603,8 @@ function connectGateway() {
               ...d,
               content: fullMsg?.content ?? d.content ?? '',
               attachments: fullMsg?.attachments ?? d.attachments ?? [],
+              message_reference: fullMsg?.message_reference ?? d.message_reference ?? null,
+              referenced_message: fullMsg?.referenced_message ?? d.referenced_message ?? null,
             });
           }
 
