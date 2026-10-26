@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 export const maxDuration = 300;
 
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import { getFeatureGates } from "@/lib/awsDynamo";
 
 // Store a tiny memory cache so DashboardLayout mounting globally across active sessions
