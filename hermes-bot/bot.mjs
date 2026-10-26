@@ -2324,10 +2324,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'kingdom_id',
-                  label: '2. Kingdom Number (e.g. 4194 or 4205)',
+                  label: '2. Kingdom Number (Optional)',
                   style: 1,
-                  value: '4194',
-                  required: true,
+                  placeholder: 'Optional: e.g. 3155 (Leave blank for Generic Kingdom)',
+                  required: false,
                 },
               ],
             },
@@ -2337,10 +2337,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'kingdom_title',
-                  label: '3. Kingdom Banner Title',
+                  label: '3. Kingdom Banner Title (Optional)',
                   style: 1,
-                  value: 'IMPERIUM VANGUARD',
-                  required: true,
+                  placeholder: 'Optional: e.g. IMPERIUM VANGUARD (Leave blank for default)',
+                  required: false,
                 },
               ],
             },
@@ -2350,10 +2350,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'alliances_list',
-                  label: '4. Top Alliance Tags (Comma-Separated)',
+                  label: '4. Top Alliance Tags (Optional)',
                   style: 1,
-                  value: 'VHN1, VHN2, VHN3, VHN4',
-                  required: true,
+                  placeholder: 'Optional: e.g. E~97, E~98 (Leave blank for Generic Alliance 1-4)',
+                  required: false,
                 },
               ],
             },
@@ -2388,10 +2388,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'season_title',
-                  label: '2. KvK Season / Bracket Name',
+                  label: '2. KvK Season / Bracket Name (Optional)',
                   style: 1,
-                  value: 'HEROIC ANTHEM // LOST KINGDOM SUMMIT',
-                  required: true,
+                  placeholder: 'Optional: e.g. HEROIC ANTHEM // LOST KINGDOM SUMMIT',
+                  required: false,
                 },
               ],
             },
@@ -2401,10 +2401,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'matched_kingdoms',
-                  label: '3. Matched Kingdom Numbers (Comma-Separated)',
+                  label: '3. Matched Kingdom Numbers (Optional)',
                   style: 1,
-                  value: '4190, 4191, 4192, 4193, 4194, 4195, 4196, 4197',
-                  required: true,
+                  placeholder: 'Optional: e.g. 3150, 3151, 3155 (Leave blank for Generic KD 1-8)',
+                  required: false,
                 },
               ],
             },
@@ -2439,10 +2439,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'camp_title',
-                  label: '2. Allied Camp / Coalition Name',
+                  label: '2. Allied Camp / Coalition Name (Optional)',
                   style: 1,
-                  value: 'CAMP FIRE + EARTH ALLIED WAR COMMAND',
-                  required: true,
+                  placeholder: 'Optional: e.g. CAMP FIRE + EARTH ALLIED WAR COMMAND',
+                  required: false,
                 },
               ],
             },
@@ -2452,10 +2452,10 @@ async function handleInteraction(ix) {
                 {
                   type: 4,
                   custom_id: 'allied_kingdoms',
-                  label: '3. Allied Kingdom Numbers (Only Your Allies!)',
+                  label: '3. Allied Kingdom Numbers (Optional)',
                   style: 1,
-                  value: '4194, 4195, 4196, 4197',
-                  required: true,
+                  placeholder: 'Optional: e.g. 3155, 3156 (Leave blank for Allied Kingdom 1-4)',
+                  required: false,
                 },
               ],
             },
@@ -3268,13 +3268,14 @@ async function handleInteraction(ix) {
             r.name.toUpperCase().includes(`#${rawTag.toUpperCase()}`)
         );
 
-        // If Officer clicked "Approve & Add [TAG] as Server Alliance Role" (or if default VHN1..4 placeholder exists), adopt or create it!
+        // If Officer clicked "Approve & Add [TAG] as Server Alliance Role" (or if default ALLY-1..4 / VHN1..4 placeholder exists), adopt or create it!
         if (!allianceRole && isAdoptAlliance && rawTag && rawTag !== 'MANUAL' && rawTag !== 'ALLY') {
           const upperTag = rawTag.toUpperCase();
-          const placeholderRole = roles.find((r) => /\[VHN[1-4]\]/i.test(r.name));
+          const placeholderRole = roles.find((r) => /\[(?:VHN|ALLY-?)[1-4]\]/i.test(r.name));
           if (placeholderRole) {
-            const oldTagMatch = placeholderRole.name.match(/\[(VHN[1-4])\]/i)?.[1];
-            const newRoleName = placeholderRole.name.replace(/\[VHN[1-4]\]/i, `[${upperTag}]`);
+            const oldTagMatch = placeholderRole.name.match(/\[((?:VHN|ALLY-?)[1-4])\]/i)?.[1];
+            const oldIdxMatch = oldTagMatch?.match(/([1-4])$/)?.[1];
+            const newRoleName = `🛡️ [${upperTag}] Vanguard`;
             const updatedRole = await discordApi('PATCH', `/guilds/${guildId}/roles/${placeholderRole.id}`, {
               name: newRoleName,
             }).catch(() => null);
@@ -3284,9 +3285,13 @@ async function handleInteraction(ix) {
               const oldSlug = oldTagMatch.toLowerCase();
               const newSlug = upperTag.toLowerCase().replace(/[^a-z0-9-]/g, '');
               for (const ch of guildChans) {
-                if (ch.name && ch.name.toLowerCase().includes(oldSlug)) {
+                if (
+                  ch.name &&
+                  (ch.name.toLowerCase().includes(oldSlug) ||
+                    (oldIdxMatch && ch.name.toLowerCase().includes(`alliance-${oldIdxMatch}`)))
+                ) {
                   await discordApi('PATCH', `/channels/${ch.id}`, {
-                    name: ch.name.replace(new RegExp(oldTagMatch, 'ig'), newSlug || upperTag),
+                    name: `🛡️-${newSlug || 'alliance'}-war-chat`,
                   }).catch(() => null);
                 }
               }
@@ -3952,13 +3957,18 @@ async function handleInteraction(ix) {
 
     const comps = ix.data.components || [];
     const targetGuildId = (comps[0]?.components?.[0]?.value || '').trim();
-    const kdId = (comps[1]?.components?.[0]?.value || '4194').trim();
-    const kdTitle = (comps[2]?.components?.[0]?.value || `SOVEREIGN KINGDOM #${kdId}`).trim();
-    const alliancesRaw = comps[3]?.components?.[0]?.value || 'VHN1, VHN2, VHN3, VHN4';
+    const kdId = (comps[1]?.components?.[0]?.value || '').trim();
+    const kdTitle = (
+      comps[2]?.components?.[0]?.value ||
+      (kdId ? `SOVEREIGN KINGDOM #${kdId}` : 'SOVEREIGN KINGDOM CITADEL')
+    ).trim();
+    const alliancesRaw = (comps[3]?.components?.[0]?.value || '').trim();
     const alliances = alliancesRaw
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
+      ? alliancesRaw
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean)
+      : undefined;
 
     const deployOptions = {
       kingdomId: kdId,
@@ -4031,11 +4041,11 @@ async function handleInteraction(ix) {
       await syncBabelGuildTopology(discordApi, targetGuildId);
 
       await relaySupportEventToValheonHq({
-        title: `🏰 NEW 1-CLICK KINGDOM SERVER DEPLOYED // KD #${kdId} (${result.guildName})`,
+        title: `🏰 NEW 1-CLICK KINGDOM SERVER DEPLOYED // ${kdId ? `KD #${kdId}` : 'KINGDOM'} (${result.guildName})`,
         description:
           `• **Customer:** <@${user.id}> (\`${user.username}\`)\n` +
           `• **Server:** **${result.guildName}** (\`${targetGuildId}\`)\n` +
-          `• **Blueprint:** \`KINGDOM_WAR_SERVER ($39)\` • Alliances: \`${alliances.join(', ')}\`\n` +
+          `• **Blueprint:** \`KINGDOM_WAR_SERVER ($39)\` • Alliances: \`${(alliances || ['ALLY-1..4']).join(', ')}\`\n` +
           `• **Items Provisioned:** \`${result.log.length}\` roles, channels & cross-sell consoles`,
         color: 0x10b981,
         targetGuildId,
@@ -4045,10 +4055,10 @@ async function handleInteraction(ix) {
       return editOriginal({
         embeds: [
           {
-            title: `🎉 1-CLICK KINGDOM SERVER DEPLOYED // KD #${kdId} (${result.guildName})`,
+            title: `🎉 1-CLICK KINGDOM SERVER DEPLOYED // ${kdId ? `KD #${kdId}` : 'KINGDOM'} (${result.guildName})`,
             description:
               `**🪽 HERMES** just finished provisioning **${result.guildName}** (\`${targetGuildId}\`)!\n\n` +
-              `• **Roles Built:** Crowned Sovereign, High Council R4, Rally Captains, Sworn Defenders & [${alliances.join(' / ')}] Vanguard\n` +
+              `• **Roles Built:** Crowned Sovereign, High Council R4, Rally Captains, Sworn Defenders & [${(alliances || ['ALLY-1', 'ALLY-2', 'ALLY-3', 'ALLY-4']).join(' / ')}] Sectors\n` +
               `• **Categories & Channels:** ${result.log.length} items verified & pinned (including **\`#⚔️-kvk-diplo-and-coalition-1click\`** & **\`#🛟-valheon-support-and-relaunch\`**)\n` +
               `• 🔥 **24-Hour Legendary Upgrade Window:** Upgrade to **\`🟠 LEGENDARY HERMES\`** for just **\`+$15 One-Time\`** before <t:${deployTier.offerExpiresUnix}:F> (<t:${deployTier.offerExpiresUnix}:R>)!\n` +
               `• 🔥 **72-Hour KvK Diplo + Coalition Bundle (\`$15\` for Both):** Grab both your **🕊️ KvK Diplomacy Server (\`$9\`)** and **⚔️ Allied Coalition War Server (\`$9\`)** for just **\`$15\` total** before <t:${deployTier.kvkBundleExpiresUnix}:R>!\n` +
@@ -4095,15 +4105,16 @@ async function handleInteraction(ix) {
     const seasonTitle = (
       comps[1]?.components?.[0]?.value || 'LOST KINGDOM DIPLOMACY SUMMIT'
     ).trim();
-    const kingdomsRaw =
-      comps[2]?.components?.[0]?.value || '4190, 4191, 4192, 4193, 4194, 4195, 4196, 4197';
+    const kingdomsRaw = (comps[2]?.components?.[0]?.value || '').trim();
     const kingdoms = kingdomsRaw
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
+      ? kingdomsRaw
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean)
+      : undefined;
 
     const deployOptions = {
-      kingdomId: kingdoms[0] || '4194',
+      kingdomId: kingdoms?.[0] || '',
       kingdomTitle: seasonTitle,
       alliances: kingdoms,
     };
@@ -4173,7 +4184,7 @@ async function handleInteraction(ix) {
         description:
           `• **Customer:** <@${user.id}> (\`${user.username}\`)\n` +
           `• **Server:** **${result.guildName}** (\`${targetGuildId}\`)\n` +
-          `• **Blueprint:** \`KVK_DIPLO_SERVER ($9 / $15 Bundle)\` • Kingdoms: \`${kingdoms.join(', ')}\`\n` +
+          `• **Blueprint:** \`KVK_DIPLO_SERVER ($9 / $15 Bundle)\` • Kingdoms: \`${(kingdoms || ['KD-1..8']).join(', ')}\`\n` +
           `• **Items Provisioned:** \`${result.log.length}\` roles, channels & Trojan Horse store consoles`,
         color: 0x38bdf8,
         targetGuildId,
@@ -4186,7 +4197,7 @@ async function handleInteraction(ix) {
             title: `🕊️ 1-CLICK KVK DIPLOMACY SUMMIT DEPLOYED // ${result.guildName}`,
             description:
               `**🪽 HERMES** just built your **8-Kingdom KvK Diplomacy Server** (\`${targetGuildId}\`)!\n\n` +
-              `• **Matched Kingdom Roles Created:** ${kingdoms.map((k) => `\`#${k}\``).join(' • ')} + \`@Crowned King\` & \`@Accredited Diplomat\`\n` +
+              `• **Matched Kingdom Roles Created:** ${(kingdoms || ['KD-1', 'KD-2', 'KD-3', 'KD-4', 'KD-5', 'KD-6', 'KD-7', 'KD-8']).map((k) => `\`${k}\``).join(' • ')} + \`@Crowned King\` & \`@Accredited Diplomat\`\n` +
               `• **Summit Channels & Consoles:** \`${result.log.length}\` items verified (including **1v1 Bilateral Embassy Maker**, **17-Language Translator**, **\`#🚀-get-this-for-your-kingdom\`** & **\`#🛟-valheon-support-and-relaunch\`**)\n` +
               `• 🔥 **72-Hour Bundle Active (\`$15\` for Both):** Add your private, spy-proof **⚔️ Allied Coalition War Server** before <t:${deployTier.kvkBundleExpiresUnix}:R> to get **both servers for \`$15\` total**!\n` +
               `• 🛟 **Lifetime Free Repair Guarantee:** Customize channel wordings freely — if anything breaks, restore it in 1 click inside \`#🛟-valheon-support-and-relaunch\` for **\`$0.00\`**!`,
@@ -4232,14 +4243,16 @@ async function handleInteraction(ix) {
     const campTitle = (
       comps[1]?.components?.[0]?.value || 'ALLIED COALITION WAR COMMAND'
     ).trim();
-    const kingdomsRaw = comps[2]?.components?.[0]?.value || '4194, 4195, 4196, 4197';
+    const kingdomsRaw = (comps[2]?.components?.[0]?.value || '').trim();
     const kingdoms = kingdomsRaw
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
+      ? kingdomsRaw
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean)
+      : undefined;
 
     const deployOptions = {
-      kingdomId: kingdoms[0] || '4194',
+      kingdomId: kingdoms?.[0] || '',
       kingdomTitle: campTitle,
       alliances: kingdoms,
     };
@@ -4309,7 +4322,7 @@ async function handleInteraction(ix) {
         description:
           `• **Customer:** <@${user.id}> (\`${user.username}\`)\n` +
           `• **Server:** **${result.guildName}** (\`${targetGuildId}\`)\n` +
-          `• **Blueprint:** \`KVK_COALITION_SERVER ($9 / $15 Bundle)\` • Allied Kingdoms: \`${kingdoms.join(', ')}\`\n` +
+          `• **Blueprint:** \`KVK_COALITION_SERVER ($9 / $15 Bundle)\` • Allied Kingdoms: \`${(kingdoms || ['ALLY-1..4']).join(', ')}\`\n` +
           `• **Items Provisioned:** \`${result.log.length}\` roles, channels & Trojan Horse store consoles`,
         color: 0xf43f5e,
         targetGuildId,
@@ -4322,7 +4335,7 @@ async function handleInteraction(ix) {
             title: `⚔️ 1-CLICK ALLIED COALITION WAR SERVER DEPLOYED // ${result.guildName}`,
             description:
               `**🪽 HERMES** just built your spy-proof **Allied Coalition War Server** (\`${targetGuildId}\`)!\n\n` +
-              `• **Allied Kingdom Roles Created:** ${kingdoms.map((k) => `\`Allied KD #${k}\``).join(' • ')} + \`@Coalition Warlord\` & \`@Rally Captain\`\n` +
+              `• **Allied Kingdom Roles Created:** ${(kingdoms || ['ALLY-1', 'ALLY-2', 'ALLY-3', 'ALLY-4']).map((k) => `\`${k}\``).join(' • ')} + \`@Coalition Warlord\` & \`@Rally Captain\`\n` +
               `• **War Channels & Consoles:** \`${result.log.length}\` items verified (Joint Rally/Garrison Calls, 17-Language Canonical Glossary Bridge, UTC Pass Timers, Voice Rollcall, Shift-Handoff Coverage, **\`#🚀-get-this-for-your-kingdom\`** & **\`#🛟-valheon-support-and-relaunch\`**)\n` +
               `• 🔥 **72-Hour Bundle Active (\`$15\` for Both):** Need the public **🕊️ 8-Kingdom KvK Diplomacy Server** too? Deploy within <t:${deployTier.kvkBundleExpiresUnix}:R> for the **\`$15\` Bundle**!\n` +
               `• 🛟 **Lifetime Free Repair Guarantee:** Customize channel wordings freely — restore any broken channel in 1 click inside \`#🛟-valheon-support-and-relaunch\` for **\`$0.00\`**!`,
@@ -4484,9 +4497,8 @@ async function handleInteraction(ix) {
         ? bpOverride
         : savedStatus.blueprintType || 'KINGDOM_WAR_SERVER';
     const bpOpts = savedStatus.deployOptions || {
-      kingdomId: '4194',
-      kingdomTitle: 'SOVEREIGN KINGDOM #4194',
-      alliances: ['VHN1', 'VHN2', 'VHN3', 'VHN4'],
+      kingdomId: '',
+      kingdomTitle: 'SOVEREIGN KINGDOM CITADEL',
     };
 
     try {
@@ -5341,7 +5353,7 @@ async function handleInteraction(ix) {
     if (sub.name === 'architect') {
       await reply({ type: 5, data: { flags: 64 } });
       const bp = sub.options?.find((o) => o.name === 'blueprint')?.value || 'KINGDOM_WAR_SERVER';
-      const kdRaw = sub.options?.find((o) => o.name === 'kingdom_id')?.value || '4194';
+      const kdRaw = (sub.options?.find((o) => o.name === 'kingdom_id')?.value || '').trim();
       const alliancesRaw = (sub.options?.find((o) => o.name === 'alliances')?.value || '').trim();
       const remoteGuildOpt = (
         sub.options?.find((o) => o.name === 'target_guild_id')?.value || guildId
@@ -5357,9 +5369,11 @@ async function handleInteraction(ix) {
       }
 
       const kdList = kdRaw
-        .split(',')
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean);
+        ? kdRaw
+            .split(',')
+            .map((s) => s.trim().toUpperCase())
+            .filter(Boolean)
+        : [];
 
       const customAlliances = alliancesRaw
         ? alliancesRaw
@@ -5450,7 +5464,7 @@ async function handleInteraction(ix) {
       }
 
       const deployOpts = {
-        kingdomId: kdList[0] || '4194',
+        kingdomId: kdList[0] || '',
         alliances: customAlliances,
         keepExistingStarterChannels: bp === 'OMNI_LANGUAGE_MATRIX_ONLY',
         includeTrapChannel: includeTrapOpt,
@@ -5822,17 +5836,18 @@ function connectGateway() {
 
                   // SMART DEFAULT PLACEHOLDER ADOPTION:
                   // If the server was deployed via /hermes architect without custom alliance tags (so it still has
-                  // uncustomized [VHN1]..[VHN4] template roles) and the player's screenshot has a real [TAG] (e.g. [E~97]),
-                  // automatically adopt their [TAG] into the first available [VHN1..4] slot so they are auto-approved!
+                  // uncustomized [ALLY-1]..[ALLY-4] or [VHN1]..[VHN4] template roles) and the player's screenshot has a real [TAG] (e.g. [E~97]),
+                  // automatically adopt their [TAG] into the first available slot so they are auto-approved!
                   const hasOnlyDefaultTemplateAlliances =
                     serverAllianceRoles.length === 0 ||
-                    serverAllianceRoles.every((r) => /\[VHN[1-4]\]/i.test(r.name));
+                    serverAllianceRoles.every((r) => /\[(?:VHN|ALLY-?)[1-4]\]/i.test(r.name));
 
-                  if (!matchedAllianceRole && upperTag && !/^VHN[1-4]$/i.test(upperTag)) {
-                    const defaultPlaceholderRole = serverAllianceRoles.find((r) => /\[VHN[1-4]\]/i.test(r.name));
+                  if (!matchedAllianceRole && upperTag && !/^(?:VHN|ALLY-?)[1-4]$/i.test(upperTag)) {
+                    const defaultPlaceholderRole = serverAllianceRoles.find((r) => /\[(?:VHN|ALLY-?)[1-4]\]/i.test(r.name));
                     if (defaultPlaceholderRole) {
-                      const oldTagMatch = defaultPlaceholderRole.name.match(/\[(VHN[1-4])\]/i)?.[1];
-                      const newRoleName = defaultPlaceholderRole.name.replace(/\[VHN[1-4]\]/i, `[${upperTag}]`);
+                      const oldTagMatch = defaultPlaceholderRole.name.match(/\[((?:VHN|ALLY-?)[1-4])\]/i)?.[1];
+                      const oldIdxMatch = oldTagMatch?.match(/([1-4])$/)?.[1];
+                      const newRoleName = `🛡️ [${upperTag}] Vanguard`;
                       const updatedRole = await discordApi(
                         'PATCH',
                         `/guilds/${msgGuildId}/roles/${defaultPlaceholderRole.id}`,
@@ -5845,9 +5860,13 @@ function connectGateway() {
                         const oldSlug = oldTagMatch.toLowerCase();
                         const newSlug = upperTag.toLowerCase().replace(/[^a-z0-9-]/g, '');
                         for (const ch of guildChans) {
-                          if (ch.name && ch.name.toLowerCase().includes(oldSlug)) {
+                          if (
+                            ch.name &&
+                            (ch.name.toLowerCase().includes(oldSlug) ||
+                              (oldIdxMatch && ch.name.toLowerCase().includes(`alliance-${oldIdxMatch}`)))
+                          ) {
                             await discordApi('PATCH', `/channels/${ch.id}`, {
-                              name: ch.name.replace(new RegExp(oldTagMatch, 'ig'), newSlug || upperTag),
+                              name: `🛡️-${newSlug || 'alliance'}-war-chat`,
                             }).catch(() => null);
                           }
                         }

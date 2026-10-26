@@ -709,24 +709,30 @@ export function buildValheonHqBlueprint(customOptions = {}) {
  * Generates a Turnkey 1-Click Kingdom War Server Blueprint for any Kingdom
  */
 export function buildKingdomWarBlueprint(customOptions = {}) {
-  const kdId = String(customOptions.kingdomId || '4194').replace(/[^0-9]/g, '') || '4194';
-  const kdTitle = customOptions.kingdomTitle || `SOVEREIGN KINGDOM #${kdId}`;
+  const rawKd = String(customOptions.kingdomId || '').replace(/[^0-9A-Za-z]/g, '').trim();
+  const hasKd = Boolean(rawKd);
+  const kdId = hasKd ? rawKd : 'KINGDOM';
+  const kdDisplay = hasKd ? `Kingdom #${rawKd}` : 'our Kingdom';
+  const kdUpper = hasKd ? `KINGDOM #${rawKd}` : 'KINGDOM';
+  const kdShort = hasKd ? `KD #${rawKd}` : 'KINGDOM';
+  const kdTitle = customOptions.kingdomTitle || (hasKd ? `SOVEREIGN KINGDOM #${rawKd}` : 'SOVEREIGN KINGDOM CITADEL');
   const includeTrapChannel = Boolean(customOptions.includeTrapChannel);
-  const alliances = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0
+  const hasCustomAlliances = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0;
+  const alliances = hasCustomAlliances
     ? customOptions.alliances.slice(0, 6)
-    : ['VHN1', 'VHN2', 'VHN3', 'VHN4'];
+    : ['ALLY-1', 'ALLY-2', 'ALLY-3', 'ALLY-4'];
 
   return {
     id: 'KINGDOM_WAR_SERVER',
     kingdomId: kdId,
-    name: `🏰 KD #${kdId} // ${kdTitle}`,
-    subtitle: `Turnkey Kingdom War Server wired to Valheon Telemetry (Valheon Sovereign Roster KD#${kdId})`,
-    badge: `TURNKEY TENANT KD #${kdId}`,
+    name: `🏰 ${kdShort} // ${kdTitle}`,
+    subtitle: `Turnkey Kingdom War Server wired to Valheon Telemetry`,
+    badge: `TURNKEY ${kdShort}`,
     accentColor: '#10b981',
     roles: [
       {
         key: 'king',
-        name: `👑 Crowned Sovereign of #${kdId} (R5)`,
+        name: hasKd ? `👑 Crowned Sovereign of #${rawKd} (R5)` : '👑 Crowned Sovereign (Kingdom R5)',
         color: 0xf59e0b,
         hoist: true,
         mentionable: true,
@@ -774,15 +780,15 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
       },
       {
         key: 'citizen',
-        name: `🛡️ Sworn Defender of #${kdId}`,
+        name: hasKd ? `🛡️ Sworn Defender of #${rawKd}` : '🛡️ Sworn Defender (Kingdom Citizen)',
         color: 0x10b981,
         hoist: true,
         mentionable: false,
         permissions: 'STANDARD',
       },
-      ...alliances.map((tag) => ({
+      ...alliances.map((tag, idx) => ({
         key: `alliance_${tag.toLowerCase()}`,
-        name: `🛡️ [${tag}] Vanguard`,
+        name: hasCustomAlliances ? `🛡️ [${tag}] Vanguard` : `🛡️ [${tag}] Alliance ${idx + 1}`,
         color: 0xeab308,
         hoist: false,
         mentionable: true,
@@ -899,7 +905,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
     categories: [
       {
         key: 'kd_gateway',
-        name: `🏰 KINGDOM #${kdId} CITADEL GATEWAY`,
+        name: `🏰 ${kdUpper} CITADEL GATEWAY`,
         access: 'PUBLIC_READ_ONLY',
         channels: [
           ...(includeTrapChannel
@@ -917,14 +923,14 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '👋-welcome-start-here',
             type: CHANNEL_TYPES.TEXT,
             access: 'PUBLIC_READ_ONLY',
-            topic: `Welcome to Kingdom #${kdId}! Follow the 4 Steps below in order: 1) Pick Language -> 2) Translate & Accept Rules -> 3) Upload Governor Screenshot -> 4) Pick Active Roles.`,
+            topic: `Welcome to ${kdDisplay}! Follow the 4 Steps below in order: 1) Pick Language -> 2) Translate & Accept Rules -> 3) Upload Governor Screenshot -> 4) Pick Active Roles.`,
             pinKey: 'WELCOME_START_HERE_CONSOLE',
           },
           {
             name: '📜-kingdom-laws-and-charter',
             type: CHANNEL_TYPES.TEXT,
             access: 'PUBLIC_READ_ONLY',
-            topic: `Official Kingdom #${kdId} Laws, MGE Rules, Farm/Tile Regulations, and DKP Requirements.`,
+            topic: `Official Kingdom Laws, MGE Rules, Farm/Tile Regulations, and DKP Requirements.`,
             pinKey: 'KD_CHARTER_EMBED',
           },
           {
@@ -944,7 +950,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '📢-kings-decrees',
             type: CHANNEL_TYPES.ANNOUNCEMENT,
             access: 'CITIZENS_READ_ONLY',
-            topic: `Official announcements and KvK mobilization orders from the High Council of Kingdom #${kdId}.`,
+            topic: `Official announcements and KvK mobilization orders from the Kingdom High Council.`,
           },
           {
             name: '🌐-official-rok-intel-bridge',
@@ -979,7 +985,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '🎫-kingdom-ticket-desk',
             type: CHANNEL_TYPES.TEXT,
             access: 'PUBLIC_READ_ONLY',
-            topic: `Open a private ticket with Kingdom #${kdId} High Council for Migration, MGE/HoH Applications, or Diplomacy.`,
+            topic: `Open a private ticket with Kingdom High Council for Migration, MGE/HoH Applications, or Diplomacy.`,
             pinKey: 'TICKET_CONSOLE_KINGDOM',
           },
           {
@@ -1027,7 +1033,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '📊-live-dkp-leaderboard',
             type: CHANNEL_TYPES.TEXT,
             access: 'CITIZENS_READ_ONLY',
-            topic: `Live Kingdom #${kdId} DKP Rankings, Pre-KvK Scores, and T4/T5 Kill/Dead deltas powered by Valheon.`,
+            topic: `Live Kingdom DKP Rankings, Pre-KvK Scores, and T4/T5 Kill/Dead deltas powered by Valheon.`,
             pinKey: 'KD_DKP_FEED',
           },
           {
@@ -1065,7 +1071,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '🍻-kingdom-tavern',
             type: CHANNEL_TYPES.TEXT,
             access: 'CITIZENS_ONLY',
-            topic: `Main social lounge for Kingdom #${kdId} citizens, allies, and guests.`,
+            topic: `Main social lounge for Kingdom citizens, allies, and guests.`,
           },
           {
             name: '🌐-17-language-global-chat',
@@ -1085,7 +1091,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '💀-roast-my-stats',
             type: CHANNEL_TYPES.TEXT,
             access: 'CITIZENS_ONLY',
-            topic: `Run /hermes roast to let the AI judge your Kingdom #${kdId} kill points vs. farm weight!`,
+            topic: `Run /hermes roast to let the AI judge your kill points vs. farm weight!`,
           },
           {
             name: '📚-valheon-field-guides',
@@ -1105,11 +1111,11 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
       },
       {
         key: 'kd_alliances',
-        name: `🛡️ ALLIANCE SECTORS (${alliances.join(' / ')})`,
+        name: hasCustomAlliances ? `🛡️ ALLIANCE SECTORS (${alliances.join(' / ')})` : '🛡️ ALLIANCE SECTORS',
         access: 'CITIZENS_ONLY',
-        channels: alliances.flatMap((tag) => [
+        channels: alliances.flatMap((tag, idx) => [
           {
-            name: `🛡️-${tag.toLowerCase()}-war-chat`,
+            name: hasCustomAlliances ? `🛡️-${tag.toLowerCase()}-war-chat` : `🛡️-alliance-${idx + 1}-war-chat`,
             type: CHANNEL_TYPES.TEXT,
             access: 'ALLIANCE_ONLY',
             allianceRoleKey: `alliance_${tag.toLowerCase()}`,
@@ -1147,7 +1153,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             access: 'LEADERS_ONLY',
           },
           {
-            name: `🔊 KD #${kdId} Rally Voice #1`,
+            name: hasKd ? `🔊 KD #${rawKd} Rally Voice #1` : '🔊 Kingdom Rally Voice #1',
             type: CHANNEL_TYPES.VOICE,
             access: 'CITIZENS_ONLY',
           },
@@ -1343,16 +1349,17 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
  */
 export function buildKvkDiploBlueprint(customOptions = {}) {
   const seasonName = customOptions.kingdomTitle || customOptions.seasonName || 'LOST KINGDOM DIPLOMACY SUMMIT';
-  const rawKingdoms = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0
+  const hasCustomKingdoms = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0;
+  const rawKingdoms = hasCustomKingdoms
     ? customOptions.alliances
-    : ['4190', '4191', '4192', '4193', '4194', '4195', '4196', '4197'];
-  const kingdoms = rawKingdoms.slice(0, 12).map((k) => String(k).replace(/[^0-9A-Za-z]/g, '').toUpperCase() || '4194');
+    : ['KD-1', 'KD-2', 'KD-3', 'KD-4', 'KD-5', 'KD-6', 'KD-7', 'KD-8'];
+  const kingdoms = rawKingdoms.slice(0, 12).map((k) => String(k).replace(/[^0-9A-Za-z-]/g, '').toUpperCase() || 'KD-1');
 
   return {
     id: 'KVK_DIPLO_SERVER',
-    kingdomId: kingdoms[0] || '4194',
+    kingdomId: kingdoms[0] || 'KVK',
     name: `🕊️ KVK DIPLO // ${seasonName}`,
-    subtitle: `Turnkey 8-Kingdom Lost Kingdom Diplomacy & Treaty Summit (${kingdoms.map((k) => `#${k}`).join(' • ')})`,
+    subtitle: `Turnkey Lost Kingdom Diplomacy & Treaty Summit`,
     badge: `KVK DIPLOMACY ($9)`,
     accentColor: '#38bdf8',
     roles: [
@@ -1412,9 +1419,9 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
         mentionable: true,
         permissions: 'STANDARD',
       },
-      ...kingdoms.map((kd) => ({
+      ...kingdoms.map((kd, idx) => ({
         key: `kd_${kd.toLowerCase()}`,
-        name: `🏰 Kingdom #${kd}`,
+        name: hasCustomKingdoms ? `🏰 Kingdom #${kd}` : `🏰 Kingdom ${idx + 1}`,
         color: 0x06b6d4,
         hoist: false,
         mentionable: true,
@@ -1579,16 +1586,17 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
  */
 export function buildKvkCoalitionBlueprint(customOptions = {}) {
   const campName = customOptions.kingdomTitle || customOptions.campName || 'ALLIED COALITION WAR COMMAND';
-  const rawKingdoms = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0
+  const hasCustomKingdoms = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0;
+  const rawKingdoms = hasCustomKingdoms
     ? customOptions.alliances
-    : ['4194', '4195', '4196', '4197'];
-  const kingdoms = rawKingdoms.slice(0, 8).map((k) => String(k).replace(/[^0-9A-Za-z]/g, '').toUpperCase() || '4194');
+    : ['ALLY-1', 'ALLY-2', 'ALLY-3', 'ALLY-4'];
+  const kingdoms = rawKingdoms.slice(0, 8).map((k) => String(k).replace(/[^0-9A-Za-z-]/g, '').toUpperCase() || 'ALLY-1');
 
   return {
     id: 'KVK_COALITION_SERVER',
-    kingdomId: kingdoms[0] || '4194',
+    kingdomId: kingdoms[0] || 'COALITION',
     name: `⚔️ COALITION // ${campName}`,
-    subtitle: `Spy-Proof Allied Camp War Server (${kingdoms.map((k) => `KD #${k}`).join(' + ')})`,
+    subtitle: `Spy-Proof Allied Camp War Server`,
     badge: `ALLIED COALITION ($9)`,
     accentColor: '#f43f5e',
     roles: [
@@ -1624,9 +1632,9 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
         mentionable: true,
         permissions: 'STANDARD',
       },
-      ...kingdoms.map((kd) => ({
+      ...kingdoms.map((kd, idx) => ({
         key: `allied_kd_${kd.toLowerCase()}`,
-        name: `🛡️ Allied KD #${kd}`,
+        name: hasCustomKingdoms ? `🛡️ Allied KD #${kd}` : `🛡️ Allied Kingdom ${idx + 1}`,
         color: 0x10b981,
         hoist: true,
         mentionable: true,
