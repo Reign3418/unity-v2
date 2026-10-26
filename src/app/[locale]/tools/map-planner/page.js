@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import region8Data from "@/data/region8_nodes.json";
 import KingdomInteractiveMap from "@/components/analysis/kingdom/KingdomInteractiveMap";
+import KvkStoryAtlasPanel from "@/components/analysis/kingdom/KvkStoryAtlasPanel";
 
 // Default Preset for 5 Ideal Crystal Mines
 const DEFAULT_5_ALLIANCES = [
@@ -722,6 +723,16 @@ export default function KvKMapPlanner() {
             >
               KvK Region #8 Crystal Planner
             </button>
+            <button
+              onClick={() => setPlannerMode("SOC_ATLAS")}
+              className={`px-3 py-1 text-xs font-bold rounded transition-all ${
+                plannerMode === "SOC_ATLAS"
+                  ? "bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              🗺️ 13-Story SoC KvK Atlas (S4–S21)
+            </button>
           </div>
 
           {plannerMode === "REGION_8" && (
@@ -812,6 +823,10 @@ export default function KvKMapPlanner() {
       {plannerMode === "LIVE_KINGDOM" ? (
         <div className="p-4 md:p-6 flex-1 overflow-y-auto">
           <KingdomInteractiveMap targetKd={selectedKd} />
+        </div>
+      ) : plannerMode === "SOC_ATLAS" ? (
+        <div className="p-4 md:p-6 flex-1 overflow-y-auto">
+          <KvkStoryAtlasPanel />
         </div>
       ) : (
       /* Main Workspace Body */
