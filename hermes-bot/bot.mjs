@@ -4994,8 +4994,16 @@ async function handleInteraction(ix) {
         .map((s) => s.trim().toUpperCase())
         .filter(Boolean);
 
-      // ALWAYS pop the Stripe Checkout Paywall first on /hermes architect (with Principal Override buttons below for Lauren!)
-      {
+      const targetStatus = getGuildTierStatus(remoteGuildOpt);
+      const isPrincipal = VALHEON_FOUNDER_IDS.has(String(user.id));
+      const hasPaidLicense =
+        isPrincipal ||
+        String(remoteGuildOpt) === String(GUILD_ID) ||
+        Boolean(targetStatus?.licensed && targetStatus?.paidSessionId);
+
+      // Strict Stripe Checkout Paywall for all non-Principal users on unlicensed servers!
+      // (Lauren 184977944433786880 has Silent Principal Auto-Bypass -> installs immediately for $0.00 and is done!)
+      if (!hasPaidLicense) {
         const planKey =
           bp === 'KVK_DIPLO_SERVER'
             ? 'KVK_DIPLO_9'
@@ -5029,26 +5037,6 @@ async function handleInteraction(ix) {
           },
         ];
 
-        if (VALHEON_FOUNDER_IDS.has(String(user.id))) {
-          components.push({
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: 1, // PRIMARY
-                label: `👑 Principal Override: Install ${bp} Free ($0)`,
-                custom_id: `hermes_principal_force_arch|${bp}|${kdList[0] || '4194'}|${remoteGuildOpt}`,
-              },
-              {
-                type: 2,
-                style: 3, // SUCCESS
-                label: '🪽 Install 17-Lang Omni-Matrix Only ($0)',
-                custom_id: `hermes_principal_force_arch|OMNI_LANGUAGE_MATRIX_ONLY|${kdList[0] || '4194'}|${remoteGuildOpt}`,
-              },
-            ],
-          });
-        }
-
         return editOriginal({
           embeds: [
             {
@@ -5065,13 +5053,49 @@ async function handleInteraction(ix) {
                 `** to unlock and build your server in 18 seconds!`,
               color: 0xf59e0b,
               footer: {
-                text: 'VALHEON STRIPE PAYWALL // 100% ACTIVE • PRINCIPAL OVERRIDE AVAILABLE BELOW',
+                text: 'VALHEON STRIPE PAYWALL // 1 LICENSE = 1 DISCORD SERVER ID',
               },
             },
           ],
           components,
         });
       }
+
+      const authCheck = await verifyServerSovereignAuthorization(
+        ix,
+        remoteGuildOpt,
+        targetStatus
+      );
+      if (!authCheck.allowed) {
+        return editOriginal({
+          content:
+            `🛡️ **Sovereign Purchase Protection // Access Denied:** Only the **Verified Server Owner / Buyer** or **Crowned R5 Sovereign** is authorized to run \`/hermes architect\` on \`${remoteGuildOpt}\`. R4 Officers and standard members cannot alter the server blueprint.`,
+        });
+      }
+
+      const deployOpts = {
+        kingdomId: kdList[0] || '4194',
+        alliances: kdList.length > 1 ? kdList : undefined,
+        keepExistingStarterChannels: bp === 'OMNI_LANGUAGE_MATRIX_ONLY',
+      };
+      const res = await provisionDiscordServer({
+        blueprintType: bp,
+        guildId: remoteGuildOpt,
+        botToken: BOT_TOKEN,
+        dryRun: false,
+        options: deployOpts,
+      });
+      registerGuildDeployment(remoteGuildOpt, 'LEGENDARY', {
+        buyerDiscordId: user.id,
+        buyerUsername: user.username,
+        paidSessionId: targetStatus?.paidSessionId || `principal_direct_${Date.now()}`,
+        blueprintType: bp,
+        deployOptions: deployOpts,
+      });
+      await syncBabelGuildTopology(discordApi, remoteGuildOpt);
+      return editOriginal({
+        content: `👑 **HERMES 1-Click Architect Complete for \`${res.guildName}\` (\`${remoteGuildOpt}\` • \`${bp}\`)!** Provisioned/verified **\`${res.log.length}\`** items (including the **17-Language Omni-Matrix**) at \`$0.00\`.`,
+      });
     }
   }
 }

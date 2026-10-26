@@ -663,6 +663,19 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
     }
   }
 
+  // Only allow Sandbox Bypass if the caller is the Valheon Principal Architect (184977944433786880)!
+  if (String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
+    return {
+      paid: true,
+      mode: 'PRINCIPAL_SANDBOX_BYPASS',
+      sessionId: `principal_${Date.now()}`,
+      amountUsd: 0,
+      discountUsd: (STRIPE_CATALOG[planKey]?.amountCents || 3900) / 100,
+      promoCodeUsed: 'PRINCIPAL_OVERRIDE',
+      customerEmail: 'Principal Architect (Reign3418)',
+    };
+  }
+
   return {
     paid: false,
     mode: 'STRIPE_KEY_REQUIRED',
@@ -681,10 +694,9 @@ export async function verifyAndConsumeBlueprintCredit({
   username,
   blueprintType,
   targetGuildId,
-  principalForceOverride = false,
 }) {
-  // Only bypass Stripe when the Principal explicitly clicks the Principal Override button (principalForceOverride = true)
-  if (principalForceOverride && String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
+  // 1. Valheon Principal Architect (184977944433786880) always has instant silent $0 deployment authority
+  if (String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
     return {
       allowed: true,
       sessionId: `principal_direct_${Date.now()}`,
