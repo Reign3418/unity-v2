@@ -409,7 +409,6 @@ export function buildValheonHqBlueprint(customOptions = {}) {
       ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
-      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'gateway',
         name: '🏛️ CITADEL GATEWAY & COMMAND',
@@ -465,6 +464,7 @@ export function buildValheonHqBlueprint(customOptions = {}) {
           },
         ],
       },
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'concierge',
         name: '🎫 HERMES CONCIERGE & TICKET DESK',
@@ -897,7 +897,6 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
       ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
-      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'kd_gateway',
         name: `🏰 KINGDOM #${kdId} CITADEL GATEWAY`,
@@ -964,6 +963,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           },
         ],
       },
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'kd_tickets',
         name: '🎫 R4 CONCIERGE & APPLICATIONS',
@@ -1217,7 +1217,6 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
       ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
-      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'genesis_launch',
         name: '🚀 GENESIS LAUNCHPAD & COUNTDOWN',
@@ -1270,6 +1269,7 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
           },
         ],
       },
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'genesis_rosters',
         name: '🛡️ ALLIANCE SLOTS & SQUAD SIGNUPS',
@@ -1425,7 +1425,6 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
       ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
-      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'diplo_summit',
         name: '🏛️ I. LOST KINGDOM SUMMIT & TREATIES',
@@ -1478,6 +1477,7 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
           },
         ],
       },
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'diplo_conclave',
         name: '🔒 II. PRIVATE KINGS & DIPLOMATS CONCLAVE',
@@ -1672,7 +1672,6 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
       ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
-      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'coalition_war',
         name: '⚔️ I. ALLIED COALITION WAR COMMAND',
@@ -1738,6 +1737,7 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
           },
         ],
       },
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'coalition_comms',
         name: '🌐 II. MULTI-KINGDOM ALLIED COMMS & VOICE',

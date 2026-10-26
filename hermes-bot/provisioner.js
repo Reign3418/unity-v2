@@ -677,6 +677,14 @@ export async function provisionDiscordServer({
         permission_overwrites: catOverwrites,
       };
       if (catDef.key === 'babel_matrix') {
+        catCreatePayload.position = 1;
+      } else if (
+        catDef.key === 'kd_gateway' ||
+        catDef.key === 'gateway' ||
+        catDef.key === 'genesis_launch' ||
+        catDef.key === 'diplo_summit' ||
+        catDef.key === 'coalition_war'
+      ) {
         catCreatePayload.position = 0;
       }
       categoryChannel = await discordRequest(
