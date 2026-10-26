@@ -711,6 +711,7 @@ export function buildValheonHqBlueprint(customOptions = {}) {
 export function buildKingdomWarBlueprint(customOptions = {}) {
   const kdId = String(customOptions.kingdomId || '4194').replace(/[^0-9]/g, '') || '4194';
   const kdTitle = customOptions.kingdomTitle || `SOVEREIGN KINGDOM #${kdId}`;
+  const includeTrapChannel = Boolean(customOptions.includeTrapChannel);
   const alliances = Array.isArray(customOptions.alliances) && customOptions.alliances.length > 0
     ? customOptions.alliances.slice(0, 6)
     : ['VHN1', 'VHN2', 'VHN3', 'VHN4'];
@@ -902,16 +903,28 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
         name: `🏰 KINGDOM #${kdId} CITADEL GATEWAY`,
         access: 'PUBLIC_READ_ONLY',
         channels: [
+          ...(includeTrapChannel
+            ? [
+                {
+                  name: '⚠️-trap-channel-⚠️',
+                  type: CHANNEL_TYPES.TEXT,
+                  access: 'PUBLIC_SCREENSHOT_VERIFY',
+                  topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot! Compromised accounts & raid bots that post in this room are automatically purged and kicked by HERMES.',
+                  pinKey: 'HONEYPOT_TRAP_CONSOLE',
+                },
+              ]
+            : []),
           {
-            name: '⚠️-trap-channel-⚠️',
+            name: '👋-welcome-start-here',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_SCREENSHOT_VERIFY',
-            topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot! Compromised accounts & raid bots that post in this room are automatically purged and kicked by HERMES.',
-            pinKey: 'HONEYPOT_TRAP_CONSOLE',
+            access: 'PUBLIC_READ_ONLY',
+            topic: `Welcome to Kingdom #${kdId}! Complete the 4-Step Interactive Onboarding below: 1) Accept Rules -> 2) Pick Language -> 3) Select Combat & Event Roles -> 4) Verify Governor ID.`,
+            pinKey: 'WELCOME_START_HERE_CONSOLE',
           },
           {
             name: '📜-kingdom-laws-and-charter',
             type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
             topic: `Official Kingdom #${kdId} Laws, MGE Rules, Farm/Tile Regulations, and DKP Requirements.`,
             pinKey: 'KD_CHARTER_EMBED',
           },
@@ -938,7 +951,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
           {
             name: '🎯-combat-roles-and-event-pings',
             type: CHANNEL_TYPES.TEXT,
-            access: 'CITIZENS_READ_ONLY',
+            access: 'PUBLIC_READ_ONLY',
             topic: '1-Tap Combat Specialization Tags (Infantry, Cavalry, Archer, Rally, Garrison) & Event Calendar Alerts (More Than Gems, 20GH, Wheel, MGE, No-Cap).',
             pinKey: 'ROLE_AND_EVENT_PING_CONSOLE',
           },
@@ -1210,6 +1223,24 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
         name: '🚀 GENESIS LAUNCHPAD & COUNTDOWN',
         access: 'PUBLIC_READ_ONLY',
         channels: [
+          ...(customOptions.includeTrapChannel
+            ? [
+                {
+                  name: '⚠️-trap-channel-⚠️',
+                  type: CHANNEL_TYPES.TEXT,
+                  access: 'PUBLIC_SCREENSHOT_VERIFY',
+                  topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot!',
+                  pinKey: 'HONEYPOT_TRAP_CONSOLE',
+                },
+              ]
+            : []),
+          {
+            name: '👋-welcome-start-here',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
+            topic: `Welcome to ${projectName}! Complete the 4-Step Interactive Onboarding below: 1) Accept Rules -> 2) Pick Language -> 3) Select Roles -> 4) Verify Governor ID.`,
+            pinKey: 'WELCOME_START_HERE_CONSOLE',
+          },
           {
             name: '📜-project-manifesto-and-timeline',
             type: CHANNEL_TYPES.TEXT,
@@ -1400,6 +1431,24 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
         name: '🏛️ I. LOST KINGDOM SUMMIT & TREATIES',
         access: 'PUBLIC_READ_ONLY',
         channels: [
+          ...(customOptions.includeTrapChannel
+            ? [
+                {
+                  name: '⚠️-trap-channel-⚠️',
+                  type: CHANNEL_TYPES.TEXT,
+                  access: 'PUBLIC_SCREENSHOT_VERIFY',
+                  topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot!',
+                  pinKey: 'HONEYPOT_TRAP_CONSOLE',
+                },
+              ]
+            : []),
+          {
+            name: '👋-welcome-start-here',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
+            topic: 'Welcome to the Lost Kingdom Summit! Complete the 4-Step Onboarding below: 1) Accept Rules -> 2) Pick Language -> 3) Select Roles -> 4) Verify Governor ID.',
+            pinKey: 'WELCOME_START_HERE_CONSOLE',
+          },
           {
             name: '📜-lk-map-camps-and-rules',
             type: CHANNEL_TYPES.TEXT,
@@ -1629,6 +1678,24 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
         name: '⚔️ I. ALLIED COALITION WAR COMMAND',
         access: 'PUBLIC_READ_ONLY',
         channels: [
+          ...(customOptions.includeTrapChannel
+            ? [
+                {
+                  name: '⚠️-trap-channel-⚠️',
+                  type: CHANNEL_TYPES.TEXT,
+                  access: 'PUBLIC_SCREENSHOT_VERIFY',
+                  topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot!',
+                  pinKey: 'HONEYPOT_TRAP_CONSOLE',
+                },
+              ]
+            : []),
+          {
+            name: '👋-welcome-start-here',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_READ_ONLY',
+            topic: 'Welcome to the Allied Coalition War Server! Complete the 4-Step Onboarding below: 1) Accept Rules -> 2) Pick Language -> 3) Select Combat Roles -> 4) Verify Governor ID.',
+            pinKey: 'WELCOME_START_HERE_CONSOLE',
+          },
           {
             name: '🔗-verify-governor-id',
             type: CHANNEL_TYPES.TEXT,
@@ -1735,6 +1802,50 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
  * Rich Pinned Embed & Interactive Component Payloads for HERMES Provisioning
  */
 export const PINNED_CONSOLE_TEMPLATES = {
+  WELCOME_START_HERE_CONSOLE: {
+    embed: {
+      title: '👋 WELCOME START HERE // 4-STEP RULES, ROLES & GOVERNOR ONBOARDING',
+      description:
+        '**Welcome, Governor!** Complete these **4 quick steps right here on this screen** to set up your language, roles, and unlock all Kingdom War Rooms:\n\n' +
+        '--- \n' +
+        '### 📜 STEP 1: READ & ACCEPT KINGDOM RULES\n' +
+        '• **1. MGE & Event Caps:** Respect all posted Mightiest Governor (MGE) caps. Fixed ranks are assigned via `#🎫-kingdom-ticket-desk`.\n' +
+        '• **2. Home Kingdom Peace & Nodes:** Zero city or tile hits in Home Kingdom; always clear resource tiles completely (`0` left behind).\n' +
+        '• **3. KvK Mobilization & DKP:** Answer Pass/Flag rally & garrison calls and meet your KvK DKP goal (`#📜-kingdom-laws-and-charter`).\n' +
+        '👉 *Click **`[✅ Step 1: I Accept Rules & Charter]`** in Row 1 below!*\n\n' +
+        '### 🌍 STEP 2: PICK YOUR NATIVE LANGUAGE (17 LANGUAGES)\n' +
+        '• Click **`[🌍 Step 2: Pick My Language (17 Flags)]`** below (or tap your flag inside `#🌐-select-your-language` at the top of the server) — **🪽 HERMES** automatically translates chat into your native language!\n\n' +
+        '### 🎯 STEP 3: SELECT YOUR COMBAT SPECS & EVENT ALERTS (ROWS 2 & 3)\n' +
+        '• Tap any button in **Row 2 (`🗡️ Infantry`, `🐎 Cavalry`, `🏹 Archer`, `🔥 Rally`, `🏰 Garrison`)** or **Row 3 (`💎 More Than Gems`, `🗿 20GH`, `🎡 Wheel & MGE`, `🔨 Egg`, `🚨 No-Cap`)** below to toggle those roles **ON / OFF** on your profile!\n\n' +
+        '### 🪪 STEP 4: VERIFY YOUR GOVERNOR ID (UNLOCKS WAR ROOMS)\n' +
+        '• Click **`[🪪 Step 4: Verify Governor ID]`** below (or drop a screenshot of your in-game profile in `#🔗-verify-governor-id`) to unlock all Kingdom & Alliance channels!',
+      color: 0x10b981,
+      footer: { text: 'VALHEON 4-STEP ONBOARDING CONSOLE // RULES • 17 LANGUAGES • ROLES • VERIFICATION' },
+    },
+    buttonRows: [
+      [
+        { customId: 'hermes_welcome_accept_rules', label: '✅ Step 1: I Accept Rules & Charter', style: 'SUCCESS' },
+        { customId: 'hermes_welcome_open_lang_picker', label: '🌍 Step 2: Pick My Language (17 Flags)', style: 'PRIMARY' },
+        { customId: 'hermes_verify_governor', label: '🪪 Step 4: Verify Governor ID', style: 'SUCCESS' },
+        { customId: 'hermes_my_roles_status', label: '🎯 View My Active Roles', style: 'SECONDARY' },
+      ],
+      [
+        { customId: 'hermes_role_toggle_spec_infantry', label: '🗡️ Infantry', style: 'PRIMARY' },
+        { customId: 'hermes_role_toggle_spec_cavalry', label: '🐎 Cavalry', style: 'DANGER' },
+        { customId: 'hermes_role_toggle_spec_archer', label: '🏹 Archer', style: 'SUCCESS' },
+        { customId: 'hermes_role_toggle_spec_rally', label: '🔥 Rally Leader', style: 'SECONDARY' },
+        { customId: 'hermes_role_toggle_spec_garrison', label: '🏰 Garrison Captain', style: 'SECONDARY' },
+      ],
+      [
+        { customId: 'hermes_role_toggle_ping_mtg', label: '💎 More Than Gems', style: 'PRIMARY' },
+        { customId: 'hermes_role_toggle_ping_20gh', label: '🗿 20GH Event', style: 'SUCCESS' },
+        { customId: 'hermes_role_toggle_ping_wheel_mge', label: '🎡 Wheel & MGE', style: 'SECONDARY' },
+        { customId: 'hermes_role_toggle_ping_egg', label: '🔨 Egg & Esmeralda', style: 'SECONDARY' },
+        { customId: 'hermes_role_toggle_ping_nocap', label: '🚨 No-Cap Migration', style: 'DANGER' },
+      ],
+    ],
+  },
+
   WELCOME_MANIFESTO: {
     embed: {
       title: '👑 WELCOME TO VALHEON CITADEL // THE SOVEREIGN ROK OS',

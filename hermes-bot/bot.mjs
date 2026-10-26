@@ -1106,6 +1106,12 @@ async function registerSlashCommands(targetGuildIdOnly = null) {
               description: 'Optional: Remote Customer Guild ID to relaunch/repair for $0.00 (Default: This Server)',
               required: false,
             },
+            {
+              type: 5, // BOOLEAN
+              name: 'include_trap_channel',
+              description: 'Include #⚠️-trap-channel-⚠️ anti-spambot honeypot? (Default: False / Left Out)',
+              required: false,
+            },
           ],
         },
         {
@@ -1342,6 +1348,108 @@ async function handleInteraction(ix) {
     }
 
     // A0.0 VALHEON CITADEL EXCLUSIVE — BABEL NATIVE LANGUAGE ROLE SWITCHER (`1563618222895407166` ONLY)
+    if (customId === 'hermes_welcome_accept_rules') {
+      return reply({
+        type: 4,
+        data: {
+          flags: 64,
+          embeds: [
+            {
+              title: '✅ STEP 1 COMPLETE // KINGDOM RULES & CHARTER ACCEPTED',
+              description:
+                `Thank you, <@${user.id}>! Your agreement to the **Kingdom Rules & Charter** has been recorded by **🪽 HERMES**.\n\n` +
+                `### 🚀 FINISH YOUR ONBOARDING BELOW:\n` +
+                `• **🌍 Step 2 (Native Language):** Click **` +
+                '`[🌍 Pick My Language (17 Flags)]`' +
+                `** below to morph the server chat into your native language.\n` +
+                `• **🎯 Step 3 (Combat & Event Roles):** Tap your **Infantry / Cavalry / Archer / Rally / Garrison** & **More Than Gems / 20GH** buttons on the Welcome Console.\n` +
+                `• **🪪 Step 4 (Unlock War Rooms):** Click **` +
+                '`[🪪 Verify Governor ID & Unlock Server]`' +
+                `** below (or drop your profile screenshot in \`#🔗-verify-governor-id\`) to unlock all Kingdom & Alliance channels!`,
+              color: 0x10b981,
+              footer: { text: 'VALHEON 4-STEP ONBOARDING // STEP 1 OF 4 VERIFIED' },
+            },
+          ],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 1, // PRIMARY
+                  label: '🌍 Step 2: Pick My Language (17 Flags)',
+                  custom_id: 'hermes_welcome_open_lang_picker',
+                },
+                {
+                  type: 2,
+                  style: 3, // SUCCESS
+                  label: '🪪 Step 4: Verify Governor ID & Unlock Server',
+                  custom_id: 'hermes_verify_governor',
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    if (customId === 'hermes_welcome_open_lang_picker') {
+      return reply({
+        type: 4,
+        data: {
+          flags: 64,
+          embeds: [
+            {
+              title: '🌍 STEP 2 // SELECT YOUR NATIVE LANGUAGE (17 OFFICIAL ROK LANGUAGES)',
+              description:
+                'Tap your flag below — **🪽 HERMES** will assign your native language role, open your dedicated native-language room under **`🪽 HERMES OMNI-LANGUAGE MATRIX`**, and automatically translate every Governor in real time:',
+              color: 0x38bdf8,
+              footer: { text: 'VALHEON 17-LANGUAGE OMNI-MATRIX // 1 LANGUAGE ACTIVE AT A TIME' },
+            },
+          ],
+          components: [
+            {
+              type: 1,
+              components: [
+                { type: 2, style: 1, label: '🇺🇸 English', custom_id: 'hermes_babel_lang_en' },
+                { type: 2, style: 1, label: '🇻🇳 Tiếng Việt', custom_id: 'hermes_babel_lang_vi' },
+                { type: 2, style: 1, label: '🇰🇷 한국어', custom_id: 'hermes_babel_lang_ko' },
+                { type: 2, style: 1, label: '🇷🇺 Русский', custom_id: 'hermes_babel_lang_ru' },
+                { type: 2, style: 1, label: '🇸🇦 العربية', custom_id: 'hermes_babel_lang_ar' },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                { type: 2, style: 1, label: '🇨🇳 中文', custom_id: 'hermes_babel_lang_zh' },
+                { type: 2, style: 1, label: '🇯🇵 日本語', custom_id: 'hermes_babel_lang_ja' },
+                { type: 2, style: 1, label: '🇪🇸 Español', custom_id: 'hermes_babel_lang_es' },
+                { type: 2, style: 1, label: '🇹🇷 Türkçe', custom_id: 'hermes_babel_lang_tr' },
+                { type: 2, style: 1, label: '🇮🇩 Indonesia', custom_id: 'hermes_babel_lang_id' },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                { type: 2, style: 1, label: '🇫🇷 Français', custom_id: 'hermes_babel_lang_fr' },
+                { type: 2, style: 1, label: '🇩🇪 Deutsch', custom_id: 'hermes_babel_lang_de' },
+                { type: 2, style: 1, label: '🇧🇷 Português', custom_id: 'hermes_babel_lang_pt' },
+                { type: 2, style: 1, label: '🇹🇭 ภาษาไทย', custom_id: 'hermes_babel_lang_th' },
+                { type: 2, style: 1, label: '🇵🇱 Polski', custom_id: 'hermes_babel_lang_pl' },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                { type: 2, style: 1, label: '🇮🇹 Italiano', custom_id: 'hermes_babel_lang_it' },
+                { type: 2, style: 1, label: '🇲🇾 Melayu', custom_id: 'hermes_babel_lang_ms' },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
     if (customId.startsWith('hermes_babel_lang_')) {
       const langCode = customId.replace('hermes_babel_lang_', '').trim();
       await reply({ type: 5, data: { flags: 64 } });
@@ -4982,6 +5090,9 @@ async function handleInteraction(ix) {
       const remoteGuildOpt = (
         sub.options?.find((o) => o.name === 'target_guild_id')?.value || guildId
       ).trim();
+      const includeTrapOpt = Boolean(
+        sub.options?.find((o) => o.name === 'include_trap_channel')?.value
+      );
 
       if (bp === 'VALHEON_HQ' && String(remoteGuildOpt) !== String(GUILD_ID)) {
         return editOriginal({
@@ -5077,6 +5188,7 @@ async function handleInteraction(ix) {
         kingdomId: kdList[0] || '4194',
         alliances: kdList.length > 1 ? kdList : undefined,
         keepExistingStarterChannels: bp === 'OMNI_LANGUAGE_MATRIX_ONLY',
+        includeTrapChannel: includeTrapOpt,
       };
       const res = await provisionDiscordServer({
         blueprintType: bp,

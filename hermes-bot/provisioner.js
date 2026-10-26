@@ -823,6 +823,12 @@ export async function provisionDiscordServer({
       ) {
         notificationChannelId = channelObj.id;
       }
+
+      if (chDef.pinKey === 'WELCOME_START_HERE_CONSOLE' && channelObj?.id) {
+        await discordRequest(cleanToken, 'PATCH', `/guilds/${cleanGuildId}`, {
+          system_channel_id: channelObj.id,
+        }).catch(() => {});
+      }
     }
   }
 
