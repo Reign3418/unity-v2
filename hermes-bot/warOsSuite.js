@@ -110,6 +110,14 @@ export function bindGovernorProfile({ userId, username, govId, govName, alliance
   return entry;
 }
 
+export function hasBoundGovernorProfile(userId, username) {
+  const cleanUser = String(username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return Boolean(
+    (userId && LINKED_GOVERNOR_PROFILES[String(userId)]) ||
+      (cleanUser && LINKED_GOVERNOR_PROFILES[cleanUser])
+  );
+}
+
 export function resolveGovernorIdentity({ userId, username, coords }) {
   const cleanUser = String(username || 'Governor').toLowerCase().replace(/[^a-z0-9]/g, '');
   const matched =
