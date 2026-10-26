@@ -102,19 +102,22 @@ export function writeLiveTelemetryBatch(kingdomId, rosterArray, scanDate, progre
       } catch {}
     }
 
-    // Only replace the full governor map (evicting departed migrants) when a full scan completes;
-    // during intermediate mid-scan batches (Rank 10..990), merge into the existing map so live views never dip!
-    const curRank = Number(progress?.currentRank) || reconciledRoster.length;
-    const tgtRank = Number(progress?.targetRank) || 1000;
-    const isFullComplete =
-      Boolean(options.forceSnapshotCommit) || progress?.status === 'COMPLETED' || curRank >= tgtRank;
-    if (isFullComplete || !cache.kingdoms[kd].governors) {
-      cache.kingdoms[kd].governors = {};
+    // Strict Single-Session / Convergent Splice Rule:
+    // Keep governors from other bots ONLY if they share the exact same `scanSessionKey` (`dateKey`)
+    // from a multi-bot spliced scan (e.g. Bot 1 scanning 1..335, Bot 2 scanning 336..670, Bot 3 scanning 671..1000).
+    // Evict any governor from any older scan session or prior day!
+    const sameSessionGovs = {};
+    for (const [oldId, oldGov] of Object.entries(cache.kingdoms[kd].governors || {})) {
+      if (oldGov && oldGov.scanSessionKey === dateKey) {
+        sameSessionGovs[oldId] = oldGov;
+      }
     }
+    cache.kingdoms[kd].governors = sameSessionGovs;
     for (const enriched of reconciledRoster) {
       const gid = String(enriched.id);
-      cache.kingdoms[kd].governors[gid] = enriched;
-      cache.governorsById[gid] = enriched;
+      const tagged = { ...enriched, scanSessionKey: dateKey };
+      cache.kingdoms[kd].governors[gid] = tagged;
+      cache.governorsById[gid] = tagged;
     }
 
     cache.updatedAt = new Date().toISOString();
@@ -266,18 +269,49 @@ export async function POST(req) {
       ).catch(() => {});
     }
 
-    // Always persist a fast DynamoDB live overlay of the top 150 governors so Vercel serverless routes (/black-ops, etc.)
-    // immediately reflect every 10-rank scan batch without waiting for a static file rebuild!
+    // Persist the FULL current scan roster across two DynamoDB config pages (500 + 500 = 1,000 governors)
+    // Merge concurrent slices from other bots ONLY if `scanSessionKey === fallbackDateKey`, and evict any prior session/day!
     try {
-      const sortedTop = [...fullKingdomRoster]
-        .sort((a, b) => (Number(b.power) || 0) - (Number(a.power) || 0))
-        .slice(0, 350);
-      const overlayMap = {};
-      sortedTop.forEach((g, idx) => {
+      const [prevP1Raw, prevP2Raw] = await Promise.all([
+        getGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}`).catch(() => null),
+        getGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}_P2`).catch(() => null),
+      ]);
+      const sameSessionMap = {};
+      for (const rawPage of [prevP1Raw, prevP2Raw]) {
+        if (!rawPage) continue;
+        try {
+          const parsed = typeof rawPage === 'string' ? JSON.parse(rawPage) : rawPage;
+          for (const [gid, gObj] of Object.entries(parsed || {})) {
+            if (gObj && gObj.scanSessionKey === fallbackDateKey) {
+              sameSessionMap[gid] = gObj;
+            }
+          }
+        } catch {}
+      }
+      for (const g of fullKingdomRoster) {
         const gid = String(g.govId || g.id || '');
-        if (gid) overlayMap[gid] = { ...g, rank: idx + 1 };
+        if (!gid) continue;
+        sameSessionMap[gid] = { ...g, scanSessionKey: fallbackDateKey };
+      }
+      const sortedAll = Object.values(sameSessionMap)
+        .sort((a, b) => (Number(b.power) || 0) - (Number(a.power) || 0))
+        .slice(0, 1000);
+      const overlayMapP1 = {};
+      const overlayMapP2 = {};
+      sortedAll.forEach((g, idx) => {
+        const gid = String(g.govId || g.id || '');
+        if (!gid) return;
+        const entry = { ...g, rank: idx + 1, scanSessionKey: fallbackDateKey };
+        if (idx < 500) {
+          overlayMapP1[gid] = entry;
+        } else {
+          overlayMapP2[gid] = entry;
+        }
       });
-      await updateGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}`, JSON.stringify(overlayMap)).catch(() => {});
+      await Promise.all([
+        updateGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}`, JSON.stringify(overlayMapP1)).catch(() => {}),
+        updateGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kingdomId}_P2`, JSON.stringify(overlayMapP2)).catch(() => {}),
+      ]);
     } catch {}
 
     // Always sync lastScanAt & nextScanAt into BASTION_CLOUD_STATE in DynamoDB so Bastion UI shows live completion time
@@ -343,6 +377,26 @@ export async function POST(req) {
   }
 }
 
+export function extractGovScanDay(g) {
+  const raw = String(g?.scanDtg || g?.scannedAtUtc || g?.lastScanDate || '').trim();
+  const m = raw.match(/(\d{4})[-_](\d{2})[-_](\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
+}
+
+export function filterToLatestScanCohort(governorArray = []) {
+  if (!Array.isArray(governorArray) || governorArray.length === 0) return [];
+  let newestDay = '';
+  for (const g of governorArray) {
+    const d = extractGovScanDay(g);
+    if (d && d > newestDay) newestDay = d;
+  }
+  if (!newestDay) return governorArray;
+  return governorArray.filter((g) => {
+    const d = extractGovScanDay(g);
+    return !d || d === newestDay;
+  });
+}
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -358,29 +412,32 @@ export async function GET(req) {
       progress: null,
       allianceLeadersR5: [],
     };
-    const govMap = { ...(kdCache.governors || {}) };
+    let govMap = { ...(kdCache.governors || {}) };
 
     let liveStatus = kdCache?.progress || null;
     try {
-      const [rawStatus, rawOverlay] = await Promise.all([
+      const [rawStatus, rawOverlayP1, rawOverlayP2] = await Promise.all([
         getGlobalConfig(`LIVE_SCAN_STATUS_${kd}`).catch(() => null),
         getGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kd}`).catch(() => null),
+        getGlobalConfig(`LIVE_TELEMETRY_OVERLAY_${kd}_P2`).catch(() => null),
       ]);
       if (rawStatus) {
         const parsedStatus = JSON.parse(rawStatus);
         liveStatus = { ...(liveStatus || {}), ...parsedStatus };
       }
-      if (rawOverlay) {
-        const parsedOverlay = JSON.parse(rawOverlay);
-        for (const [gid, g] of Object.entries(parsedOverlay)) {
-          if (g && typeof g === 'object') {
-            govMap[gid] = { ...(govMap[gid] || {}), ...g };
-          }
+      if (rawOverlayP1) {
+        const parsedP1 = JSON.parse(rawOverlayP1);
+        const parsedP2 = rawOverlayP2 ? JSON.parse(rawOverlayP2) : {};
+        if (Object.keys(parsedP1).length > 0) {
+          // Strict Single-Session Rule: Replace (never merge onto old build-time static JSON)
+          govMap = { ...parsedP1, ...parsedP2 };
         }
       }
     } catch {}
 
-    const governors = Object.values(govMap).sort((a, b) => (b.power || 0) - (a.power || 0));
+    const governors = filterToLatestScanCohort(Object.values(govMap))
+      .sort((a, b) => (b.power || 0) - (a.power || 0))
+      .map((g, idx) => ({ ...g, rank: idx + 1 }));
 
     return NextResponse.json({
       kingdomId: kd,

@@ -86,21 +86,9 @@ const MONOTONIC_FIELDS = [
   'aooLosses',
 ];
 
+// Only immutable account-identity / provenance fields may carry forward across scan sessions.
+// Never carry forward combat, power, or progression stats from prior days' scans!
 const ACCOUNT_PORTABLE_FIELDS = [
-  'cityHall',
-  'townHall',
-  'vipLevel',
-  'civilization',
-  'civId',
-  'troopPower',
-  'techPower',
-  'buildingPower',
-  'commanderPower',
-  'highestPower',
-  'matchmakingPower',
-  'commanderBloatPct',
-  'killToDeadRatio',
-  'combatEfficiencyScore',
   'birthKingdomId',
   'genesisCapturedAt',
   'udid',
@@ -111,19 +99,8 @@ const ACCOUNT_PORTABLE_FIELDS = [
   'avatarUploadDate',
   'avatarImageMd5',
   'avatarFrameId',
-  'badgeShowcaseVector',
   'masterAccountCId',
-  'primaryCommander',
-  'primaryCmdrAwakened',
-  'secondaryCommander',
-  'secondaryCmdrAwakened',
-  'equippedGear',
-  'commanderArmaments',
-  'kvkMorale',
-  'titanLegion',
   'linkedAltGovIds',
-  'activeHoursUtc',
-  'estSleepWindowUtc',
   'originServerId',
 ];
 
@@ -133,8 +110,6 @@ const KINGDOM_LOCAL_FIELDS = [
   'castlePos',
   'internalServerId',
   'mapServerId',
-  'ralliesLed',
-  'ralliesJoined',
 ];
 
 const ARCHIVE_LEDGER_PATH = path.join(process.cwd(), 'src', 'data', 'bastion_epoch_ledger.json');
@@ -300,8 +275,8 @@ export function reconcileGovernorBatch({
       migrantsDetected++;
     }
 
+    // Strict Single-Session Rule: Start ONLY with incoming scan data (`...rawGov`), never spreading `...prev` from days ago!
     const merged = {
-      ...prev,
       ...rawGov,
       id: gid,
       govId: Number(gid) || gid,
@@ -320,12 +295,12 @@ export function reconcileGovernorBatch({
       }
     }
 
-    // 1. Enforce Monotonic Lifetime Stat Guard (KP & Deads never go backwards)
+    // 1. Enforce Monotonic Lifetime Stat Guard ONLY when a field was actively read (`newVal > 0`) and dipped below high-water mark
     if (monotonicEnabled) {
       for (const field of MONOTONIC_FIELDS) {
         const prevVal = toNum(prev[field]);
         const newVal = toNum(rawGov[field]);
-        if (prevVal > 0 && newVal < prevVal) {
+        if (prevVal > 0 && newVal > 0 && newVal < prevVal) {
           merged[field] = prevVal;
           monotonicFixes++;
         } else if (rawGov[field] !== undefined) {
@@ -334,20 +309,12 @@ export function reconcileGovernorBatch({
       }
     }
 
-    // Also sync `dead` and `deads` aliases so both are identical and monotonic
-    const bestDead = Math.max(
-      toNum(merged.dead),
-      toNum(merged.deads),
-      monotonicEnabled ? Math.max(toNum(prev.dead), toNum(prev.deads)) : 0
-    );
+    // Sync `dead` and `deads` aliases from the current scan
+    const bestDead = Math.max(toNum(merged.dead), toNum(merged.deads));
     merged.dead = bestDead;
     merged.deads = bestDead;
 
-    const bestKp = Math.max(
-      toNum(merged.killPoints),
-      toNum(merged.killpoints),
-      monotonicEnabled ? Math.max(toNum(prev.killPoints), toNum(prev.killpoints)) : 0
-    );
+    const bestKp = Math.max(toNum(merged.killPoints), toNum(merged.killpoints));
     merged.killPoints = bestKp;
 
     // 2. Non-Destructive Deep Structural Field Carry-Forward (Account-Portable + Kingdom-Local isolated)

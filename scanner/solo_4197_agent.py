@@ -28,7 +28,7 @@ import swarm_4197_orchestrator as core
 
 SOLO_INST = {
     "port": "16384",
-    "adb": "valheon-edge-ingest.internal",
+    "adb": "127.0.0.1:16384",
     "id": "sidekick-mumu-0",
     "label": "FlagshipSolo-0",
 }
@@ -77,6 +77,7 @@ def merge_ground_truth_with_queue_badges(ist: dict):
 
 
 _EMPTY_QUEST_COOLDOWN_UNTIL: dict[str, float] = {}
+_BONUS_CLAIM_COOLDOWN_UNTIL: dict[str, float] = {"16416": time.time() + 600.0, "16448": time.time() + 600.0}
 
 
 def claim_completed_quests(state: dict, inst: dict):
@@ -89,22 +90,85 @@ def claim_completed_quests(state: dict, inst: dict):
 
     port = inst["port"]
     adb = inst["adb"]
-    if time.time() < _EMPTY_QUEST_COOLDOWN_UNTIL.get(port, 0.0):
-        return
     a = core.close_modals_to_hud(adb, port)
     if a is None:
         return
 
-    q_badge_hi = a[235:278, 25:75]
-    red_hi = int(((q_badge_hi[:, :, 0] >= 185) & (q_badge_hi[:, :, 1] <= 65) & (q_badge_hi[:, :, 2] <= 65)).sum())
-    q_badge_4200_top = a[250:275, 68:98]
-    wht_top = int(((q_badge_4200_top[:, :, 0] >= 220) & (q_badge_4200_top[:, :, 1] >= 220) & (q_badge_4200_top[:, :, 2] >= 220)).sum())
-    q_badge_4200 = a[260:305, 35:85]
-    red_lo = int(((q_badge_4200[:, :, 0] >= 165) & (q_badge_4200[:, :, 1] <= 55) & (q_badge_4200[:, :, 2] <= 55)).sum())
-    has_4200_badge = wht_top >= 12 or red_lo >= 55
-    if red_hi < 45 and not has_4200_badge:
+    # Tap Alliance Help handshake bubble at (1164, 744) or (1164, 810) if visible above bottom bar
+    help_bub = a[718:772, 1135:1192]
+    help_bub_lo = a[780:838, 1135:1192]
+    if float(help_bub.mean()) > 175.0:
+        core.tap(adb, 1164, 744, 0.45)
+        a = core.close_modals_to_hud(adb, port)
+        if a is None:
+            return
+    elif float(help_bub_lo.mean()) > 165.0:
+        core.tap(adb, 1164, 810, 0.45)
+        a = core.close_modals_to_hud(adb, port)
+        if a is None:
+            return
+    if float(a[710:768, 1320:1380].mean()) > 175.0:
+        core.tap(adb, 1350, 740, 0.45)
+        a = core.close_modals_to_hud(adb, port)
+        if a is None:
+            return
+
+    # Once every 10 minutes, claim VIP daily points + free VIP chest and System Mail rewards
+    if time.time() >= _BONUS_CLAIM_COOLDOWN_UNTIL.get(port, 0.0):
+        _BONUS_CLAIM_COOLDOWN_UNTIL[port] = time.time() + 600.0
+        vip_bdg = a[48:82, 132:178]
+        vip_red = int(((vip_bdg[:, :, 0] >= 175) & (vip_bdg[:, :, 1] <= 65) & (vip_bdg[:, :, 2] <= 65)).sum())
+        if vip_red >= 18:
+            core.tap(adb, 125, 85, 1.4)
+            core.tap(adb, 1260, 225, 1.4)
+            core.tap(adb, 800, 750, 0.8)
+            core.tap(adb, 1145, 495, 1.2)
+            core.tap(adb, 800, 750, 0.8)
+            core.tap(adb, 1520, 500, 0.8)
+            a = core.close_modals_to_hud(adb, port)
+            if a is None:
+                return
+        mail_bdg = a[785:835, 1410:1465]
+        mail_red = int(((mail_bdg[:, :, 0] >= 175) & (mail_bdg[:, :, 1] <= 65) & (mail_bdg[:, :, 2] <= 65)).sum())
+        if mail_red >= 18:
+            core.tap(adb, 1405, 845, 1.4)
+            core.tap(adb, 710, 58, 1.0)
+            core.tap(adb, 145, 845, 0.9)
+            core.tap(adb, 800, 750, 0.8)
+            core.tap(adb, 1540, 48, 0.9)
+            a = core.close_modals_to_hud(adb, port)
+            if a is None:
+                return
+
+    if float(a[780:838, 1135:1192].mean()) > 165.0:
+        core.tap(adb, 1164, 810, 0.7)
+        a = core.close_modals_to_hud(adb, port)
+        if a is None:
+            return
+    if float(a[815:875, 1395:1455].mean()) > 165.0:
+        core.tap(adb, 1425, 845, 0.7)
+        a = core.close_modals_to_hud(adb, port)
+        if a is None:
+            return
+    if float(a[710:768, 1320:1380].mean()) > 175.0:
+        core.tap(adb, 1350, 740, 0.7)
+        a = core.close_modals_to_hud(adb, port)
+        if a is None:
+            return
+
+    if time.time() < _EMPTY_QUEST_COOLDOWN_UNTIL.get(port, 0.0):
         return
-    scroll_x, scroll_y = (28, 290) if red_hi >= 45 else (38, 320)
+
+    qb_slice = a[185:325, 25:88]
+    qb_red = (qb_slice[:, :, 0] >= 180) & (qb_slice[:, :, 1] <= 58) & (qb_slice[:, :, 2] <= 58)
+    qb_wht = (qb_slice[:, :, 0] >= 215) & (qb_slice[:, :, 1] >= 215) & (qb_slice[:, :, 2] >= 215)
+    rys_qb, rxs_qb = np.where(qb_red)
+    col_dgt = a[275:310, 40:64]
+    has_col_dgt = int(((col_dgt[:, :, 0] >= 185) & (col_dgt[:, :, 1] >= 185) & (col_dgt[:, :, 2] >= 165)).sum()) >= 25
+    if (len(rxs_qb) < 20 or int(qb_wht.sum()) < 3) and not has_col_dgt:
+        return
+    scroll_x = 28 if "16384" in str(port) else 38
+    scroll_y = int(np.median(rys_qb) + 185 + 22) if len(rys_qb) >= 20 else 325
 
     ist = state["instances"][port]
     ist["status"] = "CLAIMING_QUESTS"
@@ -114,35 +178,40 @@ def claim_completed_quests(state: dict, inst: dict):
     shot_q = os.path.join(SCRIPT_DIR, f"swarm_quests_{port}.png")
     core.tap(adb, scroll_x, scroll_y, 1.6)
     a_q = core.capture_screen(adb, shot_q)
-    if a_q is not None:
-        bh = a_q[85:140, 350:1250]
-        is_bh = (bh[:, :, 0] >= 145) & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 25)
-        if float(np.mean(is_bh)) < 0.35:
-            core.tap(adb, 1420, 550, 0.6)
-            core.tap(adb, scroll_x, scroll_y, 1.6)
+    if a_q is None:
+        return
+    bh = a_q[85:140, 350:1250]
+    is_bh = (bh[:, :, 0] >= 145) & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 25)
+    q_tab = a_q[165:500, 30:155].astype(np.int32)
+    has_q_tab = float(np.mean((q_tab[:, :, 2] >= 165) & (q_tab[:, :, 0] <= 75) & ((q_tab[:, :, 2] - q_tab[:, :, 0]) >= 95))) > 0.14
+    if float(np.mean(is_bh)) < 0.45 or not has_q_tab:
+        _EMPTY_QUEST_COOLDOWN_UNTIL[port] = time.time() + 300.0
+        return
 
     claimed_count = 0
 
-    # Claim completed Main & Side Quests on Tab 1 (Quests) — strictly 1 verified tap per screen capture so it NEVER clicks a blue GO button
-    for _ in range(16):
-        a_q = core.capture_screen(adb, shot_q)
+    # Ensure Tab 1 (Quests at 145, 245) is selected first, then claim completed Main & Side Quests
+    core.tap(adb, 145, 245, 0.8)
+    shot_q_tab1 = os.path.join(SCRIPT_DIR, f"swarm_quests_tab1_{port}.png")
+    for idx_q in range(16):
+        a_q = core.capture_screen(adb, shot_q_tab1 if idx_q == 0 else shot_q)
         if a_q is None:
             break
         bh_chk = a_q[85:140, 350:1250]
         is_bh_chk = (bh_chk[:, :, 0] >= 145) & (np.abs(bh_chk[:, :, 0].astype(np.int32) - bh_chk[:, :, 1].astype(np.int32)) < 25)
         if float(np.mean(is_bh_chk)) < 0.40:
             break
-        q_clm = a_q[275:865, 1170:1345]
+        q_clm = a_q[165:865, 1170:1345]
         is_grn = (q_clm[:, :, 1] >= 148) & (q_clm[:, :, 0] <= 78) & (q_clm[:, :, 2] <= 68)
         ys, xs = np.where(is_grn)
         if len(xs) < 1100:
             break
-        cy = int(np.percentile(ys, 20) + 275)
+        cy = int(np.percentile(ys, 20) + 165)
         core.tap(adb, 1258, cy, 0.55)
         claimed_count += 1
 
-    # Always check Tab 2 (Daily Objectives at 85, 415) when Quests modal is open
-    core.tap(adb, 85, 415, 1.0)
+    # Always check Tab 2 (Daily Objectives at 145, 415) when Quests modal is open
+    core.tap(adb, 145, 415, 1.0)
     daily_claimed = 0
     for _ in range(10):
         a_d = core.capture_screen(adb, shot_q)
@@ -160,13 +229,12 @@ def claim_completed_quests(state: dict, inst: dict):
     if daily_claimed > 0:
         for cx_chest in (460, 660, 860, 1060, 1260):
             core.tap(adb, cx_chest, 240, 0.35)
-            core.tap(adb, 800, 750, 0.35)
+            core.tap(adb, 1520, 500, 0.35)
 
     core.tap(adb, 1520, 500, 0.8)
-    core.tap(adb, 1365, 108, 0.8)
     core.close_modals_to_hud(adb, port)
     if claimed_count == 0:
-        _EMPTY_QUEST_COOLDOWN_UNTIL[port] = time.time() + 75.0
+        _EMPTY_QUEST_COOLDOWN_UNTIL[port] = time.time() + 300.0
     if claimed_count > 0:
         core.append_movement(
             state,
@@ -180,6 +248,10 @@ def claim_completed_quests(state: dict, inst: dict):
 
 def main():
     import socket
+
+    if os.path.exists(os.path.join(SCRIPT_DIR, "pause_swarm.flag")):
+        print("[SoloAgent] pause_swarm.flag is active; exiting cleanly so scanner has 100% exclusive control.")
+        return
 
     # Enforce strict single-process lock on SIDEKICK via local TCP port 44197
     _lock_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

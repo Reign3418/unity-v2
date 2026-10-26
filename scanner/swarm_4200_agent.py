@@ -109,7 +109,7 @@ INSTANCES_4200 = [
     },
 ]
 
-_FULL_LEADERBOARD_SCAN_DONE = False
+_FULL_LEADERBOARD_SCAN_DONE = True
 _STATE_LOCK = threading.Lock()
 
 
@@ -154,12 +154,12 @@ def run_full_4200_leaderboard_scan(state: dict, inst: dict):
         return
 
     ist["status"] = "ROSTER_AUDIT"
-    ist["currentTask"] = f"FAST DATA SCAN: Extracting Kingdom #{TARGET_KD} Top-300 Power Leaderboard on :{port}!"
+    ist["currentTask"] = f"FAST DATA SCAN: Extracting Kingdom #{TARGET_KD} Top-1000 Power Leaderboard on :{port}!"
     core.append_movement(
         state,
         port,
         "PROVISION_4197",
-        f"Started Kingdom #{TARGET_KD} Top-300 Leaderboard Scan on :{port} ({ist.get('governorName')})",
+        f"Started Kingdom #{TARGET_KD} Top-1000 Leaderboard Scan on :{port} ({ist.get('governorName')})",
         {"kingdom": TARGET_KD, "port": port},
     )
     core.save_and_sync_blackbox(state)
@@ -177,7 +177,9 @@ def run_full_4200_leaderboard_scan(state: dict, inst: dict):
                 "--kd",
                 TARGET_KD,
                 "--end-rank",
-                "300",
+                "1000",
+                "--deep-ranks",
+                "350",
                 "--skip-switch",
             ],
             cwd=SCRIPT_DIR,
@@ -185,7 +187,7 @@ def run_full_4200_leaderboard_scan(state: dict, inst: dict):
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=900,
+            timeout=6000,
         )
         if proc.returncode == 0:
             _FULL_LEADERBOARD_SCAN_DONE = True
@@ -244,21 +246,11 @@ def main():
     t_prev = threading.Thread(target=_live_5s_preview_daemon, args=(state,), daemon=True)
     t_prev.start()
 
-    # Clear modals & capture initial HUD stats on both #4200 instances
+    # Ensure ADB & foreground on both #4200 instances and immediately enter builder loop
     for inst in INSTANCES_4200:
-        p = inst["port"]
         adb = inst["adb"]
         core.ensure_adb(adb)
         core.ensure_rok_foreground(adb)
-        a0 = core.close_modals_to_hud(adb, p)
-        if a0 is not None:
-            ist = state["instances"][p]
-            ist["screenPreviewB64"] = core.make_thumbnail_b64(a0)
-            ist["rssBags"] = core.merge_rss_bar(ist.get("rssBags"), a0)
-            pwr = core.parse_hud_power(a0)
-            if pwr > 0:
-                ist["power"] = pwr
-            core.save_and_sync_blackbox(state)
 
     # Interleaved fast micro-turns so BOTH :16416 and :16448 move every 20-25 seconds!
     for cycle_idx in range(999999):
@@ -269,13 +261,14 @@ def main():
             ist = _prep_inst_meta(state, inst)
             core.ensure_adb(adb)
             core.ensure_rok_foreground(adb)
+            core.close_modals_to_hud(adb, port)
+            core.audit_bot_ground_truth_stats(state, inst)
             ch_now = int(ist.get("cityHallLevel") or 0)
-            if ch_now >= 8:
-                claim_completed_quests(state, inst)
-            b_steps = 10 if ch_now < 8 else 6
+            claim_completed_quests(state, inst)
+            b_steps = 8 if ch_now < 8 else 6
             core.run_city_builder_burst(state, inst, steps_count=b_steps)
-            if int(ist.get("cityHallLevel") or 0) >= 8:
-                claim_completed_quests(state, inst)
+            claim_completed_quests(state, inst)
+            core.audit_bot_ground_truth_stats(state, inst)
             ist["status"] = "ACTIVE_IN_4197"
             ist["sleepStatus"] = f"AWAKE (#{TARGET_KD} 5-QUEUE LOOP)"
             ist["currentTask"] = (
@@ -286,9 +279,9 @@ def main():
             if not _FULL_LEADERBOARD_SCAN_DONE and int(ist.get("cityHallLevel") or 0) >= 8:
                 run_full_4200_leaderboard_scan(state, inst)
 
-        # While rushing to CH8 for Leaderboard Scan, stay focused on fast CH8 builder bursts (run farming/training every 6th cycle)
-        all_ch8 = all(int(state["instances"][i["port"]].get("cityHallLevel") or 0) >= 8 for i in INSTANCES_4200)
-        if not all_ch8 and (cycle_idx % 6 != 5):
+        # Once CH7+ is reached (CH8 actively upgrading), run the full 5-Queue Loop (T1 Training, Scouting, Gathering)
+        any_ch7_plus = any(int(state["instances"][i["port"]].get("cityHallLevel") or 0) >= 7 for i in INSTANCES_4200)
+        if not any_ch7_plus:
             continue
 
         # Micro-Turn B: T1 Training + Scouting on :16416, then :16448

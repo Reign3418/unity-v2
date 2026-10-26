@@ -448,6 +448,7 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
     mbi = MEMORY_BASIC_INFORMATION()
     needle_troop = struct.pack("<I", 0x1e89dddc)
     needle_helps = struct.pack("<I", 0x9c017191)
+    needle_govid = struct.pack("<I", 0x42810360)
 
     gov_by_id = {}
     detached_more_blocks = []
@@ -687,7 +688,7 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                     if o_sid != expected_sid or gov.get("alliance") in ("None", ""):
                                         idx = raw.find(needle_troop, idx + 4)
                                         continue
-                                if 10_000_000 <= gid <= 999_999_999 and gid not in exclude_gov_ids and int(gov.get("power") or 0) >= 50_000:
+                                if 10_000_000 <= gid <= 999_999_999 and gid not in exclude_gov_ids and int(gov.get("power") or 0) >= 10_000:
                                     gov["id"] = str(gid)
                                     if not gov["name"]:
                                         gov["name"] = f"Governor_{gid}"
@@ -723,6 +724,130 @@ def extract_all_governors_from_ram(exclude_gov_ids=None, adb_serial: str = "127.
                                     else:
                                         gov_by_id[gid] = gov
                         idx = raw.find(needle_troop, idx + 4)
+
+                    # 3. Collect Passive / Gear-2 Governor Profile Records via needle_govid (0x42810360)
+                    # Captures Leaderboard, Alliance, World Map & Chat governors without requiring More Info clicks!
+                    idx_g = raw.find(needle_govid)
+                    while idx_g != -1:
+                        if idx_g >= 12:
+                            base_g = idx_g - 12
+                            vl_g, vh_g, tg_g, _ = struct.unpack_from("<4I", raw, base_g)
+                            if (tg_g & 0x3F) in (0x32, 0x12) and 10_000_000 <= vl_g <= 999_999_999 and vl_g not in exclude_gov_ids:
+                                w_start = max(0, base_g - 160)
+                                w_start += (base_g - w_start) % 8
+                                win_g = raw[w_start : min(len(raw), base_g + 240)]
+                                rec_g = {
+                                    "govId": vl_g,
+                                    "id": str(vl_g),
+                                    "name": "",
+                                    "alliance": "None",
+                                    "allianceName": "",
+                                    "allianceNumericId": 0,
+                                    "serverId": (expected_sid or 3194),
+                                    "originServerId": 0,
+                                    "mapServerId": 0,
+                                    "cityHall": 8,
+                                    "vipLevel": 0,
+                                    "civId": 6,
+                                    "civilization": "China",
+                                    "power": 0,
+                                    "matchmakingPower": 0,
+                                    "highestPower": 0,
+                                    "killPoints": 0,
+                                    "totalUnitsKilled": 0,
+                                    "troopPower": 0,
+                                    "buildingPower": 0,
+                                    "commanderPower": 0,
+                                    "techPower": 0,
+                                    "rangedPoints": 0,
+                                    "victories": 0,
+                                    "defeats": 0,
+                                    "scoutTimes": 0,
+                                    "healedTroops": 0,
+                                    "dead": 0,
+                                    "t1Kills": 0,
+                                    "t2Kills": 0,
+                                    "t3Kills": 0,
+                                    "t4Kills": 0,
+                                    "t5Kills": 0,
+                                    "t1Kp": 0,
+                                    "t2Kp": 0,
+                                    "t3Kp": 0,
+                                    "t4Kp": 0,
+                                    "t5Kp": 0,
+                                    "assistance": 0,
+                                    "gathered": 0,
+                                    "helps": 0,
+                                    "kvkHighestKp": 0,
+                                    "kvkMostKills": 0,
+                                    "kvkMostHealed": 0,
+                                    "kvkMostDead": 0,
+                                    "kvkCount": 0,
+                                    "aooLeaves": 0,
+                                    "aooWins": 0,
+                                    "aooLosses": 0,
+                                    "aooKillStocks": 0,
+                                    "aooHighestScore": 0,
+                                    "lilithAccountUid": "",
+                                    "accountVintage": "",
+                                    "avatarUploadDate": "",
+                                    "avatarImageMd5": "",
+                                    "avatarFrameId": "",
+                                    "badgeShowcaseVector": "",
+                                }
+                                for off_g in range(0, len(win_g) - 16, 8):
+                                    v_l, v_h, t_g, k_h = struct.unpack_from("<4I", win_g, off_g)
+                                    if (t_g & 0x3F) in (0x32, 0x12) and k_h in HASH_NAMES:
+                                        val_g = v_l + ((v_h & 0xFFFF) << 32) if v_h < 0x10000 else v_l
+                                        fn_g = HASH_NAMES[k_h]
+                                        if fn_g == "killPointsB" and rec_g["killPoints"] == 0:
+                                            rec_g["killPoints"] = val_g
+                                        elif fn_g == "unitsKilled" and rec_g["totalUnitsKilled"] == 0:
+                                            rec_g["totalUnitsKilled"] = val_g
+                                        elif fn_g in rec_g:
+                                            rec_g[fn_g] = val_g
+                                s_sid = int(rec_g.get("serverId") or 0)
+                                m_sid = int(rec_g.get("mapServerId") or 0)
+                                if expected_sid and ((s_sid > 0 and s_sid != expected_sid) or (m_sid > 0 and m_sid != expected_sid)):
+                                    idx_g = raw.find(needle_govid, idx_g + 4)
+                                    continue
+                                if int(rec_g.get("power") or 0) >= 10_000:
+                                    rec_g["highestPower"] = max(int(rec_g.get("highestPower") or 0), int(rec_g["power"]))
+                                    rec_g["matchmakingPower"] = int(rec_g["power"])
+                                    rec_g["civilization"] = CIV_NAMES.get(int(rec_g.get("civId") or 6), "China")
+                                    tail_g = raw[base_g : min(len(raw), base_g + 420)]
+                                    nm_g = extract_utf8_name_from_header(tail_g)
+                                    if nm_g:
+                                        rec_g["name"] = nm_g
+                                    elif not rec_g["name"]:
+                                        rec_g["name"] = f"Governor_{vl_g}"
+                                    t_lat = tail_g.decode("latin-1", errors="ignore")
+                                    av_m = re.search(r"/IM/\d+/\d+/(\d+)/(\d{4}-\d{2}-\d{2})/([A-Fa-f0-9]{16,40})", t_lat)
+                                    if av_m:
+                                        rec_g["lilithAccountUid"] = av_m.group(1)
+                                        rec_g["accountVintage"] = classify_account_vintage(av_m.group(1))
+                                        rec_g["avatarUploadDate"] = av_m.group(2)
+                                        rec_g["avatarImageMd5"] = av_m.group(3)
+                                    af_m = re.search(r'"avatarFrame"\s*:\s*"([^"]*)"', t_lat)
+                                    if af_m and af_m.group(1):
+                                        rec_g["avatarFrameId"] = af_m.group(1).split("/")[-1]
+                                    al_marker = tail_g.find(b"\x93\xe6\xbb\x4e")
+                                    if al_marker != -1:
+                                        al_slice = tail_g[al_marker + 4 : min(len(tail_g), al_marker + 48)]
+                                        rec_g["allianceName"] = decode_clean_lua_slot(al_slice, is_governor_name=True)
+                                    if vl_g not in gov_by_id:
+                                        gov_by_id[vl_g] = rec_g
+                                    else:
+                                        ex_g = gov_by_id[vl_g]
+                                        if rec_g["name"] and not rec_g["name"].startswith("Governor_") and ex_g.get("name", "").startswith("Governor_"):
+                                            ex_g["name"] = rec_g["name"]
+                                        for fk_g in ("power", "killPoints", "totalUnitsKilled", "cityHall", "vipLevel", "originServerId", "allianceNumericId"):
+                                            if int(rec_g.get(fk_g) or 0) > int(ex_g.get(fk_g) or 0):
+                                                ex_g[fk_g] = rec_g[fk_g]
+                                        for sk_g in ("lilithAccountUid", "accountVintage", "avatarUploadDate", "avatarImageMd5", "avatarFrameId"):
+                                            if rec_g.get(sk_g) and not ex_g.get(sk_g):
+                                                ex_g[sk_g] = rec_g[sk_g]
+                        idx_g = raw.find(needle_govid, idx_g + 4)
             addr = (mbi.BaseAddress or addr) + mbi.RegionSize
     finally:
         k32.CloseHandle(h)
@@ -839,10 +964,11 @@ class AdbEmulatorDriver:
             subprocess.run([self.adb_bin, "connect", self.serial], capture_output=True)
 
     def _jitter_coord(self, val, max_offset=4):
-        if not self.humanize:
+        if not self.humanize or max_offset <= 0:
             return int(val)
-        delta = int(round(random.gauss(0, 1.8)))
-        delta = max(-max_offset, min(max_offset, delta))
+        sigma = max(1.8, float(max_offset) * 0.48)
+        delta = int(round(random.gauss(0, sigma)))
+        delta = max(-int(max_offset), min(int(max_offset), delta))
         return int(val) + delta
 
     def _human_sleep(self, base_sec):
@@ -851,11 +977,13 @@ class AdbEmulatorDriver:
         if not self.humanize:
             time.sleep(base_sec)
             return
-        time.sleep(base_sec * random.uniform(0.88, 1.18))
+        time.sleep(base_sec * random.uniform(0.86, 1.24))
 
-    def tap(self, x, y, sleep_sec=0.45, max_offset=2):
-        jx = self._jitter_coord(x, max_offset=max_offset)
-        jy = self._jitter_coord(y, max_offset=max_offset)
+    def tap(self, x, y, sleep_sec=0.45, max_offset=5, jitter_x=None, jitter_y=None):
+        ox = max_offset if jitter_x is None else jitter_x
+        oy = max_offset if jitter_y is None else jitter_y
+        jx = self._jitter_coord(x, max_offset=ox)
+        jy = self._jitter_coord(y, max_offset=oy)
         subprocess.run(
             [self.adb_bin, "-s", self.serial, "shell", "input", "tap", str(jx), str(jy)],
             capture_output=True,
@@ -1163,6 +1291,47 @@ def extract_mumu_binary_save_telemetry(adb_bin: str, serial: str = "127.0.0.1:16
             except Exception:
                 pass
 
+    # Passive Statsmaster / GLGData Chat Harvester: decode LGIMLocalSave_* (Kingdom/Alliance Chat & Shared Commanders)
+    try:
+        ls_out = subprocess.run(
+            [adb_bin, "-s", serial, "shell", f"ls {MUMU_DOC_REMOTE}/LGIMLocalSave_* 2>/dev/null"],
+            capture_output=True,
+            text=True,
+            timeout=6,
+        ).stdout
+        for r_path in (ls_out or "").splitlines():
+            r_path = r_path.strip()
+            if not r_path or "No such file" in r_path:
+                continue
+            raw_im = subprocess.run([adb_bin, "-s", serial, "exec-out", f"cat {r_path}"], capture_output=True, timeout=8).stdout
+            if not raw_im or len(raw_im) <= 12:
+                continue
+            im_doc = parse_rok_binary(raw_im)
+            def _walk_im(node):
+                if isinstance(node, dict):
+                    p_id = node.get("PId") or node.get("playerId") or node.get("uid")
+                    p_nm = node.get("PName") or node.get("name") or node.get("senderName")
+                    if p_id and str(p_id).isdigit() and int(p_id) >= 10_000_000:
+                        pid_i = int(p_id)
+                        cur_i = govs.get(pid_i, {"id": str(pid_i), "govId": pid_i, "ralliesLed": 0, "ralliesJoined": 0})
+                        if p_nm and not cur_i.get("name"):
+                            cur_i["name"] = str(p_nm)
+                        if node.get("Abbr") and not cur_i.get("alliance"):
+                            cur_i["alliance"] = str(node["Abbr"])
+                        if node.get("Udid") and not cur_i.get("udid"):
+                            cur_i["udid"] = str(node["Udid"])
+                        if node.get("AppUid") and not cur_i.get("appUid"):
+                            cur_i["appUid"] = str(node["AppUid"])
+                            cur_i["lilithAccountUid"] = str(node["AppUid"])
+                            cur_i["accountVintage"] = classify_account_vintage(node["AppUid"])
+                        govs[pid_i] = cur_i
+                    for v_c in node.values():
+                        if isinstance(v_c, dict):
+                            _walk_im(v_c)
+            _walk_im(im_doc)
+    except Exception:
+        pass
+
     # Compute Active UTC Hours and Estimated 6-Hour Sleep Window per Governor
     for pid, hrs in active_hours_by_pid.items():
         if pid not in govs or not hrs:
@@ -1396,12 +1565,8 @@ def write_scan_progress(payload):
             json.dump(payload, f, indent=2)
     except Exception:
         pass
-    try:
-        requests.post(f"{HUB_URL}/scan-progress", json=payload, timeout=1.5)
-    except Exception:
-        pass
     now_s = time.time()
-    if (now_s - _LAST_BLACKBOX_PREVIEW_TS) >= 4.8 or not payload.get("running", True):
+    if (now_s - _LAST_BLACKBOX_PREVIEW_TS) >= 25.0 or not payload.get("running", True):
         _LAST_BLACKBOX_PREVIEW_TS = now_s
         try:
             import swarm_4197_orchestrator as _core
@@ -1421,33 +1586,43 @@ def write_scan_progress(payload):
                 ist["sleepStatus"] = f"TOP-{trk} #{kd_str} SCAN ({pct_v:.1f}%)"
                 ist["currentTask"] = f"Scanning #{kd_str} Top {trk} — Rank {rk}/{trk} ({pct_v:.1f}%) · {ext_c} Extracted · {g_nm}"
                 ist["updatedAt"] = _core.utc_now_iso()
-                prev_png = os.path.join(SCRIPT_DIR, f"scan_prev_{adb_port}.png")
-                arr_p = _core.capture_screen(adb_serial, prev_png)
-                if arr_p is not None:
-                    ist["screenPreviewB64"] = _core.make_thumbnail_b64(arr_p)
                 _core.save_and_sync_blackbox(st)
         except Exception:
             pass
 
 
+_SCANNER_MUTEX_SOCK = None
+
+
 def kill_other_scanner_instances(adb_serial: str = "127.0.0.1:16384"):
-    """Ensures only a single unity_autonomous_scanner.py process tree runs per emulator ADB port (preserving venv parent stub)."""
+    """Ensures only a single unity_autonomous_scanner.py process tree runs per emulator ADB port (preserving venv parent stub) and acquires the port mutex."""
+    global _SCANNER_MUTEX_SOCK
     my_pid = os.getpid()
     my_ppid = os.getppid()
     adb_port = str(adb_serial or "127.0.0.1:16384").split(":")[-1]
     if adb_port == "16384":
         port_filter = "($_.CommandLine -like '*16384*' -or $_.CommandLine -like '*swarm_4197_orchestrator*' -or $_.CommandLine -like '*solo_4197_agent*' -or $_.CommandLine -notlike '*--adb*')"
         script_filter = "($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*' -or $_.CommandLine -like '*swarm_4197_orchestrator*' -or $_.CommandLine -like '*solo_4197_agent*')"
+        mutex_port = 44197
     else:
         port_filter = f"($_.CommandLine -like '*{adb_port}*')"
-        script_filter = "($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*')"
+        script_filter = "($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*' -or $_.CommandLine -like '*swarm_4200_agent*')"
+        mutex_port = 44200
     ps_cmd = (
         f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
         f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and {script_filter} -and {port_filter} }} | "
         f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
     )
     try:
-        subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], capture_output=True, timeout=4)
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], capture_output=True, timeout=6)
+    except Exception:
+        pass
+    try:
+        import socket
+        time.sleep(0.4)
+        _SCANNER_MUTEX_SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        _SCANNER_MUTEX_SOCK.bind(("127.0.0.1", mutex_port))
+        print(f"  [PORT MUTEX] Acquired exclusive TCP lock 127.0.0.1:{mutex_port} for {adb_serial} (background agents blocked during scan).")
     except Exception:
         pass
 
@@ -1501,15 +1676,18 @@ def ensure_individual_power_leaderboard_open(
 
     for attempt in range(1, 120):
         screen_txt = get_screen_ocr_text(driver)
-        if "INDIVIDUAL POWER RANKINGS" not in screen_txt:
+        if "INDIVIDUAL POWER" not in screen_txt and "POWER RANKINGS" not in screen_txt:
             if any(k in screen_txt for k in ("BATTLE STATISTICS", "HIGHEST POWER", "RESOURCES GATHERED", "RESOURCE STATISTICS")):
-                driver.tap(1422, 38, sleep_sec=0.85)
-                driver.tap(1458, 96, sleep_sec=0.85)
+                driver.tap(1422, 38, sleep_sec=1.25)
+                driver.tap(1458, 96, sleep_sec=1.35)
                 screen_txt = get_screen_ocr_text(driver)
             elif any(k in screen_txt for k in ("GOVERNOR PROFILE", "CIVILIZATION", "COMMANDER", "MORE INFO", "KILL POINTS")):
-                driver.tap(1458, 96, sleep_sec=0.85)
+                driver.tap(1458, 96, sleep_sec=1.35)
                 screen_txt = get_screen_ocr_text(driver)
-        if "INDIVIDUAL POWER RANKINGS" in screen_txt:
+            elif not reset_to_top and attempt == 1:
+                time.sleep(1.2)
+                screen_txt = get_screen_ocr_text(driver)
+        if ("INDIVIDUAL POWER" in screen_txt or "POWER RANKINGS" in screen_txt) and "ALLIANCE POWER" not in screen_txt:
             if reset_to_top and attempt == 1:
                 print("  [PREAMBLE] Resetting INDIVIDUAL POWER RANKINGS scroll to Rank #1 (1396,58 -> 380,560)...")
                 driver.tap(1396, 58, sleep_sec=1.5)
@@ -1529,7 +1707,7 @@ def ensure_individual_power_leaderboard_open(
                 import swarm_4197_orchestrator as _core
                 _core.close_modals_to_hud(driver.serial, str(driver.serial).split(":")[-1])
             except Exception:
-                for cx_c, cy_c in [(595, 637), (1545, 500), (1388, 56), (1363, 110), (1455, 88)]:
+                for cx_c, cy_c in [(1422, 38), (1454, 88), (1396, 58), (38, 38)]:
                     driver.tap(cx_c, cy_c, sleep_sec=0.7)
 
         _clear_hud_for_avatar()
@@ -1640,7 +1818,7 @@ def detect_bottom_card_center_y(driver, target_y: int = 780) -> int:
 
 def run_kingdom_scan(args):
     kill_other_scanner_instances(args.adb)
-    driver = AdbEmulatorDriver(serial=args.adb)
+    driver = AdbEmulatorDriver(serial=args.adb, humanize=True)
     scan_date_iso = args.scan_date or datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
     ingest_url = f"{args.unity_url.rstrip('/')}/api/ingest/kingdom-scan"
     started_at_iso = datetime.now(timezone.utc).isoformat()
@@ -1657,7 +1835,7 @@ def run_kingdom_scan(args):
     # - Ranks 4..998 tap Row 4 (y = 585), which auto-advances the list by 1.000 exact rank per step with zero manual swipes!
     # - Ranks 999..1000 tap Rows 5..6 (y = 686, 785) at the bottom boundary of the 1000-row list.
     top3_rows_y = [290, 384, 485]
-    auto_advance_y = 585
+    auto_advance_y = 598
     last_gov_name = "Preparing Leaderboard..."
     last_gov_power = 0
     total_extracted = 0
@@ -1665,26 +1843,39 @@ def run_kingdom_scan(args):
     adb_port = str(args.adb or "127.0.0.1:16384").split(":")[-1]
     accum_path = os.path.join(SCRIPT_DIR, f"ram_accum_{adb_port}_{args.kd}.json")
     cumulative_ram_by_id = {}
-    if args.start_rank <= 1:
-        # Fresh scan from Rank 1: purge any prior accumulator file so departed migrants are never carried over!
-        if os.path.exists(accum_path):
-            try:
+    if int(args.start_rank or 1) <= 1 or getattr(args, "fresh_slice", False):
+        # Strict Single-Session Rule: NEVER merge data from previous scans or previous days!
+        try:
+            if os.path.exists(accum_path):
                 os.remove(accum_path)
-                print(f"  [ACCUMULATOR] Cleared prior scan cache {accum_path} for fresh Rank 1 scan.")
-            except Exception:
-                pass
+                print(f"  [SINGLE-SESSION] Cleared prior accumulator {accum_path} for fresh Rank {args.start_rank}..{args.end_rank} scan.")
+        except Exception:
+            pass
     elif os.path.exists(accum_path):
         try:
-            with open(accum_path, "r", encoding="utf-8-sig") as rf:
-                loaded_accum = json.load(rf)
-            if isinstance(loaded_accum, dict):
-                cumulative_ram_by_id = {int(k): v for k, v in loaded_accum.items() if int(k) > 0}
-            elif isinstance(loaded_accum, list):
-                for item in loaded_accum:
+            accum_age_sec = time.time() - os.path.getmtime(accum_path)
+            if accum_age_sec <= 1800:
+                with open(accum_path, "r", encoding="utf-8-sig") as rf:
+                    loaded_accum = json.load(rf)
+                items_iter = loaded_accum.values() if isinstance(loaded_accum, dict) else (loaded_accum if isinstance(loaded_accum, list) else [])
+                same_session_items = 0
+                for item in items_iter:
+                    if not isinstance(item, dict):
+                        continue
+                    if args.scan_date and item.get("scanDateKey") and item.get("scanDateKey") != scan_date_iso:
+                        continue
                     gid = int(item.get("govId") or item.get("id") or 0)
                     if gid > 0:
                         cumulative_ram_by_id[gid] = item
-            print(f"  [ACCUMULATOR] Resuming at Rank {args.start_rank}: loaded {len(cumulative_ram_by_id)} RAM governors from {accum_path}")
+                        same_session_items += 1
+                if same_session_items > 0:
+                    print(f"  [ACCUMULATOR] Resuming same-session scan at Rank {args.start_rank}: loaded {len(cumulative_ram_by_id)} governors ({int(accum_age_sec)}s old).")
+                else:
+                    os.remove(accum_path)
+                    print(f"  [SINGLE-SESSION] Cleared prior-session accumulator {accum_path} for fresh spliced slice Rank {args.start_rank}..{args.end_rank}.")
+            else:
+                os.remove(accum_path)
+                print(f"  [SINGLE-SESSION] Discarded stale accumulator {accum_path} ({int(accum_age_sec // 60)}m old) to prevent multi-session data mixing.")
         except Exception:
             pass
 
@@ -1741,7 +1932,60 @@ def run_kingdom_scan(args):
     except Exception:
         pass
 
+    # If starting a spliced slice at start_rank > 1 (e.g. Bot 2 at Rank 335 or Bot 3 at Rank 668),
+    # fast-scroll the Individual Power Rankings list down to start_rank before stepping!
+    if int(args.start_rank or 1) > 1 and not cumulative_ram_by_id:
+        seek_swipes = max(1, int((args.start_rank - 1) // 14))
+        print(f"  [SPLICE FAST-SEEK] Scrolling Individual Power Rankings down to Slice Start Rank #{args.start_rank} ({seek_swipes} flicks)...")
+        for _sw in range(seek_swipes):
+            jx = 640 + random.randint(-38, 38)
+            driver.swipe(jx, 815 + random.randint(-12, 12), jx + random.randint(-10, 10), 255 + random.randint(-15, 15), duration_ms=random.randint(185, 240))
+            time.sleep(random.uniform(0.32, 0.48))
+        time.sleep(1.1)
+
+    prev_gp_sig = None
+    consecutive_dup_taps = 0
+    next_breather_rank = args.start_rank + random.randint(24, 39)
+    session_deep_budget = random.randint(278, 368)
+    cooldown_trigger_rank = args.start_rank + random.randint(125, 185)
+    cooldown_taken = False
+    if getattr(args, "mode", "") == "seed-sweep":
+        deep_ranks_limit = 0
+        session_deep_budget = 0
+    else:
+        raw_deep = int(getattr(args, "deep_ranks", 350) or 350)
+        # Randomize the session deep-tap limit if at default 350 so no two sessions ever stop at the exact same number
+        deep_ranks_limit = (args.start_rank + session_deep_budget - 1) if raw_deep == 350 else raw_deep
+    max_wall_seconds = int(getattr(args, "max_duration_sec", 960) or 960)
+    more_info_taps = 0
+    prev_extracted_count = len(cumulative_ram_by_id)
+    last_growth_rank = args.start_rank
+    print(f"  [SESSION CADENCE] Randomized More-Info budget={session_deep_budget} taps | Cooldown rank=#{cooldown_trigger_rank} | Slice timeout={max_wall_seconds}s")
+
     for rank in range(args.start_rank, args.end_rank + 1):
+        elapsed_now = time.time() - t_start
+        if elapsed_now > max_wall_seconds:
+            print(f"  [WATCHDOG CIRCUIT-BREAKER @ Rank #{rank}] Slice timeout ({max_wall_seconds}s) reached; stopping scan safely.")
+            break
+        if consecutive_dup_taps >= 5:
+            print(f"  [ANTI-DETECTION WATCHDOG @ Rank #{rank}] 5 consecutive taps on same spot; stopping immediately so bot never taps in place!")
+            break
+        if rank - last_growth_rank >= 22 and rank > args.start_rank + 22:
+            print(f"  [ANTI-DETECTION WATCHDOG @ Rank #{rank}] No new governors extracted across 22 steps; stopping slice safely.")
+            break
+
+        is_deep_gear = bool(rank <= deep_ranks_limit and more_info_taps < session_deep_budget)
+        if not cooldown_taken and rank >= cooldown_trigger_rank and is_deep_gear and args.end_rank > rank + 25:
+            cd_sec = round(random.uniform(24.0, 52.0), 1)
+            print(f"  [RATE-LIMIT GUARD @ Rank #{rank}] Randomized mid-slice {cd_sec}s breather to keep RPC cadence human...")
+            time.sleep(cd_sec)
+            cooldown_taken = True
+        elif rank >= next_breather_rank and rank < args.end_rank:
+            pause_s = round(random.uniform(2.2, 4.4), 2)
+            print(f"  [HUMAN-CADENCE @ Rank #{rank}] Taking {pause_s}s natural breather...")
+            time.sleep(pause_s)
+            next_breather_rank = rank + random.randint(24, 39)
+
         if rank <= 3:
             ry = top3_rows_y[rank - 1]
         elif rank == 999:
@@ -1750,11 +1994,96 @@ def run_kingdom_scan(args):
             ry = 785
         else:
             ry = auto_advance_y
-        print(f"  -> Stepping Rank #{rank} (y={ry})...")
-        driver.tap(600, ry, sleep_sec=0.85)        # Open Governor Profile from Leaderboard row (auto-centers Row 4 -> Row 3)
-        driver.tap(240, 755, sleep_sec=0.80)       # Open More Info
-        driver.tap(1422, 38, sleep_sec=0.72)       # Close More Info (Exact X center at 1422, 38)
-        driver.tap(1458, 96, sleep_sec=0.65)       # Close Governor Profile (Exact X center at 1458, 96)
+        gear_tag = "GEAR-1 DEEP" if is_deep_gear else "GEAR-2 FAST-RAM"
+        print(f"  -> Stepping Rank #{rank} [{gear_tag}] (y={ry})...")
+        def _is_gp(a):
+            sub = a[150:250, 500:1100].astype(np.int32)
+            return (
+                float(a[25:55, 500:1100].mean()) < 115.0
+                and float(a[70:115, 500:1100].mean()) > 135.0
+                and float(((sub[:, :, 2] - sub[:, :, 0]) >= 60).mean()) > 0.55
+            )
+
+        def _is_mi(a):
+            sub = a[130:200, 450:1150].astype(np.int32)
+            return float(a[25:55, 500:1100].mean()) > 135.0 and float(((sub[:, :, 2] - sub[:, :, 0]) >= 70).mean()) > 0.45
+
+        def _is_lb(a):
+            sub = a[130:200, 450:1150].astype(np.int32)
+            return float(a[25:55, 500:1100].mean()) > 135.0 and float(((sub[:, :, 0] - sub[:, :, 2]) >= 80).mean()) > 0.35
+
+        # Wide human thumb jitter along the leaderboard row (x = 640 ± 45px, y = ry ± 10px)
+        row_sleep = 1.55 if is_deep_gear else 0.92
+        driver.tap(640, ry, sleep_sec=row_sleep, jitter_x=45, jitter_y=10)
+        a_gp = None
+        try:
+            a_gp = np.array(driver.screenshot())
+            is_gp_open = _is_gp(a_gp) or not _is_lb(a_gp)
+        except Exception:
+            is_gp_open = True
+
+        if not is_gp_open:
+            print(f"  [SKIP Rank #{rank}] Profile unavailable (migrated/restricted); leaderboard already scrolled 1 row.")
+        else:
+            # Duplicate-Governor Stagnation Guard: never tap More Info twice on the exact same Governor Profile!
+            is_dup_gp = False
+            if a_gp is not None:
+                cur_sig = a_gp[215:285, 560:960].astype(np.float32)
+                if prev_gp_sig is not None and float(np.abs(cur_sig - prev_gp_sig).mean()) < 5.5:
+                    is_dup_gp = True
+                    consecutive_dup_taps += 1
+                    print(f"  [DUP-GUARD @ Rank #{rank}] Same Governor Profile still open (dup #{consecutive_dup_taps}); closing without re-tapping More Info.")
+                else:
+                    prev_gp_sig = cur_sig
+                    consecutive_dup_taps = 0
+
+            # Gear 1 opens More Info (all 67 fields) then closes More Info (1422, 38) AND closes Governor Profile (1454, 88)!
+            # Gear 2 harvests 0x42810360 Governor table directly from RAM and closes Governor Profile (1454, 88)!
+            if is_deep_gear and not is_dup_gp:
+                driver.tap(240, 755, sleep_sec=0.95, jitter_x=16, jitter_y=12)   # Open More Info
+                more_info_taps += 1
+                try:
+                    a_mi = np.array(driver.screenshot())
+                    is_mi_open = _is_mi(a_mi)
+                    if not is_mi_open and _is_gp(a_mi):
+                        driver.tap(240, 755, sleep_sec=0.95, jitter_x=16, jitter_y=12)
+                        more_info_taps += 1
+                        a_mi = np.array(driver.screenshot())
+                        is_mi_open = _is_mi(a_mi)
+                except Exception:
+                    is_mi_open = True
+                if is_mi_open or (a_mi is not None and not _is_gp(a_mi) and not _is_lb(a_mi)):
+                    driver.tap(1422, 38, sleep_sec=0.88, jitter_x=6, jitter_y=5)   # 1. Close More Info -> back to Governor Profile
+                driver.tap(1454, 88, sleep_sec=0.85, jitter_x=6, jitter_y=6)       # 2. Close Governor Profile -> back to Leaderboard!
+            else:
+                # Gear 2 or dup-guard: Governor Profile is open; close GP (1454, 88) directly back to Leaderboard!
+                driver.tap(1454, 88, sleep_sec=0.82, jitter_x=6, jitter_y=6)
+
+            # Deterministic Modal Closure: verify we return to Individual Power Rankings (_is_lb) on EVERY step!
+            for _c_try in range(3):
+                try:
+                    a_close = np.array(driver.screenshot())
+                    if _is_lb(a_close):
+                        break
+                    if _is_mi(a_close):
+                        driver.tap(1422, 38, sleep_sec=1.05, jitter_x=6, jitter_y=5)
+                        continue
+                    if _is_gp(a_close):
+                        driver.tap(1454, 88, sleep_sec=1.15, jitter_x=6, jitter_y=6)
+                        continue
+                    # Close Governor Profile X (1454, 88) — never tap (1545, 500) as that hits the HUD Event column!
+                    driver.tap(1454, 88, sleep_sec=0.95, jitter_x=6, jitter_y=6)
+                except Exception:
+                    driver.tap(1454, 88, sleep_sec=1.15, jitter_x=6, jitter_y=6)
+                    break
+
+            if consecutive_dup_taps == 2:
+                print(f"  [UNSTICK NUDGE @ Rank #{rank}] Nudging leaderboard up 1 row after 2 duplicate taps...")
+                driver.swipe(640 + random.randint(-20, 20), 695, 640 + random.randint(-20, 20), 470, duration_ms=320)
+                time.sleep(0.65)
+            elif consecutive_dup_taps >= 3:
+                print(f"  [UNSTICK RECOVER @ Rank #{rank}] Re-verifying leaderboard focus after {consecutive_dup_taps} duplicate taps...")
+                ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True, reset_to_top=False)
 
         elapsed = max(1.0, time.time() - t_start)
         done_steps = max(1, rank - args.start_rank + 1)
@@ -1762,11 +2091,24 @@ def run_kingdom_scan(args):
         rem_steps = max(0, args.end_rank - rank)
         pct = round((rank / max(1, args.end_rank)) * 100, 1)
 
-        if rank % 10 == 0 or rank == args.end_rank or rank == 1:
-            screen_now = get_screen_ocr_text(driver)
-            if rank < args.end_rank and "INDIVIDUAL POWER" not in screen_now:
-                print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus; restoring INDIVIDUAL POWER RANKINGS...")
-                ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True, reset_to_top=False)
+        if rank % 20 == 0 or rank == args.end_rank or rank == 1:
+            lb_ok = False
+            try:
+                a_chk = np.array(driver.screenshot())
+                if _is_mi(a_chk):
+                    driver.tap(1422, 38, sleep_sec=1.05, jitter_x=6, jitter_y=5)
+                    a_chk = np.array(driver.screenshot())
+                if _is_gp(a_chk):
+                    driver.tap(1454, 88, sleep_sec=1.15, jitter_x=6, jitter_y=6)
+                    a_chk = np.array(driver.screenshot())
+                lb_ok = _is_lb(a_chk)
+            except Exception:
+                lb_ok = False
+            if rank < args.end_rank and not lb_ok:
+                screen_now = get_screen_ocr_text(driver)
+                if "INDIVIDUAL POWER" not in screen_now and "POWER RANKINGS" not in screen_now:
+                    print(f"  [SELF-HEAL @ Rank #{rank}] Leaderboard modal out of focus (OCR: {screen_now[:90]}); restoring INDIVIDUAL POWER RANKINGS...")
+                    ensure_individual_power_leaderboard_open(driver, str(args.kd), skip_switch=True, reset_to_top=False)
             batch_now_dt = datetime.now(timezone.utc)
             batch_now_iso = batch_now_dt.isoformat()
             batch_dtg_str = batch_now_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -1778,16 +2120,18 @@ def run_kingdom_scan(args):
                 rg["scannedAtUtc"] = batch_now_iso
                 rg["scanDtg"] = batch_dtg_str
                 rg["scanSessionStartedAt"] = started_at_iso
+                rg["scanDateKey"] = scan_date_iso
                 if gid in cumulative_ram_by_id:
                     existing = cumulative_ram_by_id[gid]
                     existing["scannedAtUtc"] = batch_now_iso
                     existing["scanDtg"] = batch_dtg_str
                     existing["scanSessionStartedAt"] = started_at_iso
+                    existing["scanDateKey"] = scan_date_iso
                     for fk, fv in rg.items():
                         if fk == "name":
                             if fv and fv != f"Governor_{gid}":
                                 existing["name"] = fv
-                        elif fk in ("alliance", "allianceName", "civilization", "scannedAtUtc", "scanDtg", "scanSessionStartedAt"):
+                        elif fk in ("alliance", "allianceName", "civilization", "scannedAtUtc", "scanDtg", "scanSessionStartedAt", "scanDateKey"):
                             existing[fk] = fv
                         elif isinstance(fv, (int, float)) and fv > 0:
                             existing[fk] = fv
@@ -1795,13 +2139,16 @@ def run_kingdom_scan(args):
                             existing[fk] = fv
                 else:
                     cumulative_ram_by_id[gid] = dict(rg)
+            if len(cumulative_ram_by_id) > prev_extracted_count:
+                prev_extracted_count = len(cumulative_ram_by_id)
+                last_growth_rank = rank
             try:
                 with open(accum_path, "w", encoding="utf-8") as wf:
                     json.dump(list(cumulative_ram_by_id.values()), wf, ensure_ascii=False)
             except Exception:
                 pass
             accum_ram_list = list(cumulative_ram_by_id.values())
-            if not cached_save_govs or rank == 1 or rank % 50 == 0 or rank == args.end_rank:
+            if not cached_save_govs or rank == 1 or rank % 100 == 0 or rank == args.end_rank:
                 cached_save_govs = extract_mumu_binary_save_telemetry(driver.adb_bin, args.adb, target_kd=str(args.kd))
             save_govs = cached_save_govs
             merged_govs = merge_ram_and_mumu_save_telemetry(accum_ram_list, save_govs)
@@ -2003,11 +2350,14 @@ def run_hunt_governor(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unity Autonomous 67-Field MuMu RAM + Binary Save + Tactical Map Scanner")
-    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan", "map-sweep", "hunt-governor", "hunt-rss"], default="kingdom-scan")
+    parser.add_argument("--mode", choices=["ram-dump", "kingdom-scan", "seed-sweep", "map-sweep", "hunt-governor", "hunt-rss"], default="kingdom-scan")
     parser.add_argument("--adb", default="127.0.0.1:16384", help="ADB serial")
     parser.add_argument("--kd", "--kingdom", dest="kd", default="4194", help="Target Kingdom ID")
     parser.add_argument("--start-rank", type=int, default=1)
     parser.add_argument("--end-rank", "--max-ranks", dest="end_rank", type=int, default=1000)
+    parser.add_argument("--deep-ranks", type=int, default=350, help="Ranks 1..deep_ranks use Gear-1 More Info (randomized 278..368/session); Ranks > deep_ranks use Gear-2 Fast RAM Profile tap")
+    parser.add_argument("--max-duration-sec", type=int, default=960, help="Hard slice watchdog timeout in seconds (default 960s / 16m)")
+    parser.add_argument("--fresh-slice", action="store_true", default=False, help="Clear local accumulator when starting a multi-bot spliced slice")
     parser.add_argument("--scan-date", default=None)
     parser.add_argument("--target-gov", default="", help="Governor ID or Name to locate on map")
     parser.add_argument("--target-x", type=float, default=None, help="Target map X tile (0..1200)")
@@ -2023,7 +2373,7 @@ if __name__ == "__main__":
 
     if args.mode == "ram-dump":
         run_ram_dump(args)
-    elif args.mode == "kingdom-scan":
+    elif args.mode in ("kingdom-scan", "seed-sweep"):
         run_kingdom_scan(args)
     elif args.mode == "map-sweep":
         run_map_sweep(args)

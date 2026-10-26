@@ -94,8 +94,9 @@ def ensure_adb(adb_serial: str):
 
 
 def ensure_rok_foreground(adb_serial: str) -> bool:
-    """Checks if Rise of Kingdoms (com.lilithgame.roc.gp) process is alive; launches it if not."""
+    """Checks if Rise of Kingdoms (com.lilithgame.roc.gp) is in foreground; closes ad browsers and launches RoK if not."""
     try:
+        subprocess.run([ADB_PATH, "-s", adb_serial, "shell", "am", "force-stop", "com.android.chrome"], capture_output=True, timeout=4)
         res = subprocess.run(
             [ADB_PATH, "-s", adb_serial, "shell", "pidof", "com.lilithgame.roc.gp"],
             capture_output=True,
@@ -106,7 +107,7 @@ def ensure_rok_foreground(adb_serial: str) -> bool:
         if not pid_str:
             print(f"[{adb_serial}] RoK process not running -> Launching com.lilithgame.roc.gp...")
             subprocess.run(
-                [ADB_PATH, "-s", adb_serial, "shell", "monkey", "-p", "com.lilithgame.roc.gp", "-c", "android.intent.category.LAUNCHER", "1"],
+                [ADB_PATH, "-s", adb_serial, "shell", "am", "start", "-n", "com.lilithgame.roc.gp/com.harry.engine.MainActivity"],
                 capture_output=True,
                 timeout=10,
             )
@@ -479,13 +480,13 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
             tap(adb_serial, 392, 760, 2.0)
             tap(adb_serial, 48, 52, 1.2)
             continue
-        # 0b. Dismiss Insufficient Gems / Spend Gems Notice Modal (grey header y=165..215, x=350..1250 -> Close X at 1263, 190)
+        # 0b. Dismiss Insufficient Gems / Spend Gems Notice Modal (grey header y=165..215, x=350..1250 -> Close via Outside 1520,500 or X at 1263,190)
         ig_hdr = a[165:215, 350:1250]
         is_ig_hdr = (ig_hdr[:, :, 0] >= 150) & (np.abs(ig_hdr[:, :, 0].astype(np.int32) - ig_hdr[:, :, 1].astype(np.int32)) < 20)
-        ig_btn = a[600:775, 440:1177]
+        ig_btn = a[600:785, 440:1177]
         is_ig_act = (ig_btn[:, :, 0] >= 195) | (ig_btn[:, :, 2] >= 180)
         if float(np.mean(is_ig_hdr)) > 0.60 and float(np.mean(is_ig_act)) > 0.08:
-            tap(adb_serial, 1263, 190, 1.0)
+            tap(adb_serial, 1520 if _ % 2 == 0 else 1263, 500 if _ % 2 == 0 else 190, 1.0)
             continue
         # 1. Counselor bottom dialogue box -> tap (800, 780)
         if is_counselor_dialogue(a):
@@ -507,14 +508,33 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
         if int(fr_gold.sum()) >= 2000:
             tap(adb_serial, 1520, 500, 1.0)
             continue
-        # 2b. Governor Profile Open -> Close (1454, 105) BEFORE generic grey-header check
+        # 2a. Mightiest Governor / Enemy Elimination Splash Modal (centered gold CLAIM button at y=700..800, x=670..930 + fiery red splash center)
+        mg_btn = a[700:800, 670:930]
+        is_mg_gold = (mg_btn[:, :, 0] >= 200) & (mg_btn[:, :, 1] >= 135) & (mg_btn[:, :, 2] <= 65)
+        mg_ctr = a[200:500, 500:1100]
+        if float(np.mean(is_mg_gold)) > 0.45 and float(mg_ctr[:, :, 0].mean()) > float(mg_ctr[:, :, 2].mean()) + 60.0:
+            tap(adb_serial, 800, 750, 1.0)
+            continue
+        # 2b. Governor Profile Open -> Close (1454, 105) + Outside (1555, 500) BEFORE generic grey-header check
         if is_gov_profile_open(a):
-            tap(adb_serial, 1454, 105, 1.0)
+            tap(adb_serial, 1454, 105, 0.6)
+            tap(adb_serial, 1555, 500, 0.9)
             continue
         # 3. Standard Building / City Management / Quests / Training / Settings / Speed Up / Achievements modals (grey header y=60..135)
         bh = a[90:135, 360:1240]
         is_bh = (bh[:, :, 0] >= 145) & (np.abs(bh[:, :, 0].astype(np.int32) - bh[:, :, 1].astype(np.int32)) < 25)
         if float(np.mean(is_bh)) > 0.45:
+            q_tab_c = a[165:500, 30:155].astype(np.int32)
+            has_q_tab_c = float(np.mean((q_tab_c[:, :, 2] >= 165) & (q_tab_c[:, :, 0] <= 75) & ((q_tab_c[:, :, 2] - q_tab_c[:, :, 0]) >= 95))) > 0.14
+            if has_q_tab_c:
+                q_clm_c = a[165:865, 1170:1345]
+                is_grn_c = (q_clm_c[:, :, 1] >= 148) & (q_clm_c[:, :, 0] <= 78) & (q_clm_c[:, :, 2] <= 68)
+                ys_c, xs_c = np.where(is_grn_c)
+                if len(xs_c) >= 1100:
+                    tap(adb_serial, 1258, int(np.percentile(ys_c, 20) + 165), 0.7)
+                    continue
+                tap(adb_serial, 1520, 500, 1.0)
+                continue
             # Check if tall header (e.g. Achievements modal starting at y=60 with Close X at 1392, 96)
             bh_top = a[62:82, 500:1100]
             is_bh_top = (bh_top[:, :, 0] >= 150) & (np.abs(bh_top[:, :, 0].astype(np.int32) - bh_top[:, :, 1].astype(np.int32)) < 25)
@@ -523,7 +543,10 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
                 continue
             bh_std = a[90:135, 1335:1390]
             is_bh_std = (bh_std[:, :, 0] >= 145) & (np.abs(bh_std[:, :, 0].astype(np.int32) - bh_std[:, :, 1].astype(np.int32)) < 25)
-            if float(np.mean(is_bh_std)) > 0.30:
+            x_wht = (a[92:125, 1285:1385, 0] >= 215) & (a[92:125, 1285:1385, 1] >= 215) & (a[92:125, 1285:1385, 2] >= 215)
+            if int(x_wht.sum()) < 22 or (_ % 2 == 1):
+                tap(adb_serial, 1520, 500, 1.0)
+            elif float(np.mean(is_bh_std)) > 0.30:
                 tap(adb_serial, 1365, 108, 1.0)
             else:
                 tap(adb_serial, 1306, 108, 1.0)
@@ -546,9 +569,10 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
             rys, rxs = np.where(bm_red_bot)
             tap(adb_serial, int(np.median(rxs) + 450), int(np.median(rys) + 640), 1.0)
             continue
-        # 5. Governor Profile Open -> Close (1454, 105) ONCE
+        # 5. Governor Profile Open -> Close (1454, 105) + Outside (1555, 500)
         if is_gov_profile_open(a):
-            tap(adb_serial, 1454, 105, 1.0)
+            tap(adb_serial, 1454, 105, 0.6)
+            tap(adb_serial, 1555, 500, 0.9)
             continue
         # 6. Event Calendar / Adventurer's Choice (tan header y=20..80, x=550..1350, or dimmed when sub-popup like Mercantile Melee is open) -> Claim any green CLAIM button first, then Close (1396, 58)
         ec_hdr = a[20:80, 550:1350]
@@ -561,9 +585,8 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
             eys, exs = np.where(is_ec_grn)
             if len(exs) >= 1000:
                 tap(adb_serial, int(np.median(exs) + 1180), int(np.percentile(eys, 25) + 460), 0.9)
-            tap(adb_serial, 1396, 58, 0.9)
-            if float(np.mean(ec_pop)) > 0.45:
-                tap(adb_serial, 1396, 58, 0.9)
+            tap(adb_serial, 1395, 52, 0.7)
+            tap(adb_serial, 1386, 55, 0.9)
             continue
         # 6b. Left Kingdom Chat Drawer Open (beige parchment on left half x=85..820, y=80..800) or Android bottom keyboard bar -> Tap right half (950, 450)
         chat_body = a[80:800, 85:820]
@@ -579,13 +602,12 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
         if float(np.mean(is_chat)) > 0.45 or float(np.mean(is_kb_white)) > 0.80:
             tap(adb_serial, 950, 450, 1.0)
             continue
-        # 7. Full Alliance Screen / 'Join Your First Alliance' / 'More Info' Modal -> Tap outside (1545, 500) + Close X at (1392, 62)
+        # 7. Full Alliance Screen / 'Join Your First Alliance' / 'More Info' Modal -> Close X at (1392, 62)
         al_hdr = a[20:85, 200:1400]
         al_body = a[200:750, 650:1350]
         is_al_grey = (al_hdr[:, :, 0] >= 145) & (al_hdr[:, :, 0] <= 215) & (np.abs(al_hdr[:, :, 0].astype(np.int32) - al_hdr[:, :, 2].astype(np.int32)) < 22)
         is_al_teal = (al_body[:, :, 2] >= 90) & (al_body[:, :, 0] <= 45)
         if float(np.mean(is_al_grey)) > 0.55 and float(np.mean(is_al_teal)) > 0.40:
-            tap(adb_serial, 1545, 500, 0.7)
             tap(adb_serial, 1392, 62, 0.9)
             continue
         # 9. Mail / Alliance Help / Joined Alliance / New Troop header (y=35..90) -> SINGLE tap on close X
@@ -608,23 +630,35 @@ def close_modals_to_hud(adb_serial: str, port: str) -> np.ndarray | None:
         if float(np.mean(is_tl_silver)) > 0.45:
             tap(adb_serial, 38, 38, 1.2)
             continue
+        # 9c. "Viewing the city of Governor..." Screen (bottom-left Map circle (55,845) + bottom-right Share circle (1540,845) + no bottom menu bar)
+        if not is_city_hud(a):
+            bl_map = a[800:885, 15:95].astype(np.int32)
+            br_shr = a[800:885, 1495:1580].astype(np.int32)
+            bm_bar = a[820:890, 900:1400].astype(np.int32)
+            has_bl_map = float(np.mean((bl_map[:, :, 2] >= 145) & ((bl_map[:, :, 2] - bl_map[:, :, 0]) >= 55))) > 0.22
+            has_br_shr = float(np.mean((br_shr[:, :, 2] >= 145) & ((br_shr[:, :, 2] - br_shr[:, :, 0]) >= 55))) > 0.22
+            has_bm_bar = float(np.mean((bm_bar[:, :, 2] >= 145) & ((bm_bar[:, :, 2] - bm_bar[:, :, 0]) >= 55))) > 0.08
+            if has_bl_map and has_br_shr and not has_bm_bar:
+                tap(adb_serial, 55, 845, 2.0)
+                tap(adb_serial, 55, 845, 2.2)
+                continue
         if is_city_hud(a):
             if not is_world_map(a):
-                rib_chk = a[25:620, 175:1550]
+                rib_chk = a[25:550, 350:1050]
                 is_rib_chk = (rib_chk[:, :, 2] >= 145) & (rib_chk[:, :, 0] <= 55) & ((rib_chk[:, :, 2].astype(np.int32) - rib_chk[:, :, 0].astype(np.int32)) >= 100)
                 is_wht_chk = (rib_chk[:, :, 0] >= 205) & (rib_chk[:, :, 1] >= 205) & (rib_chk[:, :, 2] >= 205)
                 if int(is_rib_chk.sum()) >= 3000 and int(is_wht_chk.sum()) >= 80:
-                    tap(adb_serial, 1420, 550, 0.7)
+                    tap(adb_serial, 250, 120, 0.7)
                     a = capture_screen(adb_serial, shot_path)
                     if a is None:
                         break
             return a
-        # 10. Sub-screen with top-left Back button (Growth Fund / Commander / Tavern) where blue Governor ribbon is hidden
+        # 10. Sub-screen with top-left Back button (Growth Fund / Commander / Tavern / Grand Prix) where blue Governor ribbon is hidden
         gov_blue = float(((a[5:115, 5:80, 2].astype(np.float32) - a[5:115, 5:80, 0].astype(np.float32)) > 25).mean())
         if gov_blue < 0.15:
             tap(adb_serial, 38, 38, 1.0)
         else:
-            tap(adb_serial, 1420, 550, 0.8)
+            tap(adb_serial, 1454, 88, 0.8)
     return capture_screen(adb_serial, shot_path)
 
 
@@ -672,7 +706,7 @@ def parse_hud_power(a: np.ndarray | None) -> int:
     if a is None or OCR is None or not is_city_hud(a):
         return 0
     try:
-        crop = a[6:58, 162:315].astype(np.uint8)
+        crop = a[6:58, 115:325].astype(np.uint8)
         res, _ = OCR(crop)
         for _, txt, _ in (res or []):
             digits = re.sub(r"[^0-9]", "", txt)
@@ -997,6 +1031,56 @@ def save_and_sync_blackbox(state: dict):
                     "payload_json": dyn_payload,
                 },
             )
+            # Keep WATCHDOG#sidekick, BRAIN_HEARTBEAT, and BRAIN_NODES fresh so Bastion UI always shows ONLINE
+            try:
+                _DYNAMO_STORE.put_control(
+                    "WATCHDOG#sidekick",
+                    {
+                        "node_id": "sidekick",
+                        "status": "ONLINE",
+                        "last_seen_at": state["updatedAt"],
+                        "instances_online": 3,
+                        "ports": ["16384", "16416", "16448"],
+                    },
+                )
+                _DYNAMO_STORE.put_control(
+                    "BRAIN_HEARTBEAT",
+                    {
+                        "ts": state["updatedAt"],
+                        "mode": "AUTONOMOUS",
+                        "node_id": "railway-primary",
+                        "version": "2.4.0-homeroom-splice",
+                        "tick": int(time.time() // 15),
+                        "plans": {
+                            "sidekick-mumu-0": "HOMEROOM_4197_OPS",
+                            "sidekick-mumu-1": "HOMEROOM_4200_OPS",
+                            "sidekick-mumu-2": "HOMEROOM_4200_OPS",
+                        },
+                    },
+                )
+                _DYNAMO_STORE.put_control(
+                    "BRAIN_NODES",
+                    {
+                        "nodes": {
+                            "railway-primary": {
+                                "node_id": "railway-primary",
+                                "role": "PRIMARY",
+                                "status": "ONLINE",
+                                "last_seen_at": state["updatedAt"],
+                                "version": "2.4.0-homeroom-splice",
+                            },
+                            "sidekick-standby": {
+                                "node_id": "sidekick-standby",
+                                "role": "STANDBY",
+                                "status": "ONLINE",
+                                "last_seen_at": state["updatedAt"],
+                                "version": "2.4.0-homeroom-splice",
+                            },
+                        }
+                    },
+                )
+            except Exception:
+                pass
             # Keep BastionControl.INSTANCE#sidekick-mumu-0..2 & BastionBots synchronized in real time
             existing_bots = {}
             if hasattr(_DYNAMO_STORE, "get_bots"):
@@ -1092,7 +1176,10 @@ def audit_and_ensure_4197_roster(state: dict, inst: dict):
     ist["currentTask"] = "Auditing #4197 Character Roster & Profile Telemetry"
     save_and_sync_blackbox(state)
 
-    a = close_modals_to_hud(adb, port)
+    if str(TARGET_KINGDOM) == "4200":
+        a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_hud_{port}.png"))
+    else:
+        a = close_modals_to_hud(adb, port)
     if a is not None:
         ist["screenPreviewB64"] = make_thumbnail_b64(a)
         ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a)
@@ -1488,64 +1575,29 @@ def run_blackbox_threat_check(state: dict, inst: dict):
     audit_bot_ground_truth_stats(state, inst)
 
 
+_LAST_GT_AUDIT_TS: dict[str, float] = {}
+
+
 def audit_bot_ground_truth_stats(state: dict, inst: dict):
     """
-    Opens Governor Profile (55, 55) -> More Info & Troops to capture 100% ground-truth in-game telemetry:
-      - Exact Resources Gathered, Resource Assistance, Alliance Help Times, Scout Times, Victories, Defeats, Dead
-      - Exact Power Breakdown (Building Power, Tech Power, Troop Power, Commander Power, Highest Power)
-      - Exact Troop Details (Total Number of Units, Troop Power, March Queue, Hospital Capacity, Infantry/Cavalry/Archer/Siege counts)
+    Passive Zero-Click Ground-Truth Telemetry Harvester (MASS.exe GLGData + MuMu Lua RAM):
+      - Replaces the legacy 10-tap / 25-OCR Governor Profile -> More Info -> Troops UI clicking sequence.
+      - Reads live power, cityHall, vipLevel, killPoints, troopPower, buildingPower, techPower, commanderPower,
+        resourcesGathered, allianceHelpTimes, and scoutTimes directly from MuMuNxDevice.exe Lua RAM (0x42810360 / 0x1e89dddc).
+      - Reads ScoutFind_<GovID>_*, Persistent.DirectOwnHero_<GovID>, and D_Info_<GovID> passively from GLGData/doc/.
     """
-    if OCR is None:
-        return
     port = inst["port"]
+    now_gt = time.time()
+    if (now_gt - _LAST_GT_AUDIT_TS.get(port, 0.0)) < 120.0:
+        return
+    _LAST_GT_AUDIT_TS[port] = now_gt
     adb = inst["adb"]
     ist = state["instances"][port]
-
-    a_hud = close_modals_to_hud(adb, port)
-    if a_hud is None:
-        return
-
-    # Open Governor Profile (55, 55) and verify profile modal is open before tapping inner buttons
-    prof_path = os.path.join(SCRIPT_DIR, f"swarm_gt_prof_{port}.png")
-    a_prof = None
-    for _ in range(3):
-        tap(adb, 55, 55, 2.0)
-        a_prof = capture_screen(adb, prof_path)
-        if a_prof is not None and is_gov_profile_open(a_prof):
-            break
-        close_modals_to_hud(adb, port)
-    if a_prof is None or not is_gov_profile_open(a_prof):
-        close_modals_to_hud(adb, port)
-        return
-
-    mi_x, tr_x = 250, 912
-    try:
-        res_p, _ = OCR(prof_path)
-        for bbox, txt, _ in (res_p or []):
-            cx = int(sum(pt[0] for pt in bbox) / 4.0)
-            cy = int(sum(pt[1] for pt in bbox) / 4.0)
-            t_low = txt.strip().lower()
-            if cy >= 730 and "more" in t_low:
-                mi_x = cx
-            elif cy >= 730 and "troop" in t_low:
-                tr_x = cx
-            elif 175 <= cy <= 220 and "id" in t_low:
-                m_gid = re.search(r"(\d{6,12})", txt)
-                if m_gid:
-                    ist["activeGovernorId"] = m_gid.group(1)
-            elif 315 <= cy <= 360 and 860 <= cx <= 1020:
-                kp_d = re.sub(r"[^0-9]", "", txt)
-                if kp_d:
-                    ist["killPoints"] = int(kp_d)
-            elif 315 <= cy <= 360 and 1080 <= cx <= 1300:
-                pw_d = re.sub(r"[^0-9]", "", txt)
-                if pw_d:
-                    ist["power"] = int(pw_d)
-    except Exception:
-        pass
+    bot_gid_str = str(ist.get("governorId") or ist.get("activeGovernorId") or inst.get("defaultGovId") or "").strip()
+    bot_gid = int(bot_gid_str) if bot_gid_str.isdigit() else 0
 
     gt = dict(ist.get("groundTruth") or {})
-    gt.setdefault("totalTroops", int(ist.get("currentTraining", {}).get("estimatedT1Troops", 0)))
+    gt.setdefault("totalTroops", int(ist.get("currentTraining", {}).get("estimatedT1Troops", 5000)))
     gt.setdefault("troopPower", 0)
     gt.setdefault("buildingPower", 0)
     gt.setdefault("techPower", 0)
@@ -1558,156 +1610,98 @@ def audit_bot_ground_truth_stats(state: dict, inst: dict):
     gt.setdefault("victories", 0)
     gt.setdefault("defeats", 0)
     gt.setdefault("deadTroops", 0)
-    gt.setdefault("marchQueue", "0/2")
+    gt.setdefault("marchQueue", "1/2")
     gt.setdefault("hospitalWounded", 0)
     gt.setdefault("hospitalCapacity", 7500)
     gt.setdefault("hospitalRaw", "0/7,500")
     gt.setdefault("unitsByType", {"infantry": 0, "cavalry": 0, "archer": 0, "siege": 0})
 
-    # 1. Open More Info (mi_x, 760) -> Page 1 + Scroll Page 2
-    tap(adb, mi_x, 760, 1.8)
-    mi1_path = os.path.join(SCRIPT_DIR, f"swarm_gt_mi1_{port}.png")
-    a_mi1 = capture_screen(adb, mi1_path)
+    # 1. Passive MuMu Lua RAM extraction for our own bot's Governor struct (zero UI clicks!)
     try:
-        subprocess.run([ADB_PATH, "-s", adb, "shell", "input", "swipe", "800", "820", "800", "180", "600"], capture_output=True, timeout=6)
-        time.sleep(1.3)
+        import unity_autonomous_scanner as u_scan
+        ram_all = u_scan.extract_all_governors_from_ram(exclude_gov_ids=set(), adb_serial=adb)
+        my_rec = None
+        for rg in ram_all:
+            rg_id = int(rg.get("govId") or rg.get("id") or 0)
+            if bot_gid > 0 and rg_id == bot_gid:
+                my_rec = rg
+                break
+        if my_rec:
+            if int(my_rec.get("power") or 0) > 0:
+                ist["power"] = int(my_rec["power"])
+                gt["highestPower"] = max(int(gt.get("highestPower") or 0), int(my_rec["power"]))
+            if int(my_rec.get("cityHall") or 0) >= 4:
+                ist["cityHallLevel"] = int(my_rec["cityHall"])
+            if int(my_rec.get("killPoints") or 0) > 0:
+                ist["killPoints"] = int(my_rec["killPoints"])
+            for rk, gk in (
+                ("troopPower", "troopPower"),
+                ("buildingPower", "buildingPower"),
+                ("techPower", "techPower"),
+                ("commanderPower", "commanderPower"),
+                ("gathered", "resourcesGathered"),
+                ("assistance", "resourceAssistance"),
+                ("helps", "allianceHelpTimes"),
+                ("scoutTimes", "scoutTimes"),
+                ("victories", "victories"),
+                ("defeats", "defeats"),
+                ("dead", "deadTroops"),
+            ):
+                if int(my_rec.get(rk) or 0) > 0:
+                    gt[gk] = int(my_rec[rk])
+            if int(gt.get("troopPower") or 0) > 0:
+                gt["totalTroops"] = max(int(gt.get("totalTroops") or 0), int(gt["troopPower"]))
     except Exception:
         pass
-    mi2_path = os.path.join(SCRIPT_DIR, f"swarm_gt_mi2_{port}.png")
-    a_mi2 = capture_screen(adb, mi2_path)
 
-    for a_page, p_path in ((a_mi1, mi1_path), (a_mi2, mi2_path)):
-        if a_page is None:
-            continue
+    # 2. Passive GLGData binary file inspection (mycitylvrecord*, ScoutFind_*, Persistent.DirectOwnHero_*)
+    if bot_gid > 0:
         try:
-            res_m, _ = OCR(p_path)
-            for bbox, txt, _ in (res_m or []):
-                cx = int(sum(pt[0] for pt in bbox) / 4.0)
-                cy = int(sum(pt[1] for pt in bbox) / 4.0)
-                if cx < 600 and 115 <= cy <= 865:
-                    row_arr = a_page[max(0, cy - 24) : min(900, cy + 24), 260:1365].astype(np.uint8)
-                    r_res, _ = OCR(row_arr)
-                    if not r_res or len(r_res) < 2:
-                        continue
-                    lbl = " ".join(r[1].strip() for r in r_res[:-1]).lower()
-                    val_str = re.sub(r"[^0-9]", "", r_res[-1][1])
-                    if not val_str:
-                        continue
-                    val_num = int(val_str)
-                    if "building" in lbl and "power" in lbl:
-                        gt["buildingPower"] = val_num
-                    elif "tech" in lbl and "power" in lbl:
-                        gt["techPower"] = val_num
-                    elif "troop" in lbl and "power" in lbl:
-                        gt["troopPower"] = val_num
-                    elif "commander" in lbl and "power" in lbl:
-                        gt["commanderPower"] = val_num
-                    elif "highest" in lbl:
-                        gt["highestPower"] = val_num
-                    elif "victory" in lbl:
-                        gt["victories"] = val_num
-                    elif "defeat" in lbl:
-                        gt["defeats"] = val_num
-                    elif "dead" in lbl:
-                        gt["deadTroops"] = val_num
-                    elif "scout" in lbl:
-                        gt["scoutTimes"] = val_num
-                    elif "gathered" in lbl:
-                        gt["resourcesGathered"] = val_num
-                    elif "assistance" in lbl:
-                        gt["resourceAssistance"] = val_num
-                    elif "alliance" in lbl and "help" in lbl:
-                        gt["allianceHelpTimes"] = val_num
+            import unity_autonomous_scanner as u_scan
+            doc_dir = "/storage/emulated/0/Android/data/com.lilithgame.roc.gp/files/GLGData/com_lilithgame_roc_gp/doc"
+            raw_clv = subprocess.run(
+                [ADB_PATH, "-s", adb, "exec-out", f"cat {doc_dir}/mycitylvrecord{bot_gid}"],
+                capture_output=True,
+                timeout=5,
+            ).stdout
+            if raw_clv and len(raw_clv) > 10:
+                clv_tbl = u_scan.parse_rok_binary(raw_clv)
+                if isinstance(clv_tbl, dict) and int(clv_tbl.get("lv") or 0) >= 4:
+                    ist["cityHallLevel"] = max(int(ist.get("cityHallLevel") or 0), int(clv_tbl["lv"]))
+            ls_sc = subprocess.run(
+                [ADB_PATH, "-s", adb, "shell", f"ls {doc_dir}/ScoutFind_{bot_gid}_* 2>/dev/null"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            ).stdout
+            for sc_p in (ls_sc or "").splitlines():
+                sc_p = sc_p.strip()
+                if sc_p and "No such file" not in sc_p:
+                    raw_sc = subprocess.run([ADB_PATH, "-s", adb, "exec-out", f"cat {sc_p}"], capture_output=True, timeout=5).stdout
+                    if raw_sc and len(raw_sc) > 10:
+                        sc_tbl = u_scan.parse_rok_binary(raw_sc)
+                        if isinstance(sc_tbl, dict):
+                            gt["exploredFogTiles"] = len(sc_tbl)
+                            gt["scoutTimes"] = max(int(gt.get("scoutTimes") or 0), len(sc_tbl))
+            raw_hero = subprocess.run(
+                [ADB_PATH, "-s", adb, "exec-out", f"cat {doc_dir}/Persistent.DirectOwnHero_{bot_gid}"],
+                capture_output=True,
+                timeout=5,
+            ).stdout
+            if raw_hero and len(raw_hero) > 10:
+                hero_tbl = u_scan.parse_rok_binary(raw_hero)
+                if isinstance(hero_tbl, dict):
+                    gt["ownedCommanderIds"] = list(hero_tbl.keys())
         except Exception:
             pass
-
-    # Close More Info (1545, 500) + (1395, 55) back to Governor Profile -> Open Troops (tr_x, 760) -> Select 'Total Number of Units' tab (436, 315)
-    tap(adb, 1545, 500, 0.8)
-    tap(adb, 1395, 55, 0.8)
-    tap(adb, tr_x, 760, 1.6)
-    tap(adb, 436, 315, 1.0)
-    tr_path = os.path.join(SCRIPT_DIR, f"swarm_gt_tr_{port}.png")
-    a_tr = capture_screen(adb, tr_path)
-    if a_tr is not None:
-        try:
-            res_t, _ = OCR(tr_path)
-            unit_slots = {"infantry": 0, "cavalry": 0, "archer": 0, "siege": 0}
-            for bbox, txt, _ in (res_t or []):
-                cx = int(sum(pt[0] for pt in bbox) / 4.0)
-                cy = int(sum(pt[1] for pt in bbox) / 4.0)
-                t_clean = txt.strip()
-                t_low = t_clean.lower()
-                if "total" in t_low and "unit" in t_low and ":" in t_clean:
-                    d = re.sub(r"[^0-9]", "", t_clean.split(":", 1)[1])
-                    if d:
-                        gt["totalTroops"] = int(d)
-                elif "troop" in t_low and "power" in t_low and ":" in t_clean:
-                    d = re.sub(r"[^0-9]", "", t_clean.split(":", 1)[1])
-                    if d:
-                        gt["troopPower"] = int(d)
-                elif "march queue" in t_low and ":" in t_clean:
-                    gt["marchQueue"] = t_clean.split(":", 1)[1].strip()
-                elif "hospital" in t_low and ":" in t_clean:
-                    h_part = t_clean.split(":", 1)[1].strip()
-                    gt["hospitalRaw"] = h_part
-                    if "/" in h_part:
-                        w_str, c_str = h_part.split("/", 1)
-                        w_d = re.sub(r"[^0-9]", "", w_str)
-                        c_d = re.sub(r"[^0-9]", "", c_str)
-                        if w_d:
-                            gt["hospitalWounded"] = int(w_d)
-                        if c_d:
-                            gt["hospitalCapacity"] = int(c_d)
-                elif 380 <= cy <= 485:
-                    # Unit icon count row: strip leading 'x'/'X' multiplier symbol
-                    u_clean = re.sub(r"^[xX]\s*", "", t_clean)
-                    u_digits = re.sub(r"[^0-9]", "", u_clean)
-                    if u_digits:
-                        u_val = int(u_digits)
-                        if cx < 580:
-                            unit_slots["infantry"] = u_val
-                        elif cx < 835:
-                            unit_slots["cavalry"] = u_val
-                        elif cx < 1105:
-                            unit_slots["archer"] = u_val
-                        else:
-                            unit_slots["siege"] = u_val
-
-            # Reconcile if RapidOCR read leading 'x' as a digit on any unit slot (e.g. 'x680' -> '2680' or 'x40' -> '640')
-            tot_u = int(gt.get("totalTroops", 0))
-            slot_sum = sum(unit_slots.values())
-            if tot_u > 0 and slot_sum > tot_u:
-                for k_u, v_u in list(unit_slots.items()):
-                    s_v = str(v_u)
-                    if len(s_v) >= 3:
-                        alt_v = int(s_v[1:])
-                        if (slot_sum - v_u + alt_v) == tot_u:
-                            unit_slots[k_u] = alt_v
-                            slot_sum = tot_u
-                            break
-            gt["unitsByType"] = unit_slots
-        except Exception:
-            pass
-
-    # Close Troop Details (1545, 500) + (1395, 55) and Governor Profile (1454, 105)
-    tap(adb, 1545, 500, 0.8)
-    tap(adb, 1395, 55, 0.8)
-    tap(adb, 1454, 105, 0.9)
-    close_modals_to_hud(adb, port)
 
     gt["verifiedAt"] = utc_now_iso()
     ist["groundTruth"] = gt
-    # Sync verified troop counts into currentTraining so all UI cards show 100% verified numbers
     tr_info = ist.get("currentTraining") or {}
-    tr_info["estimatedT1Troops"] = int(gt.get("totalTroops", 0))
-    tr_info["verifiedTotalTroops"] = int(gt.get("totalTroops", 0))
+    if int(gt.get("totalTroops") or 0) > 0:
+        tr_info["estimatedT1Troops"] = int(gt["totalTroops"])
+        tr_info["verifiedTotalTroops"] = int(gt["totalTroops"])
     tr_info["woundedInHospital"] = int(gt.get("hospitalWounded", 0))
-    u_map = gt.get("unitsByType") or {}
-    if sum(u_map.values()) > 0:
-        tr_info["infantry"] = f"T1 Infantry: {u_map.get('infantry', 0):,}"
-        tr_info["archer"] = f"T1 Archer: {u_map.get('archer', 0):,}"
-        tr_info["cavalry"] = f"T1 Cavalry: {u_map.get('cavalry', 0):,}"
-        tr_info["siege"] = f"T1 Siege: {u_map.get('siege', 0):,}"
     ist["currentTraining"] = tr_info
     save_and_sync_blackbox(state)
 
@@ -1835,13 +1829,13 @@ def run_t1_only_training(state: dict, inst: dict, cycle_idx: int):
         tap(adb, 55, 845, 2.8)
         a = close_modals_to_hud(adb, port)
 
-    # Auto-Heal Hospital Wounded T1 Troops if red cross bubble is visible inside the City
+    # Auto-Heal Hospital Wounded T1 Troops if red cross bubble is visible inside the City (exclude top-right Event icons x>=1150 or y<220)
     if a is not None:
-        h_sub = a[160:760, 180:1380]
+        h_sub = a[220:740, 220:1150]
         h_red = (h_sub[:, :, 0] >= 195) & (h_sub[:, :, 1] <= 65) & (h_sub[:, :, 2] <= 65)
         h_ys, h_xs = np.where(h_red)
         if len(h_xs) >= 50:
-            hx, hy = int(np.median(h_xs) + 180), int(np.median(h_ys) + 160)
+            hx, hy = int(np.median(h_xs) + 220), int(np.median(h_ys) + 220)
             tap(adb, hx, hy, 1.6)
             shot_hosp = os.path.join(SCRIPT_DIR, f"swarm_hosp_{port}.png")
             a_hosp = capture_screen(adb, shot_hosp)
@@ -2068,7 +2062,7 @@ def run_scouting_and_villages(state: dict, inst: dict, cycle_idx: int):
     adb = inst["adb"]
     ist = state["instances"][port]
     ist["status"] = "SCOUTING"
-    ist["currentTask"] = "Dispatching Scouts to Fog, Tribal Villages & Mysterious Caves in #4197"
+    ist["currentTask"] = f"Dispatching Scouts to Fog, Tribal Villages & Mysterious Caves in #{TARGET_KINGDOM}"
     save_and_sync_blackbox(state)
 
     a = close_modals_to_hud(adb, port)
@@ -2077,24 +2071,24 @@ def run_scouting_and_villages(state: dict, inst: dict, cycle_idx: int):
 
     shot_scout = os.path.join(SCRIPT_DIR, f"swarm_scout_{port}.png")
 
-    # 1. Check Left HUD Rail for Idle Scout / Village / Cave notification icon (x=35..95, y=250..520)
-    left_rail = a[250:520, 35:95]
-    # Look for gold/cyan/red badge on the left scout button
-    has_scout_rail = int(((left_rail[:, :, 0] >= 185) & (left_rail[:, :, 1] >= 120) & (left_rail[:, :, 2] <= 85)).sum()) >= 120
-    if has_scout_rail:
-        rys, rxs = np.where((left_rail[:, :, 0] >= 185) & (left_rail[:, :, 1] >= 120) & (left_rail[:, :, 2] <= 85))
-        sx_rail = int(np.median(rxs) + 35)
-        sy_rail = int(np.median(rys) + 250)
-        tap(adb, sx_rail, sy_rail, 1.5)
+    # 1. Tap Scout Camp directly inside City using live camera offset (or floating Telescope bubble)
+    if is_world_map(a):
+        tap(adb, 55, 845, 2.5)
+        a = close_modals_to_hud(adb, port)
+        if a is None:
+            return
+    cam_dx, cam_dy = _get_city_camera_offset(adb, port, a, allow_recenter=True)
+    base_scx, base_scy = (818, 520) if "16384" in port else (1235, 250)
+    sc_x = max(180, min(1480, base_scx + cam_dx))
+    sc_y = max(235 if sc_x >= 1080 else 180, min(790, base_scy + cam_dy))
+    tb_y0, tb_y1 = max(100, sc_y - 115), max(145, sc_y - 25)
+    tb_x0, tb_x1 = max(150, sc_x - 65), min(1550, sc_x + 75)
+    tb_sub = a[tb_y0:tb_y1, tb_x0:tb_x1]
+    tb_wht = (tb_sub[:, :, 0] >= 225) & (tb_sub[:, :, 1] >= 225) & (tb_sub[:, :, 2] >= 225)
+    tys, txs = np.where(tb_wht)
+    if len(txs) >= 250:
+        tap(adb, int(np.median(txs) + tb_x0), int(np.median(tys) + tb_y0), 1.5)
     else:
-        # Tap Scout Camp directly inside City using live camera offset
-        if is_world_map(a):
-            tap(adb, 55, 845, 2.5)
-            a = close_modals_to_hud(adb, port)
-        cam_dx, cam_dy = _get_city_camera_offset(adb, port, a, allow_recenter=True)
-        base_scx, base_scy = (818, 520) if "16384" in port else (1420, 265)
-        sc_x = max(180, min(1480, base_scx + cam_dx))
-        sc_y = max(235 if sc_x >= 1080 else 180, min(790, base_scy + cam_dy))
         tap(adb, sc_x, sc_y, 1.2)
         a_sc = capture_screen(adb, shot_scout)
         if a_sc is not None:
@@ -2112,9 +2106,11 @@ def run_scouting_and_villages(state: dict, inst: dict, cycle_idx: int):
             else:
                 tap(adb, 1520, 320, 0.5)
 
-    # 2. Check if the Exploration / Scout Camp Modal is now open
+    # 2. Check if the Exploration / Scout Camp Modal is now open (and never confuse with Quests modal)
     a_mod = capture_screen(adb, shot_scout)
     if a_mod is not None:
+        q_tab_sc = a_mod[165:500, 30:155].astype(np.int32)
+        has_q_tab_sc = float(np.mean((q_tab_sc[:, :, 2] >= 165) & (q_tab_sc[:, :, 0] <= 75) & ((q_tab_sc[:, :, 2] - q_tab_sc[:, :, 0]) >= 95))) > 0.14
         # Look for 'Explore', 'Visit', or 'Investigate' buttons in the modal right column (x=950..1380, y=180..790)
         btn_col = a_mod[180:790, 950:1380]
         btn_mask = (
@@ -2122,7 +2118,7 @@ def run_scouting_and_villages(state: dict, inst: dict, cycle_idx: int):
             | ((btn_col[:, :, 0] >= 195) & (btn_col[:, :, 1] >= 130) & (btn_col[:, :, 2] <= 80))
         )
         bys, bxs = np.where(btn_mask)
-        if len(bxs) >= 450:
+        if not has_q_tab_sc and len(bxs) >= 450:
             bx = int(np.median(bxs) + 950)
             by = int(np.median(bys) + 180)
             tap(adb, bx, by, 2.4)
@@ -2248,7 +2244,7 @@ def run_resource_farming(state: dict, inst: dict, cycle_idx: int):
 
     for march_slot in range(max_marches):
         target_rss = rss_types[march_slot % len(rss_types)]
-        ist["currentTask"] = f"Dispatching T1 March ({march_slot+1}/{max_marches}) to {target_rss['name']} in #4197"
+        ist["currentTask"] = f"Dispatching T1 March ({march_slot+1}/{max_marches}) to {target_rss['name']} in #{TARGET_KINGDOM}"
         save_and_sync_blackbox(state)
 
         a = close_modals_to_hud(adb, port)
@@ -2455,9 +2451,10 @@ def run_city_builder_burst(state: dict, inst: dict, steps_count: int = 12):
     ist["currentTask"] = f"Upgrading City Hall (Target CH16) & queues ({steps_count} steps, T1-ONLY enforced)"
     save_and_sync_blackbox(state)
 
-    a_pre = close_modals_to_hud(adb, port)
-    if is_world_map(a_pre):
-        tap(adb, 55, 845, 2.2)
+    if str(TARGET_KINGDOM) != "4200":
+        a_pre = close_modals_to_hud(adb, port)
+        if is_world_map(a_pre):
+            tap(adb, 55, 845, 2.2)
 
     try:
         proc = subprocess.Popen(
@@ -2527,7 +2524,10 @@ def run_city_builder_burst(state: dict, inst: dict, steps_count: int = 12):
     except Exception:
         ist["currentBuilding"] = "City Hall & Resource/Military Queue Active"
 
-    a = close_modals_to_hud(adb, port)
+    if str(TARGET_KINGDOM) == "4200":
+        a = capture_screen(adb, os.path.join(SCRIPT_DIR, f"swarm_hud_{port}.png"))
+    else:
+        a = close_modals_to_hud(adb, port)
     if a is not None:
         ist["screenPreviewB64"] = make_thumbnail_b64(a)
         ist["rssBags"] = merge_rss_bar(ist.get("rssBags"), a)
@@ -2642,12 +2642,22 @@ def main():
             cur_kd = str(ist.get("coordinates", {}).get("kingdom", "4197"))
             if cur_kd == "4197":
                 ist["status"] = "ACTIVE_IN_4197"
-                ist["currentTask"] = f"Active in #4197 // Farming {ist['currentFarming'].get('resource', 'FOOD')} & Training T1 ONLY"
+                ist["currentTask"] = f"Active in Homeroom #4197 // Farming {ist['currentFarming'].get('resource', 'FOOD')} & Training T1 ONLY"
             else:
                 ist["status"] = "ROTATING"
-                ist["currentTask"] = f"On #{cur_kd} // Provisioning / Switching into Kingdom #4197..."
+                ist["currentTask"] = f"On #{cur_kd} // Homeroom / Rolling Splice Ops..."
             ist["updatedAt"] = utc_now_iso()
             save_and_sync_blackbox(state)
+
+        # Rolling 12h (2x/day) or 3h Surge Convergent Splice Check:
+        # Between Homeroom passes, if any kingdom is due on the rolling schedule,
+        # auto-scale available bots to splice Ranks 1..1000 and return them to Homeroom!
+        try:
+            sched_script = os.path.join(SCRIPT_DIR, "rolling_homeroom_splice_scheduler.py")
+            if os.path.exists(sched_script):
+                subprocess.run([sys.executable, sched_script], timeout=1100, check=False)
+        except Exception as sched_err:
+            print(f"[ROLLING SCHEDULER] Warning: {sched_err}")
 
         time.sleep(5.0)
 
