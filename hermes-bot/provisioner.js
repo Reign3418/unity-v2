@@ -84,6 +84,9 @@ const BUTTON_STYLES = {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// In-flight mutex lock per guildId so concurrent clicks or duplicate runs can never double-provision a server
+const ACTIVE_PROVISION_LOCKS = new Map();
+
 /**
  * Rate-limit aware Discord REST v10 caller
  */
@@ -546,6 +549,13 @@ export async function provisionDiscordServer({
     throw new Error('DISCORD_TOKEN is required for live server provisioning.');
   }
 
+  const existingLockTs = ACTIVE_PROVISION_LOCKS.get(cleanGuildId);
+  if (existingLockTs && Date.now() - existingLockTs < 90000) {
+    throw new Error(`Provisioning is already in progress on Server ID ${cleanGuildId}. Please wait ~20 seconds for it to finish.`);
+  }
+  ACTIVE_PROVISION_LOCKS.set(cleanGuildId, Date.now());
+
+  try {
   const log = [];
   const roleIdByKey = {};
   let notificationChannelId = null;
@@ -851,4 +861,7 @@ export async function provisionDiscordServer({
     roleIdByKey,
     log,
   };
+  } finally {
+    ACTIVE_PROVISION_LOCKS.delete(cleanGuildId);
+  }
 }
