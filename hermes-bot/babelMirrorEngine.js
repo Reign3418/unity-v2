@@ -300,8 +300,10 @@ const TIER_0_INVARIANT_TOKENS = new Set([
 
 // Cache channelId -> webhook { id, token }
 const WEBHOOK_CACHE = new Map();
-// Cache guild Omni channel map: channelId -> langObj
+// Cache guild Omni channel map: channelId -> { guildId, langMeta }
 const ACTIVE_BABEL_CHANNELS = new Map();
+// Track guilds whose topology has been synced in this process lifetime
+const SYNCED_GUILDS = new Set();
 // Cache channelId -> channel metadata { id, name }
 const CHANNEL_META_CACHE = new Map();
 // Cache ticket channelId -> active applicant language code
@@ -318,7 +320,9 @@ const WEBHOOK_CHANNEL_QUEUES = new Map();
 function loadBabelState() {
   try {
     if (fs.existsSync(BABEL_STATE_PATH)) {
-      return JSON.parse(fs.readFileSync(BABEL_STATE_PATH, 'utf8'));
+      const parsed = JSON.parse(fs.readFileSync(BABEL_STATE_PATH, 'utf8'));
+      parsed.guilds = parsed.guilds || {};
+      return parsed;
     }
   } catch {}
   return {
@@ -329,7 +333,22 @@ function loadBabelState() {
     roleIdsByLang: {},
     webhooksByChannel: {},
     announcementChannelId: null,
+    guilds: {},
   };
+}
+
+function getGuildBabelConfig(st, guildId) {
+  const gid = String(guildId || BABEL_EXCLUSIVE_GUILD_ID);
+  st.guilds = st.guilds || {};
+  if (!st.guilds[gid]) {
+    st.guilds[gid] = {
+      channelIdsByLang: gid === BABEL_EXCLUSIVE_GUILD_ID ? { ...(st.channelIdsByLang || {}) } : {},
+      roleIdsByLang: gid === BABEL_EXCLUSIVE_GUILD_ID ? { ...(st.roleIdsByLang || {}) } : {},
+      announcementChannelId: gid === BABEL_EXCLUSIVE_GUILD_ID ? st.announcementChannelId || null : null,
+      founderOverwatchAll: st.founderOverwatchAll !== false,
+    };
+  }
+  return st.guilds[gid];
 }
 
 function saveBabelState(state) {
@@ -378,9 +397,10 @@ export function setUserBabelLocale(userId, langCode) {
  * Pillar 1: Returns the list of target languages that currently have >= 1 AWAKE human subscriber
  * (active within the last 45 minutes), OR all languages if Founder Overwatch is toggled ON.
  */
-function getAwakeTargetLanguages(sourceLangCode, st) {
+function getAwakeTargetLanguages(sourceLangCode, st, guildId = BABEL_EXCLUSIVE_GUILD_ID) {
+  const guildCfg = getGuildBabelConfig(st, guildId);
   // If Founder Overwatch is ON, keep all 16 target rooms live for visual inspection/demos
-  if (st.founderOverwatchAll !== false) {
+  if (guildCfg.founderOverwatchAll !== false) {
     return BABEL_LANGUAGES.filter((l) => l.code !== sourceLangCode);
   }
 
@@ -517,35 +537,47 @@ export async function translateBabelMessage(rawText, targetLang = 'en') {
 }
 
 /**
- * Discovers and caches all 17 Omni-Language channels + language roles + Announcement channel inside Valheon Citadel HQ
+ * Discovers and caches all 17 Omni-Language channels + language roles + Announcement channel inside ANY server
  */
 export async function syncBabelGuildTopology(discordApi, guildId = BABEL_EXCLUSIVE_GUILD_ID) {
-  if (String(guildId) !== BABEL_EXCLUSIVE_GUILD_ID) return null;
+  if (!guildId) return null;
+  const gid = String(guildId);
 
   try {
     const [channels, roles] = await Promise.all([
-      discordApi('GET', `/guilds/${guildId}/channels`),
-      discordApi('GET', `/guilds/${guildId}/roles`),
+      discordApi('GET', `/guilds/${gid}/channels`),
+      discordApi('GET', `/guilds/${gid}/roles`),
     ]);
 
     const st = loadBabelState();
-    st.channelIdsByLang = st.channelIdsByLang || {};
-    st.roleIdsByLang = st.roleIdsByLang || {};
-
-    ACTIVE_BABEL_CHANNELS.clear();
-    CHANNEL_META_CACHE.clear();
+    const guildCfg = getGuildBabelConfig(st, gid);
+    guildCfg.channelIdsByLang = guildCfg.channelIdsByLang || {};
+    guildCfg.roleIdsByLang = guildCfg.roleIdsByLang || {};
 
     if (Array.isArray(channels)) {
       for (const ch of channels) {
         if (!ch?.name) continue;
-        CHANNEL_META_CACHE.set(ch.id, { id: ch.id, name: ch.name.toLowerCase() });
-        const langMeta = LANG_BY_CHANNEL_NAME.get(ch.name.toLowerCase());
+        const lowerName = ch.name.toLowerCase();
+        CHANNEL_META_CACHE.set(ch.id, { id: ch.id, name: lowerName });
+        const langMeta = LANG_BY_CHANNEL_NAME.get(lowerName);
         if (langMeta) {
-          ACTIVE_BABEL_CHANNELS.set(ch.id, langMeta);
-          st.channelIdsByLang[langMeta.code] = ch.id;
+          ACTIVE_BABEL_CHANNELS.set(ch.id, { guildId: gid, langMeta });
+          guildCfg.channelIdsByLang[langMeta.code] = ch.id;
+          if (gid === BABEL_EXCLUSIVE_GUILD_ID) {
+            st.channelIdsByLang = st.channelIdsByLang || {};
+            st.channelIdsByLang[langMeta.code] = ch.id;
+          }
         }
-        if (ch.name.toLowerCase().includes('valheon-announcements')) {
-          st.announcementChannelId = ch.id;
+        if (
+          lowerName.includes('valheon-announcements') ||
+          lowerName.includes('kings-decrees') ||
+          lowerName === 'announcements' ||
+          lowerName === '📢-announcements'
+        ) {
+          guildCfg.announcementChannelId = ch.id;
+          if (gid === BABEL_EXCLUSIVE_GUILD_ID) {
+            st.announcementChannelId = ch.id;
+          }
         }
       }
     }
@@ -557,15 +589,20 @@ export async function syncBabelGuildTopology(discordApi, guildId = BABEL_EXCLUSI
           (l) => l.roleName.toLowerCase() === r.name.toLowerCase()
         );
         if (matchedLang) {
-          st.roleIdsByLang[matchedLang.code] = r.id;
+          guildCfg.roleIdsByLang[matchedLang.code] = r.id;
+          if (gid === BABEL_EXCLUSIVE_GUILD_ID) {
+            st.roleIdsByLang = st.roleIdsByLang || {};
+            st.roleIdsByLang[matchedLang.code] = r.id;
+          }
         }
       }
     }
 
+    SYNCED_GUILDS.add(gid);
     saveBabelState(st);
     return st;
   } catch (err) {
-    console.error('[HERMES Omni-Language Topology Sync Error]:', err.message);
+    console.error(`[HERMES Omni-Language Topology Sync Error on ${gid}]:`, err.message);
     return null;
   }
 }
@@ -643,22 +680,17 @@ export async function handleBabelLanguageSelect({
   member,
   langCode,
 }) {
-  if (String(guildId) !== BABEL_EXCLUSIVE_GUILD_ID) {
-    return {
-      ok: false,
-      content: '🔒 **Valheon Sovereign Exclusive:** The HERMES Omni-Language Matrix is only active in Valheon Citadel HQ.',
-    };
-  }
-
-  const st = await syncBabelGuildTopology(discordApi, guildId);
+  const gid = String(guildId || BABEL_EXCLUSIVE_GUILD_ID);
+  const st = await syncBabelGuildTopology(discordApi, gid);
   const langMeta = LANG_BY_CODE.get(langCode) || LANG_BY_CODE.get('en');
   if (!st || !langMeta) {
     return { ok: false, content: '⚠️ Could not load Omni-Language topology.' };
   }
 
+  const guildCfg = getGuildBabelConfig(st, gid);
   const currentRoles = new Set(Array.isArray(member?.roles) ? member.roles : []);
-  const allLangRoleIds = new Set(Object.values(st.roleIdsByLang || {}).filter(Boolean));
-  const targetRoleId = st.roleIdsByLang?.[langMeta.code];
+  const allLangRoleIds = new Set(Object.values(guildCfg.roleIdsByLang || {}).filter(Boolean));
+  const targetRoleId = guildCfg.roleIdsByLang?.[langMeta.code];
 
   // Enforce strict 1-Language Role rule: strip any previous language role and assign ONLY the new one
   const updatedRoles = [...currentRoles].filter((rId) => !allLangRoleIds.has(rId));
@@ -667,18 +699,18 @@ export async function handleBabelLanguageSelect({
   }
 
   try {
-    await discordApi('PATCH', `/guilds/${guildId}/members/${user.id}`, {
+    await discordApi('PATCH', `/guilds/${gid}/members/${user.id}`, {
       roles: [...new Set(updatedRoles)],
     });
   } catch {
     if (targetRoleId) {
-      await discordApi('PUT', `/guilds/${guildId}/members/${user.id}/roles/${targetRoleId}`).catch(() => {});
+      await discordApi('PUT', `/guilds/${gid}/members/${user.id}/roles/${targetRoleId}`).catch(() => {});
     }
   }
 
   setUserBabelLocale(user.id, langMeta.code);
 
-  const targetChannelId = st.channelIdsByLang?.[langMeta.code];
+  const targetChannelId = guildCfg.channelIdsByLang?.[langMeta.code];
   const channelMention = targetChannelId ? `<#${targetChannelId}>` : `**#${langMeta.channelName}**`;
 
   return {
@@ -703,12 +735,17 @@ export async function handleBabelFounderAllLanguages({
   user,
   member,
 }) {
-  const st = await syncBabelGuildTopology(discordApi, guildId);
-  const allLangRoleIds = Object.values(st?.roleIdsByLang || {}).filter(Boolean);
+  const gid = String(guildId || BABEL_EXCLUSIVE_GUILD_ID);
+  const st = await syncBabelGuildTopology(discordApi, gid);
+  const guildCfg = getGuildBabelConfig(st, gid);
+  const allLangRoleIds = Object.values(guildCfg?.roleIdsByLang || {}).filter(Boolean);
   const currentRoles = new Set(Array.isArray(member?.roles) ? member.roles : []);
 
-  const nextOverwatchState = st.founderOverwatchAll === false;
-  st.founderOverwatchAll = nextOverwatchState;
+  const nextOverwatchState = guildCfg.founderOverwatchAll === false;
+  guildCfg.founderOverwatchAll = nextOverwatchState;
+  if (gid === BABEL_EXCLUSIVE_GUILD_ID) {
+    st.founderOverwatchAll = nextOverwatchState;
+  }
   saveBabelState(st);
 
   let updatedRoles;
@@ -716,7 +753,7 @@ export async function handleBabelFounderAllLanguages({
 
   if (!nextOverwatchState) {
     updatedRoles = [...currentRoles].filter((id) => !allLangRoleIds.includes(id));
-    if (st?.roleIdsByLang?.en) updatedRoles.push(st.roleIdsByLang.en);
+    if (guildCfg?.roleIdsByLang?.en) updatedRoles.push(guildCfg.roleIdsByLang.en);
     modeLabel =
       '⚡ **Awake-Cohort Smart Mode Engaged (Production Scale Mode)** — HERMES now ONLY translates into language rooms that have `>= 1` human subscriber active in the last 45 minutes! Asleep/empty rooms consume `0` API calls and `0` Webhooks.';
   } else {
@@ -725,7 +762,7 @@ export async function handleBabelFounderAllLanguages({
       '👁️ **Founder Demo Overwatch Engaged (All 17 Rooms Live)** — HERMES is broadcasting into all 17 rooms simultaneously so you can demo or inspect every language at once!';
   }
 
-  await discordApi('PATCH', `/guilds/${guildId}/members/${user.id}`, {
+  await discordApi('PATCH', `/guilds/${gid}/members/${user.id}`, {
     roles: updatedRoles,
   }).catch(() => {});
 
@@ -743,16 +780,17 @@ async function flushCoalescedBabelBatch(discordApi, bufferKey) {
   if (!batch) return;
   COALESCE_BUFFERS.delete(bufferKey);
 
-  const { sourceLangMeta, displayName, avatarUrl, lines, attachmentUrls, channelId } = batch;
+  const { guildId, sourceLangMeta, displayName, avatarUrl, lines, attachmentUrls, channelId } = batch;
   const combinedRaw = lines.filter(Boolean).join('\n').trim();
   if (!combinedRaw && attachmentUrls.length === 0) return;
 
   const st = loadBabelState();
-  const targetLangs = getAwakeTargetLanguages(sourceLangMeta.code, st);
+  const guildCfg = getGuildBabelConfig(st, guildId);
+  const targetLangs = getAwakeTargetLanguages(sourceLangMeta.code, st, guildId);
 
   await Promise.allSettled(
     targetLangs.map(async (targetLang) => {
-      const targetChannelId = st.channelIdsByLang?.[targetLang.code];
+      const targetChannelId = guildCfg.channelIdsByLang?.[targetLang.code];
       if (!targetChannelId || targetChannelId === channelId) return;
 
       const translatedText = combinedRaw
@@ -798,24 +836,26 @@ async function flushCoalescedBabelBatch(discordApi, bufferKey) {
 }
 
 /**
- * Master Valheon Citadel Omni-Language Message Router:
+ * Master Multi-Guild Omni-Language Message Router:
  *   1. If posted in one of the 17 Native Mirror rooms -> 1.2s Coalescer + Awake-Only Webhook Broadcast
- *   2. If posted in `#📢-valheon-announcements` -> 17-Language Gold Announcement Broadcast into all 17 rooms
+ *   2. If posted in `#📢-valheon-announcements` / `#📢-kings-decrees` -> 17-Language Gold Announcement Broadcast into all 17 rooms
  *   3. If posted in `#ticket-*` -> 2-Way Automatic Ticket Interpreter (Applicant Native Language <-> English)
  */
 export async function handleBabelMirrorMessage(discordApi, msg) {
-  if (!msg || !msg.guild_id || String(msg.guild_id) !== BABEL_EXCLUSIVE_GUILD_ID) {
+  if (!msg || !msg.guild_id) {
     return false;
   }
   if (msg.author?.bot || msg.webhook_id) {
     return false;
   }
 
+  const gid = String(msg.guild_id);
+
   // Stamp speaker's live activity timestamp
   touchBabelUserActivity(msg.author.id);
 
-  if (ACTIVE_BABEL_CHANNELS.size === 0) {
-    await syncBabelGuildTopology(discordApi, msg.guild_id);
+  if (!SYNCED_GUILDS.has(gid)) {
+    await syncBabelGuildTopology(discordApi, gid);
   }
 
   const rawContent = String(msg.content || '').trim();
@@ -838,12 +878,14 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
     : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(msg.author?.id || '0') >> 22n) % 6}.png`;
 
   const st = loadBabelState();
+  const guildCfg = getGuildBabelConfig(st, gid);
 
   // ==========================================================================
   // ROUTE 1: 17-LANGUAGE NATIVE GLOBAL CHAT MIRROR (1.2s Coalescer + Awake Gate)
   // ==========================================================================
-  const sourceLangMeta = ACTIVE_BABEL_CHANNELS.get(msg.channel_id);
-  if (sourceLangMeta) {
+  const channelEntry = ACTIVE_BABEL_CHANNELS.get(msg.channel_id);
+  const sourceLangMeta = channelEntry?.langMeta || channelEntry;
+  if (sourceLangMeta && sourceLangMeta.code) {
     // Auto-record that this speaker is active in this language channel
     setUserBabelLocale(msg.author.id, sourceLangMeta.code);
 
@@ -861,6 +903,7 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
         flushCoalescedBabelBatch(discordApi, bufferKey).catch(() => {});
       }, COALESCE_WINDOW_MS);
       COALESCE_BUFFERS.set(bufferKey, {
+        guildId: gid,
         sourceLangMeta,
         displayName,
         avatarUrl,
@@ -874,12 +917,12 @@ export async function handleBabelMirrorMessage(discordApi, msg) {
   }
 
   // ==========================================================================
-  // ROUTE 2: `#📢-valheon-announcements` -> 17-LANGUAGE AUTO-BROADCAST
+  // ROUTE 2: `#📢-valheon-announcements` / `#📢-kings-decrees` -> 17-LANGUAGE AUTO-BROADCAST
   // ==========================================================================
-  if (st.announcementChannelId && msg.channel_id === st.announcementChannelId && rawContent) {
+  if (guildCfg.announcementChannelId && msg.channel_id === guildCfg.announcementChannelId && rawContent) {
     await Promise.allSettled(
       BABEL_LANGUAGES.map(async (targetLang) => {
-        const targetChannelId = st.channelIdsByLang?.[targetLang.code];
+        const targetChannelId = guildCfg.channelIdsByLang?.[targetLang.code];
         if (!targetChannelId) return;
 
         const translatedText =

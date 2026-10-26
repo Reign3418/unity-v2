@@ -663,19 +663,6 @@ export async function verifyStripePaymentStatus({ userId, username, planKey, gui
     }
   }
 
-  // Only allow Sandbox Bypass if the caller is the Valheon Principal Architect (184977944433786880)!
-  if (String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
-    return {
-      paid: true,
-      mode: 'PRINCIPAL_SANDBOX_BYPASS',
-      sessionId: `principal_${Date.now()}`,
-      amountUsd: 0,
-      discountUsd: (STRIPE_CATALOG[planKey]?.amountCents || 3900) / 100,
-      promoCodeUsed: 'PRINCIPAL_OVERRIDE',
-      customerEmail: 'Principal Architect (Reign3418)',
-    };
-  }
-
   return {
     paid: false,
     mode: 'STRIPE_KEY_REQUIRED',
@@ -694,9 +681,10 @@ export async function verifyAndConsumeBlueprintCredit({
   username,
   blueprintType,
   targetGuildId,
+  principalForceOverride = false,
 }) {
-  // 1. Valheon Principal Architect (184977944433786880) always has unlimited direct deployment authority
-  if (String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
+  // Only bypass Stripe when the Principal explicitly clicks the Principal Override button (principalForceOverride = true)
+  if (principalForceOverride && String(userId) === VALHEON_PRINCIPAL_DISCORD_ID) {
     return {
       allowed: true,
       sessionId: `principal_direct_${Date.now()}`,
@@ -718,6 +706,7 @@ export async function verifyAndConsumeBlueprintCredit({
     KINGDOM_WAR_SERVER: ['KINGDOM_LEGENDARY_54', 'KINGDOM_39'],
     KVK_DIPLO_SERVER: ['KVK_DIPLO_9', 'KVK_BUNDLE_15'],
     KVK_COALITION_SERVER: ['KVK_COALITION_9', 'KVK_BUNDLE_15'],
+    OMNI_LANGUAGE_MATRIX_ONLY: ['KINGDOM_LEGENDARY_54', 'KINGDOM_39', 'LEGENDARY_UPGRADE_15', 'LEGENDARY_UPGRADE_25'],
   };
   const validPlans = validPlansByBlueprint[blueprintType] || ['KINGDOM_39'];
   const slotKey = getSlotKeyForBlueprint(blueprintType, null);

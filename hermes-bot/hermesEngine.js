@@ -302,6 +302,12 @@ export function buildTicketHeaderEmbed({
               components: [
                 {
                   type: 2,
+                  style: 3, // SUCCESS
+                  label: '🪽 Deploy 17-Lang Omni-Matrix (New/Existing)',
+                  custom_id: 'hermes_deploy_omni_matrix_open',
+                },
+                {
+                  type: 2,
                   style: 1, // PRIMARY
                   label: '🎟️ Mint Giveaway/Promo Code (Principal)',
                   custom_id: 'hermes_mint_coupon_modal_KINGDOM_39',

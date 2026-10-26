@@ -29,6 +29,193 @@ export const CHANNEL_TYPES = {
 };
 
 /**
+ * Reusable 17 Native Language Roles for the HERMES Omni-Language Matrix
+ */
+export const OMNI_LANGUAGE_ROLES = [
+  { key: 'lang_en', name: '🇺🇸 English Speaker', color: 0x3b82f6, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_vi', name: '🇻🇳 Tiếng Việt (Vietnamese)', color: 0xef4444, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_ko', name: '🇰🇷 한국어 (Korean)', color: 0x06b6d4, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_ru', name: '🇷🇺 Русский (Russian)', color: 0x8b5cf6, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_ar', name: '🇸🇦 العربية (Arabic)', color: 0x10b981, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_zh', name: '🇨🇳 中文 (Chinese)', color: 0xf59e0b, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_ja', name: '🇯🇵 日本語 (Japanese)', color: 0xec4899, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_es', name: '🇪🇸 Español (Spanish)', color: 0xf97316, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_tr', name: '🇹🇷 Türkçe (Turkish)', color: 0xe11d48, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_id', name: '🇮🇩 Bahasa Indonesia', color: 0xdc2626, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_fr', name: '🇫🇷 Français (French)', color: 0x2563eb, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_de', name: '🇩🇪 Deutsch (German)', color: 0xeab308, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_pt', name: '🇧🇷 Português (Portuguese)', color: 0x16a34a, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_th', name: '🇹🇭 ภาษาไทย (Thai)', color: 0x9333ea, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_pl', name: '🇵🇱 Polski (Polish)', color: 0xf43f5e, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_it', name: '🇮🇹 Italiano (Italian)', color: 0x14b8a6, hoist: false, mentionable: false, permissions: 'STANDARD' },
+  { key: 'lang_ms', name: '🇲🇾 Bahasa Melayu (Malay)', color: 0x0ea5e9, hoist: false, mentionable: false, permissions: 'STANDARD' },
+];
+
+/**
+ * Reusable 17-Language Omni-Matrix Category (`#🌐-select-your-language` + 17 Role-Gated Native Mirror Rooms)
+ */
+export const OMNI_LANGUAGE_CATEGORY = {
+  key: 'babel_matrix',
+  name: '🪽 HERMES OMNI-LANGUAGE MATRIX',
+  access: 'PUBLIC_READ_ONLY',
+  channels: [
+    {
+      name: '🌐-select-your-language',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'PUBLIC_READ_ONLY',
+      topic: 'Click any of the 17 native flags below — HERMES morphs your sidebar into your native language and seamlessly translates every Governor in real time.',
+      pinKey: 'BABEL_LANGUAGE_CONSOLE',
+    },
+    {
+      name: '💬-citadel-global-chat',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_en',
+      topic: '🇺🇸 Global Chat — Speak in English; HERMES seamlessly mirrors all 17 international languages into this room in real time.',
+    },
+    {
+      name: '💬-trò-chuyện-đại-sảnh',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_vi',
+      topic: '🇻🇳 Đại Sảnh — Trò chuyện bằng Tiếng Việt; mọi tin nhắn từ 17 ngôn ngữ quốc tế được dịch tự động theo thời gian thực.',
+    },
+    {
+      name: '💬-시타델-전체-채팅',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_ko',
+      topic: '🇰🇷 전체 채팅 — 한국어로 대화하세요. 전 세계 17개 언어 총독들의 메시지가 실시간 한국어로 자동 표시됩니다.',
+    },
+    {
+      name: '💬-общий-чат-цитадели',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_ru',
+      topic: '🇷🇺 Общий чат — общайтесь на русском языке; сообщения со всех 17 языков мира переводятся мгновенно.',
+    },
+    {
+      name: '💬-دردشة-القلعة-العامة',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_ar',
+      topic: '🇸🇦 الدردشة العامة — تحدث باللغة العربية وسيتم عرض رسائل جميع الحكام من 17 لغة بالعربية تلقائياً.',
+    },
+    {
+      name: '💬-神殿全局聊天',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_zh',
+      topic: '🇨🇳 全局聊天 — 直接使用中文交流，全球17种语言执政官的发言将实时以中文呈现。',
+    },
+    {
+      name: '💬-シタデル総合チャット',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_ja',
+      topic: '🇯🇵 総合チャット — 日本語のままで会話できます。世界17言語の総督の発言がリアルタイムで日本語表示されます。',
+    },
+    {
+      name: '💬-chat-general-ciudadela',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_es',
+      topic: '🇪🇸 Chat General — Habla en español; los mensajes de los 17 idiomas aparecen en español en tiempo real.',
+    },
+    {
+      name: '💬-hisar-genel-sohbet',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_tr',
+      topic: '🇹🇷 Genel Sohbet — Türkçe konuşun; 17 dildeki tüm valilerin mesajları gerçek zamanlı olarak Türkçe görünür.',
+    },
+    {
+      name: '💬-obrolan-umum-benteng',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_id',
+      topic: '🇮🇩 Obrolan Umum — Mengobrol dalam Bahasa Indonesia; pesan dari 17 bahasa diterjemahkan secara real-time.',
+    },
+    {
+      name: '💬-discussion-générale-citadelle',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_fr',
+      topic: '🇫🇷 Discussion Générale — Parlez en français ; les messages des 17 langues sont traduits en temps réel.',
+    },
+    {
+      name: '💬-zitadelle-allgemeiner-chat',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_de',
+      topic: '🇩🇪 Allgemeiner Chat — Schreib auf Deutsch; alle Nachrichten aus 17 Sprachen werden in Echtzeit auf Deutsch angezeigt.',
+    },
+    {
+      name: '💬-chat-geral-cidadela',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_pt',
+      topic: '🇧🇷 Chat Geral — Converse em português; mensagens de 17 idiomas são traduzidas em tempo real.',
+    },
+    {
+      name: '💬-แชทป้อมปราการหลัก',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_th',
+      topic: '🇹🇭 แชทหลัก — พูดคุยเป็นภาษาไทย ข้อความจากผู้ว่าการทั่วโลกทั้ง 17 ภาษาจะแสดงเป็นภาษาไทยแบบเรียลไทม์',
+    },
+    {
+      name: '💬-czat-ogólny-cytadeli',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_pl',
+      topic: '🇵🇱 Czat Ogólny — Rozmawiaj po polsku; wiadomości z 17 języków są tłumaczone w czasie rzeczywistym.',
+    },
+    {
+      name: '💬-chat-generale-cittadella',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_it',
+      topic: '🇮🇹 Chat Generale — Parla in italiano; i messaggi da tutte le 17 lingue vengono tradotti in tempo reale.',
+    },
+    {
+      name: '💬-sembang-umum-kubu',
+      type: CHANNEL_TYPES.TEXT,
+      access: 'BABEL_LANG_ONLY',
+      langRoleKey: 'lang_ms',
+      topic: '🇲🇾 Sembang Umum — Berbual dalam Bahasa Melayu; mesej daripada 17 bahasa diterjemahkan secara masa nyata.',
+    },
+  ],
+};
+
+/**
+ * Standalone Blueprint for dropping ONLY the 17-Language Omni-Matrix into an EXISTING Discord Server
+ * without touching or pruning any of its existing categories, channels, or roles!
+ */
+export function buildOmniMatrixOnlyBlueprint(customOptions = {}) {
+  const serverName = customOptions.serverName || 'HERMES 17-LANGUAGE OMNI-MATRIX';
+  return {
+    id: 'OMNI_LANGUAGE_MATRIX_ONLY',
+    name: serverName,
+    subtitle: 'Drop-In 17-Language Role-Swapped Native Sidebar & Real-Time Webhook Avatar-Cloned Translator',
+    badge: '17-LANG OMNI-MATRIX',
+    accentColor: '#38bdf8',
+    roles: [
+      {
+        key: 'hermes',
+        name: '🪽 HERMES // Swift Courier & War Envoy',
+        color: 0x38bdf8,
+        hoist: true,
+        mentionable: false,
+        permissions: 'ADMINISTRATOR',
+      },
+      ...OMNI_LANGUAGE_ROLES,
+    ],
+    categories: [OMNI_LANGUAGE_CATEGORY],
+  };
+}
+
+/**
  * Generates the Official Valheon Global HQ Server Blueprint
  */
 export function buildValheonHqBlueprint(customOptions = {}) {
@@ -219,278 +406,10 @@ export function buildValheonHqBlueprint(customOptions = {}) {
         mentionable: true,
         permissions: 'STANDARD',
       },
-      // Valheon Citadel Exclusive — 17 Native Language Roles (Babel Matrix)
-      {
-        key: 'lang_en',
-        name: '🇺🇸 English Speaker',
-        color: 0x3b82f6,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_vi',
-        name: '🇻🇳 Tiếng Việt (Vietnamese)',
-        color: 0xef4444,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_ko',
-        name: '🇰🇷 한국어 (Korean)',
-        color: 0x06b6d4,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_ru',
-        name: '🇷🇺 Русский (Russian)',
-        color: 0x8b5cf6,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_ar',
-        name: '🇸🇦 العربية (Arabic)',
-        color: 0x10b981,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_zh',
-        name: '🇨🇳 中文 (Chinese)',
-        color: 0xf59e0b,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_ja',
-        name: '🇯🇵 日本語 (Japanese)',
-        color: 0xec4899,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_es',
-        name: '🇪🇸 Español (Spanish)',
-        color: 0xf97316,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_tr',
-        name: '🇹🇷 Türkçe (Turkish)',
-        color: 0xe11d48,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_id',
-        name: '🇮🇩 Bahasa Indonesia',
-        color: 0xdc2626,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_fr',
-        name: '🇫🇷 Français (French)',
-        color: 0x2563eb,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_de',
-        name: '🇩🇪 Deutsch (German)',
-        color: 0xeab308,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_pt',
-        name: '🇧🇷 Português (Portuguese)',
-        color: 0x16a34a,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_th',
-        name: '🇹🇭 ภาษาไทย (Thai)',
-        color: 0x9333ea,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_pl',
-        name: '🇵🇱 Polski (Polish)',
-        color: 0xf43f5e,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_it',
-        name: '🇮🇹 Italiano (Italian)',
-        color: 0x14b8a6,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
-      {
-        key: 'lang_ms',
-        name: '🇲🇾 Bahasa Melayu (Malay)',
-        color: 0x0ea5e9,
-        hoist: false,
-        mentionable: false,
-        permissions: 'STANDARD',
-      },
+      ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
-      {
-        key: 'babel_matrix',
-        name: '🪽 HERMES OMNI-LANGUAGE MATRIX',
-        access: 'PUBLIC_READ_ONLY',
-        channels: [
-          {
-            name: '🌐-select-your-language',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
-            topic: 'Click any of the 17 native flags below — HERMES morphs your sidebar into your native language and seamlessly translates every Governor in real time.',
-            pinKey: 'BABEL_LANGUAGE_CONSOLE',
-          },
-          {
-            name: '💬-citadel-global-chat',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_en',
-            topic: '🇺🇸 Valheon Citadel Global Chat — Speak in English; HERMES seamlessly mirrors all 17 international languages into this room in real time.',
-          },
-          {
-            name: '💬-trò-chuyện-đại-sảnh',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_vi',
-            topic: '🇻🇳 Đại Sảnh Valheon Citadel — Trò chuyện bằng Tiếng Việt; mọi tin nhắn từ 17 ngôn ngữ quốc tế được dịch tự động theo thời gian thực.',
-          },
-          {
-            name: '💬-시타델-전체-채팅',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_ko',
-            topic: '🇰🇷 발헤온 시타델 전체 채팅 — 한국어로 대화하세요. 전 세계 17개 언어 총독들의 메시지가 실시간 한국어로 자동 표시됩니다.',
-          },
-          {
-            name: '💬-общий-чат-цитадели',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_ru',
-            topic: '🇷🇺 Общий чат Цитадели Валхеон — общайтесь на русском языке; сообщения со всех 17 языков мира переводятся мгновенно.',
-          },
-          {
-            name: '💬-دردشة-القلعة-العامة',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_ar',
-            topic: '🇸🇦 دردشة قلعة فالهيون العامة — تحدث باللغة العربية وسيتم عرض رسائل جميع الحكام من 17 لغة بالعربية تلقائياً.',
-          },
-          {
-            name: '💬-神殿全局聊天',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_zh',
-            topic: '🇨🇳 瓦尔海恩神殿全局聊天 — 直接使用中文交流，全球17种语言执政官的发言将实时以中文呈现。',
-          },
-          {
-            name: '💬-シタデル総合チャット',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_ja',
-            topic: '🇯🇵 ヴァルヘオン・シタデル総合チャット — 日本語のままで会話できます。世界17言語の総督の発言がリアルタイムで日本語表示されます。',
-          },
-          {
-            name: '💬-chat-general-ciudadela',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_es',
-            topic: '🇪🇸 Chat General de la Ciudadela Valheon — Habla en español; los mensajes de los 17 idiomas aparecen en español en tiempo real.',
-          },
-          {
-            name: '💬-hisar-genel-sohbet',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_tr',
-            topic: '🇹🇷 Valheon Hisarı Genel Sohbet — Türkçe konuşun; 17 dildeki tüm valilerin mesajları gerçek zamanlı olarak Türkçe görünür.',
-          },
-          {
-            name: '💬-obrolan-umum-benteng',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_id',
-            topic: '🇮🇩 Obrolan Umum Benteng Valheon — Mengobrol dalam Bahasa Indonesia; pesan dari 17 bahasa diterjemahkan secara real-time.',
-          },
-          {
-            name: '💬-discussion-générale-citadelle',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_fr',
-            topic: '🇫🇷 Discussion Générale de la Citadelle Valheon — Parlez en français ; les messages des 17 langues sont traduits en temps réel.',
-          },
-          {
-            name: '💬-zitadelle-allgemeiner-chat',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_de',
-            topic: '🇩🇪 Allgemeiner Zitadellen-Chat — Schreib auf Deutsch; alle Nachrichten aus 17 Sprachen werden in Echtzeit auf Deutsch angezeigt.',
-          },
-          {
-            name: '💬-chat-geral-cidadela',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_pt',
-            topic: '🇧🇷 Chat Geral da Cidadela Valheon — Converse em português; mensagens de 17 idiomas são traduzidas em tempo real.',
-          },
-          {
-            name: '💬-แชทป้อมปราการหลัก',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_th',
-            topic: '🇹🇭 แชทป้อมปราการ Valheon — พูดคุยเป็นภาษาไทย ข้อความจากผู้ว่าการทั่วโลกทั้ง 17 ภาษาจะแสดงเป็นภาษาไทยแบบเรียลไทม์',
-          },
-          {
-            name: '💬-czat-ogólny-cytadeli',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_pl',
-            topic: '🇵🇱 Czat Ogólny Cytadeli Valheon — Rozmawiaj po polsku; wiadomości z 17 języków są tłumaczone w czasie rzeczywistym.',
-          },
-          {
-            name: '💬-chat-generale-cittadella',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_it',
-            topic: '🇮🇹 Chat Generale della Cittadella Valheon — Parla in italiano; i messaggi da tutte le 17 lingue vengono tradotti in tempo reale.',
-          },
-          {
-            name: '💬-sembang-umum-kubu',
-            type: CHANNEL_TYPES.TEXT,
-            access: 'BABEL_LANG_ONLY',
-            langRoleKey: 'lang_ms',
-            topic: '🇲🇾 Sembang Umum Kubu Valheon — Berbual dalam Bahasa Melayu; mesej daripada 17 bahasa diterjemahkan secara masa nyata.',
-          },
-        ],
-      },
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'gateway',
         name: '🏛️ CITADEL GATEWAY & COMMAND',
@@ -657,7 +576,7 @@ export function buildValheonHqBlueprint(customOptions = {}) {
             name: '📸-optics-vision-ocr-drop',
             type: CHANNEL_TYPES.TEXT,
             access: 'CITIZENS_ONLY',
-            topic: 'PILLAR V // Drop any RoK screenshot here (Equipment, Speedups, RSS, Rankings) and HERMES Valheon Optical Neural Engine OCR will parse it into structured math!',
+            topic: 'PILLAR V // Drop any RoK screenshot here (Equipment, Speedups, RSS, Rankings) and HERMES Gemini Vision OCR will parse it into structured math!',
             pinKey: 'SUITE_OPTICS',
           },
         ],
@@ -974,8 +893,10 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
         mentionable: true,
         permissions: 'STANDARD',
       },
+      ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'kd_gateway',
         name: `🏰 KINGDOM #${kdId} CITADEL GATEWAY`,
@@ -1280,8 +1201,10 @@ export function buildJumperGenesisBlueprint(customOptions = {}) {
         mentionable: true,
         permissions: 'STANDARD',
       },
+      ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'genesis_launch',
         name: '🚀 GENESIS LAUNCHPAD & COUNTDOWN',
@@ -1468,8 +1391,10 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
         mentionable: false,
         permissions: 'STANDARD',
       },
+      ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'diplo_summit',
         name: '🏛️ I. LOST KINGDOM SUMMIT & TREATIES',
@@ -1695,8 +1620,10 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
         mentionable: true,
         permissions: 'STANDARD',
       },
+      ...OMNI_LANGUAGE_ROLES,
     ],
     categories: [
+      OMNI_LANGUAGE_CATEGORY,
       {
         key: 'coalition_war',
         name: '⚔️ I. ALLIED COALITION WAR COMMAND',
@@ -1924,7 +1851,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '⚖️ **[Diplomacy / King\'s Court]** — Report farm/tile violations, rogue hits, or alliance diplomacy.\n' +
         '🏦 **[Kingdom Bank / RSS Grant]** — Request KvK hospital healing subsidies from the Kingdom Vault.',
       color: 0x10b981,
-      footer: { text: 'HERMES R4 DESK // AUTO-WIRED TO VALHEON SOVEREIGN TELEMETRY' },
+      footer: { text: 'HERMES R4 DESK // AUTO-WIRED TO AWS DYNAMODB TELEMETRY' },
     },
     buttons: [
       { customId: 'hermes_ticket_migrant', label: '🧳 Apply to Migrate', style: 'SUCCESS' },
@@ -1948,7 +1875,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '🇫🇷 **Français** • 🇩🇪 **Deutsch** • 🇧🇷 **Português** • 🇹🇭 **ภาษาไทย** • 🇵🇱 **Polski**\n' +
         '🇮🇹 **Italiano** • 🇲🇾 **Bahasa Melayu**',
       color: 0x38bdf8,
-      footer: { text: 'VALHEON CITADEL EXCLUSIVE // 17/17 REAL-TIME WEBHOOK AVATAR-CLONED OMNI-LANGUAGE ENGINE' },
+      footer: { text: 'VALHEON HERMES OMNI-LANGUAGE ENGINE // 17/17 REAL-TIME WEBHOOK AVATAR-CLONED MATRIX' },
     },
     buttonRows: [
       [
@@ -2040,6 +1967,12 @@ export const PINNED_CONSOLE_TEMPLATES = {
         { customId: 'hermes_demo_common_lockout', label: '🔒 Preview Tier & Clone Lock', style: 'SECONDARY' },
       ],
       [
+        { customId: 'hermes_deploy_omni_matrix_open', label: '🪽 Deploy 17-Lang Omni-Matrix (New/Existing)', style: 'SUCCESS' },
+        {
+          label: '🤖 Invite HERMES to New/Existing Server',
+          style: 'LINK',
+          url: 'https://discord.com/oauth2/authorize?client_id=1563619930371391680&permissions=8&scope=bot%20applications.commands',
+        },
         { customId: 'hermes_mint_coupon_modal_KINGDOM_39', label: '🎟️ Mint Giveaway/Promo Code (Principal)', style: 'PRIMARY' },
         { customId: 'hermes_view_coupon_ledger', label: '📜 Coupon Audit Ledger (Principal)', style: 'SECONDARY' },
       ],
@@ -2127,6 +2060,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
       footer: { text: 'VALHEON CENTRAL SUPPORT RELAY // ALL EXTERNAL SERVERS REPORT HERE' },
     },
     buttons: [
+      { customId: 'hermes_deploy_omni_matrix_open', label: '🪽 Deploy 17-Lang Omni-Matrix (New/Existing)', style: 'SUCCESS' },
       { customId: 'hermes_admin_manual_relaunch_open', label: '🔄 Manually Relaunch Any Server by Guild ID', style: 'SUCCESS' },
       { customId: 'hermes_mint_coupon_modal_KINGDOM_39', label: '🎟️ Mint Giveaway/Promo Code (Principal)', style: 'PRIMARY' },
       { customId: 'hermes_view_coupon_ledger', label: '📜 Coupon Audit Ledger (Principal)', style: 'SECONDARY' },
@@ -2440,6 +2374,8 @@ export const ROLE_TOGGLE_CATALOG = {
 
 export function getBlueprintByType(blueprintType = 'VALHEON_HQ', options = {}) {
   switch (blueprintType) {
+    case 'OMNI_LANGUAGE_MATRIX_ONLY':
+      return buildOmniMatrixOnlyBlueprint(options);
     case 'KINGDOM_WAR_SERVER':
       return buildKingdomWarBlueprint(options);
     case 'KVK_DIPLO_SERVER':

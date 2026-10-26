@@ -1,0 +1,78 @@
+{
+  "_globalConfig": {
+    "billingSuspended": false
+  },
+  "1563618222895407166": {
+    "guildId": "1563618222895407166",
+    "tier": "LEGENDARY",
+    "licensed": true,
+    "deployedAtUnix": 1792947278,
+    "offerExpiresUnix": 1793033678,
+    "upgradedAtUnix": 1792947278,
+    "webOsActive": true
+  },
+  "1564007536666091602": {
+    "guildId": "1564007536666091602",
+    "buyerDiscordId": "184977944433786880",
+    "buyerUsername": "reign3418",
+    "paidSessionId": "principal_direct_1792959135189",
+    "blueprintType": "KINGDOM_WAR_SERVER",
+    "deployOptions": {
+      "kingdomId": "4194",
+      "kingdomTitle": "IMPERIUM VANGUARD",
+      "alliances": [
+        "VHN1",
+        "VHN2",
+        "VHN3",
+        "VHN4"
+      ]
+    },
+    "tier": "LEGENDARY",
+    "licensed": true,
+    "deployedAtUnix": 1792959184,
+    "offerExpiresUnix": 1793045584,
+    "kvkBundleExpiresUnix": 1793218384,
+    "upgradedAtUnix": 1792959184,
+    "webOsActive": false,
+    "relaunchCount": 0,
+    "lastRelaunchedAtUnix": 1792959184
+  },
+  "1564269209590960290": {
+    "guildId": "1564269209590960290",
+    "blueprintType": "KINGDOM_WAR_SERVER",
+    "deployOptions": {
+      "kingdomId": "4197"
+    },
+    "tier": "LEGENDARY",
+    "licensed": true,
+    "deployedAtUnix": 1793022402,
+    "offerExpiresUnix": 1793108802,
+    "kvkBundleExpiresUnix": 1793281602,
+    "upgradedAtUnix": 1793022452,
+    "webOsActive": false,
+    "buyerDiscordId": "184977944433786880",
+    "buyerUsername": "reign3418",
+    "paidSessionId": null,
+    "relaunchCount": 1,
+    "lastRelaunchedAtUnix": 1793022452
+  },
+  "1564285424665632768": {
+    "guildId": "1564285424665632768",
+    "blueprintType": "KINGDOM_WAR_SERVER",
+    "deployOptions": {
+      "kingdomId": "4194"
+    },
+    "tier": "UNLICENSED",
+    "licensed": false,
+    "deployedAtUnix": 1793025343,
+    "offerExpiresUnix": 1793111743,
+    "kvkBundleExpiresUnix": 1793284543,
+    "upgradedAtUnix": 1793025398,
+    "webOsActive": false,
+    "buyerDiscordId": "184977944433786880",
+    "buyerUsername": "reign3418",
+    "paidSessionId": null,
+    "relaunchCount": 1,
+    "lastRelaunchedAtUnix": 1793025398
+  }
+}

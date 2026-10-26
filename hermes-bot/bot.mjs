@@ -37,11 +37,6 @@ import {
   addZeroListTarget,
   buildZeroListEmbed,
   calculateRokMath,
-  linkGovernorAltAccount,
-  adjustGovernorConduct,
-  buildAllianceActivityCard,
-  buildWhoisDossierCard,
-  buildKvkAtlasEmbed,
 } from './warOsSuite.js';
 import {
   GUILD_TIERS,
@@ -829,76 +824,10 @@ function buildOcrEmbed(ocrResult, authorName = 'Governor') {
   };
 }
 
-function buildMyStatsComponents() {
-  return [
-    {
-      type: 1,
-      components: [
-        {
-          type: 2,
-          style: 1,
-          label: '🏰 Alliance Activity Card',
-          custom_id: 'hermes_activity_card_btn',
-        },
-        {
-          type: 2,
-          style: 2,
-          label: '🕵️ /whois & Linked Alts',
-          custom_id: 'hermes_whois_card_btn',
-        },
-        {
-          type: 2,
-          style: 2,
-          label: '🗺️ 13-Story KvK Camp Atlas',
-          custom_id: 'hermes_kvk_atlas_btn',
-        },
-      ],
-    },
-    {
-      type: 1,
-      components: [
-        {
-          type: 2,
-          style: 3,
-          label: '🔗 Link Farm / Alt ID (DKP Rollup)',
-          custom_id: 'hermes_linkalt_modal_btn',
-        },
-        {
-          type: 2,
-          style: 4,
-          label: '⚖️ R4 Conduct (+Bonus / -Penalty)',
-          custom_id: 'hermes_conduct_modal_btn',
-        },
-      ],
-    },
-  ];
-}
-
-function buildKvkAtlasComponents(activeStory = 'S18') {
-  const buttons = [
-    { key: 'S18', label: '⚜️ S18 Siege of Orléans' },
-    { key: 'S12', label: '🐊 S12 King of the Nile' },
-    { key: 'S4', label: '🔥 S4 Heroic Anthem' },
-    { key: 'S10', label: '🌊 S10 Tides of War' },
-    { key: 'S21', label: '💣 S21 Gunpowder' },
-  ];
-  return [
-    {
-      type: 1,
-      components: buttons.map((b) => ({
-        type: 2,
-        style: b.key === activeStory ? 1 : 2,
-        label: b.label,
-        custom_id: `hermes_kvk_story_${b.key}`,
-      })),
-    },
-  ];
-}
-
 /**
  * Registers /hermes and /guide Slash Commands + Context Menus on Guild & Globally
  */
-async function registerSlashCommands() {
+async function registerSlashCommands(targetGuildIdOnly = null) {
   const commands = [
     {
       name: 'title',
@@ -1150,7 +1079,7 @@ async function registerSlashCommands() {
         {
           type: 1,
           name: 'architect',
-          description: '🪽 1-Click Provision or Relaunch any Kingdom, Diplo, Coalition or Valheon HQ Server',
+          description: '🪽 1-Click Provision or Relaunch any Kingdom, Diplo, Coalition or 17-Language Omni-Matrix Server',
           options: [
             {
               type: 3,
@@ -1158,7 +1087,7 @@ async function registerSlashCommands() {
               description: 'Select Server Blueprint',
               required: true,
               choices: [
-                { name: '🏛️ Official Valheon Citadel HQ', value: 'VALHEON_HQ' },
+                { name: '🪽 17-Language Omni-Matrix Add-On (Existing or New Server)', value: 'OMNI_LANGUAGE_MATRIX_ONLY' },
                 { name: '🏰 Turnkey Home Kingdom War Server ($39)', value: 'KINGDOM_WAR_SERVER' },
                 { name: '🕊️ Turnkey KvK Diplomacy Summit Server ($9)', value: 'KVK_DIPLO_SERVER' },
                 { name: '⚔️ Turnkey Allied Coalition War Server ($9)', value: 'KVK_COALITION_SERVER' },
@@ -1226,111 +1155,6 @@ async function registerSlashCommands() {
             },
           ],
         },
-        {
-          type: 1,
-          name: 'whois',
-          description: '🕵️ View Name-Change Alias History, Alliance-Hop Timeline & Linked Alt/Farm Accounts',
-          options: [
-            {
-              type: 3,
-              name: 'governor_id',
-              description: 'Optional Governor ID or Name (Default: Your Bound Profile)',
-              required: false,
-            },
-          ],
-        },
-        {
-          type: 1,
-          name: 'activity',
-          description: '🏰 View Alliance Activity Scorecard (Tech Donations, Helps, Build, Forts & RSS)',
-          options: [
-            {
-              type: 3,
-              name: 'governor_id',
-              description: 'Optional Governor ID or Name (Default: Your Bound Profile)',
-              required: false,
-            },
-          ],
-        },
-        {
-          type: 1,
-          name: 'atlas',
-          description: '🗺️ View 13-Story Season of Conquest KvK Camp & Pin Coordinate Atlas (S4–S21)',
-          options: [
-            {
-              type: 3,
-              name: 'story',
-              description: 'Select Season of Conquest KvK Story Format',
-              required: false,
-              choices: [
-                { name: '⚜️ S18 — Siege of Orléans (6 Camps)', value: 'S18' },
-                { name: '🐊 S12 — King of the Nile (4 Camps)', value: 'S12' },
-                { name: '🔥 S4 — Heroic Anthem (6 Camps)', value: 'S4' },
-                { name: '🌊 S10 — Tides of War (4 Camps)', value: 'S10' },
-                { name: '💣 S21 — King of Gunpowder (4 Camps)', value: 'S21' },
-                { name: '☀️ S20 — Conquest of the Sun (4 Camps)', value: 'S20' },
-                { name: '🏛️ S19 —King of All Britain (6 Camps)', value: 'S19' },
-                { name: '⚔️ S5 — Strife of the Eight (8 Camps)', value: 'S5' },
-              ],
-            },
-          ],
-        },
-        {
-          type: 1,
-          name: 'linkalt',
-          description: '🔗 Link a Farm / Alt Governor ID so its Kills & Deads roll up into your Main DKP Scorecard',
-          options: [
-            {
-              type: 3,
-              name: 'alt_id',
-              description: 'Farm / Alt Governor ID (e.g. 41940888)',
-              required: true,
-            },
-            {
-              type: 3,
-              name: 'alt_name',
-              description: 'Farm / Alt Governor Name (e.g. ReignFarm01)',
-              required: true,
-            },
-            {
-              type: 4,
-              name: 't4_kills',
-              description: 'Optional T4 Kills on Alt/Farm during KvK',
-              required: false,
-            },
-            {
-              type: 4,
-              name: 'deads',
-              description: 'Optional Garrison/Rally Deads on Alt/Farm during KvK',
-              required: false,
-            },
-          ],
-        },
-        {
-          type: 1,
-          name: 'conduct',
-          description: '⚖️ R4/R5: Award a DKP Bonus (+500) or levy a Conduct Penalty (-1000) on a Governor',
-          options: [
-            {
-              type: 3,
-              name: 'governor_id',
-              description: 'Target Governor ID or Name',
-              required: true,
-            },
-            {
-              type: 4,
-              name: 'points',
-              description: 'DKP adjustment (e.g. +500 for Voice/Pass Lead, or -1000 for MGE Cap Violation)',
-              required: true,
-            },
-            {
-              type: 3,
-              name: 'reason',
-              description: 'Audit reason logged on their /mystats card',
-              required: true,
-            },
-          ],
-        },
       ],
     },
     // Right-Click Message Context Menu Commands (Works in EVERY Channel on HQ & Turnkey Kingdom Servers!)
@@ -1348,14 +1172,31 @@ async function registerSlashCommands() {
     },
   ];
 
-  // Register on Flagship Guild (instant) AND Globally (so every 1-Click Kingdom Server gets them automatically!)
-  await discordApi(
-    'PUT',
-    `/applications/${APP_ID}/guilds/${GUILD_ID}/commands`,
-    commands
+  if (targetGuildIdOnly) {
+    await discordApi(
+      'PUT',
+      `/applications/${APP_ID}/guilds/${targetGuildIdOnly}/commands`,
+      commands
+    ).catch(() => {});
+    console.log(`✅ [HERMES] Instant-synced slash commands to Guild ${targetGuildIdOnly}`);
+    return;
+  }
+
+  // Register Globally AND on every Guild the bot is currently in (0ms instant update on all servers!)
+  await discordApi('PUT', `/applications/${APP_ID}/commands`, commands).catch(() => {});
+  const allGuilds = await discordApi('GET', '/users/@me/guilds').catch(() => []);
+  const guildIdsToSync = new Set([
+    GUILD_ID,
+    ...(Array.isArray(allGuilds) ? allGuilds.map((g) => g.id).filter(Boolean) : []),
+  ]);
+  for (const gid of guildIdsToSync) {
+    await discordApi('PUT', `/applications/${APP_ID}/guilds/${gid}/commands`, commands).catch(
+      () => {}
+    );
+  }
+  console.log(
+    `✅ [HERMES] Registered /guide + /hermes + 17-Lang Omni-Matrix (${guildIdsToSync.size} Guilds + Global)`
   );
-  await discordApi('PUT', `/applications/${APP_ID}/commands`, commands);
-  console.log(`✅ [HERMES] Registered /guide + /hermes + 17-Lang Translator + Peerless + Optics OCR (Guild & Global)`);
 }
 
 /**
@@ -1379,14 +1220,23 @@ async function handleInteraction(ix) {
   // =========================================================================
   const isExemptFromCloneLock =
     VALHEON_FOUNDER_IDS.has(String(user.id)) ||
-    (ix.type === 2 && ix.data?.name === 'hermes' && ix.data?.options?.[0]?.name === 'tier') ||
+    (ix.type === 2 &&
+      ix.data?.name === 'hermes' &&
+      (ix.data?.options?.[0]?.name === 'tier' || ix.data?.options?.[0]?.name === 'architect')) ||
     (ix.type === 3 &&
       (ix.data?.custom_id === 'hermes_ticket_onboard' ||
         ix.data?.custom_id === 'hermes_upgrade_legendary_btn' ||
         ix.data?.custom_id === 'hermes_upgrade_webos_btn' ||
         ix.data?.custom_id === 'hermes_demo_common_lockout' ||
-        ix.data?.custom_id === 'hermes_launch_kd_modal')) ||
-    (ix.type === 5 && ix.data?.custom_id === 'hermes_kd_deploy_modal');
+        ix.data?.custom_id === 'hermes_launch_kd_modal' ||
+        ix.data?.custom_id?.startsWith('hermes_deploy_') ||
+        ix.data?.custom_id?.startsWith('hermes_stripe_verify_') ||
+        ix.data?.custom_id?.startsWith('hermes_principal_force_arch|'))) ||
+    (ix.type === 5 &&
+      (ix.data?.custom_id === 'hermes_kd_deploy_modal' ||
+        ix.data?.custom_id === 'hermes_diplo_deploy_modal' ||
+        ix.data?.custom_id === 'hermes_coalition_deploy_modal' ||
+        ix.data?.custom_id === 'hermes_submit_deploy_omni_matrix'));
 
   if (!tierStatus.isLicensed && !isExemptFromCloneLock) {
     return reply({
@@ -1526,6 +1376,109 @@ async function handleInteraction(ix) {
         member: ix.member,
       });
       return editOriginal({ content: res.content });
+    }
+
+    if (customId === 'hermes_deploy_omni_matrix_open') {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can deploy the 17-Language Omni-Matrix directly.',
+          },
+        });
+      }
+      return reply({
+        type: 9, // MODAL
+        data: {
+          custom_id: 'hermes_submit_deploy_omni_matrix',
+          title: '🪽 Deploy 17-Lang Omni-Matrix (New/Existing)',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'target_guild_id',
+                  label: '1. Target Discord Server (Guild) ID',
+                  style: 1,
+                  placeholder: 'Paste New or Existing Server ID (Right-Click Server -> Copy ID)',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'deploy_mode',
+                  label: '2. Mode (ADDON = Existing Server / FULL_KD)',
+                  style: 1,
+                  value: 'ADDON',
+                  placeholder: 'ADDON (keeps existing channels) or FULL_KD (full Kingdom Server)',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'kingdom_id',
+                  label: '3. Kingdom # (Used if FULL_KD mode)',
+                  style: 1,
+                  value: '4194',
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    if (customId.startsWith('hermes_principal_force_arch|')) {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can use the Principal Direct Deploy override.',
+          },
+        });
+      }
+      await reply({ type: 5, data: { flags: 64 } });
+      const [, bpType, kdId, targetGid] = customId.split('|');
+      const deployOpts = {
+        kingdomId: kdId || '4194',
+        keepExistingStarterChannels: bpType === 'OMNI_LANGUAGE_MATRIX_ONLY',
+      };
+      try {
+        const res = await provisionDiscordServer({
+          blueprintType: bpType,
+          guildId: targetGid || guildId,
+          botToken: BOT_TOKEN,
+          dryRun: false,
+          options: deployOpts,
+        });
+        registerGuildDeployment(targetGid || guildId, 'LEGENDARY', {
+          buyerDiscordId: user.id,
+          buyerUsername: user.username,
+          paidSessionId: `principal_override_${Date.now()}`,
+          blueprintType: bpType,
+          deployOptions: deployOpts,
+        });
+        await syncBabelGuildTopology(discordApi, targetGid || guildId);
+        return editOriginal({
+          content: `👑 **Principal Direct Deploy Complete for \`${res.guildName}\` (\`${targetGid || guildId}\` • \`${bpType}\`)!** Provisioned/verified **\`${res.log.length}\`** items (including the **17-Language Omni-Matrix**) at \`$0.00\`.`,
+        });
+      } catch (err) {
+        return editOriginal({
+          content: `❌ **Could not deploy \`${bpType}\` to \`${targetGid || guildId}\`:** ${err.message}`,
+        });
+      }
     }
 
     // A0. Commercial Rarity Tier & 24-Hour FOMO Upgrade / Lockout Preview Buttons
@@ -3308,158 +3261,7 @@ async function handleInteraction(ix) {
         userId: user.id,
         username: user.global_name || user.username,
       });
-      return editOriginal({ embeds: [embed], components: buildMyStatsComponents() });
-    }
-
-    if (customId === 'hermes_activity_card_btn') {
-      await reply({ type: 5, data: { flags: 64 } });
-      const embed = buildAllianceActivityCard({
-        userId: user.id,
-        username: user.global_name || user.username,
-      });
       return editOriginal({ embeds: [embed] });
-    }
-
-    if (customId === 'hermes_whois_card_btn') {
-      await reply({ type: 5, data: { flags: 64 } });
-      const embed = buildWhoisDossierCard({
-        userId: user.id,
-        username: user.global_name || user.username,
-      });
-      return editOriginal({ embeds: [embed] });
-    }
-
-    if (customId === 'hermes_kvk_atlas_btn') {
-      await reply({ type: 5, data: { flags: 64 } });
-      const embed = buildKvkAtlasEmbed('S18');
-      return editOriginal({ embeds: [embed], components: buildKvkAtlasComponents('S18') });
-    }
-
-    if (customId.startsWith('hermes_kvk_story_')) {
-      const storyKey = customId.replace('hermes_kvk_story_', '');
-      const embed = buildKvkAtlasEmbed(storyKey);
-      return reply({
-        type: 7,
-        data: {
-          embeds: [embed],
-          components: buildKvkAtlasComponents(storyKey),
-        },
-      });
-    }
-
-    if (customId === 'hermes_linkalt_modal_btn') {
-      return reply({
-        type: 9,
-        data: {
-          custom_id: 'hermes_linkalt_modal',
-          title: '🔗 Link Farm / Alt ID for DKP Rollup',
-          components: [
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'alt_gov_id',
-                  label: '1. Farm / Alt Governor ID',
-                  style: 1,
-                  placeholder: 'e.g. 41940888',
-                  required: true,
-                },
-              ],
-            },
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'alt_name',
-                  label: '2. Farm / Alt Governor Name',
-                  style: 1,
-                  placeholder: 'e.g. ReignFarm01',
-                  required: true,
-                },
-              ],
-            },
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'alt_t4_kills',
-                  label: '3. Alt T4 Kills in KvK (Optional)',
-                  style: 1,
-                  value: '185000',
-                  required: false,
-                },
-              ],
-            },
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'alt_deads',
-                  label: '4. Alt Garrison/Rally Deads (Optional)',
-                  style: 1,
-                  value: '92000',
-                  required: false,
-                },
-              ],
-            },
-          ],
-        },
-      });
-    }
-
-    if (customId === 'hermes_conduct_modal_btn') {
-      return reply({
-        type: 9,
-        data: {
-          custom_id: 'hermes_conduct_modal',
-          title: '⚖️ R4 Conduct Bonus / Penalty Ledger',
-          components: [
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'target_gov_id',
-                  label: '1. Target Governor ID or Name',
-                  style: 1,
-                  value: user.global_name || user.username,
-                  required: true,
-                },
-              ],
-            },
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'delta_dkp',
-                  label: '2. DKP Points (+Bonus or -Penalty)',
-                  style: 1,
-                  placeholder: 'e.g. +500 or -1000',
-                  required: true,
-                },
-              ],
-            },
-            {
-              type: 1,
-              components: [
-                {
-                  type: 4,
-                  custom_id: 'conduct_reason',
-                  label: '3. Reason (Audit Trail on /mystats)',
-                  style: 1,
-                  placeholder: 'e.g. Pass 4 Voice Target Caller / MGE Cap Violation',
-                  required: true,
-                },
-              ],
-            },
-          ],
-        },
-      });
     }
 
     if (customId === 'hermes_calc_open_btn') {
@@ -3654,6 +3456,73 @@ async function handleInteraction(ix) {
   // =========================================================================
   // 2. MODAL SUBMIT INTERACTIONS (type === 5)
   // =========================================================================
+  if (ix.type === 5 && ix.data?.custom_id === 'hermes_submit_deploy_omni_matrix') {
+    await reply({ type: 5, data: { flags: 64 } });
+
+    if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+      return editOriginal({
+        content: '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can deploy the 17-Language Omni-Matrix directly.',
+      });
+    }
+
+    const comps = ix.data.components || [];
+    const targetGuildId = (comps[0]?.components?.[0]?.value || '').trim();
+    const rawMode = (comps[1]?.components?.[0]?.value || 'ADDON').trim().toUpperCase();
+    const kdId = (comps[2]?.components?.[0]?.value || '4194').trim();
+
+    const bpType =
+      rawMode === 'FULL_KD' || rawMode === 'KINGDOM_WAR_SERVER'
+        ? 'KINGDOM_WAR_SERVER'
+        : 'OMNI_LANGUAGE_MATRIX_ONLY';
+
+    const deployOpts = {
+      kingdomId: kdId,
+      keepExistingStarterChannels: bpType === 'OMNI_LANGUAGE_MATRIX_ONLY',
+    };
+
+    try {
+      const result = await provisionDiscordServer({
+        blueprintType: bpType,
+        guildId: targetGuildId,
+        botToken: BOT_TOKEN,
+        dryRun: false,
+        options: deployOpts,
+      });
+
+      registerGuildDeployment(targetGuildId, 'LEGENDARY', {
+        buyerDiscordId: user.id,
+        buyerUsername: user.username,
+        blueprintType: bpType,
+        deployOptions: deployOpts,
+      });
+
+      await syncBabelGuildTopology(discordApi, targetGuildId);
+
+      return editOriginal({
+        embeds: [
+          {
+            title: `🪽 17-LANGUAGE OMNI-MATRIX DEPLOYED // ${result.guildName}`,
+            description:
+              `**🪽 HERMES** just deployed **\`${bpType}\`** onto **${result.guildName}** (\`${targetGuildId}\`)!\n\n` +
+              `• **Mode:** \`${bpType === 'OMNI_LANGUAGE_MATRIX_ONLY' ? 'Non-Destructive Existing-Server Add-On (0 existing channels touched)' : 'Full Turnkey Kingdom War Server + 17-Language Omni-Matrix'}\`\n` +
+              `• **Provisioned & Verified:** \`${result.log.length}\` roles, channels, and pinned consoles\n` +
+              `• **Live 4-Pillar Scale Engine:** Active immediately across all 17 languages!`,
+            color: 0x38bdf8,
+            footer: { text: 'VALHEON HERMES OMNI-LANGUAGE ENGINE // READY FOR LIVE TESTING' },
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      });
+    } catch (err) {
+      return editOriginal({
+        content:
+          `❌ **Could not deploy to Server ID \`${targetGuildId}\`:** ${err.message}\n\n` +
+          `👉 **Step 1:** Make sure you invited **HERMES** to that server first using this link:\n` +
+          `https://discord.com/oauth2/authorize?client_id=1563619930371391680&permissions=8&scope=bot%20applications.commands`,
+      });
+    }
+  }
+
   if (ix.type === 5 && ix.data?.custom_id?.startsWith('hermes_submit_mint_coupon_')) {
     await reply({ type: 5, data: { flags: 64 } });
 
@@ -3775,7 +3644,24 @@ async function handleInteraction(ix) {
         targetGuildId,
       });
       if (!credit.allowed) {
-        return editOriginal({ content: credit.error });
+        return editOriginal({
+          content: credit.error,
+          components: VALHEON_FOUNDER_IDS.has(String(user.id))
+            ? [
+                {
+                  type: 1,
+                  components: [
+                    {
+                      type: 2,
+                      style: 1,
+                      label: '👑 Principal Override: Install Kingdom Server Free ($0)',
+                      custom_id: `hermes_principal_force_arch|KINGDOM_WAR_SERVER|${kdId}|${targetGuildId}`,
+                    },
+                  ],
+                },
+              ]
+            : [],
+        });
       }
 
       const result = await provisionDiscordServer({
@@ -3797,6 +3683,8 @@ async function handleInteraction(ix) {
           deployOptions,
         }
       );
+
+      await syncBabelGuildTopology(discordApi, targetGuildId);
 
       await relaySupportEventToValheonHq({
         title: `🏰 NEW 1-CLICK KINGDOM SERVER DEPLOYED // KD #${kdId} (${result.guildName})`,
@@ -3898,7 +3786,24 @@ async function handleInteraction(ix) {
         targetGuildId,
       });
       if (!credit.allowed) {
-        return editOriginal({ content: credit.error });
+        return editOriginal({
+          content: credit.error,
+          components: VALHEON_FOUNDER_IDS.has(String(user.id))
+            ? [
+                {
+                  type: 1,
+                  components: [
+                    {
+                      type: 2,
+                      style: 1,
+                      label: '👑 Principal Override: Install KvK Diplo Free ($0)',
+                      custom_id: `hermes_principal_force_arch|KVK_DIPLO_SERVER|${kingdoms[0] || '4194'}|${targetGuildId}`,
+                    },
+                  ],
+                },
+              ]
+            : [],
+        });
       }
 
       const result = await provisionDiscordServer({
@@ -3916,6 +3821,8 @@ async function handleInteraction(ix) {
         blueprintType: 'KVK_DIPLO_SERVER',
         deployOptions,
       });
+
+      await syncBabelGuildTopology(discordApi, targetGuildId);
 
       await relaySupportEventToValheonHq({
         title: `🕊️ NEW $9 KVK DIPLOMACY SERVER DEPLOYED // ${result.guildName}`,
@@ -4015,7 +3922,24 @@ async function handleInteraction(ix) {
         targetGuildId,
       });
       if (!credit.allowed) {
-        return editOriginal({ content: credit.error });
+        return editOriginal({
+          content: credit.error,
+          components: VALHEON_FOUNDER_IDS.has(String(user.id))
+            ? [
+                {
+                  type: 1,
+                  components: [
+                    {
+                      type: 2,
+                      style: 1,
+                      label: '👑 Principal Override: Install Coalition Free ($0)',
+                      custom_id: `hermes_principal_force_arch|KVK_COALITION_SERVER|${kingdoms[0] || '4194'}|${targetGuildId}`,
+                    },
+                  ],
+                },
+              ]
+            : [],
+        });
       }
 
       const result = await provisionDiscordServer({
@@ -4033,6 +3957,8 @@ async function handleInteraction(ix) {
         blueprintType: 'KVK_COALITION_SERVER',
         deployOptions,
       });
+
+      await syncBabelGuildTopology(discordApi, targetGuildId);
 
       await relaySupportEventToValheonHq({
         title: `⚔️ NEW $9 ALLIED COALITION WAR SERVER DEPLOYED // ${result.guildName}`,
@@ -4231,6 +4157,7 @@ async function handleInteraction(ix) {
         blueprintType: bpType,
         deployOptions: bpOpts,
       });
+      await syncBabelGuildTopology(discordApi, remoteGuildId);
       return editOriginal({
         content: `✅ **Manual Free Server Relaunch Complete for \`${res.guildName}\` (\`${remoteGuildId}\` • \`${bpType}\`)!** Restored/verified **\`${res.log.length}\`** items at \`$0.00\`.`,
       });
@@ -4600,63 +4527,6 @@ async function handleInteraction(ix) {
     return editOriginal({ embeds: [embed] });
   }
 
-  if (ix.type === 5 && ix.data?.custom_id === 'hermes_linkalt_modal') {
-    await reply({ type: 5, data: { flags: 64 } });
-    const comps = ix.data.components || [];
-    const altGovId = (comps[0]?.components?.[0]?.value || '').trim();
-    const altName = (comps[1]?.components?.[0]?.value || 'Farm').trim();
-    const altT4Kills = Number((comps[2]?.components?.[0]?.value || '185000').replace(/[^0-9]/g, '')) || 185000;
-    const altDeads = Number((comps[3]?.components?.[0]?.value || '92000').replace(/[^0-9]/g, '')) || 92000;
-
-    linkGovernorAltAccount({
-      mainKey: user.id,
-      altGovId,
-      altName,
-      power: 18_400_000,
-      t4Kills: altT4Kills,
-      t5Kills: 0,
-      deads: altDeads,
-      rssAssisted: 210_000_000,
-      source: 'LINKALT_MODAL',
-    });
-
-    const embed = buildMyStatsCard({
-      userId: user.id,
-      username: user.global_name || user.username,
-    });
-    return editOriginal({
-      content: `🔗 **Linked Farm/Alt \`#${altGovId}\` (\`${altName}\`) into your Main DKP Rollup!**`,
-      embeds: [embed],
-      components: buildMyStatsComponents(),
-    });
-  }
-
-  if (ix.type === 5 && ix.data?.custom_id === 'hermes_conduct_modal') {
-    await reply({ type: 5 });
-    const comps = ix.data.components || [];
-    const targetGovId = (comps[0]?.components?.[0]?.value || user.id).trim();
-    const deltaDkp = parseInt((comps[1]?.components?.[0]?.value || '500').replace(/[^0-9+-]/g, ''), 10) || 500;
-    const reason = (comps[2]?.components?.[0]?.value || 'R4 Council Conduct Adjustment').trim();
-
-    adjustGovernorConduct({
-      govKey: targetGovId,
-      deltaDkp,
-      reason,
-      officer: user.global_name || user.username,
-    });
-
-    const embed = buildMyStatsCard({
-      userId: user.id,
-      username: targetGovId,
-      govIdOpt: targetGovId,
-    });
-    return editOriginal({
-      content: `⚖️ **R4 Conduct Ledger Updated by <@${user.id}>:** \`${deltaDkp >= 0 ? '+' : ''}${deltaDkp.toLocaleString('en-US')} DKP\` logged for **\`${targetGovId}\`** (*${reason}*).`,
-      embeds: [embed],
-      components: buildMyStatsComponents(),
-    });
-  }
-
   // =========================================================================
   // 3. SLASH COMMAND & MESSAGE CONTEXT MENU INTERACTIONS (type === 2)
   // =========================================================================
@@ -4828,7 +4698,7 @@ async function handleInteraction(ix) {
       username: govOpt || user.global_name || user.username,
       govIdOpt: govOpt,
     });
-    return editOriginal({ embeds: [embed], components: buildMyStatsComponents() });
+    return editOriginal({ embeds: [embed] });
   }
 
   // Top-level /zerolist Slash Command
@@ -5105,110 +4975,17 @@ async function handleInteraction(ix) {
       });
     }
 
-    if (sub.name === 'whois') {
-      await reply({ type: 5 });
-      const govOpt = (sub.options?.find((o) => o.name === 'governor_id')?.value || '').trim();
-      const embed = buildWhoisDossierCard({
-        userId: user.id,
-        username: govOpt || user.global_name || user.username,
-        govIdOpt: govOpt,
-      });
-      return editOriginal({ embeds: [embed] });
-    }
-
-    if (sub.name === 'activity') {
-      await reply({ type: 5 });
-      const govOpt = (sub.options?.find((o) => o.name === 'governor_id')?.value || '').trim();
-      const embed = buildAllianceActivityCard({
-        userId: user.id,
-        username: govOpt || user.global_name || user.username,
-        govIdOpt: govOpt,
-      });
-      return editOriginal({ embeds: [embed] });
-    }
-
-    if (sub.name === 'atlas') {
-      await reply({ type: 5 });
-      const storyOpt = (sub.options?.find((o) => o.name === 'story')?.value || 'S18').trim();
-      const embed = buildKvkAtlasEmbed(storyOpt);
-      return editOriginal({
-        embeds: [embed],
-        components: buildKvkAtlasComponents(storyOpt),
-      });
-    }
-
-    if (sub.name === 'linkalt') {
-      await reply({ type: 5 });
-      const altId = (sub.options?.find((o) => o.name === 'alt_id')?.value || '').trim();
-      const altName = (sub.options?.find((o) => o.name === 'alt_name')?.value || 'Farm').trim();
-      const t4Kills = Number(sub.options?.find((o) => o.name === 't4_kills')?.value ?? 185000);
-      const deads = Number(sub.options?.find((o) => o.name === 'deads')?.value ?? 92000);
-
-      linkGovernorAltAccount({
-        mainKey: user.id,
-        altGovId: altId,
-        altName,
-        power: 18_400_000,
-        t4Kills,
-        t5Kills: 0,
-        deads,
-        rssAssisted: 210_000_000,
-        source: 'SLASH_LINKALT',
-      });
-
-      const embed = buildMyStatsCard({
-        userId: user.id,
-        username: user.global_name || user.username,
-      });
-      return editOriginal({
-        content: `🔗 **Linked Farm/Alt \`#${altId}\` (\`${altName}\`) into your Main DKP Rollup!**`,
-        embeds: [embed],
-        components: buildMyStatsComponents(),
-      });
-    }
-
-    if (sub.name === 'conduct') {
-      await reply({ type: 5 });
-      const govOpt = (sub.options?.find((o) => o.name === 'governor_id')?.value || user.id).trim();
-      const points = Number(sub.options?.find((o) => o.name === 'points')?.value ?? 500);
-      const reason = (sub.options?.find((o) => o.name === 'reason')?.value || 'R4 Council Conduct Adjustment').trim();
-
-      adjustGovernorConduct({
-        govKey: govOpt,
-        deltaDkp: points,
-        reason,
-        officer: user.global_name || user.username,
-      });
-
-      const embed = buildMyStatsCard({
-        userId: user.id,
-        username: govOpt,
-        govIdOpt: govOpt,
-      });
-      return editOriginal({
-        content: `⚖️ **R4 Conduct Ledger Updated by <@${user.id}>:** \`${points >= 0 ? '+' : ''}${points.toLocaleString('en-US')} DKP\` logged for **\`${govOpt}\`** (*${reason}*).`,
-        embeds: [embed],
-        components: buildMyStatsComponents(),
-      });
-    }
-
     if (sub.name === 'architect') {
       await reply({ type: 5, data: { flags: 64 } });
-      const bp = sub.options?.find((o) => o.name === 'blueprint')?.value || 'VALHEON_HQ';
+      const bp = sub.options?.find((o) => o.name === 'blueprint')?.value || 'KINGDOM_WAR_SERVER';
       const kdRaw = sub.options?.find((o) => o.name === 'kingdom_id')?.value || '4194';
       const remoteGuildOpt = (
         sub.options?.find((o) => o.name === 'target_guild_id')?.value || guildId
       ).trim();
 
-      const authCheck = await verifyServerSovereignAuthorization(
-        ix,
-        remoteGuildOpt,
-        getGuildTierStatus(remoteGuildOpt)
-      );
-      if (!authCheck.allowed) {
+      if (bp === 'VALHEON_HQ' && String(remoteGuildOpt) !== String(GUILD_ID)) {
         return editOriginal({
-          content:
-            `🛡️ **Sovereign Purchase Protection // Access Denied:** Only the **Verified Server Owner / Buyer** or **Crowned R5 Sovereign** is authorized to run \`/hermes architect\` on \`${remoteGuildOpt}\`. R4 Officers and standard members cannot alter the server blueprint.`,
+          content: '🛡️ **Valheon Citadel Exclusive Lock:** The `VALHEON_HQ` blueprint is strictly locked to the official Valheon Citadel HQ server (`1563618222895407166`).',
         });
       }
 
@@ -5216,26 +4993,85 @@ async function handleInteraction(ix) {
         .split(',')
         .map((s) => s.trim().toUpperCase())
         .filter(Boolean);
-      const deployOpts = {
-        kingdomId: kdList[0] || '4194',
-        alliances: kdList.length > 1 ? kdList : undefined,
-      };
-      const res = await provisionDiscordServer({
-        blueprintType: bp,
-        guildId: remoteGuildOpt,
-        botToken: BOT_TOKEN,
-        dryRun: false,
-        options: deployOpts,
-      });
-      registerGuildDeployment(remoteGuildOpt, 'LEGENDARY', {
-        buyerDiscordId: user.id,
-        buyerUsername: user.username,
-        blueprintType: bp,
-        deployOptions: deployOpts,
-      });
-      return editOriginal({
-        content: `🪽 **HERMES 1-Click Architect / Free Relaunch Complete for \`${res.guildName}\` (\`${remoteGuildOpt}\` • \`${bp}\`)!** Verified/Provisioned ${res.log.length} items at \`$0.00\`.`,
-      });
+
+      // ALWAYS pop the Stripe Checkout Paywall first on /hermes architect (with Principal Override buttons below for Lauren!)
+      {
+        const planKey =
+          bp === 'KVK_DIPLO_SERVER'
+            ? 'KVK_DIPLO_9'
+            : bp === 'KVK_COALITION_SERVER'
+            ? 'KVK_COALITION_9'
+            : 'KINGDOM_39';
+        const checkout = await createStripeCheckoutForDiscord({
+          planKey,
+          userId: user.id,
+          username: user.username,
+          guildId: remoteGuildOpt,
+        });
+
+        const components = [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 5, // LINK
+                label: `💳 Step 1: Pay via Valheon Stripe (${checkout.item.priceDisplay})`,
+                url: checkout.checkoutUrl,
+              },
+              {
+                type: 2,
+                style: 3, // SUCCESS
+                label: '✅ Step 2: Verify Payment & Launch Builder',
+                custom_id: `hermes_stripe_verify_${planKey}`,
+              },
+            ],
+          },
+        ];
+
+        if (VALHEON_FOUNDER_IDS.has(String(user.id))) {
+          components.push({
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 1, // PRIMARY
+                label: `👑 Principal Override: Install ${bp} Free ($0)`,
+                custom_id: `hermes_principal_force_arch|${bp}|${kdList[0] || '4194'}|${remoteGuildOpt}`,
+              },
+              {
+                type: 2,
+                style: 3, // SUCCESS
+                label: '🪽 Install 17-Lang Omni-Matrix Only ($0)',
+                custom_id: `hermes_principal_force_arch|OMNI_LANGUAGE_MATRIX_ONLY|${kdList[0] || '4194'}|${remoteGuildOpt}`,
+              },
+            ],
+          });
+        }
+
+        return editOriginal({
+          embeds: [
+            {
+              title: `💳 VALHEON 1-CLICK ARCHITECT PAYWALL // ${checkout.item.name.toUpperCase()}`,
+              description:
+                `Server **\`${remoteGuildOpt}\`** requires an active **Valheon 1-Click Server License** (**\`${checkout.item.priceDisplay}\`**) before provisioning **\`${bp}\`**.\n\n` +
+                `• **What's Included:** ${checkout.item.description} + **🪽 17-Language Omni-Matrix**!\n` +
+                `• **Have a Giveaway / Promo Code?** Click **"Add promotion code"** on the Stripe checkout page.\n\n` +
+                `👉 **Step 1:** Click **` +
+                '`[💳 Step 1: Pay via Valheon Stripe]`' +
+                `** below.\n` +
+                `👉 **Step 2:** Click **` +
+                '`[✅ Step 2: Verify Payment & Launch Builder]`' +
+                `** to unlock and build your server in 18 seconds!`,
+              color: 0xf59e0b,
+              footer: {
+                text: 'VALHEON STRIPE PAYWALL // 100% ACTIVE • PRINCIPAL OVERRIDE AVAILABLE BELOW',
+              },
+            },
+          ],
+          components,
+        });
+      }
     }
   }
 }
@@ -5318,6 +5154,10 @@ function connectGateway() {
         await registerSlashCommands();
         await syncBabelGuildTopology(discordApi, BABEL_EXCLUSIVE_GUILD_ID);
       }
+      if (t === 'GUILD_CREATE' && d?.id) {
+        registerSlashCommands(d.id).catch(() => {});
+        syncBabelGuildTopology(discordApi, d.id).catch(() => {});
+      }
       if (t === 'INTERACTION_CREATE') {
         const ixUser = d.member?.user || d.user;
         if (ixUser && !ixUser.bot) {
@@ -5356,8 +5196,8 @@ function connectGateway() {
           const fullMsg = await discordApi('GET', `/channels/${d.channel_id}/messages/${d.id}`);
           const rawContent = String(fullMsg?.content || d.content || '').trim().toLowerCase();
 
-          // 0. VALHEON CITADEL EXCLUSIVE — BABEL MIRROR REAL-TIME WEBHOOK AVATAR-CLONED TRANSLATOR (`1563618222895407166` ONLY)
-          if (String(d.guild_id || GUILD_ID) === BABEL_EXCLUSIVE_GUILD_ID && !d.webhook_id) {
+          // 0. HERMES 17-LANGUAGE OMNI-MATRIX REAL-TIME WEBHOOK AVATAR-CLONED TRANSLATOR (MULTI-GUILD)
+          if (d.guild_id && !d.webhook_id) {
             await handleBabelMirrorMessage(discordApi, {
               ...d,
               content: fullMsg?.content ?? d.content ?? '',

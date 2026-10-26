@@ -661,15 +661,19 @@ export async function provisionDiscordServer({
     );
 
     if (!categoryChannel) {
+      const catCreatePayload = {
+        name: catDef.name,
+        type: CHANNEL_TYPES.CATEGORY,
+        permission_overwrites: catOverwrites,
+      };
+      if (catDef.key === 'babel_matrix') {
+        catCreatePayload.position = 0;
+      }
       categoryChannel = await discordRequest(
         cleanToken,
         'POST',
         `/guilds/${cleanGuildId}/channels`,
-        {
-          name: catDef.name,
-          type: CHANNEL_TYPES.CATEGORY,
-          permission_overwrites: catOverwrites,
-        }
+        catCreatePayload
       );
       log.push(`[Category Created] ${catDef.name}`);
       await sleep(220);
@@ -813,19 +817,29 @@ export async function provisionDiscordServer({
   }
 
   // Clean up default Discord blank-server starter channels ("Text Channels", "Voice Channels", "general", "delete-chat-after-testing")
-  const starterBloatNames = new Set([
-    'text channels',
-    'voice channels',
-    'general',
-    'delete-chat-after-testing',
-  ]);
-  for (const ch of existingChannels) {
-    const lowerName = String(ch.name || '').trim().toLowerCase();
-    if (starterBloatNames.has(lowerName)) {
-      await discordRequest(cleanToken, 'DELETE', `/channels/${ch.id}`).catch(() => {});
-      log.push(`[Starter Bloat Pruned] Removed default channel "${ch.name}" (${ch.id})`);
-      await sleep(150);
+  // ONLY on a brand-new blank server (<= 6 channels) and NEVER when deploying OMNI_LANGUAGE_MATRIX_ONLY onto an existing server!
+  const isAddonOrExistingServer =
+    blueprintType === 'OMNI_LANGUAGE_MATRIX_ONLY' ||
+    Boolean(options.keepExistingStarterChannels) ||
+    existingChannels.length > 6;
+
+  if (!isAddonOrExistingServer) {
+    const starterBloatNames = new Set([
+      'text channels',
+      'voice channels',
+      'general',
+      'delete-chat-after-testing',
+    ]);
+    for (const ch of existingChannels) {
+      const lowerName = String(ch.name || '').trim().toLowerCase();
+      if (starterBloatNames.has(lowerName)) {
+        await discordRequest(cleanToken, 'DELETE', `/channels/${ch.id}`).catch(() => {});
+        log.push(`[Starter Bloat Pruned] Removed default channel "${ch.name}" (${ch.id})`);
+        await sleep(150);
+      }
     }
+  } else {
+    log.push(`[Existing Server Safeguard] Preserved all existing server channels (non-destructive deploy).`);
   }
 
   return {
