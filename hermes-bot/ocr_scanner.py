@@ -88,7 +88,7 @@ def scan_rok_image(image_url):
         if m:
             id_match = m.group(1)
             id_item = it
-        if re.match(r'^Governor\b', it["text"], re.IGNORECASE):
+        if re.match(r'^Governor\b', it["text"], re.IGNORECASE) and 'PROFILE' not in it["text"].upper():
             gov_label_item = it
 
     if id_match or ("GOVERNOR" in full_text.upper() and ("KILL POINTS" in full_text.upper() or "ALLIANCE" in full_text.upper())):
@@ -102,13 +102,23 @@ def scan_rok_image(image_url):
         is_self_profile = False
         action_points = ""
 
-        # 1. Extract Alliance [TAG]Name
+        # 1. Extract Alliance [TAG]Name (including when OCR misreads '[' as L/I/l/1/| or ']' as I/l/1/|)
         for it in items:
             am = re.search(r'[\[\(【]([^\]\)】]{2,6})[\]\)】]\s*(.*)', it["text"])
             if am:
                 alliance_tag = am.group(1).strip()
                 alliance_full = f"[{alliance_tag}]{am.group(2).strip()}" if am.group(2).strip() else f"[{alliance_tag}]"
                 break
+        if not alliance_tag:
+            for it in items:
+                am2 = re.match(r'^(?:[\[\(【\{]|[LIl1\|])([A-Za-z0-9~_\-#!.*+=]{3,5})[\]\)】\}\|]\s*(.+)$', it["text"].strip())
+                if am2:
+                    raw_t = am2.group(1).strip()
+                    if len(raw_t) == 5 and raw_t[0] in 'LIl1|':
+                        raw_t = raw_t[1:]
+                    alliance_tag = raw_t
+                    alliance_full = f"[{alliance_tag}] {am2.group(2).strip()}"
+                    break
 
         # 2. Extract Action Points (Self-Profile Proof)
         for it in items:
@@ -119,19 +129,25 @@ def scan_rok_image(image_url):
                 is_self_profile = True
                 action_points = apm.group(1).replace(" ", "")
 
-        # 3. Extract Governor Name (located immediately below 'Governor' or 'Governor(ID:...)')
-        anchor = gov_label_item or id_item
+        # 3. Extract Governor Name (located immediately below 'Governor(ID:...)' or 'Governor')
+        anchor = id_item or gov_label_item
         if anchor:
             ax, ay = anchor["x"], anchor["y"]
             candidates = []
             for it in items:
-                if it is anchor or it is id_item:
+                if it is anchor or it is id_item or it is gov_label_item:
                     continue
                 dy = it["y"] - ay
                 dx = abs(it["x"] - ax)
-                if 15 <= dy <= 65 and dx <= 160:
+                if 12 <= dy <= 70 and dx <= 180:
                     cleaned = re.sub(r'^[\s:：•·\-\*]+', '', it["text"]).strip()
-                    if cleaned and not re.match(r'^(Civilization|Alliance|Power|Kill|Action)', cleaned, re.IGNORECASE):
+                    cleaned = re.sub(r'\s+[U©®]$', '', cleaned).strip()
+                    if (
+                        cleaned
+                        and not re.match(r'^(Civilization|Alliance|Power|Kill|Action|Governor)', cleaned, re.IGNORECASE)
+                        and 'PROFILE' not in cleaned.upper()
+                        and 'ID:' not in cleaned.upper()
+                    ):
                         candidates.append((dy, cleaned))
             if candidates:
                 candidates.sort(key=lambda c: c[0])

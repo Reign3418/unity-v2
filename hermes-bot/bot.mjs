@@ -664,8 +664,23 @@ function parseGovernorProfileFromRawText(rawLines = []) {
     const am = line.match(/[\[\(【]([^\]\)】]{2,6})[\]\)】]\s*(.*)/);
     if (am) {
       allianceTag = am[1].trim();
-      allianceFull = am[2]?.trim() ? `[${allianceTag}]${am[2].trim()}` : `[${allianceTag}]`;
+      allianceFull = am[2]?.trim() ? `[${allianceTag}] ${am[2].trim()}` : `[${allianceTag}]`;
       break;
+    }
+  }
+  // Fallback when OCR reads opening '[' as L, I, l, 1, |, or '{' (e.g. "LE~97] Empire Of Mars")
+  if (!allianceTag) {
+    for (const line of lines) {
+      const am2 = line.match(/^(?:[\[\(【\{]|[LIl1\|])([A-Za-z0-9~_\-#!.*+=]{3,5})[\]\)】\}\|]\s*(.+)$/);
+      if (am2) {
+        let rawT = am2[1].trim();
+        if (rawT.length === 5 && /^[LIl1\|]/.test(rawT)) {
+          rawT = rawT.slice(1);
+        }
+        allianceTag = rawT;
+        allianceFull = `[${allianceTag}] ${am2[2].trim()}`;
+        break;
+      }
     }
   }
 
@@ -675,13 +690,21 @@ function parseGovernorProfileFromRawText(rawLines = []) {
   const actionPoints = apMatch ? apMatch[1].replace(/\s+/g, '') : '';
 
   let govName = 'Governor';
-  const govIdx = lines.findIndex((l) => /Governor|\(ID/i.test(l));
+  // Prefer the exact "Governor(ID: ...)" line rather than "GOVERNOR PROFILE" header
+  let govIdx = lines.findIndex((l) => /Governor\s*[\(\[]?\s*(?:ID|1D)|\b(?:ID|1D)\s*[:：]?\s*\d{5,12}/i.test(l));
+  if (govIdx === -1) {
+    govIdx = lines.findIndex((l) => /^Governor\b/i.test(l) && !/PROFILE/i.test(l));
+  }
   if (govIdx !== -1) {
     for (let i = govIdx + 1; i <= Math.min(lines.length - 1, govIdx + 3); i++) {
-      const cleaned = lines[i].replace(/^[\s:：•·\-\*]+/, '').trim();
+      let cleaned = lines[i]
+        .replace(/^[\s:：•·\-\*]+/, '')
+        .replace(/\s+[U©®]$/, '')
+        .trim();
       if (
         cleaned &&
-        !/^(Civilization|Alliance|Power|Kill|Action|\(ID)/i.test(cleaned) &&
+        !/^(Civilization|Alliance|Power|Kill|Action|Governor|\(ID)/i.test(cleaned) &&
+        !/PROFILE|ID\s*[:：]/i.test(cleaned) &&
         !/^\d[\d,./]*$/.test(cleaned)
       ) {
         govName = cleaned;
@@ -690,11 +713,31 @@ function parseGovernorProfileFromRawText(rawLines = []) {
     }
   }
 
+  // Extract Power, Kill Points, and Civilization near their labels when possible
+  let power = 0;
+  let killPoints = 0;
+  let civilization = 'Unknown';
+  const powIdx = lines.findIndex((l) => /^Power$/i.test(l));
+  if (powIdx !== -1 && lines[powIdx + 1]) {
+    const pVal = Number(lines[powIdx + 1].replace(/[^0-9]/g, ''));
+    if (pVal >= 1000) power = pVal;
+  }
+  const kpIdx = lines.findIndex((l) => /^Kill\s*Points$/i.test(l));
+  if (kpIdx !== -1 && lines[kpIdx + 1]) {
+    const kVal = Number(lines[kpIdx + 1].replace(/[^0-9]/g, ''));
+    if (kVal >= 100) killPoints = kVal;
+  }
+  const civIdx = lines.findIndex((l) => /^Civilization$/i.test(l));
+  if (civIdx !== -1 && lines[civIdx + 1]) {
+    const cVal = lines[civIdx + 1].replace(/^[^A-Za-z]+/, '').trim();
+    if (cVal && !/^(Alliance|Power|Kill)/i.test(cVal)) civilization = cVal;
+  }
+
   const numLines = lines
     .map((l) => Number(l.replace(/[^0-9]/g, '')))
     .filter((n) => n >= 10000 && String(n) !== govId);
-  const power = numLines[0] || 0;
-  const killPoints = numLines[1] || 0;
+  if (!power) power = numLines[0] || 0;
+  if (!killPoints) killPoints = numLines.find((n) => n !== power) || numLines[1] || 0;
 
   return {
     mode: 'GOVERNOR_PROFILE',
@@ -702,7 +745,7 @@ function parseGovernorProfileFromRawText(rawLines = []) {
     gov_name: govName,
     alliance_tag: allianceTag,
     alliance_full: allianceFull || (allianceTag ? `[${allianceTag}]` : 'None'),
-    civilization: 'Unknown',
+    civilization,
     power,
     kill_points: killPoints,
     is_self_profile: isSelfProfile,
@@ -1097,6 +1140,12 @@ async function registerSlashCommands(targetGuildIdOnly = null) {
               type: 3,
               name: 'kingdom_id',
               description: 'Target Kingdom Number or Comma-Separated Kingdoms (e.g. 4194 or 4190,4191,4192)',
+              required: false,
+            },
+            {
+              type: 3,
+              name: 'alliances',
+              description: 'Optional: Comma-Separated Alliance Tags (e.g. E~97, E~98, E~99) for Alliance Roles & Auto-Approval',
               required: false,
             },
             {
@@ -3084,11 +3133,16 @@ async function handleInteraction(ix) {
       });
     }
 
-    // D2. R4/R5 1-Click Manual Approval for Sister-Alliance / Older Screenshot Drops
-    if (customId.startsWith('hermes_ocr_approve_') || customId.startsWith('hermes_ocr_reject_')) {
+    // D2. R4/R5 1-Click Manual Approval (or Adopt New Alliance Role) for Sister-Alliance / Manual Screenshot Drops
+    if (
+      customId.startsWith('hermes_ocr_approve_') ||
+      customId.startsWith('hermes_ocr_adopt_') ||
+      customId.startsWith('hermes_ocr_reject_')
+    ) {
       await reply({ type: 5, data: { flags: 64 } });
       const isReject = customId.startsWith('hermes_ocr_reject_');
-      const payloadStr = customId.replace(/^hermes_ocr_(?:approve|reject)_/, '');
+      const isAdoptAlliance = customId.startsWith('hermes_ocr_adopt_');
+      const payloadStr = customId.replace(/^hermes_ocr_(?:approve|adopt|reject)_/, '');
       const parts = payloadStr.split('_');
       const targetUserId = parts[0] || '';
       const govId = parts[1] || '00000000';
@@ -3152,11 +3206,46 @@ async function handleInteraction(ix) {
           grantedRoles.push(`<@&${citizenRole.id}>`);
         }
 
-        const allianceRole = roles.find(
+        let allianceRole = roles.find(
           (r) =>
             r.name.toUpperCase().includes(`[${rawTag.toUpperCase()}]`) ||
             r.name.toUpperCase().includes(`#${rawTag.toUpperCase()}`)
         );
+
+        // If Officer clicked "Approve & Add [TAG] as Server Alliance Role" (or if default VHN1..4 placeholder exists), adopt or create it!
+        if (!allianceRole && isAdoptAlliance && rawTag && rawTag !== 'MANUAL' && rawTag !== 'ALLY') {
+          const upperTag = rawTag.toUpperCase();
+          const placeholderRole = roles.find((r) => /\[VHN[1-4]\]/i.test(r.name));
+          if (placeholderRole) {
+            const oldTagMatch = placeholderRole.name.match(/\[(VHN[1-4])\]/i)?.[1];
+            const newRoleName = placeholderRole.name.replace(/\[VHN[1-4]\]/i, `[${upperTag}]`);
+            const updatedRole = await discordApi('PATCH', `/guilds/${guildId}/roles/${placeholderRole.id}`, {
+              name: newRoleName,
+            }).catch(() => null);
+            allianceRole = updatedRole || placeholderRole;
+            if (oldTagMatch) {
+              const guildChans = (await discordApi('GET', `/guilds/${guildId}/channels`).catch(() => [])) || [];
+              const oldSlug = oldTagMatch.toLowerCase();
+              const newSlug = upperTag.toLowerCase().replace(/[^a-z0-9-]/g, '');
+              for (const ch of guildChans) {
+                if (ch.name && ch.name.toLowerCase().includes(oldSlug)) {
+                  await discordApi('PATCH', `/channels/${ch.id}`, {
+                    name: ch.name.replace(new RegExp(oldTagMatch, 'ig'), newSlug || upperTag),
+                  }).catch(() => null);
+                }
+              }
+            }
+          } else {
+            const createdRole = await discordApi('POST', `/guilds/${guildId}/roles`, {
+              name: `🛡️ [${upperTag}] Vanguard`,
+              color: 0x3b82f6,
+              hoist: true,
+              mentionable: true,
+            }).catch(() => null);
+            if (createdRole?.id) allianceRole = createdRole;
+          }
+        }
+
         if (allianceRole) {
           await discordApi('PUT', `/guilds/${guildId}/members/${targetUserId}/roles/${allianceRole.id}`).catch(() => null);
           grantedRoles.push(`<@&${allianceRole.id}>`);
@@ -5178,6 +5267,7 @@ async function handleInteraction(ix) {
       await reply({ type: 5, data: { flags: 64 } });
       const bp = sub.options?.find((o) => o.name === 'blueprint')?.value || 'KINGDOM_WAR_SERVER';
       const kdRaw = sub.options?.find((o) => o.name === 'kingdom_id')?.value || '4194';
+      const alliancesRaw = (sub.options?.find((o) => o.name === 'alliances')?.value || '').trim();
       const remoteGuildOpt = (
         sub.options?.find((o) => o.name === 'target_guild_id')?.value || guildId
       ).trim();
@@ -5195,6 +5285,15 @@ async function handleInteraction(ix) {
         .split(',')
         .map((s) => s.trim().toUpperCase())
         .filter(Boolean);
+
+      const customAlliances = alliancesRaw
+        ? alliancesRaw
+            .split(',')
+            .map((s) => s.trim().replace(/^\[|\]$/g, '').toUpperCase())
+            .filter(Boolean)
+        : kdList.length > 1
+        ? kdList
+        : undefined;
 
       const targetStatus = getGuildTierStatus(remoteGuildOpt);
       const isPrincipal = VALHEON_FOUNDER_IDS.has(String(user.id));
@@ -5277,7 +5376,7 @@ async function handleInteraction(ix) {
 
       const deployOpts = {
         kingdomId: kdList[0] || '4194',
-        alliances: kdList.length > 1 ? kdList : undefined,
+        alliances: customAlliances,
         keepExistingStarterChannels: bp === 'OMNI_LANGUAGE_MATRIX_ONLY',
         includeTrapChannel: includeTrapOpt,
       };
@@ -5640,15 +5739,54 @@ function connectGateway() {
 
                   // Extract all Alliance roles configured on this server (e.g. "🛡️ [VHN1] Vanguard")
                   const serverAllianceRoles = roles.filter((r) => /\[[^\]]+\]/.test(r.name));
-                  const matchedAllianceRole = upperTag
+                  let matchedAllianceRole = upperTag
                     ? serverAllianceRoles.find((r) => r.name.toUpperCase().includes(`[${upperTag}]`))
                     : null;
 
+                  // SMART DEFAULT PLACEHOLDER ADOPTION:
+                  // If the server was deployed via /hermes architect without custom alliance tags (so it still has
+                  // uncustomized [VHN1]..[VHN4] template roles) and the player's screenshot has a real [TAG] (e.g. [E~97]),
+                  // automatically adopt their [TAG] into the first available [VHN1..4] slot so they are auto-approved!
+                  const hasOnlyDefaultTemplateAlliances =
+                    serverAllianceRoles.length === 0 ||
+                    serverAllianceRoles.every((r) => /\[VHN[1-4]\]/i.test(r.name));
+
+                  if (!matchedAllianceRole && upperTag && !/^VHN[1-4]$/i.test(upperTag)) {
+                    const defaultPlaceholderRole = serverAllianceRoles.find((r) => /\[VHN[1-4]\]/i.test(r.name));
+                    if (defaultPlaceholderRole) {
+                      const oldTagMatch = defaultPlaceholderRole.name.match(/\[(VHN[1-4])\]/i)?.[1];
+                      const newRoleName = defaultPlaceholderRole.name.replace(/\[VHN[1-4]\]/i, `[${upperTag}]`);
+                      const updatedRole = await discordApi(
+                        'PATCH',
+                        `/guilds/${msgGuildId}/roles/${defaultPlaceholderRole.id}`,
+                        { name: newRoleName }
+                      ).catch(() => null);
+                      matchedAllianceRole = updatedRole || defaultPlaceholderRole;
+
+                      if (oldTagMatch) {
+                        const guildChans = (await discordApi('GET', `/guilds/${msgGuildId}/channels`).catch(() => [])) || [];
+                        const oldSlug = oldTagMatch.toLowerCase();
+                        const newSlug = upperTag.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        for (const ch of guildChans) {
+                          if (ch.name && ch.name.toLowerCase().includes(oldSlug)) {
+                            await discordApi('PATCH', `/channels/${ch.id}`, {
+                              name: ch.name.replace(new RegExp(oldTagMatch, 'ig'), newSlug || upperTag),
+                            }).catch(() => null);
+                          }
+                        }
+                      }
+                    }
+                  }
+
                   // Auto-approve if:
-                  //   (a) The screenshot's [TAG] matches one of this Kingdom server's Alliance Roles, OR
-                  //   (b) This is Valheon Global HQ (where players from all Kingdoms/Alliances verify by Governor ID)
+                  //   (a) The screenshot's [TAG] matches (or was auto-adopted into) one of this Kingdom server's Alliance Roles, OR
+                  //   (b) No custom alliances were baked into this server yet (only default VHN1..4 placeholders), OR
+                  //   (c) This is Valheon Global HQ (where players from all Kingdoms/Alliances verify by Governor ID)
                   const isValheonHq = String(msgGuildId) === String(GUILD_ID);
-                  const shouldAutoApprove = Boolean(matchedAllianceRole) || (isValheonHq && Boolean(govId));
+                  const shouldAutoApprove =
+                    Boolean(matchedAllianceRole) ||
+                    (hasOnlyDefaultTemplateAlliances && Boolean(govId)) ||
+                    (isValheonHq && Boolean(govId));
 
                   if (shouldAutoApprove) {
                     const finalTag = rawTag || 'ROK';
@@ -5735,6 +5873,29 @@ function connectGateway() {
                         .map((t) => `\`[${t}]\``)
                         .join(', ') || '`[VHN1]`, `[VHN2]`';
 
+                    const approvalButtons = [
+                      {
+                        type: 2,
+                        style: 3, // SUCCESS
+                        label: `✅ R4/R5: Approve [${rawTag || 'ALLY'}] ${govName.slice(0, 14)} (Sister/Support)`,
+                        custom_id: `hermes_ocr_approve_${d.author.id}_${govId}_${safeTag}_${safeName}`,
+                      },
+                    ];
+                    if (rawTag && rawTag !== 'NONE') {
+                      approvalButtons.push({
+                        type: 2,
+                        style: 1, // PRIMARY
+                        label: `🏰 R4/R5: Approve & Add [${rawTag}] Role to Server`,
+                        custom_id: `hermes_ocr_adopt_${d.author.id}_${govId}_${safeTag}_${safeName}`,
+                      });
+                    }
+                    approvalButtons.push({
+                      type: 2,
+                      style: 4, // DANGER
+                      label: '❌ R4/R5: Request Fresh Screenshot',
+                      custom_id: `hermes_ocr_reject_${d.author.id}`,
+                    });
+
                     const approvalPayload = {
                       message_reference: { message_id: d.id },
                       embeds: [
@@ -5743,7 +5904,7 @@ function connectGateway() {
                           description:
                             `**🟠 HERMES AI Vision OCR** successfully extracted your Governor Profile (<@${d.author.id}>), but your screenshot's alliance tag (**\`[${rawTag || 'NONE'}]\`**) is not one of this server's primary auto-approve sectors (${expectedTags}).\n\n` +
                             `💡 **Jumping to a Sister/Support Alliance to help, or using an older picture?**\n` +
-                            `No problem! Your profile is queued below — any **R4 Officer** or **R5 Sovereign** can approve your access in **1 click**!`,
+                            `No problem! Your profile is queued below — any **R4 Officer** or **R5 Sovereign** can approve your access (or add **\`[${rawTag || 'ALLY'}]\`** as an official server alliance) in **1 click**!`,
                           color: 0xf59e0b,
                           fields: [
                             { name: '🆔 Scanned Governor ID', value: `\`#${govId}\``, inline: true },
@@ -5760,7 +5921,7 @@ function connectGateway() {
                             },
                           ],
                           footer: {
-                            text: 'R4 / R5 OFFICERS: CLICK [✅ Approve] BELOW TO UNLOCK WAR CHANNELS FOR THIS GOVERNOR',
+                            text: 'R4 / R5 OFFICERS: CLICK [✅ Approve] OR [🏰 Approve & Add Role] BELOW TO UNLOCK WAR CHANNELS',
                           },
                           timestamp: new Date().toISOString(),
                         },
@@ -5768,20 +5929,7 @@ function connectGateway() {
                       components: [
                         {
                           type: 1,
-                          components: [
-                            {
-                              type: 2,
-                              style: 3, // SUCCESS
-                              label: `✅ R4/R5: Approve [${rawTag || 'ALLY'}] ${govName.slice(0, 14)} (Sister/Support)`,
-                              custom_id: `hermes_ocr_approve_${d.author.id}_${govId}_${safeTag}_${safeName}`,
-                            },
-                            {
-                              type: 2,
-                              style: 4, // DANGER
-                              label: '❌ R4/R5: Request Fresh Screenshot',
-                              custom_id: `hermes_ocr_reject_${d.author.id}`,
-                            },
-                          ],
+                          components: approvalButtons,
                         },
                       ],
                     };
