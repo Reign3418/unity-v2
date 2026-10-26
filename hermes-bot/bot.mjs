@@ -37,6 +37,11 @@ import {
   addZeroListTarget,
   buildZeroListEmbed,
   calculateRokMath,
+  linkGovernorAltAccount,
+  adjustGovernorConduct,
+  buildAllianceActivityCard,
+  buildWhoisDossierCard,
+  buildKvkAtlasEmbed,
 } from './warOsSuite.js';
 import {
   GUILD_TIERS,
@@ -56,6 +61,14 @@ import {
   createAuditedStripePromoCode,
   getCouponAuditLedgerSummary,
 } from './stripeBridge.js';
+import {
+  BABEL_EXCLUSIVE_GUILD_ID,
+  syncBabelGuildTopology,
+  touchBabelUserActivity,
+  handleBabelLanguageSelect,
+  handleBabelFounderAllLanguages,
+  handleBabelMirrorMessage,
+} from './babelMirrorEngine.js';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -816,6 +829,72 @@ function buildOcrEmbed(ocrResult, authorName = 'Governor') {
   };
 }
 
+function buildMyStatsComponents() {
+  return [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 1,
+          label: '🏰 Alliance Activity Card',
+          custom_id: 'hermes_activity_card_btn',
+        },
+        {
+          type: 2,
+          style: 2,
+          label: '🕵️ /whois & Linked Alts',
+          custom_id: 'hermes_whois_card_btn',
+        },
+        {
+          type: 2,
+          style: 2,
+          label: '🗺️ 13-Story KvK Camp Atlas',
+          custom_id: 'hermes_kvk_atlas_btn',
+        },
+      ],
+    },
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 3,
+          label: '🔗 Link Farm / Alt ID (DKP Rollup)',
+          custom_id: 'hermes_linkalt_modal_btn',
+        },
+        {
+          type: 2,
+          style: 4,
+          label: '⚖️ R4 Conduct (+Bonus / -Penalty)',
+          custom_id: 'hermes_conduct_modal_btn',
+        },
+      ],
+    },
+  ];
+}
+
+function buildKvkAtlasComponents(activeStory = 'S18') {
+  const buttons = [
+    { key: 'S18', label: '⚜️ S18 Siege of Orléans' },
+    { key: 'S12', label: '🐊 S12 King of the Nile' },
+    { key: 'S4', label: '🔥 S4 Heroic Anthem' },
+    { key: 'S10', label: '🌊 S10 Tides of War' },
+    { key: 'S21', label: '💣 S21 Gunpowder' },
+  ];
+  return [
+    {
+      type: 1,
+      components: buttons.map((b) => ({
+        type: 2,
+        style: b.key === activeStory ? 1 : 2,
+        label: b.label,
+        custom_id: `hermes_kvk_story_${b.key}`,
+      })),
+    },
+  ];
+}
+
 /**
  * Registers /hermes and /guide Slash Commands + Context Menus on Guild & Globally
  */
@@ -1147,6 +1226,111 @@ async function registerSlashCommands() {
             },
           ],
         },
+        {
+          type: 1,
+          name: 'whois',
+          description: '🕵️ View Name-Change Alias History, Alliance-Hop Timeline & Linked Alt/Farm Accounts',
+          options: [
+            {
+              type: 3,
+              name: 'governor_id',
+              description: 'Optional Governor ID or Name (Default: Your Bound Profile)',
+              required: false,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: 'activity',
+          description: '🏰 View Alliance Activity Scorecard (Tech Donations, Helps, Build, Forts & RSS)',
+          options: [
+            {
+              type: 3,
+              name: 'governor_id',
+              description: 'Optional Governor ID or Name (Default: Your Bound Profile)',
+              required: false,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: 'atlas',
+          description: '🗺️ View 13-Story Season of Conquest KvK Camp & Pin Coordinate Atlas (S4–S21)',
+          options: [
+            {
+              type: 3,
+              name: 'story',
+              description: 'Select Season of Conquest KvK Story Format',
+              required: false,
+              choices: [
+                { name: '⚜️ S18 — Siege of Orléans (6 Camps)', value: 'S18' },
+                { name: '🐊 S12 — King of the Nile (4 Camps)', value: 'S12' },
+                { name: '🔥 S4 — Heroic Anthem (6 Camps)', value: 'S4' },
+                { name: '🌊 S10 — Tides of War (4 Camps)', value: 'S10' },
+                { name: '💣 S21 — King of Gunpowder (4 Camps)', value: 'S21' },
+                { name: '☀️ S20 — Conquest of the Sun (4 Camps)', value: 'S20' },
+                { name: '🏛️ S19 —King of All Britain (6 Camps)', value: 'S19' },
+                { name: '⚔️ S5 — Strife of the Eight (8 Camps)', value: 'S5' },
+              ],
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: 'linkalt',
+          description: '🔗 Link a Farm / Alt Governor ID so its Kills & Deads roll up into your Main DKP Scorecard',
+          options: [
+            {
+              type: 3,
+              name: 'alt_id',
+              description: 'Farm / Alt Governor ID (e.g. 41940888)',
+              required: true,
+            },
+            {
+              type: 3,
+              name: 'alt_name',
+              description: 'Farm / Alt Governor Name (e.g. ReignFarm01)',
+              required: true,
+            },
+            {
+              type: 4,
+              name: 't4_kills',
+              description: 'Optional T4 Kills on Alt/Farm during KvK',
+              required: false,
+            },
+            {
+              type: 4,
+              name: 'deads',
+              description: 'Optional Garrison/Rally Deads on Alt/Farm during KvK',
+              required: false,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: 'conduct',
+          description: '⚖️ R4/R5: Award a DKP Bonus (+500) or levy a Conduct Penalty (-1000) on a Governor',
+          options: [
+            {
+              type: 3,
+              name: 'governor_id',
+              description: 'Target Governor ID or Name',
+              required: true,
+            },
+            {
+              type: 4,
+              name: 'points',
+              description: 'DKP adjustment (e.g. +500 for Voice/Pass Lead, or -1000 for MGE Cap Violation)',
+              required: true,
+            },
+            {
+              type: 3,
+              name: 'reason',
+              description: 'Audit reason logged on their /mystats card',
+              required: true,
+            },
+          ],
+        },
       ],
     },
     // Right-Click Message Context Menu Commands (Works in EVERY Channel on HQ & Turnkey Kingdom Servers!)
@@ -1235,6 +1419,7 @@ async function handleInteraction(ix) {
       customId.startsWith('hermes_upgrade_') ||
       customId.startsWith('hermes_launch_') ||
       customId === 'hermes_demo_common_lockout' ||
+      customId.startsWith('hermes_babel_') ||
       customId === 'hermes_ticket_onboard' ||
       customId === 'hermes_ticket_migrant' ||
       customId === 'hermes_ticket_court' ||
@@ -1304,6 +1489,43 @@ async function handleInteraction(ix) {
           ],
         },
       });
+    }
+
+    // A0.0 VALHEON CITADEL EXCLUSIVE — BABEL NATIVE LANGUAGE ROLE SWITCHER (`1563618222895407166` ONLY)
+    if (customId.startsWith('hermes_babel_lang_')) {
+      const langCode = customId.replace('hermes_babel_lang_', '').trim();
+      await reply({ type: 5, data: { flags: 64 } });
+      const res = await handleBabelLanguageSelect({
+        discordApi,
+        guildId,
+        user,
+        member: ix.member,
+        langCode,
+      });
+      if (!res.ok) {
+        return editOriginal({ content: res.content });
+      }
+      return editOriginal({ embeds: [res.embed] });
+    }
+
+    if (customId === 'hermes_babel_founder_all') {
+      if (!VALHEON_FOUNDER_IDS.has(String(user.id))) {
+        return reply({
+          type: 4,
+          data: {
+            flags: 64,
+            content: '⛔ **Strict Principal-Only Lock:** Only Lauren (`184977944433786880`) can toggle All-Languages Founder Overwatch.',
+          },
+        });
+      }
+      await reply({ type: 5, data: { flags: 64 } });
+      const res = await handleBabelFounderAllLanguages({
+        discordApi,
+        guildId,
+        user,
+        member: ix.member,
+      });
+      return editOriginal({ content: res.content });
     }
 
     // A0. Commercial Rarity Tier & 24-Hour FOMO Upgrade / Lockout Preview Buttons
@@ -3086,7 +3308,158 @@ async function handleInteraction(ix) {
         userId: user.id,
         username: user.global_name || user.username,
       });
+      return editOriginal({ embeds: [embed], components: buildMyStatsComponents() });
+    }
+
+    if (customId === 'hermes_activity_card_btn') {
+      await reply({ type: 5, data: { flags: 64 } });
+      const embed = buildAllianceActivityCard({
+        userId: user.id,
+        username: user.global_name || user.username,
+      });
       return editOriginal({ embeds: [embed] });
+    }
+
+    if (customId === 'hermes_whois_card_btn') {
+      await reply({ type: 5, data: { flags: 64 } });
+      const embed = buildWhoisDossierCard({
+        userId: user.id,
+        username: user.global_name || user.username,
+      });
+      return editOriginal({ embeds: [embed] });
+    }
+
+    if (customId === 'hermes_kvk_atlas_btn') {
+      await reply({ type: 5, data: { flags: 64 } });
+      const embed = buildKvkAtlasEmbed('S18');
+      return editOriginal({ embeds: [embed], components: buildKvkAtlasComponents('S18') });
+    }
+
+    if (customId.startsWith('hermes_kvk_story_')) {
+      const storyKey = customId.replace('hermes_kvk_story_', '');
+      const embed = buildKvkAtlasEmbed(storyKey);
+      return reply({
+        type: 7,
+        data: {
+          embeds: [embed],
+          components: buildKvkAtlasComponents(storyKey),
+        },
+      });
+    }
+
+    if (customId === 'hermes_linkalt_modal_btn') {
+      return reply({
+        type: 9,
+        data: {
+          custom_id: 'hermes_linkalt_modal',
+          title: '🔗 Link Farm / Alt ID for DKP Rollup',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'alt_gov_id',
+                  label: '1. Farm / Alt Governor ID',
+                  style: 1,
+                  placeholder: 'e.g. 41940888',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'alt_name',
+                  label: '2. Farm / Alt Governor Name',
+                  style: 1,
+                  placeholder: 'e.g. ReignFarm01',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'alt_t4_kills',
+                  label: '3. Alt T4 Kills in KvK (Optional)',
+                  style: 1,
+                  value: '185000',
+                  required: false,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'alt_deads',
+                  label: '4. Alt Garrison/Rally Deads (Optional)',
+                  style: 1,
+                  value: '92000',
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    if (customId === 'hermes_conduct_modal_btn') {
+      return reply({
+        type: 9,
+        data: {
+          custom_id: 'hermes_conduct_modal',
+          title: '⚖️ R4 Conduct Bonus / Penalty Ledger',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'target_gov_id',
+                  label: '1. Target Governor ID or Name',
+                  style: 1,
+                  value: user.global_name || user.username,
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'delta_dkp',
+                  label: '2. DKP Points (+Bonus or -Penalty)',
+                  style: 1,
+                  placeholder: 'e.g. +500 or -1000',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: 'conduct_reason',
+                  label: '3. Reason (Audit Trail on /mystats)',
+                  style: 1,
+                  placeholder: 'e.g. Pass 4 Voice Target Caller / MGE Cap Violation',
+                  required: true,
+                },
+              ],
+            },
+          ],
+        },
+      });
     }
 
     if (customId === 'hermes_calc_open_btn') {
@@ -4227,6 +4600,63 @@ async function handleInteraction(ix) {
     return editOriginal({ embeds: [embed] });
   }
 
+  if (ix.type === 5 && ix.data?.custom_id === 'hermes_linkalt_modal') {
+    await reply({ type: 5, data: { flags: 64 } });
+    const comps = ix.data.components || [];
+    const altGovId = (comps[0]?.components?.[0]?.value || '').trim();
+    const altName = (comps[1]?.components?.[0]?.value || 'Farm').trim();
+    const altT4Kills = Number((comps[2]?.components?.[0]?.value || '185000').replace(/[^0-9]/g, '')) || 185000;
+    const altDeads = Number((comps[3]?.components?.[0]?.value || '92000').replace(/[^0-9]/g, '')) || 92000;
+
+    linkGovernorAltAccount({
+      mainKey: user.id,
+      altGovId,
+      altName,
+      power: 18_400_000,
+      t4Kills: altT4Kills,
+      t5Kills: 0,
+      deads: altDeads,
+      rssAssisted: 210_000_000,
+      source: 'LINKALT_MODAL',
+    });
+
+    const embed = buildMyStatsCard({
+      userId: user.id,
+      username: user.global_name || user.username,
+    });
+    return editOriginal({
+      content: `🔗 **Linked Farm/Alt \`#${altGovId}\` (\`${altName}\`) into your Main DKP Rollup!**`,
+      embeds: [embed],
+      components: buildMyStatsComponents(),
+    });
+  }
+
+  if (ix.type === 5 && ix.data?.custom_id === 'hermes_conduct_modal') {
+    await reply({ type: 5 });
+    const comps = ix.data.components || [];
+    const targetGovId = (comps[0]?.components?.[0]?.value || user.id).trim();
+    const deltaDkp = parseInt((comps[1]?.components?.[0]?.value || '500').replace(/[^0-9+-]/g, ''), 10) || 500;
+    const reason = (comps[2]?.components?.[0]?.value || 'R4 Council Conduct Adjustment').trim();
+
+    adjustGovernorConduct({
+      govKey: targetGovId,
+      deltaDkp,
+      reason,
+      officer: user.global_name || user.username,
+    });
+
+    const embed = buildMyStatsCard({
+      userId: user.id,
+      username: targetGovId,
+      govIdOpt: targetGovId,
+    });
+    return editOriginal({
+      content: `⚖️ **R4 Conduct Ledger Updated by <@${user.id}>:** \`${deltaDkp >= 0 ? '+' : ''}${deltaDkp.toLocaleString('en-US')} DKP\` logged for **\`${targetGovId}\`** (*${reason}*).`,
+      embeds: [embed],
+      components: buildMyStatsComponents(),
+    });
+  }
+
   // =========================================================================
   // 3. SLASH COMMAND & MESSAGE CONTEXT MENU INTERACTIONS (type === 2)
   // =========================================================================
@@ -4398,7 +4828,7 @@ async function handleInteraction(ix) {
       username: govOpt || user.global_name || user.username,
       govIdOpt: govOpt,
     });
-    return editOriginal({ embeds: [embed] });
+    return editOriginal({ embeds: [embed], components: buildMyStatsComponents() });
   }
 
   // Top-level /zerolist Slash Command
@@ -4675,6 +5105,93 @@ async function handleInteraction(ix) {
       });
     }
 
+    if (sub.name === 'whois') {
+      await reply({ type: 5 });
+      const govOpt = (sub.options?.find((o) => o.name === 'governor_id')?.value || '').trim();
+      const embed = buildWhoisDossierCard({
+        userId: user.id,
+        username: govOpt || user.global_name || user.username,
+        govIdOpt: govOpt,
+      });
+      return editOriginal({ embeds: [embed] });
+    }
+
+    if (sub.name === 'activity') {
+      await reply({ type: 5 });
+      const govOpt = (sub.options?.find((o) => o.name === 'governor_id')?.value || '').trim();
+      const embed = buildAllianceActivityCard({
+        userId: user.id,
+        username: govOpt || user.global_name || user.username,
+        govIdOpt: govOpt,
+      });
+      return editOriginal({ embeds: [embed] });
+    }
+
+    if (sub.name === 'atlas') {
+      await reply({ type: 5 });
+      const storyOpt = (sub.options?.find((o) => o.name === 'story')?.value || 'S18').trim();
+      const embed = buildKvkAtlasEmbed(storyOpt);
+      return editOriginal({
+        embeds: [embed],
+        components: buildKvkAtlasComponents(storyOpt),
+      });
+    }
+
+    if (sub.name === 'linkalt') {
+      await reply({ type: 5 });
+      const altId = (sub.options?.find((o) => o.name === 'alt_id')?.value || '').trim();
+      const altName = (sub.options?.find((o) => o.name === 'alt_name')?.value || 'Farm').trim();
+      const t4Kills = Number(sub.options?.find((o) => o.name === 't4_kills')?.value ?? 185000);
+      const deads = Number(sub.options?.find((o) => o.name === 'deads')?.value ?? 92000);
+
+      linkGovernorAltAccount({
+        mainKey: user.id,
+        altGovId: altId,
+        altName,
+        power: 18_400_000,
+        t4Kills,
+        t5Kills: 0,
+        deads,
+        rssAssisted: 210_000_000,
+        source: 'SLASH_LINKALT',
+      });
+
+      const embed = buildMyStatsCard({
+        userId: user.id,
+        username: user.global_name || user.username,
+      });
+      return editOriginal({
+        content: `🔗 **Linked Farm/Alt \`#${altId}\` (\`${altName}\`) into your Main DKP Rollup!**`,
+        embeds: [embed],
+        components: buildMyStatsComponents(),
+      });
+    }
+
+    if (sub.name === 'conduct') {
+      await reply({ type: 5 });
+      const govOpt = (sub.options?.find((o) => o.name === 'governor_id')?.value || user.id).trim();
+      const points = Number(sub.options?.find((o) => o.name === 'points')?.value ?? 500);
+      const reason = (sub.options?.find((o) => o.name === 'reason')?.value || 'R4 Council Conduct Adjustment').trim();
+
+      adjustGovernorConduct({
+        govKey: govOpt,
+        deltaDkp: points,
+        reason,
+        officer: user.global_name || user.username,
+      });
+
+      const embed = buildMyStatsCard({
+        userId: user.id,
+        username: govOpt,
+        govIdOpt: govOpt,
+      });
+      return editOriginal({
+        content: `⚖️ **R4 Conduct Ledger Updated by <@${user.id}>:** \`${points >= 0 ? '+' : ''}${points.toLocaleString('en-US')} DKP\` logged for **\`${govOpt}\`** (*${reason}*).`,
+        embeds: [embed],
+        components: buildMyStatsComponents(),
+      });
+    }
+
     if (sub.name === 'architect') {
       await reply({ type: 5, data: { flags: 64 } });
       const bp = sub.options?.find((o) => o.name === 'blueprint')?.value || 'VALHEON_HQ';
@@ -4799,10 +5316,12 @@ function connectGateway() {
       if (t === 'READY') {
         console.log(`🟢 [HERMES READY] Logged in as ${d.user.username} (${d.user.id}) — ONLINE!`);
         await registerSlashCommands();
+        await syncBabelGuildTopology(discordApi, BABEL_EXCLUSIVE_GUILD_ID);
       }
       if (t === 'INTERACTION_CREATE') {
         const ixUser = d.member?.user || d.user;
         if (ixUser && !ixUser.bot) {
+          touchBabelUserActivity(ixUser.id);
           recordSilentSignal({
             userId: ixUser.id,
             username: ixUser.username,
@@ -4816,6 +5335,7 @@ function connectGateway() {
       }
       // Silent Voice Channel Uptime Tracking
       if (t === 'VOICE_STATE_UPDATE' && d.channel_id && d.user_id !== APP_ID) {
+        touchBabelUserActivity(d.user_id);
         recordSilentSignal({
           userId: d.user_id,
           username: d.member?.user?.username || d.user_id,
@@ -4825,6 +5345,7 @@ function connectGateway() {
       }
       // Silent Message, Zero-Grid Chat Title Trigger ("justice", "duke", "scientist", "architect", "done") & Auto-OCR
       if (t === 'MESSAGE_CREATE' && d.author && !d.author.bot && d.author.id !== APP_ID) {
+        touchBabelUserActivity(d.author.id);
         recordSilentSignal({
           userId: d.author.id,
           username: d.author.username,
@@ -4834,6 +5355,15 @@ function connectGateway() {
         try {
           const fullMsg = await discordApi('GET', `/channels/${d.channel_id}/messages/${d.id}`);
           const rawContent = String(fullMsg?.content || d.content || '').trim().toLowerCase();
+
+          // 0. VALHEON CITADEL EXCLUSIVE — BABEL MIRROR REAL-TIME WEBHOOK AVATAR-CLONED TRANSLATOR (`1563618222895407166` ONLY)
+          if (String(d.guild_id || GUILD_ID) === BABEL_EXCLUSIVE_GUILD_ID && !d.webhook_id) {
+            await handleBabelMirrorMessage(discordApi, {
+              ...d,
+              content: fullMsg?.content ?? d.content ?? '',
+              attachments: fullMsg?.attachments ?? d.attachments ?? [],
+            });
+          }
 
           // 1. ZERO-GRID SINGLE-WORD TITLE CHAT TRIGGER ("justice", "duke", "scientist", "architect", "done")
           if (/^(justice|duke|scientist|architect|done)$/i.test(rawContent)) {
