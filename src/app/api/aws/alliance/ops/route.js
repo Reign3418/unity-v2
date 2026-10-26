@@ -1,21 +1,10 @@
 import { NextResponse } from "next/server";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
-
-const ddbClient = new DynamoDBClient({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-  },
-});
-const docClient = DynamoDBDocumentClient.from(ddbClient);
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "BastionControl";
+import { getGlobalConfig, updateGlobalConfig } from "@/lib/awsDynamo";
 
 /**
  * Complete Lilith In-Game Alliance Record Log Templates (rt: 101..308)
  */
-export const ALLIANCE_LOG_TEMPLATES = {
+const ALLIANCE_LOG_TEMPLATES = {
   101: "{p1} raised {p2} to Rank {p3}.",
   102: "{p1} transferred alliance leadership to {p2}.",
   103: "Alliance gift level raised to {p1}.",
@@ -61,7 +50,7 @@ export const ALLIANCE_LOG_TEMPLATES = {
   308: "{p2} attacked our Horse Fort {locP1}.",
 };
 
-export const ALLIANCE_OFFICER_POSTS = {
+const ALLIANCE_OFFICER_POSTS = {
   1: "Counselor",
   2: "Warlord",
   3: "Envoy",
@@ -76,7 +65,7 @@ export const ALLIANCE_OFFICER_POSTS = {
   12: "Vanguard General",
 };
 
-export const LILITH_PROTOCOL_ERRORS = {
+const LILITH_PROTOCOL_ERRORS = {
   AsArmoryTaskSetNoPermission:
     "The bot's in-game account needs the COUNSELOR title to post bounties. Ask your R5 to assign Counselor.",
   AsArmoryTaskTypeCountLimit:
@@ -115,7 +104,7 @@ export const LILITH_PROTOCOL_ERRORS = {
 /**
  * Converts raw Lilith 1/6th sub-tile coordinates ("serverId,rawX,rawY") into Kingdom Map (X, Y)
  */
-export function parseSubTileLocation(rawParam) {
+function parseSubTileLocation(rawParam) {
   const parts = String(rawParam || "").split(",");
   if (parts.length < 3) return String(rawParam || "").trim();
   const rawX = Number(parts[1]);
@@ -126,7 +115,7 @@ export function parseSubTileLocation(rawParam) {
   return `(X:${x} Y:${y})`;
 }
 
-export function classifyAllianceLogCategory(rt) {
+function classifyAllianceLogCategory(rt) {
   const code = Number(rt);
   if ([206, 201, 203].includes(code)) return "Joined";
   if (code === 204) return "Left";
@@ -142,7 +131,7 @@ export function classifyAllianceLogCategory(rt) {
   return "Event";
 }
 
-export function formatAllianceLogRecord(rec) {
+function formatAllianceLogRecord(rec) {
   const rt = Number(rec.rt);
   const template = ALLIANCE_LOG_TEMPLATES[rt];
   const category = classifyAllianceLogCategory(rt);
@@ -229,13 +218,10 @@ export async function GET(req) {
 
     let savedState = null;
     try {
-      const res = await docClient.send(
-        new GetCommand({
-          TableName: TABLE_NAME,
-          Key: { pk: `ALLIANCE_OPS_${kd}`, sk: "CONFIG" },
-        })
-      );
-      savedState = res.Item || null;
+      const raw = await getGlobalConfig(`ALLIANCE_OPS_${kd}`);
+      if (raw) {
+        savedState = typeof raw === "string" ? JSON.parse(raw) : raw;
+      }
     } catch {
       // Fallback to default state if DynamoDB is unreachable locally
     }
@@ -304,16 +290,12 @@ export async function POST(req) {
         ...(body.automation || {}),
       };
       try {
-        await docClient.send(
-          new PutCommand({
-            TableName: TABLE_NAME,
-            Item: {
-              pk: `ALLIANCE_OPS_${kd}`,
-              sk: "CONFIG",
-              kd,
-              automation: updatedAutomation,
-              updatedAt: new Date().toISOString(),
-            },
+        await updateGlobalConfig(
+          `ALLIANCE_OPS_${kd}`,
+          JSON.stringify({
+            kd,
+            automation: updatedAutomation,
+            updatedAt: new Date().toISOString(),
           })
         );
       } catch {

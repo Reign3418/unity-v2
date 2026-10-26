@@ -1222,6 +1222,7 @@ export default function CalculatorsPage() {
 
       {/* Content Area */}
       {activeTab === "speedups" && (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
           <div className="lg:col-span-2 bg-[#0f1115] border border-[#1e222b] rounded-xl flex flex-col shadow-xl relative overflow-hidden h-full">
             <div className="bg-[#0a0c0f] px-6 py-4 flex items-center justify-between border-b border-[#1e222b]">
@@ -1483,6 +1484,7 @@ export default function CalculatorsPage() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {activeTab === "resources" && (
