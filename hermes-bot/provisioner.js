@@ -191,6 +191,46 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey, chDef = nul
         deny: '0',
       });
     }
+  } else if (accessMode === 'BABEL_LANG_ONLY') {
+    overwrites.push({
+      id: everyoneId,
+      type: 0,
+      allow: '0',
+      deny: PERMS.VIEW_CHANNEL,
+    });
+    const langRoleId = chDef?.langRoleKey ? roleIdByKey[chDef.langRoleKey] : null;
+    if (langRoleId) {
+      overwrites.push({
+        id: langRoleId,
+        type: 0,
+        allow: (
+          BigInt(PERMS.VIEW_CHANNEL) |
+          BigInt(PERMS.SEND_MESSAGES) |
+          BigInt(PERMS.READ_MESSAGE_HISTORY) |
+          BigInt(PERMS.EMBED_LINKS) |
+          BigInt(PERMS.ATTACH_FILES) |
+          BigInt(PERMS.ADD_REACTIONS) |
+          BigInt(PERMS.USE_APPLICATION_COMMANDS)
+        ).toString(),
+        deny: '0',
+      });
+    }
+    if (roleIdByKey.hermes) {
+      overwrites.push({
+        id: roleIdByKey.hermes,
+        type: 0,
+        allow: (
+          BigInt(PERMS.VIEW_CHANNEL) |
+          BigInt(PERMS.SEND_MESSAGES) |
+          BigInt(PERMS.MANAGE_MESSAGES) |
+          BigInt(PERMS.MANAGE_CHANNELS) |
+          BigInt(PERMS.READ_MESSAGE_HISTORY) |
+          BigInt(PERMS.EMBED_LINKS) |
+          BigInt(PERMS.ATTACH_FILES)
+        ).toString(),
+        deny: '0',
+      });
+    }
   } else if (accessMode === 'PUBLIC_SCREENSHOT_VERIFY') {
     overwrites.push({
       id: everyoneId,
