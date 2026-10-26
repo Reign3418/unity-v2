@@ -917,7 +917,7 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '👋-welcome-start-here',
             type: CHANNEL_TYPES.TEXT,
             access: 'PUBLIC_READ_ONLY',
-            topic: `Welcome to Kingdom #${kdId}! Complete the 4-Step Interactive Onboarding below: 1) Accept Rules -> 2) Pick Language -> 3) Select Combat & Event Roles -> 4) Verify Governor ID.`,
+            topic: `Welcome to Kingdom #${kdId}! Follow the 4 Steps below in order: 1) Pick Language -> 2) Translate & Accept Rules -> 3) Upload Governor Screenshot -> 4) Pick Active Roles.`,
             pinKey: 'WELCOME_START_HERE_CONSOLE',
           },
           {
@@ -931,8 +931,14 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
             name: '🔗-verify-governor-id',
             type: CHANNEL_TYPES.TEXT,
             access: 'PUBLIC_SCREENSHOT_VERIFY',
-            topic: `Drop your in-game Governor Profile screenshot right here for 1-second Auto-OCR Verification (auto-approves if in a Kingdom alliance, or queues for 1-click R4/R5 sister-alliance approval)!`,
+            topic: `Step 3: Drop your in-game Governor Profile screenshot right here! (🟠 Legendary Hermes = 1s Auto-OCR Approval • 🟢 Common Hermes = 1-Click R4 Officer Approval).`,
             pinKey: 'KD_VERIFY_CONSOLE',
+          },
+          {
+            name: '💬-newcomer-lobby-chat',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_OPEN_CHAT',
+            topic: `Open lobby chat for newly joined Governors! Say hello or ask an R4 for help here if your screenshot verification isn't working.`,
           },
           {
             name: '📢-kings-decrees',
@@ -1458,9 +1464,15 @@ export function buildKvkDiploBlueprint(customOptions = {}) {
           {
             name: '🔗-verify-governor-id',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
-            topic: 'Link your Governor ID & Kingdom # to unlock Lost Kingdom Town Hall & Diplomatic channels.',
+            access: 'PUBLIC_SCREENSHOT_VERIFY',
+            topic: 'Step 3: Upload your in-game Governor Profile screenshot here to unlock Lost Kingdom Town Hall & Diplomatic channels.',
             pinKey: 'KD_VERIFY_CONSOLE',
+          },
+          {
+            name: '💬-newcomer-lobby-chat',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_OPEN_CHAT',
+            topic: 'Open lobby chat for newly joined Governors! Speak here if your verification isn\'t working or if you need an R4/Diplomat.',
           },
           {
             name: '⚖️-signed-treaties-and-zone-splits',
@@ -1698,9 +1710,15 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
           {
             name: '🔗-verify-governor-id',
             type: CHANNEL_TYPES.TEXT,
-            access: 'PUBLIC_READ_ONLY',
-            topic: 'Spy-Proof Border Gate // Link your Governor ID & Allied Kingdom # to unlock Coalition Rally & Voice rooms.',
+            access: 'PUBLIC_SCREENSHOT_VERIFY',
+            topic: 'Step 3: Upload your in-game Governor Profile screenshot here to unlock Coalition Rally & Voice rooms.',
             pinKey: 'KD_VERIFY_CONSOLE',
+          },
+          {
+            name: '💬-newcomer-lobby-chat',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_OPEN_CHAT',
+            topic: 'Open lobby chat for newly joined Governors! Speak here if your screenshot verification isn\'t working.',
           },
           {
             name: '🔥-joint-rally-and-garrison-calls',
@@ -1804,30 +1822,35 @@ export function buildKvkCoalitionBlueprint(customOptions = {}) {
 export const PINNED_CONSOLE_TEMPLATES = {
   WELCOME_START_HERE_CONSOLE: {
     embed: {
-      title: '👋 WELCOME START HERE // 4-STEP RULES, ROLES & GOVERNOR ONBOARDING',
+      title: '👋 WELCOME START HERE // 4-STEP ONBOARDING (LANGUAGE ➔ RULES ➔ SCREENSHOT ➔ ROLES)',
       description:
-        '**Welcome, Governor!** Complete these **4 quick steps right here on this screen** to set up your language, roles, and unlock all Kingdom War Rooms:\n\n' +
+        '**Welcome, Governor!** *(This channel is locked to keep the buttons clean — if you need to type or ask for help, use **`#💬-newcomer-lobby-chat`** right below!)*\n\n' +
+        'Follow these **4 steps in order** to unlock the server:\n\n' +
         '--- \n' +
-        '### 📜 STEP 1: READ & ACCEPT KINGDOM RULES\n' +
-        '• **1. MGE & Event Caps:** Respect all posted Mightiest Governor (MGE) caps. Fixed ranks are assigned via `#🎫-kingdom-ticket-desk`.\n' +
-        '• **2. Home Kingdom Peace & Nodes:** Zero city or tile hits in Home Kingdom; always clear resource tiles completely (`0` left behind).\n' +
-        '• **3. KvK Mobilization & DKP:** Answer Pass/Flag rally & garrison calls and meet your KvK DKP goal (`#📜-kingdom-laws-and-charter`).\n' +
-        '👉 *Click **`[✅ Step 1: I Accept Rules & Charter]`** in Row 1 below!*\n\n' +
-        '### 🌍 STEP 2: PICK YOUR NATIVE LANGUAGE (17 LANGUAGES)\n' +
-        '• Click **`[🌍 Step 2: Pick My Language (17 Flags)]`** below (or tap your flag inside `#🌐-select-your-language` at the top of the server) — **🪽 HERMES** automatically translates chat into your native language!\n\n' +
-        '### 🎯 STEP 3: SELECT YOUR COMBAT SPECS & EVENT ALERTS (ROWS 2 & 3)\n' +
-        '• Tap any button in **Row 2 (`🗡️ Infantry`, `🐎 Cavalry`, `🏹 Archer`, `🔥 Rally`, `🏰 Garrison`)** or **Row 3 (`💎 More Than Gems`, `🗿 20GH`, `🎡 Wheel & MGE`, `🔨 Egg`, `🚨 No-Cap`)** below to toggle those roles **ON / OFF** on your profile!\n\n' +
-        '### 🪪 STEP 4: VERIFY YOUR GOVERNOR ID (UNLOCKS WAR ROOMS)\n' +
-        '• Click **`[🪪 Step 4: Verify Governor ID]`** below (or drop a screenshot of your in-game profile in `#🔗-verify-governor-id`) to unlock all Kingdom & Alliance channels!',
+        '### 🌍 STEP 1: PICK YOUR NATIVE LANGUAGE (17 FLAGS)\n' +
+        '• Click **`[🌍 Step 1: Pick Language (17 Flags)]`** below first!\n' +
+        '• **🪽 HERMES** will switch the server into your native language **AND automatically translate the Kingdom Rules into your language** so you can read them easily.\n\n' +
+        '### 📜 STEP 2: READ THE TRANSLATED RULES & ACCEPT\n' +
+        '• **1. MGE & Event Caps:** Respect all posted Mightiest Governor (MGE) caps (`#📜-kingdom-laws-and-charter`).\n' +
+        '• **2. Home Kingdom Peace & Nodes:** Zero city/tile hits in Home Kingdom; always clear resource nodes completely.\n' +
+        '• **3. KvK Mobilization & DKP:** Join Pass/Flag rallies & garrisons and meet your KvK DKP goal.\n' +
+        '👉 *Once you have read the rules in your language, click **`[✅ Step 2: I Accept Rules & Charter]`** below!*\n\n' +
+        '### 📸 STEP 3: UPLOAD YOUR IN-GAME PLAYER SCREENSHOT (`#🔗-verify-governor-id`)\n' +
+        '• Head into **`#🔗-verify-governor-id`** (or click **`[📸 Step 3: Verify Governor Screenshot]`** below) and upload a screenshot of your in-game **Governor Profile**:\n' +
+        '  • **🟠 Legendary / 👑 Valheon Hermes:** **1-Second AI Vision Auto-OCR** reads your Governor ID, Name & `[TAG]` and **auto-approves you immediately**!\n' +
+        '  • **🟢 Common Hermes:** Queues your screenshot with **1-Click R4/R5 Approval Buttons** so an R4 officer can approve and unlock your roles!\n' +
+        '  • *(Having trouble? Drop a message inside **`#💬-newcomer-lobby-chat`**!)*\n\n' +
+        '### 🎯 STEP 4: PICK YOUR ACTIVE COMBAT & EVENT ROLES (ROWS 2 & 3)\n' +
+        '• Finally, tap your **Combat Specialization Roles** (`🗡️ Infantry`, `🐎 Cavalry`, `🏹 Archer`, `🔥 Rally Leader`, `🏰 Garrison Captain`) and **Event Alerts** (`💎 More Than Gems`, `🗿 20GH`, `🎡 Wheel & MGE`, `🔨 Egg`, `🚨 No-Cap`) in **Rows 2 & 3 below**!',
       color: 0x10b981,
-      footer: { text: 'VALHEON 4-STEP ONBOARDING CONSOLE // RULES • 17 LANGUAGES • ROLES • VERIFICATION' },
+      footer: { text: 'STEP 1: LANGUAGE -> STEP 2: ACCEPT RULES -> STEP 3: SCREENSHOT VERIFY -> STEP 4: PICK ROLES' },
     },
     buttonRows: [
       [
-        { customId: 'hermes_welcome_accept_rules', label: '✅ Step 1: I Accept Rules & Charter', style: 'SUCCESS' },
-        { customId: 'hermes_welcome_open_lang_picker', label: '🌍 Step 2: Pick My Language (17 Flags)', style: 'PRIMARY' },
-        { customId: 'hermes_verify_governor', label: '🪪 Step 4: Verify Governor ID', style: 'SUCCESS' },
-        { customId: 'hermes_my_roles_status', label: '🎯 View My Active Roles', style: 'SECONDARY' },
+        { customId: 'hermes_welcome_open_lang_picker', label: '🌍 Step 1: Pick Language (17 Flags)', style: 'PRIMARY' },
+        { customId: 'hermes_welcome_accept_rules', label: '✅ Step 2: Accept Rules & Charter', style: 'SUCCESS' },
+        { customId: 'hermes_welcome_step3_guide', label: '📸 Step 3: Verify Governor Screenshot', style: 'SUCCESS' },
+        { customId: 'hermes_my_roles_status', label: '🎯 Step 4: View My Active Roles', style: 'SECONDARY' },
       ],
       [
         { customId: 'hermes_role_toggle_spec_infantry', label: '🗡️ Infantry', style: 'PRIMARY' },

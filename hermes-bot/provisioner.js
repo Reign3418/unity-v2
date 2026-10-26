@@ -234,7 +234,7 @@ function buildPermissionOverwrites(accessMode, guildId, roleIdByKey, chDef = nul
         deny: '0',
       });
     }
-  } else if (accessMode === 'PUBLIC_SCREENSHOT_VERIFY') {
+  } else if (accessMode === 'PUBLIC_SCREENSHOT_VERIFY' || accessMode === 'PUBLIC_OPEN_CHAT') {
     overwrites.push({
       id: everyoneId,
       type: 0,

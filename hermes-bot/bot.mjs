@@ -1346,52 +1346,7 @@ async function handleInteraction(ix) {
       });
     }
 
-    // A0.0 VALHEON CITADEL EXCLUSIVE — BABEL NATIVE LANGUAGE ROLE SWITCHER (`1563618222895407166` ONLY)
-    if (customId === 'hermes_welcome_accept_rules') {
-      return reply({
-        type: 4,
-        data: {
-          flags: 64,
-          embeds: [
-            {
-              title: '✅ STEP 1 COMPLETE // KINGDOM RULES & CHARTER ACCEPTED',
-              description:
-                `Thank you, <@${user.id}>! Your agreement to the **Kingdom Rules & Charter** has been recorded by **🪽 HERMES**.\n\n` +
-                `### 🚀 FINISH YOUR ONBOARDING BELOW:\n` +
-                `• **🌍 Step 2 (Native Language):** Click **` +
-                '`[🌍 Pick My Language (17 Flags)]`' +
-                `** below to morph the server chat into your native language.\n` +
-                `• **🎯 Step 3 (Combat & Event Roles):** Tap your **Infantry / Cavalry / Archer / Rally / Garrison** & **More Than Gems / 20GH** buttons on the Welcome Console.\n` +
-                `• **🪪 Step 4 (Unlock War Rooms):** Click **` +
-                '`[🪪 Verify Governor ID & Unlock Server]`' +
-                `** below (or drop your profile screenshot in \`#🔗-verify-governor-id\`) to unlock all Kingdom & Alliance channels!`,
-              color: 0x10b981,
-              footer: { text: 'VALHEON 4-STEP ONBOARDING // STEP 1 OF 4 VERIFIED' },
-            },
-          ],
-          components: [
-            {
-              type: 1,
-              components: [
-                {
-                  type: 2,
-                  style: 1, // PRIMARY
-                  label: '🌍 Step 2: Pick My Language (17 Flags)',
-                  custom_id: 'hermes_welcome_open_lang_picker',
-                },
-                {
-                  type: 2,
-                  style: 3, // SUCCESS
-                  label: '🪪 Step 4: Verify Governor ID & Unlock Server',
-                  custom_id: 'hermes_verify_governor',
-                },
-              ],
-            },
-          ],
-        },
-      });
-    }
-
+    // A0.0 4-STEP ONBOARDING FLOW: 1) Language -> 2) Translate & Accept Rules -> 3) Screenshot Verify (R4 or Auto-OCR) -> 4) Active Roles
     if (customId === 'hermes_welcome_open_lang_picker') {
       return reply({
         type: 4,
@@ -1399,11 +1354,13 @@ async function handleInteraction(ix) {
           flags: 64,
           embeds: [
             {
-              title: '🌍 STEP 2 // SELECT YOUR NATIVE LANGUAGE (17 OFFICIAL ROK LANGUAGES)',
+              title: '🌍 STEP 1 // PICK YOUR LANGUAGE & TRANSLATE THE RULES',
               description:
-                'Tap your flag below — **🪽 HERMES** will assign your native language role, open your dedicated native-language room under **`🪽 HERMES OMNI-LANGUAGE MATRIX`**, and automatically translate every Governor in real time:',
+                'Tap your native flag below first! **🪽 HERMES** will:\n' +
+                '1️⃣ Unlock your native-language chat room under **`🪽 HERMES OMNI-LANGUAGE MATRIX`**.\n' +
+                '2️⃣ **Automatically translate the Kingdom Rules & Charter into your language** so you can read and accept **Step 2** right here!',
               color: 0x38bdf8,
-              footer: { text: 'VALHEON 17-LANGUAGE OMNI-MATRIX // 1 LANGUAGE ACTIVE AT A TIME' },
+              footer: { text: 'STEP 1 OF 4 // SELECT YOUR NATIVE LANGUAGE BELOW' },
             },
           ],
           components: [
@@ -1459,10 +1416,142 @@ async function handleInteraction(ix) {
         member: ix.member,
         langCode,
       });
-      if (!res.ok) {
-        return editOriginal({ content: res.content });
+
+      const baseRulesText =
+        '1. MGE & Event Caps: Respect all posted Mightiest Governor (MGE) point caps. Fixed ranks are assigned only to vetted Rally & Garrison Captains.\n' +
+        '2. Home Kingdom Peace & Nodes: Zero city or tile hits in Home Kingdom. Always farm resource tiles completely to 0.\n' +
+        '3. KvK Mobilization & DKP: Join Pass/Flag rallies and garrisons, and meet your KvK DKP & Dead troop targets.';
+
+      let translatedRules = baseRulesText;
+      if (langCode !== 'en') {
+        try {
+          const tr = await translateRoKMessage(baseRulesText, langCode);
+          if (tr?.translated) translatedRules = tr.translated;
+        } catch {}
       }
-      return editOriginal({ embeds: [res.embed] });
+
+      const rulesEmbed = {
+        title: `📜 STEP 2 // READ & ACCEPT KINGDOM RULES (${langCode.toUpperCase()})`,
+        description:
+          `${translatedRules}\n\n` +
+          `👉 **Click \`[✅ Step 2: I Have Read & Accept the Rules]\` below to proceed to Step 3 (Governor Screenshot Verification)!**`,
+        color: 0x10b981,
+        footer: { text: 'STEP 2 OF 4 // TRANSLATED BY HERMES 17-LANGUAGE ENGINE' },
+      };
+
+      const embeds = res.ok && res.embed ? [res.embed, rulesEmbed] : [rulesEmbed];
+      return editOriginal({
+        content: !res.ok ? res.content : undefined,
+        embeds,
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 3, // SUCCESS
+                label: '✅ Step 2: I Have Read & Accept the Rules',
+                custom_id: 'hermes_welcome_accept_rules',
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    if (customId === 'hermes_welcome_accept_rules') {
+      const approvalModeText = tierStatus.isLegendary
+        ? '🟠 **Legendary / Valheon Hermes Active (`1-Second Auto-Approval`):** As soon as you drop your in-game Governor Profile screenshot in **`#🔗-verify-governor-id`**, HERMES Vision OCR automatically reads your Governor ID, Name & `[TAG]` and **approves you in 1 second**!'
+        : '🟢 **Common Hermes Active (`R4 Officer Approval Queue`):** Drop your in-game Governor Profile screenshot in **`#🔗-verify-governor-id`** — HERMES posts it with **1-Click R4/R5 Approval Buttons** so an officer can approve and unlock your roles!';
+
+      return reply({
+        type: 4,
+        data: {
+          flags: 64,
+          embeds: [
+            {
+              title: '✅ STEP 2 COMPLETE // NOW UPLOAD YOUR IN-GAME SCREENSHOT (STEP 3)',
+              description:
+                `Thank you, <@${user.id}>! You have accepted the **Kingdom Rules & Charter**.\n\n` +
+                `### 📸 STEP 3: ADD YOUR IN-GAME PLAYER SCREENSHOT\n` +
+                `1. Open **` +
+                '`#🔗-verify-governor-id`' +
+                `** in the left sidebar and **upload a screenshot of your in-game Governor Profile**.\n` +
+                `2. ${approvalModeText}\n` +
+                `3. *(If screenshot upload isn't working or you need help, you can type freely inside **` +
+                '`#💬-newcomer-lobby-chat`' +
+                `**!)*\n\n` +
+                `### 🎯 STEP 4: PICK YOUR ACTIVE ROLES\n` +
+                `• After uploading your screenshot, tap your **Combat Specialization Roles** (\`🗡️ Infantry\`, \`🐎 Cavalry\`, \`🏹 Archer\`, \`🔥 Rally\`, \`🏰 Garrison\`) & **Event Alerts** (\`💎 More Than Gems\`, \`🗿 20GH\`, \`🎡 Wheel & MGE\`) right on the Welcome screen!`,
+              color: 0x10b981,
+              footer: { text: 'STEP 2 OF 4 COMPLETE // NEXT: DROP SCREENSHOT IN #verify-governor-id' },
+            },
+          ],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 3, // SUCCESS
+                  label: '📸 Step 3: Screenshot Verification Guide',
+                  custom_id: 'hermes_welcome_step3_guide',
+                },
+                {
+                  type: 2,
+                  style: 2, // SECONDARY
+                  label: '🔗 Optional: Manual ID Entry',
+                  custom_id: 'hermes_verify_governor',
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    if (customId === 'hermes_welcome_step3_guide') {
+      const approvalModeText = tierStatus.isLegendary
+        ? '🟠 **1-Second Auto-Approval Active (Legendary / Valheon Hermes):** HERMES AI Vision OCR reads your Governor ID, Name, Alliance `[TAG]`, Power & Kill Points and **auto-approves you in 1 second**!'
+        : '🟢 **R4 Officer Approval Active (Common Hermes):** HERMES queues your screenshot with **1-Click R4/R5 Officer Approval Buttons** (`[✅ Approve & Grant Citizen Role]`) so leadership can verify and approve you!';
+
+      return reply({
+        type: 4,
+        data: {
+          flags: 64,
+          embeds: [
+            {
+              title: '📸 STEP 3 // UPLOAD YOUR IN-GAME GOVERNOR SCREENSHOT',
+              description:
+                `### 👉 HOW TO VERIFY YOUR PLAYER PROFILE:\n` +
+                `1. Click **` +
+                '`#🔗-verify-governor-id`' +
+                `** in the channel list on the left.\n` +
+                `2. Upload or paste a screenshot of your in-game **Rise of Kingdoms Governor Profile** (showing your Governor ID, Name, and Alliance).\n` +
+                `3. ${approvalModeText}\n` +
+                `4. **Step 4:** Once approved, tap your **Active Combat & Event Roles** (\`🗡️ Infantry\`, \`🐎 Cavalry\`, \`🏹 Archer\`, \`💎 More Than Gems\`) on the Welcome Console!\n\n` +
+                `💬 *Having trouble or need to talk to an R4? Head into **` +
+                '`#💬-newcomer-lobby-chat`' +
+                `** — everyone can type and ask questions there!*`,
+              color: 0x38bdf8,
+              footer: { text: 'STEP 3 OF 4 // UPLOAD SCREENSHOT IN #verify-governor-id' },
+            },
+          ],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 2, // SECONDARY
+                  label: '🔗 Fallback: Enter Governor ID Manually',
+                  custom_id: 'hermes_verify_governor',
+                },
+              ],
+            },
+          ],
+        },
+      });
     }
 
     if (customId === 'hermes_babel_founder_all') {
