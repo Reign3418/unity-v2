@@ -708,14 +708,59 @@ export async function provisionDiscordServer({
           }
         }
       } else {
+        const patchBody = { permission_overwrites: chOverwrites };
+        if (chDef.topic && channelObj.type === CHANNEL_TYPES.TEXT) {
+          patchBody.topic = chDef.topic;
+        }
         await discordRequest(
           cleanToken,
           'PATCH',
           `/channels/${channelObj.id}`,
-          { permission_overwrites: chOverwrites }
+          patchBody
         ).catch(() => {});
         log.push(`[Channel Hardened] #${chDef.name} (${channelObj.id}) — Access: ${chDef.access || catDef.access}`);
         await sleep(120);
+
+        if (chDef.pinKey && channelObj.type === CHANNEL_TYPES.TEXT && options.refreshConsoles !== false) {
+          try {
+            const payload = buildConsolePayload(chDef.pinKey, blueprint);
+            const recentMsgs = await discordRequest(
+              cleanToken,
+              'GET',
+              `/channels/${channelObj.id}/messages?limit=15`
+            ).catch(() => []);
+            const botMsg = (Array.isArray(recentMsgs) ? recentMsgs : []).find(
+              (m) => m.author?.bot && Array.isArray(m.embeds) && m.embeds.length > 0
+            );
+            if (botMsg?.id) {
+              await discordRequest(
+                cleanToken,
+                'PATCH',
+                `/channels/${channelObj.id}/messages/${botMsg.id}`,
+                payload
+              );
+              log.push(`  ↳ Refreshed Pinned Console [${chDef.pinKey}] in #${chDef.name}`);
+            } else {
+              const msg = await discordRequest(
+                cleanToken,
+                'POST',
+                `/channels/${channelObj.id}/messages`,
+                payload
+              );
+              if (msg?.id) {
+                await discordRequest(
+                  cleanToken,
+                  'PUT',
+                  `/channels/${channelObj.id}/pins/${msg.id}`
+                ).catch(() => {});
+              }
+              log.push(`  ↳ Posted & Pinned Console [${chDef.pinKey}] in #${chDef.name}`);
+            }
+            await sleep(200);
+          } catch (refreshErr) {
+            log.push(`  ↳ Warning: Could not refresh console in #${chDef.name}: ${refreshErr.message}`);
+          }
+        }
       }
 
       if (

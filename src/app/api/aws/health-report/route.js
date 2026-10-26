@@ -599,8 +599,16 @@ CRITICAL LANGUAGE INSTRUCTION: You MUST write your analysis entirely in the lang
   "recommendation": "${isNascent ? 'One clear action sentence assessing kingdom foundation, alliance synergy, and future trajectory.' : 'One clear action sentence: is this kingdom worth migrating to, attacking, or avoiding?'}"
 }`;
 
-        const customKey = req.headers.get('x-gemini-key');
-        const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
+        const customKey = (typeof req !== 'undefined' ? req : request).headers.get('x-gemini-key');
+        const _authSession = await auth().catch(() => null);
+        const _reqObj = typeof req !== 'undefined' ? req : request;
+        const _origin = _reqObj.headers.get('origin') || _reqObj.headers.get('referer') || '';
+        const _host = _reqObj.headers.get('host') || '';
+        const isAuthorizedCaller = Boolean(_authSession?.user || customKey || (_host && _origin.includes(_host)));
+        if (!isAuthorizedCaller) {
+            return NextResponse.json({ error: "Unauthorized: Direct external AI scraping is blocked." }, { status: 401 });
+        }
+        const apiKey = customKey || (isAuthorizedCaller ? (process.env.GEMINI_API_KEY || (typeof getGlobalConfig === 'function' ? await getGlobalConfig('GEMINI_API_KEY') : null)) : null);
         const customModel = req.headers.get('x-gemini-model');
         const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 

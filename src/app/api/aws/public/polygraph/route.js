@@ -1,3 +1,4 @@
+import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { getOverviewDeltas, getMigrationMatrix, getGlobalConfig, getKingdomTrends, getKingdomMetadata, parseScanDate } from '@/lib/awsDynamo';
 import { logEvent } from '@/lib/eventLogger';
@@ -217,7 +218,13 @@ function computeBehavioralSignatures(roster, followSignals = [], serverAgeDays =
 
 export async function GET(req) {
     try {
-        // ── No auth check — intentionally public ──
+        const session = await auth().catch(() => null);
+        const isAuthenticated = Boolean(session?.user);
+        const referer = req.headers.get('referer') || '';
+        const isSharedViewer = isAuthenticated || referer.includes('/shared/polygraph') || referer.includes('/analysis/kingdom');
+        if (!isSharedViewer) {
+            return NextResponse.json({ error: 'Unauthorized: Direct API scraping is blocked.' }, { status: 401 });
+        }
         const { searchParams } = new URL(req.url);
         const kdsParam = searchParams.get('kds');
         const start = searchParams.get('start');
@@ -533,9 +540,13 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
 }`;
 
         const customKey = req.headers.get('x-gemini-key');
-        const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
-        const customModel = req.headers.get('x-gemini-model');
-        const apiModel = customModel || await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+        // Never allow unauthenticated callers without their own x-gemini-key to drain the server's GEMINI_API_KEY
+        const apiKey = customKey || (isAuthenticated ? (process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY')) : null);
+        const ALLOWED_MODELS = new Set(['gemini-3.1-flash-lite', 'gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']);
+        const requestedModel = req.headers.get('x-gemini-model');
+        const apiModel = (requestedModel && ALLOWED_MODELS.has(requestedModel))
+            ? requestedModel
+            : (await getGlobalConfig('GEMINI_MODEL') || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite');
 
         let aiBrief = null;
         if (apiKey && aiParam) {
@@ -587,7 +598,7 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL string values in language code '${local
             switchers: allianceSwitchers.slice(0, 20),
             whales: whales.sort((a, b) => b.powerDelta - a.powerDelta).slice(0, 50),
             migration: { newArrivals, departed },
-            behavioralSigs,
+            behavioralSigs: isAuthenticated ? behavioralSigs : { operators: behavioralSigs.operators, veterans: behavioralSigs.veterans, anchors: behavioralSigs.anchors, gravityCenters: behavioralSigs.gravityCenters },
             followSignals: effectiveFollowSignals,
             anomalies,
             combatCausality,

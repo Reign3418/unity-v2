@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { getKingdomRoster } from "@/lib/awsDynamo";
 import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
 
@@ -13,8 +14,23 @@ const dbClient = new DynamoDBClient({
     }
 });
 
+function sanitizePublicMergeGovernor(g) {
+    return {
+        id: String(g.id || ''),
+        name: g.name || 'Unknown',
+        alliance: g.alliance || 'None',
+        cityHall: Number(g.cityHall || 25),
+        power: Number(g.power || 0),
+        killPoints: Number(g.killPoints || 0),
+        dead: Number(g.dead || 0),
+        t4Kills: Number(g.t4Kills || 0),
+        t5Kills: Number(g.t5Kills || 0),
+    };
+}
+
 export async function GET(req) {
     try {
+        const session = await auth().catch(() => null);
         const { searchParams } = new URL(req.url);
         const kingdomId = searchParams.get('kd');
         const secondaryKd = searchParams.get('secondary');
@@ -23,7 +39,7 @@ export async function GET(req) {
             return NextResponse.json({ error: "Missing Kingdom ID." }, { status: 400 });
         }
 
-        // 1. Fetch Alliance Merge State
+        // 1. Fetch Alliance Merge State first
         let targets = [];
         let sourceAlliances = [];
         try {
@@ -44,10 +60,20 @@ export async function GET(req) {
             console.error("[AWS Merge State] Public Fetch Error:", e);
         }
 
-        // 2. Fetch Primary Roster
+        // Block unauthenticated bulk scraping if no active Alliance Merge plan exists for this kingdom
+        const hasActiveMergePlan = targets.length > 0 || sourceAlliances.length > 0;
+        if (!session?.user && !hasActiveMergePlan) {
+            return NextResponse.json(
+                { error: "No active shared Alliance Merge workspace exists for this Kingdom." },
+                { status: 401 }
+            );
+        }
+
+        // 2. Fetch Primary Roster and project ONLY the 9 public merge fields
         let roster = [];
         try {
-            roster = await getKingdomRoster(kingdomId);
+            const rawRoster = await getKingdomRoster(kingdomId, { includeSovereignInternal: false });
+            roster = rawRoster.map(sanitizePublicMergeGovernor);
         } catch (e) {
             console.error("[AWS Roster] Public Fetch Error:", e);
         }
@@ -56,7 +82,8 @@ export async function GET(req) {
         let secondaryRoster = [];
         if (secondaryKd) {
             try {
-                secondaryRoster = await getKingdomRoster(secondaryKd);
+                const rawSecondary = await getKingdomRoster(secondaryKd, { includeSovereignInternal: false });
+                secondaryRoster = rawSecondary.map(sanitizePublicMergeGovernor);
             } catch (e) {
                 console.error("[AWS Secondary Roster] Public Fetch Error:", e);
             }
@@ -73,7 +100,7 @@ export async function GET(req) {
     } catch (error) {
         console.error("Public Alliance Merge API Error:", error);
         return NextResponse.json(
-            { error: "Internal Server Error", details: error.message },
+            { error: "Internal Server Error" },
             { status: 500 }
         );
     }

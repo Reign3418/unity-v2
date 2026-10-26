@@ -227,6 +227,13 @@ export function buildValheonHqBlueprint(customOptions = {}) {
         access: 'PUBLIC_READ_ONLY',
         channels: [
           {
+            name: '⚠️-trap-channel-⚠️',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_SCREENSHOT_VERIFY',
+            topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot! Compromised accounts & raid bots that post in this room are automatically purged and kicked by HERMES.',
+            pinKey: 'HONEYPOT_TRAP_CONSOLE',
+          },
+          {
             name: '📜-welcome-and-manifesto',
             type: CHANNEL_TYPES.TEXT,
             access: 'PUBLIC_SCREENSHOT_VERIFY',
@@ -380,7 +387,7 @@ export function buildValheonHqBlueprint(customOptions = {}) {
             name: '📸-optics-vision-ocr-drop',
             type: CHANNEL_TYPES.TEXT,
             access: 'CITIZENS_ONLY',
-            topic: 'PILLAR V // Drop any RoK screenshot here (Equipment, Speedups, RSS, Rankings) and HERMES Gemini Vision OCR will parse it into structured math!',
+            topic: 'PILLAR V // Drop any RoK screenshot here (Equipment, Speedups, RSS, Rankings) and HERMES Valheon Optical Neural Engine OCR will parse it into structured math!',
             pinKey: 'SUITE_OPTICS',
           },
         ],
@@ -704,6 +711,13 @@ export function buildKingdomWarBlueprint(customOptions = {}) {
         name: `🏰 KINGDOM #${kdId} CITADEL GATEWAY`,
         access: 'PUBLIC_READ_ONLY',
         channels: [
+          {
+            name: '⚠️-trap-channel-⚠️',
+            type: CHANNEL_TYPES.TEXT,
+            access: 'PUBLIC_SCREENSHOT_VERIFY',
+            topic: '🚫 DO NOT TYPE HERE — Automated Anti-Spambot Honeypot! Compromised accounts & raid bots that post in this room are automatically purged and kicked by HERMES.',
+            pinKey: 'HONEYPOT_TRAP_CONSOLE',
+          },
           {
             name: '📜-kingdom-laws-and-charter',
             type: CHANNEL_TYPES.TEXT,
@@ -1640,7 +1654,7 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '⚖️ **[Diplomacy / King\'s Court]** — Report farm/tile violations, rogue hits, or alliance diplomacy.\n' +
         '🏦 **[Kingdom Bank / RSS Grant]** — Request KvK hospital healing subsidies from the Kingdom Vault.',
       color: 0x10b981,
-      footer: { text: 'HERMES R4 DESK // AUTO-WIRED TO AWS DYNAMODB TELEMETRY' },
+      footer: { text: 'HERMES R4 DESK // AUTO-WIRED TO VALHEON SOVEREIGN TELEMETRY' },
     },
     buttons: [
       { customId: 'hermes_ticket_migrant', label: '🧳 Apply to Migrate', style: 'SUCCESS' },
@@ -1677,8 +1691,9 @@ export const PINNED_CONSOLE_TEMPLATES = {
         '--- \n' +
         '### 🏰 1. 1-CLICK HOME KINGDOM WAR SERVER — **`$39` Common / `+$15` Legendary (24h Offer)**\n' +
         '*Your permanent 24/7 Home Kingdom War OS (21 Roles, 30+ Channels, Alliance Sectors & Cryptographic Permission Locks).*\n' +
-        '• 🟢 **Includes `Common Hermes` (`$39` Flat):** **Manual R4/R5 Click-Approval Border Gate**, R4 Ticket Desk, 30v30 AoO Roster, War Timers, Official RoK Bridge, Combat/Event Ping Console & Redeem Codes.\n' +
-        '• 🟠 **24h "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **📸 1-Second AI Vision OCR Governor Screenshot Auto-Verifier (Zero-Click Alliance Role Grant)**, **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Resource/Speedup Bag OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n\n' +
+        '• 🟢 **Includes `Common Hermes` (`$39` Flat):** **Manual R4/R5 Click-Approval Border Gate**, `#⚠️-trap-channel-⚠️` Anti-Spambot Honeypot, R4 Ticket Desk, 30v30 AoO Roster, War Timers, Official RoK Bridge, Combat/Event Ping Console & Redeem Codes.\n' +
+        '• 🟠 **24h "Writer of History" `Legendary Hermes` Upgrade (`+$15` in 24h = `$54` total / `+$25` after):** Unlocks **📸 1-Second AI Vision OCR Governor Screenshot Auto-Verifier (Zero-Click Alliance Role Grant)**, **Zero-Grid 1-Tap & Chat Title Queue (`justice`/`duke`/`scientist`/`architect`)**, **Unlimited 17-Language Flag Translator (`17-Lang Canonical Glossary`)**, **17-Language Peerless Scholar + Saturday 10/10 Midterm Packet**, **Local Resource/Speedup Bag OCR**, **Silent 24h UTC Uptime Heatmap**, **Zero-List** & **All 95 Field Guides** forever (`$0/mo` recurring)!\n' +
+        '• 👑 **`Valheon Hermes` (`$45 / Month` — Live Kingdom Scanner Bots + Webpage Suite):** Deploys **Autonomous Valheon Scanner Bots** into your Kingdom (Automated Top-300/600 Power, T4/T5 Kills & Dead Scans) + unlocks live **`/mystats` DKP Scorecards**, **💀 Live Telemetry Governor Roasts**, **Auto-Injected AEGIS 35-Field Ticket Polygraphs** & full access to all 5 **`valheon.com` Webpage Suites**!\n\n' +
         '--- \n' +
         '### 🕊️ 2. 1-CLICK KVK DIPLOMACY SUMMIT SERVER — **`$9` Flat**\n' +
         '*Built for Matchmaking Night across all **8–16 Matched Kingdoms**.*\n' +
@@ -1705,7 +1720,12 @@ export const PINNED_CONSOLE_TEMPLATES = {
       ],
       [
         { customId: 'hermes_upgrade_legendary_btn', label: '🟠 Upgrade: Legendary (+$15 / 24h)', style: 'PRIMARY' },
-        { customId: 'hermes_demo_common_lockout', label: '🔒 Preview Common / Clone Lock', style: 'SECONDARY' },
+        { customId: 'hermes_upgrade_webos_btn', label: '👑 Valheon Hermes ($45/mo Scans+Web)', style: 'SUCCESS' },
+        { customId: 'hermes_demo_common_lockout', label: '🔒 Preview Tier & Clone Lock', style: 'SECONDARY' },
+      ],
+      [
+        { customId: 'hermes_mint_coupon_modal_KINGDOM_39', label: '🎟️ Mint Giveaway/Promo Code (Principal)', style: 'PRIMARY' },
+        { customId: 'hermes_view_coupon_ledger', label: '📜 Coupon Audit Ledger (Principal)', style: 'SECONDARY' },
       ],
     ],
   },
@@ -1792,6 +1812,8 @@ export const PINNED_CONSOLE_TEMPLATES = {
     },
     buttons: [
       { customId: 'hermes_admin_manual_relaunch_open', label: '🔄 Manually Relaunch Any Server by Guild ID', style: 'SUCCESS' },
+      { customId: 'hermes_mint_coupon_modal_KINGDOM_39', label: '🎟️ Mint Giveaway/Promo Code (Principal)', style: 'PRIMARY' },
+      { customId: 'hermes_view_coupon_ledger', label: '📜 Coupon Audit Ledger (Principal)', style: 'SECONDARY' },
     ],
   },
 
@@ -2070,6 +2092,20 @@ export const PINNED_CONSOLE_TEMPLATES = {
         { customId: 'hermes_nocap_radar_btn', label: '🚨 Live Kingdom No-Cap & Opening Radar', style: 'PRIMARY' },
       ],
     ],
+  },
+
+  HONEYPOT_TRAP_CONSOLE: {
+    embed: {
+      title: '⚠️ AUTOMATED ANTI-SPAMBOT HONEYPOT // DO NOT TYPE IN THIS CHANNEL ⚠️',
+      description:
+        '### 🚫 STOP! DO NOT SEND ANY MESSAGE OR PHOTO IN THIS ROOM!\n\n' +
+        '**Why does this channel exist?**\n' +
+        '• Compromised Discord accounts, Nitro phishing bots, and automated server-raid scripts automatically blast links into the very first writable channel at the top of a server.\n' +
+        '• **🪽 HERMES Overwatch** monitors `#⚠️-trap-channel-⚠️` 24/7. Any non-Admin account that types a message or drops a link in this room has its message **instantly purged** and is **automatically kicked/banned** from the server.\n\n' +
+        '👉 **Real Humans:** Skip this channel and head down to **`#📜-welcome-and-manifesto`** or **`#🔗-verify-governor-id`** below!',
+      color: 0xf43f5e,
+      footer: { text: 'HERMES ZERO-TOLERANCE HONEYPOT SHIELD // AUTOMATED RAID & PHISHING DEFENSE' },
+    },
   },
 };
 

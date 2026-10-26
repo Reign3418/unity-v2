@@ -390,7 +390,7 @@ export default function CalculatorsPage() {
         
         try {
             setIsSpeedupScanning(true);
-            setSpeedupStatus("Scanning screenshot with Gemini Vision...");
+            setSpeedupStatus("Scanning screenshot with Valheon Optical Neural Engine...");
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -485,7 +485,7 @@ export default function CalculatorsPage() {
       
       try {
           setIsApScanning(true);
-          setApStatus("Scanning screenshot with Gemini Vision...");
+          setApStatus("Scanning screenshot with Valheon Optical Neural Engine...");
 
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -548,7 +548,7 @@ export default function CalculatorsPage() {
       }
       try {
           setIsFlagScanning(true);
-          setFlagStatus('Scanning storehouse with Gemini Vision...');
+          setFlagStatus('Scanning storehouse with Valheon Optical Neural Engine...');
           const reader = new FileReader();
           reader.readAsDataURL(file);
           reader.onload = async () => {
@@ -890,7 +890,7 @@ export default function CalculatorsPage() {
       
       try {
           setIsResourceScanning(true);
-          setResourceStatus("Scanning screenshot with Gemini Vision...");
+          setResourceStatus("Scanning screenshot with Valheon Optical Neural Engine...");
 
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -1033,7 +1033,7 @@ export default function CalculatorsPage() {
 
     try {
         setIsOCRScanning(true);
-        setOcrStatus("Parsing raw inventory via Gemini Vision Model...");
+        setOcrStatus("Parsing raw inventory via Valheon Optical Neural Engine Model...");
 
         const reader = new FileReader();
         reader.readAsDataURL(file);

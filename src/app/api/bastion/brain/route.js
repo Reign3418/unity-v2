@@ -146,7 +146,7 @@ export async function GET() {
     return NextResponse.json({ error: 'SuperAdmin clearance required' }, { status: 403 });
   }
   try {
-    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl, brainLease, brainNodesCtrl, safetyStateCtrl, contextStateCtrl, sidekickWatchdogCtrl] =
+    const [mode, heartbeat, fleet, config, helpersCtrl, ringBudgetCtrl, approvedPlansCtrl, brainLease, brainNodesCtrl, safetyStateCtrl, contextStateCtrl, sidekickWatchdogCtrl, swarmBbCtrl] =
       await Promise.all([
         getControl('MODE'),
         getControl('BRAIN_HEARTBEAT'),
@@ -160,7 +160,19 @@ export async function GET() {
         getControl('SAFETY_STATE'),
         getControl('CONTEXT_STATE'),
         getControl('WATCHDOG#sidekick'),
+        getControl('SWARM_4197_BLACKBOX'),
       ]);
+
+    let swarmBlackbox = null;
+    if (swarmBbCtrl?.payload_json) {
+      try {
+        swarmBlackbox = JSON.parse(swarmBbCtrl.payload_json);
+      } catch {
+        swarmBlackbox = null;
+      }
+    } else if (swarmBbCtrl?.instances) {
+      swarmBlackbox = swarmBbCtrl;
+    }
 
     const botIds = fleet?.bot_ids || [];
     const accountIds = fleet?.account_ids || DEFAULT_ACCOUNT_IDS;
@@ -241,6 +253,7 @@ export async function GET() {
       safetyState: safetyStateCtrl || null,
       contextState: contextStateCtrl || null,
       sidekickWatchdog: sidekickWatchdogCtrl || null,
+      swarmBlackbox,
       fleet,
       config,
       helpers: helpersCtrl?.active || helpersCtrl?.helpers || [],

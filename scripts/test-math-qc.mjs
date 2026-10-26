@@ -20,6 +20,7 @@ test('1. T5 Structural Calibration Floor Invariants (Governor 218877479 Anchor)'
   const dynamoSrc = fs.readFileSync(path.join(ROOT_DIR, 'src', 'lib', 'awsDynamo.js'), 'utf8');
   assert.match(dynamoSrc, /T5_TECH_FLOOR\s*=\s*22_467_131/);
   assert.match(dynamoSrc, /T5_BUILDING_FLOOR\s*=\s*14_780_832/);
+  assert.match(dynamoSrc, /includeSovereignInternal/, 'awsDynamo.js must gate sensitive packet/device fields behind includeSovereignInternal');
 
   const T5_TECH_FLOOR = 22_467_131;
   const T5_BUILDING_FLOOR = 14_780_832;
@@ -81,11 +82,20 @@ test('4. ExcelJS Streaming Helper Round-Trip Integrity', async () => {
   assert.equal(String(parsed.sheets.Roster[0].GovernorID), '218877479');
 });
 
-test('5. OPSEC Zero-Recipe Leakage Guard on Export Scripts', () => {
-  const forbiddenTokens = [/0xcd63e664/i, /MuMu\s*12\s*Direct\s*Lua\s*Memory/i, /MUMU_35_FIELD_RAM_DIRECT/i, /MUMU_BINARY_MAILCACHE/i];
-  const exporterPath = path.join(ROOT_DIR, 'scanner', 'export_4194_xlsx.mjs');
-  const exporterSrc = fs.readFileSync(exporterPath, 'utf8');
-  for (const pat of forbiddenTokens) {
-    assert.doesNotMatch(exporterSrc, pat, `Exporter must not contain forbidden trade-secret token: ${pat}`);
+test('5. OPSEC Zero-Recipe Leakage Guard on Public & Export Surfaces', () => {
+  const forbiddenTokens = [/VALHEON_SIG_VERIFIED/i, /MuMu\s*12\s*Direct\s*Lua\s*Memory/i, /VALHEON_35_FIELD_VERIFIED/i, /VALHEON_TELEMETRY_CORE_MAILCACHE/i, /Unity2AWSRoster/i, /SVD\/PCA/i, /Gemini\s+Vision/i];
+  const candidateFiles = [
+    path.join(ROOT_DIR, 'public', 'llms.txt'),
+    path.join(ROOT_DIR, 'hermes-bot', 'blueprints.js'),
+    path.join(ROOT_DIR, 'src', 'components', 'command', 'HermesDiscordArchitect.js'),
+    path.join(ROOT_DIR, 'scanner', 'export_4194_xlsx.mjs'),
+  ];
+  for (const fpath of candidateFiles) {
+    if (fs.existsSync(fpath)) {
+      const src = fs.readFileSync(fpath, 'utf8');
+      for (const pat of forbiddenTokens) {
+        assert.doesNotMatch(src, pat, `Surface file ${path.basename(fpath)} must not contain forbidden trade-secret token: ${pat}`);
+      }
+    }
   }
 });

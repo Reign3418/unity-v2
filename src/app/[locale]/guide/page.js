@@ -318,7 +318,7 @@ export default function UserGuidePage() {
         </div>
       )}
 
-      {/* TAB 2: GEMINI VISION CALCULATORS */}
+      {/* TAB 2: Valheon Optical Neural Engine CALCULATORS */}
       {activeTab === "calculators" && (
         <div className="space-y-6">
           <div className="bg-[#0d1117] border border-[#1e222b] rounded-xl p-6 space-y-4">

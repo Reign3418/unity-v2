@@ -279,8 +279,8 @@ export default function SwarmBlackBoxHub() {
           </div>
         )}
 
-        {/* 6 KPI Summary Cards */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* 7 KPI Summary Cards (With Verified In-Game Ground-Truth Counters) */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <div className="rounded-xl bg-black/40 border border-white/10 p-3.5">
             <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Active #4197 Bots</div>
             <div className="mt-1 text-2xl font-black text-cyan-400 font-mono">
@@ -290,19 +290,31 @@ export default function SwarmBlackBoxHub() {
           </div>
 
           <div className="rounded-xl bg-black/40 border border-emerald-500/25 p-3.5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-300">T1-Only Troop Pool</div>
+            <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-300">Verified T1 Troops</div>
             <div className="mt-1 text-2xl font-black text-emerald-400 font-mono">
               {Number(summary.totalT1Trained || 0).toLocaleString()}
             </div>
-            <div className="mt-0.5 text-[10px] text-emerald-300/80">100% Tier 1 (Zero T2+)</div>
+            <div className="mt-0.5 text-[10px] text-emerald-300/80">
+              {Number(summary.totalWoundedInHospital || 0) > 0
+                ? `+${Number(summary.totalWoundedInHospital).toLocaleString()} wounded in Hospital`
+                : 'Troop Details OCR Verified'}
+            </div>
           </div>
 
-          <div className="rounded-xl bg-black/40 border border-amber-500/25 p-3.5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-amber-300">Harvestable KP Pool</div>
+          <div className="rounded-xl bg-black/40 border border-amber-500/30 p-3.5">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-amber-300">Resources Gathered</div>
             <div className="mt-1 text-2xl font-black text-amber-400 font-mono">
+              {Number(summary.totalResourcesGathered || 0).toLocaleString()}
+            </div>
+            <div className="mt-0.5 text-[10px] text-amber-300/80">More Info Ground-Truth</div>
+          </div>
+
+          <div className="rounded-xl bg-black/40 border border-yellow-500/25 p-3.5">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-yellow-300">Harvestable KP Pool</div>
+            <div className="mt-1 text-2xl font-black text-yellow-400 font-mono">
               +{Number(summary.estimatedKpPool || 0).toLocaleString()} KP
             </div>
-            <div className="mt-0.5 text-[10px] text-amber-300/80">Instant-heal T1 fodder</div>
+            <div className="mt-0.5 text-[10px] text-yellow-300/80">Instant-heal T1 fodder</div>
           </div>
 
           <div className="rounded-xl bg-black/40 border border-rose-500/25 p-3.5">
@@ -318,11 +330,14 @@ export default function SwarmBlackBoxHub() {
           </div>
 
           <div className="rounded-xl bg-black/40 border border-indigo-500/25 p-3.5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-indigo-300">Black-Box Movements</div>
+            <div className="text-[10px] font-mono uppercase tracking-wider text-indigo-300">Helps &amp; Movements</div>
             <div className="mt-1 text-2xl font-black text-indigo-400 font-mono">
-              {Number(summary.totalMovementsLogged || movements.length).toLocaleString()}
+              {Number(summary.totalAllianceHelps || 0).toLocaleString()}{' '}
+              <span className="text-xs font-normal text-slate-400">helps</span>
             </div>
-            <div className="mt-0.5 text-[10px] text-indigo-300/80">Full chronological ledger</div>
+            <div className="mt-0.5 text-[10px] text-indigo-300/80">
+              {Number(summary.totalMovementsLogged || movements.length).toLocaleString()} Black-Box logs
+            </div>
           </div>
         </div>
       </div>
@@ -477,9 +492,9 @@ export default function SwarmBlackBoxHub() {
                     </div>
                   </div>
 
-                  {/* 2. What It's Farming */}
-                  <div className="rounded-xl bg-[#121723] border border-[#1f293d] p-3">
-                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-amber-300 mb-1">
+                  {/* 2. What It's Farming + Verified Resources Gathered (More Info OCR) */}
+                  <div className="rounded-xl bg-[#121723] border border-[#1f293d] p-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-amber-300">
                       <span className="flex items-center gap-1.5">
                         <Wheat size={12} className="text-amber-400" />
                         What It&apos;s Farming
@@ -494,18 +509,30 @@ export default function SwarmBlackBoxHub() {
                         Node X:{fm.nodeX || '---'} Y:{fm.nodeY || '---'}
                       </span>
                     </div>
+                    <div className="pt-1.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
+                      <span className="text-amber-200">
+                        Verified Gathered:{' '}
+                        <strong className="text-amber-300">
+                          {Number(inst.groundTruth?.resourcesGathered || 0).toLocaleString()} RSS
+                        </strong>
+                      </span>
+                      <span className="text-slate-400">
+                        Scouts: <strong className="text-cyan-300">{inst.groundTruth?.scoutTimes ?? 0}</strong> / Helps:{' '}
+                        <strong className="text-emerald-300">{inst.groundTruth?.allianceHelpTimes ?? 0}</strong>
+                      </span>
+                    </div>
                   </div>
 
-                  {/* 3. What Troops It's Training (STRICT T1 ONLY) */}
-                  <div className="rounded-xl bg-emerald-950/25 border border-emerald-500/30 p-3">
-                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-emerald-300 mb-2">
+                  {/* 3. Verified Troops & Training (Troop Details OCR ? STRICT T1 ONLY) */}
+                  <div className="rounded-xl bg-emerald-950/25 border border-emerald-500/30 p-3 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-emerald-300">
                       <span className="flex items-center gap-1.5 font-bold">
                         <Swords size={12} className="text-emerald-400" />
-                        Troop Training (STRICT T1 ONLY)
+                        Verified Troops (STRICT T1 ONLY)
                       </span>
                       <span className="text-emerald-200 font-bold">
-                        ~{Number(tr.estimatedT1Troops || 2400).toLocaleString()} T1 (
-                        {Math.round(Number(tr.estimatedT1Troops || 2400) * 0.2)} KP)
+                        {Number(inst.groundTruth?.totalTroops ?? tr.estimatedT1Troops ?? 0).toLocaleString()} T1 (
+                        {Number(inst.groundTruth?.troopPower ?? tr.estimatedT1Troops ?? 0).toLocaleString()} PWR)
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5 font-mono text-[11px]">
@@ -522,8 +549,22 @@ export default function SwarmBlackBoxHub() {
                         🪵 {tr.siege || 'T1 Battering Ram'}
                       </div>
                     </div>
+                    <div className="pt-1 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-slate-300">
+                      <span>
+                        March Queue: <strong className="text-cyan-300">{inst.groundTruth?.marchQueue || '0/2'}</strong>
+                      </span>
+                      <span>
+                        Hospital:{' '}
+                        <strong
+                          className={
+                            Number(inst.groundTruth?.hospitalWounded || 0) > 0 ? 'text-rose-300' : 'text-emerald-300'
+                          }
+                        >
+                          {inst.groundTruth?.hospitalRaw || '0/7,500'}
+                        </strong>
+                      </span>
+                    </div>
                   </div>
-
                   {/* 4. When It's Sleeping / Rotating & Legal #4197 Slots */}
                   <div className="rounded-xl bg-[#121723] border border-[#1f293d] p-3">
                     <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-purple-300 mb-1">

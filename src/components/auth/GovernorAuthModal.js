@@ -159,7 +159,7 @@ export default function GovernorAuthModal({ isOpen, onClose, initialTab = "login
     reader.readAsDataURL(file);
   };
 
-  // Run Gemini Vision OCR on uploaded image
+  // Run Valheon Optical Neural Engine OCR on uploaded image
   const processScreenshotWithAI = async (dataUrl, mimeType) => {
     setScanStep(2);
     setIsScanning(true);

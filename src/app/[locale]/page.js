@@ -694,7 +694,7 @@ export default function Home() {
                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent z-0 opacity-50"></div>
                    <div className="h-[250px] w-full rounded-xl bg-[#0f1115] border border-[#1e222b] flex flex-col items-center justify-center relative overflow-hidden z-10 p-6">
                       <div className="absolute w-[200%] h-[20px] bg-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.5)] rotate-12 animate-pulse top-1/2 -translate-y-1/2 pointer-events-none"></div>
-                      <span className="font-mono text-xs text-indigo-400 tracking-widest mb-4 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">[ GEMINI VISION ACTIVE ]</span>
+                      <span className="font-mono text-xs text-indigo-400 tracking-widest mb-4 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">[ Valheon Optical Neural Engine ACTIVE ]</span>
                       <div className="w-full h-8 bg-[#1e222b]/50 rounded mb-2 border border-[#2a3041]/50"></div>
                       <div className="w-3/4 h-8 bg-[#1e222b]/50 rounded border border-[#2a3041]/50"></div>
                    </div>

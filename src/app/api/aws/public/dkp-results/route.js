@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { getBehavioralMatrix } from "@/lib/awsDynamo";
 import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
@@ -15,6 +16,11 @@ const dbClient = new DynamoDBClient({
 
 export async function GET(req) {
     try {
+        const session = await auth().catch(() => null);
+        const referer = req.headers.get('referer') || '';
+        if (!session?.user && !referer.includes('/shared/dkp')) {
+            return NextResponse.json({ error: 'Unauthorized: Direct API scraping is blocked.' }, { status: 401 });
+        }
         const { searchParams } = new URL(req.url);
         const kingdomId = searchParams.get('kd');
         const startIso = searchParams.get('start');
@@ -50,7 +56,7 @@ export async function GET(req) {
     } catch (error) {
         console.error("Public DKP Results Route API Error:", error);
         return NextResponse.json(
-            { error: "Internal Server Error", details: error.message },
+            { error: "Internal Server Error", details: 'Redacted' },
             { status: 500 }
         );
     }

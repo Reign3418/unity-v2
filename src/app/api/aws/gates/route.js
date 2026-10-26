@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 export const maxDuration = 300;
 
+import { auth } from "@/auth";
 import { getFeatureGates } from "@/lib/awsDynamo";
 
-
-// Store a tiny memory cache so DashboardLayout mounting globally across active active sessions
+// Store a tiny memory cache so DashboardLayout mounting globally across active sessions
 // doesn't DDoS the DynamoDB read limitations.
 let memoryCache = { data: [], timestamp: 0 };
 const CACHE_TTL_MS = 60000; // 60 seconds
 
 export async function GET() {
     try {
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+        }
+
         const now = Date.now();
         if (memoryCache.data.length > 0 && (now - memoryCache.timestamp) < CACHE_TTL_MS) {
             return NextResponse.json({ success: true, gates: memoryCache.data }, { status: 200 });

@@ -408,7 +408,8 @@ export function getAttrVal(attrs, keys, isNum = false, fallback = '') {
 /**
  * Searches the Unity global AWS DynamoDB table for all records matching a specific Kingdom
  */
-export async function getKingdomRoster(kingdomId) {
+export async function getKingdomRoster(kingdomId, options = {}) {
+    const includeSovereignInternal = Boolean(options?.includeSovereignInternal);
     const tableName = process.env.AWS_TABLE_NAME;
     if (!tableName) throw new Error('AWS_TABLE_NAME is not mapped in your .env file');
 
@@ -556,25 +557,27 @@ export async function getKingdomRoster(kingdomId) {
                         commanderArmaments: getAttrVal(attrs, ['Commander Armaments', 'commanderArmaments'], false, ''),
                         kvkMorale: getAttrVal(attrs, ['KvK Morale', 'kvkMorale'], true),
                         titanLegion: getAttrVal(attrs, ['Titan Legion', 'titanLegion'], false, ''),
-                        castlePos: getAttrVal(attrs, ['Castle Pos', 'castlePos'], false, ''),
-                        mapCityEntityId: getAttrVal(attrs, ['Map City Entity ID', 'mapCityEntityId'], true),
-                        masterAccountCId: getAttrVal(attrs, ['Master Account CId', 'masterAccountCId'], false, ''),
-                        lilithAccountUid: getAttrVal(attrs, ['Lilith Account UID', 'lilithAccountUid'], true),
-                        accountVintage: getAttrVal(attrs, ['Account Vintage', 'accountVintage'], false, ''),
-                        avatarUploadDate: getAttrVal(attrs, ['Avatar Upload Date', 'avatarUploadDate'], false, ''),
-                        avatarImageMd5: getAttrVal(attrs, ['Avatar Image MD5', 'avatarImageMd5'], false, ''),
-                        avatarFrameId: getAttrVal(attrs, ['Avatar Frame ID', 'avatarFrameId'], true),
-                        badgeShowcaseVector: getAttrVal(attrs, ['Badge Showcase Vector', 'badgeShowcaseVector'], false, ''),
-                        udid: getAttrVal(attrs, ['Device UDID', 'udid'], false, ''),
-                        appUid: getAttrVal(attrs, ['App UID', 'appUid'], false, ''),
-                        clientPlatform: getAttrVal(attrs, ['Client Platform', 'clientPlatform'], false, ''),
-                        linkedAltGovIds: getAttrVal(attrs, ['Linked Alt Gov IDs', 'linkedAltGovIds'], false, ''),
-                        activeHoursUtc: getAttrVal(attrs, ['Active Hours UTC', 'activeHoursUtc'], false, ''),
-                        estSleepWindowUtc: getAttrVal(attrs, ['Est Sleep Window UTC', 'estSleepWindowUtc'], false, ''),
-                        internalServerId: getAttrVal(attrs, ['Internal Server ID', 'internalServerId'], true),
-                        originServerId: getAttrVal(attrs, ['Origin Server ID', 'originServerId'], true),
-                        mapServerId: getAttrVal(attrs, ['Map Server ID', 'mapServerId'], true),
-                        telemetrySource: getAttrVal(attrs, ['Telemetry Source', 'telemetrySource'], false, ''),
+                        ...(includeSovereignInternal ? {
+                            castlePos: getAttrVal(attrs, ['Castle Pos', 'castlePos'], false, ''),
+                            mapCityEntityId: getAttrVal(attrs, ['Map City Entity ID', 'mapCityEntityId'], true),
+                            masterAccountCId: getAttrVal(attrs, ['Master Account CId', 'masterAccountCId'], false, ''),
+                            lilithAccountUid: getAttrVal(attrs, ['Lilith Account UID', 'lilithAccountUid'], true),
+                            accountVintage: getAttrVal(attrs, ['Account Vintage', 'accountVintage'], false, ''),
+                            avatarUploadDate: getAttrVal(attrs, ['Avatar Upload Date', 'avatarUploadDate'], false, ''),
+                            avatarImageMd5: getAttrVal(attrs, ['Avatar Image MD5', 'avatarImageMd5'], false, ''),
+                            avatarFrameId: getAttrVal(attrs, ['Avatar Frame ID', 'avatarFrameId'], true),
+                            badgeShowcaseVector: getAttrVal(attrs, ['Badge Showcase Vector', 'badgeShowcaseVector'], false, ''),
+                            udid: getAttrVal(attrs, ['Device UDID', 'udid'], false, ''),
+                            appUid: getAttrVal(attrs, ['App UID', 'appUid'], false, ''),
+                            clientPlatform: getAttrVal(attrs, ['Client Platform', 'clientPlatform'], false, ''),
+                            linkedAltGovIds: getAttrVal(attrs, ['Linked Alt Gov IDs', 'linkedAltGovIds'], false, ''),
+                            activeHoursUtc: getAttrVal(attrs, ['Active Hours UTC', 'activeHoursUtc'], false, ''),
+                            estSleepWindowUtc: getAttrVal(attrs, ['Est Sleep Window UTC', 'estSleepWindowUtc'], false, ''),
+                            internalServerId: getAttrVal(attrs, ['Internal Server ID', 'internalServerId'], true),
+                            originServerId: getAttrVal(attrs, ['Origin Server ID', 'originServerId'], true),
+                            mapServerId: getAttrVal(attrs, ['Map Server ID', 'mapServerId'], true),
+                            telemetrySource: getAttrVal(attrs, ['Telemetry Source', 'telemetrySource'], false, ''),
+                        } : {}),
                         scannedAtUtc: getAttrVal(attrs, ['Scanned At UTC', 'scannedAtUtc'], false, latestScanIso),
                         scanDate: latestScanIso,
                         

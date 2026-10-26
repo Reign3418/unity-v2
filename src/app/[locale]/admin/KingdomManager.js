@@ -280,7 +280,7 @@ export default function KingdomManager() {
                             <div className="text-sm font-bold text-white flex items-center gap-2">
                                 <span>{t("ai_dropzone_title")}</span>
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black">
-                                    GEMINI VISION
+                                    Valheon Optical Neural Engine
                                 </span>
                             </div>
                             <p className="text-xs text-slate-400 max-w-lg font-mono">

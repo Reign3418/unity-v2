@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { getKingdomDkpMatrix } from "@/lib/awsDynamo";
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
@@ -15,6 +16,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req) {
     try {
+        const session = await auth().catch(() => null);
+        const referer = req.headers.get('referer') || '';
+        if (!session?.user && !referer.includes('/shared/dkp')) {
+            return NextResponse.json({ error: 'Unauthorized: Direct API scraping is blocked.' }, { status: 401 });
+        }
         const { searchParams } = new URL(req.url);
         const kingdomId = searchParams.get('kd');
         const baseline = searchParams.get('baseline');

@@ -250,15 +250,73 @@ export function buildTicketHeaderEmbed({
               components: [
                 {
                   type: 2,
-                  style: 5, // LINK BUTTON
-                  label: '🤖 Step 1: Invite HERMES to Your Blank Server',
-                  url: 'https://discord.com/oauth2/authorize?client_id=1563619930371391680&permissions=8&scope=bot%20applications.commands',
+                  style: 3, // SUCCESS
+                  label: '🏰 1-Click Kingdom Server ($39)',
+                  custom_id: 'hermes_deploy_kingdom_btn',
                 },
                 {
                   type: 2,
-                  style: 3, // SUCCESS BUTTON -> Routes through Stripe Gate!
-                  label: '🏰 Step 2: 1-Click Kingdom Server Checkout ($39)',
-                  custom_id: 'hermes_deploy_kingdom_btn',
+                  style: 1, // PRIMARY
+                  label: '🕊️ 1-Click KvK Diplo ($9)',
+                  custom_id: 'hermes_deploy_diplo_btn',
+                },
+                {
+                  type: 2,
+                  style: 1, // PRIMARY
+                  label: '⚔️ 1-Click Coalition War ($9)',
+                  custom_id: 'hermes_deploy_coalition_btn',
+                },
+                {
+                  type: 2,
+                  style: 4, // DANGER
+                  label: '🔥 Diplo + Coalition 72h Bundle ($15)',
+                  custom_id: 'hermes_deploy_kvk_bundle_btn',
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 1, // PRIMARY
+                  label: '🟠 Upgrade: Legendary (+$15 / 24h)',
+                  custom_id: 'hermes_upgrade_legendary_btn',
+                },
+                {
+                  type: 2,
+                  style: 3, // SUCCESS
+                  label: '👑 Valheon Hermes ($45/mo Scans+Web)',
+                  custom_id: 'hermes_upgrade_webos_btn',
+                },
+                {
+                  type: 2,
+                  style: 5, // LINK BUTTON
+                  label: '🤖 Invite HERMES to Blank Server',
+                  url: 'https://discord.com/oauth2/authorize?client_id=1563619930371391680&permissions=8&scope=bot%20applications.commands',
+                },
+              ],
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 1, // PRIMARY
+                  label: '🎟️ Mint Giveaway/Promo Code (Principal)',
+                  custom_id: 'hermes_mint_coupon_modal_KINGDOM_39',
+                },
+                {
+                  type: 2,
+                  style: 2, // SECONDARY
+                  label: '📜 Coupon Audit Ledger (Principal)',
+                  custom_id: 'hermes_view_coupon_ledger',
+                },
+                {
+                  type: 2,
+                  style: 2, // SECONDARY
+                  label: '🔒 Preview Tier & Clone Lock',
+                  custom_id: 'hermes_demo_common_lockout',
                 },
               ],
             },

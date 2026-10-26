@@ -1,17 +1,11 @@
+import { auth } from "@/lib/auth";
 import { NextResponse } from 'next/server';
 import { getGlobalConfig } from '@/lib/awsDynamo';
-import { auth } from '@/lib/auth';
 
 export const maxDuration = 300;
 
 export async function POST(req) {
     try {
-        const session = await auth();
-        const customKey = req.headers.get('x-gemini-key');
-        if (!session?.user && !customKey) {
-            return NextResponse.json({ error: 'Unauthorized access. Please sign in or supply a Gemini API key.' }, { status: 401 });
-        }
-
         const body = await req.json();
         const {
             mapName,
@@ -25,7 +19,16 @@ export async function POST(req) {
             return NextResponse.json({ error: 'No coalition data provided.' }, { status: 400 });
         }
 
-        const apiKey    = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
+        const customKey = (typeof req !== 'undefined' ? req : request).headers.get('x-gemini-key');
+        const _authSession = await auth().catch(() => null);
+        const _reqObj = typeof req !== 'undefined' ? req : request;
+        const _origin = _reqObj.headers.get('origin') || _reqObj.headers.get('referer') || '';
+        const _host = _reqObj.headers.get('host') || '';
+        const isAuthorizedCaller = Boolean(_authSession?.user || customKey || (_host && _origin.includes(_host)));
+        if (!isAuthorizedCaller) {
+            return NextResponse.json({ error: "Unauthorized: Direct external AI scraping is blocked." }, { status: 401 });
+        }
+        const apiKey = customKey || (isAuthorizedCaller ? (process.env.GEMINI_API_KEY || (typeof getGlobalConfig === 'function' ? await getGlobalConfig('GEMINI_API_KEY') : null)) : null);
         if (!apiKey) {
             return NextResponse.json({ error: 'Gemini API Key missing.' }, { status: 500 });
         }

@@ -12,10 +12,18 @@ import { logEvent } from "@/lib/eventLogger";export async function POST(req) {
             return NextResponse.json({ error: "Missing image data payload." }, { status: 400 });
         }
 
-        const customKey = req.headers.get('x-gemini-key');
-        const apiKey = customKey || process.env.GEMINI_API_KEY || await getGlobalConfig('GEMINI_API_KEY');
+        const customKey = (typeof req !== 'undefined' ? req : request).headers.get('x-gemini-key');
+        const _authSession = await auth().catch(() => null);
+        const _reqObj = typeof req !== 'undefined' ? req : request;
+        const _origin = _reqObj.headers.get('origin') || _reqObj.headers.get('referer') || '';
+        const _host = _reqObj.headers.get('host') || '';
+        const isAuthorizedCaller = Boolean(_authSession?.user || customKey || (_host && _origin.includes(_host)));
+        if (!isAuthorizedCaller) {
+            return NextResponse.json({ error: "Unauthorized: Direct external AI scraping is blocked." }, { status: 401 });
+        }
+        const apiKey = customKey || (isAuthorizedCaller ? (process.env.GEMINI_API_KEY || (typeof getGlobalConfig === 'function' ? await getGlobalConfig('GEMINI_API_KEY') : null)) : null);
         if (!apiKey) {
-            return NextResponse.json({ error: "Gemini server API Key is missing from V2 env variables." }, { status: 500 });
+            return NextResponse.json({ error: "Valheon Optical Neural Engine key is not configured." }, { status: 500 });
         }
 
         const customModel = req.headers.get('x-gemini-model');

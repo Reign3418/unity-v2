@@ -306,19 +306,22 @@ const RING_GROUPS = [
 
 const INSTANCE_META = {
   'sidekick-mumu-0': {
-    adb: 'NODE-CHANNEL-00',
-    accountId: 'valheon-slot-0',
-    label: 'Primary Multi-Kingdom Fleet Worker (8 Chars / 7 Kingdoms)',
+    port: '16384',
+    adb: 'NODE-ALPHA // PORT-01',
+    accountId: 'mumu-account-0',
+    label: 'Kingdom #4197 Swarm Alpha (:16384 · 5-Queue Living Player Loop)',
   },
   'sidekick-mumu-1': {
-    adb: 'NODE-CHANNEL-01',
-    accountId: 'valheon-slot-1',
-    label: 'Parallel Multi-Kingdom Fleet Worker (7 Tracked Chars / 7 Kingdoms)',
+    port: '16416',
+    adb: 'NODE-BRAVO // PORT-02',
+    accountId: 'mumu-account-1',
+    label: 'Kingdom #4197 Swarm Bravo (:16416 · 5-Queue Living Player Loop)',
   },
   'sidekick-mumu-2': {
-    adb: 'NODE-CHANNEL-02',
-    accountId: 'valheon-slot-2',
-    label: 'Standby Reserve / Expansion Instance',
+    port: '16448',
+    adb: 'NODE-CHARLIE // PORT-03',
+    accountId: 'mumu-account-2',
+    label: 'Kingdom #4197 Swarm Charlie (:16448 · 5-Queue Living Player Loop)',
   },
 };
 
@@ -499,7 +502,7 @@ export default function BastionCommandCenter() {
   const [selectedAgent, setSelectedAgent] = useState(null);
 
   // Intent / Scan dispatch form
-  const [scanKingdom, setScanKingdom] = useState('4194');
+  const [scanKingdom, setScanKingdom] = useState('4197');
   const [scanIntentType, setScanIntentType] = useState('SCAN_KINGDOM');
   const [scanSource, setScanSource] = useState('R5_COMMAND_DESK');
   const [scanRanks, setScanRanks] = useState('1000');
@@ -751,6 +754,35 @@ export default function BastionCommandCenter() {
               <div className="text-[10px] text-slate-500 uppercase">R5 MISSIONS</div>
               <div className="text-xs font-black text-cyan-300">
                 {verifiedIntentsCount} VERIFIED · {activeIntentsCount} ACTIVE
+              </div>
+            </div>
+            <div className="text-center px-2 border-l border-slate-800">
+              <div className="text-[10px] text-emerald-400 uppercase">VERIFIED T1 TROOPS</div>
+              <div className="text-xs font-black text-emerald-300">
+                {Number(data?.swarmBlackbox?.summary?.totalT1Trained || 0).toLocaleString()}
+                {Number(data?.swarmBlackbox?.summary?.totalWoundedInHospital || 0) > 0
+                  ? ` (+${Number(data.swarmBlackbox.summary.totalWoundedInHospital).toLocaleString()} HOSP)`
+                  : ''}
+              </div>
+            </div>
+            <div className="text-center px-2 border-l border-slate-800">
+              <div className="text-[10px] text-amber-300 uppercase">RSS GATHERED (#4197)</div>
+              <div className="text-xs font-black text-amber-200">
+                {Number(data?.swarmBlackbox?.summary?.totalResourcesGathered || 0).toLocaleString()}
+              </div>
+            </div>
+            <div className="text-center px-2 border-l border-slate-800">
+              <div className="text-[10px] text-amber-400 uppercase">HOSTILE SCOUTS</div>
+              <div className="text-xs font-black text-amber-300">
+                {data?.swarmBlackbox?.summary?.hostileScoutsCount ??
+                  (data?.swarmBlackbox?.threats || []).filter((t) => t.eventType === 'SCOUT').length}
+              </div>
+            </div>
+            <div className="text-center px-2 border-l border-slate-800">
+              <div className="text-[10px] text-rose-400 uppercase">HOSTILE ATTACKS</div>
+              <div className="text-xs font-black text-rose-400">
+                {data?.swarmBlackbox?.summary?.hostileAttacksCount ??
+                  (data?.swarmBlackbox?.threats || []).filter((t) => t.eventType !== 'SCOUT').length}
               </div>
             </div>
           </div>
@@ -1094,11 +1126,12 @@ export default function BastionCommandCenter() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {['sidekick-mumu-0', 'sidekick-mumu-1', 'sidekick-mumu-2'].map((instId) => {
             const meta = INSTANCE_META[instId];
+            const swarmInst = data?.swarmBlackbox?.instances?.[meta.port] || null;
             const activeBotId = activeByInstance[instId] || null;
             const activeBot = activeBotId ? botsById[activeBotId] : null;
             const instCtrl = instancesMap[instId] || {};
             const inFlight = instCtrl.in_flight || null;
-            const lastPlan = hb?.plans?.[instId] || '—';
+            const lastPlan = swarmInst?.status || hb?.plans?.[instId] || 'ACTIVE_IN_4197';
             const instanceBots = bots.filter((b) => b.instance_id === instId);
             const rt = activeBotId ? botRuntimes[activeBotId] : null;
             const prof = activeBot?.routine_profile || null;
@@ -1108,7 +1141,7 @@ export default function BastionCommandCenter() {
               <div
                 key={instId}
                 className={`p-4 rounded-xl border space-y-3 ${
-                  inFlight
+                  inFlight || swarmInst
                     ? 'bg-emerald-950/20 border-emerald-500/50'
                     : activeBot
                     ? 'bg-[#06080d] border-slate-800'
@@ -1125,16 +1158,114 @@ export default function BastionCommandCenter() {
                   </div>
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-black border ${
-                      inFlight
+                      inFlight || swarmInst
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
                         : activeBot
                         ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}
                   >
-                    {inFlight ? `IN-FLIGHT: ${inFlight.job_type}` : `PLAN: ${lastPlan}`}
+                    {swarmInst ? `#4197 SWARM: ${swarmInst.status}` : inFlight ? `IN-FLIGHT: ${inFlight.job_type}` : `PLAN: ${lastPlan}`}
                   </span>
                 </div>
+
+                {/* Live #4197 Swarm 5-Queue Sync Strip */}
+                {swarmInst && (
+                  <div className="p-2.5 rounded-lg bg-cyan-950/25 border border-cyan-500/30 space-y-1.5 text-[10px]">
+                    <div className="flex items-center justify-between text-cyan-300 font-bold">
+                      <span>⚡ #4197 SWARM DECK SYNCED ({swarmInst.activeGovernorName})</span>
+                      <span className="text-emerald-300">
+                        #{swarmInst.coordinates?.kingdom || '4197'} (X:{swarmInst.coordinates?.x || 0}, Y:{swarmInst.coordinates?.y || 0})
+                      </span>
+                    </div>
+                    <div className="text-slate-200 font-sans truncate">{swarmInst.currentTask}</div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-slate-400 pt-0.5 border-t border-cyan-500/20">
+                      <span>
+                        🛡️ Verified T1:{' '}
+                        <strong className="text-emerald-300">
+                          {Number(
+                            swarmInst.groundTruth?.totalTroops ??
+                              vs?.total_troops ??
+                              swarmInst.currentTraining?.estimatedT1Troops ??
+                              0
+                          ).toLocaleString()}{' '}
+                          units
+                        </strong>
+                        {Number(swarmInst.groundTruth?.hospitalWounded ?? vs?.hospital_wounded ?? 0) > 0 && (
+                          <span className="text-rose-300 font-bold ml-1">
+                            (+{Number(swarmInst.groundTruth?.hospitalWounded ?? vs?.hospital_wounded).toLocaleString()} Hosp)
+                          </span>
+                        )}
+                      </span>
+                      <span>
+                        🌾 Gathered:{' '}
+                        <strong className="text-amber-300">
+                          {Number(swarmInst.groundTruth?.resourcesGathered ?? vs?.resources_gathered ?? 0).toLocaleString()} RSS
+                        </strong>
+                      </span>
+                    </div>
+                    {(swarmInst.groundTruth?.verifiedAt || vs?.ground_truth) && (() => {
+                      const gt = swarmInst.groundTruth || vs?.ground_truth || {};
+                      const u = gt.unitsByType || vs?.units_by_type || {};
+                      return (
+                        <div className="pt-1 border-t border-cyan-500/20 space-y-1 text-[9px] font-mono">
+                          <div className="grid grid-cols-4 gap-1 text-center">
+                            <div className="px-1 py-0.5 rounded bg-black/40 border border-white/5 text-slate-200">
+                              🛡️ {Number(u.infantry || 0).toLocaleString()}
+                            </div>
+                            <div className="px-1 py-0.5 rounded bg-black/40 border border-white/5 text-slate-200">
+                              🏹 {Number(u.archer || 0).toLocaleString()}
+                            </div>
+                            <div className="px-1 py-0.5 rounded bg-black/40 border border-white/5 text-slate-200">
+                              🐎 {Number(u.cavalry || 0).toLocaleString()}
+                            </div>
+                            <div className="px-1 py-0.5 rounded bg-black/40 border border-white/5 text-slate-200">
+                              🪵 {Number(u.siege || 0).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between text-slate-400">
+                            <span>
+                              Marches: <strong className="text-cyan-200">{gt.marchQueue || '0/2'}</strong> · Hosp:{' '}
+                              <strong className={Number(gt.hospitalWounded || 0) > 0 ? 'text-rose-300' : 'text-slate-200'}>
+                                {gt.hospitalRaw || '0/7,500'}
+                              </strong>
+                            </span>
+                            <span>
+                              Scouts: <strong className="text-slate-200">{gt.scoutTimes || 0}</strong> · Helps:{' '}
+                              <strong className="text-emerald-300">{gt.allianceHelpTimes || 0}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(data?.swarmBlackbox?.threats || []).filter((t) => String(t.targetPort) === meta.port).length > 0 && (
+                      <div className="pt-1.5 border-t border-rose-500/30 space-y-1">
+                        {(data?.swarmBlackbox?.threats || [])
+                          .filter((t) => String(t.targetPort) === meta.port)
+                          .slice(0, 2)
+                          .map((th) => (
+                            <div
+                              key={th.id}
+                              className={`px-2 py-1 rounded border text-[9px] font-mono font-bold flex items-center justify-between ${
+                                th.eventType === 'SCOUT'
+                                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-200'
+                                  : 'bg-rose-500/25 border-rose-500/50 text-rose-200'
+                              }`}
+                            >
+                              <span>
+                                {th.eventType === 'SCOUT' ? '🔭 SCOUTED BY' : '🚨 ATTACKED BY'}{' '}
+                                {th.allianceTag ? `[${th.allianceTag}] ` : ''}
+                                {th.attackerName}
+                              </span>
+                              <span>
+                                X:{th.coordinates?.x || 0} Y:{th.coordinates?.y || 0}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Active Bot Selector for this Instance */}
                 <div className="p-2.5 rounded-lg bg-[#0b101b] border border-slate-800/90 space-y-2">
@@ -1224,6 +1355,89 @@ export default function BastionCommandCenter() {
             );
           })}
         </div>
+      </div>
+
+      {/* =====================================================================
+          SECTION 1B: HOSTILE RECON & ATTACK OVERWATCH RADAR (RING 1 SCOUT · RING 4 WARDEN)
+      ===================================================================== */}
+      <div className="p-5 rounded-2xl bg-[#0b0e17] border border-rose-500/35 shadow-xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-500/20 pb-3">
+          <div>
+            <div className="text-xs font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
+              <AlertTriangle size={15} />
+              <span>
+                HOSTILE RECON & ATTACK OVERWATCH RADAR · RING 1 (SCOUT) & RING 4 (WARDEN) LIVE TELEMETRY
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5 font-sans">
+              Synchronized with the Kingdom #4197 Black-Box OCR daemon (`SWARM_4197_BLACKBOX`). Captures every player who scouts or attacks any stationed #4197 bot via Watchtower HUD alerts and Mail `REPORT` tab OCR.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold">
+              🔭 Scouts Caught:{' '}
+              {data?.swarmBlackbox?.summary?.hostileScoutsCount ??
+                (data?.swarmBlackbox?.threats || []).filter((t) => t.eventType === 'SCOUT').length}
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-rose-500/25 border border-rose-500/50 text-rose-200 font-bold">
+              🚨 Attacks Caught:{' '}
+              {data?.swarmBlackbox?.summary?.hostileAttacksCount ??
+                (data?.swarmBlackbox?.threats || []).filter((t) => t.eventType !== 'SCOUT').length}
+            </span>
+          </div>
+        </div>
+
+        {(data?.swarmBlackbox?.threats || []).length === 0 ? (
+          <div className="p-4 rounded-xl bg-[#06080d] border border-slate-800 text-xs text-slate-400 font-sans text-center">
+            Zero Hostile Scouts or Attacks currently logged in `SWARM_4197_BLACKBOX`.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs font-mono">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                  <th className="py-2 px-3">Timestamp</th>
+                  <th className="py-2 px-3">Ring / Trigger</th>
+                  <th className="py-2 px-3">Target Bot</th>
+                  <th className="py-2 px-3">Hostile Player & Alliance</th>
+                  <th className="py-2 px-3">Attacker Coords</th>
+                  <th className="py-2 px-3">OCR Report Excerpt</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/70">
+                {(data?.swarmBlackbox?.threats || []).slice(0, 12).map((t) => (
+                  <tr key={t.id} className="hover:bg-white/5">
+                    <td className="py-2 px-3 text-slate-400 whitespace-nowrap">{ago(t.timestamp, nowMs)}</td>
+                    <td className="py-2 px-3">
+                      <span
+                        className={`px-2 py-0.5 rounded font-black text-[10px] border ${
+                          t.eventType === 'SCOUT'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            : 'bg-rose-500/25 text-rose-200 border-rose-500/50'
+                        }`}
+                      >
+                        {t.eventType === 'SCOUT' ? '🔭 RING 1 · SCOUT' : '🚨 RING 4 · CITY_HIT'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-cyan-300 font-bold">
+                      {t.targetBot} (:{t.targetPort})
+                    </td>
+                    <td className="py-2 px-3 text-white font-bold">
+                      {t.allianceTag ? <span className="text-rose-400 mr-1">[{t.allianceTag}]</span> : null}
+                      {t.attackerName}
+                    </td>
+                    <td className="py-2 px-3 text-emerald-300">
+                      #4197 X:{t.coordinates?.x || 0} Y:{t.coordinates?.y || 0}
+                    </td>
+                    <td className="py-2 px-3 text-slate-300 max-w-md truncate font-sans" title={t.rawReportText}>
+                      {t.rawReportText}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* =====================================================================
