@@ -16,6 +16,31 @@ const FLAG_RESOURCES = [
   { key: 'crystal', label: 'Alliance Crystal', emoji: '💎', color: 'text-cyan-400'   },
 ];
 
+const TROOP_STATS_MATRIX = {
+  "1:infantry": { time: 15, food: 50, wood: 50, stone: 0, gold: 0, power: 1, heal: 0 },
+  "1:cavalry":  { time: 15, food: 60, wood: 40, stone: 0, gold: 0, power: 1, heal: 0 },
+  "1:archer":   { time: 15, food: 40, wood: 60, stone: 0, gold: 0, power: 1, heal: 0 },
+  "1:siege":    { time: 15, food: 60, wood: 60, stone: 0, gold: 0, power: 1, heal: 0 },
+  "2:infantry": { time: 30, food: 100, wood: 100, stone: 0, gold: 0, power: 2, heal: 1 },
+  "2:cavalry":  { time: 30, food: 100, wood: 0, stone: 75, gold: 0, power: 2, heal: 1 },
+  "2:archer":   { time: 30, food: 0, wood: 100, stone: 75, gold: 0, power: 2, heal: 1 },
+  "2:siege":    { time: 30, food: 65, wood: 65, stone: 50, gold: 0, power: 2, heal: 1 },
+  "3:infantry": { time: 60, food: 150, wood: 150, stone: 0, gold: 10, power: 3, heal: 2 },
+  "3:cavalry":  { time: 60, food: 150, wood: 0, stone: 112, gold: 10, power: 3, heal: 2 },
+  "3:archer":   { time: 60, food: 0, wood: 150, stone: 112, gold: 10, power: 3, heal: 2 },
+  "3:siege":    { time: 60, food: 100, wood: 100, stone: 75, gold: 10, power: 3, heal: 2 },
+  "4:infantry": { time: 80, food: 300, wood: 300, stone: 0, gold: 20, power: 4, heal: 3 },
+  "4:cavalry":  { time: 80, food: 300, wood: 0, stone: 225, gold: 20, power: 4, heal: 3 },
+  "4:archer":   { time: 80, food: 0, wood: 300, stone: 225, gold: 20, power: 4, heal: 3 },
+  "4:siege":    { time: 80, food: 200, wood: 200, stone: 150, gold: 20, power: 4, heal: 3 },
+  "5:infantry": { time: 120, food: 800, wood: 800, stone: 0, gold: 400, power: 10, heal: 4 },
+  "5:cavalry":  { time: 120, food: 800, wood: 0, stone: 600, gold: 400, power: 10, heal: 4 },
+  "5:archer":   { time: 120, food: 0, wood: 800, stone: 600, gold: 400, power: 10, heal: 4 },
+  "5:siege":    { time: 120, food: 500, wood: 500, stone: 400, gold: 400, power: 10, heal: 4 },
+};
+const MGE_POINTS_PER_TIER = { 1: 0, 2: 0, 3: 0, 4: 30, 5: 100 };
+const CRUSADER_POINTS_PER_TIER = { 1: 1, 2: 2, 3: 4, 4: 10, 5: 20 };
+
 const TAB_COLORS = {
   indigo: 'border-indigo-500 text-indigo-400 bg-indigo-500/5',
   amber: 'border-amber-500 text-amber-400 bg-amber-500/5',
@@ -40,6 +65,36 @@ export default function CalculatorsPage() {
   const [isSpeedupScanning, setIsSpeedupScanning] = useState(false);
   const [speedupStatus, setSpeedupStatus] = useState("");
   const speedupInputRef = useRef(null);
+
+  // === Troop Training, Reverse Speedup → Troops & T4→T5 Upgrade States ===
+  const [troopCalcMode, setTroopCalcMode] = useState("cost");
+  const [trainingSpeedBuff, setTrainingSpeedBuff] = useState(95);
+  const [troopCount, setTroopCount] = useState(100000);
+  const [troopTier, setTroopTier] = useState(5);
+  const [troopType, setTroopType] = useState("infantry");
+  const [revSpeedupMins, setRevSpeedupMins] = useState(60000);
+  const [upgCount, setUpgCount] = useState(100000);
+
+  const computeTroopBatch = (tier, type, count, buffPct) => {
+    const base = TROOP_STATS_MATRIX[`${tier}:${type}`] || TROOP_STATS_MATRIX["5:infantry"];
+    const secPerTroop = base.time / (1 + (Number(buffPct) || 0) / 100);
+    const totalSec = secPerTroop * count;
+    return {
+      seconds: totalSec,
+      minutes: Math.ceil(totalSec / 60),
+      power: count * base.power,
+      mge: count * (MGE_POINTS_PER_TIER[tier] || 0),
+      crusader: count * (CRUSADER_POINTS_PER_TIER[tier] || 0),
+      food: count * base.food,
+      wood: count * base.wood,
+      stone: count * base.stone,
+      gold: count * base.gold,
+    };
+  };
+  const troopBatchResult = computeTroopBatch(troopTier, troopType, troopCount, trainingSpeedBuff);
+  const revSecPerTroop = (TROOP_STATS_MATRIX[`${troopTier}:${troopType}`]?.time || 120) / (1 + (Number(trainingSpeedBuff) || 0) / 100);
+  const revTrainableCount = revSecPerTroop > 0 ? Math.floor((revSpeedupMins * 60) / revSecPerTroop) : 0;
+  const revBatchResult = computeTroopBatch(troopTier, troopType, revTrainableCount, trainingSpeedBuff);
   
   const [resources, setResources] = useState({
     food: { "1K": 0, "10K": 0, "50K": 0, "150K": 0, "500K": 0, "1.5M": 0, "5M": 0 },
@@ -1255,6 +1310,178 @@ export default function CalculatorsPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Troop Training, Speedups → Troops & T4→T5 Upgrade Engine */}
+        <div className="bg-[#0f1115] border border-[#1e222b] rounded-xl p-6 shadow-xl mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1e222b] pb-4 mb-6">
+            <div>
+              <h2 className="text-white font-black uppercase tracking-widest text-base flex items-center gap-2">
+                <Crown className="text-amber-400" size={20} />
+                Troop Training, Speedup Yield &amp; T4→T5 Upgrade Engine
+              </h2>
+              <p className="text-gray-500 text-xs mt-1">Calculate exact speedup time, MGE points, Pre-KvK Crusader points, Power, and RSS for any troop batch.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "cost", label: "Training Cost" },
+                { id: "reverse", label: "Speedups → Troops" },
+                { id: "upgrade", label: "T4 → T5 Upgrade" },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setTroopCalcMode(m.id)}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                    troopCalcMode === m.id
+                      ? "bg-indigo-600 text-white"
+                      : "bg-[#13161c] text-gray-400 hover:text-white border border-[#1e222b]"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const pool = (speedupData.training || 0) + (speedupData.universal || 0);
+                  if (pool > 0) {
+                    setRevSpeedupMins(pool);
+                    setTroopCalcMode("reverse");
+                  }
+                }}
+                className="px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer"
+              >
+                Sync From OCR Pool ({((speedupData.training || 0) + (speedupData.universal || 0)).toLocaleString()}m)
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg">
+              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Training Speed Buff (%)</label>
+              <input
+                type="number"
+                value={trainingSpeedBuff}
+                onChange={(e) => setTrainingSpeedBuff(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded px-3 py-2 text-base"
+              />
+            </div>
+            <div className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg">
+              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Troop Tier</label>
+              <select
+                value={troopTier}
+                onChange={(e) => setTroopTier(Number(e.target.value))}
+                className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded px-3 py-2 text-base"
+              >
+                {[1, 2, 3, 4, 5].map((tier) => (
+                  <option key={tier} value={tier}>Tier {tier} (T{tier})</option>
+                ))}
+              </select>
+            </div>
+            <div className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg">
+              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Unit Type</label>
+              <select
+                value={troopType}
+                onChange={(e) => setTroopType(e.target.value)}
+                className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded px-3 py-2 text-base"
+              >
+                <option value="infantry">Infantry</option>
+                <option value="cavalry">Cavalry</option>
+                <option value="archer">Archer</option>
+                <option value="siege">Siege</option>
+              </select>
+            </div>
+            <div className="bg-[#0a0c0f] border border-[#1e222b] p-4 rounded-lg">
+              {troopCalcMode === "cost" && (
+                <>
+                  <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Troops to Train</label>
+                  <input
+                    type="number"
+                    value={troopCount}
+                    onChange={(e) => setTroopCount(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded px-3 py-2 text-base"
+                  />
+                </>
+              )}
+              {troopCalcMode === "reverse" && (
+                <>
+                  <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Available Speedups (Mins)</label>
+                  <input
+                    type="number"
+                    value={revSpeedupMins}
+                    onChange={(e) => setRevSpeedupMins(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded px-3 py-2 text-base"
+                  />
+                </>
+              )}
+              {troopCalcMode === "upgrade" && (
+                <>
+                  <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Troops to Upgrade (T4 → T5)</label>
+                  <input
+                    type="number"
+                    value={upgCount}
+                    onChange={(e) => setUpgCount(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full bg-[#13161c] border border-[#1e222b] text-white font-mono rounded px-3 py-2 text-base"
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {troopCalcMode === "upgrade" ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#0a0c0f] border border-emerald-500/30 rounded-lg p-4">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Net Power Gained (+6/troop)</div>
+                <div className="text-2xl font-black text-emerald-400 font-mono mt-1">+{(upgCount * 6).toLocaleString()}</div>
+              </div>
+              <div className="bg-[#0a0c0f] border border-amber-500/30 rounded-lg p-4">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">MGE Points (+70/troop)</div>
+                <div className="text-2xl font-black text-amber-400 font-mono mt-1">+{(upgCount * 70).toLocaleString()}</div>
+              </div>
+              <div className="bg-[#0a0c0f] border border-cyan-500/30 rounded-lg p-4">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Crusader Pre-KvK Pts (+10/troop)</div>
+                <div className="text-2xl font-black text-cyan-400 font-mono mt-1">+{(upgCount * 10).toLocaleString()}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {troopCalcMode === "reverse" && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">Trainable T{troopTier} Troops from {revSpeedupMins.toLocaleString()}m</span>
+                  <span className="text-2xl font-black text-white font-mono">{revTrainableCount.toLocaleString()} Troops</span>
+                </div>
+              )}
+              {(() => {
+                const activeRes = troopCalcMode === "reverse" ? revBatchResult : troopBatchResult;
+                const d = Math.floor(activeRes.minutes / 1440);
+                const h = Math.floor((activeRes.minutes % 1440) / 60);
+                const m = activeRes.minutes % 60;
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Speedup Time Needed</div>
+                      <div className="text-xl font-black text-indigo-400 font-mono mt-1">{`${d}d ${h}h ${m}m`}</div>
+                    </div>
+                    <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Power Gained</div>
+                      <div className="text-xl font-black text-emerald-400 font-mono mt-1">+{activeRes.power.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">MGE / Crusader Pts</div>
+                      <div className="text-lg font-black text-amber-400 font-mono mt-1">{activeRes.mge.toLocaleString()} / {activeRes.crusader.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-[#0a0c0f] border border-[#1e222b] rounded-lg p-4">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Food / Wood / Stone / Gold</div>
+                      <div className="text-xs font-bold text-gray-200 font-mono mt-1">
+                        🌽 {formatNumber(activeRes.food)} · 🪵 {formatNumber(activeRes.wood)} · 🪨 {formatNumber(activeRes.stone)} · 💛 {formatNumber(activeRes.gold)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
