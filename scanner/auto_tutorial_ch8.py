@@ -25,6 +25,10 @@ import subprocess
 from PIL import Image
 import numpy as np
 
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["OPENBLAS_NUM_THREADS"] = "2"
+
 try:
     from rapidocr_onnxruntime import RapidOCR
     OCR = RapidOCR()
@@ -104,31 +108,65 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
     def _try_ocr_ch(path: str) -> bool:
         if not path or not os.path.exists(path):
             return False
-        try:
-            arr_ch = np.array(Image.open(path).convert("RGB"))
-            sub = arr_ch[30:480, 300:1180]
-            stairs = (sub[:, :, 2] >= 75) & (sub[:, :, 0] <= 35) & ((sub[:, :, 2].astype(np.int32) - sub[:, :, 0].astype(np.int32)) >= 55)
-            lanterns = ((sub[:, :, 0] >= 175) & (sub[:, :, 1] <= 55) & (sub[:, :, 2] <= 55)) | ((sub[:, :, 0] >= 225) & (sub[:, :, 1] >= 120) & (sub[:, :, 2] <= 35))
-            stairs[:190, 720:] = False
-            lanterns[:190, 720:] = False
-            best_score, best_xy = 0, None
-            for y in range(0, sub.shape[0] - 90, 20):
-                for x in range(0, sub.shape[1] - 90, 20):
-                    sc = int(stairs[y : y + 90, x : x + 90].sum())
-                    if 180 <= sc <= 1200:
-                        lc = int(lanterns[max(0, y - 60) : min(sub.shape[0], y + 110), max(0, x - 70) : min(sub.shape[1], x + 110)].sum())
-                        if lc >= 95:
-                            score = sc + lc * 2
-                            if score > best_score:
-                                best_score = score
-                                ys, xs = np.where(stairs[y : y + 90, x : x + 90])
-                                best_xy = (int(np.median(xs) + 300 + x - 15), int(np.median(ys) + 30 + y - 5))
-            if best_xy is not None and best_score >= 1300 and best_xy[1] >= 120:
-                print(f"  [CH-Locator] Visual China City Hall detected at {best_xy} (score={best_score}) -> Tap City Hall")
-                tap(serial, best_xy[0], best_xy[1], 1.2)
-                return True
-        except Exception:
-            pass
+        if OCR is not None and not is_16384:
+            try:
+                arr_c = np.array(Image.open(path).convert("RGB"))
+                res_c, _ = OCR(arr_c[30:540, 220:1380].astype(np.uint8))
+                for box, txt, _ in (res_c or []):
+                    tc = txt.strip().lower()
+                    cx = int(sum(pt[0] for pt in box) / 4 + 220)
+                    cy = int(sum(pt[1] for pt in box) / 4 + 30)
+                    if ("city hall" in tc or "cityhall" in tc) and 180 <= cx <= 1100 and 80 <= cy <= 650:
+                        chx, chy = cx, max(120, cy - 65)
+                        print(f"  [CH-Locator] Found 'City Hall' label at ({cx},{cy}) -> Tap City Hall ({chx},{chy})")
+                        tap(serial, chx, chy, 1.2)
+                        return True
+                    if (" build" in f" {tc}" or tc == "build") and cx >= 260 and 35 <= cy <= 530:
+                        if cx < 720 or cx > 1150 or cy < 135 or cy > 380:
+                            sx = max(240, min(1360, 800 + int((cx - 925) * 0.85)))
+                            sy = max(200, min(700, 450 + int((cy - 225) * 0.85)))
+                            print(f"  [CH-Locator] Recentering #4200 camera from Build({cx},{cy}) via swipe ({sx},{sy})->(800,450)")
+                            swipe(serial, sx, sy, 800, 450, 420, 1.0)
+                            arr_c2 = _capture_rgb_in_memory(serial, path)
+                            res_c2, _ = OCR(arr_c2[30:540, 220:1380].astype(np.uint8))
+                            for box2, txt2, _ in (res_c2 or []):
+                                tc2 = txt2.strip().lower()
+                                if " build" in f" {tc2}" or tc2 == "build":
+                                    cx = int(sum(pt[0] for pt in box2) / 4 + 220)
+                                    cy = int(sum(pt[1] for pt in box2) / 4 + 30)
+                                    break
+                        chx, chy = max(260, cx - 360), cy + 70
+                        print(f"  [CH-Locator] Found #4200 'Build' at ({cx},{cy}) -> Tap City Hall ({chx},{chy})")
+                        tap(serial, chx, chy, 1.2)
+                        return True
+            except Exception:
+                pass
+        if is_16384:
+            try:
+                arr_ch = np.array(Image.open(path).convert("RGB"))
+                sub = arr_ch[30:480, 300:1180]
+                stairs = (sub[:, :, 2] >= 75) & (sub[:, :, 0] <= 35) & ((sub[:, :, 2].astype(np.int32) - sub[:, :, 0].astype(np.int32)) >= 55)
+                lanterns = ((sub[:, :, 0] >= 175) & (sub[:, :, 1] <= 55) & (sub[:, :, 2] <= 55)) | ((sub[:, :, 0] >= 225) & (sub[:, :, 1] >= 120) & (sub[:, :, 2] <= 35))
+                stairs[:190, 720:] = False
+                lanterns[:190, 720:] = False
+                best_score, best_xy = 0, None
+                for y in range(0, sub.shape[0] - 90, 20):
+                    for x in range(0, sub.shape[1] - 90, 20):
+                        sc = int(stairs[y : y + 90, x : x + 90].sum())
+                        if 180 <= sc <= 1200:
+                            lc = int(lanterns[max(0, y - 60) : min(sub.shape[0], y + 110), max(0, x - 70) : min(sub.shape[1], x + 110)].sum())
+                            if lc >= 95:
+                                score = sc + lc * 2
+                                if score > best_score:
+                                    best_score = score
+                                    ys, xs = np.where(stairs[y : y + 90, x : x + 90])
+                                    best_xy = (int(np.median(xs) + 300 + x - 15), int(np.median(ys) + 30 + y - 5))
+                if best_xy is not None and best_score >= 1300 and best_xy[1] >= 120:
+                    print(f"  [CH-Locator] Visual China City Hall detected at {best_xy} (score={best_score}) -> Tap City Hall")
+                    tap(serial, best_xy[0], best_xy[1], 1.2)
+                    return True
+            except Exception:
+                pass
         if OCR is None:
             return False
         try:
@@ -147,13 +185,16 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
                     tc = txt.strip().lower()
                     cx = int(sum(pt[0] for pt in box) / 4)
                     cy = int(sum(pt[1] for pt in box) / 4)
+                    if ("city hall" in tc or "cityhall" in tc) and 180 <= cx <= 1100 and 100 <= cy <= 650:
+                        chx, chy = cx, max(120, cy - 65)
+                        print(f"  [CH-Locator] Found 'City Hall' label at ({cx},{cy}) -> Tap City Hall ({chx},{chy})")
+                        tap(serial, chx, chy, 1.2)
+                        return True
                     if tc == "build" and cx > 450 and 55 <= cy <= 680:
                         if is_16384:
                             chx, chy = cx - 365, cy + 75
-                        elif cx >= 1000:
-                            chx, chy = cx - 845, cy + 125
                         else:
-                            continue
+                            chx, chy = max(260, cx - 360), cy + 70
                         print(f"  [CH-Locator] Found 'Build' at ({cx},{cy}) -> Tap City Hall ({chx},{chy})")
                         tap(serial, chx, chy, 1.2)
                         return True
@@ -173,12 +214,39 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
 
     ch_path = os.path.join(SCRIPT_DIR, f"auto_ch_{str(serial).split(':')[-1]}.png")
     if not img_path or not os.path.exists(img_path):
-        subprocess.run([ADB_BIN, "-s", serial, "shell", "screencap -p /sdcard/s_ch.png"], capture_output=True)
-        subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s_ch.png", ch_path], capture_output=True)
-        img_path = ch_path
+        try:
+            _capture_rgb_in_memory(serial, ch_path)
+            img_path = ch_path
+        except Exception:
+            pass
+
+    # 0. Ensure we are inside the City (never on the World Map) before looking for City Hall or 'Build'
+    try:
+        if img_path and os.path.exists(img_path):
+            arr_wm = np.array(Image.open(img_path).convert("RGB"))
+            wm_delta = float(arr_wm[833:839, 79:85].mean()) - float(arr_wm[842:848, 83:89].mean())
+            if wm_delta > 60.0:
+                print("  [CH-Locator] Detected World Map -> Tapping Return to City (55, 845)")
+                tap(serial, 55, 845, 2.4)
+                _capture_rgb_in_memory(serial, ch_path)
+                img_path = ch_path
+    except Exception:
+        pass
 
     # 1. Always check if City Hall is already visible on screen before swiping
     if _try_ocr_ch(img_path):
+        return
+
+    if not is_16384:
+        # On #4200, if 'Build' was pushed off the top/left edge, swipe down-right to pull City Hall & Build back into center view
+        swipe(serial, 550, 240, 950, 560, 420, 1.0)
+        try:
+            _capture_rgb_in_memory(serial, ch_path)
+        except Exception:
+            pass
+        if _try_ocr_ch(ch_path):
+            return
+        tap(serial, 565, 295, 1.2)
         return
 
     # 2. Check if camera is pinned at top-left boundary stop (only on 16384 layout)
@@ -207,15 +275,8 @@ def select_city_hall_via_anchor(serial: str, img_path: str = None):
     if _try_ocr_ch(ch_path):
         return
 
-    # 3. On non-16384 layouts, reset camera to home origin via Map/City toggle (55, 845) x2 where China City Hall is always at (425, 175)
     if not is_16384:
-        tap(serial, 55, 845, 2.2)
-        tap(serial, 55, 845, 2.5)
-        subprocess.run([ADB_BIN, "-s", serial, "shell", "screencap -p /sdcard/s_ch.png"], capture_output=True)
-        subprocess.run([ADB_BIN, "-s", serial, "pull", "/sdcard/s_ch.png", ch_path], capture_output=True)
-        if _try_ocr_ch(ch_path):
-            return
-        tap(serial, 425, 175, 1.2)
+        tap(serial, 535, 235, 1.2)
         return
 
     swipe(serial, 350, 360, 950, 460, 400, 1.0)
@@ -295,6 +356,15 @@ def is_city_hud(a: np.ndarray) -> bool:
     )
     if float(np.mean(is_b_hdr)) > 0.45:
         return False
+    b_hdr_top = a[25:85, 400:1200]
+    is_b_hdr_top = (
+        (b_hdr_top[:, :, 0] >= 145)
+        & (b_hdr_top[:, :, 0] <= 230)
+        & (np.abs(b_hdr_top[:, :, 0].astype(np.int32) - b_hdr_top[:, :, 1].astype(np.int32)) < 20)
+        & (np.abs(b_hdr_top[:, :, 1].astype(np.int32) - b_hdr_top[:, :, 2].astype(np.int32)) < 25)
+    )
+    if float(np.mean(is_b_hdr_top)) > 0.45:
+        return False
     return True
 
 
@@ -313,6 +383,14 @@ def is_world_map(a: np.ndarray) -> bool:
 
 
 def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
+    # 00. Top-aligned 'ALLIANCE' / 'Join Your First Alliance' / 'More Info' Modal (grey header at y=25..85 + teal body)
+    al_hdr_t = a[25:85, 350:1250]
+    al_body_t = a[200:750, 650:1350]
+    is_al_g = (al_hdr_t[:, :, 0] >= 145) & (al_hdr_t[:, :, 0] <= 220) & (np.abs(al_hdr_t[:, :, 0].astype(np.int32) - al_hdr_t[:, :, 2].astype(np.int32)) < 22)
+    is_al_tl = (al_body_t[:, :, 2] >= 90) & (al_body_t[:, :, 0] <= 45)
+    if float(np.mean(is_al_g)) > 0.50 and float(np.mean(is_al_tl)) > 0.40:
+        return (1545, 500, "Alliance / More Info Modal -> Close Outside (1545, 500)")
+
     # 0. Quests / Daily Objectives Modal at y=85..145 with left blue ribbon tab at x=30..160, y=165..500
     q_hdr = a[85:145, 500:1100]
     is_q_hdr = (
@@ -378,6 +456,7 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
                 pass
         # Check if the other left tab (Tab 2 Daily Objectives at y=310..360 or Tab 1 Quests at y=155..205) has a red notification badge
         tab2_red = (a[310:360, 45:95, 0] >= 180) & (a[310:360, 45:95, 1] <= 65) & (a[310:360, 45:95, 2] <= 65)
+        tab2_wht = (a[310:360, 45:95, 0] >= 220) & (a[310:360, 45:95, 1] >= 220) & (a[310:360, 45:95, 2] >= 220)
         tab1_active = float(np.mean(is_q_tab[:150, :])) > float(np.mean(is_q_tab[150:, :]))
         if not tab1_active:
             return (85, 240, "DAILY_OBJECTIVES_CHESTS_AND_SWITCH_TAB1")
@@ -405,7 +484,7 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
                         next_q_act = "QUESTS_MODAL_SIDE_GO"
             except Exception:
                 pass
-        if tab1_active and int(tab2_red.sum()) >= 120:
+        if tab1_active and (int(tab2_red.sum()) >= 120 or (int(tab2_red.sum()) >= 20 and int(tab2_wht.sum()) >= 35)):
             return (85, 415, f"QUESTS_SWITCH_TO_DAILY_TAB:{next_q_act}")
         if next_q_act == "QUESTS_MODAL_MAIN_GO":
             return (1258, 325, "QUESTS_MODAL_MAIN_GO")
@@ -638,6 +717,11 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
     if not is_city_hud(a) and float(np.mean(is_spd_hdr)) > 0.60 and float(np.mean(is_use1_cy)) > 0.35 and float(np.mean(is_back_grey)) < 0.40 and float(a[175:235, 600:1000].mean()) < 85.0:
         return (1195, 355, "ROW1_USE_SPEEDUP_MODAL")
     if float(np.mean(is_p1_gold)) > 0.40 and float(np.mean(is_p2_gold)) > 0.40 and float(np.mean(is_back_grey)) < 0.40:
+        # If left-side blue resource tabs (x=50..180, y=150..650) are visible, this is Replenish Resources (NOT Speed Up) -> close without spending Gems!
+        rss_tabs = a[150:650, 50:180]
+        is_rss_tab_blue = (rss_tabs[:, :, 2] >= 125) & (rss_tabs[:, :, 0] <= 55)
+        if float(np.mean(is_rss_tab_blue)) > 0.22:
+            return (1520, 500, "Replenish Resources (No Free Packs) -> Close (1520, 500)")
         # All free speedups exhausted -> check top-right Gems & remaining timer
         gems = 0
         rem_mins = 10
@@ -762,7 +846,7 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
                     hdr_title = " ".join(r[1].strip() for r in h_res).lower()
             except Exception:
                 pass
-        if "train" in hdr_title or (not any(k in hdr_title for k in ("upgrade", "vip", "speed", "busy", "notice")) and int(inst_gold_early.sum()) < 800):
+        if "train" in hdr_title or (not any(k in hdr_title for k in ("upgrade", "vip", "speed", "busy", "notice", "quest", "daily", "objective", "daity", "uest")) and int(inst_gold_early.sum()) < 800):
             tys, txs = np.where(is_trn_cyan)
             tx, ty = int(np.median(txs) + 1100), int(np.median(tys) + 700)
             return (tx, ty, f"TROOP_TRAIN_START:{hdr_title}")
@@ -899,9 +983,8 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
             return (1443, 64, "First Recharge Modal Open -> Close (1443, 64)")
 
     # 11c4 (evaluated BEFORE 11c2 so the grey PERSONAL tab at 58,52 is never mistaken for a top-left Back button!).
-    # Mail / Alliance Modal Open (grey tab bar at y=35..80, x=200..1580; top-left blue avatar ribbon must be covered)
-    tl_rib_diff = float((a[85:125, 15:70, 2].astype(np.float32) - a[85:125, 15:70, 0].astype(np.float32)).mean())
-    if not is_city_hud(a) and not is_nt_panel and tl_rib_diff <= 28.0:
+    # Mail / Alliance / More Info Modal Open (grey tab bar at y=35..80, x=200..1580)
+    if not is_city_hud(a) and not is_nt_panel:
         m_hdr = a[35:80, 200:1580]
         is_m_hdr = (
             (m_hdr[:, :, 0] >= 140)
@@ -911,7 +994,7 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
         )
         if float(np.mean(is_m_hdr[:, :1150])) > 0.55:
             if float(np.mean(is_m_hdr[:, 1260:])) < 0.35:
-                return (1395, 58, "Joined Alliance Modal Open -> Close (1395, 58)")
+                return (1545, 500, "Joined Alliance / More Info Modal Open -> Close (1545, 500)")
             return (1540, 48, "Mail Modal Open -> Close (1540, 48)")
 
     # 11c2. Event Calendar Parchment Modal (tan header y=20..80, x=550..1350) -> Close (1365, 58) x2
@@ -1027,7 +1110,7 @@ def detect_new_troop_modal(a: np.ndarray, target_ch: int = 8):
             pass
 
     # 14. Chapter Completion / Monument Reward banner
-    if OCR is not None:
+    if OCR is not None and not is_city_hud(a):
         try:
             c_res, _ = OCR(a[200:700, 400:1200].astype(np.uint8))
             c_text = " ".join([r[1].lower() for r in (c_res or [])])
@@ -1073,11 +1156,13 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
         return None, None, 0
 
     H, W = sp.shape
+    on_world_map = is_world_map(a2)
+    on_city_hud = is_city_hud(a2)
     best_s, sx, sy = 0, 0, 0
     for gy in range(20, H - 70, 15):
         for gx in range(20, W - 70, 15):
             c = int(sp[gy : gy + 75, gx : gx + 75].sum())
-            if c < 120 and (is_world_map(a2) or (gx < 310 and gy < 265)):
+            if c < 120 and (on_world_map or (gx < 310 and gy < 265)):
                 c_raw = int(sp_raw[gy : gy + 75, gx : gx + 75].sum())
                 if c_raw >= 850:
                     c = c_raw
@@ -1091,7 +1176,7 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
 
     # Top-left corner shortcut: City HUD Quest Scroll (40, 235) / Barbarian Invasion Pilot (85, 215) vs Modal Back Arrow (48, 52)
     if sx < 315 and sy < 265:
-        if is_city_hud(a2):
+        if on_city_hud:
             bi_hud = a2[165:255, 15:145]
             is_bi_hud = (bi_hud[:, :, 0] >= 195) & (bi_hud[:, :, 1] >= 120) & (bi_hud[:, :, 2] <= 95)
             if float(np.mean(is_bi_hud)) > 0.22:
@@ -1100,7 +1185,7 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
         return (sx, sy), (48, 52), best_s
 
     # Bottom-left HUD shortcuts (ONLY when on City HUD, never when Build Drawer is open where (45,845) is DECORATIVE)
-    if is_city_hud(a2):
+    if on_city_hud:
         if sx < 165 and 420 <= sy < 700:
             return (sx, sy), (45, 735), best_s
         if sx < 165 and 700 <= sy <= 860:
@@ -1111,7 +1196,7 @@ def detect_spear_and_starburst(a1: np.ndarray, a2: np.ndarray):
             return (sx, sy), (50, 660), best_s
 
     # Build Drawer Slot #1 (Tavern / Farm at x=100..435, y=245..550) when Build Drawer is open
-    if not is_city_hud(a2) and 100 <= sx <= 435 and 245 <= sy <= 550:
+    if not on_city_hud and 100 <= sx <= 435 and 245 <= sy <= 550:
         return (sx, sy), (210, 600), best_s
 
     Y, X = np.ogrid[:H, :W]
@@ -1301,8 +1386,6 @@ def detect_ocr_action(img_path: str, a: np.ndarray):
         "Train",
         "TRAIN",
         "Explore",
-        "Create",
-        "CREATE",
         "Help",
         "Speed Up",
         "SPEED UP",
@@ -1441,17 +1524,6 @@ def report_tut_progress(adb_serial: str, kingdom: str, step: int, total_steps: i
         per_port_path = os.path.join(SCRIPT_DIR, f"scan_progress_{adb_port}.json")
         with open(per_port_path, "w", encoding="utf-8") as f:
             _json.dump(payload, f, indent=2)
-    except Exception:
-        pass
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            "http://192.168.50.41:8888/scan-progress",
-            data=_json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        urllib.request.urlopen(req, timeout=1.5)
     except Exception:
         pass
 
@@ -1831,6 +1903,28 @@ def main():
                 print(f"[Step {step:02d}] {nt[2]} -> Select T1 ONLY Slot (650, 225) + Tap TRAIN ({nt[0]}, {nt[1]})")
                 tap(args.adb, 650, 225, 0.6)
                 tap(args.adb, nt[0], nt[1], 1.1)
+            elif nt[2].startswith("Building Upgrade Prereq"):
+                print(f"[Step {step:02d}] {nt[2]} -> Tap Go ({nt[0]}, {nt[1]})")
+                tap(args.adb, nt[0], nt[1], 1.4)
+                try:
+                    a_pr = _capture_rgb_in_memory(args.adb, p1)
+                    if is_city_hud(a_pr) and not is_world_map(a_pr):
+                        rib_s = a_pr[25:580, 175:1550]
+                        is_rb = (rib_s[:, :, 2] >= 145) & (rib_s[:, :, 0] <= 55) & ((rib_s[:, :, 2] - rib_s[:, :, 0]) >= 100)
+                        rys, rxs = np.where(is_rb)
+                        if len(rxs) >= 1500:
+                            rcx, rcy = int(np.median(rxs) + 175), int(np.median(rys) + 25)
+                            hx0, hx1 = max(80, rcx - 95), min(1540, rcx + 95)
+                            hy0, hy1 = max(220, rcy + 140), min(899, rcy + 460)
+                            hsub = a_pr[hy0:hy1, hx0:hx1]
+                            is_grn = (hsub[:, :, 1] >= 120) & (hsub[:, :, 0] <= 95) & ((hsub[:, :, 1] - hsub[:, :, 0]) >= 40) & ((hsub[:, :, 1] - hsub[:, :, 2]) >= 30)
+                            gys, gxs = np.where(is_grn)
+                            if len(gxs) >= 400:
+                                gx, gy = int(np.median(gxs) + hx0), int(np.median(gys) + hy0)
+                                print(f"  [FastPrereq] Immediately opening prereq building Upgrade Hex at ({gx}, {gy})")
+                                tap(args.adb, gx, gy, 1.3)
+                except Exception:
+                    pass
             else:
                 print(f"[Step {step:02d}] {nt[2]} -> tap ({nt[0]}, {nt[1]})")
                 tap(args.adb, nt[0], nt[1], 1.1)
@@ -1859,6 +1953,8 @@ def main():
             rib_chk = a2[25:600, 175:1550]
             is_rib_chk = (rib_chk[:, :, 2] >= 145) & (rib_chk[:, :, 0] <= 55) & ((rib_chk[:, :, 2].astype(np.int32) - rib_chk[:, :, 0].astype(np.int32)) >= 100)
             is_wht_chk = (rib_chk[:, :, 0] >= 205) & (rib_chk[:, :, 1] >= 205) & (rib_chk[:, :, 2] >= 205)
+            is_rib_chk[:325, 1015:] = False
+            is_wht_chk[:325, 1015:] = False
             if int(is_rib_chk.sum()) >= 3500 and rib_hex_repeat < 1:
                 for ry in range(0, is_rib_chk.shape[0] - 85, 35):
                     for rx in range(0, is_rib_chk.shape[1] - 360, 60):
@@ -1868,8 +1964,14 @@ def main():
                     if has_selected_building_ribbon:
                         break
 
-        # Tutorial spear ALWAYS has priority over heuristic building upgrade actions (unless a City Building ribbon is already selected, or bottom-right HUD buttons at x>=820, y>=795)
-        if not has_selected_building_ribbon and spear_xy and target_xy and not (target_xy[1] >= 795 and target_xy[0] >= 820):
+        # Tutorial spear ALWAYS has priority over heuristic building upgrade actions (unless a City Building ribbon is already selected, or bottom-right HUD buttons at x>=820, y>=795, or idle Zzz bubbles in #4200)
+        if (
+            not has_selected_building_ribbon
+            and spear_xy
+            and target_xy
+            and not (target_xy[1] >= 795 and target_xy[0] >= 820)
+            and not (str(args.kingdom) == "4200" and is_city_hud(a2) and bcnt < 350)
+        ):
             sx, sy = spear_xy
             tx, ty = target_xy
             if last_spear and abs(sx - last_spear[0]) < 95 and abs(sy - last_spear[1]) < 95:
@@ -1917,21 +2019,31 @@ def main():
                 print(f"[Step {step:02d}] Collapsed Alliance Help Handshake -> Tap (1432, 845)")
                 tap(args.adb, 1432, 845, 0.8)
         if is_city_hud(a2) and not is_world_map(a2):
-            # Also check if the top-left Quest Scroll icon (45, 225) has a red notification badge (completed quests inside modal)
-            if quest_scroll_cooldown == 0 and not has_selected_building_ribbon:
+            # Also check if the top-left Quest Scroll icon ((45, 225) or #4200's (38, 320) below Aethelflaed) has a notification badge
+            if quest_scroll_cooldown == 0 and not has_selected_building_ribbon and str(args.kingdom) != "4200":
                 q_badge = a2[165:215, 45:100]
                 is_q_red = (q_badge[:, :, 0] >= 190) & (q_badge[:, :, 1] <= 60) & (q_badge[:, :, 2] <= 60)
+                q_badge_4200_top = a2[250:275, 68:98]
+                q_wht_4200 = (q_badge_4200_top[:, :, 0] >= 220) & (q_badge_4200_top[:, :, 1] >= 220) & (q_badge_4200_top[:, :, 2] >= 220)
+                q_badge_4200 = a2[260:305, 35:85]
+                q_red_4200 = (q_badge_4200[:, :, 0] >= 165) & (q_badge_4200[:, :, 1] <= 55) & (q_badge_4200[:, :, 2] <= 55)
                 if int(is_q_red.sum()) >= 120:
                     print(f"[Step {step:02d}] Quest Scroll Red Badge ({int(is_q_red.sum())}px) -> Open Quests Modal (45, 225)")
                     tap(args.adb, 45, 225, 1.3)
                     last_spear = None
                     repeat_cnt = 0
                     continue
-            # Dismiss/Accept Top-Center Alliance Invite Popup (JOIN ALLIANCE at 703,320 / View at 895,320 / Close X at 1089,165)
-            inv_row = (a2[295:345, :, 2] >= 165) & (a2[295:345, :, 0] <= 45)
-            if int(inv_row[:, 615:785].sum()) >= 4000 and int(inv_row[:, 810:980].sum()) >= 4000 and int(inv_row[:, 785:810].sum()) <= 150:
-                print(f"[Step {step:02d}] Top-Center Alliance Invite Popup -> Tap JOIN ALLIANCE (703, 320) + Close X (1089, 165)")
-                tap(args.adb, 703, 320, 1.5)
+                if int(q_wht_4200.sum()) >= 12 or int(q_red_4200.sum()) >= 55:
+                    print(f"[Step {step:02d}] #4200 Quest Scroll Badge (w={int(q_wht_4200.sum())}, r={int(q_red_4200.sum())}) -> Open Quests Modal (38, 320)")
+                    tap(args.adb, 38, 320, 1.3)
+                    last_spear = None
+                    repeat_cnt = 0
+                    continue
+            # Dismiss/Accept Top-Center Alliance Invite Popup (JOIN ALLIANCE at 703,330 / View at 895,330 / Close X at 1089,165)
+            inv_row = (a2[285:355, :, 2] >= 165) & (a2[285:355, :, 0] <= 75)
+            if int(inv_row[:, 615:785].sum()) >= 3500 and int(inv_row[:, 810:980].sum()) >= 3500 and int(inv_row[:, 785:810].sum()) <= 200:
+                print(f"[Step {step:02d}] Top-Center Alliance Invite Popup -> Tap JOIN ALLIANCE (703, 330) + Close X (1089, 165)")
+                tap(args.adb, 703, 330, 1.5)
                 tap(args.adb, 1089, 165, 1.0)
                 last_spear = None
                 repeat_cnt = 0
@@ -1940,6 +2052,8 @@ def main():
             rib = a2[25:600, 175:1550]
             is_rib = (rib[:, :, 2] >= 145) & (rib[:, :, 0] <= 55) & ((rib[:, :, 2].astype(np.int32) - rib[:, :, 0].astype(np.int32)) >= 100)
             is_rib_wht = (rib[:, :, 0] >= 205) & (rib[:, :, 1] >= 205) & (rib[:, :, 2] >= 205)
+            is_rib[:325, 1015:] = False
+            is_rib_wht[:325, 1015:] = False
             best_r, rib_cx, rib_cy = 0, None, None
             for ry in range(0, is_rib.shape[0] - 85, 25):
                 for rx in range(0, is_rib.shape[1] - 360, 45):
@@ -1978,6 +2092,14 @@ def main():
                     & (hex_sub[:, :, 0] <= 65)
                     & ((hex_sub[:, :, 2].astype(np.int32) - hex_sub[:, :, 0].astype(np.int32)) >= 115)
                 )
+                # Mask out bottom-right HUD bar (y >= 735, x >= 930) so Alliance Help / Alliance tab are never mistaken for building hexagons
+                if y_hi > 735 and x_hi > 930:
+                    hud_y0 = max(0, 735 - y_lo)
+                    hud_x0 = max(0, 930 - x_lo)
+                    is_pure_grn[hud_y0:, hud_x0:] = False
+                    is_yel_spd[hud_y0:, hud_x0:] = False
+                    is_purp_free[hud_y0:, hud_x0:] = False
+                    is_blue_info[hud_y0:, hud_x0:] = False
                 best_g, gx, gy = 0, None, None
                 best_p, px, py = 0, None, None
                 best_y, yx, yy = 0, None, None
@@ -2011,12 +2133,15 @@ def main():
                     last_spear = None
                     repeat_cnt = 0
                     continue
-                if rib_cy >= 450 and (best_g >= 240 or best_y >= 350):
-                    print(f"[Step {step:02d}] Selected Building Too Low Near Bottom HUD (rib_cy={rib_cy}) -> Swipe Up (800,680)->(800,360)")
-                    swipe(args.adb, 800, 680, 800, 360, 400, 1.0)
-                    last_spear = None
-                    repeat_cnt = 0
-                    continue
+                hex_bottom_y = max(gy or 0, yy or 0)
+                if rib_cy >= 480 and hex_bottom_y >= 775 and (best_g >= 240 or best_y >= 350):
+                    if last_hex_rib_xy is None or abs(rib_cy - last_hex_rib_xy[1]) > 15:
+                        last_hex_rib_xy = (rib_cx, rib_cy)
+                        print(f"[Step {step:02d}] Selected Building Too Low Near Bottom HUD (rib_cy={rib_cy}, hex_y={hex_bottom_y}) -> Swipe Up (800,680)->(800,360)")
+                        swipe(args.adb, 800, 680, 800, 360, 400, 1.0)
+                        last_spear = None
+                        repeat_cnt = 0
+                        continue
                 rib_title = ""
                 if OCR is not None and (best_g >= 240 or best_y >= 350):
                     try:
@@ -2028,6 +2153,7 @@ def main():
                 allowed_ch8_rib = ("city hall", "cityhall", "hall", "yh", "wall", "tavern", "vern", "quarry", "storehouse", "store", "scout", "sentry", "camp", "arry", "barracks", "rack", "farm", "stable", "siege", "workshop", "hospital", "hosp", "academy", "acad", "lumber", "mill", "archery", "range", "trading", "post", "alliance", "center")
                 is_ch_selected = ("hall" in rib_title) or ("yh" in rib_title) or (rib_title.strip() == "" and best_y >= 1800)
                 rib_nospace = rib_title.replace(" ", "").replace(".", "")
+                is_active_timer_rib = (best_y >= 850) or (":" in rib_title) or bool(re.search(r"\d{2}:\d{2}", rib_title))
                 det_ch_lvl = 0
                 if is_ch_selected:
                     m_ch_lvl = re.search(r"(?:level|evel|lv)\s*(\d{1,2})", rib_nospace)
@@ -2039,7 +2165,7 @@ def main():
                     print(f"[Step {step:02d}] TARGET REACHED: City Hall Level {det_ch_lvl} confirmed ('{rib_title}')! Exiting.")
                     break
                 is_already_lv7_prereq = (args.target_ch <= 8) and (not is_ch_selected) and ("level7" in rib_nospace or "evel7" in rib_nospace)
-                is_non_ch8_rib = is_already_lv7_prereq or ((not is_ch_selected) and rib_title.strip() != "" and not any(b in rib_title for b in allowed_ch8_rib))
+                is_non_ch8_rib = (not is_active_timer_rib) and (is_already_lv7_prereq or ((not is_ch_selected) and rib_title.strip() != "" and not any(b in rib_title for b in allowed_ch8_rib)))
                 if is_non_ch8_rib and (best_g >= 240 or best_y >= 350):
                     print(f"[Step {step:02d}] Non-CH8/Duplicate Building Selected ('{rib_title}') -> Select City Hall via Anchor")
                     select_city_hall_via_anchor(args.adb, p2)
@@ -2184,7 +2310,7 @@ def main():
                     repeat_cnt = 0
                     continue
 
-        act = detect_ocr_action(p2, a2)
+        act = None if (is_city_hud(a2) and not is_world_map(a2)) else detect_ocr_action(p2, a2)
         if act:
             print(f"[Step {step:02d}] OCR '{act[2]}' -> tap ({act[0]}, {act[1]})")
             tap(args.adb, act[0], act[1], 1.1)

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MAP_TIMELINES, TIDES_SCHEDULE } from '../../../constants/soc_timelines';
-import { Calendar, Crosshairs, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, Crosshair, Sword, Map, Settings, Save, MapPin, Loader2, Users, Camera, RefreshCw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { addDays, addHours, format, isValid, parseISO } from 'date-fns';
 import AlgorithmMatrixEditor from './AlgorithmMatrixEditor';
 import CampRosterTable from './CampRosterTable';

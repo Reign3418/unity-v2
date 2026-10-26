@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import {
-  Map as MapIcon,
   Shield,
   Crosshair,
   Copy,
@@ -42,22 +41,97 @@ export default function KvkStoryAtlasPanel() {
   const [actBuild, setActBuild] = useState("62000");
 
   const story = KVK_STORY_MAP_ATLAS[selectedStoryKey] || KVK_STORY_MAP_ATLAS.S18;
+  const storyTitle = useMemo(() => {
+    if (!story) return "Season of Conquest";
+    if (Array.isArray(story.stories) && story.stories.length > 0) {
+      return story.stories.join(" / ");
+    }
+    return story.name || story.code || selectedStoryKey;
+  }, [story, selectedStoryKey]);
 
-  const convertedCoords = useMemo(
-    () => convertSubTileToMapCoords(Number(rawSubX || 0), Number(rawSubY || 0)),
-    [rawSubX, rawSubY]
-  );
+  const stageW = story?.stage?.w || 1600;
+  const stageH = story?.stage?.h || 998;
+  const mapBox = story?.map || { x: 80, y: 8, w: 1440, h: 990 };
 
-  const computedActivityScore = useMemo(
-    () =>
-      calculateAllianceActivityScore({
-        forts: Number(actForts || 0),
-        helps: Number(actHelps || 0),
-        techPoints: Number(actTech || 0),
-        buildMinutes: Number(actBuild || 0),
-      }),
-    [actForts, actHelps, actTech, actBuild]
-  );
+  const campsList = useMemo(() => {
+    if (!story || !story.camps) return [];
+    const rawEntries = Array.isArray(story.camps)
+      ? story.camps.map((c, i) => [String(i), c])
+      : Object.entries(story.camps);
+
+    return rawEntries.map(([slug, c], idx) => {
+      const pinX = Array.isArray(c.pin)
+        ? c.pin[0]
+        : Array.isArray(c.coords)
+        ? c.coords[0]
+        : typeof c.x === "number"
+        ? c.x
+        : 800;
+      const pinY = Array.isArray(c.pin)
+        ? c.pin[1]
+        : Array.isArray(c.coords)
+        ? c.coords[1]
+        : typeof c.y === "number"
+        ? c.y
+        : 500;
+      const lkX = Math.max(
+        0,
+        Math.min(1000, Math.round(((pinX - mapBox.x) / mapBox.w) * 1000))
+      );
+      const lkY = Math.max(
+        0,
+        Math.min(1000, Math.round(((pinY - mapBox.y) / mapBox.h) * 1000))
+      );
+      return {
+        slug,
+        idx,
+        name: c.name || slug,
+        color: c.color || "#06b6d4",
+        boxX: typeof c.x === "number" ? c.x : pinX,
+        boxY: typeof c.y === "number" ? c.y : pinY,
+        pinX,
+        pinY,
+        lkX,
+        lkY,
+      };
+    });
+  }, [story, mapBox.x, mapBox.y, mapBox.w, mapBox.h]);
+
+  const convertedCoords = useMemo(() => {
+    const rx = Number(rawSubX || 0);
+    const ry = Number(rawSubY || 0);
+    const x = Number.isFinite(rx) ? Math.floor(rx / 6 + 0.5) : 0;
+    const y = Number.isFinite(ry) ? Math.floor(ry / 6 + 0.5) : 0;
+    const formatted = convertSubTileToMapCoords(`1,${rx},${ry}`);
+    return { x, y, formatted };
+  }, [rawSubX, rawSubY]);
+
+  const computedActivityScore = useMemo(() => {
+    const res = calculateAllianceActivityScore({
+      fortDestroy: Number(actForts || 0),
+      helpCount: Number(actHelps || 0),
+      techPoints: Number(actTech || 0),
+      buildPoints: Number(actBuild || 0),
+    });
+    if (typeof res === "number") return Math.round(res);
+    return res?.roundedScore ?? Math.round(res?.rawScore || 0);
+  }, [actForts, actHelps, actTech, actBuild]);
+
+  const opcodeEntries = useMemo(() => {
+    return Object.entries(ALLIANCE_LOG_OPCODES || {}).map(([code, val]) => {
+      const label = typeof val === "string" ? val : val?.label || String(val);
+      const num = Number(code);
+      const category =
+        typeof val === "object" && val?.category
+          ? val.category
+          : num >= 300
+          ? "WARFARE"
+          : num >= 200
+          ? "ROSTER"
+          : "TERRITORY";
+      return { code, label, category };
+    });
+  }, []);
 
   const getCampMeta = (idx) => {
     const key = `${selectedStoryKey}_${idx}`;
@@ -79,20 +153,24 @@ export default function KvkStoryAtlasPanel() {
   };
 
   const handleCopyBriefing = () => {
-    const lines = story.camps.map((c, idx) => {
+    const lines = campsList.map((c, idx) => {
       const meta = getCampMeta(idx);
-      return `| **${c.name}** | \`${c.color}\` | \`X:${c.coords[0]} Y:${c.coords[1]}\` | **KD #${meta.kd}** | \`${meta.stance}\` |`;
+      return `| **${c.name}** | \`${c.color}\` | \`Pin [${c.pinX}, ${c.pinY}] (LK X:${c.lkX} Y:${c.lkY})\` | **KD #${meta.kd}** | \`${meta.stance}\` |`;
     });
     const md =
-      `# 🗺️ ${story.code} — ${story.name} (${story.camps.length}-Camp Lost Kingdom Atlas)\n\n` +
+      `# 🗺️ ${story.code} — ${storyTitle} (${campsList.length}-Camp Lost Kingdom Atlas)\n\n` +
       `| Camp Faction | Hex Color | Starting Pin Coords | Assigned Kingdom | Coalition Stance |\n` +
       `| :--- | :---: | :---: | :---: | :---: |\n` +
       lines.join("\n") +
       `\n\n• **Ancient Ruins Cycle:** Every 40 Hours\n• **Altar of Darkness Cycle:** Every 86 Hours\n`;
-    navigator.clipboard.writeText(md);
-    setCopiedBrief(true);
-    setTimeout(() => setCopiedBrief(false), 2500);
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(md);
+      setCopiedBrief(true);
+      setTimeout(() => setCopiedBrief(false), 2500);
+    }
   };
+
+  const activeCamp = campsList[selectedCampIdx] || campsList[0];
 
   return (
     <div className="space-y-6 text-gray-200">
@@ -100,19 +178,19 @@ export default function KvkStoryAtlasPanel() {
       <div className="rounded-2xl border border-cyan-500/20 bg-[#0d1017] p-5 shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-[#1e2430]">
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 13-Story SoC KvK Atlas (S4–S21)
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                {story.camps.length} Starting Camps
+                {campsList.length} Starting Camps
               </span>
             </div>
             <h2 className="text-lg md:text-xl font-black text-white mt-1.5 tracking-tight">
-              {story.code} — {story.name}
+              {story.code} — {storyTitle}
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Interactive Season of Conquest Starting Camp Pin Coordinates, Coalition Matchmaking Assignment &amp; KvK Chronicle Timers
+              Interactive Season of Conquest Starting Camp Pin Coordinates, Official Lost Kingdom Minimap Overlay, Coalition Matchmaking &amp; KvK Chronicle Timers
             </p>
           </div>
 
@@ -129,6 +207,13 @@ export default function KvkStoryAtlasPanel() {
         <div className="mt-4 flex flex-wrap gap-2">
           {STORY_KEYS.map((key) => {
             const item = KVK_STORY_MAP_ATLAS[key];
+            const itemTitle =
+              Array.isArray(item?.stories) && item.stories.length > 0
+                ? item.stories[0]
+                : item?.name || key;
+            const itemCampCount = Array.isArray(item?.camps)
+              ? item.camps.length
+              : Object.keys(item?.camps || {}).length;
             const active = key === selectedStoryKey;
             return (
               <button
@@ -143,14 +228,14 @@ export default function KvkStoryAtlasPanel() {
                     : "bg-[#141923] text-gray-300 border-[#252d3d] hover:border-cyan-500/40 hover:text-white"
                 }`}
               >
-                <span className="font-mono text-[11px] opacity-80">{item.code}</span>
-                <span>{item.name}</span>
+                <span className="font-mono text-[11px] opacity-80">{item?.code || key}</span>
+                <span>{itemTitle}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                     active ? "bg-black/20 text-black" : "bg-white/5 text-gray-400"
                   }`}
                 >
-                  {item.camps.length}C
+                  {itemCampCount}C
                 </span>
               </button>
             );
@@ -160,125 +245,135 @@ export default function KvkStoryAtlasPanel() {
 
       {/* Main Grid: Left Interactive Lost Kingdom Camp Map + Right Camp Assignment Table */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Left: Interactive 1000x1000 Lost Kingdom Camp Pin Radar */}
+        {/* Left: Interactive Lost Kingdom Minimap & Camp Pin Radar */}
         <div className="xl:col-span-7 rounded-2xl border border-[#1e2430] bg-[#0b0e14] p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Compass size={16} className="text-cyan-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-gray-200">
-                Lost Kingdom Starting Camp Pin Map ({story.code})
+                Lost Kingdom Starting Camp Pin Map ({story.code} — {storyTitle})
               </span>
             </div>
             <span className="text-[11px] font-mono text-gray-400">
-              1000 × 1000 Normalized LK Grid • Click any Camp Pin
+              {stageW} × {stageH} Tactical Stage • Click any Camp Pin
             </span>
           </div>
 
-          <div className="relative w-full aspect-square max-h-[540px] mx-auto rounded-2xl border border-[#222938] bg-gradient-to-br from-[#0d131f] via-[#090d14] to-[#111827] overflow-hidden shadow-inner">
-            {/* Tactical Zone Concentric Rings (Zone 4 -> Zone 5 -> King's Land Ziggurat) */}
-            <svg viewBox="0 0 1000 1000" className="w-full h-full">
+          <div className="relative w-full rounded-2xl border border-[#222938] bg-gradient-to-br from-[#0d131f] via-[#090d14] to-[#111827] overflow-hidden shadow-inner">
+            <svg
+              viewBox={`0 0 ${stageW} ${stageH}`}
+              className="w-full h-auto max-h-[540px] block mx-auto"
+            >
               <defs>
                 <radialGradient id="lkCoreGlow" cx="50%" cy="50%" r="50%">
                   <stop offset="0%" stopColor="rgba(245, 158, 11, 0.22)" />
-                  <stop offset="55%" stopColor="rgba(6, 182, 212, 0.07)" />
+                  <stop offset="55%" stopColor="rgba(6, 182, 212, 0.08)" />
                   <stop offset="100%" stopColor="rgba(10, 12, 18, 0)" />
                 </radialGradient>
               </defs>
 
-              {/* Background Grid Lines */}
-              {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((pos) => (
-                <g key={pos}>
+              {/* Official Lost Kingdom Minimap WebP Layer */}
+              {story?.image && (
+                <image
+                  href={story.image}
+                  x={mapBox.x}
+                  y={mapBox.y}
+                  width={mapBox.w}
+                  height={mapBox.h}
+                  preserveAspectRatio="xMidYMid meet"
+                  opacity="0.88"
+                />
+              )}
+
+              {/* Subtle Tactical Grid Overlay */}
+              {[0.2, 0.4, 0.6, 0.8].map((ratio) => (
+                <g key={ratio}>
                   <line
-                    x1={pos}
-                    y1={0}
-                    x2={pos}
-                    y2={1000}
-                    stroke="rgba(255,255,255,0.04)"
-                    strokeWidth="1"
+                    x1={mapBox.x + mapBox.w * ratio}
+                    y1={mapBox.y}
+                    x2={mapBox.x + mapBox.w * ratio}
+                    y2={mapBox.y + mapBox.h}
+                    stroke="rgba(255,255,255,0.05)"
+                    strokeWidth="1.5"
                   />
                   <line
-                    x1={0}
-                    y1={pos}
-                    x2={1000}
-                    y2={pos}
-                    stroke="rgba(255,255,255,0.04)"
-                    strokeWidth="1"
+                    x1={mapBox.x}
+                    y1={mapBox.y + mapBox.h * ratio}
+                    x2={mapBox.x + mapBox.w}
+                    y2={mapBox.y + mapBox.h * ratio}
+                    stroke="rgba(255,255,255,0.05)"
+                    strokeWidth="1.5"
                   />
                 </g>
               ))}
 
-              {/* Zone Rings */}
-              <circle cx="500" cy="500" r="430" fill="url(#lkCoreGlow)" stroke="rgba(148,163,184,0.18)" strokeWidth="2" strokeDasharray="8 6" />
-              <circle cx="500" cy="500" r="290" fill="none" stroke="rgba(56,189,248,0.25)" strokeWidth="2" strokeDasharray="6 4" />
-              <circle cx="500" cy="500" r="145" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.45)" strokeWidth="2.5" />
-
-              {/* Spokes from Center Ziggurat to Camps */}
-              {story.camps.map((camp, idx) => (
+              {/* Spokes from Center Ziggurat to Camp Pins */}
+              {campsList.map((camp, idx) => (
                 <line
-                  key={`line_${camp.name}`}
-                  x1={500}
-                  y1={500}
-                  x2={camp.coords[0]}
-                  y2={camp.coords[1]}
+                  key={`line_${camp.slug}`}
+                  x1={stageW / 2}
+                  y1={stageH / 2}
+                  x2={camp.pinX}
+                  y2={camp.pinY}
                   stroke={camp.color}
-                  strokeOpacity={selectedCampIdx === idx ? 0.65 : 0.25}
-                  strokeWidth={selectedCampIdx === idx ? 3 : 1.5}
-                  strokeDasharray="5 5"
+                  strokeOpacity={selectedCampIdx === idx ? 0.85 : 0.35}
+                  strokeWidth={selectedCampIdx === idx ? 4 : 2}
+                  strokeDasharray="8 6"
                 />
               ))}
 
-              {/* Central Great Ziggurat */}
-              <g transform="translate(500, 500)">
+              {/* Central Great Ziggurat Marker */}
+              <g transform={`translate(${stageW / 2}, ${stageH / 2})`}>
+                <circle r="48" fill="url(#lkCoreGlow)" stroke="rgba(245,158,11,0.5)" strokeWidth="2" />
                 <polygon
-                  points="0,-24 22,0 0,24 -22,0"
+                  points="0,-22 20,0 0,22 -20,0"
                   fill="#f59e0b"
                   stroke="#ffffff"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                 />
                 <text
                   y="42"
                   textAnchor="middle"
-                  fill="#fbbf24"
+                  fill="#fde68a"
                   fontSize="20"
                   fontWeight="bold"
                   fontFamily="monospace"
                 >
-                  🏛️ GREAT ZIGGURAT (X:500 Y:500)
+                  🏛️ ZIGGURAT (KING&apos;S LAND)
                 </text>
               </g>
 
               {/* Camp Pins */}
-              {story.camps.map((camp, idx) => {
-                const [cx, cy] = camp.coords;
+              {campsList.map((camp, idx) => {
                 const isSelected = selectedCampIdx === idx;
                 const meta = getCampMeta(idx);
                 return (
                   <g
-                    key={camp.name}
-                    transform={`translate(${cx}, ${cy})`}
+                    key={camp.slug}
+                    transform={`translate(${camp.pinX}, ${camp.pinY})`}
                     onClick={() => setSelectedCampIdx(idx)}
                     className="cursor-pointer"
                   >
                     {/* Outer Pulse Ring */}
                     <circle
-                      r={isSelected ? 42 : 30}
+                      r={isSelected ? 48 : 34}
                       fill={camp.color}
-                      fillOpacity={isSelected ? 0.28 : 0.14}
+                      fillOpacity={isSelected ? 0.35 : 0.18}
                       stroke={camp.color}
-                      strokeWidth={isSelected ? 3 : 1.5}
+                      strokeWidth={isSelected ? 4 : 2}
                     />
                     {/* Core Pin Circle */}
                     <circle
-                      r={18}
+                      r={22}
                       fill={camp.color}
                       stroke="#ffffff"
-                      strokeWidth={isSelected ? 3.5 : 2}
+                      strokeWidth={isSelected ? 4 : 2.5}
                     />
                     <text
-                      y="5"
+                      y="7"
                       textAnchor="middle"
                       fill="#090d14"
-                      fontSize="15"
+                      fontSize="18"
                       fontWeight="900"
                       fontFamily="sans-serif"
                     >
@@ -286,22 +381,22 @@ export default function KvkStoryAtlasPanel() {
                     </text>
 
                     {/* Label Pill */}
-                    <g transform="translate(0, -34)">
+                    <g transform="translate(0, -40)">
                       <rect
-                        x="-95"
-                        y="-24"
-                        width="190"
-                        height="28"
-                        rx="6"
+                        x="-120"
+                        y="-28"
+                        width="240"
+                        height="34"
+                        rx="8"
                         fill="rgba(9, 13, 20, 0.92)"
                         stroke={camp.color}
-                        strokeWidth="2"
+                        strokeWidth="2.5"
                       />
                       <text
-                        y="-5"
+                        y="-6"
                         textAnchor="middle"
                         fill="#ffffff"
-                        fontSize="15"
+                        fontSize="18"
                         fontWeight="bold"
                         fontFamily="sans-serif"
                       >
@@ -310,16 +405,26 @@ export default function KvkStoryAtlasPanel() {
                     </g>
 
                     {/* Coordinate Subtitle */}
-                    <text
-                      y="38"
-                      textAnchor="middle"
-                      fill="#cbd5e1"
-                      fontSize="14"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                    >
-                      X:{cx} Y:{cy}
-                    </text>
+                    <g transform="translate(0, 44)">
+                      <rect
+                        x="-85"
+                        y="-16"
+                        width="170"
+                        height="24"
+                        rx="6"
+                        fill="rgba(9, 13, 20, 0.85)"
+                      />
+                      <text
+                        y="1"
+                        textAnchor="middle"
+                        fill="#e2e8f0"
+                        fontSize="15"
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                      >
+                        LK X:{camp.lkX} Y:{camp.lkY}
+                      </text>
+                    </g>
                   </g>
                 );
               })}
@@ -347,7 +452,9 @@ export default function KvkStoryAtlasPanel() {
               <div>
                 <div className="text-[10px] font-mono uppercase text-gray-400">Selected Camp Pin</div>
                 <div className="text-xs font-bold text-cyan-300">
-                  {story.camps[selectedCampIdx]?.name} (X:{story.camps[selectedCampIdx]?.coords[0]} Y:{story.camps[selectedCampIdx]?.coords[1]})
+                  {activeCamp
+                    ? `${activeCamp.name} (LK X:${activeCamp.lkX} Y:${activeCamp.lkY})`
+                    : "Select a Camp"}
                 </div>
               </div>
             </div>
@@ -364,17 +471,17 @@ export default function KvkStoryAtlasPanel() {
               </span>
             </div>
             <span className="text-[11px] font-mono text-amber-300">
-              {story.camps.length} Starting Zones
+              {campsList.length} Starting Zones
             </span>
           </div>
 
           <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
-            {story.camps.map((camp, idx) => {
+            {campsList.map((camp, idx) => {
               const meta = getCampMeta(idx);
               const isSelected = selectedCampIdx === idx;
               return (
                 <div
-                  key={camp.name}
+                  key={camp.slug}
                   onClick={() => setSelectedCampIdx(idx)}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
                     isSelected
@@ -382,7 +489,7 @@ export default function KvkStoryAtlasPanel() {
                       : "bg-[#11151f] border-[#1f2637] hover:border-[#2e384f]"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2.5">
                       <span
                         className="w-4 h-4 rounded-full border border-white/40 shrink-0"
@@ -390,11 +497,13 @@ export default function KvkStoryAtlasPanel() {
                       />
                       <div>
                         <div className="text-sm font-black text-white flex items-center gap-2">
-                          <span>Camp {idx + 1}: {camp.name}</span>
+                          <span>
+                            Camp {idx + 1}: {camp.name}
+                          </span>
                           <span className="text-[11px] font-mono text-gray-400">{camp.color}</span>
                         </div>
                         <div className="text-[11px] font-mono text-cyan-300">
-                          Starting Pin: X:{camp.coords[0]} • Y:{camp.coords[1]}
+                          Stage Pin: [{camp.pinX}, {camp.pinY}] • LK X:{camp.lkX} Y:{camp.lkY}
                         </div>
                       </div>
                     </div>
@@ -432,7 +541,7 @@ export default function KvkStoryAtlasPanel() {
         </div>
       </div>
 
-      {/* Bottom Row: Sub-Tile Coordinate Converter + Alliance Activity Score + 23 Lilith Opcodes */}
+      {/* Bottom Row: Sub-Tile Coordinate Converter + Alliance Activity Score + Lilith Opcodes */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Sub-Tile Converter & Alliance Activity Score Calculator */}
         <div className="lg:col-span-5 rounded-2xl border border-[#1e2430] bg-[#0b0e14] p-5 space-y-5">
@@ -444,11 +553,15 @@ export default function KvkStoryAtlasPanel() {
               </h3>
             </div>
             <p className="text-[11px] text-gray-400 mb-3">
-              Converts raw internal sub-tile coordinates into exact in-game World Map <code className="text-emerald-300">(X, Y)</code> coordinates using <code className="text-cyan-300">Math.floor(raw / 6 + 0.5)</code>.
+              Converts raw internal sub-tile coordinates into exact in-game World Map{" "}
+              <code className="text-emerald-300">(X, Y)</code> coordinates using{" "}
+              <code className="text-cyan-300">Math.floor(raw / 6 + 0.5)</code>.
             </p>
             <div className="grid grid-cols-3 gap-2.5 items-center">
               <div className="bg-[#121722] border border-[#232b3b] rounded-xl p-2.5">
-                <label className="text-[10px] font-mono uppercase text-gray-400 block">Raw Sub-Tile X</label>
+                <label className="text-[10px] font-mono uppercase text-gray-400 block">
+                  Raw Sub-Tile X
+                </label>
                 <input
                   type="number"
                   value={rawSubX}
@@ -457,7 +570,9 @@ export default function KvkStoryAtlasPanel() {
                 />
               </div>
               <div className="bg-[#121722] border border-[#232b3b] rounded-xl p-2.5">
-                <label className="text-[10px] font-mono uppercase text-gray-400 block">Raw Sub-Tile Y</label>
+                <label className="text-[10px] font-mono uppercase text-gray-400 block">
+                  Raw Sub-Tile Y
+                </label>
                 <input
                   type="number"
                   value={rawSubY}
@@ -466,7 +581,9 @@ export default function KvkStoryAtlasPanel() {
                 />
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 text-center">
-                <div className="text-[10px] font-mono uppercase text-emerald-300">World Map Pin</div>
+                <div className="text-[10px] font-mono uppercase text-emerald-300">
+                  World Map Pin
+                </div>
                 <div className="text-sm font-mono font-black text-white mt-0.5">
                   X:{convertedCoords.x} Y:{convertedCoords.y}
                 </div>
@@ -483,7 +600,7 @@ export default function KvkStoryAtlasPanel() {
                 </h3>
               </div>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                Score: {computedActivityScore.toLocaleString()} pts
+                Score: {Number(computedActivityScore || 0).toLocaleString()} pts
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -515,7 +632,7 @@ export default function KvkStoryAtlasPanel() {
                 />
               </div>
               <div className="bg-[#121722] border border-[#232b3b] rounded-xl p-2">
-                <label className="text-[10px] font-mono text-gray-400 block">Build Mins (÷1k)</label>
+                <label className="text-[10px] font-mono text-gray-400 block">Build Pts (÷1k)</label>
                 <input
                   type="number"
                   value={actBuild}
@@ -527,7 +644,7 @@ export default function KvkStoryAtlasPanel() {
           </div>
         </div>
 
-        {/* 23-Opcode Lilith Alliance Log Reference & 12 Officer Posts */}
+        {/* Lilith Alliance Log Reference & 12 Officer Posts */}
         <div className="lg:col-span-7 rounded-2xl border border-[#1e2430] bg-[#0b0e14] p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -537,24 +654,26 @@ export default function KvkStoryAtlasPanel() {
               </h3>
             </div>
             <span className="text-[11px] font-mono text-gray-400">
-              23 Event Opcodes • 12 Officer IDs
+              {opcodeEntries.length} Event Opcodes • 12 Officer IDs
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
-            {Object.entries(ALLIANCE_LOG_OPCODES).map(([code, meta]) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+            {opcodeEntries.map(({ code, label, category }) => (
               <div
                 key={code}
                 className="p-2 rounded-lg bg-[#121722] border border-[#202838] flex items-center justify-between gap-2"
               >
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-mono text-[10px] font-bold">
+                  <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-mono text-[10px] font-bold shrink-0">
                     #{code}
                   </span>
-                  <span className="text-[11px] text-gray-200 truncate">{meta.label}</span>
+                  <span className="text-[11px] text-gray-200 truncate" title={label}>
+                    {label}
+                  </span>
                 </div>
                 <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-white/5 text-gray-400 shrink-0">
-                  {meta.category}
+                  {category}
                 </span>
               </div>
             ))}

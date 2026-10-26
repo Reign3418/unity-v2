@@ -1375,7 +1375,11 @@ def resolve_instance_id(adb_serial: str) -> str:
     return "sidekick-mumu-0"
 
 
+_LAST_BLACKBOX_PREVIEW_TS = 0.0
+
+
 def write_scan_progress(payload):
+    global _LAST_BLACKBOX_PREVIEW_TS
     try:
         adb_serial = str(payload.get("workerSerial") or "127.0.0.1:16384")
         adb_port = adb_serial.split(":")[-1]
@@ -1396,6 +1400,34 @@ def write_scan_progress(payload):
         requests.post(f"{HUB_URL}/scan-progress", json=payload, timeout=1.5)
     except Exception:
         pass
+    now_s = time.time()
+    if (now_s - _LAST_BLACKBOX_PREVIEW_TS) >= 4.8 or not payload.get("running", True):
+        _LAST_BLACKBOX_PREVIEW_TS = now_s
+        try:
+            import swarm_4197_orchestrator as _core
+            adb_serial = str(payload.get("workerSerial") or "127.0.0.1:16384")
+            adb_port = adb_serial.split(":")[-1]
+            _core._OWNED_PORTS = {adb_port}
+            st = _core.load_blackbox()
+            ist = st.get("instances", {}).get(adb_port)
+            if isinstance(ist, dict):
+                kd_str = str(payload.get("kingdom") or "4197")
+                rk = int(payload.get("currentRank") or 0)
+                trk = int(payload.get("targetRanks") or 1000)
+                pct_v = float(payload.get("percent") or 0.0)
+                ext_c = int(payload.get("governorsExtracted") or 0)
+                g_nm = str(payload.get("lastGovernorName") or "")
+                ist["status"] = f"SCANNING_#{kd_str}" if payload.get("running") else "ACTIVE_IN_4197"
+                ist["sleepStatus"] = f"TOP-{trk} #{kd_str} SCAN ({pct_v:.1f}%)"
+                ist["currentTask"] = f"Scanning #{kd_str} Top {trk} — Rank {rk}/{trk} ({pct_v:.1f}%) · {ext_c} Extracted · {g_nm}"
+                ist["updatedAt"] = _core.utc_now_iso()
+                prev_png = os.path.join(SCRIPT_DIR, f"scan_prev_{adb_port}.png")
+                arr_p = _core.capture_screen(adb_serial, prev_png)
+                if arr_p is not None:
+                    ist["screenPreviewB64"] = _core.make_thumbnail_b64(arr_p)
+                _core.save_and_sync_blackbox(st)
+        except Exception:
+            pass
 
 
 def kill_other_scanner_instances(adb_serial: str = "127.0.0.1:16384"):
@@ -1404,12 +1436,14 @@ def kill_other_scanner_instances(adb_serial: str = "127.0.0.1:16384"):
     my_ppid = os.getppid()
     adb_port = str(adb_serial or "127.0.0.1:16384").split(":")[-1]
     if adb_port == "16384":
-        port_filter = "($_.CommandLine -like '*16384*' -or $_.CommandLine -notlike '*--adb*')"
+        port_filter = "($_.CommandLine -like '*16384*' -or $_.CommandLine -like '*swarm_4197_orchestrator*' -or $_.CommandLine -like '*solo_4197_agent*' -or $_.CommandLine -notlike '*--adb*')"
+        script_filter = "($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*' -or $_.CommandLine -like '*swarm_4197_orchestrator*' -or $_.CommandLine -like '*solo_4197_agent*')"
     else:
         port_filter = f"($_.CommandLine -like '*{adb_port}*')"
+        script_filter = "($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*')"
     ps_cmd = (
         f"Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" -ErrorAction SilentlyContinue | "
-        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and ($_.CommandLine -like '*unity_autonomous_scanner*' -or $_.CommandLine -like '*auto_tutorial_ch8*' -or $_.CommandLine -like '*provision_neighbor_kingdom*') -and {port_filter} }} | "
+        f"Where-Object {{ $_.ProcessId -ne {my_pid} -and $_.ProcessId -ne {my_ppid} -and $_.ParentProcessId -ne {my_pid} -and {script_filter} -and {port_filter} }} | "
         f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
     )
     try:
@@ -1467,6 +1501,14 @@ def ensure_individual_power_leaderboard_open(
 
     for attempt in range(1, 120):
         screen_txt = get_screen_ocr_text(driver)
+        if "INDIVIDUAL POWER RANKINGS" not in screen_txt:
+            if any(k in screen_txt for k in ("BATTLE STATISTICS", "HIGHEST POWER", "RESOURCES GATHERED", "RESOURCE STATISTICS")):
+                driver.tap(1422, 38, sleep_sec=0.85)
+                driver.tap(1458, 96, sleep_sec=0.85)
+                screen_txt = get_screen_ocr_text(driver)
+            elif any(k in screen_txt for k in ("GOVERNOR PROFILE", "CIVILIZATION", "COMMANDER", "MORE INFO", "KILL POINTS")):
+                driver.tap(1458, 96, sleep_sec=0.85)
+                screen_txt = get_screen_ocr_text(driver)
         if "INDIVIDUAL POWER RANKINGS" in screen_txt:
             if reset_to_top and attempt == 1:
                 print("  [PREAMBLE] Resetting INDIVIDUAL POWER RANKINGS scroll to Rank #1 (1396,58 -> 380,560)...")
@@ -1484,61 +1526,31 @@ def ensure_individual_power_leaderboard_open(
         print(f"  [PREAMBLE] Navigating HUD -> Avatar (45,45) -> Rankings -> Individual Power (attempt {attempt}/119)...")
         def _clear_hud_for_avatar():
             try:
-                arr = np.array(driver.screenshot())
-                sub = arr[30:840, 200:1400]
-                r_mask = (sub[:, :, 0] >= 195) & (sub[:, :, 1] <= 75) & (sub[:, :, 2] <= 75) & ((sub[:, :, 0] - sub[:, :, 1]) >= 125)
-                rys, rxs = np.where(r_mask)
-                if len(rxs) >= 700:
-                    rx, ry = int(np.median(rxs) + 200), int(np.median(rys) + 30)
-                    g_patch = arr[max(0, ry - 75) : min(900, ry + 75), max(0, rx + 100) : min(1600, rx + 270)]
-                    g_mask = (
-                        (g_patch[:, :, 1] >= 150)
-                        & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 2].astype(np.int32)) >= 55)
-                        & ((g_patch[:, :, 1].astype(np.int32) - g_patch[:, :, 0].astype(np.int32)) >= 35)
-                    )
-                    gys, gxs = np.where(g_mask)
-                    if len(gxs) >= 350:
-                        gx = int(np.median(gxs) + max(0, rx + 100))
-                        gy = int(np.median(gys) + max(0, ry - 75))
-                        driver.tap(gx, gy, sleep_sec=1.2)
-                        arr = np.array(driver.screenshot())
-                rib = arr[85:125, 15:70]
-                if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
-                    return
-                for _ in range(3):
-                    subprocess.run([driver.adb_bin, "-s", driver.serial, "shell", "input", "keyevent", "4"], capture_output=True)
-                    time.sleep(0.6)
-                arr = np.array(driver.screenshot())
-                rib = arr[85:125, 15:70]
-                if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
-                    return
-                for cx_c, cy_c in [(1300, 700), (1388, 56), (1363, 110), (1455, 88)]:
-                    driver.tap(cx_c, cy_c, sleep_sec=1.0)
-                    arr = np.array(driver.screenshot())
-                    rib = arr[85:125, 15:70]
-                    if float((rib[:, :, 2].astype(np.float32) - rib[:, :, 0].astype(np.float32)).mean()) > 45.0:
-                        return
+                import swarm_4197_orchestrator as _core
+                _core.close_modals_to_hud(driver.serial, str(driver.serial).split(":")[-1])
             except Exception:
-                pass
+                for cx_c, cy_c in [(595, 637), (1545, 500), (1388, 56), (1363, 110), (1455, 88)]:
+                    driver.tap(cx_c, cy_c, sleep_sec=0.7)
 
         _clear_hud_for_avatar()
         driver.tap(45, 45, sleep_sec=2.2)
         prof_txt = get_screen_ocr_text(driver)
         if not any(k in prof_txt for k in ("GOVERNOR PROFILE", "SETTINGS", "RANKINGS", "MORE INFO", "ACHIEVEMENTS")):
-            print(f"  [PREAMBLE] Avatar (45,45) blocked by remaining tutorial on #{target_kd}; running 45 tutorial steps...")
-            tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
-            if os.path.exists(tut_script):
-                subprocess.run(
-                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "45"],
-                    check=False,
-                )
+            if not skip_switch:
+                print(f"  [PREAMBLE] Avatar (45,45) blocked by remaining tutorial on #{target_kd}; running 45 tutorial steps...")
+                tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+                if os.path.exists(tut_script):
+                    subprocess.run(
+                        [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "45"],
+                        check=False,
+                    )
             _clear_hud_for_avatar()
             driver.tap(45, 45, sleep_sec=2.2)
             prof_txt = get_screen_ocr_text(driver)
 
         # Cross-Kingdom Isolation Guard: verify the mounted character's Governor Profile kingdom matches target_kd
         kd_tokens = re.findall(r"#\s*(\d{4})\b", prof_txt)
-        if kd_tokens and str(target_kd) not in kd_tokens:
+        if not skip_switch and kd_tokens and str(target_kd) not in kd_tokens:
             mounted_kd = kd_tokens[0]
             print(f"  [CROSS-KD GUARD] Governor Profile shows #{mounted_kd}, expected #{target_kd}! Forcing character switch...")
             driver.tap(1454, 105, sleep_sec=1.0)
@@ -1555,24 +1567,28 @@ def ensure_individual_power_leaderboard_open(
         driver.tap(rank_x, 755, sleep_sec=2.2)
         after_rank_txt = get_screen_ocr_text(driver)
         if "LEVEL 8" in after_rank_txt or "VIEW RANKINGS" in after_rank_txt or "GOVERNOR PROFILE" in after_rank_txt:
-            driver.tap(1454, 105, sleep_sec=1.0)
-            prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
-            if attempt <= 2 and os.path.exists(prov_script):
-                print(f"  [PREAMBLE] Rankings locked (CH < 8) on attempt {attempt} -> switching to highest-power #{target_kd} character first...")
-                subprocess.run(
-                    [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
-                    timeout=180,
-                    check=False,
-                )
+            if skip_switch:
+                alt_rank_x = 530 if rank_x == 475 else 475
+                driver.tap(alt_rank_x, 755, sleep_sec=2.2)
+            else:
+                driver.tap(1454, 105, sleep_sec=1.0)
+                prov_script = os.path.join(SCRIPT_DIR, "provision_neighbor_kingdom.py")
+                if attempt <= 2 and os.path.exists(prov_script):
+                    print(f"  [PREAMBLE] Rankings locked (CH < 8) on attempt {attempt} -> switching to highest-power #{target_kd} character first...")
+                    subprocess.run(
+                        [sys.executable, prov_script, "--mode", "switch", "--kingdom", str(target_kd), "--adb", driver.serial],
+                        timeout=180,
+                        check=False,
+                    )
+                    continue
+                print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/14)...")
+                tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+                if os.path.exists(tut_script):
+                    subprocess.run(
+                        [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "65"],
+                        check=False,
+                    )
                 continue
-            print(f"  [PREAMBLE] Rankings requires City Hall Level 8 on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/14)...")
-            tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
-            if os.path.exists(tut_script):
-                subprocess.run(
-                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "65"],
-                    check=False,
-                )
-            continue
 
         driver.tap(380, 560, sleep_sec=2.4)
 
@@ -1580,14 +1596,15 @@ def ensure_individual_power_leaderboard_open(
             print("  [PREAMBLE] Verified INDIVIDUAL POWER RANKINGS is open!")
             return True
 
-        print(f"  [PREAMBLE] INDIVIDUAL POWER RANKINGS not open yet on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/119)...")
         driver.tap(1454, 105, sleep_sec=1.0)
-        tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
-        if os.path.exists(tut_script):
-            subprocess.run(
-                [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "65"],
-                check=False,
-            )
+        if not skip_switch:
+            print(f"  [PREAMBLE] INDIVIDUAL POWER RANKINGS not open yet on #{target_kd} -> running 65 CH8 upgrade steps (attempt {attempt}/119)...")
+            tut_script = os.path.join(SCRIPT_DIR, "auto_tutorial_ch8.py")
+            if os.path.exists(tut_script):
+                subprocess.run(
+                    [sys.executable, tut_script, "--adb", driver.serial, "--kingdom", str(target_kd), "--steps", "65"],
+                    check=False,
+                )
 
     print("  [ERROR] Could not verify INDIVIDUAL POWER RANKINGS modal after 3 attempts; aborting scan to prevent misclicks.")
     return False
@@ -1712,11 +1729,12 @@ def run_kingdom_scan(args):
     seen_in_scan_ids = set()
     cached_save_govs = {}
     try:
+        expected_sid = int(str(args.kd).strip()) - 1000 if str(args.kd).strip().isdigit() else 0
         for pg in extract_all_governors_from_ram(adb_serial=args.adb):
             pgid = int(pg.get("govId") or pg.get("id") or 0)
             if pgid > 0:
-                seen_in_scan_ids.add(pgid)
-                if args.start_rank <= 1:
+                m_sid = int(pg.get("mapServerId") or 0)
+                if expected_sid > 0 and m_sid > 0 and m_sid != expected_sid:
                     pre_scan_ghost_ids.add(pgid)
                 if int(pg.get("power") or 0) < 3_000_000:
                     pre_existing_low_ids.add(pgid)
@@ -1733,10 +1751,10 @@ def run_kingdom_scan(args):
         else:
             ry = auto_advance_y
         print(f"  -> Stepping Rank #{rank} (y={ry})...")
-        driver.tap(600, ry, sleep_sec=0.82)        # Open Governor Profile from Leaderboard row (auto-centers Row 4 -> Row 3)
-        driver.tap(240, 755, sleep_sec=0.78)       # Open More Info
-        driver.tap(1395, 55, sleep_sec=0.58)       # Close More Info (X at 1395, 55)
-        driver.tap(1455, 88, sleep_sec=0.58)       # Close Governor Profile (X at 1455, 88)
+        driver.tap(600, ry, sleep_sec=0.85)        # Open Governor Profile from Leaderboard row (auto-centers Row 4 -> Row 3)
+        driver.tap(240, 755, sleep_sec=0.80)       # Open More Info
+        driver.tap(1422, 38, sleep_sec=0.72)       # Close More Info (Exact X center at 1422, 38)
+        driver.tap(1458, 96, sleep_sec=0.65)       # Close Governor Profile (Exact X center at 1458, 96)
 
         elapsed = max(1.0, time.time() - t_start)
         done_steps = max(1, rank - args.start_rank + 1)
