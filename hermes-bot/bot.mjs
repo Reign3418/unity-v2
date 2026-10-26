@@ -1275,6 +1275,9 @@ async function handleInteraction(ix) {
       customId.startsWith('hermes_launch_') ||
       customId === 'hermes_demo_common_lockout' ||
       customId.startsWith('hermes_babel_') ||
+      customId.startsWith('hermes_welcome_') ||
+      customId.startsWith('hermes_role_toggle_') ||
+      customId === 'hermes_my_roles_status' ||
       customId === 'hermes_ticket_onboard' ||
       customId === 'hermes_ticket_migrant' ||
       customId === 'hermes_ticket_court' ||
